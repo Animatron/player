@@ -1,13 +1,15 @@
 /*
- * Copyright (c) 2011 by Animatron.
+ * Copyright (c) 2011-2012 by Animatron.
  * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
 (function() { // anonymous wrapper to exclude global context clash
 
 // Here I use the technique where the operable object is passed as a first parameter to functions,
 // and `this` is null (window object), not to mess with it at all. So you can use this function with 
-// any object as a first parameter and you always now what `this` is in fact. You can name it `delegate`,
+// any object as a first parameter and you always know what `this` is in fact. You can name it `delegate`,
 // if you wish
 
 // FIXME: remove console.log

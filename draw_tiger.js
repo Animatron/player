@@ -1,3 +1,6 @@
+// source: http://blog.millermedeiros.com/wp-content/uploads/2010/04/awesome_tiger.html
+// description: http://blog.millermedeiros.com/converting-svg-to-five3d-flash-vector-graphics-and-html5-canvas/
+
 var draw_tiger = function(context) {
 	context.beginPath();
 	context.moveTo(184.01,144.43);
