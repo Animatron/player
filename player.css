@@ -1,0 +1,24 @@
+/*
+ * Copyright (c) 2011 by Animatron.
+ * All rights are reserved.
+ */
+
+body {
+	background-color: #eee;
+	font-family: sans-serif;
+	margin-right: 60%;
+}
+
+pre {
+	background-color: #faf9ed;
+	color: #333;
+	padding: 0 10px;
+	border: 1px dashed #000;
+}
+
+hr {
+	height: 5px;
+	/* border: 0; */
+	background-color: #999;
+	margin-top: 60px;
+}
