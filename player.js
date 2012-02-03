@@ -187,7 +187,7 @@ Player.prototype.play = function(from, speed) {
     return player;
 }
 
-Player.prototype.stop = function(player) {
+Player.prototype.stop = function() {
     var player = this;
 
     player._ensureState();
@@ -212,7 +212,7 @@ Player.prototype.stop = function(player) {
     return player;    
 }
 
-Player.prototype.pause = function(player) {
+Player.prototype.pause = function() {
     var player = this;
     
     player._ensureState();
@@ -230,6 +230,10 @@ Player.prototype.pause = function(player) {
 
     return player;    
 }
+
+/*Player.prototype.reset = function() {
+    
+}*/
 
 Player.prototype.onerror = function(callback) { // TODO: make and event?
     var player = this;
@@ -513,16 +517,11 @@ Scene.prototype.handle_mdown = function(evt) {
     });*/
 }
 Scene.prototype.calculateDuration = function() {
-    var duration = 0;
+    var gband = [Number.MAX_VALUE, 0];
     this.visitRoots(function(elm) {
-        var gband = elm.xdata._gband,
-            elmLastSec = elm.xdata._gband[0] +
-                         elm.xdata._gband[1];
-        if (elmLastSec > duration) {
-            duration = elmLastSec; 
-        }
+        gband = Render.expandBand(gband, elm.calcWrapBand());
     });
-    return duration;
+    return gband[1];
 }
 
 // === ELEMENTS ================================================================
@@ -772,17 +771,9 @@ Element.prototype.reduceLBand = function(band) {
                   ? Render.reduceBand(this.xdata._lband, band)
                   : band);
 }
-// make element band fit all direct children bands
+// make element band fit all children bands
 Element.prototype.makeBandFit = function() {
-    var children = this.children;
-    if (children.length == 0) return;
-    var initial = this.xdata._gband || [0, 0];
-    for (var ei = 0; ei < children.length; ei++) {
-        //children[ei].makeBandFit();
-        if (children[ei].xdata._gband) {
-            this.applyBand(children[ei].xdata._gband);
-        }
-    }
+    this.applyBand(this.calcWrapBand());
 }
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
@@ -823,6 +814,23 @@ Element.prototype.localTime = function(gtime) {
 Element.prototype.handle_mdown = function(evt) {
     //console.log(evt);
     // TODO: call inBounds
+}
+// calculates band that fits all child elements, recursively
+// FIXME: test
+Element.prototype.calcWrapBand = function() {
+    var children = this.children,
+        lband = this.xdata._lband,
+        result = lband ? lband
+                       : [Number.MAX_VALUE, 0];
+    for (var ei = 0; ei < children.length; ei++) {
+        result = Render.expandBand(result, 
+                    lband ? 
+                      Render.wrapBand(lband, 
+                           children[ei].calcWrapBand())
+                    : children[ei].calcWrapBand());
+    }
+    return (result[1] == Number.MAX_VALUE)
+               ? null : result;
 }
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
@@ -1073,6 +1081,7 @@ var Render = {}; // means "Render"
 
 // makes inner band coords relative to outer space (local => global) 
 Render.wrapBand = function(outer, inner) {
+    if (!outer) return inner;
     return [ outer[0] + inner[0],
              ((outer[0] + inner[1]) <= outer[1])
               ? (outer[0] + inner[1])
@@ -1081,6 +1090,7 @@ Render.wrapBand = function(outer, inner) {
 }
 // makes inner band coords relative to inner space (global => local) 
 Render.unwrapBand = function(outer, inner) {
+    if (!outer) return inner;
     return [ ((inner[0] - outer[0]) >= 0)
               ? (inner[0] - outer[0])
               : 0,
@@ -1091,6 +1101,7 @@ Render.unwrapBand = function(outer, inner) {
 }
 // makes band maximum wide to fith both bands 
 Render.expandBand = function(from, to) {
+    if (!from) return to;
     return [ ((to[0] < from[0]) 
               ? to[0] : from[0]),
              ((to[1] > from[1]) 
@@ -1099,6 +1110,7 @@ Render.expandBand = function(from, to) {
 }
 // finds minimum intersection of the bands
 Render.reduceBand = function(from, to) {
+    if (!from) return to;
     return [ ((to[0] > from[0]) 
               ? to[0] : from[0]),
              ((to[1] < from[1]) 
