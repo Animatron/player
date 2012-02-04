@@ -5,8 +5,6 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-var pl = __js_pl_all;
-
 describe('Path', function() {
 
 	var path;

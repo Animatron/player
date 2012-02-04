@@ -74,8 +74,9 @@ AnimatronImporter.prototype.importElement = function(source, _src,
 AnimatronImporter.prototype._collectData = function(to, src, layer, in_band) {
     to.name = layer.name;
     var xdata = to.xdata;
-    xdata._lband = layer.band;
-    xdata._gband = in_band ? Render.wrapBand(in_band, layer.band) : layer.band;
+    xdata._lband = layer.band || [0, 10]; //FIMXE: remove, when it will be always set in project
+    xdata._gband = in_band ? Render.wrapBand(in_band, xdata._lband) 
+                           : xdata._lband;
     xdata.reg = layer.reg;
     xdata.image = src.url ? Player.prepareImage(src.url) : null;
     xdata.tweens = layer.tweens ? this._convertTweens(layer.tweens) : {};
