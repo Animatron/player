@@ -13,15 +13,10 @@ describe('Element', function() {
 
 		describe('trees', function() {
 
+			var DEF_BAND = [0, Element.DEFAULT_BAND];
+
 			beforeEach(function() {
 				this.addMatchers({
-					toHaveDefaultBand: function(expected) {
-						var xdata = this.actual.xdata;
-						expect(xdata._lband).not.toBeNull();
-						expect(xdata._lband).toEqual([0, Element.DEFAULT_BAND]);
-						expect(xdata._gband).not.toBeNull();
-						expect(xdata._gband).toEqual([0, Element.DEFAULT_BAND]);
-					},
 					toHaveGBand: function(expected) {
 						var xdata = this.actual.xdata;
 						expect(xdata._gband).not.toBeNull();
@@ -32,9 +27,24 @@ describe('Element', function() {
 						expect(xdata._lband).not.toBeNull();
 						expect(xdata._lband).toEqual(expected);
 					},
+					toHaveDefaultBand: function(expected) {
+						var xdata = this.actual.xdata;
+						expect(xdata._lband).not.toBeNull();
+						expect(xdata._lband).toEqual([0, DEF_BAND]);
+						expect(xdata._gband).not.toBeNull();
+						expect(xdata._gband).toEqual([0, DEF_BAND]);
+					},
+					toHaveDefaultLBand: function(expected) {
+						var xdata = this.actual.xdata;
+						expect(xdata._lband).not.toBeNull();
+						expect(xdata._lband).toEqual([0, DEF_BAND]);
+					},
 					toHaveWrappingBand: function(expected) {
 						expect(this.actual.calcWrapBand()).not.toBeNull();
 						expect(this.actual.calcWrapBand()).toEqual(expected);
+					},
+					toHaveDuration: function(expected) {
+						expect(this.actual.calcDuration()).toEqual(expected);
 					}
 				});
 			});
@@ -46,8 +56,7 @@ describe('Element', function() {
 				expect(elem).toHaveDefaultBand();
 			});
 
-			it('sets the default band for every empty element in tree even ' +
-			   'and not changes them even if one is set', function() {
+			it('sets the default band for every empty element in tree', function() {
 				var clip = new Clip();
 
 				clip.add(new Element());
@@ -58,13 +67,6 @@ describe('Element', function() {
 				clip.add(elem);
 				expect(clip).toHaveDefaultBand();
 				expect(elem).toHaveDefaultBand();
-				
-				elem.setBand([0, 12.1]);
-				elem.setLBand([0, 12.1]);
-				expect(elem).toHaveGBand([0, 12.1]);
-				expect(elem).toHaveLBand([0, 12.1]);
-
-				expect(clip).toHaveDefaultBand();
 
 				var clip2 = new Clip();
 				var elem2 = new Element();
@@ -72,25 +74,20 @@ describe('Element', function() {
 				var elem4 = new Element();
 				var elem5 = new Element();
 				clip.add(elem5);
-				elem3.setBand([14, 15]);
-				elem3.setLBand([14, 15]);
-				elem4.setBand([19, 20]);
-				elem4.setLBand([16, 18]);
 				elem2.add(elem3);
 				elem2.add(new Clip());
 				elem3.add(elem);
 				elem4.add(new Clip());
 				elem.add(elem4);
 				clip.add(elem2);
+				clip.add(clip2);
 
 				expect(clip).toHaveDefaultBand();
-				expect(elem).toHaveGBand([0, 12.1]);
-				expect(elem).toHaveLBand([0, 12.1]);
+				expect(clip2).toHaveDefaultBand();
+				expect(elem).toHaveDefaultBand();
 				expect(elem2).toHaveDefaultBand();
-				expect(elem3).toHaveGBand([14, 15]);
-				expect(elem3).toHaveLBand([14, 15]);
-				expect(elem4).toHaveGBand([19, 20]);
-				expect(elem4).toHaveLBand([16, 18]);
+				expect(elem3).toHaveDefaultBand();
+				expect(elem4).toHaveDefaultBand();
 				expect(elem5).toHaveDefaultBand();
 			});
 
@@ -179,21 +176,96 @@ describe('Element', function() {
 				expect(elem).toHaveLBand([8.19, 8.23]);
 			});
 
-			it('corrects bands immediately when one of them set', function() {
+			it('corrects bands immediately when one of them set ' +
+			   'or when tree is changed', function() {
+			   	// local band of element is a band relative to its parent element,
+			   	// global band of element is the same band calculated relative to the whole scene
+			   	// 
+			   	// for root element, global band is always equal to local band
+
+			   	// global band of some deep child may be calculated like this:
+			   	// root global band + child local start + child local start... + length of clip, if
+			   	//   it not exceeds length of parent, global end of parent if it does 
+			   	//
+			   	// visually changing a clip band might look like you've moved parent on a timeline,
+			   	// both its bands changed, and among with that all children elements are moved, 
+			   	// but their local bands were not changed. 
+
 				var elem = new Element();
-				elem.setBand([5, 15]);
-				expect(elem).toHaveLBand([5, 15]);
+				elem.setLBand([6, 12]);
+				expect(elem).toHaveGBand([6, 12]);
+				expect(elem).toHaveLBand([6, 12]);
+				elem.setBand([5, 20]);
+				expect(elem).toHaveGBand([5, 20]);
+				expect(elem).toHaveLBand([5, 20]);
+
 				var sub = new Element();
 				expect(sub).toHaveDefaultBand();
 				elem.add(sub);
-				expect(sub).toHaveDefaultBand();
+				expect(sub).toHaveGBand([5, 5+Element.DEFAULT_BAND]);
+				expect(sub).toHaveLBand(DEF_BAND);
+				// if you change local band of element, it also corrects its global band and
+				// global bands of all children
+				sub.setLBand([7, 15]);
+				expect(sub).toHaveGBand([5+7, 5+15]);
+				expect(sub).toHaveLBand([7, 15]);
+				// if you change global band of element, it also corrects its local band and 
+				// global bands of all children 
 				sub.setBand([7, 15]);
-				expect(sub).toHaveLBand([2, 9]);
+				expect(sub).toHaveGBand([7, 15]);
+				expect(sub).toHaveLBand([7-5, (7-5)+(15-7)]);
+				sub.setBand([8, 25]);
+				expect(sub).toHaveGBand([8, 20]); // it must fit parent, gband is also "actual" band
+				expect(sub).toHaveLBand([8-5, (8-5)+(25-8)]);
+				elem.setBand([6, 32]);
+				expect(sub).toHaveGBand([8, 25]); // gband was corrected because now this element fits
+				// local band is not changed for deep elements
+				expect(sub).toHaveLBand([8-5, (8-5)+(25-8)]);
+
+				// elem.gband == [6, 32]
 				var sub2 = new Element();
 				expect(sub2).toHaveDefaultBand();
 				elem.add(sub2);
-				sub2.setBand([6, 17]); // throw error?
-				expect(sub2).toHaveLBand([0, 11]);
+				expect(sub2).toHaveGBand([6, (6+Element.DEFAULT_BAND < 32) 
+				                             ? 6+Element.DEFAULT_BAND : 32 ]);
+				expect(sub2).toHaveLBand(DEF_BAND);
+				sub2.setLBand([-2, 6]);
+				expect(sub2).toHaveGBand([6, 6+(-2)+(6-(-2))]); // it must fit parent, gband is also "actual" band
+				expect(sub2).toHaveLBand([-2, 6]);
+				elem.setBand([4, 30]);
+				expect(sub2).toHaveGBand([4, 4+(-2)+(6-(-2))]); // [4, 10]
+				expect(sub2).toHaveLBand([-2, 6]);
+				sub2.setBand([9, 34]);
+				expect(sub2).toHaveGBand([9, 30]); // it must fit parent, gband is also "actual" band
+				expect(sub2).toHaveLBand([9-4, (9-4)+(34-9)]); // [5, 25] 
+				
+				// elem.gband == [4, 30]
+				// sub2.gband == [9, 30]
+				var subsub = new Element();
+				expect(subsub).toHaveDefaultBand();
+				sub2.add(subsub);
+				expect(subsub).toHaveGBand([9, 9+Element.DEFAULT_BAND]);
+				expect(subsub).toHaveLBand(DEF_BAND);
+				elem.setBand([2, 14]);
+				expect(sub2).toHaveGBand([2+5, 14]); // 7, (2+5)+(25-5) = 27 > 14 => 14
+				expect(sub2).toHaveLBand([5, 25]); //kept from [9-4, (9-4)+(34-9)]
+				expect(subsub).toHaveGBand([2+5, ((2+5+Element.DEFAULT_BAND) < 14)
+				                                 ? (2+5+Element.DEFAULT_BAND) : 14 ]);
+			});
+
+			it('local band is always equal to global band for root', function() {
+				var elem = new Element();
+				expect(elem).toHaveDefaultBand();
+				elem.setBand([5, 20]);
+				expect(elem).toHaveGBand([5, 20]);
+				expect(elem).toHaveLBand([5, 20]);	
+				elem.setBand([6, 17]);
+				expect(elem).toHaveGBand([6, 17]);
+				expect(elem).toHaveLBand([6, 17]);
+				elem.setBand([-5.2, 1624.3]);
+				expect(elem).toHaveGBand([-5.2, 1624.3]);
+				expect(elem).toHaveLBand([-5.2, 1624.3]);
+				// TODO: cycle on random values	
 			});
 
 			it('gets correct wrapping band', function() {
@@ -234,8 +306,50 @@ describe('Element', function() {
 				expect(elem).toHaveWrappingBand([-600.1, 499.2]);
 			});
 
-			it('makes band fit', function() {
+			it('looks like moving elements on timeline', function() {
+				var elem = new Element();
+				elem.setBand([5, 34]);
+
+				var sub = new Element();
+				elem.add(sub);
+				sub.setLBand([3, 25]);
+				expect(sub).toHaveGBand([8, 33]);
+
+				var subsub = new Element();
+				sub.add(subsub);
+				subsub.setLBand([1, 5]);
+				expect(subsub).toHaveGBand([9, 13]);
+
+				var subsubsub = new Element();
+				subsub.add(subsubsub);
+				subsubsub.setLBand([-1, 6]);
+				expect(subsubsub).toHaveGBand([9, 13]); // it is wider than parent, so it made to "fit"
+
+				elem.setBand([6, 37]); // move one sec left
+				expect(sub).toHaveGBand([9, 34]);
+				expect(subsub).toHaveGBand([10, 14]);
+				expect(subsubsub).toHaveGBand([10, 14]);
+
+				elem.setBand([17, 50]);
+				expect(sub).toHaveGBand([20, 75]);
+				expect(subsub).toHaveGBand([21, 25]);
+				expect(subsubsub).toHaveGBand([21, 25]);
+
+				sub.setLBand([2, 20]);
+				expect(elem).toHaveGBand([17, 50]);
+				expect(sub).toHaveGBand([19, 37]);
+				expect(subsub).toHaveGBand([20, 24]);
+				expect(subsubsub).toHaveGBand([20, 24]);
+				
+				subsub.setLBand([0, 19]);
+				expect(elem).toHaveGBand([17, 50]);
+				expect(sub).toHaveGBand([19, 37]);
+				expect(subsub).toHaveGBand([19, 38]);
+				expect(subsubsub).toHaveGBand([19, 25]); // now it fits
 			});
+
+			/*it('makes band fit', function() {
+			});*/
 
 			function makeElementWithBand(band) {
 				var elem = new Element();
@@ -245,7 +359,7 @@ describe('Element', function() {
 
 		});
 
-		describe('atomic functions', function() {
+		/* TODO: describe('atomic functions', function() {
 
 			it('expands bands', function() {
 			});
@@ -259,17 +373,116 @@ describe('Element', function() {
 			it('unwraps bands', function() {
 			});
 
-		});
+		}); */
 
 		describe('time stuff', function() {
 
 			it('calculates duration right', function() {
+				expect(makeElementWithBand([-1, 19])).toHaveDuration(21);
+				expect(makeElementWithBand([5, 16])).toHaveDuration(11);
+				expect(makeElementWithBand([5.3, 1012])).toHaveDuration(1012-5.3);
+				// TODO: calculate scene duration
 			});
 
 			it('gets local time right', function() {
+				var elem = new Element();
+				elem.setBand([5, 14]);
+				expect(elem.localTime(6)).toEqual(1);
+				expect(elem.localTime(-2)).toEqual(-7);
+				expect(elem.localTime(14)).toEqual(9);
+				expect(elem.localTime(18)).toEqual(13);
+				expect(elem.localTime(7.23)).toEqual(2.23);
+				expect(elem.localTime(105)).toEqual(100);
+
+				var sub = new Element();
+				elem.add(sub);
+				sub.setLBand([3, 25]);
+				//expect(sub).toHaveGBand([8, 14]);
+				expect(sub.localTime(6)).toEqual(-2);
+				expect(sub.localTime(-2)).toEqual(-10);
+				expect(sub.localTime(14)).toEqual(6);
+				expect(sub.localTime(18)).toEqual(10);
+				expect(sub.localTime(7.23)).toEqual(-0.77);
+				expect(sub.localTime(3.14)).toEqual(-4.86);
+
+				var subsub = new Element();
+				sub.add(subsub);
+				subsub.setLBand([1, 10]);
+				//expect(subsub).toHaveGBand([9, 18]);
+				expect(subsub.localTime(6)).toEqual(-3);
+				expect(subsub.localTime(-2)).toEqual(-7);
+				expect(subsub.localTime(14)).toEqual(5);
+				expect(subsub.localTime(18)).toEqual(9);
+				expect(subsub.localTime(7.23)).toEqual(-1.77);
+				expect(subsub.localTime(55)).toEqual(46);
+
+				var subsubsub = new Element();
+				subsub.add(subsubsub);
+				subsubsub.setLBand([-2, 6]);
+				//expect(subsubsub).toHaveGBand([9, 15]); // length is 8, but it must fit
+				expect(subsubsub.localTime(7)).toEqual(0);
+				expect(subsubsub.localTime(9)).toEqual(2);
+				expect(subsubsub.localTime(6)).toEqual(-1);
+				expect(subsubsub.localTime(-2)).toEqual(-9);
+				expect(subsubsub.localTime(14)).toEqual(7);
+				expect(subsubsub.localTime(18)).toEqual(11);
+				expect(subsubsub.localTime(7.23)).toEqual(0.23);
 			});
 
 			it('correctly checks if elements fits global time', function() {
+				var elem = new Element();
+				elem.setBand([5, 14]);
+				expect(elem.fits(elem.localTime(6))).toBeTruthy();
+				expect(elem.fits(elem.localTime(5))).toBeTruthy();
+				expect(elem.fits(elem.localTime(4))).toBeFalsy();
+				expect(elem.fits(elem.localTime(15))).toBeFalsy();
+				expect(elem.fits(elem.localTime(-2))).toBeFalsy();
+				expect(elem.fits(elem.localTime(14))).toBeTruthy();
+				expect(elem.fits(elem.localTime(7.23))).toBeTruthy();
+				expect(elem.fits(elem.localTime(105))).toBeFalsy();
+
+				var sub = new Element();
+				elem.add(sub);
+				sub.setLBand([3, 25]);
+				//expect(sub).toHaveGBand([8, 14]);
+				expect(sub.fits(sub.localTime(6))).toBeFalsy();
+				expect(sub.fits(sub.localTime(5))).toBeFalsy();
+				expect(sub.fits(sub.localTime(8))).toBeTruthy();
+				expect(sub.fits(sub.localTime(9.15))).toBeTruthy();
+				expect(sub.fits(sub.localTime(15))).toBeFalsy();
+				expect(sub.fits(sub.localTime(-2))).toBeFalsy();
+				expect(sub.fits(sub.localTime(14))).toBeTruthy();
+				expect(sub.fits(sub.localTime(7.23))).toBeFalsy();
+				expect(sub.fits(sub.localTime(3.14))).toBeFalsy();
+
+				var subsub = new Element();
+				sub.add(subsub);
+				subsub.setLBand([-2, 11]);
+				//expect(subsub).toHaveGBand([8, 14]); // length is 13, but it must fit
+				expect(subsub.fits(subsub.localTime(6))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(5))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(8))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(9.15))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(15))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(-2))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(14))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(7.23))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(3.14))).toBeFalsy();
+
+				elem.setLBand([5, 64]);
+				//expect(subsubsub).toHaveGBand([8, 17]); // now it must fit
+				expect(subsub.fits(subsub.localTime(6))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(5))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(8))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(9.15))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(15))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(16.6))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(17))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(-2))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(14))).toBeTruthy();
+				expect(subsub.fits(subsub.localTime(7.23))).toBeFalsy();
+				expect(subsub.fits(subsub.localTime(3.14))).toBeFalsy();
+
 			});
 
 		});
