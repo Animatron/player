@@ -169,6 +169,8 @@ Player.prototype.play = function(from, speed) {
 
     _state.happens = Player.PLAYING;
 
+    console.log(player.anim);
+
     D.drawNext(player.ctx, _state, player.anim, 
                function(state, time) {
                    if (time > (state.duration + Player.PEFF)) {
@@ -436,9 +438,8 @@ Scene.prototype._addToTree = function(elm) {
         throw new Error('It appears that it is not a clip object or element that you pass');  
     }
     this.duration = this.calculateDuration();
-    if (!elm.xdata._gband) {
-        elm.setBand([0, this.duration]);
-    } else if (elm.xdata._gband[1] > this.duration) {
+    if (elm.xdata._gband && 
+        (elm.xdata._gband[1] > this.duration)) {
         this.duration = elm.xdata._gband[1];
     };
     this._register(elm);
@@ -664,11 +665,6 @@ Element.prototype.addS = function(dimen, draw, onframe, transform) {
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
-    if (elm.xdata._gband) {
-        this.makeBandFit();
-    } else if (this.xdata._gband) {
-        elm.setBand(this.xdata._gband);
-    }
 };
 Element.prototype._addChildren = function(elms) {
     for (var ei = 0; ei < elms.length; ei++) {
@@ -1082,11 +1078,19 @@ var Render = {}; // means "Render"
 // makes inner band coords relative to outer space (local => global) 
 Render.wrapBand = function(outer, inner) {
     if (!outer) return inner;
+    /*var finish = ((outer[0] + inner[1]) <= outer[1])
+                  ? (outer[0] + inner[1])
+                  : outer[1],
+        start = (finish < outer[1]) 
+                  ? (outer[0] + inner[0])
+                  : inner[]
+         
+    return [ start, finish ]; */
     return [ outer[0] + inner[0],
              ((outer[0] + inner[1]) <= outer[1])
               ? (outer[0] + inner[1])
-              : outer[1] 
-           ];
+              : outer[1]               
+            ];
 }
 // makes inner band coords relative to inner space (global => local) 
 Render.unwrapBand = function(outer, inner) {

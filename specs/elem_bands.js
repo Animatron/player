@@ -348,8 +348,8 @@ describe('Element', function() {
 				expect(subsubsub).toHaveGBand([19, 25]); // now it fits
 			});
 
-			/*it('makes band fit', function() {
-			});*/
+			xit('makes band fit', function() {
+			});
 
 			function makeElementWithBand(band) {
 				var elem = new Element();
@@ -359,21 +359,21 @@ describe('Element', function() {
 
 		});
 
-		/* TODO: describe('atomic functions', function() {
+		xdescribe('atomic functions', function() {
 
-			it('expands bands', function() {
+			xit('expands bands', function() {
 			});
 
-			it('reduces bands', function() {
+			xit('reduces bands', function() {
 			});
 
-			it('wraps bands', function() {
+			xit('wraps bands', function() {
 			});
 
-			it('unwraps bands', function() {
+			xit('unwraps bands', function() {
 			});
 
-		}); */
+		});
 
 		describe('time stuff', function() {
 

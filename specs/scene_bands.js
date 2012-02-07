@@ -4,3 +4,11 @@
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
+
+describe('Scene', function() {
+
+    xit('calculates scene duration correctly', function() {
+ 		
+    });
+
+});

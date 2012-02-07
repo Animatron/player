@@ -169,6 +169,9 @@ describe('Path', function() {
 				           .bounds()).toEqual([-2115, 12, 314, 716]);
 			});
 
+			xit('determines bounds of the image', function() {
+			});
+
 			xit('determines bounds of the curve-path', function() {
 			});
 
@@ -217,9 +220,12 @@ describe('Path', function() {
 				expect(path.inBounds([32, 33])).toBeFalsy();
 				expect(path.inBounds([32, 43])).toBeFalsy();
 				expect(path.inBounds([33, 32])).toBeFalsy();
+			});
 
-				
-				// TODO: rect / round paths with or without fill
+			xit('determines if a point is inside or outside of the rect path bounds', function() {
+			});
+
+			xit('determines if a point is inside or outside of the round path bounds', function() {
 			});
 
 			xit('determines if a point is inside or outside of the curve path bounds', function() {				
@@ -227,10 +233,56 @@ describe('Path', function() {
 
 		});
 
-		xdescribe('contains', function() {
+		describe('contains', function() {
 
-			xit('determines if a point is inside or outside of the line path', function() {
-				
+			it('determines if a point is inside or outside of the line path', function() {
+				path = new Path('M10 15 Z');
+				expect(path.contains([10, 15])).toBeTruthy();
+				expect(path.contains([0, 15])).toBeFalsy();
+				expect(path.contains([0, 0])).toBeFalsy();
+				expect(path.contains([11, 16])).toBeFalsy();
+				expect(path.contains([100, 15])).toBeFalsy();
+				expect(path.contains([100, 115])).toBeFalsy();
+				expect(path.contains([1100, 15])).toBeFalsy();
+				expect(path.contains([10, 1115])).toBeFalsy();
+				expect(path.contains([20, 12])).toBeFalsy();
+				expect(path.contains([-111, 12])).toBeFalsy();
+				expect(path.contains([-112, -1])).toBeFalsy();
+				expect(path.contains([0, -11])).toBeFalsy();
+
+				path = new Path('M-2 -2 L15 15 Z');
+				expect(path.contains([15, 15])).toBeTruthy();
+				expect(path.contains([14, 14])).toBeTruthy();
+				expect(path.contains([10, 10])).toBeTruthy();
+				expect(path.contains([8.23, 8.23])).toBeTruthy();
+				expect(path.contains([5, 5])).toBeTruthy();
+				expect(path.contains([2, 2])).toBeTruthy();
+				expect(path.contains([0, 0])).toBeTruthy();
+				expect(path.contains([-1, -1])).toBeTruthy();
+				expect(path.contains([-2, -2])).toBeTruthy();
+				expect(path.contains([-2.1, -2.1])).toBeFalsy();
+				expect(path.contains([-3, -3])).toBeFalsy();
+				expect(path.contains([15, 14])).toBeFalsy();
+				expect(path.contains([14, 15])).toBeFalsy();
+				expect(path.contains([14, 13])).toBeFalsy();
+				expect(path.contains([13, 14])).toBeFalsy();
+				expect(path.contains([10, 11])).toBeFalsy();
+				expect(path.contains([15, 16])).toBeFalsy();
+				expect(path.contains([-100, -100])).toBeFalsy();
+				expect(path.contains([15.3, 15.3])).toBeFalsy();
+				expect(path.contains([16, 16])).toBeFalsy();
+				expect(path.contains([32, 32])).toBeFalsy();
+				expect(path.contains([32, 33])).toBeFalsy();
+				expect(path.contains([32, 43])).toBeFalsy();
+				expect(path.contains([33, 32])).toBeFalsy();
+			});
+
+			xit('determines if a point is inside or outside of the rect path', function() {
+				// FIXME:
+			});
+
+			xit('determines if a point is inside or outside of the round path', function() {
+				// FIXME:
 			});
 
 			xit('determines if a point is inside or outside of the curve path', function() {				
