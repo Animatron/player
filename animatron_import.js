@@ -60,20 +60,20 @@ AnimatronImporter.prototype.importElement = function(source, _src,
     if (has_layers) { // source is a scene with children
         var _layers = _src.layers;
         _trg.name = _src.name;
-        xdata._lband = _src.band || [0, 10]; //FIMXE: remove, when it will be always set in project
-        xdata._gband = in_band ? Bands.wrap(in_band, xdata._lband) 
-                               : xdata._lband;
+        xdata.lband = _src.band || [0, 10]; //FIMXE: remove, when it will be always set in project
+        xdata.gband = in_band ? Bands.wrap(in_band, xdata.lband) 
+                               : xdata.lband;
         // in animatron, layers are in reverse order
         for (var li = (_layers.length - 1); li >= 0; li--) {
             var _clyr = _layers[li];
             var _csrc = this.findElement(source, _clyr.eid);
             _trg.add(this.importElement(source, _csrc, _clyr, 
-                                        xdata._gband));
+                                        xdata.gband));
         };
     } else { // source is an element with no children
-        xdata._lband = layer.band || [0, 10]; //FIMXE: remove, when it will be always set in project
-        xdata._gband = in_band ? Bands.wrap(in_band, xdata._lband) 
-                               : xdata._lband;
+        xdata.lband = layer.band || [0, 10]; //FIMXE: remove, when it will be always set in project
+        xdata.gband = in_band ? Bands.wrap(in_band, xdata.lband) 
+                               : xdata.lband;
         this._collectData(_trg, _src, layer, in_band);
     }
     return _trg;

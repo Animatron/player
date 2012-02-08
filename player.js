@@ -438,9 +438,9 @@ Scene.prototype._addToTree = function(elm) {
         throw new Error('It appears that it is not a clip object or element that you pass');  
     }
     this.duration = this.calculateDuration();
-    if (elm.xdata._gband && 
-        (elm.xdata._gband[1] > this.duration)) {
-        this.duration = elm.xdata._gband[1];
+    if (elm.xdata.gband && 
+        (elm.xdata.gband[1] > this.duration)) {
+        this.duration = elm.xdata.gband[1];
     };
     this._register(elm);
     if (elm.children) this._addElems(elm.children);
@@ -702,7 +702,7 @@ Element.prototype.contains = function(time, point) {
 }
 Element.prototype.setBand = function(band) {
     if (!band) return;
-    this.xdata._gband = band;
+    this.xdata.gband = band;
     var parent = this.parent,
         children = this.children;
     if (!this.__sbflag) {
@@ -719,36 +719,36 @@ Element.prototype.setBand = function(band) {
         };
         this.__sbflag = false;
     }
-    this.xdata._lband = parent 
-        ? Bands.unwrap(parent.xdata._gband, band)
+    this.xdata.lband = parent 
+        ? Bands.unwrap(parent.xdata.gband, band)
         : band;
 }
 // expand element's global-time band if it is already set, 
 // or just sets it, if it is not
 Element.prototype.applyBand = function(band) {
-    this.setBand(this.xdata._gband 
-                 ? Bands.expand(this.xdata._gband, band)
+    this.setBand(this.xdata.gband 
+                 ? Bands.expand(this.xdata.gband, band)
                  : band);
 }
 // reduce element's global-time band if it is already set, 
 // or just sets it, if it is not 
 Element.prototype.reduceBand = function(band) {
-    this.setBand(this.xdata._gband 
-                 ? Bands.reduce(this.xdata._gband, band)
+    this.setBand(this.xdata.gband 
+                 ? Bands.reduce(this.xdata.gband, band)
                  : band);
 }
 Element.prototype.setLBand = function(band) {
     if (!band) return;
-    this.xdata._lband = this.parent 
-        ? Bands.unwrap(this.parent.xdata._gband, band)
+    this.xdata.lband = this.parent 
+        ? Bands.unwrap(this.parent.xdata.gband, band)
         : band;
-    this.xdata._gband = this.parent 
-        ? Bands.wrap(this.parent.xdata._gband, 
-                     this.xdata._lband)
+    this.xdata.gband = this.parent 
+        ? Bands.wrap(this.parent.xdata.gband, 
+                     this.xdata.lband)
         : band;
     var children = this.children;
     for (var ei = 0; ei < children.length; ei++) {
-        children[ei].reduceBand(this.xdata._gband); 
+        children[ei].reduceBand(this.xdata.gband); 
                                        // it will correct child band
                                        // if it will be narrower than the
                                        // band passed
@@ -757,15 +757,15 @@ Element.prototype.setLBand = function(band) {
 // reduce element's local-time band if it is already set, 
 // or just sets it, if it is not 
 Element.prototype.applyLBand = function(band) { 
-    this.setLBand(this.xdata._lband 
-                  ? Bands.expand(this.xdata._lband, band)
+    this.setLBand(this.xdata.lband 
+                  ? Bands.expand(this.xdata.lband, band)
                   : band);
 }
 // expand element's local-time band if it is already set, 
 // or just sets it, if it is not
 Element.prototype.reduceLBand = function(band) {
-    this.setLBand(this.xdata._lband 
-                  ? Bands.reduce(this.xdata._lband, band)
+    this.setLBand(this.xdata.lband 
+                  ? Bands.reduce(this.xdata.lband, band)
                   : band);
 }
 // make element band fit all children bands
@@ -774,34 +774,34 @@ Element.prototype.makeBandFit = function() {
 }
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
-    return (ltime <= (this.xdata._lband[1]
-                      - this.xdata._lband[0]));
+    return (ltime <= (this.xdata.lband[1]
+                      - this.xdata.lband[0]));
 }
 Element.prototype.localTime = function(gtime) {
     var t = (this.xdata.t === null) || 0;
     switch (this.xdata.mode) {
         case Element.M_PLAYONCE:
             return this.parent
-                   ? ((gtime - this.parent.xdata._gband[0])
-                      - this.xdata._lband[0]) + t
-                   : (gtime - this.xdata._gband[0]) + t;
+                   ? ((gtime - this.parent.xdata.gband[0])
+                      - this.xdata.lband[0]) + t
+                   : (gtime - this.xdata.gband[0]) + t;
         case Element.M_LOOP: {
-                var duration = this.xdata._lband[1] - 
-                               this.xdata._lband[0];
+                var duration = this.xdata.lband[1] - 
+                               this.xdata.lband[0];
                 var offset = this.parent 
-                             ? ((gtime - this.parent.xdata._gband[0])
-                                - this.xdata._lband[0])
-                             : (gtime - this.xdata._gband[0]);
+                             ? ((gtime - this.parent.xdata.gband[0])
+                                - this.xdata.lband[0])
+                             : (gtime - this.xdata.gband[0]);
                 var wtime = Math.floor(offset / duration); 
                 return offset - (duration * wtime) + t;
             }
         case Element.M_BOUNCE:
-                var duration = this.xdata._lband[1] - 
-                               this.xdata._lband[0];
+                var duration = this.xdata.lband[1] - 
+                               this.xdata.lband[0];
                 var offset = this.parent 
-                             ? ((gtime - this.parent.xdata._gband[0])
-                                - this.xdata._lband[0])
-                             : (gtime - this.xdata._gband[0]);
+                             ? ((gtime - this.parent.xdata.gband[0])
+                                - this.xdata.lband[0])
+                             : (gtime - this.xdata.gband[0]);
                 var wtime = Math.floor(offset / duration); 
                 var result = offset - (duration * wtime) + t;
                 return ((wtime % 2) === 0) 
@@ -816,7 +816,7 @@ Element.prototype.handle_mdown = function(evt) {
 // FIXME: test
 Element.prototype.calcWrapBand = function() {
     var children = this.children,
-        lband = this.xdata._lband,
+        lband = this.xdata.lband,
         result = lband ? lband
                        : [Number.MAX_VALUE, 0];
     for (var ei = 0; ei < children.length; ei++) {
@@ -1082,7 +1082,7 @@ Render.addXDataRender = function(elm) {
     if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
     
     // modifiers
-    //if (xdata._gband) elm.addModifier(Render.m_checkBand, xdata._gband);
+    //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
         
