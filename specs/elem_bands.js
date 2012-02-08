@@ -40,8 +40,8 @@ describe('Element', function() {
 						expect(xdata._lband).toEqual([0, DEF_BAND]);
 					},
 					toHaveWrappingBand: function(expected) {
-						expect(this.actual.calcWrapBand()).not.toBeNull();
-						expect(this.actual.calcWrapBand()).toEqual(expected);
+						expect(this.actual.findWrapBand()).not.toBeNull();
+						expect(this.actual.findWrapBand()).toEqual(expected);
 					},
 					toHaveDuration: function(expected) {
 						expect(this.actual.calcDuration()).toEqual(expected);

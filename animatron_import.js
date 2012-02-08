@@ -59,9 +59,6 @@ AnimatronImporter.prototype.importElement = function(source, _src,
     if (layer/* && layer.dynamic*/) {
         this._collectDynamicData(_trg, layer, in_band);
     }
-    if (!_src.layers) {
-        this._collectStaticData(_trg, _src);
-    }
     if (has_layers) {
         var _layers = _src.layers;
         // in animatron, layers are in reverse order
@@ -69,8 +66,15 @@ AnimatronImporter.prototype.importElement = function(source, _src,
             var _clyr = _layers[li];
             var _csrc = this.findElement(source, _clyr.eid);
             _trg.add(this.importElement(source, _csrc, _clyr, 
-                                        _trg.xdata.gband));
+                                        layer ? _trg.xdata.gband
+                                              : null));
         };
+    } else {
+        this._collectStaticData(_trg, _src);
+    }
+    if (!layer) {
+        _trg.makeBandFit(); // if there is no parent layer, then it is a scene 
+                            // (in Animatron terms) with all elements added
     }
     return _trg;
 };
@@ -78,7 +82,7 @@ AnimatronImporter.prototype.importElement = function(source, _src,
 AnimatronImporter.prototype._collectDynamicData = function(to, layer, in_band) {
     to.name = layer.name;
     var x = to.xdata;
-    x.lband = (layer && layer.band) ? layer.band : [0, 10]; //FIMXE: remove, when it will be always set in project
+    x.lband = layer.band ? layer.band : [0, 10]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband) 
                       : x.lband;
     x.reg = layer.reg;

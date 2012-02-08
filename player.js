@@ -520,7 +520,7 @@ Scene.prototype.handle_mdown = function(evt) {
 Scene.prototype.calculateDuration = function() {
     var gband = [Number.MAX_VALUE, 0];
     this.visitRoots(function(elm) {
-        gband = Bands.expand(gband, elm.calcWrapBand());
+        gband = Bands.expand(gband, elm.findWrapBand());
     });
     return gband[1];
 }
@@ -770,7 +770,7 @@ Element.prototype.reduceLBand = function(band) {
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
-    this.applyBand(this.calcWrapBand());
+    this.applyBand(this.findWrapBand());
 }
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
@@ -814,18 +814,14 @@ Element.prototype.handle_mdown = function(evt) {
 }
 // calculates band that fits all child elements, recursively
 // FIXME: test
-Element.prototype.calcWrapBand = function() {
-    var children = this.children,
-        lband = this.xdata.lband,
-        result = lband ? lband
-                       : [Number.MAX_VALUE, 0];
+Element.prototype.findWrapBand = function() {
+    var children = this.children;
+    if (children.length === 0) return this.xdata.gband;
+    var result = [ Number.MAX_VALUE, 0 ];
     for (var ei = 0; ei < children.length; ei++) {
-        result = Bands.expand(result, 
-              lband ? Bands.wrap(lband, children[ei].calcWrapBand())
-                    : children[ei].calcWrapBand());
+        result = Bands.expand(result, children[ei].findWrapBand());
     }
-    return (result[1] == Number.MAX_VALUE)
-               ? null : result;
+    return (result[0] !== Number.MAX_VALUE) ? result : null;
 }
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
