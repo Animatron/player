@@ -848,8 +848,8 @@ Element.createXData = function() {
              'dimen': null,
              'reg': null,
              'mode': Element.M_PLAYONCE,
-             '_lband': [0, Element.DEFAULT_BAND], // required to be private?
-             '_gband': [0, Element.DEFAULT_BAND], // required to be private?
+             'lband': [0, Element.DEFAULT_BAND],
+             'gband': [0, Element.DEFAULT_BAND],
              '_mpath': null };
 }
 

@@ -55,39 +55,40 @@ AnimatronImporter.prototype.findElement = function(source, id) {
 AnimatronImporter.prototype.importElement = function(source, _src, 
                                                      layer, in_band) {
     var has_layers = (_src.layers != null),                                                   
-        _trg = has_layers ? (new Clip()) : (new Element()),
-        xdata = _trg.xdata;
-    if (has_layers) { // source is a scene with children
+        _trg = has_layers ? (new Clip()) : (new Element());
+    if (layer/* && layer.dynamic*/) {
+        this._collectDynamicData(_trg, layer, in_band);
+    }
+    if (!_src.layers) {
+        this._collectStaticData(_trg, _src);
+    }
+    if (has_layers) {
         var _layers = _src.layers;
-        _trg.name = _src.name;
-        xdata.lband = _src.band || [0, 10]; //FIMXE: remove, when it will be always set in project
-        xdata.gband = in_band ? Bands.wrap(in_band, xdata.lband) 
-                               : xdata.lband;
         // in animatron, layers are in reverse order
         for (var li = (_layers.length - 1); li >= 0; li--) {
             var _clyr = _layers[li];
             var _csrc = this.findElement(source, _clyr.eid);
             _trg.add(this.importElement(source, _csrc, _clyr, 
-                                        xdata.gband));
+                                        _trg.xdata.gband));
         };
-    } else { // source is an element with no children
-        xdata.lband = layer.band || [0, 10]; //FIMXE: remove, when it will be always set in project
-        xdata.gband = in_band ? Bands.wrap(in_band, xdata.lband) 
-                               : xdata.lband;
-        this._collectData(_trg, _src, layer, in_band);
     }
     return _trg;
 };
 // collect required data from source layer
-AnimatronImporter.prototype._collectData = function(to, src, layer, in_band) {
+AnimatronImporter.prototype._collectDynamicData = function(to, layer, in_band) {
     to.name = layer.name;
-    var xdata = to.xdata;
-
-    xdata.reg = layer.reg;
-    xdata.image = src.url ? Player.prepareImage(src.url) : null;
-    xdata.tweens = layer.tweens ? this._convertTweens(layer.tweens) : {};
-    xdata.path = src.path ? this._convertPath(src.path, src.stroke, src.fill) 
-                          : null;
+    var x = to.xdata;
+    x.lband = (layer && layer.band) ? layer.band : [0, 10]; //FIMXE: remove, when it will be always set in project
+    x.gband = in_band ? Bands.wrap(in_band, x.lband) 
+                      : x.lband;
+    x.reg = layer.reg;
+    x.tweens = layer.tweens ? this._convertTweens(layer.tweens) : {};
+};
+AnimatronImporter.prototype._collectStaticData = function(to, src) {
+    //to.name = src.name;
+    to.xdata.image = src.url ? Player.prepareImage(src.url) : null;
+    to.xdata.path = src.path ? this._convertPath(src.path, src.stroke, src.fill) 
+                             : null;
 };
 AnimatronImporter.prototype._convertTweens = function(tweens) {
     var result = {};
