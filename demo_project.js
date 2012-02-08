@@ -116,7 +116,7 @@ var demo_project =
         "id": "9413dd388d0d9ead55a30d05",
         "stroke": {
           "width": 4.0,
-          "color": "blue",
+          "paint": { "color": "blue" },
           "cap": "round",
           "join": "round"
         },
@@ -160,7 +160,7 @@ var demo_project =
         "id": "9df8f651d89cbe3546b5b105",
         "stroke": {
           "width": 4.0,
-          "color": "green",
+          "paint": { "color": "green" },
           "cap": "round",
           "join": "round"
         },

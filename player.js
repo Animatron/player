@@ -169,7 +169,7 @@ Player.prototype.play = function(from, speed) {
 
     _state.happens = Player.PLAYING;
 
-    console.log(player.anim);
+    console.log('will play', player.anim);
 
     D.drawNext(player.ctx, _state, player.anim, 
                function(state, time) {
@@ -520,7 +520,7 @@ Scene.prototype.handle_mdown = function(evt) {
 Scene.prototype.calculateDuration = function() {
     var gband = [Number.MAX_VALUE, 0];
     this.visitRoots(function(elm) {
-        gband = Render.expandBand(gband, elm.calcWrapBand());
+        gband = Bands.expand(gband, elm.calcWrapBand());
     });
     return gband[1];
 }
@@ -549,6 +549,7 @@ function Element(draw, onframe) {
 Element.M_PLAYONCE = 0;
 Element.M_LOOP = 1;
 Element.M_BOUNCE = 2;
+Element.DEFAULT_BAND = 10;
 // TODO: draw and onframe must be events also?
 provideEvents(Element, ['mdown', 'draw']);
 // > Element.prepare % () => Boolean
@@ -719,31 +720,31 @@ Element.prototype.setBand = function(band) {
         this.__sbflag = false;
     }
     this.xdata._lband = parent 
-        ? Render.unwrapBand(parent.xdata._gband, band)
+        ? Bands.unwrap(parent.xdata._gband, band)
         : band;
 }
 // expand element's global-time band if it is already set, 
 // or just sets it, if it is not
 Element.prototype.applyBand = function(band) {
     this.setBand(this.xdata._gband 
-                 ? Render.expandBand(this.xdata._gband, band)
+                 ? Bands.expand(this.xdata._gband, band)
                  : band);
 }
 // reduce element's global-time band if it is already set, 
 // or just sets it, if it is not 
 Element.prototype.reduceBand = function(band) {
     this.setBand(this.xdata._gband 
-                 ? Render.reduceBand(this.xdata._gband, band)
+                 ? Bands.reduce(this.xdata._gband, band)
                  : band);
 }
 Element.prototype.setLBand = function(band) {
     if (!band) return;
     this.xdata._lband = this.parent 
-        ? Render.unwrapBand(this.parent.xdata._gband, band)
+        ? Bands.unwrap(this.parent.xdata._gband, band)
         : band;
     this.xdata._gband = this.parent 
-        ? Render.wrapBand(this.parent.xdata._gband, 
-                          this.xdata._lband)
+        ? Bands.wrap(this.parent.xdata._gband, 
+                     this.xdata._lband)
         : band;
     var children = this.children;
     for (var ei = 0; ei < children.length; ei++) {
@@ -757,14 +758,14 @@ Element.prototype.setLBand = function(band) {
 // or just sets it, if it is not 
 Element.prototype.applyLBand = function(band) { 
     this.setLBand(this.xdata._lband 
-                  ? Render.expandBand(this.xdata._lband, band)
+                  ? Bands.expand(this.xdata._lband, band)
                   : band);
 }
 // expand element's local-time band if it is already set, 
 // or just sets it, if it is not
 Element.prototype.reduceLBand = function(band) {
     this.setLBand(this.xdata._lband 
-                  ? Render.reduceBand(this.xdata._lband, band)
+                  ? Bands.reduce(this.xdata._lband, band)
                   : band);
 }
 // make element band fit all children bands
@@ -819,10 +820,8 @@ Element.prototype.calcWrapBand = function() {
         result = lband ? lband
                        : [Number.MAX_VALUE, 0];
     for (var ei = 0; ei < children.length; ei++) {
-        result = Render.expandBand(result, 
-                    lband ? 
-                      Render.wrapBand(lband, 
-                           children[ei].calcWrapBand())
+        result = Bands.expand(result, 
+              lband ? Bands.wrap(lband, children[ei].calcWrapBand())
                     : children[ei].calcWrapBand());
     }
     return (result[1] == Number.MAX_VALUE)
@@ -849,8 +848,8 @@ Element.createXData = function() {
              'dimen': null,
              'reg': null,
              'mode': Element.M_PLAYONCE,
-             '_lband': null, // required to be private?
-             '_gband': null, // required to be private?
+             '_lband': [0, Element.DEFAULT_BAND], // required to be private?
+             '_gband': [0, Element.DEFAULT_BAND], // required to be private?
              '_mpath': null };
 }
 
@@ -1075,53 +1074,6 @@ L.loadBuilder = function(player, builder) {
 
 var Render = {}; // means "Render"
 
-// makes inner band coords relative to outer space (local => global) 
-Render.wrapBand = function(outer, inner) {
-    if (!outer) return inner;
-    /*var finish = ((outer[0] + inner[1]) <= outer[1])
-                  ? (outer[0] + inner[1])
-                  : outer[1],
-        start = (finish < outer[1]) 
-                  ? (outer[0] + inner[0])
-                  : inner[]
-         
-    return [ start, finish ]; */
-    return [ outer[0] + inner[0],
-             ((outer[0] + inner[1]) <= outer[1])
-              ? (outer[0] + inner[1])
-              : outer[1]               
-            ];
-}
-// makes inner band coords relative to inner space (global => local) 
-Render.unwrapBand = function(outer, inner) {
-    if (!outer) return inner;
-    return [ ((inner[0] - outer[0]) >= 0)
-              ? (inner[0] - outer[0])
-              : 0,
-             (inner[1] < outer[1])
-              ? (inner[1] - outer[0])
-              : outer[1]
-           ];
-}
-// makes band maximum wide to fith both bands 
-Render.expandBand = function(from, to) {
-    if (!from) return to;
-    return [ ((to[0] < from[0]) 
-              ? to[0] : from[0]),
-             ((to[1] > from[1]) 
-              ? to[1] : from[1])  
-           ];
-}
-// finds minimum intersection of the bands
-Render.reduceBand = function(from, to) {
-    if (!from) return to;
-    return [ ((to[0] > from[0]) 
-              ? to[0] : from[0]),
-             ((to[1] < from[1]) 
-              ? to[1] : from[1])  
-           ];
-}
-
 Render.addXDataRender = function(elm) {
     var xdata = elm.xdata;
 
@@ -1156,19 +1108,9 @@ Render.addTweensModifiers = function(elm, tweens) {
 }
 
 Render.addTweenModifier = function(elm, tween) {
-    elm.addModifier(Render.adaptToBand(Tweens[tween.type], 
-                                       tween.band), 
+    elm.addModifier(Bands.adaptTo(Tweens[tween.type], 
+                                  tween.band), 
                     tween.data);
-}
-
-Render.adaptToBand = function(func, sband) {
-    return function(time, data) { // returns modifier
-        if (sband[0] > time) return true;
-        if (sband[1] < time) return true;
-        var t = (time-sband[0])/(sband[1]-sband[0]);
-        func.call(this, t, data); 
-        return true;
-    };
 }
 
 Render.p_drawReg = function(ctx, reg) {
@@ -1232,6 +1174,65 @@ Render.m_saveReg = function(time, reg) {
     this.rx = reg[0];
     this.ry = reg[1];
     return true;
+}
+
+var Bands = {};
+
+// makes inner band coords relative to outer space (local => global) 
+Bands.wrap = function(outer, inner) {
+    if (!outer) return inner;
+    /*var finish = ((outer[0] + inner[1]) <= outer[1])
+                  ? (outer[0] + inner[1])
+                  : outer[1],
+        start = (finish < outer[1]) 
+                  ? (outer[0] + inner[0])
+                  : inner[]
+         
+    return [ start, finish ]; */
+    return [ outer[0] + inner[0],
+             ((outer[0] + inner[1]) <= outer[1])
+              ? (outer[0] + inner[1])
+              : outer[1]               
+            ];
+}
+// makes inner band coords relative to inner space (global => local) 
+Bands.unwrap = function(outer, inner) {
+    if (!outer) return inner;
+    return [ ((inner[0] - outer[0]) >= 0)
+              ? (inner[0] - outer[0])
+              : 0,
+             (inner[1] < outer[1])
+              ? (inner[1] - outer[0])
+              : outer[1]
+           ];
+}
+// makes band maximum wide to fith both bands 
+Bands.expand = function(from, to) {
+    if (!from) return to;
+    return [ ((to[0] < from[0]) 
+              ? to[0] : from[0]),
+             ((to[1] > from[1]) 
+              ? to[1] : from[1])  
+           ];
+}
+// finds minimum intersection of the bands
+Bands.reduce = function(from, to) {
+    if (!from) return to;
+    return [ ((to[0] > from[0]) 
+              ? to[0] : from[0]),
+             ((to[1] < from[1]) 
+              ? to[1] : from[1])  
+           ];
+}
+
+Bands.adaptTo = function(func, sband) {
+    return function(time, data) { // returns modifier
+        if (sband[0] > time) return true;
+        if (sband[1] < time) return true;
+        var t = (time-sband[0])/(sband[1]-sband[0]);
+        func.call(this, t, data); 
+        return true;
+    };
 }
 
 // =============================================================================
@@ -2359,7 +2360,7 @@ var exports = {
     'Path': Path,
     'Builder': Builder,
     'Tweens': Tweens, 'Tween': Tween,
-    'Render': Render,
+    'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
 
     'createPlayer': function(id) { return new Player(id); },
