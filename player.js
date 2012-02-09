@@ -1658,7 +1658,8 @@ Path.createStyle = function(ctx, brush) {
         var src = brush.rgrad,
             stops = src.stops,
             pts = src.pts,
-            r = src.r;
+            r = src.r,
+            bounds = src.bounds;
         var grad = bounds
             ? ctx.createRadialGradient(
                             bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 

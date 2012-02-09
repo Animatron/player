@@ -134,12 +134,14 @@ Convert.stroke = function(stroke) {
     brush.cap = stroke.cap;
     brush.join = stroke.join;
     if (stroke.paint) {
-        if (stroke.paint.color) {
-            brush.color = stroke.paint.color;
-        } else if (stroke.paint.r0) {
-            brush.rgrad = Convert.gradient(stroke.paint);  
+        var paint = stroke.paint;
+        if (paint.color) {
+            brush.color = paint.color;
+        } else if ((typeof paint.r0 !== 'undefined')
+                && (typeof paint.r1 !== 'undefined')) {
+            brush.rgrad = Convert.gradient(paint);  
         } else if (stroke.paint.colors) {
-            brush.lgrad = Convert.gradient(stroke.paint);
+            brush.lgrad = Convert.gradient(paint);
         }
     }
     return brush;
@@ -148,7 +150,8 @@ Convert.fill = function(fill) {
     var brush = {};
     if (fill.color) {
         brush.color = fill.color;
-    } else if (fill.r0) {
+    } else if ((typeof fill.r0 !== 'undefined')
+            && (typeof fill.r1 !== 'undefined')) {
         brush.rgrad = Convert.gradient(fill);
     } else if (fill.colors) {
         brush.lgrad = Convert.gradient(fill);
@@ -165,7 +168,7 @@ Convert.gradient = function(src) {
         ]);
     }
     return {
-        r: src.r0 ? [ src.r0, src.r1 ] : null,
+        r: (typeof src.r0 !== 'undefined') ? [ src.r0, src.r1 ] : null,
         pts: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
         stops: stops,
         bounds: src.bounds
