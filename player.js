@@ -169,8 +169,6 @@ Player.prototype.play = function(from, speed) {
 
     _state.happens = Player.PLAYING;
 
-    console.log('will play', player.anim);
-
     D.drawNext(player.ctx, _state, player.anim, 
                function(state, time) {
                    if (time > (state.duration + Player.PEFF)) {
@@ -912,13 +910,15 @@ var DU = {}; // means "Drawing Utils"
 
 DU.applyStroke = function(ctx, stroke) {
     ctx.lineWidth = stroke.width;
-    ctx.strokeStyle = stroke.color; // TODO: support gradients & s.o.
+    ctx.strokeStyle = stroke._style // calculated once for stroke
+                      || (stroke._style = Path.createStyle(ctx, stroke)); 
     ctx.lineCap = stroke.cap;
     ctx.lineJoin = stroke.join;    
 }
 
 DU.applyFill = function(ctx, fill) {
-    ctx.fillStyle = fill.color;
+    ctx.fillStyle = fill._style // calculated once for fill
+                  || (fill._style = Path.createStyle(ctx, fill));
 }
 
 // apply state to matrix
@@ -1373,7 +1373,7 @@ function Path(str, stroke, fill) {
     this.stroke = stroke;
     this.fill = fill;
     this.segs = [];
-    this.parse(str); 
+    this.parse(str);
 }
 
 // path constants
@@ -1630,6 +1630,52 @@ Path.parse = function(path, target) {
 // parses a path in string form and immediately applies it to context
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, Path._strApplyVisitor, ctx);
+}
+// create canvas-compatible style from brush
+Path.createStyle = function(ctx, brush) {
+    if (brush.color) return brush.color;
+    if (brush.lgrad) {
+        var src = brush.lgrad,
+            stops = src.stops,
+            pts = src.pts,
+            bounds = src.bounds;
+        var grad = bounds
+            ? ctx.createLinearGradient(
+                            bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 
+                            bounds[1] + pts[0][1] * bounds[3], // b.y + y0 * b.height
+                            bounds[0] + pts[1][0] * bounds[2], // b.x + x1 * b.width 
+                            bounds[1] + pts[1][1] * bounds[3]) // b.y + y1 * b.height
+            : ctx.createLinearGradient(
+                            pts[0][0], pts[0][1],  // x0, y0
+                            pts[1][0], pts[1][1]); // x1, y1
+        for (var i = 0; i < stops.length; i++) {
+            var stop = stops[i];
+            grad.addColorStop(stop[0], stop[1]);
+        }
+        return grad;
+    }
+    if (brush.rgrad) {
+        var src = brush.rgrad,
+            stops = src.stops,
+            pts = src.pts,
+            r = src.r;
+        var grad = bounds
+            ? ctx.createRadialGradient(
+                            bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 
+                            bounds[1] + pts[0][1] * bounds[3], // b.y + y0 * b.height
+                            Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
+                            bounds[0] + pts[1][0] * bounds[2], // b.x + x1 * b.width 
+                            bounds[1] + pts[1][1] * bounds[3], // b.y + y1 * b.height
+                            Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
+            : ctx.createRadialGradient(
+                           pts[0][0], pts[0][1], r[0],  // x0, y0, r0
+                           pts[1][0], pts[1][1], r[1]); // x1, y1, r1
+        for (var i = 0; i < stops.length; i++) {
+            var stop = stops[i];
+            grad.addColorStop(stop[0], stop[1]);
+        }
+        return grad;
+    }
 }
 
 function MSeg(pts) {
