@@ -60,6 +60,7 @@ AnimatronImporter.prototype.importElement = function(source, _src,
         this._collectDynamicData(_trg, layer, in_band);
     }
     if (has_layers) {
+        _trg.xdata.mode = Convert.mode(_src['on-end']);
         var _layers = _src.layers;
         // in animatron, layers are in reverse order
         for (var li = (_layers.length - 1); li >= 0; li--) {
@@ -93,6 +94,10 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
     to.xdata.image = src.url ? Player.prepareImage(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
                              : null;
+    if (src.text) {
+        to.xdata.path = Convert.path('', src.stroke, src.fill);
+        to.xdata.text = new Text(src.text, src.font);
+    }
 };
 var Convert = {}
 Convert.tweens = function(tweens) {
@@ -173,4 +178,10 @@ Convert.gradient = function(src) {
         stops: stops,
         bounds: src.bounds
     };
+}
+Convert.mode = function(from) {
+    if (!from) return Element.M_PLAYONCE;
+    if (from === "STOP") return Element.M_PLAYONCE;
+    if (from === "LOOP") return Element.M_LOOP;
+    if (from === "BOUNCE") return Element.M_BOUNCE; // FIXME: last is not for sure
 }

@@ -562,7 +562,6 @@ Element.prototype.prepare = function() {
 Element.prototype.onframe = function(ltime) {
     var seq = this._onframeSeq;
     for (var si = 0; si < seq.length; si++) {
-        // TODO: pass state instead of element?
         if (!seq[si][0].call(this.state, ltime, seq[si][1])) return;
     }
     return true;
@@ -571,6 +570,7 @@ Element.prototype.onframe = function(ltime) {
 Element.prototype.drawTo = function(ctx) {
     var seq = this._drawSeq;
     for (var si = 0; si < seq.length; si++) {
+        // TODO: pass xdata instead of element
         seq[si][0].call(this/*.xdata*/, ctx, seq[si][1]);
     }
 }
@@ -825,25 +825,26 @@ Element.prototype.findWrapBand = function() {
 
 // state of the element
 Element.createState = function() {
-    return { 'x': 0, 'y': 0,
-             'rx': 0, 'ry': 0,
-             'angle': 0,
-             'sx': 1, 'sy': 1,
-             'alpha': 1,
-             't': null,
+    return { 'x': 0, 'y': 0,   // position
+             'rx': 0, 'ry': 0, // registration point shift
+             'angle': 0,       // rotation angle
+             'sx': 1, 'sy': 1, // scale by x / by y 
+             'alpha': 1,       // opacity
+             't': null,        // cur local time (allowed to change)
              '_matrix': new Transform() };
 };
+// geometric data of the element
 Element.createXData = function() {
-    return { 'tweens': {},             
-             'canvas': null, 
-             //'context': null,
-             'image': null,
-             'path': null,
-             'dimen': null,
-             'reg': null,
-             'mode': Element.M_PLAYONCE,
-             'lband': [0, Element.DEFAULT_BAND],
-             'gband': [0, Element.DEFAULT_BAND],
+    return { 'reg': null,      // registration point
+             'image': null,    // cached Image instance, if it is an image
+             'path': null,     // Path instanse, if it is a shape 
+             'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
+             'tweens': {},     // animation tweens (Tween class)         
+             'mode': Element.M_PLAYONCE,         // playing mode
+             'lband': [0, Element.DEFAULT_BAND], // local band
+             'gband': [0, Element.DEFAULT_BAND], // global bane
+             'dimen': null,    // dimensions for static (cached) elements
+             'canvas': null,   // own canvas for static (cached) elements             
              '_mpath': null };
 }
 
@@ -1076,6 +1077,7 @@ Render.addXDataRender = function(elm) {
     // painters
     if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
     if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
+    if (xdata.text) elm.addPainter(Render.p_drawText, xdata.text);
     
     // modifiers
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
@@ -1131,6 +1133,23 @@ Render.p_drawPath = function(ctx, path) {
 Render.p_drawImage = function(ctx, image) {
     var image = image || this.xdata.image;
     if (image.isReady) ctx.drawImage(image, 0, 0);
+}
+
+Render.p_drawText = function(ctx, text) {
+    var xdata = this.xdata, 
+        text = text || xdata.text,
+        stroke = xdata.path.stroke || null,
+        fill = xdata.path.fill || Text.DEFAULT_FILL,
+        reg = xdata.reg || [ 50, 50 ];
+    ctx.font = text.font;
+    if (fill) {
+        DU.applyFill(ctx, fill);
+        ctx.strokeText(text.lines, reg[0], reg[1]);
+    }
+    if (stroke) {
+        DU.applyStroke(ctx, stroke);
+        ctx.fillText(text.lines, reg[0], reg[1]);
+    }
 }
 
 Render.p_drawMPath = function(ctx) {
@@ -1423,8 +1442,8 @@ Path.prototype.apply = function(ctx) {
     this.visit(this._applyVisitor,ctx);
     ctx.closePath();
 
-    ctx.stroke();
     ctx.fill();
+    ctx.stroke();
 
 }
 Path.prototype._applyVisitor = function(segment, ctx) {
@@ -1934,6 +1953,16 @@ CSeg.prototype.crosses = function(start, point) {
 }
 
 // =============================================================================
+// === TEXT ====================================================================
+
+Text.DEFAULT_FONT = '12px sans-serif';
+Text.DEFAULT_FILL = { 'color': '#000' };
+function Text(lines, font) {
+    this.lines = lines;
+    this.font = font || Text.DEFAULT_FONT;
+}
+
+// =============================================================================
 // === CONTROLS ================================================================
 
 function Controls(player) {
@@ -2400,7 +2429,7 @@ var exports = {
     'Scene': Scene,
     'Element': Element,
     'Clip': Clip,
-    'Path': Path,
+    'Path': Path, 'Text': Text,
     'Builder': Builder,
     'Tweens': Tweens, 'Tween': Tween,
     'Render': Render, 'Bands': Bands,
