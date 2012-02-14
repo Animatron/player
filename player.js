@@ -264,6 +264,7 @@ Player.prototype._init = function() {
     this.subscribeEvents(this.canvas);
     this.stop();
     // TODO: load some default information into player
+    if (!Text.__buff) Text.__buff = Text._createBuffer(); // so it will be performed onload
 }
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
@@ -1136,20 +1137,8 @@ Render.p_drawImage = function(ctx, image) {
 }
 
 Render.p_drawText = function(ctx, text) {
-    var xdata = this.xdata, 
-        text = text || xdata.text,
-        stroke = xdata.path.stroke || null,
-        fill = xdata.path.fill || Text.DEFAULT_FILL,
-        reg = xdata.reg || [ 50, 50 ];
-    ctx.font = text.font;
-    if (fill) {
-        DU.applyFill(ctx, fill);
-        ctx.strokeText(text.lines, reg[0], reg[1]);
-    }
-    if (stroke) {
-        DU.applyStroke(ctx, stroke);
-        ctx.fillText(text.lines, reg[0], reg[1]);
-    }
+    var text = text || this.xdata.text;
+    text.apply(ctx, this.xdata.reg);
 }
 
 Render.p_drawMPath = function(ctx) {
@@ -1957,9 +1946,52 @@ CSeg.prototype.crosses = function(start, point) {
 
 Text.DEFAULT_FONT = '12px sans-serif';
 Text.DEFAULT_FILL = { 'color': '#000' };
-function Text(lines, font) {
+Text.BASELINE_RULE = 'bottom';
+function Text(lines, font,
+              stroke, fill) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
+    this.stroke = stroke || null;
+    this.fill = fill || Text.DEFAULT_FILL;
+    this._bnds = null;
+}
+Text.prototype.apply = function(ctx, point) {
+    var point = point || [0, 0],
+        dimen = this.dimen(),
+        accent = this.accent(dimen[1]),
+        apt = [ point[0], point[1] + accent];
+    ctx.font = this.font;
+    ctx.textBaseline = Text.BASELINE_RULE;
+    if (this.fill) {
+        DU.applyFill(ctx, this.fill);
+        ctx.strokeText(this.lines, apt[0], apt[1]);
+    }
+    if (this.stroke) {
+        DU.applyStroke(ctx, this.stroke);
+        ctx.fillText(this.lines, apt[0], apt[1]);
+    }
+}
+Text.prototype.dimen = function() {
+    if (this._dimen) return this._dimen;
+    if (!Text.__buff) throw new Error('no Text buffer, bounds call failed');
+    var buff = Text.__buff;
+    buff.style.font = this.font;
+    buff.innerText = this.lines;
+    return (this._dimen = [ buff.offsetWidth,
+                            buff.offsetHeight ]);
+    
+}
+Text.prototype.accent = function(height) {
+    return height; // FIXME
+}
+Text._createBuffer = function() {
+    var _div = document.createElement('div');
+    _div.style.visibility = 'hidden';
+    _div.style.position = 'absolute';
+    var _span = document.createElement('span');
+    _div.appendChild(_span);
+    document.body.appendChild(_div);
+    return _span; 
 }
 
 // =============================================================================

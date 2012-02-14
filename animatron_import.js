@@ -7,7 +7,7 @@
 
 function AnimatronImporter() { };
 AnimatronImporter.prototype.configure = function(prj) {
-    //console.log('received', JSON.stringify(prj));
+    console.log('received', JSON.stringify(prj));
     var _a = prj.anim;
     return {
         'meta': prj.meta,
@@ -94,10 +94,9 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
     to.xdata.image = src.url ? Player.prepareImage(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
                              : null;
-    if (src.text) {
-        to.xdata.path = Convert.path('', src.stroke, src.fill);
-        to.xdata.text = new Text(src.text, src.font);
-    }
+    to.xdata.text = src.text ? Convert.text(src.text, src.font, 
+                                            src.stroke, src.fill)
+                             : null;
 };
 var Convert = {}
 Convert.tweens = function(tweens) {
@@ -126,6 +125,12 @@ Convert.tweenType = function(from) {
 }
 Convert.path = function(pathStr, stroke, fill) {
     return new Path(pathStr, 
+                    Convert.stroke(stroke),
+                    Convert.fill(fill));
+}
+Convert.text = function(lines, font,
+                        stroke, fill) {
+    return new Text(lines, font,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }

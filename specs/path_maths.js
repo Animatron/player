@@ -178,6 +178,10 @@ describe('Path', function() {
 			xit('determines bounds of the mixed-path', function() {
 			});
 
+			xit('determines bounds at time', function() {
+				
+			});
+
 		});
 
 		describe('inBounds', function() {
