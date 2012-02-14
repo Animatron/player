@@ -78,6 +78,7 @@ function Player(id, inParent) {
     this.canvas = null;
     this.ctx = null;
     this.debug = false;
+    this.mode = Player.M_VIDEO;
     this.controls = null;
     this.info = null;
     this.inParent = inParent;
@@ -108,6 +109,23 @@ Player.DEFAULT_CONFIGURATION = { 'meta': { 'title': 'Default',
                                  'duration': 0
                             };
 
+Player.M_CONTROLS_DISABLED = 0;
+Player.M_CONTROLS_ENABLED = 1;
+Player.M_INFO_DISABLED = 0;
+Player.M_INFO_ENABLED = 2;
+Player.M_DO_NOT_HANDLE_EVENTS = 0;
+Player.M_HANDLE_EVENTS = 4;
+Player.M_PREVIEW = Player.M_CONTROLS_DISABLED
+                   | Player.M_INFO_DISABLED       
+                   | Player.M_DO_NOT_HANDLE_EVENTS;
+Player.M_DYNAMIC = Player.M_CONTROLS_DISABLED
+                   | Player.M_INFO_DISABLED
+                   | Player.M_HANDLE_EVENTS;
+Player.M_VIDEO = Player.M_CONTROLS_ENABLED
+                 | Player.M_INFO_ENABLED       
+                 | Player.M_DO_NOT_HANDLE_EVENTS;
+
+
 // === PLAYING CONTROL API =====================================================
 // =============================================================================
 
@@ -115,6 +133,8 @@ Player.DEFAULT_CONFIGURATION = { 'meta': { 'title': 'Default',
 
 Player.prototype.load= function(object, importer) {
     var player = this;
+
+    player._checkMode();
 
     player._reset();
 
@@ -177,7 +197,9 @@ Player.prototype.play = function(from, speed) {
                        // TODO: support looping?
                        return false;
                    }
-                   player.controls.render(state, time);
+                   if (player.controls) {
+                       player.controls.render(state, time);
+                   }
                    return true;
                });
 
@@ -204,7 +226,9 @@ Player.prototype.stop = function() {
         _state.happens = Player.NOTHING;
         player.drawSplash();
     }
-    player.controls.render(_state, 0);
+    if (player.controls) {
+        player.controls.render(_state, 0);
+    }
 
     player.e_stop();
     //console.log('stop', player.id, _state);
@@ -258,8 +282,8 @@ Player.prototype._init = function() {
     this.canvas = document.getElementById(this.id);
     this.ctx = this.canvas.getContext("2d");
     this.state = Player.createState(this);
-    this.controls = new Controls(this);
-    this.info = new InfoBlock(this);
+    this.controls = new Controls(this); // controls enabled by default
+    this.info = new InfoBlock(this); // info enabled by default
     this.configure(Player.DEFAULT_CONFIGURATION);
     this.subscribeEvents(this.canvas);
     this.stop();
@@ -273,8 +297,8 @@ Player.prototype._reset = function() {
     _state.happens = Player.NOTHING;
     _state.from = 0;
     _state.time = 0;
-    this.controls.reset();
-    this.info.reset();
+    if (this.controls) this.controls.reset();
+    if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, _state.width, _state.height);
     this.stop();
 }
@@ -284,8 +308,8 @@ Player.prototype._configureCanvas = function(opts) {
     this.state.height = opts.height;
     this.state.bgcolor = opts.bgcolor;
     Player.configureCanvas(this.canvas, opts);
-    this.controls.update(this.canvas);
-    this.info.update(this.canvas);
+    if (this.controls) this.controls.update(this.canvas);
+    if (this.info) this.info.update(this.canvas);
     return this;
 }
 // meta format:
@@ -296,10 +320,37 @@ Player.prototype._configureCanvas = function(opts) {
 //   "description": "Default project description"
 // }
 Player.prototype.injectInfo = function(data) {
-    this.info.inject(data);
+    if (this.info) this.info.inject(data);
 }
 Player.prototype.drawSplash = function() {
     // TODO
+}
+Player.prototype._checkMode = function() {
+    if (this.mode & Player.M_CONTROLS_ENABLED) {
+        if (!this.controls) {
+            this.controls = new Controls(this);
+            this.controls.update(this.canvas);
+        }
+    } else {
+        if (this.controls) {
+            this.controls.detach(this.canvas);
+            delete this.controls;
+            this.controls = null;
+        }
+    }
+    if (this.mode & Player.M_INFO_ENABLED) {
+        if (!this.info) {
+            this.info = new InfoBlock(this);
+            this.info.update(this.canvas);
+        }
+    } else {
+        if (this.info) {
+            this.info.detach(this.canvas);
+            delete this.info;
+            this.info = null;
+        }
+    }
+    // FIXME: M_HANDLE_EVENTS
 }
 Player.prototype.changeRect = function(rect) {
     this._configureCanvas({
@@ -327,7 +378,9 @@ Player.prototype.drawAt = function(time) {
         state = this.state;
     ctx.clearRect(0, 0, state.width, state.height);
     this.anim.render(ctx, time);
-    this.controls.render(state, time);
+    if (this.controls) {
+        this.controls.render(state, time);
+    }
 }
 Player.prototype._ensureState = function() {
     if (!this.state) {
@@ -344,31 +397,34 @@ Player.prototype._ensureAnim = function() {
     }
 }
 Player.prototype.detach = function() {
-    this.controls.detach(this.canvas);
-    this.info.detach(this.canvas);
+    if (this.controls) this.controls.detach(this.canvas);
+    if (this.info) this.info.detach(this.canvas);
     this._reset();
 }
 Player.prototype.subscribeEvents = function(canvas) {
     this.canvas.addEventListener('mouseover', (function(player) { 
                         return function(evt) {
-                            player.controls.show();
-                            player.controls.render(player.state, 
-                                                   player.state.time);
-                            player.info.show(); 
+                            if (player.controls) {
+                                player.controls.show();
+                                player.controls.render(player.state, 
+                                                       player.state.time);
+                            }
+                            if (player.info) player.info.show(); 
                         };
                     })(this), false);
     this.canvas.addEventListener('mouseout', (function(player) { 
                         return function(evt) { 
-                            if (!player.controls.evtInBounds(evt)) {
+                            if (player.controls && 
+                                (!player.controls.evtInBounds(evt))) {
                                 player.controls.hide();
                             }
-                            player.info.hide(); 
+                            if (player.info) player.info.hide(); 
                         };
                     })(this), false);
 }
 Player.prototype.updateDuration = function(value) {
     this.state.duration = value;
-    this.info.updateDuration(value);
+    if (this.info) this.info.updateDuration(value);
 }
 
 Player.createState = function(player) {
@@ -548,7 +604,7 @@ function Element(draw, onframe) {
 Element.M_PLAYONCE = 0;
 Element.M_LOOP = 1;
 Element.M_BOUNCE = 2;
-Element.DEFAULT_BAND = 10;
+Element.DEFAULT_LEN = 10;
 // TODO: draw and onframe must be events also?
 provideEvents(Element, ['mdown', 'draw']);
 // > Element.prepare % () => Boolean
@@ -842,8 +898,8 @@ Element.createXData = function() {
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'tweens': {},     // animation tweens (Tween class)         
              'mode': Element.M_PLAYONCE,         // playing mode
-             'lband': [0, Element.DEFAULT_BAND], // local band
-             'gband': [0, Element.DEFAULT_BAND], // global bane
+             'lband': [0, Element.DEFAULT_LEN], // local band
+             'gband': [0, Element.DEFAULT_LEN], // global bane
              'dimen': null,    // dimensions for static (cached) elements
              'canvas': null,   // own canvas for static (cached) elements             
              '_mpath': null };
