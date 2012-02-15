@@ -297,6 +297,7 @@ Player.prototype._reset = function() {
     _state.happens = Player.NOTHING;
     _state.from = 0;
     _state.time = 0;
+    _state.zoom = 1;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, _state.width, _state.height);
@@ -361,6 +362,9 @@ Player.prototype.changeRect = function(rect) {
         bgcolor: this.state.bgcolor
     });
 }
+Player.prototype.changeZoom = function(ratio) {
+    this.state.zoom = ratio;
+}
 // update player state with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title, 
 // author/copyright, fps and width/height of the player
@@ -377,7 +381,7 @@ Player.prototype.drawAt = function(time) {
     var ctx = this.ctx,
         state = this.state;
     ctx.clearRect(0, 0, state.width, state.height);
-    this.anim.render(ctx, time);
+    this.anim.render(ctx, time, state.zoom);
     if (this.controls) {
         this.controls.render(state, time);
     }
@@ -435,8 +439,8 @@ Player.createState = function(player) {
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
+        'zoom': 1.0, 'bgcolor': '#fff',
         'happens': Player.NOTHING,
-        'bgcolor': '#fff',
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
         //'__drawInterval': null
@@ -446,8 +450,8 @@ Player.configureCanvas = function(canvas, opts) {
     if (!opts.push) { // object, not array
         var _w = opts.width ? Math.floor(opts.width) : 0;
         var _h = opts.height ? Math.floor(opts.height) : 0;
-        canvas.style.width = _w + 'px';
-        canvas.style.height = _h + 'px';
+        //canvas.style.width = _w + 'px';
+        //canvas.style.height = _h + 'px';
         canvas.width = _w;
         canvas.height = _h;
         if (opts.bgcolor) { 
@@ -455,8 +459,8 @@ Player.configureCanvas = function(canvas, opts) {
     } else { // array
         var _w = Math.floor(opts[0]);
         var _h = Math.floor(opts[1]);
-        canvas.style.width = _w + 'px';
-        canvas.style.height = _h + 'px';
+        //canvas.style.width = _w + 'px';
+        //canvas.style.height = _h + 'px';
         canvas.width = _w;
         canvas.height = _h;
     }
@@ -561,10 +565,16 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[elmId], data);
     }
 }
-Scene.prototype.render = function(ctx, time) {
+Scene.prototype.render = function(ctx, time, zoom) {
+    var zoom = zoom || 1;
+    ctx.save();
+    if (zoom != 1) {
+        ctx.scale(zoom, zoom);
+    }
     this.visitRoots(function(elm) {
         elm.render(ctx, time);
     });
+    ctx.restore();
     this.e_draw(ctx);
 }
 Scene.prototype.handle_mdown = function(evt) {
@@ -936,7 +946,7 @@ D.drawNext = function(ctx, state, scene, callback) {
 
     ctx.clearRect(0, 0, state.width, state.height);
 
-    scene.render(ctx, time);
+    scene.render(ctx, time, state.zoom);
 
     // show fps
     if (state.debug) { // TODO: move to player.onrender
