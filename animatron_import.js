@@ -7,7 +7,7 @@
 
 function AnimatronImporter() { };
 AnimatronImporter.prototype.configure = function(prj) {
-    console.log('received', JSON.stringify(prj));
+    //console.log('received', JSON.stringify(prj));
     var _a = prj.anim;
     return {
         'meta': prj.meta,
@@ -110,7 +110,7 @@ Convert.tweens = function(tweens) {
             'band': _t.band,
             'type': _type,
             'data': _t.data || (_t.path ? new Path(_t.path) : null),
-            'easing': Convert.easingType(_t.easing)
+            'easing': Convert.easing(_t.easing)
         });
     }
     return result;
@@ -134,9 +134,20 @@ Convert.text = function(lines, font,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }
+Convert.easing = function(from) {
+    if (!from) return null;
+    return {
+          type: Convert.easingType(from.name),
+          data: from.path ? (from.path + ' Z') : null
+        };
+}
 Convert.easingType = function(from) {
-    // FIXME: TODO
-    return from;
+    if (!from) return null;
+    if (from === 'Unknown') return Easing.T_PATH;
+    if (from === 'Default') return Easing.T_DEF;
+    if (from === 'Ease In') return Easing.T_IN;
+    if (from === 'Ease Out') return Easing.T_OUT;
+    if (from === 'Ease In Out') return Easing.T_INOUT;
 }
 Convert.stroke = function(stroke) {
     var brush = {};

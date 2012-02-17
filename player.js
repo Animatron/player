@@ -1177,9 +1177,12 @@ Render.addTweenModifier = function(elm, tween) {
                                   tween.band), 
                     tween.data);
     if (tween.easing) {
-      elm.addModifier(Bands.adaptTo(Easings[tween.type],
-                                    tween.band));  
-    };
+        var easing = tween.easing;
+        elm.addModifier(
+            Bands.adaptTo(
+                TimeEasings[easing.type](easing.data),
+                tween.band));
+    }
 }
 
 Render.p_drawReg = function(ctx, reg) {
@@ -1361,98 +1364,54 @@ Easing.T_INOUT = 'INOUT';
 Easing.T_PATH = 'PATH';
 Easing.T_FUNC = 'FUNC';
 
-Easing.make(tweenType, easingType, data) {
-    // tween may require a point [ x, y ],
-    // or only y value
-    var onlyY = (tweenType !== Tween.T_TRANSLATE) &&
-                (tweenType !== Tween.T_SCALE);
-    if ((easingType === Easing.T_DEF) ||
-        (easingType === Easing.T_IN) ||
-        (easingType === Easing.T_OUT) ||
-        (easingType === Easing.T_INOUT)) {
-        var seg = Easing.__SEGS[easingType];
-        return onlyY 
-            ? function(t, val) {
-                  return seg.atT([0, 0], t)[1];
-              }
-            : function(t, val) {
-                  return seg.atT([0, 0], t);
-              }; 
-    } else if (easingType === T_PATH) {
-        var path = data;
-        return onlyY 
-            ? function(t, val) {
-                  return path.pointAt(t)[1];
-              }
-            : function(t, val) {
-                  return path.pointAt(t);
-              }; 
-    } else if (easingType === T_FUNC) {
-        return onlyY 
-            ? function(t, val) {
-                  return f(t, val)[1];
-              }
-            : function(t, val) {
-                  return f(t, val);
-              }; 
-    }
-}
-
-var Easings = {};
-Easings[Tween.T_ROTATE] = 
-    function(t, f) {
-        this.angle = f(t, this.angle);
-    };
-Easings[Tween.T_TRANSLATE] = 
-    function(t, f) {
-        var p = f(t, [this.x, this.y]);
-        this.x = p[0]; this.y = p[1];
-    };
-Easings[Tween.T_ALPHA] = 
-    function(t, f) {
-        this.alpha = f(t, this.alpha);
-    };
-Easings[Tween.T_SCALE] = 
-    function(t, f) {
-        var s = f(t, [this.sx, this.sy]);
-        this.sx = s[0]; this.sy = s[1];    
-    };
-Easings[Tween.T_ROT_TO_PATH] =
-    Easings[Tween.T_ROTATE];
-
 Easing.__SEGS = {};
 Easing.__SEGS[Easing.T_DEF] = new CSeg([.25, 1, .25, 1, 1, 1]);
 Easing.__SEGS[Easing.T_IN] = new CSeg([.42, 0, 1, 1, 1, 1]);
 Easing.__SEGS[Easing.T_OUT] = new CSeg([0, 0, .58, 1, 1, 1]);
 Easing.__SEGS[Easing.T_INOUT] = new CSeg([.42, 0, .58, 1, 1, 1]);
 
-/*var VEasers = {};
-VEasers[Easing.T_IN] = function() {
-    var seg = Easing.__IN_SEG;
-    return function(t, val) {
-        return seg.atT([0, 0], t);
+var TimeEasings = {};
+TimeEasings[Easing.T_DEF] = 
+    function() {
+        var seg = Easing.__SEGS[Easing.T_DEF];
+        return function(t) {
+            this.t = seg.atT([0, 0], t)[1];
+        }
     };
-}
-VEasers[Easing.T_OUT] = function() {
-    var seg = new Easing.__OUT_SEG;
-    return function(t, val) {
-        return seg.atT([0, 0], t);
+TimeEasings[Easing.T_IN] = 
+    function() {
+        var seg = Easing.__SEGS[Easing.T_IN];
+        return function(t) {
+            this.t = seg.atT([0, 0], t)[1];
+        }
     };
-}
-VEasers[Easing.T_INOUT] = function() {
-    var seg = Easing.__INOUT_SEG;
-    return function(t, val) {
-        return seg.atT([0, 0], t);
+TimeEasings[Easing.T_OUT] = 
+    function() {
+        var seg = Easing.__SEGS[Easing.T_OUT];
+        return function(t) {
+            this.t = seg.atT([0, 0], t)[1];
+        }
     };
-}
-VEasers[Easing.T_PATH] = function(path) {
-    return function(t, val) {
-        return path.pointAt(t);
+TimeEasings[Easing.T_INOUT] = 
+    function() {
+        var seg = Easing.__SEGS[Easing.T_OUT];
+        return function(t) {
+            this.t = seg.atT([0, 0], t)[1];
+        }
     };
-}
-VEasers[Easing.T_FUNC] = function(f) {
-    return f;
-}*/
+TimeEasings[Easing.T_PATH] =
+    function(str) {
+        var path = Path.parse(str);
+        return function(t) {
+            this.t = path.pointAt(t)[1];
+        }
+    };
+TimeEasings[Easing.T_FUNC] =
+    function(f) {
+        return function(t) {
+            this.t = f(t);
+        }
+    };
 
 // === EVENTS ==================================================================
 // =============================================================================
@@ -2634,7 +2593,7 @@ var exports = {
     'Clip': Clip,
     'Path': Path, 'Text': Text,
     'Builder': Builder,
-    'Tweens': Tweens, 'Tween': Tween,
+    'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
 
