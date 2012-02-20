@@ -137,7 +137,7 @@ Convert.easing = function(from) {
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
-          data: from.path ? (from.path + ' Z') : null
+          data: from.path ? ('M0 0 ' + from.path + ' Z') : null
         };
 }
 Convert.easingType = function(from) {

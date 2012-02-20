@@ -1381,7 +1381,7 @@ Easing.T_PATH = 'PATH';
 Easing.T_FUNC = 'FUNC';
 
 Easing.__SEGS = {};
-Easing.__SEGS[Easing.T_DEF] = new CSeg([.25, 1, .25, 1, 1, 1]);
+Easing.__SEGS[Easing.T_DEF] = new CSeg([.25, .1, .25, 1, 1, 1]);
 Easing.__SEGS[Easing.T_IN] = new CSeg([.42, 0, 1, 1, 1, 1]);
 Easing.__SEGS[Easing.T_OUT] = new CSeg([0, 0, .58, 1, 1, 1]);
 Easing.__SEGS[Easing.T_INOUT] = new CSeg([.42, 0, .58, 1, 1, 1]);
