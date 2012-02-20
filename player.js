@@ -608,7 +608,7 @@ function Element(draw, onframe) {
     this._drawSeq = [];
     this._onframeSeq = [];
     if (draw) this._drawSeq.push([draw, null]);
-    if (onframe) this._onframeSeq.push([onframe, null]);
+    if (onframe) this._onframeSeq.push([null, onframe, null]);
     this._initHandlers(); // TODO: make automatic
 };
 Element.M_PLAYONCE = 0;
@@ -623,13 +623,18 @@ Element.prototype.prepare = function() {
     if (this.sprite && !this.xdata.canvas) {
         this._drawToCache();
     }
-    return true;        
+    return true;     
 }
 // > Element.onframe % (ltime: Float) => Boolean
 Element.prototype.onframe = function(ltime) {
-    var seq = this._onframeSeq;
+    var seq = this._onframeSeq,
+        ltime = this.localTime(time);
     for (var si = 0; si < seq.length; si++) {
-        if (!seq[si][0].call(this.state, ltime, seq[si][1])) return;
+        var m = seq[si], mtime = ltime;
+        if (m[0]) mtime = m[0](ltime);
+        if (this.fits(mtime)) {
+            if (!m[1].call(this.state, mtime, m[2])) return;
+        }
     }
     return true;
 }
@@ -670,11 +675,18 @@ Element.prototype.addPainter = function(painter, data) {
     return (this._drawSeq.length - 1);
 }
 // > Element.addModifier % (modifier: Function(time: Float, 
-//                                             data: Any), 
+//                                             data: Any) => Boolean, 
 //                          data: Any) => Integer
 Element.prototype.addModifier = function(modifier, data) {
+    return this.addXModifier(null, modifier, data);
+}
+// > Element.addXModifier % (timef: Function(gtime: Float) => Float
+//                           modifier: Function(time: Float, 
+//                                              data: Any) => Boolean, 
+//                           data: Any) => Integer
+Element.prototype.addXModifier = function(timef, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
-    this._onframeSeq.push([modifier, data]);
+    this._onframeSeq.push([timef, modifier, data]);
     return (this._onframeSeq.length - 1);
 }
 // > Element.addTween % (tween: Tween)
@@ -738,10 +750,8 @@ Element.prototype._addChildren = function(elms) {
     }
 };
 Element.prototype.render = function(ctx, time) {
-    var ltime = this.localTime(time);
-    if (!this.fits(ltime)) return;
     ctx.save();
-    if (this.prepare() && this.onframe(ltime)) {
+    if (this.onframe(time) && this.prepare()) {
         this.transform(ctx);
         this.draw(ctx);
     }
@@ -752,7 +762,7 @@ Element.prototype.render = function(ctx, time) {
         }
     }
     ctx.restore();
-    this.e_draw(ctx);
+    this.e_draw(ctx); // call only if this element drawn
 }
 Element.prototype.bounds = function(time) {
     return G.adaptBounds(this, time, G.bounds(this.xdata));
@@ -843,7 +853,12 @@ Element.prototype.fits = function(ltime) {
                       - this.xdata.lband[0]));
 }
 Element.prototype.localTime = function(gtime) {
-    var t = (this.xdata.t === null) || 0;
+    var t = (this.xdata.t !== null) 
+            ? this.xdata.t
+            : ((this.xdata.rt !== null) 
+               ? this.xdata.rt * (this.xdata.lband[1]
+                                  - this.xdata.lband[0]);
+               : 0;
     switch (this.xdata.mode) {
         case Element.M_PLAYONCE:
             return this.parent
@@ -897,7 +912,8 @@ Element.createState = function() {
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y 
              'alpha': 1,       // opacity
-             't': null,        // cur local time (allowed to change)
+             't': null, 'rt': null, // cur local time (t) or 0..1 time (rt) (t have higher priority),
+                                    // if both are null — stays as defined
              '_matrix': new Transform() };
 };
 // geometric data of the element
@@ -1141,15 +1157,15 @@ var Render = {}; // means "Render"
 Render.addXDataRender = function(elm) {
     var xdata = elm.xdata;
 
-    // painters
-    if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
-    if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
-    if (xdata.text) elm.addPainter(Render.p_drawText, xdata.text);
-    
     // modifiers
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
+
+    // painters
+    if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
+    if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
+    if (xdata.text) elm.addPainter(Render.p_drawText, xdata.text);
         
 }
 
@@ -1173,16 +1189,13 @@ Render.addTweensModifiers = function(elm, tweens) {
 }
 
 Render.addTweenModifier = function(elm, tween) {
-    elm.addModifier(Bands.adaptTo(Tweens[tween.type], 
-                                  tween.band), 
-                    tween.data);
-    if (tween.easing) {
-        var easing = tween.easing;
-        elm.addModifier(
-            Bands.adaptTo(
-                TimeEasings[easing.type](easing.data),
-                tween.band));
-    }
+    var easing = tween.easing;
+    elm.addXModifier((easing ? Bands.adaptTimeF(TimeEasings[easing.type](easing.data),
+                                                tween.band)
+                             : null),
+                     Bands.adaptModifier(Tweens[tween.type], 
+                                         tween.band), 
+                     tween.data);
 }
 
 Render.p_drawReg = function(ctx, reg) {
@@ -1302,7 +1315,7 @@ Bands.reduce = function(from, to) {
            ];
 }
 
-Bands.adaptTo = function(func, sband) {
+Bands.adaptModifier = function(func, sband) {
     return function(time, data) { // returns modifier
         if (sband[0] > time) return true;
         if (sband[1] < time) return true;
@@ -1310,6 +1323,14 @@ Bands.adaptTo = function(func, sband) {
         func.call(this, t, data); 
         return true;
     };
+}
+Bands.adaptTimeF = function(func, sband) {
+    return function(time) { // returns time function
+        if (sband[0] > time) return -100;
+        if (sband[1] < time) return -100;
+        var t = (time-sband[0])/(sband[1]-sband[0]);
+        return func.call(this, t) * (sband[1]-sband[0]);
+    }
 }
 
 // =============================================================================
@@ -1375,42 +1396,40 @@ TimeEasings[Easing.T_DEF] =
     function() {
         var seg = Easing.__SEGS[Easing.T_DEF];
         return function(t) {
-            this.t = seg.atT([0, 0], t)[1];
+            return seg.atT([0, 0], t)[1];
         }
     };
 TimeEasings[Easing.T_IN] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_IN];
         return function(t) {
-            this.t = seg.atT([0, 0], t)[1];
+            return seg.atT([0, 0], t)[1];
         }
     };
 TimeEasings[Easing.T_OUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_OUT];
         return function(t) {
-            this.t = seg.atT([0, 0], t)[1];
+            return seg.atT([0, 0], t)[1];
         }
     };
 TimeEasings[Easing.T_INOUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_OUT];
         return function(t) {
-            this.t = seg.atT([0, 0], t)[1];
+            return seg.atT([0, 0], t)[1];
         }
     };
 TimeEasings[Easing.T_PATH] =
     function(str) {
         var path = Path.parse(str);
         return function(t) {
-            this.t = path.pointAt(t)[1];
+            return path.pointAt(t)[1];
         }
     };
 TimeEasings[Easing.T_FUNC] =
     function(f) {
-        return function(t) {
-            this.t = f(t);
-        }
+        return f;
     };
 
 // === EVENTS ==================================================================
