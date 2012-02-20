@@ -608,7 +608,7 @@ function Element(draw, onframe) {
     this._drawSeq = [];
     this._onframeSeq = [];
     if (draw) this._drawSeq.push([draw, null]);
-    if (onframe) this._onframeSeq.push([null, onframe, null]);
+    if (onframe) this._onframeSeq.push([onframe, null]);
     this._initHandlers(); // TODO: make automatic
 };
 Element.M_PLAYONCE = 0;
@@ -626,15 +626,12 @@ Element.prototype.prepare = function() {
     return true;     
 }
 // > Element.onframe % (ltime: Float) => Boolean
-Element.prototype.onframe = function(ltime) {
-    var seq = this._onframeSeq,
-        ltime = this.localTime(time);
+Element.prototype.onframe = function(gtime) {
+    var ltime = this.localTime(gtime);
+    if (!this.fits(ltime)) return false;
+    var seq = this._onframeSeq;
     for (var si = 0; si < seq.length; si++) {
-        var m = seq[si], mtime = ltime;
-        if (m[0]) mtime = m[0](ltime);
-        if (this.fits(mtime)) {
-            if (!m[1].call(this.state, mtime, m[2])) return;
-        }
+        if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
     }
     return true;
 }
@@ -678,15 +675,8 @@ Element.prototype.addPainter = function(painter, data) {
 //                                             data: Any) => Boolean, 
 //                          data: Any) => Integer
 Element.prototype.addModifier = function(modifier, data) {
-    return this.addXModifier(null, modifier, data);
-}
-// > Element.addXModifier % (timef: Function(gtime: Float) => Float
-//                           modifier: Function(time: Float, 
-//                                              data: Any) => Boolean, 
-//                           data: Any) => Integer
-Element.prototype.addXModifier = function(timef, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
-    this._onframeSeq.push([timef, modifier, data]);
+    this._onframeSeq.push([modifier, data]);
     return (this._onframeSeq.length - 1);
 }
 // > Element.addTween % (tween: Tween)
@@ -853,12 +843,12 @@ Element.prototype.fits = function(ltime) {
                       - this.xdata.lband[0]));
 }
 Element.prototype.localTime = function(gtime) {
-    var t = (this.xdata.t !== null) 
-            ? this.xdata.t
-            : ((this.xdata.rt !== null) 
-               ? this.xdata.rt * (this.xdata.lband[1]
-                                  - this.xdata.lband[0]);
-               : 0;
+    var t = (this.state.t !== null) 
+            ? this.state.t
+            : ((this.state.rt !== null)
+               ? this.state.rt * (this.xdata.lband[1]
+                                  - this.xdata.lband[0])
+               : 0);
     switch (this.xdata.mode) {
         case Element.M_PLAYONCE:
             return this.parent
@@ -1190,12 +1180,13 @@ Render.addTweensModifiers = function(elm, tweens) {
 
 Render.addTweenModifier = function(elm, tween) {
     var easing = tween.easing;
-    elm.addXModifier((easing ? Bands.adaptTimeF(TimeEasings[easing.type](easing.data),
-                                                tween.band)
-                             : null),
-                     Bands.adaptModifier(Tweens[tween.type], 
-                                         tween.band), 
-                     tween.data);
+    var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
+                                                 tween.band)
+                           : Bands.adaptModifierByTime(
+                                   TimeEasings[easing.type](easing.data),
+                                   Tweens[tween.type],
+                                   tween.band);
+    elm.addModifier(modifier, tween.data);
 }
 
 Render.p_drawReg = function(ctx, reg) {
@@ -1324,12 +1315,15 @@ Bands.adaptModifier = function(func, sband) {
         return true;
     };
 }
-Bands.adaptTimeF = function(func, sband) {
-    return function(time) { // returns time function
-        if (sband[0] > time) return -100;
-        if (sband[1] < time) return -100;
-        var t = (time-sband[0])/(sband[1]-sband[0]);
-        return func.call(this, t) * (sband[1]-sband[0]);
+
+Bands.adaptModifierByTime = function(tfunc, func, sband) {
+    return function(time, data) { // returns modifier
+        if ((sband[0] > time) || (sband[1] < time)) return true;
+        var blen = sband[1] - sband[0],
+            t = (time - sband[0]) / blen,
+            mt = tfunc(t) * blen;
+        if ((0 > mt) || (blen < mt)) return true;
+        return func.call(this, mt, data);
     }
 }
 
