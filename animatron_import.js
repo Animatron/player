@@ -7,7 +7,6 @@
 
 function AnimatronImporter() { };
 AnimatronImporter.prototype.configure = function(prj) {
-    //console.log('received', JSON.stringify(prj));
     var _a = prj.anim;
     return {
         'meta': prj.meta,

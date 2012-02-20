@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 by Animatron.
+ * Copyright (c) 2011-2013 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
@@ -1321,9 +1321,10 @@ Bands.adaptModifierByTime = function(tfunc, func, sband) {
         if ((sband[0] > time) || (sband[1] < time)) return true;
         var blen = sband[1] - sband[0],
             t = (time - sband[0]) / blen,
-            mt = tfunc(t) * blen;
-        if ((0 > mt) || (blen < mt)) return true;
-        return func.call(this, mt, data);
+            mt = tfunc(t);
+        if ((0 > mt) || (1 < mt)) return true;
+        func.call(this, mt, data);
+        return true;
     }
 }
 
@@ -1409,7 +1410,7 @@ TimeEasings[Easing.T_OUT] =
     };
 TimeEasings[Easing.T_INOUT] = 
     function() {
-        var seg = Easing.__SEGS[Easing.T_OUT];
+        var seg = Easing.__SEGS[Easing.T_INOUT];
         return function(t) {
             return seg.atT([0, 0], t)[1];
         }

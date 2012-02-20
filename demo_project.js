@@ -8,7 +8,7 @@
 var demo_project =
 {
   "meta": {
-    "id": "4ef34b9903640fa60d0a526e",
+    "id": "4f3be1cc0364baf847969bc3",
     "title": "New Test Project",
     "author": "",
     "copyright": "",
@@ -16,77 +16,82 @@ var demo_project =
     "description": ""
   },
   "anim": {
-    "dimension": [ 500.0, 350.0 ],
-    "framerate": 24.0,
+    "dimension": [ 500, 350 ],
+    "framerate": 24,
     "background": {
       "color": "white"
     },
     "elements": [
       {
-        "id": "5a6f15897c4163d22365e902",
+        "id": "0a34fb66b6d42d193574c002",
         "name": "Scene1",
         "layers": [
           {
-            "id": "3467c07abe84a53fe94b380a",
+            "id": "e05b27fd231579dc9aef7f0f",
             "name": "Rectangle",
-            "band": [ 1.0, 11.0 ],
-            "eid": "9df8f651d89cbe3546b5b105",
+            "band": [ 1, 11 ],
+            "eid": "0e9bbfce6be43efd045ad305",
             "tweens": [
               {
                 "type": "Alpha",
-                "band": [ 0.0, 2.0 ],
-                "data": [ 0.0, 1.0 ]
+                "band": [ 0, 2 ],
+                "data": [ 0, 1 ]
               },
               {
                 "type": "Alpha",
-                "band": [ 2.0, 8.0 ],
-                "data": [ 1.0, 1.0 ]
+                "band": [ 2, 8 ],
+                "data": [ 1, 1 ]
               },
               {
                 "type": "Alpha",
-                "band": [ 8.0, 10.0 ],
-                "data": [ 1.0, 0.0 ]
+                "band": [ 8, 10 ],
+                "data": [ 1, 0 ]
               },
               {
                 "type": "rotate-to-path",
-                "band": [ 0.0, 10.0 ]
+                "band": [ 0, 10 ]
               },
               {
                 "type": "Scale",
-                "band": [ 0.0, 1.0 ],
-                "data": [ 0.2, 0.2, 1.0, 1.0 ]
+                "band": [ 0, 1 ],
+                "data": [ 0.2, 0.2, 1, 1 ]
               },
               {
                 "type": "Scale",
-                "band": [ 1.0, 5.0 ],
-                "data": [ 1.0, 1.0, 2.0, 2.0 ]
+                "band": [ 1, 5 ],
+                "data": [ 1, 1, 2, 2 ]
               },
               {
                 "type": "Scale",
-                "band": [ 5.0, 10.0 ],
-                "data": [ 2.0, 2.0, 1.0, 1.0 ]
+                "band": [ 5, 10 ],
+                "data": [ 2, 2, 1, 1 ]
               },
               {
                 "type": "Translate",
-                "band": [ 0.0, 10.0 ],
+                "band": [ 0, 10 ],
                 "easing": {
                   "name": "Ease In Out"
                 },
                 "path": "M0.0 100.0 C150.0 0.0 150.0 30.0 200.0 30.0 C250.0 30.0 400.0 50.0 400.0 100.0 C400.0 150.0 250.0 300.0 200.0 300.0 C150.0 300.0 160.0 100.0 0.0 100.0 Z"
               }
             ],
-            "outline-color": "brown",
-            "reg": [ 25.0, 50.0 ]
+            "visible": true,
+            "outline": false,
+            "locked": false,
+            "outline-color": "red",
+            "dynamic": false,
+            "reg": [ 25, 50 ],
+            "opaque": false
           },
           {
-            "id": "cb67e58278d1e69c138fabca",
+            "id": "759ef7d8f556138fda4d50e4",
             "name": "Clip",
-            "band": [ 0.0, 15.0 ],
-            "eid": "9627fb0f3db1350befafb001",
+            "band": [ 0, 15 ],
+            "eid": "5e66749a5369efe8a97c9801",
             "tweens": [
               {
                 "type": "Translate",
-                "band": [ 0.0, 15.0 ],
+                "band": [ 0, 15 ],
                 "easing": {
                   "name": "Unknown",
                   "path": "C0.0 1.0 1.0 0.0 1.0 1.0"
@@ -94,29 +99,40 @@ var demo_project =
                 "path": "M0.0 0.0 L300.0 300.0 Z"
               }
             ],
-            "outline-color": "magenta"
+            "visible": true,
+            "outline": false,
+            "locked": false,
+            "outline-color": "green",
+            "dynamic": false,
+            "reg": [ 0, 0 ],
+            "opaque": false
           },
           {
-            "id": "bd1cb1f1d9fee9af6698724b",
+            "id": "246ff07427846bd43ce4c49c",
             "name": "Image",
-            "band": [ 0.0, 20.0 ],
-            "eid": "a514a90689aabcc0a73f2808",
-            "tweens": [ // added manually
-              {
-                "type": "Alpha",
-                "band": [ 0.0, 15.0 ],
-                "data": [ 0.0, 1.0 ]
-              }
+            "band": [ 0, 20 ],
+            "eid": "47b7c4b4dfa6a2d7b7673108",
+            "tweens": [
+              
             ],
-            "outline-color": "red"
+            "visible": true,
+            "outline": false,
+            "locked": false,
+            "outline-color": "black",
+            "dynamic": false,
+            "reg": [ 0, 0 ],
+            "opaque": false
           }
-        ]
+        ],
+        "on-end": "STOP"
       },
       {
-        "id": "9413dd388d0d9ead55a30d05",
+        "id": "0c1fccc618de214b74401005",
         "stroke": {
-          "width": 4.0,
-          "paint": { "color": "blue" },
+          "width": 4,
+          "paint": {
+            "color": "blue"
+          },
           "cap": "round",
           "join": "round"
         },
@@ -126,41 +142,12 @@ var demo_project =
         "path": "M0.0 0.0 L100.0 0.0 L100.0 100.0 L0.0 100.0 L0.0 0.0 Z"
       },
       {
-        "id": "9627fb0f3db1350befafb001",
-        "name": "Clip",
-        "layers": [
-          {
-            "id": "4f2be78e2e67908890de998c",
-            "name": "Symbols",
-            "band": [ 0.0, 15.0 ],
-            "eid": "9413dd388d0d9ead55a30d05",
-            "tweens": [
-              {
-                "type": "Alpha",
-                "band": [ 0.0, 15.0 ],
-                "data": [ 1.0, 0.0 ]
-              },
-              {
-                "type": "Rotate",
-                "band": [ 0.0, 15.0 ],
-                "data": [ 0.0, 6.283185307179586 ]
-              },
-              {
-                "type": "Translate",
-                "band": [ 0.0, 15.0 ],
-                "path": "M0.0 0.0 L200.0 200.0 Z"
-              }
-            ],
-            "outline-color": "yellow",
-            "reg": [ 50.0, 50.0 ]
-          }
-        ]
-      },
-      {
-        "id": "9df8f651d89cbe3546b5b105",
+        "id": "0e9bbfce6be43efd045ad305",
         "stroke": {
-          "width": 4.0,
-          "paint": { "color": "green" },
+          "width": 4,
+          "paint": {
+            "color": "green"
+          },
           "cap": "round",
           "join": "round"
         },
@@ -170,12 +157,49 @@ var demo_project =
         "path": "M0.0 0.0 L50.0 0.0 L50.0 50.0 L0.0 50.0 L0.0 0.0 Z"
       },
       {
-        "id": "a514a90689aabcc0a73f2808",
+        "id": "47b7c4b4dfa6a2d7b7673108",
         "url": "http://madeira.hccanet.org/project2/michels_p2/website%20pics/bender.jpg"
+      },
+      {
+        "id": "5e66749a5369efe8a97c9801",
+        "name": "Clip",
+        "layers": [
+          {
+            "id": "bf5a00bd9403d543453a6adb",
+            "name": "Symbols",
+            "band": [ 0, 15 ],
+            "eid": "0c1fccc618de214b74401005",
+            "tweens": [
+              {
+                "type": "Alpha",
+                "band": [ 0, 15 ],
+                "data": [ 1, 0 ]
+              },
+              {
+                "type": "Rotate",
+                "band": [ 0, 15 ],
+                "data": [ 0, 6.283185307179586 ]
+              },
+              {
+                "type": "Translate",
+                "band": [ 0, 15 ],
+                "path": "M0.0 0.0 L0.0 0.0 Z"
+              }
+            ],
+            "visible": true,
+            "outline": false,
+            "locked": false,
+            "outline-color": "blue",
+            "dynamic": false,
+            "reg": [ 50, 50 ],
+            "opaque": false
+          }
+        ],
+        "on-end": "STOP"
       }
     ],
     "scenes": [
-      "5a6f15897c4163d22365e902"
+      "0a34fb66b6d42d193574c002"
     ]
   }
 };
