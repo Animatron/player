@@ -1380,6 +1380,7 @@ Easing.T_INOUT = 'INOUT';
 Easing.T_PATH = 'PATH';
 Easing.T_FUNC = 'FUNC';
 
+// FIXME: change to sinus/cosinus
 Easing.__SEGS = {};
 Easing.__SEGS[Easing.T_DEF] = new CSeg([.25, .1, .25, 1, 1, 1]);
 Easing.__SEGS[Easing.T_IN] = new CSeg([.42, 0, 1, 1, 1, 1]);
@@ -2051,6 +2052,7 @@ CSeg.prototype._ensure_params = function(start) {
     this._params = this._calc_params(start);
 }
 CSeg.prototype._calc_params = function(start) {
+    // See http://www.planetclegg.com/projects/WarpingTextToSplines.html
     var pts = this.pts;
     var params = [];
     var p0x = start[0];
@@ -2082,7 +2084,30 @@ CSeg.prototype.crosses = function(start, point) {
                             pts[2],   pts[3],   // xc1, yc1
                             pts[4],   pts[5],   // x1, y1
                             0);                 // level
+}
+// get y = f(x), where f is a curve function
+CSeg.prototype.solve = function(start, x, p) {
+    var s = p || 100, // precision
+        e = Math.pow(s,-1); // epsilon 
+    var t0 = 0, z = 1, t1 = 1;
+    var p0, pz, p1;
     
+    while (z > e) {
+        z = t0 + ((t1 - t0) / 2);
+        
+        p0 = this.atT(start, t0);
+        pz = this.atT(start, z);
+        p1 = this.atT(start, t1);
+
+        if (x === (Math.round(p0[0]*s)/s)) return p0[1];
+        if (x === (Math.round(pz[0]*s)/s)) return pz[1];
+        if (x === (Math.round(p1[0]*s)/s)) return p1[1];
+
+        if ((x > p0[0]) && (x < pz[0])) t1 = z; 
+        else if ((x > pz[0]) && (x < p1[0])) t0 = z;
+    }
+
+    return pz[1];
 }
 
 // =============================================================================
