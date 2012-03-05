@@ -1392,28 +1392,32 @@ TimeEasings[Easing.T_DEF] =
     function() {
         var seg = Easing.__SEGS[Easing.T_DEF];
         return function(t) {
-            return seg.solve([0, 0], t);
+            return seg.atT([0, 0], t)[1];
+            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_IN] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_IN];
         return function(t) {
-            return seg.solve([0, 0], t);
+            return seg.atT([0, 0], t)[1];
+            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_OUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_OUT];
         return function(t) {
-            return seg.solve([0, 0], t);
+            return seg.atT([0, 0], t)[1];
+            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_INOUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_INOUT];
         return function(t) {
-            return seg.solve([0, 0], t);
+            return seg.atT([0, 0], t)[1];
+            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_PATH] =
@@ -2046,19 +2050,33 @@ CSeg.prototype.atDist = function(start, dist) {
     return this.atT(start, dist / this.length(start));
 }
 CSeg.prototype.atT = function(start, t) {
-    this._ensure_params(start);
+    var tt = t * t,       // t^2
+        ttt = tt * t,      // t^3
+        t1 = 1 - t,       // 1-t
+        tt1 = t1 * t1,     // (1-t)^2
+        tt2 = tt1 * t1,    // (1-t)^3
+        tt3 = 3 * t * tt1,   // 3*t*(1-t)^2
+        tt4 = 3 * tt * t1;   // 3*t^2*(1-t)
+
+        return [ start[0] * tt2 + this.pts[0] * tt3 + this.pts[2] * tt4 + this.pts[4] * ttt,
+                 start[1] * tt2 + this.pts[1] * tt3 + this.pts[3] * tt4 + this.pts[5] * ttt ];
+
+    /*this._ensure_params(start);
     var par = this._params;
     var tt = t * t; // t^2
     var ttt = tt * t; // t^3
 
     return [ par[0] * ttt + par[1] * tt + par[2] * t + par[3],
-             par[4] * ttt + par[5] * tt + par[6] * t + par[7] ];
+             par[4] * ttt + par[5] * tt + par[6] * t + par[7] ];*/
 }
 CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
 }
 // get y = f(x), where f is a curve function
 // p is optional precision, value is required power of 10, default is 3
+// (the restriction of this method is in fact that this curve 
+//  must not be a convex type (be wider than its start/end X points 
+//  or have loops, or have same x in different y points)...
 CSeg.prototype.solve = function(start, x, p) {
     var e = 1 / Math.pow(10, (p || 3)); // epsilon 
     var t0 = 0, z = 1, t1 = 1;
@@ -2085,8 +2103,7 @@ CSeg.prototype.solve = function(start, x, p) {
                              'that solve method is not currently supported');
     }
 
-    return pz[1];
-    
+    return pz[1];    
 }
 // get y = f(len*r), where f is a curve function
 CSeg.prototype.rsolve = function(start, r, p) {
