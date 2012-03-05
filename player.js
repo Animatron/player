@@ -1392,28 +1392,28 @@ TimeEasings[Easing.T_DEF] =
     function() {
         var seg = Easing.__SEGS[Easing.T_DEF];
         return function(t) {
-            return seg.atT([0, 0], t)[1];
+            return seg.rsolve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_IN] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_IN];
         return function(t) {
-            return seg.atT([0, 0], t)[1];
+            return seg.rsolve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_OUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_OUT];
         return function(t) {
-            return seg.atT([0, 0], t)[1];
+            return seg.rsolve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_INOUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_INOUT];
         return function(t) {
-            return seg.atT([0, 0], t)[1];
+            return seg.rsolve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_PATH] =
@@ -1848,6 +1848,14 @@ MSeg.prototype.atDist = function(start, dist) {
 MSeg.prototype.atT = function(start, t) {
     return this.atDist(start, null);
 }
+// get y = f(x), where f is a point function
+MSeg.prototype.solve = function(start, x) {
+    return this.pts[1] - start[1];
+}
+// get y = f(len*r), where f is a point function
+MSeg.prototype.rsolve = function(start, r) {
+    return this.solve(start,0);
+}
 MSeg.prototype.tangentAt = function(start, t) {
     return [0, 0];
 }
@@ -1883,6 +1891,19 @@ LSeg.prototype.atT = function(start, t) {
         p0x + (p1x - p0x) * t,
         p0y + (p1y - p0y) * t
     ];
+}
+// get y = f(x), where f is a linear function
+LSeg.prototype.solve = function(start, x) {
+    var p = this.pts;
+    if ((p[0] - start[0]) == 0) return 0;
+    var k = (p[1] - start[1]) / (p[0] - start[0]);
+    var b = -1 * ((k * start[0]) - start[1]);
+    return (k * (x + start[0]) + b) - start[1];
+}
+// get y = f(len*r), where f is a curve function
+LSeg.prototype.rsolve = function(start, r) {
+    if ((r < 0) || (r > 1)) throw new Error('Incorrect R');
+    return this.solve(start,(this.pts[0]-start[0])*r);
 }
 LSeg.prototype.tangentAt = function(start, t) {
     return Math.atan2(this.pts[1] - start[1],
@@ -2036,6 +2057,39 @@ CSeg.prototype.atT = function(start, t) {
 CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
 }
+// get y = f(x), where f is a curve function
+// p is optional precision, value is required power of 10
+CSeg.prototype.solve = function(start, x, p) {
+
+    var e = 1 / Math.pow(10, (p || 2)); // epsilon 
+    var t0 = 0, z = 1, t1 = 1;
+    var p0, pz, p1, c = 1;
+    
+    while (c > e) {
+        c = (t1 - t0) / 2;
+        z = t0 + c;
+        console.log(t0, z, t1);
+
+        p0 = this.atT(start, t0);
+        pz = this.atT(start, z);
+        p1 = this.atT(start, t1);
+        console.log(p0, pz, p1);
+
+        if ((x >= (p0[0] - e)) && (x <= (p0[0] + e))) return p0[1];
+        if ((x >= (pz[0] - e)) && (x <= (pz[0] + e))) return pz[1];
+        if ((x >= (p1[0] - e)) && (x <= (p1[0] + e))) return p1[1];
+
+        if ((x > p0[0]) && (x < pz[0])) { t1 = z; } 
+        else if ((x > pz[0]) && (x < p1[0])) { t0 = z; }
+    }
+
+    return pz[1];
+}
+// get y = f(len*r), where f is a curve function
+CSeg.prototype.rsolve = function(start, r, p) {
+    if ((r < 0) || (r > 1)) throw new Error('Incorrect R');
+    return this.solve(start, r*this.length(start), p);
+}
 CSeg.prototype.tangentAt = function(start, t) {
     this._ensure_params(start);
     var par = this._params;
@@ -2084,30 +2138,6 @@ CSeg.prototype.crosses = function(start, point) {
                             pts[2],   pts[3],   // xc1, yc1
                             pts[4],   pts[5],   // x1, y1
                             0);                 // level
-}
-// get y = f(x), where f is a curve function
-CSeg.prototype.solve = function(start, x, p) {
-    var s = p || 100, // precision
-        e = Math.pow(s,-1); // epsilon 
-    var t0 = 0, z = 1, t1 = 1;
-    var p0, pz, p1;
-    
-    while (z > e) {
-        z = t0 + ((t1 - t0) / 2);
-        
-        p0 = this.atT(start, t0);
-        pz = this.atT(start, z);
-        p1 = this.atT(start, t1);
-
-        if (x === (Math.round(p0[0]*s)/s)) return p0[1];
-        if (x === (Math.round(pz[0]*s)/s)) return pz[1];
-        if (x === (Math.round(p1[0]*s)/s)) return p1[1];
-
-        if ((x > p0[0]) && (x < pz[0])) t1 = z; 
-        else if ((x > pz[0]) && (x < p1[0])) t0 = z;
-    }
-
-    return pz[1];
 }
 
 // =============================================================================
