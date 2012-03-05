@@ -1392,28 +1392,28 @@ TimeEasings[Easing.T_DEF] =
     function() {
         var seg = Easing.__SEGS[Easing.T_DEF];
         return function(t) {
-            return seg.rsolve([0, 0], t);
+            return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_IN] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_IN];
         return function(t) {
-            return seg.rsolve([0, 0], t);
+            return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_OUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_OUT];
         return function(t) {
-            return seg.rsolve([0, 0], t);
+            return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_INOUT] = 
     function() {
         var seg = Easing.__SEGS[Easing.T_INOUT];
         return function(t) {
-            return seg.rsolve([0, 0], t);
+            return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_PATH] =
@@ -2058,13 +2058,12 @@ CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
 }
 // get y = f(x), where f is a curve function
-// p is optional precision, value is required power of 10
+// p is optional precision, value is required power of 10, default is 3
 CSeg.prototype.solve = function(start, x, p) {
-
-    var e = 1 / Math.pow(10, (p || 2)); // epsilon 
+    var e = 1 / Math.pow(10, (p || 3)); // epsilon 
     var t0 = 0, z = 1, t1 = 1;
     var p0, pz, p1, c = 1;
-    
+     
     while (c > e) {
         c = (t1 - t0) / 2;
         z = t0 + c;
@@ -2081,9 +2080,13 @@ CSeg.prototype.solve = function(start, x, p) {
 
         if ((x > p0[0]) && (x < pz[0])) { t1 = z; } 
         else if ((x > pz[0]) && (x < p1[0])) { t0 = z; }
+        else throw new Error('x <'+x+'> is not in bounds '+
+                             'of start/end points of curve (['+p0[0]+','+p1[0]+']), '+
+                             'that solve method is not currently supported');
     }
 
     return pz[1];
+    
 }
 // get y = f(len*r), where f is a curve function
 CSeg.prototype.rsolve = function(start, r, p) {
