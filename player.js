@@ -1369,8 +1369,7 @@ Tweens[Tween.T_SCALE] =
 Tweens[Tween.T_ROT_TO_PATH] = 
     function(t, data) {
         var path = this._mpath;
-        var a = path.tangentAt(t);
-        this.angle = a;
+        this.angle = path.tangentAt(t); //Math.atan2(this.y, this.x);
     };
 
 Easing.T_DEF = 'DEF';
@@ -1393,7 +1392,6 @@ TimeEasings[Easing.T_DEF] =
         var seg = Easing.__SEGS[Easing.T_DEF];
         return function(t) {
             return seg.atT([0, 0], t)[1];
-            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_IN] = 
@@ -1401,7 +1399,6 @@ TimeEasings[Easing.T_IN] =
         var seg = Easing.__SEGS[Easing.T_IN];
         return function(t) {
             return seg.atT([0, 0], t)[1];
-            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_OUT] = 
@@ -1409,7 +1406,6 @@ TimeEasings[Easing.T_OUT] =
         var seg = Easing.__SEGS[Easing.T_OUT];
         return function(t) {
             return seg.atT([0, 0], t)[1];
-            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_INOUT] = 
@@ -1417,7 +1413,6 @@ TimeEasings[Easing.T_INOUT] =
         var seg = Easing.__SEGS[Easing.T_INOUT];
         return function(t) {
             return seg.atT([0, 0], t)[1];
-            //return seg.solve([0, 0], t);
         }
     };
 TimeEasings[Easing.T_PATH] =
@@ -1852,14 +1847,6 @@ MSeg.prototype.atDist = function(start, dist) {
 MSeg.prototype.atT = function(start, t) {
     return this.atDist(start, null);
 }
-// get y = f(x), where f is a point function
-MSeg.prototype.solve = function(start, x) {
-    return this.pts[1] - start[1];
-}
-// get y = f(len*r), where f is a point function
-MSeg.prototype.rsolve = function(start, r) {
-    return this.solve(start,0);
-}
 MSeg.prototype.tangentAt = function(start, t) {
     return [0, 0];
 }
@@ -1895,19 +1882,6 @@ LSeg.prototype.atT = function(start, t) {
         p0x + (p1x - p0x) * t,
         p0y + (p1y - p0y) * t
     ];
-}
-// get y = f(x), where f is a linear function
-LSeg.prototype.solve = function(start, x) {
-    var p = this.pts;
-    if ((p[0] - start[0]) == 0) return 0;
-    var k = (p[1] - start[1]) / (p[0] - start[0]);
-    var b = -1 * ((k * start[0]) - start[1]);
-    return (k * (x + start[0]) + b) - start[1];
-}
-// get y = f(len*r), where f is a curve function
-LSeg.prototype.rsolve = function(start, r) {
-    if ((r < 0) || (r > 1)) throw new Error('Incorrect R');
-    return this.solve(start,(this.pts[0]-start[0])*r);
 }
 LSeg.prototype.tangentAt = function(start, t) {
     return Math.atan2(this.pts[1] - start[1],
@@ -2058,57 +2032,11 @@ CSeg.prototype.atT = function(start, t) {
         tt3 = 3 * t * tt1,   // 3*t*(1-t)^2
         tt4 = 3 * tt * t1;   // 3*t^2*(1-t)
 
-        return [ start[0] * tt2 + this.pts[0] * tt3 + this.pts[2] * tt4 + this.pts[4] * ttt,
-                 start[1] * tt2 + this.pts[1] * tt3 + this.pts[3] * tt4 + this.pts[5] * ttt ];
-
-    /*this._ensure_params(start);
-    var par = this._params;
-    var tt = t * t; // t^2
-    var ttt = tt * t; // t^3
-
-    return [ par[0] * ttt + par[1] * tt + par[2] * t + par[3],
-             par[4] * ttt + par[5] * tt + par[6] * t + par[7] ];*/
+    return [ start[0] * tt2 + this.pts[0] * tt3 + this.pts[2] * tt4 + this.pts[4] * ttt,
+             start[1] * tt2 + this.pts[1] * tt3 + this.pts[3] * tt4 + this.pts[5] * ttt ];
 }
 CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
-}
-// get y = f(x), where f is a curve function
-// p is optional precision, value is required power of 10, default is 3
-// (the restriction of this method is in fact that this curve 
-//  must not be a convex type (be wider than its start/end X points 
-//  or have loops, or have same x in different y points)...
-CSeg.prototype.solve = function(start, x, p) {
-    var e = 1 / Math.pow(10, (p || 3)); // epsilon 
-    var t0 = 0, z = 1, t1 = 1;
-    var p0, pz, p1, c = 1;
-     
-    while (c > e) {
-        c = (t1 - t0) / 2;
-        z = t0 + c;
-        console.log(t0, z, t1);
-
-        p0 = this.atT(start, t0);
-        pz = this.atT(start, z);
-        p1 = this.atT(start, t1);
-        console.log(p0, pz, p1);
-
-        if ((x >= (p0[0] - e)) && (x <= (p0[0] + e))) return p0[1];
-        if ((x >= (pz[0] - e)) && (x <= (pz[0] + e))) return pz[1];
-        if ((x >= (p1[0] - e)) && (x <= (p1[0] + e))) return p1[1];
-
-        if ((x > p0[0]) && (x < pz[0])) { t1 = z; } 
-        else if ((x > pz[0]) && (x < p1[0])) { t0 = z; }
-        else throw new Error('x <'+x+'> is not in bounds '+
-                             'of start/end points of curve (['+p0[0]+','+p1[0]+']), '+
-                             'that solve method is not currently supported');
-    }
-
-    return pz[1];    
-}
-// get y = f(len*r), where f is a curve function
-CSeg.prototype.rsolve = function(start, r, p) {
-    if ((r < 0) || (r > 1)) throw new Error('Incorrect R');
-    return this.solve(start, r*this.length(start), p);
 }
 CSeg.prototype.tangentAt = function(start, t) {
     this._ensure_params(start);
@@ -2116,6 +2044,7 @@ CSeg.prototype.tangentAt = function(start, t) {
     var tt = t * t; // t^2
     var p = [ 3 * par[0] * tt + 2 * par[1] * t + par[2],
               3 * par[4] * tt + 2 * par[5] * t + par[6] ];
+    //var p = this.atT(start, t);
     return Math.atan2(p[1], p[0]);
 }
 CSeg.prototype._ensure_params = function(start) {
