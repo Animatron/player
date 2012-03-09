@@ -13,7 +13,7 @@ AnimatronImporter.prototype.configure = function(prj) {
         'fps': _a.framerate, 
         'width': Math.floor(_a.dimension[0]),
         'height': Math.floor(_a.dimension[1]),
-        'bgcolor': _a.background.color,
+        'bgcolor': Convert.fill(_a.background),
         'duration': this.computeDuration(prj.anim.elements)
     };
 };
@@ -168,7 +168,9 @@ Convert.stroke = function(stroke) {
 }
 Convert.fill = function(fill) {
     var brush = {};
-    if (fill.color) {
+    if (!fill) {
+        brush.color = "rgba(0,0,0,0)";
+    } else if (fill.color) {
         brush.color = fill.color;
     } else if ((typeof fill.r0 !== 'undefined')
             && (typeof fill.r1 !== 'undefined')) {
