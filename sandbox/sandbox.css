@@ -67,4 +67,11 @@ textarea {
 	margin-bottom: 5px;
 }
 
+#copyright {
+	color: #666;
+	font-size: 0.8em;
+	position: fixed;
+	bottom: 5px;
+	right: 5px;
+}
 
