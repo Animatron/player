@@ -24,3 +24,11 @@ hr {
 	background-color: #999;
 	margin-top: 60px;
 }
+
+#copyright {
+	color: #666;
+	font-size: 0.8em;
+	position: fixed;
+	bottom: 5px;
+	right: 5px;
+}

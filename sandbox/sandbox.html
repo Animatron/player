@@ -1,0 +1,58 @@
+<!--
+ ~ Copyright (c) 2011-2012 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The Animatron HTML5 Player Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="./sandbox.css" type="text/css" />
+    <link rel="stylesheet" href="../vendor/CodeMirror-2.22/lib/codemirror.css" type="text/css" />
+    <script src="../vendor/matrix.js" type="text/javascript"></script>
+    <script src="../player.js" type="text/javascript"></script>
+    <script src="../builder.js" type="text/javascript"></script>
+    <script src="../vendor/CodeMirror-2.22/lib/codemirror.js"></script>
+    <script src="../vendor/CodeMirror-2.22/mode/javascript/javascript.js"></script>
+    <script src="./sandbox.js" type="text/javascript"></script>
+  </head>
+
+  <body onload="sandbox('scene-source', 'my-canvas', 'errors');">
+    <h1>The Animatron HTML5 Player Sandbox</h1>
+
+    <!-- left pane -->
+
+    <div id="left-pane">
+      
+            <pre class="locked">var b = Builder._$;
+
+var scene = (function() {</pre>
+
+      <textarea id="scene-source"> </textarea> <!-- source editor -->
+
+      <pre class="locked">})();
+
+createPlayer("my-canvas").load(scene);</pre>
+
+    </div>
+
+    <!-- left pane -->    
+
+    <div id="right-pane">
+      <pre class="locked">#my-canvas</pre>
+
+      <div id="player-wrapper">
+        <canvas id="my-canvas"></canvas> <!-- canvas -->
+      </div>
+
+      <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->
+    </div>
+
+    <div id="copyright"><span>© 2011-2012 by Animatron</span></div>
+
+  </body>
+
+</html>
