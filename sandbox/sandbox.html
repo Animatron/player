@@ -20,7 +20,7 @@
     <script src="./sandbox.js" type="text/javascript"></script>
   </head>
 
-  <body onload="sandbox.init('scene-source', 'my-canvas', 'errors');">
+  <body onload="sandbox('scene-source', 'my-canvas', 'errors');">
     <h1>The Animatron HTML5 Player Sandbox</h1>
 
     <!-- left pane -->
@@ -47,7 +47,7 @@ createPlayer("my-canvas").load(scene);</pre>
       <div id="player-wrapper">
         <canvas id="my-canvas"></canvas> <!-- canvas -->
       </div>
-      
+
       <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->
     </div>
 
