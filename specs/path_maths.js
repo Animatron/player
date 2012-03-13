@@ -239,7 +239,8 @@ describe('Path', function() {
 
 		describe('contains', function() {
 
-			it('determines if a point is inside or outside of the line path', function() {
+			xit('determines if a point is inside or outside of the line path', function() {
+				// FIXME: (not implemented)
 				path = new Path('M10 15 Z');
 				expect(path.contains([10, 15])).toBeTruthy();
 				expect(path.contains([0, 15])).toBeFalsy();
@@ -282,14 +283,15 @@ describe('Path', function() {
 			});
 
 			xit('determines if a point is inside or outside of the rect path', function() {
-				// FIXME:
+				// FIXME: (not implemented)
 			});
 
 			xit('determines if a point is inside or outside of the round path', function() {
-				// FIXME:
+				// FIXME: (not implemented)
 			});
 
-			xit('determines if a point is inside or outside of the curve path', function() {				
+			xit('determines if a point is inside or outside of the curve path', function() {	
+				// FIXME: (not implemented)		
 			});
 
 		});

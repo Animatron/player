@@ -11,7 +11,9 @@ describe('Element', function() {
 
 	describe('bands', function() {
 
-		describe('trees', function() {
+		xdescribe('trees', function() {
+
+			// FIXME: (not implemented)
 
 			var DEF_BAND = [0, Element.DEFAULT_BAND];
 
@@ -375,7 +377,9 @@ describe('Element', function() {
 
 		});
 
-		describe('time stuff', function() {
+		xdescribe('time stuff', function() {
+
+			// FIXME: (not implemented)
 
 			it('calculates duration right', function() {
 				expect(makeElementWithBand([-1, 19])).toHaveDuration(21);
