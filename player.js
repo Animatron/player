@@ -71,7 +71,7 @@ function find_pos(elm) {
 // === PLAYER ==================================================================
 // =============================================================================
 
-function Player(id, inParent) {
+function Player(id, opts, inParent) {
     this.id = id;
     this.state = null;
     this.anim = null;
@@ -82,7 +82,7 @@ function Player(id, inParent) {
     this.controls = null;
     this.info = null;
     this.inParent = inParent;
-    this._init();
+    this._init(opts);
 }
 
 Player.NOTHING = -1;
@@ -277,14 +277,14 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 
 provideEvents(Player, ['play', 'pause', 'stop', 'load', 'error']);
 // initial state of the player, called from conctuctor
-Player.prototype._init = function() {
+Player.prototype._init = function(opts) {
     this._initHandlers(); // TODO: make automatic
     this.canvas = document.getElementById(this.id);
     this.ctx = this.canvas.getContext("2d");
     this.state = Player.createState(this);
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
-    this.configure(Player.DEFAULT_CONFIGURATION);
+    this.configure(opts || Player.DEFAULT_CONFIGURATION);
     this.subscribeEvents(this.canvas);
     this.stop();
     // TODO: load some default information into player
@@ -307,7 +307,7 @@ Player.prototype._reset = function() {
 Player.prototype._configureCanvas = function(opts) {
     this.state.width = opts.width;
     this.state.height = opts.height;
-    this.state.bgcolor = opts.bgcolor;
+    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
     Player.configureCanvas(this.canvas, opts);
     if (this.controls) this.controls.update(this.canvas);
     if (this.info) this.info.update(this.canvas);
@@ -324,7 +324,42 @@ Player.prototype.injectInfo = function(data) {
     if (this.info) this.info.inject(data);
 }
 Player.prototype.drawSplash = function() {
-    // TODO
+    var ctx = this.ctx,
+        w = this.state.width,
+        h = this.state.height,
+        rsize = 120;
+    ctx.save();
+
+    // background
+    ctx.fillStyle = '#ffe';
+    ctx.fillRect(0, 0, w, h);
+
+    // text
+    ctx.fillStyle = "#999966";
+    ctx.font = '18px sans-serif';
+    ctx.fillText("© Animatron Player", 20, h - 20);
+
+    // outer rect
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = '#fee';
+    ctx.strokeRect(0, 0, w, h);
+
+    // inner rect
+    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
+    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
+    grad.addColorStop(0, '#00abeb');
+    grad.addColorStop(.7, '#fff');
+    grad.addColorStop(.7, '#6c0');
+    grad.addColorStop(1, '#fff');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 10;
+    ctx.globalAlpha = .8;
+    ctx.fillRect(0, 0, rsize, rsize);
+    ctx.globalAlpha = .9;
+    ctx.strokeRect(0, 0, rsize, rsize);
+
+    ctx.restore();
 }
 Player.prototype._checkMode = function() {
     if (this.mode & Player.M_CONTROLS_ENABLED) {
@@ -372,10 +407,10 @@ Player.prototype.configure = function(conf) {
     // tune up canvas (it will update controls/info position)
     this._configureCanvas(conf);
     // inject information to html
-    this.injectInfo(conf);
+    if (conf.meta) this.injectInfo(conf);
     
-    this.state.fps = conf.fps;
-    this.state.duration = conf.duration;
+    if (conf.fps) this.state.fps = conf.fps;
+    if (conf.duration) this.state.duration = conf.duration;
 }
 Player.prototype.drawAt = function(time) {
     var ctx = this.ctx,
@@ -2488,119 +2523,6 @@ InfoBlock.prototype.updateDuration = function(value) {
 }
 
 // =============================================================================
-// === BUILDER =================================================================
-
-// > Builder % ()
-function Builder(obj) {
-    this.name = (obj && !obj.xdata) ? obj : ''; // obj is a name string, if it has no xdata
-    this.value = (obj && obj.xdata) ? obj : new Element(); // if it has, it is an element instance
-    this.value.name = this.name;
-    this.xdata = this.value.xdata;
-};
-Builder._$ = function(name) {
-    return new Builder(name);
-}
-// > Builder.addS % (what: Element | Builder) => Builder
-Builder.prototype.add = function(what) {
-    this.value.add(what);
-    return this;
-}
-// > Builder.addS % (what: Element | Builder) => Builder
-Builder.prototype.addS = function(what) {
-    this.value.addS(what);
-    return this;    
-}
-// > Builder.fill % (color: String) => Builder
-Builder.prototype.fill = function(color) {
-    if (!this.xdata.path) {
-        this.xdata.path = new Path(); 
-    }
-    this.xdata.path.setFill(color);
-    return this;
-}
-// > Builder.stroke % (color: String, width: Float) 
-//                  => Builder
-Builder.prototype.stroke = function(color, width) {
-    if (!this.xdata.path) {
-        this.xdata.path = new Path(); 
-    }
-    this.xdata.path.setStroke(color, width);
-    return this;
-}
-// > Builder.path % (path: String) => Builder
-Builder.prototype.path = function(pathStr) {
-    this.xdata.path = Path.parse(pathStr,
-                                 this.xdata.path);
-    return this;
-}
-// > Builder.paint % (painter: Function(ctx: Context))
-//                 => Builder
-Builder.prototype.paint = function(func, data) {
-    this.value.addPainter(func, data);
-    return this;
-}
-// > Builder.modify % (modifier: Function(time: Float, 
-//                                        data: Any), 
-//                     data: Any) => Builder
-Builder.prototype.modify = function(func, data) {
-    this.value.addModifier(func, data);
-    return this;
-}
-// > Builder.image % (src: String) => Builder
-Builder.prototype.image = function(src) {
-    this.xdata.image = src;
-    return this;
-}
-// > Builder.rect % (pt: Array[2,Integer], 
-//                   rect: Array[2,Array[2, Integer]]) => Builder
-Builder.prototype.rect = function(pt, rect) {
-    var x=pt[0], y=pt[1],
-        w=rect[0], h=rect[1]; 
-    return this.path('M'+x+' '+y+
-                    ' L'+(x+w)+' '+y+
-                    ' L'+(x+w)+' '+(y+h)+
-                    ' L'+x+' '+(y+h)+
-                    ' L'+x+' '+y+' Z');
-}
-// > Builder.circle % (pt: Array[2,Integer], 
-//                     radius: Integer) => Builder
-Builder.prototype.cirle = function(pt, radius) {
-    var x=pt[0], y=pt[1]; 
-    //this.value.addPainter(Builder.p_drawCircle, [pt, radius,
-    //                      this.value.path.fill, 
-    //                      this.value.path.stroke]);
-    return this.path('M'+x+' '+y+
-                    ' L'+(x+w)+' '+y+
-                    ' L'+(x+w)+' '+(y+h)+
-                    ' L'+x+' '+(y+h)+
-                    ' L'+x+' '+y+' Z');
-}
-// > Builder.rotate % (band: Array[2,Float], 
-//                     values: Array[2,Float]) => Builder
-Builder.prototype.rotate = function(band, values) {
-    this.value.applyLBand(band);
-    this.value.addTween({
-        type: Tween.T_ROTATE,
-        band: band,
-        data: values
-    });
-    return this;
-}
-Builder.prototype.band = function(band) {
-    this.value.setLBand(band);
-}
-/*Builder.p_drawCircle = function(ctx, args) {
-    var pt=args[0], radius=args[1],
-        fill=args[2], stroke=args[3];
-        x=pt[0], y=pt[1], 
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI*2, args);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-}*/
-
-// =============================================================================
 // === EXPORTS =================================================================
 
 var all = this;    
@@ -2610,12 +2532,11 @@ var exports = {
     'Element': Element,
     'Clip': Clip,
     'Path': Path, 'Text': Text,
-    'Builder': Builder,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
 
-    'createPlayer': function(id) { return new Player(id); },
+    'createPlayer': function(id, opts) { return new Player(id, opts); },
 
     '__js_pl_all': all
 }
