@@ -307,7 +307,7 @@ Player.prototype._reset = function() {
 Player.prototype._configureCanvas = function(opts) {
     this.state.width = opts.width;
     this.state.height = opts.height;
-    this.state.bgcolor = opts.bgcolor;
+    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
     Player.configureCanvas(this.canvas, opts);
     if (this.controls) this.controls.update(this.canvas);
     if (this.info) this.info.update(this.canvas);
@@ -372,10 +372,10 @@ Player.prototype.configure = function(conf) {
     // tune up canvas (it will update controls/info position)
     this._configureCanvas(conf);
     // inject information to html
-    this.injectInfo(conf);
+    if (conf.meta) this.injectInfo(conf);
     
-    this.state.fps = conf.fps;
-    this.state.duration = conf.duration;
+    if (conf.fps) this.state.fps = conf.fps;
+    if (conf.duration) this.state.duration = conf.duration;
 }
 Player.prototype.drawAt = function(time) {
     var ctx = this.ctx,
@@ -2615,7 +2615,9 @@ var exports = {
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
 
-    'createPlayer': function(id) { return new Player(id); },
+    'createPlayer': function(id, opts) { var player = new Player(id);
+                                         if (opts) player.configure(opts);
+                                         return player; },
 
     '__js_pl_all': all
 }

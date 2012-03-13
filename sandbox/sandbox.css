@@ -23,10 +23,11 @@ pre {
 	margin: 0;
 }
 
-canvas {
+#player-wrapper {
 	margin: 0;
 	margin-top: 10px;
 	margin-bottom: 20px;
+	border: 1px solid #333;
 }
 
 textarea, .CodeMirror {
@@ -37,7 +38,6 @@ textarea, .CodeMirror {
 }
 
 #my-canvas {
-	border: 1px solid #333;
 	width: 400px;
 	height: 300px;
 }
@@ -75,4 +75,12 @@ textarea, .CodeMirror {
 	position: fixed;
 	bottom: 5px;
 	right: 5px;
+}
+
+#errors {
+	font-family: monospace;
+	padding: 5px;
+	border: 2px solid #600;
+	color: #600;
+	background-color: #fee;
 }
