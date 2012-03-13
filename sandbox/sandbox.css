@@ -1,0 +1,54 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
+body {
+	background-color: #fefefe;
+	font-family: sans-serif;
+	margin-right: 20%;
+	margin-top: 4em;
+	margin-left: 5%;
+}
+
+h1 {
+	border-bottom: 1px solid #ccc;
+	margin-bottom: 1.5em;
+}
+
+pre {
+	color: #060;
+	padding: 5px;
+	background-color: #efe;
+	margin: 0;
+	margin-bottom: 10px;
+}
+
+#left-pane {
+	float: left;
+	border-right: 1px solid #ccc;
+	padding-right: 30px;	
+}
+
+canvas {
+	margin-bottom: 20px;
+}
+
+#right-pane {
+	min-width: 43%;
+	float: left;
+	margin-left: 30px;
+}
+
+textarea {
+	width: 98%;
+	margin-bottom: 10px;
+}
+
+#my-canvas {
+	border: 1px solid #333;
+	width: 400px;
+	height: 300px;
+}
