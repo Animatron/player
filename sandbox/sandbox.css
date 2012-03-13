@@ -28,6 +28,7 @@ pre {
 	margin-top: 10px;
 	margin-bottom: 20px;
 	border: 1px solid #999;
+	background-color: #ccc;
 }
 
 textarea, .CodeMirror {
@@ -58,14 +59,14 @@ textarea, .CodeMirror {
 
 #left-pane pre.locked {
 	color: #030;
-	background-color: #efe;
+	background-color: #ecffec;
 	margin-bottom: 10px;
 }
 
 #right-pane pre.locked {
 	font-weight: bold;
 	color: #006;
-	background-color: #eef;	
+	background-color: #ececff;	
 	margin-bottom: 5px;
 }
 

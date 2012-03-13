@@ -335,7 +335,7 @@ Player.prototype.drawSplash = function() {
     ctx.fillRect(0, 0, w, h);
 
     // text
-    ctx.fillStyle = "#660";
+    ctx.fillStyle = "#999966";
     ctx.font = '18px sans-serif';
     ctx.fillText("© Animatron Player", 20, h - 20);
 
