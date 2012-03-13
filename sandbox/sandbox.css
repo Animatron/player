@@ -29,7 +29,7 @@ canvas {
 	margin-bottom: 20px;
 }
 
-textarea {
+textarea, .CodeMirror {
 	width: 99%;
 	margin-bottom: 10px;
 	min-height: 240px;
@@ -44,7 +44,8 @@ textarea {
 
 #left-pane {
 	float: left;
-	min-width: 45%;
+	min-width: 42%;	
+	margin-bottom: 5em;
 }
 
 #right-pane {
@@ -52,15 +53,16 @@ textarea {
 	margin-left: 30px;
 	border-left: 1px solid #ccc;
 	padding-left: 30px;
+	margin-bottom: 5em;	
 }
 
-#left-pane pre {
+#left-pane pre.locked {
 	color: #030;
 	background-color: #efe;
 	margin-bottom: 10px;
 }
 
-#right-pane pre {
+#right-pane pre.locked {
 	font-weight: bold;
 	color: #006;
 	background-color: #eef;	
@@ -74,4 +76,3 @@ textarea {
 	bottom: 5px;
 	right: 5px;
 }
-
