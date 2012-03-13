@@ -14,7 +14,8 @@ To use JS player in current state, download or copy from the cloned repository:
 
  * `vendor/matrix.js`
  * `player.js`
- * [Optional] `animatron_import.js`
+ * [Optional] `builder.js` (allows to build animations in a functional way)
+ * [Optional] `animatron_import.js` (allows to load animations from Animatron tool)
    
 And add them in the same order to your page header. Don't forget the `LICENSE` :).
 
