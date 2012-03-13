@@ -71,7 +71,7 @@ function find_pos(elm) {
 // === PLAYER ==================================================================
 // =============================================================================
 
-function Player(id, inParent) {
+function Player(id, opts, inParent) {
     this.id = id;
     this.state = null;
     this.anim = null;
@@ -82,7 +82,7 @@ function Player(id, inParent) {
     this.controls = null;
     this.info = null;
     this.inParent = inParent;
-    this._init();
+    this._init(opts);
 }
 
 Player.NOTHING = -1;
@@ -277,14 +277,14 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 
 provideEvents(Player, ['play', 'pause', 'stop', 'load', 'error']);
 // initial state of the player, called from conctuctor
-Player.prototype._init = function() {
+Player.prototype._init = function(opts) {
     this._initHandlers(); // TODO: make automatic
     this.canvas = document.getElementById(this.id);
     this.ctx = this.canvas.getContext("2d");
     this.state = Player.createState(this);
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
-    this.configure(Player.DEFAULT_CONFIGURATION);
+    this.configure(opts || Player.DEFAULT_CONFIGURATION);
     this.subscribeEvents(this.canvas);
     this.stop();
     // TODO: load some default information into player
@@ -324,7 +324,42 @@ Player.prototype.injectInfo = function(data) {
     if (this.info) this.info.inject(data);
 }
 Player.prototype.drawSplash = function() {
-    // TODO
+    var ctx = this.ctx,
+        w = this.state.width,
+        h = this.state.height,
+        rsize = 120;
+    ctx.save();
+
+    // background
+    ctx.fillStyle = '#ffe';
+    ctx.fillRect(0, 0, w, h);
+
+    // text
+    ctx.fillStyle = "#660";
+    ctx.font = '18px sans-serif';
+    ctx.fillText("© Animatron Player", 20, h - 20);
+
+    // outer rect
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = '#fee';
+    ctx.strokeRect(0, 0, w, h);
+
+    // inner rect
+    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
+    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
+    grad.addColorStop(0, '#00abeb');
+    grad.addColorStop(.7, '#fff');
+    grad.addColorStop(.7, '#6c0');
+    grad.addColorStop(1, '#fff');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 10;
+    ctx.globalAlpha = .8;
+    ctx.fillRect(0, 0, rsize, rsize);
+    ctx.globalAlpha = .9;
+    ctx.strokeRect(0, 0, rsize, rsize);
+
+    ctx.restore();
 }
 Player.prototype._checkMode = function() {
     if (this.mode & Player.M_CONTROLS_ENABLED) {
@@ -2501,9 +2536,7 @@ var exports = {
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
 
-    'createPlayer': function(id, opts) { var player = new Player(id);
-                                         if (opts) player.configure(opts);
-                                         return player; },
+    'createPlayer': function(id, opts) { return new Player(id, opts); },
 
     '__js_pl_all': all
 }
