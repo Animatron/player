@@ -6,23 +6,36 @@
  */
 
 body {
-	background-color: #eee;
+	background-color: #fff;
 	font-family: sans-serif;
-	margin-right: 60%;
+	margin-right: 50%;
+	margin-left: 10%;
+	margin-bottom: 80px;
 }
 
 pre {
-	background-color: #faf9ed;
-	color: #333;
+	background-color: #ffffec;
+	color: #550;
 	padding: 0 10px;
-	border: 1px dashed #000;
+	/*border: 1px dashed #eeeedc;*/
+}
+
+h1 {
+	margin-top: 80px;
+	padding-bottom: 3px;
+	margin-bottom: 2.4em;
+	border-bottom: 1px solid #ccc;
 }
 
 hr {
-	height: 5px;
-	/* border: 0; */
+	height: 2px;
+	border: 0;
 	background-color: #999;
-	margin-top: 60px;
+	margin-top: 2.5em;
+}
+
+canvas {
+	border: 1px solid #000;
 }
 
 #copyright {
