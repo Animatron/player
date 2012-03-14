@@ -18,14 +18,15 @@
 // =============================================================================
 
 // assigns to call a function on next animation frame
+// http://www.html5canvastutorials.com/advanced/html5-canvas-start-and-stop-an-animation/
 /*var */__nextFrame = (function(callback){
-    return window.requestSceneFrame ||
-    window.webkitRequestSceneFrame ||
-    window.mozRequestSceneFrame ||
-    window.oRequestSceneFrame ||
-    window.msRequestSceneFrame ||
+    return window.requestAnimationFrame ||
+    window.webkitRequestAnimationFrame ||
+    window.mozRequestAnimationFrame ||
+    window.oRequestAnimationFrame ||
+    window.msRequestAnimationFrame ||
     function(callback){
-        window.setTimeout(callback, 1000 / 60);
+        return window.setTimeout(callback, 1000 / 60);
     };
 })();
 
@@ -169,6 +170,9 @@ Player.prototype.load= function(object, importer) {
 }
 
 Player.prototype.play = function(from, speed) {
+
+    if (this.state.happens === Player.PLAYING) return;
+
     var player = this;
 
     player._ensureAnim();
@@ -188,6 +192,8 @@ Player.prototype.play = function(from, speed) {
     }*/
 
     _state.happens = Player.PLAYING;
+
+    if (_state.__lastTimeout) window.clearTimeout(_state.__lastTimeout);
 
     D.drawNext(player.ctx, _state, player.anim, 
                function(state, time) {
@@ -998,7 +1004,7 @@ D.drawNext = function(ctx, state, scene, callback) {
         if (!callback(state, time)) return;
     }
 
-    __nextFrame(function() {
+    state.__lastTimeout = __nextFrame(function() {
        D.drawNext(ctx, state, scene, callback); 
     });
 
