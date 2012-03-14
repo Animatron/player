@@ -6,7 +6,8 @@
  */
 
 var defaultCode = [
-  '// feel free to change, just leave `return` on its place',
+  '// feel free to change,',
+  '// just leave `return` on its place',
   '',
   'return b()',
   '  .add(',
@@ -63,7 +64,30 @@ function sandbox(codeElmId, canvasElmId, errorsElmId) {
 				s.errorsElm.style.display = 'block';
 				s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
 			};
-		}, 3000);
+		}, 3000); // TODO: ability to change timeout value
 	}, 1);
+
+}
+
+function show_csheet(csheetElmId, overlayElmId) {
+	var csheetElm = document.getElementById(csheetElmId);
+	var overlayElm = document.getElementById(overlayElmId);
+	
+	csheetElm.style.display = 'block';
+	overlayElm.style.display = 'block';
+
+	csheetElm.onclick = function() { 
+		return hide_csheet(csheetElmId, overlayElmId);
+	}
+
+	return false;
+}
+
+function hide_csheet(csheetElmId, overlayElmId) {
+	var csheetElm = document.getElementById(csheetElmId);
+	var overlayElm = document.getElementById(overlayElmId);
+	
+	csheetElm.style.display = 'none';
+	overlayElm.style.display = 'none';
 
 }

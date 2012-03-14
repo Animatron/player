@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2013 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 (function() { // anonymous wrapper to exclude global context clash
 
 // =============================================================================
@@ -65,7 +72,7 @@ Builder.prototype.image = function(src) {
     return this;
 }
 // > Builder.rect % (pt: Array[2,Integer], 
-//                   rect: Array[2,Array[2, Integer]]) => Builder
+//                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
     var x=pt[0], y=pt[1],
         w=rect[0], h=rect[1]; 
@@ -77,16 +84,24 @@ Builder.prototype.rect = function(pt, rect) {
 }
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
-Builder.prototype.cirle = function(pt, radius) {
+Builder.prototype.circle = function(pt, radius) {
     var x=pt[0], y=pt[1]; 
-    //this.value.addPainter(Builder.p_drawCircle, [pt, radius,
-    //                      this.value.path.fill, 
-    //                      this.value.path.stroke]);
-    return this.path('M'+x+' '+y+
+    this.paint(function(ctx) {
+        ctx.strokeStyle = Path.createStyle(ctx, this.xdata.path.stroke);
+        ctx.lineWidth = this.xdata.path.stroke.width;
+        ctx.fillStyle = Path.createStyle(ctx, this.xdata.path.fill);
+        ctx.beginPath();
+        ctx.arc(pt[0], pt[1], radius, 0, Math.PI*2, true); 
+        ctx.closePath();
+        ctx.fill();
+        ctx.stroke();
+    });
+    return this;
+    /*return this.path('M'+x+' '+y+
                     ' L'+(x+w)+' '+y+
                     ' L'+(x+w)+' '+(y+h)+
                     ' L'+x+' '+(y+h)+
-                    ' L'+x+' '+y+' Z');
+                    ' L'+x+' '+y+' Z');*/
 }
 // > Builder.rotate % (band: Array[2,Float], 
 //                     values: Array[2,Float]) => Builder
