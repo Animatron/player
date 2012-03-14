@@ -21,7 +21,7 @@ AnimatronImporter.prototype.load = function(prj) {
     // TODO: pass concrete scene or scene index
     //console.log('converted', this.importClips(prj.anim.scenes[0], 
     //                                          prj.anim.elements));
-	return this.importClips(prj.anim.scenes[0], 
+    return this.importClips(prj.anim.scenes[0], 
                             prj.anim.elements);
 };
 AnimatronImporter.prototype.computeDuration = function(elms) {

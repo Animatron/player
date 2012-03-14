@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 var defaultCode = [
   '// feel free to change, just leave `return` on its place',
   '',
@@ -57,6 +64,6 @@ function sandbox(codeElmId, canvasElmId, errorsElmId) {
 				s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
 			};
 		}, 3000);
-	}, 1000);
+	}, 1);
 
 }
