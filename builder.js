@@ -72,7 +72,7 @@ Builder.prototype.image = function(src) {
     return this;
 }
 // > Builder.rect % (pt: Array[2,Integer], 
-//                   rect: Array[2,Array[2, Integer]]) => Builder
+//                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
     var x=pt[0], y=pt[1],
         w=rect[0], h=rect[1]; 
