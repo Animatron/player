@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 by Animatron.
+ * Copyright (c) 2011-2012 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
@@ -69,6 +69,49 @@ function find_pos(elm) {
     return [ curleft, curtop ];
 }
 
+function ajax(url, callback/*, errback*/) {
+    var req = false;
+
+    if (!window.ActiveXObject) {
+        req = new XMLHttpRequest();
+    } else {
+        try {
+            req = new ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e1) {
+            try {
+                req = new ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e2) {
+                throw new Error('No AJAX/XMLHttp support');
+            }
+        }
+    }
+
+    //if (req.overrideMimeType) { // optional
+    //  req.overrideMimeType('text/xml');
+    //}
+
+    if (!req) {
+      throw new Error('Failed to create XMLHttp instance');
+      return;
+    }
+
+    var whenDone = function() {
+        if (req.readyState == 4) {
+            if (req.status == 200) {
+                if (callback) callback(req);
+            } else {
+                throw new Error('AJAX request for ' + url + 
+                                ' returned ' + req.status + 
+                                ' instead of 200');
+            }
+        }
+    };
+
+    req.onreadystatechange = whenDone;
+    req.open('GET', url, true);
+    req.send(null); 
+}
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -83,6 +126,7 @@ function Player(id, opts, inParent) {
     this.controls = null;
     this.info = null;
     this.inParent = inParent;
+    this.__canvasConfigured = false;
     this._init(opts);
 }
 
@@ -126,45 +170,63 @@ Player.M_VIDEO = Player.M_CONTROLS_ENABLED
                  | Player.M_INFO_ENABLED       
                  | Player.M_DO_NOT_HANDLE_EVENTS;
 
+Player.URL_ATTR = 'data-url';
 
 // === PLAYING CONTROL API =====================================================
 // =============================================================================
 
 // TODO: add load/play/pause/stop events
 
-Player.prototype.load= function(object, importer) {
+Player.prototype.load= function(object, importer, callback) {
     var player = this;
 
     player._checkMode();
 
     player._reset();
 
+    var whenDone = function() {
+        player.e_load();
+        player.stop();
+        if (callback) callback();
+    };
+
     // TODO: configure canvas using clips bounds
     
     if (object) {
+        // FIXME: check through instanceof/typeof
+        // FIXME: split canvas configuration (size) 
+        //        and meta-information (author, duration) 
+        //        in two different objects
+        // FIXME: load canvas parameters from canvas element, 
+        //        if they are not specified
         if (object.meta) { // exported from Animatron
-            L.loadFromObj(player, object, importer);
+            L.loadFromObj(player, object, importer, whenDone);
         } else if (object.value) { // Builder instance
-            player._configureCanvas(Player.DEFAULT_CANVAS)
-            L.loadBuilder(player, object);
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
+            L.loadBuilder(player, object, whenDone);
         } else if (object.push) { // array of clips
-            player._configureCanvas(Player.DEFAULT_CANVAS);
-            L.loadClips(player, object);
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
+            L.loadClips(player, object, whenDone);
         } else if (object.visitElems) { // Scene instance
-            player._configureCanvas(Player.DEFAULT_CANVAS);
-            L.loadScene(player, object);
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
+            L.loadScene(player, object, whenDone);
         } else { // URL
-            L.loadFromUrl(player, object, importer);
+            L.loadFromUrl(player, object, importer, whenDone);
         }
     } else {
-        player.configureCanvas(Player.DEFAULT_CANVAS);
+        if (!player.__canvasConfigured) {
+            player.configureCanvas(Player.DEFAULT_CANVAS);
+        }
         player.anim = new Scene();
     }
 
-    player.e_load();
     //console.log('load', player.id, player.state);
-
-    player.stop();
 
     return player;
 }
@@ -295,6 +357,9 @@ Player.prototype._init = function(opts) {
     this.stop();
     // TODO: load some default information into player
     if (!Text.__buff) Text.__buff = Text._createBuffer(); // so it will be performed onload
+    var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
+    if (mayBeUrl) this.load(mayBeUrl/*,
+                            this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
@@ -311,6 +376,7 @@ Player.prototype._reset = function() {
 }
 // update player's canvas with configuration 
 Player.prototype._configureCanvas = function(opts) {
+    this.__canvasConfigured = true;
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
@@ -341,9 +407,9 @@ Player.prototype.drawSplash = function() {
     ctx.fillRect(0, 0, w, h);
 
     // text
-    ctx.fillStyle = "#999966";
+    ctx.fillStyle = '#999966';
     ctx.font = '18px sans-serif';
-    ctx.fillText("© Animatron Player", 20, h - 20);
+    ctx.fillText('© Animatron Player', 20, h - 20);
 
     // outer rect
     ctx.lineWidth = 12;
@@ -365,6 +431,15 @@ Player.prototype.drawSplash = function() {
     ctx.globalAlpha = .9;
     ctx.strokeRect(0, 0, rsize, rsize);
 
+    ctx.restore();
+}
+Player.prototype.drawLoadingSplash = function(text) {
+    this.drawSplash();
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = '#006';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(text || "Loading...", 20, 25);
     ctx.restore();
 }
 Player.prototype._checkMode = function() {
@@ -488,22 +563,22 @@ Player.createState = function(player) {
     };
 }
 Player.configureCanvas = function(canvas, opts) {
-    if (!opts.push) { // object, not array
+    if (!opts.push) { // object, not array // FIXME: test with typeof
         var _w = opts.width ? Math.floor(opts.width) : 0;
         var _h = opts.height ? Math.floor(opts.height) : 0;
-        //canvas.style.width = _w + 'px';
-        //canvas.style.height = _h + 'px';
         canvas.width = _w;
         canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
         if (opts.bgcolor) { 
             canvas.style.backgroundColor = opts.bgcolor; };
     } else { // array
         var _w = Math.floor(opts[0]);
         var _h = Math.floor(opts[1]);
-        //canvas.style.width = _w + 'px';
-        //canvas.style.height = _h + 'px';
         canvas.width = _w;
         canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
     }
 }
 Player.newCanvas = function(dimen) {
@@ -1040,8 +1115,8 @@ DU.applyFill = function(ctx, fill) {
 DU.applyToMatrix = function(s) {
     var _t = s._matrix;
     _t.translate(s.x, s.y);
+    _t.scale(s.sx, s.sy);
     _t.rotate(s.angle);
-    _t.scale(s.sx, s.sy); 
     _t.translate(-s.rx, -s.ry);   
     return _t;
 }
@@ -1139,25 +1214,24 @@ G.__curveCrosses = function(px, py, x0, y0,
 
 var L = {}; // means "Loading/Loader"
 
-L.loadFromUrl = function(player, url, importer) {
-    //console.log('load from url: ', url);
+L.loadFromUrl = function(player, url, importer, callback) {
+    if (!JSON) throw new Error('JSON parser is not accessible');
 
-    // TODO: load from URL then loadFromObj
+    player.drawLoadingSplash('Loading ' + url.substring(0, 50) + '...');
+
+    ajax(url, function(req) {
+        L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
+    });
 }
-L.loadFromObj = function(player, object, importer) {
+L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
     if (importer.configure) {
         player.configure(importer.configure(object));
     }
-    L.loadScene(player, importer.load(object));
+    L.loadScene(player, importer.load(object), callback);
 }
-L.subscribeEvents = function(canvas, anim) {
-    canvas.addEventListener('mousedown', function(evt) {
-        anim.e_mdown(evt);
-    }, false);
-}
-L.loadScene = function(player, scene) {
+L.loadScene = function(player, scene, callback) {
     // add rendering
     scene.visitElems(Render.addXDataRender);
     if (player.state.debug) scene.visitElems(Render.addDebugRender);
@@ -1168,16 +1242,22 @@ L.loadScene = function(player, scene) {
     if (!player.state.duration) {
         player.updateDuration(scene.duration);
     }
+    if (callback) callback.call(player);
 }
-L.loadClips = function(player, clips) {
+L.loadClips = function(player, clips, callback) {
     var _anim = new Scene();
     _anim.add(clips);
-    L.loadScene(player, _anim);
+    L.loadScene(player, _anim, callback);
 }
-L.loadBuilder = function(player, builder) {
+L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
     _anim.add(builder);
-    L.loadScene(player, _anim);
+    L.loadScene(player, _anim, callback);
+}
+L.subscribeEvents = function(canvas, anim) {
+    canvas.addEventListener('mousedown', function(evt) {
+        anim.e_mdown(evt);
+    }, false);
 }
 
 // =============================================================================
