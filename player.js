@@ -126,6 +126,7 @@ function Player(id, opts, inParent) {
     this.controls = null;
     this.info = null;
     this.inParent = inParent;
+    this.__canvasConfigured = false;
     this._init(opts);
 }
 
@@ -192,22 +193,36 @@ Player.prototype.load= function(object, importer, callback) {
     // TODO: configure canvas using clips bounds
     
     if (object) {
+        // FIXME: check through instanceof/typeof
+        // FIXME: split canvas configuration (size) 
+        //        and meta-information (author, duration) 
+        //        in two different objects
+        // FIXME: load canvas parameters from canvas element, 
+        //        if they are not specified
         if (object.meta) { // exported from Animatron
             L.loadFromObj(player, object, importer, whenDone);
         } else if (object.value) { // Builder instance
-            player._configureCanvas(Player.DEFAULT_CANVAS)
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
             L.loadBuilder(player, object, whenDone);
         } else if (object.push) { // array of clips
-            player._configureCanvas(Player.DEFAULT_CANVAS);
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
             L.loadClips(player, object, whenDone);
         } else if (object.visitElems) { // Scene instance
-            player._configureCanvas(Player.DEFAULT_CANVAS);
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
             L.loadScene(player, object, whenDone);
         } else { // URL
             L.loadFromUrl(player, object, importer, whenDone);
         }
     } else {
-        player.configureCanvas(Player.DEFAULT_CANVAS);
+        if (!player.__canvasConfigured) {
+            player.configureCanvas(Player.DEFAULT_CANVAS);
+        }
         player.anim = new Scene();
     }
 
@@ -361,6 +376,7 @@ Player.prototype._reset = function() {
 }
 // update player's canvas with configuration 
 Player.prototype._configureCanvas = function(opts) {
+    this.__canvasConfigured = true;
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
@@ -547,22 +563,22 @@ Player.createState = function(player) {
     };
 }
 Player.configureCanvas = function(canvas, opts) {
-    if (!opts.push) { // object, not array
+    if (!opts.push) { // object, not array // FIXME: test with typeof
         var _w = opts.width ? Math.floor(opts.width) : 0;
         var _h = opts.height ? Math.floor(opts.height) : 0;
-        //canvas.style.width = _w + 'px';
-        //canvas.style.height = _h + 'px';
         canvas.width = _w;
         canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
         if (opts.bgcolor) { 
             canvas.style.backgroundColor = opts.bgcolor; };
     } else { // array
         var _w = Math.floor(opts[0]);
         var _h = Math.floor(opts[1]);
-        //canvas.style.width = _w + 'px';
-        //canvas.style.height = _h + 'px';
         canvas.width = _w;
         canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
     }
 }
 Player.newCanvas = function(dimen) {
@@ -1099,8 +1115,8 @@ DU.applyFill = function(ctx, fill) {
 DU.applyToMatrix = function(s) {
     var _t = s._matrix;
     _t.translate(s.x, s.y);
+    _t.scale(s.sx, s.sy);
     _t.rotate(s.angle);
-    _t.scale(s.sx, s.sy); 
     _t.translate(-s.rx, -s.ry);   
     return _t;
 }
@@ -2611,7 +2627,5 @@ var exports = {
     '__js_pl_all': all
 }
 inject(exports, window);
-
-window.ajax = ajax;
 
 })(); // end of anonymous wrapper
