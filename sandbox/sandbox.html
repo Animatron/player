@@ -20,7 +20,7 @@
     <script src="./sandbox.js" type="text/javascript"></script>
   </head>
 
-  <body onload="sandbox('scene-source', 'my-canvas', 'errors');">
+  <body onload="sandbox('scene-source', 'my-canvas', 'errors', 'examples-list');">
     <h1>The Animatron HTML5 Player Sandbox</h1>
 
     <!-- left pane -->
@@ -50,11 +50,15 @@ createPlayer("my-canvas").load(scene);</pre>
       <pre class="locked">#my-canvas</pre>
 
       <div id="player-wrapper">
-        <canvas id="my-canvas"></canvas> <!-- canvas -->
+        <canvas id="my-canvas" width="400" height="300"></canvas> <!-- canvas -->
       </div>
 
       <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->
+
+      <select id="examples-list" size="6"><option value="None">None</option></select>
     </div>
+
+    <!-- cheat sheet -->
 
     <div id="csheet-overlay" style="display: none;">&nbsp;</div>
     <div id="csheet" style="display: none;">
@@ -84,6 +88,8 @@ createPlayer("my-canvas").load(scene);</pre>
           <code>this</code> in the given function will refer to the element state that is allowed to change (try changing <code>this.x</code>, for example), first function parameter is current animation time.</dd>
       </dl>
     </div>
+
+    <!-- copyright -->
 
     <div id="copyright"><span>© 2011-2012 by Animatron</span></div>
 
