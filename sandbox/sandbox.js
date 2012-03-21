@@ -69,11 +69,12 @@ examples[1] = [ 0 /*version*/, [
 
 var uexamples = [];
 
-function sandbox(codeElmId, canvasElmId, errorsElmId) {
+function sandbox(codeElmId, canvasElmId, errorsElmId, exListId) {
 
 	this.codeElm = document.getElementById(codeElmId),
 	this.canvasElm = document.getElementById(canvasElmId);
 	this.errorsElm = document.getElementById(errorsElmId);
+	this.selectElm = document.getElementById(exListId);
 
 	window.b = Builder._$;
 
@@ -117,6 +118,16 @@ function sandbox(codeElmId, canvasElmId, errorsElmId) {
 		}, 3000); // TODO: ability to change timeout value
 	}, 1);
 
+	setTimeout(function() {
+		store_examples(); // store current examples, it will skip if their versions match 
+		load_examples(); // load new examples, it will skip the ones with matching versions
+		list_examples(s.selectElm); // list the examples in select element
+	}, 1);
+
+	this.selectElm.onchange = function() {
+		s.cm.setValue(examples[this.selectedIndex][1]);
+	}
+
 }
 
 function show_csheet(csheetElmId, overlayElmId) {
@@ -142,28 +153,63 @@ function hide_csheet(csheetElmId, overlayElmId) {
 
 }
 
-/* function store_examples() {
+function store_examples() {
 	if (!localStorage) throw new Error('Local storage support required');
-	var ckey = '_examples_count',
-	    count = localStorage.getItem(ckey) || 0; 
-	for (var i = examples.length; i--) {
-		var ekey = '_example'+i,
-		    vkey = ekey+'__v',
-		    ver = localStorage.getItem(vkey);
-	    if ((typeof ver !== 'undefined') ||
-	    	(ver < examples[i][0])) {
-	    	localStorage.setItem(vkey, examples[i][0]);
-	    	localStorage.setItem(ekey, examples[i][1]);
-	    	localStorage.setItem(ckey, ++count);
-	    }
+	var elen = examples.length;
+	for (var i = 0; i < elen; i++) {
+		store_example(i);
 	}
+}
+
+function store_example(i) {
+	var ekey = '_example'+i,
+		vkey = ekey+'__v',
+		ver = localStorage.getItem(vkey);
+	if ((typeof ver === 'undefined') ||
+		(ver === null) ||
+	    (ver < examples[i][0])) {
+	    localStorage.setItem(vkey, examples[i][0]);
+	    localStorage.setItem(ekey, examples[i][1]);
+	}
+	localStorage.setItem('_examples_count', examples.length);
 }
 
 function load_examples() {
 	if (!localStorage) throw new Error('Local storage support required');
-	
+	var ckey = '_examples_count',
+	    count = localStorage.getItem(ckey) || 0,
+	    elen = examples.length;
+	for (var i = 0; i < count; i++) {
+		var ekey = '_example'+i,
+		    vkey = ekey+'__v',
+		    ver = localStorage.getItem(vkey);
+	    if ((typeof ver !== 'undefined') &&
+	    	(ver !== null) &&
+	        ((i >= elen) ||
+	    	 (ver > examples[i][0]))) {
+	    	examples[i] = [
+	    		ver,
+	    		localStorage.getItem(ekey)
+	    	];
+	    }
+	}
 }
 
 function save_example(code) {
+	var pos = examples.length; 
+	examples[pos] = [ 0, code ];
+	store_example(pos);
+}
 
-} */
+function list_examples(selectElm) {
+	selectElm.innerHTML = '';
+	var elen = examples.length;
+	selectElm.setAttribute('size', elen);
+	for (var i = 0; i < elen; i++) {
+		var optElm = document.createElement('option');
+		optElm.setAttribute('value', i);
+		optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
+                           examples[i][1].substring(0, 45).split('\n').join('↵');  		     
+		selectElm.appendChild(optElm);
+	}
+}
