@@ -40,14 +40,20 @@ textarea, .CodeMirror {
 }
 
 #my-canvas {
-	width: 400px;
-	height: 300px;
+	/*width: 400px;
+	  height: 300px;*/
 }
 
 #left-pane {
 	float: left;
 	min-width: 42%;	
 	margin-bottom: 5em;
+}
+
+@media screen and (max-width: 1024px) {
+	#left-pane {
+		max-width: 42%;
+	}
 }
 
 #right-pane {
@@ -145,4 +151,13 @@ a#csheet-link:hover, a#api-link:hover {
 #csheet-link {
 	text-decoration: none;
 	color: #600;
+}
+
+select#examples-list {
+	margin: 0;
+	margin-top: 15px;
+	border: 1px solid #600;
+	font-family: monospace;
+	font-size: 12px;
+	width: 400px;
 }

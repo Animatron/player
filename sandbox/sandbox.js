@@ -74,6 +74,7 @@ function sandbox(codeElmId, canvasElmId, errorsElmId, exListId) {
 	this.codeElm = document.getElementById(codeElmId),
 	this.canvasElm = document.getElementById(canvasElmId);
 	this.errorsElm = document.getElementById(errorsElmId);
+	this.selectElm = document.getElementById(exListId);
 
 	window.b = Builder._$;
 
@@ -120,7 +121,12 @@ function sandbox(codeElmId, canvasElmId, errorsElmId, exListId) {
 	setTimeout(function() {
 		store_examples(); // store current examples, it will skip if their versions match 
 		load_examples(); // load new examples, it will skip the ones with matching versions
+		list_examples(s.selectElm); // list the examples in select element
 	}, 1);
+
+	this.selectElm.onchange = function() {
+		s.cm.setValue(examples[this.selectedIndex][1]);
+	}
 
 }
 
@@ -195,7 +201,15 @@ function save_example(code) {
 	store_example(pos);
 }
 
-/*function showExamples(selectElm) {
-	selectElm.innerHtml = '';
-	selectElm.setAttribute()
-}*/
+function list_examples(selectElm) {
+	selectElm.innerHTML = '';
+	var elen = examples.length;
+	selectElm.setAttribute('size', elen);
+	for (var i = 0; i < elen; i++) {
+		var optElm = document.createElement('option');
+		optElm.setAttribute('value', i);
+		optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
+                           examples[i][1].substring(0, 45).split('\n').join('↵');  		     
+		selectElm.appendChild(optElm);
+	}
+}
