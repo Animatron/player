@@ -98,27 +98,36 @@ function sandbox() {
 	//this.cm.setValue('return <your code here>;');
 
 	var s = this;
-
-	setTimeout(function() {
-		setInterval(function() {
-			s.errorsElm.style.display = 'none';
+	var curInterval = null;
+	var refreshRate = 3000;
+	function refresh() {
+		s.errorsElm.style.display = 'none';
+		s.player.stop();
+		try {
+			var code = ['(function(){', 
+				        '  '+s.cm.getValue(),
+                        '})();'].join('\n');
+			var scene = eval(code);
+			player.load(scene);
+			player.play();
+		} catch(e) {
 			s.player.stop();
-			try {
-				var code = ['(function(){', 
-					        '  '+s.cm.getValue(),
-                            '})();'].join('\n');
-				var scene = eval(code);
-				player.load(scene);
-				player.play();
-			} catch(e) {
-				s.player.stop();
-				s.player.drawSplash();
-				s.errorsElm.style.display = 'block';
-				s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
-				throw e;
-			};
-		}, 3000); // TODO: ability to change timeout value
-	}, 1);
+			s.player.drawSplash();
+			s.errorsElm.style.display = 'block';
+			s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
+			//throw e;
+		};
+	};
+
+	function updateInterval(to) {
+		if (curInterval) clearInterval(curInterval);
+		setTimeout(function() {
+			refreshRate = to;
+			curInterval = setInterval(refresh, to);
+		}, 1);	
+	}
+
+	
 
 	setTimeout(function() {
 		store_examples(); // store current examples, it will skip if their versions match 
@@ -132,13 +141,15 @@ function sandbox() {
 
 	var tangleModel = {
 	    initialize: function () {
-	        this.secPeriod = 3;
-	        this.perMinute = 20;
+	        this.secPeriod = refreshRate / 1000;
 	    },
 	    update: function () {
-	    	this.perMinute = 60 / this.secPeriod;
+	    	this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
+	    	updateInterval(this.secPeriod * 1000);
 	    }
 	};
+
+	updateInterval(refreshRate);
 
 	new Tangle(this.tangleElm, tangleModel);
 
