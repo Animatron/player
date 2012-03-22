@@ -12,15 +12,21 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <link rel="stylesheet" href="./sandbox.css" type="text/css" />
     <link rel="stylesheet" href="../vendor/CodeMirror-2.22/lib/codemirror.css" type="text/css" />
+    <link rel="stylesheet" href="../vendor/Tangle-0.1.0/TangleKit/TangleKit.css" type="text/css" />
     <script src="../vendor/matrix.js" type="text/javascript"></script>
     <script src="../player.js" type="text/javascript"></script>
     <script src="../builder.js" type="text/javascript"></script>
     <script src="../vendor/CodeMirror-2.22/lib/codemirror.js"></script>
     <script src="../vendor/CodeMirror-2.22/mode/javascript/javascript.js"></script>
+    <script src="../vendor/Tangle-0.1.0/Tangle.js" type="text/javascript"></script>
+    <script src="../vendor/Tangle-0.1.0/TangleKit/mootools.js" type="text/javascript"></script>
+    <script src="../vendor/Tangle-0.1.0/TangleKit/sprintf.js" type="text/javascript"></script>
+    <script src="../vendor/Tangle-0.1.0/TangleKit/BVTouchable.js" type="text/javascript"></script>    
+    <script src="../vendor/Tangle-0.1.0/TangleKit/TangleKit.js" type="text/javascript"></script>
     <script src="./sandbox.js" type="text/javascript"></script>
   </head>
 
-  <body onload="sandbox('scene-source', 'my-canvas', 'errors', 'examples-list');">
+  <body onload="sandbox();">
     <h1>The Animatron HTML5 Player Sandbox</h1>
 
     <!-- left pane -->
@@ -52,6 +58,8 @@ createPlayer("my-canvas").load(scene);</pre>
       <div id="player-wrapper">
         <canvas id="my-canvas" width="400" height="300"></canvas> <!-- canvas -->
       </div>
+
+      <div><p id="refresh-calc">Current refresh period: <span data-var="secPeriod" class="TKAdjustableNumber" data-max="60"> seconds</span>. It will be reloaded <span data-var="perMinute"> times</span> per minute</p></div>
 
       <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->
 

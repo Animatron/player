@@ -21,7 +21,8 @@ var defaultCode = [
 ].join('\n');
 
 var examples = [];
-examples[0] = [ 0 /*version*/, [
+examples[0] = [ 0 /*version*/, defaultCode ]; 
+examples[1] = [ 0 /*version*/, [
   'var circles = [ [ 10, 15, 30 ],',
   '              [ 70, 30, 50 ],',
   '              [ 60, 40, 14 ] ]',
@@ -45,7 +46,7 @@ examples[0] = [ 0 /*version*/, [
   '',
   'return o.rotate([0, 3], [0, Math.PI / 2]);'
 ].join('\n') ];
-examples[1] = [ 0 /*version*/, [
+examples[2] = [ 0 /*version*/, [
   'return b()',
   '  .add(',
   '    b().path(\'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
@@ -69,16 +70,16 @@ examples[1] = [ 0 /*version*/, [
 
 var uexamples = [];
 
-function sandbox(codeElmId, canvasElmId, errorsElmId, exListId) {
+function sandbox() {
 
-	this.codeElm = document.getElementById(codeElmId),
-	this.canvasElm = document.getElementById(canvasElmId);
-	this.errorsElm = document.getElementById(errorsElmId);
-	this.selectElm = document.getElementById(exListId);
+	this.codeElm = document.getElementById('scene-source'),
+	this.errorsElm = document.getElementById('errors');
+	this.selectElm = document.getElementById('examples-list');
+	this.tangleElm = document.getElementById('refresh-calc');
 
 	window.b = Builder._$;
 
-	this.player = createPlayer(canvasElmId, {
+	this.player = createPlayer('my-canvas', {
 		width: 400,
 		height: 300,
 		bgcolor: '#fff'
@@ -114,6 +115,7 @@ function sandbox(codeElmId, canvasElmId, errorsElmId, exListId) {
 				s.player.drawSplash();
 				s.errorsElm.style.display = 'block';
 				s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
+				throw e;
 			};
 		}, 3000); // TODO: ability to change timeout value
 	}, 1);
@@ -127,6 +129,18 @@ function sandbox(codeElmId, canvasElmId, errorsElmId, exListId) {
 	this.selectElm.onchange = function() {
 		s.cm.setValue(examples[this.selectedIndex][1]);
 	}
+
+	var tangleModel = {
+	    initialize: function () {
+	        this.secPeriod = 3;
+	        this.perMinute = 20;
+	    },
+	    update: function () {
+	    	this.perMinute = 60 / this.secPeriod;
+	    }
+	};
+
+	new Tangle(this.tangleElm, tangleModel);
 
 }
 
