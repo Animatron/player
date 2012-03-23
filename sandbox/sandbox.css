@@ -161,3 +161,7 @@ select#examples-list {
 	font-size: 12px;
 	width: 400px;
 }
+
+#refresh-calc, #debug-options {
+	font-size: .8em;
+}

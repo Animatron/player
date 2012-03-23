@@ -13,19 +13,19 @@
 // > Builder % ()
 function Builder(obj) {
     this.name = (obj && !obj.xdata) ? obj : ''; // obj is a name string, if it has no xdata
-    this.value = (obj && obj.xdata) ? obj : new Element(); // if it has, it is an element instance
+    this.value = (obj && obj.xdata) ? obj : new _Element(); // if it has, it is an element instance
     this.value.name = this.name;
     this.xdata = this.value.xdata;
 };
 Builder._$ = function(name) {
     return new Builder(name);
 }
-// > Builder.addS % (what: Element | Builder) => Builder
+// > Builder.addS % (what: _Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     this.value.add(what);
     return this;
 }
-// > Builder.addS % (what: Element | Builder) => Builder
+// > Builder.addS % (what: _Element | Builder) => Builder
 Builder.prototype.addS = function(what) {
     this.value.addS(what);
     return this;    

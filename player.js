@@ -632,17 +632,17 @@ Scene.prototype._addElems = function(elems) {
     }
 }
 // TODO: add chaining to all external Scene methods?
-// > Scene.add % (elem: Element | Clip)
-// > Scene.add % (elems: Array[Element]) => Clip
+// > Scene.add % (elem: _Element | Clip)
+// > Scene.add % (elems: Array[_Element]) => Clip
 // > Scene.add % (draw: Function(ctx: Context),
 //                onframe: Function(time: Float),
 //                [ transform: Function(ctx: Context, 
 //                                      prev: Function(Context)) ]) 
-//                => Element
+//                => _Element
 // > Scene.add % (builder: Builder)
 Scene.prototype.add = function(arg1, arg2, arg3) {
     if (arg2) { // element by functions mode
-        var _elm = new Element(arg1, arg2);
+        var _elm = new _Element(arg1, arg2);
         if (arg3) _elm.changeTransform(arg3);
         this._addToTree(_elm);
         return _elm;
@@ -669,16 +669,16 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
     this.add(_clip);
     return _clip;
 }
-// > Scene.visitElems % (visitor: Function(elm: Element))
+// > Scene.visitElems % (visitor: Function(elm: _Element))
 Scene.prototype.visitElems = function(visitor, data) {
     for (var elmId in this.hash) {
         visitor(this.hash[elmId], data);
     }
 }
-// > Scene.visitElems % (visitor: Function(elm: Element))
+// > Scene.visitElems % (visitor: Function(elm: _Element))
 Scene.prototype.visitRoots = function(visitor, data) {
-    for (var elmId in this.tree) {
-        visitor(this.tree[elmId], data);
+    for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
+        visitor(this.tree[i], data);
     }
 }
 Scene.prototype.render = function(ctx, time, zoom) {
@@ -709,13 +709,15 @@ Scene.prototype.calculateDuration = function() {
 // === ELEMENTS ================================================================
 // =============================================================================
 
-// > Element % (draw: Function(ctx: Context),
-//              onframe: Function(time: Float))
-function Element(draw, onframe) {
+// > _Element % (draw: Function(ctx: Context),
+//               onframe: Function(time: Float))
+// FIXME: Underscore here is to prevent conflicts with other libraries.
+//        Find another shorter name that will also fit the meaning
+function _Element(draw, onframe) {
     this.id = guid();
     this.name = '';
-    this.state = Element.createState();
-    this.xdata = Element.createXData();
+    this.state = _Element.createState();
+    this.xdata = _Element.createXData();
     this.children = [];
     this.parent = null;
     //this.draw = draw,
@@ -727,22 +729,22 @@ function Element(draw, onframe) {
     if (onframe) this._onframeSeq.push([onframe, null]);
     this._initHandlers(); // TODO: make automatic
 };
-Element.M_PLAYONCE = 0;
-Element.M_LOOP = 1;
-Element.M_BOUNCE = 2;
-Element.DEFAULT_LEN = 10;
+_Element.M_PLAYONCE = 0;
+_Element.M_LOOP = 1;
+_Element.M_BOUNCE = 2;
+_Element.DEFAULT_LEN = 10;
 // TODO: draw and onframe must be events also?
-provideEvents(Element, ['mdown', 'draw']);
-// > Element.prepare % () => Boolean
-Element.prototype.prepare = function() {
+provideEvents(_Element, ['mdown', 'draw']);
+// > _Element.prepare % () => Boolean
+_Element.prototype.prepare = function() {
     this.state._matrix.reset();
     if (this.sprite && !this.xdata.canvas) {
         this._drawToCache();
     }
     return true;     
 }
-// > Element.onframe % (ltime: Float) => Boolean
-Element.prototype.onframe = function(gtime) {
+// > _Element.onframe % (ltime: Float) => Boolean
+_Element.prototype.onframe = function(gtime) {
     var ltime = this.localTime(gtime);
     if (!this.fits(ltime)) return false;
     var seq = this._onframeSeq;
@@ -751,61 +753,61 @@ Element.prototype.onframe = function(gtime) {
     }
     return true;
 }
-// > Element.drawTo % (ctx: Context)
-Element.prototype.drawTo = function(ctx) {
+// > _Element.drawTo % (ctx: Context)
+_Element.prototype.drawTo = function(ctx) {
     var seq = this._drawSeq;
     for (var si = 0; si < seq.length; si++) {
         // TODO: pass xdata instead of element
         seq[si][0].call(this/*.xdata*/, ctx, seq[si][1]);
     }
 }
-// > Element.draw % (ctx: Context)
-Element.prototype.draw = function(ctx) {
+// > _Element.draw % (ctx: Context)
+_Element.prototype.draw = function(ctx) {
     if (!this.sprite) {
         this.drawTo(ctx);
     } else {
         ctx.drawImage(this.xdata.canvas, this.state.x, this.state.y);
     }
 }
-// > Element.transform % (ctx: Context)
-Element.prototype.transform = function(ctx) {
+// > _Element.transform % (ctx: Context)
+_Element.prototype.transform = function(ctx) {
     var s = this.state;
     s._matrix = DU.applyToMatrix(s);
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
 };
-Element.prototype._drawToCache = function() {
+_Element.prototype._drawToCache = function() {
     var _canvas = Player.newCanvas(this.state.dimen);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
 }
-// > Element.addPainter % (painter: Function(ctx: Context)) 
-//                        => Integer
-Element.prototype.addPainter = function(painter, data) {
+// > _Element.addPainter % (painter: Function(ctx: Context)) 
+//                         => Integer
+_Element.prototype.addPainter = function(painter, data) {
     if (!painter) return; // FIXME: throw some error?
     this._drawSeq.push([painter, data]);
     return (this._drawSeq.length - 1);
 }
-// > Element.addModifier % (modifier: Function(time: Float, 
-//                                             data: Any) => Boolean, 
-//                          data: Any) => Integer
-Element.prototype.addModifier = function(modifier, data) {
+// > _Element.addModifier % (modifier: Function(time: Float, 
+//                                              data: Any) => Boolean, 
+//                           data: Any) => Integer
+_Element.prototype.addModifier = function(modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
     this._onframeSeq.push([modifier, data]);
     return (this._onframeSeq.length - 1);
 }
-// > Element.addTween % (tween: Tween)
-Element.prototype.addTween = function(tween) {
+// > _Element.addTween % (tween: Tween)
+_Element.prototype.addTween = function(tween) {
     var tweens = this.xdata.tweens;
     if (!(tweens[tween.type])) {
         tweens[tween.type] = [];
     }
     tweens[tween.type].push(tween);
 }
-// > Element.changeTransform % (transform: Function(ctx: Context, 
-//                                                  prev: Function(Context)))
-Element.prototype.changeTransform = function(transform) {
+// > _Element.changeTransform % (transform: Function(ctx: Context, 
+//                                                   prev: Function(Context)))
+_Element.prototype.changeTransform = function(transform) {
     this.transform = (function(elm, new_, prev) { 
         return function(ctx) {
            new_.call(elm, ctx, prev); 
@@ -813,16 +815,16 @@ Element.prototype.changeTransform = function(transform) {
     } )(this, transform, this.transform);
 }
 // TODO: removePainter/removeModifier
-// > Element.add % (elem: Element | Clip)
-// > Element.add % (elems: Array[Element])
-// > Element.add % (draw: Function(ctx: Context),
-//                  onframe: Function(time: Float),
-//                  [ transform: Function(ctx: Context, 
-//                                        prev: Function(Context)) ]) 
-//                  => Element
-Element.prototype.add = function(arg1, arg2, arg3) {
+// > _Element.add % (elem: _Element | Clip)
+// > _Element.add % (elems: Array[_Element])
+// > _Element.add % (draw: Function(ctx: Context),
+//                   onframe: Function(time: Float),
+//                   [ transform: Function(ctx: Context, 
+//                                         prev: Function(Context)) ]) 
+//                   => _Element
+_Element.prototype.add = function(arg1, arg2, arg3) {
     if (arg2) { // element by functions mode
-        var _elm = new Element(arg1, arg2);
+        var _elm = new _Element(arg1, arg2);
         if (arg3) _elm.changeTransform(arg3);
         this._addChild(_elm);
         return _elm;
@@ -834,28 +836,28 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         this._addChild(arg1); 
     }
 }
-// > Element.addS % (dimen: Array[Int, 2],
-//                   draw: Function(ctx: Context),
-//                   onframe: Function(time: Float),
-//                   [ transform: Function(ctx: Context, 
-//                                         prev: Function(Context)) ])
-//                   => Element
-Element.prototype.addS = function(dimen, draw, onframe, transform) {
+// > _Element.addS % (dimen: Array[Int, 2],
+//                    draw: Function(ctx: Context),
+//                    onframe: Function(time: Float),
+//                    [ transform: Function(ctx: Context, 
+//                                          prev: Function(Context)) ])
+//                    => _Element
+_Element.prototype.addS = function(dimen, draw, onframe, transform) {
     var _elm = this.add(draw, onframe, transform);
     _elm.sprite = true;
     _elm.state.dimen = dimen;
     return _elm;
 }    
-Element.prototype._addChild = function(elm) {
+_Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
 };
-Element.prototype._addChildren = function(elms) {
+_Element.prototype._addChildren = function(elms) {
     for (var ei = 0; ei < elms.length; ei++) {
         this._addChild(elms[ei]);
     }
 };
-Element.prototype.render = function(ctx, time) {
+_Element.prototype.render = function(ctx, time) {
     ctx.save();
     if (this.onframe(time) && this.prepare()) {
         this.transform(ctx);
@@ -870,18 +872,18 @@ Element.prototype.render = function(ctx, time) {
     ctx.restore();
     this.e_draw(ctx); // call only if this element drawn
 }
-Element.prototype.bounds = function(time) {
+_Element.prototype.bounds = function(time) {
     return G.adaptBounds(this, time, G.bounds(this.xdata));
 }
-Element.prototype.inBounds = function(time, point) {
+_Element.prototype.inBounds = function(time, point) {
     var tpoint = G.adapt(this, time, point);
     return G.inBounds(this.xdata, tpoint);
 }
-Element.prototype.contains = function(time, point) {
+_Element.prototype.contains = function(time, point) {
     var tpoint = G.adapt(this, time, point);
     return G.contains(this.xdata, tpoint);
 }
-Element.prototype.setBand = function(band) {
+_Element.prototype.setBand = function(band) {
     if (!band) return;
     this.xdata.gband = band;
     var parent = this.parent,
@@ -906,19 +908,19 @@ Element.prototype.setBand = function(band) {
 }
 // expand element's global-time band if it is already set, 
 // or just sets it, if it is not
-Element.prototype.applyBand = function(band) {
+_Element.prototype.applyBand = function(band) {
     this.setBand(this.xdata.gband 
                  ? Bands.expand(this.xdata.gband, band)
                  : band);
 }
 // reduce element's global-time band if it is already set, 
 // or just sets it, if it is not 
-Element.prototype.reduceBand = function(band) {
+_Element.prototype.reduceBand = function(band) {
     this.setBand(this.xdata.gband 
                  ? Bands.reduce(this.xdata.gband, band)
                  : band);
 }
-Element.prototype.setLBand = function(band) {
+_Element.prototype.setLBand = function(band) {
     if (!band) return;
     this.xdata.lband = this.parent 
         ? Bands.unwrap(this.parent.xdata.gband, band)
@@ -937,28 +939,28 @@ Element.prototype.setLBand = function(band) {
 }
 // reduce element's local-time band if it is already set, 
 // or just sets it, if it is not 
-Element.prototype.applyLBand = function(band) { 
+_Element.prototype.applyLBand = function(band) { 
     this.setLBand(this.xdata.lband 
                   ? Bands.expand(this.xdata.lband, band)
                   : band);
 }
 // expand element's local-time band if it is already set, 
 // or just sets it, if it is not
-Element.prototype.reduceLBand = function(band) {
+_Element.prototype.reduceLBand = function(band) {
     this.setLBand(this.xdata.lband 
                   ? Bands.reduce(this.xdata.lband, band)
                   : band);
 }
 // make element band fit all children bands
-Element.prototype.makeBandFit = function() {
+_Element.prototype.makeBandFit = function() {
     this.applyBand(this.findWrapBand());
 }
-Element.prototype.fits = function(ltime) {
+_Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
                       - this.xdata.lband[0]));
 }
-Element.prototype.localTime = function(gtime) {
+_Element.prototype.localTime = function(gtime) {
     var t = (this.state.t !== null) 
             ? this.state.t
             : ((this.state.rt !== null)
@@ -966,12 +968,12 @@ Element.prototype.localTime = function(gtime) {
                                   - this.xdata.lband[0])
                : 0);
     switch (this.xdata.mode) {
-        case Element.M_PLAYONCE:
+        case _Element.M_PLAYONCE:
             return this.parent
                    ? ((gtime - this.parent.xdata.gband[0])
                       - this.xdata.lband[0]) + t
                    : (gtime - this.xdata.gband[0]) + t;
-        case Element.M_LOOP: {
+        case _Element.M_LOOP: {
                 var duration = this.xdata.lband[1] - 
                                this.xdata.lband[0];
                 var offset = this.parent 
@@ -981,7 +983,7 @@ Element.prototype.localTime = function(gtime) {
                 var wtime = Math.floor(offset / duration); 
                 return offset - (duration * wtime) + t;
             }
-        case Element.M_BOUNCE:
+        case _Element.M_BOUNCE:
                 var duration = this.xdata.lband[1] - 
                                this.xdata.lband[0];
                 var offset = this.parent 
@@ -994,13 +996,13 @@ Element.prototype.localTime = function(gtime) {
                        ? result : (duration - result); 
     }
 }
-Element.prototype.handle_mdown = function(evt) {
+_Element.prototype.handle_mdown = function(evt) {
     //console.log(evt);
     // TODO: call inBounds
 }
 // calculates band that fits all child elements, recursively
 // FIXME: test
-Element.prototype.findWrapBand = function() {
+_Element.prototype.findWrapBand = function() {
     var children = this.children;
     if (children.length === 0) return this.xdata.gband;
     var result = [ Number.MAX_VALUE, 0 ];
@@ -1012,7 +1014,7 @@ Element.prototype.findWrapBand = function() {
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
 // state of the element
-Element.createState = function() {
+_Element.createState = function() {
     return { 'x': 0, 'y': 0,   // position
              'rx': 0, 'ry': 0, // registration point shift
              'angle': 0,       // rotation angle
@@ -1023,21 +1025,21 @@ Element.createState = function() {
              '_matrix': new Transform() };
 };
 // geometric data of the element
-Element.createXData = function() {
+_Element.createXData = function() {
     return { 'reg': null,      // registration point
              'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'tweens': {},     // animation tweens (Tween class)         
-             'mode': Element.M_PLAYONCE,         // playing mode
-             'lband': [0, Element.DEFAULT_LEN], // local band
-             'gband': [0, Element.DEFAULT_LEN], // global bane
+             'mode': _Element.M_PLAYONCE,         // playing mode
+             'lband': [0, _Element.DEFAULT_LEN], // local band
+             'gband': [0, _Element.DEFAULT_LEN], // global bane
              'dimen': null,    // dimensions for static (cached) elements
              'canvas': null,   // own canvas for static (cached) elements             
              '_mpath': null };
 }
 
-var Clip = Element;
+var Clip = _Element;
 
 // =============================================================================
 // === DRAWING =================================================================
@@ -2615,7 +2617,7 @@ var all = this;
 var exports = {
     'Player': Player,
     'Scene': Scene,
-    'Element': Element,
+    '_Element': _Element,
     'Clip': Clip,
     'Path': Path, 'Text': Text,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
