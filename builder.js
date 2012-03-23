@@ -20,6 +20,15 @@ function Builder(obj) {
 Builder._$ = function(name) {
     return new Builder(name);
 }
+
+// TODO:
+Builder.DEFAULT_STROKE = {
+    
+}
+Builder.DEFAULT_FILL = {
+
+}
+
 // > Builder.addS % (what: _Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     this.value.add(what);
@@ -29,6 +38,14 @@ Builder.prototype.add = function(what) {
 Builder.prototype.addS = function(what) {
     this.value.addS(what);
     return this;    
+}
+// > Builder.move % (pt: Array[2,Integer]) => Builder
+Builder.prototype.move = function(pt) {
+    return this.modify(function(t) {
+        console.log(this);
+        this.rx = pt[0];
+        this.ry = pt[1];
+    });
 }
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
