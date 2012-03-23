@@ -72,169 +72,167 @@ var uexamples = [];
 
 function sandbox() {
 
-	this.codeElm = document.getElementById('scene-source'),
-	this.errorsElm = document.getElementById('errors');
-	this.selectElm = document.getElementById('examples-list');
-	this.tangleElm = document.getElementById('refresh-calc');
+    this.codeElm = document.getElementById('scene-source'),
+    this.errorsElm = document.getElementById('errors');
+    this.selectElm = document.getElementById('examples-list');
+    this.tangleElm = document.getElementById('refresh-calc');
 
-	window.b = Builder._$;
+    window.b = Builder._$;
 
-	this.player = createPlayer('my-canvas', {
-		width: 400,
-		height: 300,
-		bgcolor: '#fff'
-	});
-	this.player.mode = Player.M_PREVIEW;
-	this.player._checkMode();
+    this.player = createPlayer('my-canvas', {
+        width: 400,
+        height: 300,
+        bgcolor: '#fff'
+    });
+    this.player.mode = Player.M_PREVIEW;
+    this.player._checkMode();
 
-	this.cm = CodeMirror.fromTextArea(this.codeElm, 
-	          { mode: 'javascript',
-	            indentUnit: 4,
-	            lineNumbers: false,
-	            gutter: true,
-	            matchBrackets: true,
-	            wrapLines: true });
-	this.cm.setValue(defaultCode);
-	//this.cm.setValue('return <your code here>;');
+    this.cm = CodeMirror.fromTextArea(this.codeElm, 
+              { mode: 'javascript',
+                indentUnit: 4,
+                lineNumbers: false,
+                gutter: true,
+                matchBrackets: true,
+                wrapLines: true });
+    this.cm.setValue(defaultCode);
+    //this.cm.setValue('return <your code here>;');
 
-	var s = this;
-	var curInterval = null;
-	var refreshRate = 3000;
-	function refresh() {
-		s.errorsElm.style.display = 'none';
-		s.player.stop();
-		try {
-			var code = ['(function(){', 
-				        '  '+s.cm.getValue(),
+    var s = this;
+    var curInterval = null;
+    var refreshRate = 3000;
+    function refresh() {
+        s.errorsElm.style.display = 'none';
+        s.player.stop();
+        try {
+            var code = ['(function(){', 
+                        '  '+s.cm.getValue(),
                         '})();'].join('\n');
-			var scene = eval(code);
-			player.load(scene);
-			player.play();
-		} catch(e) {
-			s.player.stop();
-			s.player.drawSplash();
-			s.errorsElm.style.display = 'block';
-			s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
-			//throw e;
-		};
-	};
+            var scene = eval(code);
+            player.load(scene);
+            player.play();
+        } catch(e) {
+            s.player.stop();
+            s.player.drawSplash();
+            s.errorsElm.style.display = 'block';
+            s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
+            //throw e;
+        };
+    };
 
-	function updateInterval(to) {
-		if (curInterval) clearInterval(curInterval);
-		setTimeout(function() {
-			refreshRate = to;
-			curInterval = setInterval(refresh, to);
-		}, 1);	
-	}
+    function updateInterval(to) {
+        if (curInterval) clearInterval(curInterval);
+        //setTimeout(function() {
+            refreshRate = to;
+            curInterval = setInterval(refresh, to);
+        //}, 1);  
+    }    
 
-	
+    setTimeout(function() {
+        store_examples(); // store current examples, it will skip if their versions match 
+        load_examples(); // load new examples, it will skip the ones with matching versions
+        list_examples(s.selectElm); // list the examples in select element
+    }, 1);
 
-	setTimeout(function() {
-		store_examples(); // store current examples, it will skip if their versions match 
-		load_examples(); // load new examples, it will skip the ones with matching versions
-		list_examples(s.selectElm); // list the examples in select element
-	}, 1);
+    this.selectElm.onchange = function() {
+        s.cm.setValue(examples[this.selectedIndex][1]);
+    }
 
-	this.selectElm.onchange = function() {
-		s.cm.setValue(examples[this.selectedIndex][1]);
-	}
+    var tangleModel = {
+        initialize: function () {
+            this.secPeriod = refreshRate / 1000;
+        },
+        update: function () {
+            this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
+            updateInterval(this.secPeriod * 1000);
+        }
+    };
 
-	var tangleModel = {
-	    initialize: function () {
-	        this.secPeriod = refreshRate / 1000;
-	    },
-	    update: function () {
-	    	this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
-	    	updateInterval(this.secPeriod * 1000);
-	    }
-	};
+    updateInterval(refreshRate);
 
-	updateInterval(refreshRate);
-
-	new Tangle(this.tangleElm, tangleModel);
+    new Tangle(this.tangleElm, tangleModel);
 
 }
 
 function show_csheet(csheetElmId, overlayElmId) {
-	var csheetElm = document.getElementById(csheetElmId);
-	var overlayElm = document.getElementById(overlayElmId);
-	
-	csheetElm.style.display = 'block';
-	overlayElm.style.display = 'block';
+    var csheetElm = document.getElementById(csheetElmId);
+    var overlayElm = document.getElementById(overlayElmId);
+    
+    csheetElm.style.display = 'block';
+    overlayElm.style.display = 'block';
 
-	csheetElm.onclick = function() { 
-		return hide_csheet(csheetElmId, overlayElmId);
-	}
+    csheetElm.onclick = function() { 
+        return hide_csheet(csheetElmId, overlayElmId);
+    }
 
-	return false;
+    return false;
 }
 
 function hide_csheet(csheetElmId, overlayElmId) {
-	var csheetElm = document.getElementById(csheetElmId);
-	var overlayElm = document.getElementById(overlayElmId);
-	
-	csheetElm.style.display = 'none';
-	overlayElm.style.display = 'none';
+    var csheetElm = document.getElementById(csheetElmId);
+    var overlayElm = document.getElementById(overlayElmId);
+    
+    csheetElm.style.display = 'none';
+    overlayElm.style.display = 'none';
 
 }
 
 function store_examples() {
-	if (!localStorage) throw new Error('Local storage support required');
-	var elen = examples.length;
-	for (var i = 0; i < elen; i++) {
-		store_example(i);
-	}
+    if (!localStorage) throw new Error('Local storage support required');
+    var elen = examples.length;
+    for (var i = 0; i < elen; i++) {
+        store_example(i);
+    }
 }
 
 function store_example(i) {
-	var ekey = '_example'+i,
-		vkey = ekey+'__v',
-		ver = localStorage.getItem(vkey);
-	if ((typeof ver === 'undefined') ||
-		(ver === null) ||
-	    (ver < examples[i][0])) {
-	    localStorage.setItem(vkey, examples[i][0]);
-	    localStorage.setItem(ekey, examples[i][1]);
-	}
-	localStorage.setItem('_examples_count', examples.length);
+    var ekey = '_example'+i,
+        vkey = ekey+'__v',
+        ver = localStorage.getItem(vkey);
+    if ((typeof ver === 'undefined') ||
+        (ver === null) ||
+        (ver < examples[i][0])) {
+        localStorage.setItem(vkey, examples[i][0]);
+        localStorage.setItem(ekey, examples[i][1]);
+    }
+    localStorage.setItem('_examples_count', examples.length);
 }
 
 function load_examples() {
-	if (!localStorage) throw new Error('Local storage support required');
-	var ckey = '_examples_count',
-	    count = localStorage.getItem(ckey) || 0,
-	    elen = examples.length;
-	for (var i = 0; i < count; i++) {
-		var ekey = '_example'+i,
-		    vkey = ekey+'__v',
-		    ver = localStorage.getItem(vkey);
-	    if ((typeof ver !== 'undefined') &&
-	    	(ver !== null) &&
-	        ((i >= elen) ||
-	    	 (ver > examples[i][0]))) {
-	    	examples[i] = [
-	    		ver,
-	    		localStorage.getItem(ekey)
-	    	];
-	    }
-	}
+    if (!localStorage) throw new Error('Local storage support required');
+    var ckey = '_examples_count',
+        count = localStorage.getItem(ckey) || 0,
+        elen = examples.length;
+    for (var i = 0; i < count; i++) {
+        var ekey = '_example'+i,
+            vkey = ekey+'__v',
+            ver = localStorage.getItem(vkey);
+        if ((typeof ver !== 'undefined') &&
+            (ver !== null) &&
+            ((i >= elen) ||
+             (ver > examples[i][0]))) {
+            examples[i] = [
+                ver,
+                localStorage.getItem(ekey)
+            ];
+        }
+    }
 }
 
 function save_example(code) {
-	var pos = examples.length; 
-	examples[pos] = [ 0, code ];
-	store_example(pos);
+    var pos = examples.length; 
+    examples[pos] = [ 0, code ];
+    store_example(pos);
 }
 
 function list_examples(selectElm) {
-	selectElm.innerHTML = '';
-	var elen = examples.length;
-	selectElm.setAttribute('size', elen);
-	for (var i = 0; i < elen; i++) {
-		var optElm = document.createElement('option');
-		optElm.setAttribute('value', i);
-		optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
-                           examples[i][1].substring(0, 45).split('\n').join('↵');  		     
-		selectElm.appendChild(optElm);
-	}
+    selectElm.innerHTML = '';
+    var elen = examples.length;
+    selectElm.setAttribute('size', elen);
+    for (var i = 0; i < elen; i++) {
+        var optElm = document.createElement('option');
+        optElm.setAttribute('value', i);
+        optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
+                           examples[i][1].substring(0, 45).split('\n').join('↵');            
+        selectElm.appendChild(optElm);
+    }
 }
