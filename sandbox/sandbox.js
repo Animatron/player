@@ -76,6 +76,7 @@ function sandbox() {
     this.errorsElm = document.getElementById('errors');
     this.selectElm = document.getElementById('examples-list');
     this.tangleElm = document.getElementById('refresh-calc');
+    this.debugElm = document.getElementById('enable-debug');
 
     window.b = Builder._$;
 
@@ -135,6 +136,10 @@ function sandbox() {
 
     this.selectElm.onchange = function() {
         s.cm.setValue(examples[this.selectedIndex][1]);
+    }
+
+    this.debugElm.onchange = function() {
+        s.player.debug = !s.player.debug;
     }
 
     var tangleModel = {
