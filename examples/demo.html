@@ -16,6 +16,7 @@
     <script src="../builder.js" type="text/javascript"></script>
     <script src="../animatron_import.js" type="text/javascript"></script>
     <script src="./rel/demo_project.js" type="text/javascript"></script>
+    <script src="./rel/tiger_project.js" type="text/javascript"></script>
     <!-- <script src="./rel/draw_tiger.js" type="text/javascript"></script> -->
 
     <script type="text/javascript">
@@ -32,7 +33,7 @@
           var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                                              .fill('#009')
                                              .stroke('#f00', 3))
-                          .add(b('red-rect').rect([115, 90], [60, 60]))
+                          .add(b('def-rect').rect([115, 90], [60, 60]))
                           .rotate([0, 10], [0, Math.PI]);
           createPlayer('canvas2').load(scene2);
 
@@ -41,24 +42,11 @@
           var p3 = createPlayer('canvas3'); 
           p3.debug = true;         
           p3.load(demo_project, importer);
-          /*p3.anim.addS([1000, 1000],
-                       draw_tiger,
-                       function(time) {
-                           if (time < 3) return;
-                           this.alpha = (time < 50) ? (time / 50) : 1;
-                           this.x = (time < 200) ? time : 200;
-                           this.y = (time < 200) ? time : 200;
-                           this.sx = 0.3;
-                           this.sy = 0.3;
-                           //this.x = (((time < 200) ? time : 200) | 0);
-                           //this.y = (((time < 200) ? time : 200) | 0);
-                           //this.sx = time / 100;
-                           //this.sy = time / 100;
-                           return true;
-                       });*/
-          //p3.play(6);
 
           // canvas4
+          var p4 = createPlayer('canvas4'); 
+          p4.load(tiger_project, importer);
+
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
                                            .fill(b.gradient('#eee','#999'))
@@ -106,7 +94,7 @@ createPlayer('canvas1').load(scene1);
 var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                                    .fill('#009')
                                    .stroke('#f00', 3))
-                .add(b('red-rect').rect([115, 90], [60, 60]))
+                .add(b('def-rect').rect([115, 90], [60, 60]))
                 .rotate([0, 10], [0, Math.PI]);
 createPlayer('canvas2').load(scene2);
     </code></pre>
@@ -118,7 +106,7 @@ createPlayer('canvas2').load(scene2);
     <pre><code>
 var importer = new AnimatronImporter();
 var p3 = createPlayer('canvas3'); 
-p3.debug = false;         
+p3.debug = true;         
 p3.load(demo_project, importer);
 p3.play(6);
     </code></pre>
@@ -126,10 +114,11 @@ p3.play(6);
 
     <!-- canvas4 -->
 
-    <!-- <hr />
+    <hr />
     <pre><code>
+createPlayer('canvas4').load(tiger_project, new AnimatronImporter());
     </code></pre>
-    <canvas id="canvas4"></canvas> -->
+    <canvas id="canvas4"></canvas>
 
     <div id="copyright"><span>© 2011-2012 by Animatron.</span></div>
 

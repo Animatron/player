@@ -33,7 +33,7 @@
 
     <div id="left-pane">
       
-            <pre class="locked">var b = Builder._$;
+            <pre class="locked">var b = Builder._$, B = Builder;
 
 var scene = (function() {</pre>
 
@@ -64,7 +64,7 @@ createPlayer("my-canvas").load(scene);</pre>
 
       <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->
 
-      <select id="examples-list" size="6"><option value="None">None</option></select>
+      <select id="examples-list" size="4"><option value="None">None</option></select>
     </div>
 
     <!-- cheat sheet -->
@@ -88,8 +88,18 @@ createPlayer("my-canvas").load(scene);</pre>
         <dd>Make current element to be formed with given path. Path string is in SVG-like format, i.e. <code>&quot;M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z&quot;</code></dd>
         <dt>.image(src: String) =&gt; Builder</dt>
         <dd>Make current element an image, parameter is the URL of the image (be accurate with remote images)</dd>
-        <dt>.rotate(band: Array[2,Float], values: Array[2,Float]) =&gt; Builder</dt>
+        <dt>.rotate(band: Array[2,Float], angles: Array[2,Float]) =&gt; Builder</dt>
         <dd>Rotate this element in given time-band. Values are start and end angle in radians. Example: <code>.rotate([0, 5], [0, Math.PI / 2])</code></dd>
+        <dt>.trans(band: Array[2,Float], points: Array[2,Array[2, Float]]) =&gt; Builder</dt>
+        <dd>Translate this element in given time-band. Start and end point are passed as second argument. Example: <code>.trans([0, 5], [[10, 10], [20, 20]])</code></dd>
+        <dt>.transP(band: Array[2,Float], path: String) =&gt; Builder</dt>
+        <dd>Translate this element in given time-band along the given path. Example: <code>.transP([0, 5], 'M10 10 L20 20 Z')</code></dd>
+        <dt>.scale(band: Array[2,Float], values: Array[2,Array[2, Float]]) =&gt; Builder</dt>
+        <dd>Scale this element in given time-band. Start and end sizes are passed as second argument. Example: <code>.scale([0, 5], [[.5, .5], [1, 1]])</code></dd>
+        <dt>.alpha(band: Array[2,Float], values: Array[2, Float]) =&gt; Builder</dt>
+        <dd>Change this element opacity in given time-band. Start and end opacity are passed as second argument. Example: <code>.alpha([0, 5], [0, .8])</code></dd>
+        <dt>.rotateP(band: Array[2,Float]) =&gt; Builder</dt>
+        <dd>Rotate this element along its moving path in given time-band (works only if it has translation by path). Example: <code>.transP([0, 5], 'M0 0 C10 10 40 40 20 20 Z').rotateP([0, 5])</code></dd>
         <dt>.paint(Function(ctx: Context)) => Builder</dt>
         <dd>Paint this element directly to 2D context, using the given function. These function are stacked, so if you call this method twice on the same element with different functions, these functions will be callled sequentially in the same order.</dt>
         <dt>.modify(Function(Float, Any)[, Any]) => Builder</dt>
