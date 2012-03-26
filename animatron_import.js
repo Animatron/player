@@ -2,7 +2,7 @@
  * Copyright (c) 2011-2012 by Animatron.
  * All rights are reserved.
  *
- * Animatron player is licensed under the MIT License, see LICENSE.
+ * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
 function AnimatronImporter() { };
@@ -54,7 +54,7 @@ AnimatronImporter.prototype.findElement = function(source, id) {
 AnimatronImporter.prototype.importElement = function(source, _src, 
                                                      layer, in_band) {
     var has_layers = (_src.layers != null),                                                   
-        _trg = has_layers ? (new Clip()) : (new Element());
+        _trg = has_layers ? (new Clip()) : (new _Element());
     if (layer/* && layer.dynamic*/) {
         this._collectDynamicData(_trg, layer, in_band);
     }
@@ -108,7 +108,7 @@ Convert.tweens = function(tweens) {
         result[_type].push({
             'band': _t.band,
             'type': _type,
-            'data': _t.data || (_t.path ? new Path(_t.path) : null),
+            'data': Convert.tweenData(_type, _t),
             'easing': Convert.easing(_t.easing)
         });
     }
@@ -121,6 +121,18 @@ Convert.tweenType = function(from) {
     if (from === 'Alpha') return Tween.T_ALPHA;
     if (from === 'Scale') return Tween.T_SCALE;
     if (from === 'rotate-to-path') return Tween.T_ROT_TO_PATH;
+}
+Convert.tweenData = function(type, tween) {
+    if (!tween.data) {
+        if (tween.path) return new Path(tween.path);
+        return null;
+    }
+    if (type === Tween.T_SCALE) {
+        var data = tween.data;
+        return [ [ data[0], data[1] ],
+                 [ data[2], data[3] ] ];
+    }
+    return tween.data;
 }
 Convert.path = function(pathStr, stroke, fill) {
     return new Path(pathStr, 
@@ -137,7 +149,7 @@ Convert.easing = function(from) {
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
-          data: from.path ? ('M0 0 ' + from.path + ' Z') : null
+          data: from.path ? (new Path('M0 0 ' + from.path + ' Z')) : null
         };
 }
 Convert.easingType = function(from) {
@@ -197,8 +209,8 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return Element.M_PLAYONCE;
-    if (from === "STOP") return Element.M_PLAYONCE;
-    if (from === "LOOP") return Element.M_LOOP;
-    if (from === "BOUNCE") return Element.M_BOUNCE; // FIXME: last is not for sure
+    if (!from) return _Element.M_PLAYONCE;
+    if (from === "STOP") return _Element.M_PLAYONCE;
+    if (from === "LOOP") return _Element.M_LOOP;
+    if (from === "BOUNCE") return _Element.M_BOUNCE; // FIXME: last is not for sure
 }

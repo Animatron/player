@@ -772,7 +772,7 @@ _Element.prototype.draw = function(ctx) {
 // > _Element.transform % (ctx: Context)
 _Element.prototype.transform = function(ctx) {
     var s = this.state;
-    s._matrix = DU.applyToMatrix(s);
+    s._matrix = _Element._applyToMatrix(s);
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
 };
@@ -1038,6 +1038,14 @@ _Element.createXData = function() {
              'canvas': null,   // own canvas for static (cached) elements             
              '_mpath': null };
 }
+_Element._applyToMatrix = function(s) {
+    var _t = s._matrix;
+    _t.translate(s.x, s.y);
+    _t.scale(s.sx, s.sy);
+    _t.rotate(s.angle);
+    _t.translate(-s.rx, -s.ry);   
+    return _t;
+}
 
 var Clip = _Element;
 
@@ -1100,6 +1108,7 @@ D.drawFPS = function(ctx, fps) {
 
 var DU = {}; // means "Drawing Utils"
 
+// FIXME: move to `Path`?
 DU.applyStroke = function(ctx, stroke) {
     ctx.lineWidth = stroke.width;
     ctx.strokeStyle = stroke._style // calculated once for stroke
@@ -1108,19 +1117,22 @@ DU.applyStroke = function(ctx, stroke) {
     ctx.lineJoin = stroke.join;    
 }
 
+// FIXME: move to `Path`?
 DU.applyFill = function(ctx, fill) {
     ctx.fillStyle = fill._style // calculated once for fill
                   || (fill._style = Path.createStyle(ctx, fill));
 }
 
-// apply state to matrix
-DU.applyToMatrix = function(s) {
-    var _t = s._matrix;
-    _t.translate(s.x, s.y);
-    _t.scale(s.sx, s.sy);
-    _t.rotate(s.angle);
-    _t.translate(-s.rx, -s.ry);   
-    return _t;
+// FIXME: move to `Path`?
+DU.qDraw = function(ctx, stroke, fill, func) {
+    ctx.beginPath();
+    DU.applyStroke(ctx, stroke);
+    DU.applyFill(ctx, fill);
+    func();
+    ctx.closePath();
+
+    ctx.fill();
+    ctx.stroke();
 }
 
 var G = {}; // geometry
@@ -1486,8 +1498,8 @@ Tweens[Tween.T_ALPHA] =
     };
 Tweens[Tween.T_SCALE] =    
     function(t, data) {
-        this.sx = data[0] * (1.0 - t) + data[2] * t;
-        this.sy = data[1] * (1.0 - t) + data[3] * t;  
+        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;  
     };
 Tweens[Tween.T_ROT_TO_PATH] = 
     function(t, data) {
@@ -1539,8 +1551,8 @@ TimeEasings[Easing.T_INOUT] =
         }
     };
 TimeEasings[Easing.T_PATH] =
-    function(str) {
-        var path = Path.parse(str);
+    function(path) {
+        //var path = Path.parse(str);
         return function(t) {
             return path.pointAt(t)[1];
         }
@@ -1656,12 +1668,15 @@ Path.P_MOVETO = 0;
 Path.P_LINETO = 1;
 Path.P_CURVETO = 2;
 
-Path.DEFAULT_STROKE = { 'width': 8.0,
-                        'color': 'yellow',
-                        'cap': 'round',
-                        'join': 'round'
-                      };
+Path.EMPTY_STROKE = { 'width': 0 };
+Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
 Path.DEFAULT_FILL = { 'color': 'transparent' };
+Path.BASE_FILL = { 'color': '#dfdfdf' };
+Path.BASE_STROKE = { 'width': 1.0,
+                     'color': '#000',
+                     'cap': 'round',
+                     'join': 'round'
+                   };
 
 // visits every chunk of path in array-form and calls
 // visitor function, so visitor function gets 
@@ -1692,14 +1707,19 @@ Path.prototype.add = function(seg) {
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx) {
 
-    ctx.beginPath();
+    var p = this;
+    DU.qDraw(ctx, p.stroke || Path.DEFAULT_STROKE,
+                  p.fill || Path.DEFAULT_FILL,
+             function() { p.visit(p._applyVisitor,ctx); });
+
+    /*ctx.beginPath();
     DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
     DU.applyFill(ctx, this.fill || Path.DEFAULT_FILL);
     this.visit(this._applyVisitor,ctx);
     ctx.closePath();
 
     ctx.fill();
-    ctx.stroke();
+    ctx.stroke();*/
 
 }
 Path.prototype._applyVisitor = function(segment, ctx) {
@@ -1952,6 +1972,7 @@ Path.createStyle = function(ctx, brush) {
         }
         return grad;
     }
+    return null;
 }
 
 function MSeg(pts) {
@@ -2623,6 +2644,7 @@ var exports = {
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
+    'DU': DU,
 
     'createPlayer': function(id, opts) { return new Player(id, opts); },
 
