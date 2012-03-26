@@ -107,12 +107,13 @@ Builder.prototype.rect = function(pt, rect) {
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
 Builder.prototype.circle = function(pt, radius) {
-    var x=pt[0], y=pt[1]; 
+    var x=pt[0], y=pt[1];
+    var b = this;
     this.paint(function(ctx) {
         var path = this.xdata.path;
         DU.qDraw(ctx, 
-                 this._curStroke(),
-                 this._curFill(),
+                 b._curStroke(),
+                 b._curFill(),
                  function() {
                     ctx.arc(pt[0], pt[1], radius, 0, Math.PI*2, true);
                  });

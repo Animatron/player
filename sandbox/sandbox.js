@@ -36,6 +36,7 @@ examples[1] = [ 0 /*version*/, [
   '      cr = circles[i][2];',
   '  o.add(b().circle([cx, cy], cr)',
   '           .stroke(\'#333\', 2).fill(\'#366\')',
+  '           .alpha([1.3, 3], [1, .4])',
   '           .modify(function(t) {',
   '               this.x = 150;',
   '               this.y = 20;',
@@ -68,36 +69,52 @@ examples[2] = [ 0 /*version*/, [
   '    }))',
   '/*.rotate([0, 3], [0, Math.PI])*/;',
 ].join('\n') ];
+examples[3] = [ 0 /*version*/, [
+  '// See API Documentation (link is below)',
+  'var scene = new Scene();',
+  'var elem = new _Element();',
+  'elem.xdata.path = new Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
+  '                           { width: 2, color: \'#300\' },',
+  '                           { color: \'#f00\' });',
+  'elem.addTween({',
+  '    type: Tween.T_ROTATE,',
+  '    band: [0, 3],',
+  '    data: [Math.PI / 6, 0]',
+  '});',
+  'elem.addTween({',
+  '    type: Tween.T_TRANSLATE,',
+  '    band: [0, 3],',
+  '    data: Path.parse(\'M-100 -100 L100 100 Z\')',
+  '});',
+  'elem.addTween({',
+  '    type: Tween.T_ALPHA,',
+  '    band: [1.5, 3],',
+  '    data: [1, 0]',
+  '});',
+  'scene.add(elem);',
+  'return scene;'
+].join('\n') ];
+examples[4] = [ 0 /*version*/, [
+  'return b()',
+  '  .add(b().path(\'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
+  '  .add(b().rect([115, 90], [60, 60]))',
+  '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);' 
+].join('\n') ];  
+examples[5] = [ 0 /*version*/, [
+  'return b()',
+  '  .add(',
+  '    b(\'blue-rect\').rect([100, 25], [70, 70])',
+  '                  .fill(\'#009\')',
+  '                  .stroke(\'#f00\', 3)',
+  '                  .alpha([0, 3], [0, 1])',                  
+  '                  .trans([0, 4], [[0, 0], [ 100, 100 ]])',
+  '                  .trans([4, 8], [[100, 100], [-200, 300]])',
+  '                  .scale([0, 10], [[1, 1], [.5, .5]]))',
+  '  .add(',
+  '    b(\'def-rect\').rect([115, 90], [60, 60]));'
+].join('\n') ];
 
-/* return b()
-  .add(
-    b('blue-rect').rect([100, 25], [70, 70])
-                  .fill('#009')
-                  .stroke('#f00', 3)
-                  .alpha([0, 3], [0, 1])                  
-                  .trans([0, 4], [[0, 0], [ 100, 100 ]]) 
-                  .trans([4, 8], [[100, 100], [-200, 300]])
-                  .scale([0, 10], [[1, 1], [.5, .5]]))
-  .add(
-    b('red-rect').rect([115, 90], [60, 60]));
 
-return b()
-  .add(b().path('M050 0 L20 20 C60 110 90 140 160 120 Z'))
-  .add(b().rect([115, 90], [60, 60]))
-  .rotate([0, 10], [0, Math.PI]); 
-
-var scene = new Scene();
-var elem = new _Element();
-elem.xdata.path = Path.parse('M36 35 L35 70 L90 70 L50 20 Z');
-elem.xdata.path.fill = { color: '#f00' };
-elem.xdata.path.stroke = { width: 2, color: '#300' };
-elem.addTween({
-    type: Tween.T_ROTATE,
-    band: [0, 3],
-    data: [Math.PI / 6, 0]
-});
-scene.add(elem);
-return scene; */
 
 var uexamples = [];
 
@@ -264,7 +281,7 @@ function save_example(code) {
 function list_examples(selectElm) {
     selectElm.innerHTML = '';
     var elen = examples.length;
-    selectElm.setAttribute('size', elen);
+    //selectElm.setAttribute('size', elen);
     for (var i = 0; i < elen; i++) {
         var optElm = document.createElement('option');
         optElm.setAttribute('value', i);
