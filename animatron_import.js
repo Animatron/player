@@ -108,7 +108,7 @@ Convert.tweens = function(tweens) {
         result[_type].push({
             'band': _t.band,
             'type': _type,
-            'data': _t.data || (_t.path ? new Path(_t.path) : null),
+            'data': Convert.tweenData(_t),
             'easing': Convert.easing(_t.easing)
         });
     }
@@ -121,6 +121,17 @@ Convert.tweenType = function(from) {
     if (from === 'Alpha') return Tween.T_ALPHA;
     if (from === 'Scale') return Tween.T_SCALE;
     if (from === 'rotate-to-path') return Tween.T_ROT_TO_PATH;
+}
+Convert.tweenData(tween) {
+    if (!tween.data) {
+        if (tween.path) return new Path(tween.path);
+        return null;
+    }
+    if (tween.type === Tween.T_SCALE) {
+        return [ [ data[0], data[1] ],
+                 [ data[2], data[3] ] ];
+    }
+    return tween.data;
 }
 Convert.path = function(pathStr, stroke, fill) {
     return new Path(pathStr, 

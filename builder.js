@@ -41,8 +41,9 @@ Builder.prototype.addS = function(what) {
 }
 // > Builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
+    // FIXME: fails
     return this.modify(function(t) {
-        console.log(this);
+        //console.log(this);
         this.rx = pt[0];
         this.ry = pt[1];
     });
@@ -69,6 +70,10 @@ Builder.prototype.path = function(pathStr) {
     this.xdata.path = Path.parse(pathStr,
                                  this.xdata.path);
     return this;
+}
+// > Builder.band % (band: Array[2,Float]) => Builder
+Builder.prototype.band = function(band) {
+    this.value.setLBand(band);
 }
 // > Builder.paint % (painter: Function(ctx: Context))
 //                 => Builder
@@ -97,7 +102,8 @@ Builder.prototype.rect = function(pt, rect) {
                     ' L'+(x+w)+' '+y+
                     ' L'+(x+w)+' '+(y+h)+
                     ' L'+x+' '+(y+h)+
-                    ' L'+x+' '+y+' Z');
+                    ' L'+x+' '+y+
+                    ' Z');
 }
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
@@ -120,19 +126,57 @@ Builder.prototype.circle = function(pt, radius) {
                     ' L'+x+' '+(y+h)+
                     ' L'+x+' '+y+' Z');*/
 }
-// > Builder.rotate % (band: Array[2,Float], 
-//                     values: Array[2,Float]) => Builder
-Builder.prototype.rotate = function(band, values) {
+// > Builder.tween % (type: String, (Tween.T_*)
+//                    band: Array[2,Float], 
+//                    data: Any,
+//                    [easing: String]) => Builder // (Easing.T_*)
+Builder.prototype.tween = function(type, band, data, easing) {
     this.value.applyLBand(band);
     this.value.addTween({
-        type: Tween.T_ROTATE,
+        type: type,
         band: band,
-        data: values
+        data: data,
+        easing: easing ? { type: easing, data: null/*edata*/ } : null
     });
     return this;
 }
-Builder.prototype.band = function(band) {
-    this.value.setLBand(band);
+// > Builder.rotate % (band: Array[2,Float], 
+//                     angles: Array[2,Float],
+//                     [easing: String]) => Builder
+Builder.prototype.rotate = function(band, angles, easing) {
+    return this.tween(Tween.T_ROTATE, band, angles, easing);
+}
+// > Builder.rotateP % (band: Array[2,Float], 
+//                      path: String,
+//                      [easing: String]) => Builder
+Builder.prototype.rotateP = function(band, angles, easing) {
+    return this.tween(Tween.T_ROT_TO_PATH, band, angles, easing);
+}
+// > Builder.scale % (band: Array[2,Float], 
+//                    values: Array[2,Array[2, Float]],
+//                    [easing: String]) => Builder
+Builder.prototype.scale = function(band, values, easing) {
+    return this.tween(Tween.T_SCALE, band, values, easing);
+}
+// > Builder.trans % (band: Array[2,Float], 
+//                    points: Array[2,Array[2, Float]],
+//                    [easing: String]) => Builder
+Builder.prototype.trans = function(band, points, easing) {
+    return this.transP(band, 'M'+points[0][0]+' '+points[0][1]+
+                            ' L'+points[1][0]+' '+points[1][1]+
+                            ' Z', easing);
+}
+// > Builder.transP % (band: Array[2,Float],
+//                     path: String,
+//                     [easing: String]) => Builder
+Builder.prototype.transP = function(band, path, easing) {
+    return this.tween(Tween.T_TRANSLATE, band, Path.parse(path), easing);
+}
+// > Builder.alpha % (band: Array[2,Float], 
+//                    values: Array[2,Float],
+//                    [easing: String]) => Builder
+Builder.prototype.alpha = function(band, values, easing) {
+    return this.tween(Tween.T_ALPHA, band, values, easing);
 }
 /*Builder.p_drawCircle = function(ctx, args) {
     var pt=args[0], radius=args[1],
@@ -144,6 +188,13 @@ Builder.prototype.band = function(band) {
     ctx.fill();
     ctx.stroke();
 }*/
+
+// TODO: ?
+// B.color
+// B.fill
+// B.path
+// B.tween
+// B.easing
 
 window.Builder = Builder;
 

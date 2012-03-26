@@ -68,6 +68,18 @@ examples[2] = [ 0 /*version*/, [
   '/*.rotate([0, 3], [0, Math.PI])*/;',
 ].join('\n') ];
 
+/* return b()
+  .add(
+    b('blue-rect').rect([100, 25], [70, 70])
+                  .fill('#009')
+                  .stroke('#f00', 3)
+                  .alpha([0, 3], [0, 1])                  
+                  .trans([0, 4], [[0, 0], [ 100, 100 ]]) 
+                  .trans([4, 8], [[100, 100], [-200, 300]])
+                  .scale([0, 10], [[1, 1], [.5, .5]]))
+  .add(
+    b('red-rect').rect([115, 90], [60, 60])); */
+
 var uexamples = [];
 
 function sandbox() {
@@ -79,6 +91,7 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
 
     window.b = Builder._$;
+    window.B = Builder;
 
     this.player = createPlayer('my-canvas', {
         width: 400,
