@@ -1551,8 +1551,8 @@ TimeEasings[Easing.T_INOUT] =
         }
     };
 TimeEasings[Easing.T_PATH] =
-    function(str) {
-        var path = Path.parse(str);
+    function(path) {
+        //var path = Path.parse(str);
         return function(t) {
             return path.pointAt(t)[1];
         }

@@ -54,7 +54,7 @@ AnimatronImporter.prototype.findElement = function(source, id) {
 AnimatronImporter.prototype.importElement = function(source, _src, 
                                                      layer, in_band) {
     var has_layers = (_src.layers != null),                                                   
-        _trg = has_layers ? (new Clip()) : (new Element());
+        _trg = has_layers ? (new Clip()) : (new _Element());
     if (layer/* && layer.dynamic*/) {
         this._collectDynamicData(_trg, layer, in_band);
     }
@@ -108,7 +108,7 @@ Convert.tweens = function(tweens) {
         result[_type].push({
             'band': _t.band,
             'type': _type,
-            'data': Convert.tweenData(_t),
+            'data': Convert.tweenData(_type, _t),
             'easing': Convert.easing(_t.easing)
         });
     }
@@ -122,12 +122,13 @@ Convert.tweenType = function(from) {
     if (from === 'Scale') return Tween.T_SCALE;
     if (from === 'rotate-to-path') return Tween.T_ROT_TO_PATH;
 }
-Convert.tweenData(tween) {
+Convert.tweenData = function(type, tween) {
     if (!tween.data) {
         if (tween.path) return new Path(tween.path);
         return null;
     }
-    if (tween.type === Tween.T_SCALE) {
+    if (type === Tween.T_SCALE) {
+        var data = tween.data;
         return [ [ data[0], data[1] ],
                  [ data[2], data[3] ] ];
     }
@@ -148,7 +149,7 @@ Convert.easing = function(from) {
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
-          data: from.path ? ('M0 0 ' + from.path + ' Z') : null
+          data: from.path ? Path.parse('M0 0 ' + from.path + ' Z') : null
         };
 }
 Convert.easingType = function(from) {
