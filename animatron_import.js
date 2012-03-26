@@ -149,7 +149,7 @@ Convert.easing = function(from) {
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
-          data: from.path ? Path.parse('M0 0 ' + from.path + ' Z') : null
+          data: from.path ? (new Path('M0 0 ' + from.path + ' Z')) : null
         };
 }
 Convert.easingType = function(from) {
@@ -209,8 +209,8 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return Element.M_PLAYONCE;
-    if (from === "STOP") return Element.M_PLAYONCE;
-    if (from === "LOOP") return Element.M_LOOP;
-    if (from === "BOUNCE") return Element.M_BOUNCE; // FIXME: last is not for sure
+    if (!from) return _Element.M_PLAYONCE;
+    if (from === "STOP") return _Element.M_PLAYONCE;
+    if (from === "LOOP") return _Element.M_LOOP;
+    if (from === "BOUNCE") return _Element.M_BOUNCE; // FIXME: last is not for sure
 }
