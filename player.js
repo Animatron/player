@@ -1668,7 +1668,7 @@ Path.P_MOVETO = 0;
 Path.P_LINETO = 1;
 Path.P_CURVETO = 2;
 
-Path.EMPTY_STROKE = { 'width': 0 };
+Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
 Path.DEFAULT_FILL = { 'color': 'transparent' };
 Path.BASE_FILL = { 'color': '#dfdfdf' };

@@ -161,6 +161,7 @@ Convert.easingType = function(from) {
     if (from === 'Ease In Out') return Easing.T_INOUT;
 }
 Convert.stroke = function(stroke) {
+    if (!stroke) return stroke;
     var brush = {};
     brush.width = stroke.width;
     brush.cap = stroke.cap;
@@ -179,6 +180,7 @@ Convert.stroke = function(stroke) {
     return brush;
 }
 Convert.fill = function(fill) {
+    if (!fill) return null;
     var brush = {};
     if (!fill) {
         brush.color = "rgba(0,0,0,0)";

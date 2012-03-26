@@ -199,6 +199,7 @@ Builder.prototype._curFill = function() {
 
 // TODO: ?
 // B.color
+// B.gradient
 // B.fill
 // B.path
 // B.tween
