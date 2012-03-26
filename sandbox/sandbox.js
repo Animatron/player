@@ -16,7 +16,8 @@ var defaultCode = [
   '                  .stroke(\'#f00\', 3)',
   '                  .rotate([0, 10], [0, Math.PI / 2]))',
   '  .add(',
-  '    b(\'red-rect\').rect([115, 90], [60, 60]))',
+  '    b(\'red-rect\').rect([115, 90], [60, 60])',
+  '                 .fill(\'#f00\'))',
   '  .rotate([0, 10], [0, Math.PI]);'
 ].join('\n');
 
@@ -78,7 +79,25 @@ examples[2] = [ 0 /*version*/, [
                   .trans([4, 8], [[100, 100], [-200, 300]])
                   .scale([0, 10], [[1, 1], [.5, .5]]))
   .add(
-    b('red-rect').rect([115, 90], [60, 60])); */
+    b('red-rect').rect([115, 90], [60, 60]));
+
+return b()
+  .add(b().path('M050 0 L20 20 C60 110 90 140 160 120 Z'))
+  .add(b().rect([115, 90], [60, 60]))
+  .rotate([0, 10], [0, Math.PI]); 
+
+var scene = new Scene();
+var elem = new _Element();
+elem.xdata.path = Path.parse('M36 35 L35 70 L90 70 L50 20 Z');
+elem.xdata.path.fill = { color: '#f00' };
+elem.xdata.path.stroke = { width: 2, color: '#300' };
+elem.addTween({
+    type: Tween.T_ROTATE,
+    band: [0, 3],
+    data: [Math.PI / 6, 0]
+});
+scene.add(elem);
+return scene; */
 
 var uexamples = [];
 

@@ -22,12 +22,8 @@ Builder._$ = function(name) {
 }
 
 // TODO:
-Builder.DEFAULT_STROKE = {
-    
-}
-Builder.DEFAULT_FILL = {
-
-}
+Builder.DEFAULT_STROKE = Path.BASE_STROKE;
+Builder.DEFAULT_FILL = Path.BASE_FILL;
 
 // > Builder.addS % (what: _Element | Builder) => Builder
 Builder.prototype.add = function(what) {
@@ -44,8 +40,8 @@ Builder.prototype.move = function(pt) {
     // FIXME: fails
     return this.modify(function(t) {
         //console.log(this);
-        this.rx = pt[0];
-        this.ry = pt[1];
+        this.rx += pt[0];
+        this.ry += pt[1];
     });
 }
 // > Builder.fill % (color: String) => Builder
@@ -60,7 +56,7 @@ Builder.prototype.fill = function(color) {
 //                  => Builder
 Builder.prototype.stroke = function(color, width) {
     if (!this.xdata.path) {
-        this.xdata.path = new Path(); 
+        this.xdata.path = new Path();
     }
     this.xdata.path.setStroke(color, width);
     return this;
@@ -69,6 +65,9 @@ Builder.prototype.stroke = function(color, width) {
 Builder.prototype.path = function(pathStr) {
     this.xdata.path = Path.parse(pathStr,
                                  this.xdata.path);
+    var path = this.xdata.path;
+    if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
+    if (!path.fill) path.fill = Builder.DEFAULT_FILL;
     return this;
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
@@ -110,14 +109,13 @@ Builder.prototype.rect = function(pt, rect) {
 Builder.prototype.circle = function(pt, radius) {
     var x=pt[0], y=pt[1]; 
     this.paint(function(ctx) {
-        ctx.strokeStyle = Path.createStyle(ctx, this.xdata.path.stroke);
-        ctx.lineWidth = this.xdata.path.stroke.width;
-        ctx.fillStyle = Path.createStyle(ctx, this.xdata.path.fill);
-        ctx.beginPath();
-        ctx.arc(pt[0], pt[1], radius, 0, Math.PI*2, true); 
-        ctx.closePath();
-        ctx.fill();
-        ctx.stroke();
+        var path = this.xdata.path;
+        DU.qDraw(ctx, 
+                 this._curStroke(),
+                 this._curFill(),
+                 function() {
+                    ctx.arc(pt[0], pt[1], radius, 0, Math.PI*2, true);
+                 });
     });
     return this;
     /*return this.path('M'+x+' '+y+
@@ -177,6 +175,15 @@ Builder.prototype.transP = function(band, path, easing) {
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(Tween.T_ALPHA, band, values, easing);
+}
+// PRIVATE
+Builder.prototype._curStroke = function() {
+    var path = this.xdata.path;
+    return path ? (path.stroke || Builder.DEFAULT_STROKE) : Builder.DEFAULT_STROKE;
+}
+Builder.prototype._curFill = function() {
+    var path = this.xdata.path;
+    return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
 }
 /*Builder.p_drawCircle = function(ctx, args) {
     var pt=args[0], radius=args[1],
