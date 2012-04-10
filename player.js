@@ -124,13 +124,15 @@ function ajax(url, callback/*, errback*/) {
  options format:
   { "debug": false,
     "inParent": false,
-    "mode": Player.M_VIDEO, 
+    "mode": Player.M_VIDEO,
+    "zoom": 1.0,
     "meta": { "title": "Default",
               "author": "Anonymous",
               "copyright": "© NaN",
               "version": -1.0,
               "description": 
-                      "Default project description" },
+                      "Default project description",
+              [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
     "anim": { "fps": 30,
               "width": 400,
               "height": 500,
@@ -180,7 +182,8 @@ Player.DEFAULT_CANVAS = { 'width': 400,
                           'bgcolor': '#fff' };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
-                                 'mode': Player.M_VIDEO, 
+                                 'mode': Player.M_VIDEO,
+                                 'zoom': 1.0,
                                  'meta': { 'title': 'Default',
                                            'author': 'Anonymous',
                                            'copyright': '© NaN',
@@ -376,6 +379,7 @@ Player.prototype._init = function(opts) {
     this.canvas = document.getElementById(this.id);
     this.ctx = this.canvas.getContext("2d");
     this.state = Player.createState(this);
+    this.state.zoom = opts.zoom || 1;
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
     this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
@@ -1082,8 +1086,8 @@ _Element.createXData = function() {
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
     _t.translate(s.x, s.y);
+    _t.rotate(s.angle);    
     _t.scale(s.sx, s.sy);
-    _t.rotate(s.angle);
     _t.translate(-s.rx, -s.ry);   
     return _t;
 }

@@ -16,7 +16,8 @@
     <script src="../builder.js" type="text/javascript"></script>
     <script src="../animatron_import.js" type="text/javascript"></script>
     <script src="./rel/demo_project.js" type="text/javascript"></script>
-    <script src="./rel/tiger_project.js" type="text/javascript"></script>
+    <!-- <script src="./rel/tiger_project.js" type="text/javascript"></script> -->
+    <script src="./rel/rectangle-scale-rotate.js" type="text/javascript"></script>
     <!-- <script src="./rel/draw_tiger.js" type="text/javascript"></script> -->
 
     <script type="text/javascript">
@@ -45,7 +46,7 @@
 
           // canvas4
           var p4 = createPlayer('canvas4'); 
-          p4.load(tiger_project, importer);
+          p4.load(rectangle_project, importer);
 
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
@@ -116,7 +117,7 @@ p3.play(6);
 
     <hr />
     <pre><code>
-createPlayer('canvas4').load(tiger_project, new AnimatronImporter());
+createPlayer('canvas4').load(rectangle_project, new AnimatronImporter());
     </code></pre>
     <canvas id="canvas4"></canvas>
 
