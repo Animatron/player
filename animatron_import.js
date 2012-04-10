@@ -6,17 +6,19 @@
  */
 
 function AnimatronImporter() { };
-AnimatronImporter.prototype.configure = function(prj) {
+AnimatronImporter.prototype.configureMeta = function(prj) {
+    return prj.meta;
+};
+AnimatronImporter.prototype.configureAnim = function(prj) {
     var _a = prj.anim;
     return {
-        'meta': prj.meta,
         'fps': _a.framerate, 
         'width': Math.floor(_a.dimension[0]),
         'height': Math.floor(_a.dimension[1]),
         'bgcolor': Convert.fill(_a.background),
         'duration': this.computeDuration(prj.anim.elements)
-    };
-};
+    }
+}
 AnimatronImporter.prototype.load = function(prj) {
     // TODO: pass concrete scene or scene index
     //console.log('converted', this.importClips(prj.anim.scenes[0], 

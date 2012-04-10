@@ -115,17 +115,36 @@ function ajax(url, callback/*, errback*/) {
 // === PLAYER ==================================================================
 // =============================================================================
 
-function Player(id, opts, inParent) {
+/*
+ `id` is canvas id
+
+ you may pass null for options, but if you provide them, at least `mode` is required
+ to be set (all other are optional).
+
+ options format:
+  { "debug": false,
+    "inParent": false,
+    "mode": Player.M_VIDEO, 
+    "meta": { "title": "Default",
+              "author": "Anonymous",
+              "copyright": "© NaN",
+              "version": -1.0,
+              "description": 
+                      "Default project description" },
+    "anim": { "fps": 30,
+              "width": 400,
+              "height": 500,
+              "bgcolor": "#fff",
+              "duration": 0 } }
+*/
+function Player(id, opts) {
     this.id = id;
     this.state = null;
     this.anim = null;
     this.canvas = null;
     this.ctx = null;
-    this.debug = false;
-    this.mode = Player.M_VIDEO;
     this.controls = null;
     this.info = null;
-    this.inParent = inParent;
     this.__canvasConfigured = false;
     this._init(opts);
 }
@@ -137,22 +156,6 @@ Player.PAUSED = 2;
 
 Player.PREVIEW_POS = 0.33;
 Player.PEFF = 0.07; // seconds to play more when reached end of movie
-
-Player.DEFAULT_CANVAS = { 'width': 400,
-                          'height': 250, 
-                          'bgcolor': '#fff' };
-Player.DEFAULT_CONFIGURATION = { 'meta': { 'title': 'Default',
-                                           'author': 'Anonymous',
-                                           'copyright': '© NaN',
-                                           'version': -1.0,
-                                           'description': 
-                                                'Default project description' },
-                                 'fps': 30,
-                                 'width': Player.DEFAULT_CANVAS.width,
-                                 'height': Player.DEFAULT_CANVAS.height,
-                                 'bgcolor': Player.DEFAULT_CANVAS.bgcolor,
-                                 'duration': 0
-                            };
 
 Player.M_CONTROLS_DISABLED = 0;
 Player.M_CONTROLS_ENABLED = 1;
@@ -171,6 +174,25 @@ Player.M_VIDEO = Player.M_CONTROLS_ENABLED
                  | Player.M_DO_NOT_HANDLE_EVENTS;
 
 Player.URL_ATTR = 'data-url';
+
+Player.DEFAULT_CANVAS = { 'width': 400,
+                          'height': 250, 
+                          'bgcolor': '#fff' };
+Player.DEFAULT_CONFIGURATION = { 'debug': false,
+                                 'inParent': false,
+                                 'mode': Player.M_VIDEO, 
+                                 'meta': { 'title': 'Default',
+                                           'author': 'Anonymous',
+                                           'copyright': '© NaN',
+                                           'version': -1.0,
+                                           'description': 
+                                                'Default project description' },
+                                 'anim': { 'fps': 30,
+                                           'width': Player.DEFAULT_CANVAS.width,
+                                           'height': Player.DEFAULT_CANVAS.height,
+                                           'bgcolor': Player.DEFAULT_CANVAS.bgcolor,
+                                           'duration': 0 }
+                               };
 
 // === PLAYING CONTROL API =====================================================
 // =============================================================================
@@ -221,7 +243,7 @@ Player.prototype.load= function(object, importer, callback) {
         }
     } else {
         if (!player.__canvasConfigured) {
-            player.configureCanvas(Player.DEFAULT_CANVAS);
+            player._configureCanvas(Player.DEFAULT_CANVAS);
         }
         player.anim = new Scene();
     }
@@ -346,13 +368,18 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 provideEvents(Player, ['play', 'pause', 'stop', 'load', 'error']);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
+    var opts = opts || Player.DEFAULT_CONFIGURATION;
+    this.inParent = opts.inParent;
+    this.mode = opts.mode;
+    this.debug = opts.debug;
     this._initHandlers(); // TODO: make automatic
     this.canvas = document.getElementById(this.id);
     this.ctx = this.canvas.getContext("2d");
     this.state = Player.createState(this);
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
-    this.configure(opts || Player.DEFAULT_CONFIGURATION);
+    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
+    this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
     this.subscribeEvents(this.canvas);
     this.stop();
     // TODO: load some default information into player
@@ -377,6 +404,7 @@ Player.prototype._reset = function() {
 // update player's canvas with configuration 
 Player.prototype._configureCanvas = function(opts) {
     this.__canvasConfigured = true;
+    this._canvasConf = opts;
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
@@ -384,16 +412,6 @@ Player.prototype._configureCanvas = function(opts) {
     if (this.controls) this.controls.update(this.canvas);
     if (this.info) this.info.update(this.canvas);
     return this;
-}
-// meta format:
-// { "title": "Default",
-//   "author": "Anonymous",
-//   "copyright": "© 2011",
-//   "version": 0.1,
-//   "description": "Default project description"
-// }
-Player.prototype.injectInfo = function(data) {
-    if (this.info) this.info.inject(data);
 }
 Player.prototype.drawSplash = function() {
     var ctx = this.ctx,
@@ -484,15 +502,38 @@ Player.prototype.changeZoom = function(ratio) {
 // update player state with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title, 
 // author/copyright, fps and width/height of the player
-Player.prototype.configure = function(conf) {
-    // tune up canvas (it will update controls/info position)
+// Anim-info format:
+// { ["fps": 24.0,] // NB: currently not applied in any way, default is 30 
+//   "width": 640,
+//   "height": 480,
+//   ["bgcolor": "#f00",] // in canvas-friendly format
+//   ["duration": 10.0] // in seconds
+// }
+Player.prototype.configureAnim = function(conf) {
+    this._animInfo = conf;
     this._configureCanvas(conf);
     // inject information to html
-    if (conf.meta) this.injectInfo(conf);
     
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
+
 }
+// update player information block with passed configuration, usually done before
+// loading some scene or by importer, `conf` has the data about title, 
+// author/copyright, version.
+// Meta-info format:
+// { ["id": "......",]
+//   "title": "Default",
+//   "author": "Anonymous",
+//   "copyright": "© 2011",
+//   "version": 0.1,
+//   "description": "Default project description"
+// } 
+Player.prototype.configureMeta = function(info) {
+    this._metaInfo = info;
+    if (this.info) this.info.inject(info, this._animInfo);
+}
+// draw current scene at specified time
 Player.prototype.drawAt = function(time) {
     var ctx = this.ctx,
         state = this.state;
@@ -1240,8 +1281,11 @@ L.loadFromUrl = function(player, url, importer, callback) {
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
-    if (importer.configure) {
-        player.configure(importer.configure(object));
+    if (importer.configureMeta) {
+        player.configureMeta(importer.configureMeta(object));
+    }
+    if (importer.configureAnim) {
+        player.configureAnim(importer.configureAnim(object));
     }
     L.loadScene(player, importer.load(object), callback);
 }
@@ -2606,12 +2650,12 @@ InfoBlock.prototype.update = function(parent) {
         this.ready = true;
     }
 }
-InfoBlock.prototype.inject = function(data) {
-    var meta = data.meta; // TODO: show speed
+InfoBlock.prototype.inject = function(meta, anim) {
+    // TODO: show speed
     this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+' by '+
             '<span class="author">'+meta.author+'</span>'+'.<br/> '+
-            '<span class="duration">'+data.duration+'sec</span>'+', '+
-            '<span class="dimen">'+data.width+'x'+data.width+'</span>'+'.<br/> '+
+            '<span class="duration">'+anim.duration+'sec</span>'+', '+
+            '<span class="dimen">'+anim.width+'x'+anim.width+'</span>'+'.<br/> '+
             '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
