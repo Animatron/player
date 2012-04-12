@@ -25,8 +25,8 @@ var examples = [];
 examples[0] = [ 0 /*version*/, defaultCode ]; 
 examples[1] = [ 0 /*version*/, [
   'var circles = [ [ 10, 15, 30 ],',
-  '              [ 70, 30, 50 ],',
-  '              [ 60, 40, 14 ] ]',
+  '                [ 70, 30, 50 ],',
+  '                [ 60, 40, 14 ] ];',
   '',
   'var o = b();',
   '',

@@ -1056,6 +1056,14 @@ _Element.prototype.findWrapBand = function() {
     }
     return (result[0] !== Number.MAX_VALUE) ? result : null;
 }
+_Element.prototype._stateStr = function() {
+    var state = this.state;
+    return "x: " + s.x + " y: " + s.y + '\n' +
+           "rx: " + s.rx + " ry: " + s.ry + '\n' +
+           "sx: " + s.sx + " sy: " + s.sy + '\n' +
+           "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
+           "t: " + s.t + " rt: " + s.rt + '\n';
+}
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
 // state of the element
@@ -1334,7 +1342,7 @@ Render.addXDataRender = function(elm) {
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
-
+    
     // painters
     if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
     if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
