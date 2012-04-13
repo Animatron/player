@@ -5,11 +5,11 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
-var demo_project =
+var demo_project = 
 
 {
   "meta": {
-    "id": "4f8418e0e4b090cf1f8349c0",
+    "id": "4f844f21036421a8e902c819",
     "title": "New Test Project",
     "author": "",
     "copyright": "",
@@ -25,79 +25,36 @@ var demo_project =
     "background": null,
     "elements": [
       {
-        "id": "1628345c04dad28e06997f01",
-        "name": "Clip",
-        "layers": [
-          {
-            "id": "9720b87d611f2435f134171a",
-            "name": "Symbols",
-            "band": [
-              0.0,
-              15.0
-            ],
-            "eid": "f4c3a7461a3d9c6562f46c05",
-            "tweens": [
-              {
-                "type": "Alpha",
-                "band": [
-                  0.0,
-                  15.0
-                ],
-                "data": [
-                  1.0,
-                  0.0
-                ]
-              },
-              {
-                "type": "Rotate",
-                "band": [
-                  0.0,
-                  15.0
-                ],
-                "data": [
-                  0.0,
-                  6.283185307179586
-                ]
-              },
-              {
-                "type": "Translate",
-                "band": [
-                  0.0,
-                  15.0
-                ],
-                "path": "M0.0 0.0 L0.0 0.0 Z"
-              }
-            ],
-            "visible": true,
-            "outline": false,
-            "locked": false,
-            "outline-color": "yellow",
-            "dynamic": false,
-            "reg": [
-              50.0,
-              50.0
-            ],
-            "opaque": false
-          }
-        ],
-        "on-end": "STOP"
+        "id": "40f7e8ed99489e96da036405",
+        "stroke": {
+          "width": 4.0,
+          "paint": {
+            "color": "green"
+          },
+          "cap": "round",
+          "join": "round"
+        },
+        "fill": {
+          "color": "blue"
+        },
+        "path": "M0.0 0.0 L50.0 0.0 L50.0 50.0 L0.0 50.0 L0.0 0.0 Z"
       },
       {
-        "id": "1687e73b15cd387014572808",
+        "id": "5dc72cc6f3b7a88bc7464008",
         "url": "http://madeira.hccanet.org/project2/michels_p2/website%20pics/bender.jpg"
       },
       {
-        "id": "a6748a7a0f5d1a56e038e402",
+        "id": "6ae5fa9245294ab9620b8602",
         "name": "Scene1",
         "layers": [
           {
-            "id": "6636fe33d512fecefb372e45",
+            "id": "7960e8f665c981b1ffde285d",
             "name": "Rectangle",
             "band": [
               1.0,
               11.0
             ],
-            "eid": "da628458895559c637781605",
+            "eid": "40f7e8ed99489e96da036405",
             "tweens": [
               {
                 "type": "Alpha",
@@ -202,13 +159,13 @@ var demo_project =
             "opaque": false
           },
           {
-            "id": "1ea33768c9f0d924bc2b30ed",
+            "id": "786b838925ce150e1bef8c1d",
             "name": "Clip",
             "band": [
               0.0,
               15.0
             ],
-            "eid": "1628345c04dad28e06997f01",
+            "eid": "c7ddcab08117ca384a7bbb01",
             "tweens": [
               {
                 "type": "Translate",
@@ -235,13 +192,13 @@ var demo_project =
             "opaque": false
           },
           {
-            "id": "0c5f53f63a869a9d73e0be06",
+            "id": "d8b56039ebdc62ae07e34f9d",
             "name": "Image",
             "band": [
               0.0,
               20.0
             ],
-            "eid": "1687e73b15cd387014572808",
+            "eid": "5dc72cc6f3b7a88bc7464008",
             "tweens": [
               
             ],
@@ -260,22 +217,65 @@ var demo_project =
         "on-end": "STOP"
       },
       {
-        "id": "da628458895559c637781605",
-        "stroke": {
-          "width": 4.0,
-          "paint": {
-            "color": "green"
-          },
-          "cap": "round",
-          "join": "round"
-        },
-        "fill": {
-          "color": "blue"
-        },
-        "path": "M0.0 0.0 L50.0 0.0 L50.0 50.0 L0.0 50.0 L0.0 0.0 Z"
+        "id": "c7ddcab08117ca384a7bbb01",
+        "name": "Clip",
+        "layers": [
+          {
+            "id": "860df1bd8615dc9f68969aaf",
+            "name": "Symbols",
+            "band": [
+              0.0,
+              15.0
+            ],
+            "eid": "dda0b341680ace349063ac05",
+            "tweens": [
+              {
+                "type": "Alpha",
+                "band": [
+                  0.0,
+                  15.0
+                ],
+                "data": [
+                  1.0,
+                  0.0
+                ]
+              },
+              {
+                "type": "Rotate",
+                "band": [
+                  0.0,
+                  15.0
+                ],
+                "data": [
+                  0.0,
+                  6.283185307179586
+                ]
+              },
+              {
+                "type": "Translate",
+                "band": [
+                  0.0,
+                  15.0
+                ],
+                "path": "M0.0 0.0 L0.0 0.0 Z"
+              }
+            ],
+            "visible": true,
+            "outline": false,
+            "locked": false,
+            "outline-color": "yellow",
+            "dynamic": false,
+            "reg": [
+              50.0,
+              50.0
+            ],
+            "opaque": false
+          }
+        ],
+        "on-end": "STOP"
       },
       {
-        "id": "f4c3a7461a3d9c6562f46c05",
+        "id": "dda0b341680ace349063ac05",
         "stroke": {
           "width": 4.0,
           "paint": {
@@ -291,7 +291,7 @@ var demo_project =
       }
     ],
     "scenes": [
-      "a6748a7a0f5d1a56e038e402"
+      "6ae5fa9245294ab9620b8602"
     ]
   }
 }

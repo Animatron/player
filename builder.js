@@ -58,11 +58,12 @@ Builder.prototype.stroke = function(color, width) {
     this.xdata.path.setStroke(color, width);
     return this;
 }
-// > Builder.path % (path: String) => Builder
-Builder.prototype.path = function(pathStr) {
+// > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
+Builder.prototype.path = function(pathStr, pt) {
     this.xdata.path = Path.parse(pathStr,
                                  this.xdata.path);
     var path = this.xdata.path;
+    this.xdata.reg = path.normalize(pt);
     if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
     if (!path.fill) path.fill = Builder.DEFAULT_FILL;
     return this;
@@ -92,16 +93,15 @@ Builder.prototype.image = function(src) {
 // > Builder.rect % (pt: Array[2,Integer], 
 //                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    this.xdata.reg = pt;
-    var w=rect[0], h=rect[1],
-        x=-Math.floor(w/2),
-        y=-Math.floor(h/2);
+    var w = rect[0], h = rect[1],
+        x = pt[0]-Math.floor(w/2),
+        y = pt[1]-Math.floor(h/2);
     return this.path('M'+x+' '+y+
                     ' L'+(x+w)+' '+y+
                     ' L'+(x+w)+' '+(y+h)+
                     ' L'+x+' '+(y+h)+
                     ' L'+x+' '+y+
-                    ' Z');
+                    ' Z', pt);
 }
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder

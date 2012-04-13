@@ -1878,16 +1878,43 @@ Path.prototype.bounds = function() {
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
         var pts = segment.pts;
-        for (var pi = 0; pi < pts.length; pi+=2) {
+        for (var pi = 2; pi < pts.length; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 1; pi < pts.length; pi+=2) {
+        for (var pi = 3; pi < pts.length; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
     });
     return [ minX, minY, maxX, maxY ];
+}
+Path.prototype.vpoints = function(func) {
+    this.visit(function(segment) {
+        var pts = segment.pts;
+        for (var pi = 0; pi < pts.length; pi+=2) {
+            var res = func(pts[pi], pts[pi+1]);
+            if (res) {
+                pts[pi] = res[0];
+                pts[pi+1] = res[1];
+            }
+        }
+    });
+}
+// finds center point, moves path there,
+// and returns found point. if some point
+// passed as parameter, shifts path to that point
+Path.prototype.normalize = function(pt) {
+    var pt = pt;
+    if (!pt) {
+        var bounds = this.bounds();
+        pt = [ Math.floor((bounds[2]-bounds[0])/2), 
+               Math.floor((bounds[3]-bounds[1])/2) ];
+    };
+    this.vpoints(function(x, y) {
+        return [ x - pt[0], y - pt[1] ];
+    });
+    return pt;
 }
 Path.prototype.inBounds = function(point) {
     var _b = this.bounds();
