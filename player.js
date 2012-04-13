@@ -1093,10 +1093,10 @@ _Element.createXData = function() {
 }
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
+    _t.translate(s.rx, s.ry);
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);    
-    _t.scale(s.sx, s.sy);
-    _t.translate(s.rx, s.ry);   
+    _t.scale(s.sx, s.sy);   
     return _t;
 }
 
@@ -1381,15 +1381,14 @@ Render.addTweenModifier = function(elm, tween) {
 }
 
 Render.p_drawReg = function(ctx, reg) {
-    var reg = [0, 0]; //reg || this.xdata.reg; 
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
-    ctx.moveTo(reg[0], reg[1]-10);
-    ctx.lineTo(reg[0], reg[1]);
-    ctx.moveTo(reg[0]+3, reg[1]);
-    //ctx.moveTo(reg[0], reg[1] + 5);
-    ctx.arc(reg[0],reg[1],3,0,Math.PI*2,true);
+    ctx.moveTo(0, -10);
+    ctx.lineTo(0, 0);
+    ctx.moveTo(3, 0);
+    //ctx.moveTo(0, 5);
+    ctx.arc(0,0,3,0,Math.PI*2,true);
     ctx.closePath();
     ctx.stroke();
 }
@@ -1409,29 +1408,26 @@ Render.p_drawText = function(ctx, text) {
     text.apply(ctx, this.xdata.reg);
 }
 
-Render.p_drawMPath = function(ctx) {
-    if (this.state._mpath) {
-        var tPath = this.state._mpath;
-        tPath.setStroke('#600', 2.0);
+Render.p_drawMPath = function(ctx, path) {
+    var mPath = path || this.state._mpath;
+    if (mPath) {
+        ctx.save();
+        ctx.translate(this.state.rx, this.state.ry);
+        mPath.setStroke('#600', 2.0);
         ctx.beginPath();
-        tPath.apply(ctx);
+        mPath.apply(ctx);
         ctx.closePath();
         ctx.stroke();
-    };
+        ctx.restore()
+    }
 }
 
 Render.p_drawName = function(ctx, name) {
     var name = name || this.name;
     if (name) {
-        var state = this.state;
-        // FIXME: calculate origin automatically
-        var pt = state.reg ?
-                 [ state.reg[0] + state.x,
-                   state.reg[1] + state.y ]
-                 : [ state.x, state.y ];
         ctx.fillStyle = '#666';
         ctx.font = '12px sans-serif';
-        ctx.fillText(name, pt[0], pt[1] + 10);
+        ctx.fillText(name, 0, 10);
     };
 }
 
