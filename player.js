@@ -1096,7 +1096,7 @@ _Element._applyToMatrix = function(s) {
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);    
     _t.scale(s.sx, s.sy);
-    _t.translate(-s.rx, -s.ry);   
+    _t.translate(s.rx, s.ry);   
     return _t;
 }
 
@@ -1340,8 +1340,8 @@ Render.addXDataRender = function(elm) {
 
     // modifiers
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
-    if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
+    if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     
     // painters
     if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
@@ -1381,7 +1381,7 @@ Render.addTweenModifier = function(elm, tween) {
 }
 
 Render.p_drawReg = function(ctx, reg) {
-    var reg = reg || this.xdata.reg; 
+    var reg = [0, 0]; //reg || this.xdata.reg; 
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
