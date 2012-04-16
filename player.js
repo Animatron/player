@@ -1556,7 +1556,7 @@ Tweens[Tween.T_SCALE] =
 Tweens[Tween.T_ROT_TO_PATH] = 
     function(t, data) {
         var path = this._mpath;
-        this.angle = path.tangentAt(t); //Math.atan2(this.y, this.x);
+        this.angle = path.tangentAt(t);
     };
 
 // function-based easings

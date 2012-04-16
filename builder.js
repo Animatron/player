@@ -140,10 +140,9 @@ Builder.prototype.rotate = function(band, angles, easing) {
     return this.tween(Tween.T_ROTATE, band, angles, easing);
 }
 // > Builder.rotateP % (band: Array[2,Float], 
-//                      path: String,
 //                      [easing: String]) => Builder
-Builder.prototype.rotateP = function(band, angles, easing) {
-    return this.tween(Tween.T_ROT_TO_PATH, band, angles, easing);
+Builder.prototype.rotateP = function(band, easing) {
+    return this.tween(Tween.T_ROT_TO_PATH, band, null, easing);
 }
 // > Builder.scale % (band: Array[2,Float], 
 //                    values: Array[2,Array[2, Float]],

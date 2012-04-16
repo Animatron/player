@@ -126,6 +126,16 @@ examples.push([ 0 /*version*/, [
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
 
+/* return b().rect([0, 0], [40, 40])
+          .rotateP([0, 10], Easing.T_INOUT)
+          .transP([0, 10],
+                 'M0.0 100.0 '+
+                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
+                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
+                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
+                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
+                 Easing.T_INOUT); */
+
 var uexamples = [];
 
 function sandbox() {
