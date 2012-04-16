@@ -1374,7 +1374,7 @@ Render.addTweenModifier = function(elm, tween) {
     var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
                                                  tween.band)
                            : Bands.adaptModifierByTime(
-                                   TimeEasings[easing.type](easing.data),
+                                   EasingImpl[easing.type](easing.data),
                                    Tweens[tween.type],
                                    tween.band);
     elm.addModifier(modifier, tween.data);
@@ -1559,60 +1559,80 @@ Tweens[Tween.T_ROT_TO_PATH] =
         this.angle = path.tangentAt(t); //Math.atan2(this.y, this.x);
     };
 
-Easing.T_DEF = 'DEF';
-Easing.T_IN = 'IN';
-Easing.T_OUT = 'OUT';
-Easing.T_INOUT = 'INOUT';
-Easing.T_PATH = 'PATH';
-Easing.T_FUNC = 'FUNC';
+// function-based easings
 
-// FIXME: change to sinus/cosinus
-Easing.__SEGS = {};
-Easing.__SEGS[Easing.T_DEF] = new CSeg([.25, .1, .25, 1, 1, 1]);
-Easing.__SEGS[Easing.T_IN] = new CSeg([.42, 0, 1, 1, 1, 1]);
-Easing.__SEGS[Easing.T_OUT] = new CSeg([0, 0, .58, 1, 1, 1]);
-Easing.__SEGS[Easing.T_INOUT] = new CSeg([.42, 0, .58, 1, 1, 1]);
+Easing.T_PATH = 'PATH'; // Path
+Easing.T_FUNC = 'FUNC'; // Function
+//Easing.T_CINOUT = 'CINOUT'; // Cubic InOut
 
-var TimeEasings = {};
-TimeEasings[Easing.T_DEF] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_DEF];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_IN] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_IN];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_OUT] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_OUT];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_INOUT] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_INOUT];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_PATH] =
+var EasingImpl = {};
+
+EasingImpl[Easing.T_PATH] = 
     function(path) {
         //var path = Path.parse(str);
         return function(t) {
             return path.pointAt(t)[1];
         }
     };
-TimeEasings[Easing.T_FUNC] =
+EasingImpl[Easing.T_FUNC] =
     function(f) {
         return f;
     };
+/*EasingImpl[Easing.T_CINOUT] = 
+    function() {
+        return function(t) {
+            var t =  2 * t;
+            if (t < 1) {
+                return -1/2 * (Math.sqrt(1 - t*t) - 1);
+            } else {
+                return 1/2 * (Math.sqrt(1 - (t-2)*(t-2)) + 1);
+            }
+        }
+    };*/
+
+// segment-based easings
+
+Easing.__SEGS = {}; // segments cache for easings
+
+function __registerSegEasing(alias, points) {
+    Easing['T_'+alias] = alias;
+    var seg = new CSeg(points);
+    Easing.__SEGS[alias] = seg;
+    EasingImpl[alias] = function() {
+        return function(t) {
+            return seg.atT([0, 0], t)[1];
+        }
+    }
+}
+
+__registerSegEasing('DEF',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
+__registerSegEasing('IN',     [0.420, 0.000, 1.000, 1.000, 1.000, 1.000]); // In
+__registerSegEasing('OUT',    [0.000, 0.000, 0.580, 1.000, 1.000, 1.000]); // Out
+__registerSegEasing('INOUT',  [0.420, 0.000, 0.580, 1.000, 1.000, 1.000]); // InOut
+__registerSegEasing('SIN',    [0.470, 0.000, 0.745, 0.715, 1.000, 1.000]); // Sine In
+__registerSegEasing('SOUT',   [0.390, 0.575, 0.565, 1.000, 1.000, 1.000]); // Sine Out
+__registerSegEasing('SINOUT', [0.445, 0.050, 0.550, 0.950, 1.000, 1.000]); // Sine InOut
+__registerSegEasing('QIN',    [0.550, 0.085, 0.680, 0.530, 1.000, 1.000]); // Quad In
+__registerSegEasing('QOUT',   [0.250, 0.460, 0.450, 0.940, 1.000, 1.000]); // Quad Out
+__registerSegEasing('QINOUT', [0.455, 0.030, 0.515, 0.955, 1.000, 1.000]); // Quad InOut
+__registerSegEasing('CIN',    [0.550, 0.055, 0.675, 0.190, 1.000, 1.000]); // Cubic In
+__registerSegEasing('COUT',   [0.215, 0.610, 0.355, 1.000, 1.000, 1.000]); // Cubic Out
+__registerSegEasing('CINOUT', [0.645, 0.045, 0.355, 1.000, 1.000, 1.000]); // Cubic InOut
+__registerSegEasing('QTIN',   [0.895, 0.030, 0.685, 0.220, 1.000, 1.000]); // Quart In
+__registerSegEasing('QTOUT',  [0.165, 0.840, 0.440, 1.000, 1.000, 1.000]); // Quart Out
+__registerSegEasing('QTINOUT',[0.770, 0.000, 0.175, 1.000, 1.000, 1.000]); // Quart InOut
+__registerSegEasing('QIIN',   [0.755, 0.050, 0.855, 0.060, 1.000, 1.000]); // Quint In
+__registerSegEasing('QIOUT',  [0.230, 1.000, 0.320, 1.000, 1.000, 1.000]); // Quart Out
+__registerSegEasing('QIINOUT',[0.860, 0.000, 0.070, 1.000, 1.000, 1.000]); // Quart InOut
+__registerSegEasing('EIN',    [0.950, 0.050, 0.795, 0.035, 1.000, 1.000]); // Expo In
+__registerSegEasing('EOUT',   [0.190, 1.000, 0.220, 1.000, 1.000, 1.000]); // Expo Out
+__registerSegEasing('EINOUT', [1.000, 0.000, 0.000, 1.000, 1.000, 1.000]); // Expo InOut
+__registerSegEasing('CRIN',   [0.600, 0.040, 0.980, 0.335, 1.000, 1.000]); // Circ In
+__registerSegEasing('CROUT',  [0.075, 0.820, 0.165, 1.000, 1.000, 1.000]); // Circ Out
+__registerSegEasing('CRINOUT',[0.785, 0.135, 0.150, 0.860, 1.000, 1.000]); // Circ InOut
+__registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // Back In
+__registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
+__registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
 // === EVENTS ==================================================================
 // =============================================================================
