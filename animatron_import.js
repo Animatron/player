@@ -87,12 +87,12 @@ AnimatronImporter.prototype._collectDynamicData = function(to, layer, in_band) {
     x.lband = layer.band ? layer.band : [0, 10]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband) 
                       : x.lband;
-    to.state.reg = layer.reg;
+    x.reg = layer.reg || [0, 0];
     x.tweens = layer.tweens ? Convert.tweens(layer.tweens) : {};
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
-    //to.name = src.name;
-    to.xdata.image = src.url ? Player.prepareImage(src.url) : null;
+    if (!to.name) to.name = src.name;
+    to.xdata.image = src.url ? _Element.imgFromUrl(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font, 

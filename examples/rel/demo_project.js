@@ -26,16 +26,16 @@ var demo_project =
     "elements": [
       {
         "id": "09cedc776e4a54eefcdd6e01",
-        "name": "Clip",
+        "name": "Clip Inner (-> Symbols)",
         "layers": [
           {
             "id": "879d36b4f09df7f7203bff77",
-            "name": "Symbols",
+            "name": "Symbols (-> Red Rect)",
             "band": [
               0.0,
               15.0
             ],
-            "eid": "327b030d6327d1949f870105",
+            "eid": "327b030d6327d1949f870105", // red rect with blue stroke
             "tweens": [
               {
                 "type": "Alpha",
@@ -84,6 +84,7 @@ var demo_project =
       },
       {
         "id": "327b030d6327d1949f870105",
+        "name": "Red Rect",
         "stroke": {
           "width": 4.0,
           "paint": {
@@ -99,20 +100,21 @@ var demo_project =
       },
       {
         "id": "4c8228d3d14989df372de908",
+        "name": "Image",
         "url": "http://madeira.hccanet.org/project2/michels_p2/website%20pics/bender.jpg"
       },
       {
         "id": "5ad5ab877ee801de216b9b02",
-        "name": "Scene1",
+        "name": "Scene1 (-> Rectangle 2)",
         "layers": [
           {
             "id": "ae3b5a34344e9d871e7dd15f",
-            "name": "Rectangle",
+            "name": "Rectangle 2 (-> Blue Rect)",
             "band": [
               1.0,
               11.0
             ],
-            "eid": "98e475d8fc0a29c048842c05",
+            "eid": "98e475d8fc0a29c048842c05", // blue rect with green stroke
             "tweens": [
               {
                 "type": "Alpha",
@@ -218,12 +220,12 @@ var demo_project =
           },
           {
             "id": "1061791940f0a56a760464a0",
-            "name": "Clip",
+            "name": "Clip Outer (-> Clip Inner)",
             "band": [
               0.0,
               15.0
             ],
-            "eid": "09cedc776e4a54eefcdd6e01",
+            "eid": "09cedc776e4a54eefcdd6e01", // clip with red rect
             "tweens": [
               {
                 "type": "Translate",
@@ -256,7 +258,7 @@ var demo_project =
               0.0,
               20.0
             ],
-            "eid": "4c8228d3d14989df372de908",
+            "eid": "4c8228d3d14989df372de908", // bender image
             "tweens": [
               
             ],
@@ -276,6 +278,7 @@ var demo_project =
       },
       {
         "id": "98e475d8fc0a29c048842c05",
+        "name": "Blue Rect",
         "stroke": {
           "width": 4.0,
           "paint": {

@@ -112,6 +112,43 @@ function ajax(url, callback/*, errback*/) {
     req.send(null); 
 }
 
+function canvasOpts(canvas, opts) {
+    if (!opts.push) { // object, not array // FIXME: test with typeof
+        var _w = opts.width ? Math.floor(opts.width) : 0;
+        var _h = opts.height ? Math.floor(opts.height) : 0;
+        canvas.width = _w;
+        canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
+        if (opts.bgcolor) { 
+            canvas.style.backgroundColor = opts.bgcolor; };
+    } else { // array
+        var _w = Math.floor(opts[0]);
+        var _h = Math.floor(opts[1]);
+        canvas.width = _w;
+        canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
+    }
+}
+
+function newCanvas(dimen) {
+    var _canvas = document.createElement('canvas');
+    canvasOpts(_canvas, [ dimen[0], dimen[1] ]);
+    return _canvas;
+}
+
+function prepareImage(url) {
+    var _img = new Image();
+    _img.onload = function() {
+        this.isReady = true; // FIXME: use 'image.complete' and 
+                             // '...' (network exist) combination,
+                             // 'complete' fails on Firefox
+    };
+    _img.src = url;
+    return _img;
+}
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -202,7 +239,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 // TODO: add load/play/pause/stop events
 
-Player.prototype.load= function(object, importer, callback) {
+Player.prototype.load = function(object, importer, callback) {
     var player = this;
 
     player._checkMode();
@@ -412,7 +449,7 @@ Player.prototype._configureCanvas = function(opts) {
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    Player.configureCanvas(this.canvas, opts);
+    canvasOpts(this.canvas, opts);
     if (this.controls) this.controls.update(this.canvas);
     if (this.info) this.info.update(this.canvas);
     return this;
@@ -607,40 +644,6 @@ Player.createState = function(player) {
         //'__drawInterval': null
     };
 }
-Player.configureCanvas = function(canvas, opts) {
-    if (!opts.push) { // object, not array // FIXME: test with typeof
-        var _w = opts.width ? Math.floor(opts.width) : 0;
-        var _h = opts.height ? Math.floor(opts.height) : 0;
-        canvas.width = _w;
-        canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
-        if (opts.bgcolor) { 
-            canvas.style.backgroundColor = opts.bgcolor; };
-    } else { // array
-        var _w = Math.floor(opts[0]);
-        var _h = Math.floor(opts[1]);
-        canvas.width = _w;
-        canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
-    }
-}
-Player.newCanvas = function(dimen) {
-    var _canvas = document.createElement('canvas');
-    Player.configureCanvas(_canvas, [ dimen[0], dimen[1] ]);
-    return _canvas;
-}
-Player.prepareImage = function(url) {
-    var _img = new Image();
-    _img.onload = function() {
-        this.isReady = true; // FIXME: use 'image.complete' and 
-                             // '...' (network exist) combination,
-                             // 'complete' fails on Firefox
-    };
-    _img.src = url;
-    return _img;
-}
 
 // === SCENE ===================================================================
 // =============================================================================
@@ -822,7 +825,7 @@ _Element.prototype.transform = function(ctx) {
     s._matrix.apply(ctx);
 };
 _Element.prototype._drawToCache = function() {
-    var _canvas = Player.newCanvas(this.state.dimen);
+    var _canvas = newCanvas(this.state.dimen);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
@@ -1099,6 +1102,9 @@ _Element._applyToMatrix = function(s) {
     _t.scale(s.sx, s.sy);   
     return _t;
 }
+_Element.imgFromUrl = function(url) {
+    return prepareImage(url);
+}
 
 var Clip = _Element;
 
@@ -1293,11 +1299,11 @@ L.loadFromUrl = function(player, url, importer, callback) {
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
-    if (importer.configureMeta) {
-        player.configureMeta(importer.configureMeta(object));
-    }
     if (importer.configureAnim) {
         player.configureAnim(importer.configureAnim(object));
+    }
+    if (importer.configureMeta) {
+        player.configureMeta(importer.configureMeta(object));
     }
     L.loadScene(player, importer.load(object), callback);
 }
@@ -2422,7 +2428,7 @@ Controls.prototype.update = function(parent) {
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
-        _canvas = Player.newCanvas([ _w, _h ]);
+        _canvas = newCanvas([ _w, _h ]);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
         _canvas.style.position = 'absolute';                                 
         _canvas.style.opacity = Controls.OPACITY;
@@ -2434,7 +2440,7 @@ Controls.prototype.update = function(parent) {
         this.subscribeEvents(_canvas);          
         this.hide();
     } else {
-        Player.configureCanvas(_canvas, [ _w, _h ]);
+        canvasOpts(_canvas, [ _w, _h ]);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
@@ -2707,10 +2713,10 @@ InfoBlock.prototype.update = function(parent) {
 }
 InfoBlock.prototype.inject = function(meta, anim) {
     // TODO: show speed
-    this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+' by '+
-            '<span class="author">'+meta.author+'</span>'+'.<br/> '+
+    this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+
+            (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
-            '<span class="dimen">'+anim.width+'x'+anim.width+'</span>'+'.<br/> '+
+            '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> '+
             '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';

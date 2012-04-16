@@ -170,6 +170,11 @@ Builder.prototype.transP = function(band, path, easing) {
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(Tween.T_ALPHA, band, values, easing);
 }
+// > Builder.image % (url: String) => Builder
+Builder.prototype.image = function(url) {
+    this.xdata.image = url ? _Element.imgFromUrl(url) : null;
+    return this;
+}
 // PRIVATE
 Builder.prototype._curStroke = function() {
     var path = this.xdata.path;
