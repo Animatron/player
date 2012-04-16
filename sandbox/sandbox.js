@@ -22,11 +22,12 @@ var defaultCode = [
 ].join('\n');
 
 var examples = [];
-examples[0] = [ 0 /*version*/, defaultCode ]; 
-examples[1] = [ 0 /*version*/, [
+examples.push([ 0 /*version*/, defaultCode ]);
+
+examples.push([ 0 /*version*/, [
   'var circles = [ [ 10, 15, 30 ],',
-  '              [ 70, 30, 50 ],',
-  '              [ 60, 40, 14 ] ]',
+  '                [ 70, 30, 50 ],',
+  '                [ 60, 40, 14 ] ];',
   '',
   'var o = b();',
   '',
@@ -47,8 +48,16 @@ examples[1] = [ 0 /*version*/, [
   '}',
   '',
   'return o.rotate([0, 3], [0, Math.PI / 2]);'
-].join('\n') ];
-examples[2] = [ 0 /*version*/, [
+].join('\n') ]);
+
+examples.push([ 0, [ 
+  'return b().rect([50, 50], [40, 40])',
+  '          .trans([0, 3],', 
+  '                 [[0, 0], [0, 150]],', 
+  '                 Easing.T_COUT);'
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(',
   '    b().path(\'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
@@ -68,8 +77,9 @@ examples[2] = [ 0 /*version*/, [
   '      ctx.strokeText(\'Boo!\', 50, 50);',
   '    }))',
   '/*.rotate([0, 3], [0, Math.PI])*/;',
-].join('\n') ];
-examples[3] = [ 0 /*version*/, [
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
   'var scene = new Scene();',
   'var elem = new _Element();',
@@ -93,14 +103,16 @@ examples[3] = [ 0 /*version*/, [
   '});',
   'scene.add(elem);',
   'return scene;'
-].join('\n') ];
-examples[4] = [ 0 /*version*/, [
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(b().path(\'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
   '  .add(b().rect([115, 90], [60, 60]))',
   '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);' 
-].join('\n') ];  
-examples[5] = [ 0 /*version*/, [
+].join('\n') ]);  
+
+examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(',
   '    b(\'blue-rect\').rect([100, 25], [70, 70])',
@@ -112,9 +124,17 @@ examples[5] = [ 0 /*version*/, [
   '                  .scale([0, 10], [[1, 1], [.5, .5]]))',
   '  .add(',
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
-].join('\n') ];
+].join('\n') ]);
 
-
+/* return b().rect([0, 0], [40, 40])
+          .rotateP([0, 10], Easing.T_INOUT)
+          .transP([0, 10],
+                 'M0.0 100.0 '+
+                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
+                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
+                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
+                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
+                 Easing.T_INOUT); */
 
 var uexamples = [];
 

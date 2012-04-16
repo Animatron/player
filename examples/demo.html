@@ -17,7 +17,8 @@
     <script src="../animatron_import.js" type="text/javascript"></script>
     <script src="./rel/demo_project.js" type="text/javascript"></script>
     <!-- <script src="./rel/tiger_project.js" type="text/javascript"></script> -->
-    <script src="./rel/rectangle-scale-rotate.js" type="text/javascript"></script>
+    <script src="./rel/rectangles_project.js" type="text/javascript"></script>
+    <script src="./rel/curvy_path_project.js" type="text/javascript"></script>
     <!-- <script src="./rel/draw_tiger.js" type="text/javascript"></script> -->
 
     <script type="text/javascript">
@@ -41,12 +42,18 @@
           // canvas3
           var importer = new AnimatronImporter();
           var p3 = createPlayer('canvas3'); 
-          p3.debug = true;         
+          p3.debug = true;
           p3.load(demo_project, importer);
 
           // canvas4
-          var p4 = createPlayer('canvas4'); 
-          p4.load(rectangle_project, importer);
+          var p4 = createPlayer('canvas4');
+          p4.debug = true;
+          p4.load(rectangles_project, importer);
+
+          // canvas5
+          var p5 = createPlayer('canvas5');
+          p5.debug = true; 
+          p5.load(curvy_path_project, importer);
 
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
@@ -117,9 +124,17 @@ p3.play(6);
 
     <hr />
     <pre><code>
-createPlayer('canvas4').load(rectangle_project, new AnimatronImporter());
+createPlayer('canvas4').load(rectangles_project, new AnimatronImporter());
     </code></pre>
     <canvas id="canvas4"></canvas>
+
+    <!-- canvas5 -->
+
+    <hr />
+    <pre><code>
+createPlayer('canvas5').load(curvy_path_project, new AnimatronImporter());
+    </code></pre>
+    <canvas id="canvas5"></canvas>
 
     <div id="copyright"><span>© 2011-2012 by Animatron.</span></div>
 
