@@ -5,11 +5,11 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
-var demo_project =
+var demo_project = 
 
 {
   "meta": {
-    "id": "4f8418e0e4b090cf1f8349c0",
+    "id": "4f8858d7e4b04a1e87bc594f",
     "title": "New Test Project",
     "author": "",
     "copyright": "",
@@ -25,17 +25,17 @@ var demo_project =
     "background": null,
     "elements": [
       {
-        "id": "1628345c04dad28e06997f01",
+        "id": "09cedc776e4a54eefcdd6e01",
         "name": "Clip",
         "layers": [
           {
-            "id": "9720b87d611f2435f134171a",
+            "id": "879d36b4f09df7f7203bff77",
             "name": "Symbols",
             "band": [
               0.0,
               15.0
             ],
-            "eid": "f4c3a7461a3d9c6562f46c05",
+            "eid": "327b030d6327d1949f870105",
             "tweens": [
               {
                 "type": "Alpha",
@@ -83,21 +83,36 @@ var demo_project =
         "on-end": "STOP"
       },
       {
-        "id": "1687e73b15cd387014572808",
+        "id": "327b030d6327d1949f870105",
+        "stroke": {
+          "width": 4.0,
+          "paint": {
+            "color": "blue"
+          },
+          "cap": "round",
+          "join": "round"
+        },
+        "fill": {
+          "color": "red"
+        },
+        "path": "M0.0 0.0 L100.0 0.0 L100.0 100.0 L0.0 100.0 L0.0 0.0 Z"
+      },
+      {
+        "id": "4c8228d3d14989df372de908",
         "url": "http://madeira.hccanet.org/project2/michels_p2/website%20pics/bender.jpg"
       },
       {
-        "id": "a6748a7a0f5d1a56e038e402",
+        "id": "5ad5ab877ee801de216b9b02",
         "name": "Scene1",
         "layers": [
           {
-            "id": "6636fe33d512fecefb372e45",
+            "id": "ae3b5a34344e9d871e7dd15f",
             "name": "Rectangle",
             "band": [
               1.0,
               11.0
             ],
-            "eid": "da628458895559c637781605",
+            "eid": "98e475d8fc0a29c048842c05",
             "tweens": [
               {
                 "type": "Alpha",
@@ -202,13 +217,13 @@ var demo_project =
             "opaque": false
           },
           {
-            "id": "1ea33768c9f0d924bc2b30ed",
+            "id": "1061791940f0a56a760464a0",
             "name": "Clip",
             "band": [
               0.0,
               15.0
             ],
-            "eid": "1628345c04dad28e06997f01",
+            "eid": "09cedc776e4a54eefcdd6e01",
             "tweens": [
               {
                 "type": "Translate",
@@ -235,13 +250,13 @@ var demo_project =
             "opaque": false
           },
           {
-            "id": "0c5f53f63a869a9d73e0be06",
+            "id": "125527da6599db0ed5008604",
             "name": "Image",
             "band": [
               0.0,
               20.0
             ],
-            "eid": "1687e73b15cd387014572808",
+            "eid": "4c8228d3d14989df372de908",
             "tweens": [
               
             ],
@@ -260,7 +275,7 @@ var demo_project =
         "on-end": "STOP"
       },
       {
-        "id": "da628458895559c637781605",
+        "id": "98e475d8fc0a29c048842c05",
         "stroke": {
           "width": 4.0,
           "paint": {
@@ -273,25 +288,10 @@ var demo_project =
           "color": "blue"
         },
         "path": "M0.0 0.0 L50.0 0.0 L50.0 50.0 L0.0 50.0 L0.0 0.0 Z"
-      },
-      {
-        "id": "f4c3a7461a3d9c6562f46c05",
-        "stroke": {
-          "width": 4.0,
-          "paint": {
-            "color": "blue"
-          },
-          "cap": "round",
-          "join": "round"
-        },
-        "fill": {
-          "color": "red"
-        },
-        "path": "M0.0 0.0 L100.0 0.0 L100.0 100.0 L0.0 100.0 L0.0 0.0 Z"
       }
     ],
     "scenes": [
-      "a6748a7a0f5d1a56e038e402"
+      "5ad5ab877ee801de216b9b02"
     ]
   }
-}
+};

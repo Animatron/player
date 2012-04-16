@@ -5,7 +5,7 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
-var rectangle_project =
+var rectangles_project =
 
 {
   "meta": {

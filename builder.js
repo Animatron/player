@@ -37,12 +37,9 @@ Builder.prototype.addS = function(what) {
 }
 // > Builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
-    // FIXME: fails
-    return this.modify(function(t) {
-        //console.log(this);
-        this.rx += pt[0];
-        this.ry += pt[1];
-    });
+    var x = this.xdata;
+    x.reg = [ x.reg[0] + pt[0],
+              x.reg[1] + pt[1] ];
 }
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
@@ -61,11 +58,12 @@ Builder.prototype.stroke = function(color, width) {
     this.xdata.path.setStroke(color, width);
     return this;
 }
-// > Builder.path % (path: String) => Builder
-Builder.prototype.path = function(pathStr) {
+// > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
+Builder.prototype.path = function(pathStr, pt) {
     this.xdata.path = Path.parse(pathStr,
                                  this.xdata.path);
     var path = this.xdata.path;
+    this.xdata.reg = path.normalize(pt);
     if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
     if (!path.fill) path.fill = Builder.DEFAULT_FILL;
     return this;
@@ -95,19 +93,20 @@ Builder.prototype.image = function(src) {
 // > Builder.rect % (pt: Array[2,Integer], 
 //                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var x=pt[0], y=pt[1],
-        w=rect[0], h=rect[1]; 
+    var w = rect[0], h = rect[1],
+        x = pt[0]-Math.floor(w/2),
+        y = pt[1]-Math.floor(h/2);
     return this.path('M'+x+' '+y+
                     ' L'+(x+w)+' '+y+
                     ' L'+(x+w)+' '+(y+h)+
                     ' L'+x+' '+(y+h)+
                     ' L'+x+' '+y+
-                    ' Z');
+                    ' Z', pt);
 }
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
 Builder.prototype.circle = function(pt, radius) {
-    var x=pt[0], y=pt[1];
+    this.xdata.reg = pt;
     var b = this;
     this.paint(function(ctx) {
         var path = this.xdata.path;
@@ -115,15 +114,10 @@ Builder.prototype.circle = function(pt, radius) {
                  b._curStroke(),
                  b._curFill(),
                  function() {
-                    ctx.arc(pt[0], pt[1], radius, 0, Math.PI*2, true);
+                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                  });
     });
     return this;
-    /*return this.path('M'+x+' '+y+
-                    ' L'+(x+w)+' '+y+
-                    ' L'+(x+w)+' '+(y+h)+
-                    ' L'+x+' '+(y+h)+
-                    ' L'+x+' '+y+' Z');*/
 }
 // > Builder.tween % (type: String, (Tween.T_*)
 //                    band: Array[2,Float], 
@@ -146,10 +140,9 @@ Builder.prototype.rotate = function(band, angles, easing) {
     return this.tween(Tween.T_ROTATE, band, angles, easing);
 }
 // > Builder.rotateP % (band: Array[2,Float], 
-//                      path: String,
 //                      [easing: String]) => Builder
-Builder.prototype.rotateP = function(band, angles, easing) {
-    return this.tween(Tween.T_ROT_TO_PATH, band, angles, easing);
+Builder.prototype.rotateP = function(band, easing) {
+    return this.tween(Tween.T_ROT_TO_PATH, band, null, easing);
 }
 // > Builder.scale % (band: Array[2,Float], 
 //                    values: Array[2,Array[2, Float]],

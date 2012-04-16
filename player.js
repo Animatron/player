@@ -1056,6 +1056,14 @@ _Element.prototype.findWrapBand = function() {
     }
     return (result[0] !== Number.MAX_VALUE) ? result : null;
 }
+_Element.prototype._stateStr = function() {
+    var state = this.state;
+    return "x: " + s.x + " y: " + s.y + '\n' +
+           "rx: " + s.rx + " ry: " + s.ry + '\n' +
+           "sx: " + s.sx + " sy: " + s.sy + '\n' +
+           "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
+           "t: " + s.t + " rt: " + s.rt + '\n';
+}
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
 // state of the element
@@ -1085,10 +1093,10 @@ _Element.createXData = function() {
 }
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
+    _t.translate(s.rx, s.ry);
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);    
-    _t.scale(s.sx, s.sy);
-    _t.translate(-s.rx, -s.ry);   
+    _t.scale(s.sx, s.sy);   
     return _t;
 }
 
@@ -1332,9 +1340,9 @@ Render.addXDataRender = function(elm) {
 
     // modifiers
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
-    if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
-
+    if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
+    
     // painters
     if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
     if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
@@ -1366,22 +1374,21 @@ Render.addTweenModifier = function(elm, tween) {
     var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
                                                  tween.band)
                            : Bands.adaptModifierByTime(
-                                   TimeEasings[easing.type](easing.data),
+                                   EasingImpl[easing.type](easing.data),
                                    Tweens[tween.type],
                                    tween.band);
     elm.addModifier(modifier, tween.data);
 }
 
 Render.p_drawReg = function(ctx, reg) {
-    var reg = reg || this.xdata.reg; 
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
-    ctx.moveTo(reg[0], reg[1]-10);
-    ctx.lineTo(reg[0], reg[1]);
-    ctx.moveTo(reg[0]+3, reg[1]);
-    //ctx.moveTo(reg[0], reg[1] + 5);
-    ctx.arc(reg[0],reg[1],3,0,Math.PI*2,true);
+    ctx.moveTo(0, -10);
+    ctx.lineTo(0, 0);
+    ctx.moveTo(3, 0);
+    //ctx.moveTo(0, 5);
+    ctx.arc(0,0,3,0,Math.PI*2,true);
     ctx.closePath();
     ctx.stroke();
 }
@@ -1401,29 +1408,26 @@ Render.p_drawText = function(ctx, text) {
     text.apply(ctx, this.xdata.reg);
 }
 
-Render.p_drawMPath = function(ctx) {
-    if (this.state._mpath) {
-        var tPath = this.state._mpath;
-        tPath.setStroke('#600', 2.0);
+Render.p_drawMPath = function(ctx, path) {
+    var mPath = path || this.state._mpath;
+    if (mPath) {
+        ctx.save();
+        ctx.translate(this.state.rx, this.state.ry);
+        mPath.setStroke('#600', 2.0);
         ctx.beginPath();
-        tPath.apply(ctx);
+        mPath.apply(ctx);
         ctx.closePath();
         ctx.stroke();
-    };
+        ctx.restore()
+    }
 }
 
 Render.p_drawName = function(ctx, name) {
     var name = name || this.name;
     if (name) {
-        var state = this.state;
-        // FIXME: calculate origin automatically
-        var pt = state.reg ?
-                 [ state.reg[0] + state.x,
-                   state.reg[1] + state.y ]
-                 : [ state.x, state.y ];
         ctx.fillStyle = '#666';
         ctx.font = '12px sans-serif';
-        ctx.fillText(name, pt[0], pt[1] + 10);
+        ctx.fillText(name, 0, 10);
     };
 }
 
@@ -1552,63 +1556,83 @@ Tweens[Tween.T_SCALE] =
 Tweens[Tween.T_ROT_TO_PATH] = 
     function(t, data) {
         var path = this._mpath;
-        this.angle = path.tangentAt(t); //Math.atan2(this.y, this.x);
+        this.angle = path.tangentAt(t);
     };
 
-Easing.T_DEF = 'DEF';
-Easing.T_IN = 'IN';
-Easing.T_OUT = 'OUT';
-Easing.T_INOUT = 'INOUT';
-Easing.T_PATH = 'PATH';
-Easing.T_FUNC = 'FUNC';
+// function-based easings
 
-// FIXME: change to sinus/cosinus
-Easing.__SEGS = {};
-Easing.__SEGS[Easing.T_DEF] = new CSeg([.25, .1, .25, 1, 1, 1]);
-Easing.__SEGS[Easing.T_IN] = new CSeg([.42, 0, 1, 1, 1, 1]);
-Easing.__SEGS[Easing.T_OUT] = new CSeg([0, 0, .58, 1, 1, 1]);
-Easing.__SEGS[Easing.T_INOUT] = new CSeg([.42, 0, .58, 1, 1, 1]);
+Easing.T_PATH = 'PATH'; // Path
+Easing.T_FUNC = 'FUNC'; // Function
+//Easing.T_CINOUT = 'CINOUT'; // Cubic InOut
 
-var TimeEasings = {};
-TimeEasings[Easing.T_DEF] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_DEF];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_IN] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_IN];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_OUT] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_OUT];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_INOUT] = 
-    function() {
-        var seg = Easing.__SEGS[Easing.T_INOUT];
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        }
-    };
-TimeEasings[Easing.T_PATH] =
+var EasingImpl = {};
+
+EasingImpl[Easing.T_PATH] = 
     function(path) {
         //var path = Path.parse(str);
         return function(t) {
             return path.pointAt(t)[1];
         }
     };
-TimeEasings[Easing.T_FUNC] =
+EasingImpl[Easing.T_FUNC] =
     function(f) {
         return f;
     };
+/*EasingImpl[Easing.T_CINOUT] = 
+    function() {
+        return function(t) {
+            var t =  2 * t;
+            if (t < 1) {
+                return -1/2 * (Math.sqrt(1 - t*t) - 1);
+            } else {
+                return 1/2 * (Math.sqrt(1 - (t-2)*(t-2)) + 1);
+            }
+        }
+    };*/
+
+// segment-based easings
+
+Easing.__SEGS = {}; // segments cache for easings
+
+function __registerSegEasing(alias, points) {
+    Easing['T_'+alias] = alias;
+    var seg = new CSeg(points);
+    Easing.__SEGS[alias] = seg;
+    EasingImpl[alias] = function() {
+        return function(t) {
+            return seg.atT([0, 0], t)[1];
+        }
+    }
+}
+
+__registerSegEasing('DEF',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
+__registerSegEasing('IN',     [0.420, 0.000, 1.000, 1.000, 1.000, 1.000]); // In
+__registerSegEasing('OUT',    [0.000, 0.000, 0.580, 1.000, 1.000, 1.000]); // Out
+__registerSegEasing('INOUT',  [0.420, 0.000, 0.580, 1.000, 1.000, 1.000]); // InOut
+__registerSegEasing('SIN',    [0.470, 0.000, 0.745, 0.715, 1.000, 1.000]); // Sine In
+__registerSegEasing('SOUT',   [0.390, 0.575, 0.565, 1.000, 1.000, 1.000]); // Sine Out
+__registerSegEasing('SINOUT', [0.445, 0.050, 0.550, 0.950, 1.000, 1.000]); // Sine InOut
+__registerSegEasing('QIN',    [0.550, 0.085, 0.680, 0.530, 1.000, 1.000]); // Quad In
+__registerSegEasing('QOUT',   [0.250, 0.460, 0.450, 0.940, 1.000, 1.000]); // Quad Out
+__registerSegEasing('QINOUT', [0.455, 0.030, 0.515, 0.955, 1.000, 1.000]); // Quad InOut
+__registerSegEasing('CIN',    [0.550, 0.055, 0.675, 0.190, 1.000, 1.000]); // Cubic In
+__registerSegEasing('COUT',   [0.215, 0.610, 0.355, 1.000, 1.000, 1.000]); // Cubic Out
+__registerSegEasing('CINOUT', [0.645, 0.045, 0.355, 1.000, 1.000, 1.000]); // Cubic InOut
+__registerSegEasing('QTIN',   [0.895, 0.030, 0.685, 0.220, 1.000, 1.000]); // Quart In
+__registerSegEasing('QTOUT',  [0.165, 0.840, 0.440, 1.000, 1.000, 1.000]); // Quart Out
+__registerSegEasing('QTINOUT',[0.770, 0.000, 0.175, 1.000, 1.000, 1.000]); // Quart InOut
+__registerSegEasing('QIIN',   [0.755, 0.050, 0.855, 0.060, 1.000, 1.000]); // Quint In
+__registerSegEasing('QIOUT',  [0.230, 1.000, 0.320, 1.000, 1.000, 1.000]); // Quart Out
+__registerSegEasing('QIINOUT',[0.860, 0.000, 0.070, 1.000, 1.000, 1.000]); // Quart InOut
+__registerSegEasing('EIN',    [0.950, 0.050, 0.795, 0.035, 1.000, 1.000]); // Expo In
+__registerSegEasing('EOUT',   [0.190, 1.000, 0.220, 1.000, 1.000, 1.000]); // Expo Out
+__registerSegEasing('EINOUT', [1.000, 0.000, 0.000, 1.000, 1.000, 1.000]); // Expo InOut
+__registerSegEasing('CRIN',   [0.600, 0.040, 0.980, 0.335, 1.000, 1.000]); // Circ In
+__registerSegEasing('CROUT',  [0.075, 0.820, 0.165, 1.000, 1.000, 1.000]); // Circ Out
+__registerSegEasing('CRINOUT',[0.785, 0.135, 0.150, 0.860, 1.000, 1.000]); // Circ InOut
+__registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // Back In
+__registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
+__registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
 // === EVENTS ==================================================================
 // =============================================================================
@@ -1870,16 +1894,43 @@ Path.prototype.bounds = function() {
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
         var pts = segment.pts;
-        for (var pi = 0; pi < pts.length; pi+=2) {
+        for (var pi = 2; pi < pts.length; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 1; pi < pts.length; pi+=2) {
+        for (var pi = 3; pi < pts.length; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
     });
     return [ minX, minY, maxX, maxY ];
+}
+Path.prototype.vpoints = function(func) {
+    this.visit(function(segment) {
+        var pts = segment.pts;
+        for (var pi = 0; pi < pts.length; pi+=2) {
+            var res = func(pts[pi], pts[pi+1]);
+            if (res) {
+                pts[pi] = res[0];
+                pts[pi+1] = res[1];
+            }
+        }
+    });
+}
+// finds center point, moves path there,
+// and returns found point. if some point
+// passed as parameter, shifts path to that point
+Path.prototype.normalize = function(pt) {
+    var pt = pt;
+    if (!pt) {
+        var bounds = this.bounds();
+        pt = [ Math.floor((bounds[2]-bounds[0])/2), 
+               Math.floor((bounds[3]-bounds[1])/2) ];
+    };
+    this.vpoints(function(x, y) {
+        return [ x - pt[0], y - pt[1] ];
+    });
+    return pt;
 }
 Path.prototype.inBounds = function(point) {
     var _b = this.bounds();
