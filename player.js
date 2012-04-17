@@ -652,6 +652,7 @@ Player.createState = function(player) {
 function Scene() {
     this.tree = [],
     this.hash = {};
+    this.name = '';
     this.duration = 0;
     this._initHandlers(); // TODO: make automatic
 }
