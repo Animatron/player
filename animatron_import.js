@@ -71,9 +71,10 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
         var _layers = clip.layers;
         // in animatron, layers are in reverse order
         for (var li = _layers.length; li--;) {
-            target.add(_layers[i], source, target.xdata.gband);
+            target.add(this.importElement(_layers[li], source, target.xdata.gband));
         }
     }
+    return target;
 }
 AnimatronImporter.prototype.findElement = function(id, source) {
     for (var i = 0; i < source.length; i++) {
@@ -127,7 +128,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
                       : x.lband;
     x.reg = clip.reg || [0, 0];
     x.tweens = clip.tweens ? Convert.tweens(clip.tweens) : {};
-    x.mode = Convert.mode(_src['on-end']);
+    x.mode = Convert.mode(clip['on-end']);
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
