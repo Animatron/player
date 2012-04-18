@@ -1108,7 +1108,7 @@ _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
     _t.translate(s.lx, s.ly);
     _t.scale(s.sx, s.sy);
-    _t.translate(s.x, s.y);        
+    _t.translate(s.x, s.y);
     _t.rotate(s.angle);        
     _t.translate(-s.rx, -s.ry);        
     return _t;
@@ -1440,7 +1440,6 @@ Render.h_drawMPath = function(ctx, path) {
         ctx.save();
         var s = this.state;
         ctx.translate(s.lx, s.ly);
-        ctx.scale(s.sx, s.sy);
         mPath.setStroke('#600', 2.0);
         ctx.beginPath();
         mPath.apply(ctx);
