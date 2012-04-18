@@ -1063,6 +1063,7 @@ _Element.prototype.findWrapBand = function() {
 _Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
+           "lx: " + s.lx + " ly: " + s.ly + '\n' +    
            "rx: " + s.rx + " ry: " + s.ry + '\n' +
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
@@ -1072,7 +1073,8 @@ _Element.prototype._stateStr = function() {
 
 // state of the element
 _Element.createState = function() {
-    return { 'x': 0, 'y': 0,   // position
+    return { 'x': 0, 'y': 0,   // dynamic position
+             'lx': 0, 'ly': 0, // static position
              'rx': 0, 'ry': 0, // registration point shift
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y 
@@ -1083,7 +1085,8 @@ _Element.createState = function() {
 };
 // geometric data of the element
 _Element.createXData = function() {
-    return { 'reg': null,      // registration point
+    return { 'pos': null,      // position in parent clip space
+             'reg': null,      // registration point
              'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
@@ -1091,16 +1094,17 @@ _Element.createXData = function() {
              'mode': _Element.M_PLAYONCE,         // playing mode
              'lband': [0, _Element.DEFAULT_LEN], // local band
              'gband': [0, _Element.DEFAULT_LEN], // global bane
-             'dimen': null,    // dimensions for static (cached) elements
-             'canvas': null,   // own canvas for static (cached) elements             
+             'canvas': null,   // own canvas for static (cached) elements
+             'dimen': null,    // dimensions for static (cached) elements             
              '_mpath': null };
 }
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
-    _t.translate(s.rx, s.ry);
-    _t.translate(s.x, s.y);
-    _t.rotate(s.angle);    
-    _t.scale(s.sx, s.sy);   
+    _t.translate(s.lx, s.ly);
+    _t.scale(s.sx, s.sy);
+    _t.translate(s.x, s.y);        
+    _t.rotate(s.angle);        
+    _t.translate(-s.rx, -s.ry);        
     return _t;
 }
 _Element.imgFromUrl = function(url) {
@@ -1348,6 +1352,7 @@ Render.addXDataRender = function(elm) {
     // modifiers
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
+    if (xdata.pos) elm.addModifier(Render.m_applyPos, xdata.pos);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     
     // painters
@@ -1388,6 +1393,8 @@ Render.addTweenModifier = function(elm, tween) {
 }
 
 Render.p_drawReg = function(ctx, reg) {
+    ctx.save();
+    ctx.translate(reg[0], reg[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
@@ -1398,6 +1405,7 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.arc(0,0,3,0,Math.PI*2,true);
     ctx.closePath();
     ctx.stroke();
+    ctx.restore();
 }
 
 Render.p_drawPath = function(ctx, path) {
@@ -1419,7 +1427,7 @@ Render.p_drawMPath = function(ctx, path) {
     var mPath = path || this.state._mpath;
     if (mPath) {
         ctx.save();
-        ctx.translate(this.state.rx, this.state.ry);
+        //ctx.translate(-this.state.rx, -this.state.ry);
         mPath.setStroke('#600', 2.0);
         ctx.beginPath();
         mPath.apply(ctx);
@@ -1448,6 +1456,12 @@ Render.m_checkBand = function(time, band) {
 Render.m_saveReg = function(time, reg) {
     this.rx = reg[0];
     this.ry = reg[1];
+    return true;
+}
+
+Render.m_applyPos = function(time, pos) {
+    this.lx = pos[0];
+    this.ly = pos[1];
     return true;
 }
 
@@ -1901,11 +1915,11 @@ Path.prototype.bounds = function() {
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
         var pts = segment.pts;
-        for (var pi = 2; pi < pts.length; pi+=2) {
+        for (var pi = 0; pi < pts.length; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 3; pi < pts.length; pi+=2) {
+        for (var pi = 1; pi < pts.length; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
@@ -1924,20 +1938,30 @@ Path.prototype.vpoints = function(func) {
         }
     });
 }
-// finds center point, moves path there,
-// and returns found point. if some point
-// passed as parameter, shifts path to that point
-Path.prototype.normalize = function(pt) {
-    var pt = pt;
-    if (!pt) {
-        var bounds = this.bounds();
-        pt = [ Math.floor((bounds[2]-bounds[0])/2), 
-               Math.floor((bounds[3]-bounds[1])/2) ];
-    };
+Path.prototype.shift = function(pt) {
     this.vpoints(function(x, y) {
-        return [ x - pt[0], y - pt[1] ];
+        return [ x + pt[0],
+                 y + pt[1] ];
     });
-    return pt;
+};
+// moves path to be positioned at 0,0 and
+// returns subtracted top-left point
+// and a center point
+Path.prototype.normalize = function() {
+    var bounds = this.bounds();
+    var w = (bounds[2]-bounds[0]),
+        h = (bounds[3]-bounds[1]);
+    var min_x = bounds[0],
+        min_y = bounds[1];
+    var pt = [ Math.floor(w/2), 
+               Math.floor(h/2) ];
+    if ((min_x > 0) || (min_y > 0)) {
+        this.vpoints(function(x, y) {
+            return [ x - min_x,
+                     y - min_y ];  
+        });
+    }
+    return [ [ min_x, min_y ], pt ];
 }
 Path.prototype.inBounds = function(point) {
     var _b = this.bounds();

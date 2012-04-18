@@ -59,11 +59,13 @@ Builder.prototype.stroke = function(color, width) {
     return this;
 }
 // > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
-Builder.prototype.path = function(pathStr, pt) {
+Builder.prototype.path = function(pathStr) {
     this.xdata.path = Path.parse(pathStr,
                                  this.xdata.path);
     var path = this.xdata.path;
-    this.xdata.reg = path.normalize(pt);
+    var norm = path.normalize();
+    this.xdata.pos = norm[0];
+    this.xdata.reg = norm[1];
     if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
     if (!path.fill) path.fill = Builder.DEFAULT_FILL;
     return this;
@@ -94,19 +96,19 @@ Builder.prototype.image = function(src) {
 //                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
     var w = rect[0], h = rect[1],
-        x = pt[0]-Math.floor(w/2),
-        y = pt[1]-Math.floor(h/2);
+        x = pt[0], y = pt[1];
     return this.path('M'+x+' '+y+
                     ' L'+(x+w)+' '+y+
                     ' L'+(x+w)+' '+(y+h)+
                     ' L'+x+' '+(y+h)+
                     ' L'+x+' '+y+
-                    ' Z', pt);
+                    ' Z');
 }
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
 Builder.prototype.circle = function(pt, radius) {
-    this.xdata.reg = pt;
+    this.xdata.pos = [ pt[0] - radius, pt[1] - radius ];
+    this.xdata.reg = [ radius, radius ];
     var b = this;
     this.paint(function(ctx) {
         var path = this.xdata.path;
@@ -114,7 +116,7 @@ Builder.prototype.circle = function(pt, radius) {
                  b._curStroke(),
                  b._curFill(),
                  function() {
-                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
+                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
                  });
     });
     return this;
