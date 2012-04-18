@@ -815,7 +815,7 @@ _Element.prototype.draw = function(ctx) {
     if (!this.sprite) {
         this.drawTo(ctx);
     } else {
-        ctx.drawImage(this.xdata.canvas, this.state.x, this.state.y);
+        ctx.drawImage(this.xdata.canvas, 0, 0);
     }
 }
 // > _Element.transform % (ctx: Context)
@@ -825,6 +825,12 @@ _Element.prototype.transform = function(ctx) {
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
 };
+_Element.prototype.posAtStart = function(ctx) {
+    var s = this.state;
+    ctx.translate(s.lx, s.ly);
+    ctx.scale(s.sx, s.sy);
+    ctx.rotate(s.angle);
+}
 _Element.prototype._drawToCache = function() {
     var _canvas = newCanvas(this.state.dimen);
     var _ctx = _canvas.getContext('2d');
@@ -1189,6 +1195,7 @@ DU.applyFill = function(ctx, fill) {
 
 // FIXME: move to `Path`?
 DU.qDraw = function(ctx, stroke, fill, func) {
+    ctx.save();
     ctx.beginPath();
     DU.applyStroke(ctx, stroke);
     DU.applyFill(ctx, fill);
@@ -1197,6 +1204,7 @@ DU.qDraw = function(ctx, stroke, fill, func) {
 
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
 }
 
 var G = {}; // geometry
@@ -1365,7 +1373,8 @@ Render.addXDataRender = function(elm) {
 Render.addDebugRender = function(elm) {
     if (elm.xdata.reg) elm.addPainter(Render.p_drawReg, elm.xdata.reg);
     if (elm.name) elm.addPainter(Render.p_drawName, elm.name);
-    elm.on('draw', Render.p_drawMPath);
+    //elm.addPainter(Render.p_drawMPathIfSet);
+    elm.on('draw', Render.h_drawMPath);
 }
 
 Render.addTweensModifiers = function(elm, tweens) {
@@ -1394,7 +1403,7 @@ Render.addTweenModifier = function(elm, tween) {
 
 Render.p_drawReg = function(ctx, reg) {
     ctx.save();
-    ctx.translate(reg[0], reg[1]);
+    ctx.translate(reg[0],reg[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
@@ -1415,7 +1424,9 @@ Render.p_drawPath = function(ctx, path) {
 
 Render.p_drawImage = function(ctx, image) {
     var image = image || this.xdata.image;
+    ctx.save();
     if (image.isReady) ctx.drawImage(image, 0, 0);
+    ctx.restore();
 }
 
 Render.p_drawText = function(ctx, text) {
@@ -1423,11 +1434,13 @@ Render.p_drawText = function(ctx, text) {
     text.apply(ctx, this.xdata.reg);
 }
 
-Render.p_drawMPath = function(ctx, path) {
+Render.h_drawMPath = function(ctx, path) {
     var mPath = path || this.state._mpath;
     if (mPath) {
         ctx.save();
-        //ctx.translate(-this.state.rx, -this.state.ry);
+        var s = this.state;
+        ctx.translate(s.lx, s.ly);
+        ctx.scale(s.sx, s.sy);
         mPath.setStroke('#600', 2.0);
         ctx.beginPath();
         mPath.apply(ctx);
@@ -1440,9 +1453,11 @@ Render.p_drawMPath = function(ctx, path) {
 Render.p_drawName = function(ctx, name) {
     var name = name || this.name;
     if (name) {
+        ctx.save();
         ctx.fillStyle = '#666';
         ctx.font = '12px sans-serif';
         ctx.fillText(name, 0, 10);
+        ctx.restore();
     };
 }
 
@@ -2378,6 +2393,7 @@ function Text(lines, font,
     this._bnds = null;
 }
 Text.prototype.apply = function(ctx, point) {
+    ctx.save();
     var point = point || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]),
@@ -2392,6 +2408,7 @@ Text.prototype.apply = function(ctx, point) {
         DU.applyStroke(ctx, this.stroke);
         ctx.fillText(this.lines, apt[0], apt[1]);
     }
+    ctx.restore();
 }
 Text.prototype.dimen = function() {
     if (this._dimen) return this._dimen;
