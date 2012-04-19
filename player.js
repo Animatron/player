@@ -808,7 +808,7 @@ _Element.prototype.drawTo = function(ctx) {
     var seq = this._drawSeq;
     for (var si = 0; si < seq.length; si++) {
         // TODO: pass xdata instead of element
-        seq[si][0].call(this/*.xdata*/, ctx, seq[si][1]);
+        seq[si][0].call(this.xdata, ctx, seq[si][1]);
     }
 }
 // > _Element.draw % (ctx: Context)
@@ -1417,20 +1417,31 @@ Render.p_drawReg = function(ctx, reg) {
 }
 
 Render.p_drawPath = function(ctx, path) {
-    var path = path || this.xdata.path;
+    var path = path || this.path;
     path.apply(ctx);
 }
 
 Render.p_drawImage = function(ctx, image) {
-    var image = image || this.xdata.image;
+    var image = image || this.image;
     ctx.save();
     if (image.isReady) ctx.drawImage(image, 0, 0);
     ctx.restore();
 }
 
 Render.p_drawText = function(ctx, text) {
-    var text = text || this.xdata.text;
-    text.apply(ctx, this.xdata.reg);
+    var text = text || this.text;
+    text.apply(ctx, this.reg);
+}
+
+Render.p_drawName = function(ctx, name) {
+    var name = name || this.name;
+    if (name) {
+        ctx.save();
+        ctx.fillStyle = '#666';
+        ctx.font = '12px sans-serif';
+        ctx.fillText(name, 0, 10);
+        ctx.restore();
+    };
 }
 
 Render.h_drawMPath = function(ctx, path) {
@@ -1446,17 +1457,6 @@ Render.h_drawMPath = function(ctx, path) {
         ctx.stroke();
         ctx.restore()
     }
-}
-
-Render.p_drawName = function(ctx, name) {
-    var name = name || this.name;
-    if (name) {
-        ctx.save();
-        ctx.fillStyle = '#666';
-        ctx.font = '12px sans-serif';
-        ctx.fillText(name, 0, 10);
-        ctx.restore();
-    };
 }
 
 Render.m_checkBand = function(time, band) {
