@@ -61,13 +61,16 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     var target = new _Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?, 
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
-    if (clip.eid) {
-        // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
-        this._collectStaticData(target, 
-                                this.findElement(clip.eid, source));
-    }
     this._collectDynamicData(target, clip, in_band);
-    if (clip.layers != null) {
+    if (clip.eid) {
+        var inner = this.findElement(clip.eid, source);
+        if (!inner.eid && !inner.layers) {
+            // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
+            this._collectStaticData(target, inner);
+        } else {
+            target.add(this.importElement(inner, source, target.xdata.gband));
+        }
+    } else if (clip.layers) {
         var _layers = clip.layers;
         // in animatron, layers are in reverse order
         for (var li = _layers.length; li--;) {
@@ -81,43 +84,6 @@ AnimatronImporter.prototype.findElement = function(id, source) {
         if (source[i].id === id) return source[i];
     }
 }
-
-// REM ---->
-/*AnimatronImporter.prototype.importClips = function(scene_id, source) {
-    var scene = new Scene();
-    scene.add(this.importElement(
-                   source, this.findElement(source, scene_id)));
-    return scene;
-};
-AnimatronImporter.prototype.importElement = function(source, _src, 
-                                                     layer, in_band) {
-
-    var has_layers = (_src.layers != null),                                                   
-        _trg = has_layers ? (new Clip()) : (new _Element());
-    if (layer) { // && layer.dynamic) {
-        this._collectDynamicData(_trg, layer, in_band);
-    }
-    if (has_layers) {
-        _trg.xdata.mode = Convert.mode(_src['on-end']);
-        var _layers = _src.layers;
-        // in animatron, layers are in reverse order
-        for (var li = (_layers.length - 1); li--) {
-            var _clyr = _layers[li];
-            var _csrc = this.findElement(source, _clyr.eid);
-            _trg.add(this.importElement(source, _csrc, _clyr, 
-                                        layer ? _trg.xdata.gband
-                                              : null));
-        };
-    } else {
-        this._collectStaticData(_trg, _src);
-    }
-    if (!layer) {
-        _trg.makeBandFit(); // if there is no parent layer, then it is a scene 
-                            // (in Animatron terms) with all elements added
-    }
-    return _trg;
-}; */
-// REM <----
 
 // collect required data from source layer
 AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {

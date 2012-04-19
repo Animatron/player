@@ -154,7 +154,10 @@ var demo_project =
                 "band": [
                   0.0,
                   10.0
-                ]
+                ],
+                "easing": {
+                  "name": "Ease In Out"
+                }
               },
               {
                 "type": "Scale",
