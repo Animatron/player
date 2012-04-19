@@ -158,6 +158,12 @@ examples.push([ 0 /*version*/, [
           .trans([0, 1.5], [[0, 0], [60, 110]])
           .trans([1.5, 3], [[60, 110], [150, 20]]); */
 
+/* return b().image([120, 120],
+                 'http://madeira.hccanet.org'+
+                 '/project2/michels_p2/'+
+                 'website%20pics/bender.jpg')
+          .rotate([0, 3], [0, Math.PI / 8]); */
+
 var uexamples = [];
 
 function sandbox() {

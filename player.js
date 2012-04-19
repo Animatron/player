@@ -138,12 +138,13 @@ function newCanvas(dimen) {
     return _canvas;
 }
 
-function prepareImage(url) {
+function prepareImage(url, callback) {
     var _img = new Image();
     _img.onload = function() {
         this.isReady = true; // FIXME: use 'image.complete' and 
                              // '...' (network exist) combination,
                              // 'complete' fails on Firefox
+        if (callback) callback(this);
     };
     _img.src = url;
     return _img;
@@ -1106,7 +1107,6 @@ _Element.createXData = function() {
 }
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
-    _t.translate(0, 0);
     _t.translate(s.lx, s.ly);
     _t.translate(s.x, s.y); 
     _t.rotate(s.angle);

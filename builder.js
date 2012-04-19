@@ -87,9 +87,22 @@ Builder.prototype.modify = function(func, data) {
     this.value.addModifier(func, data);
     return this;
 }
-// > Builder.image % (src: String) => Builder
-Builder.prototype.image = function(src) {
-    this.xdata.image = src;
+// > Builder.image % (pt: Array[2,Integer],
+//                    src: String) => Builder
+Builder.prototype.image = function(pt, src) {
+    this.xdata.pos = pt;
+    if (src) {
+        var x = this.xdata,
+            b = this;
+        x.image = 
+           _Element.imgFromUrl(src, function(img) {
+                b.modify(function(t) {
+                    this.rx = Math.floor(img.width/2);
+                    this.ry = Math.floor(img.height/2);
+                    return true;
+                });
+           });
+    }
     return this;
 }
 // > Builder.rect % (pt: Array[2,Integer], 
@@ -171,11 +184,6 @@ Builder.prototype.transP = function(band, path, easing) {
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(Tween.T_ALPHA, band, values, easing);
-}
-// > Builder.image % (url: String) => Builder
-Builder.prototype.image = function(url) {
-    this.xdata.image = url ? _Element.imgFromUrl(url) : null;
-    return this;
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {
