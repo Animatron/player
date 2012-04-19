@@ -136,6 +136,34 @@ examples.push([ 0 /*version*/, [
                  'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
                  Easing.T_INOUT); */
 
+/* return b().rect([0, 0], [40, 40])
+          .fill("blue")
+          .stroke("green", 4)
+          .alpha([0, 2], [0, 1])
+          .alpha([8, 10], [1, 0])
+          .scale([0, 5], [[1, 1], [2, 2]])
+          .scale([5, 10], [[2, 2], [1, 1]])    
+          .rotateP([0, 10], Easing.T_INOUT)
+          .transP([0, 10],
+                 'M0.0 100.0 '+
+                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
+                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
+                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
+                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
+                 Easing.T_INOUT); */
+
+/* return b().rect([100, 100], [50, 50])
+          .rotate([0, 1.5], [0, Math.PI * 2], 'COUT')
+          .rotate([1.5, 3], [0, Math.PI * 2], 'CIN')    
+          .trans([0, 1.5], [[0, 0], [60, 110]])
+          .trans([1.5, 3], [[60, 110], [150, 20]]); */
+
+/* return b().image([120, 120],
+                 'http://madeira.hccanet.org'+
+                 '/project2/michels_p2/'+
+                 'website%20pics/bender.jpg')
+          .rotate([0, 3], [0, Math.PI / 8]); */
+
 var uexamples = [];
 
 function sandbox() {
