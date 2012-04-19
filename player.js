@@ -112,6 +112,44 @@ function ajax(url, callback/*, errback*/) {
     req.send(null); 
 }
 
+function canvasOpts(canvas, opts) {
+    if (!opts.push) { // object, not array // FIXME: test with typeof
+        var _w = opts.width ? Math.floor(opts.width) : 0;
+        var _h = opts.height ? Math.floor(opts.height) : 0;
+        canvas.width = _w;
+        canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
+        if (opts.bgcolor) { 
+            canvas.style.backgroundColor = opts.bgcolor; };
+    } else { // array
+        var _w = Math.floor(opts[0]);
+        var _h = Math.floor(opts[1]);
+        canvas.width = _w;
+        canvas.height = _h;
+        canvas.setAttribute('width', _w);
+        canvas.setAttribute('height', _h);
+    }
+}
+
+function newCanvas(dimen) {
+    var _canvas = document.createElement('canvas');
+    canvasOpts(_canvas, [ dimen[0], dimen[1] ]);
+    return _canvas;
+}
+
+function prepareImage(url, callback) {
+    var _img = new Image();
+    _img.onload = function() {
+        this.isReady = true; // FIXME: use 'image.complete' and 
+                             // '...' (network exist) combination,
+                             // 'complete' fails on Firefox
+        if (callback) callback(this);
+    };
+    _img.src = url;
+    return _img;
+}
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -202,7 +240,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 // TODO: add load/play/pause/stop events
 
-Player.prototype.load= function(object, importer, callback) {
+Player.prototype.load = function(object, importer, callback) {
     var player = this;
 
     player._checkMode();
@@ -412,7 +450,7 @@ Player.prototype._configureCanvas = function(opts) {
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    Player.configureCanvas(this.canvas, opts);
+    canvasOpts(this.canvas, opts);
     if (this.controls) this.controls.update(this.canvas);
     if (this.info) this.info.update(this.canvas);
     return this;
@@ -607,40 +645,6 @@ Player.createState = function(player) {
         //'__drawInterval': null
     };
 }
-Player.configureCanvas = function(canvas, opts) {
-    if (!opts.push) { // object, not array // FIXME: test with typeof
-        var _w = opts.width ? Math.floor(opts.width) : 0;
-        var _h = opts.height ? Math.floor(opts.height) : 0;
-        canvas.width = _w;
-        canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
-        if (opts.bgcolor) { 
-            canvas.style.backgroundColor = opts.bgcolor; };
-    } else { // array
-        var _w = Math.floor(opts[0]);
-        var _h = Math.floor(opts[1]);
-        canvas.width = _w;
-        canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
-    }
-}
-Player.newCanvas = function(dimen) {
-    var _canvas = document.createElement('canvas');
-    Player.configureCanvas(_canvas, [ dimen[0], dimen[1] ]);
-    return _canvas;
-}
-Player.prepareImage = function(url) {
-    var _img = new Image();
-    _img.onload = function() {
-        this.isReady = true; // FIXME: use 'image.complete' and 
-                             // '...' (network exist) combination,
-                             // 'complete' fails on Firefox
-    };
-    _img.src = url;
-    return _img;
-}
 
 // === SCENE ===================================================================
 // =============================================================================
@@ -649,6 +653,7 @@ Player.prepareImage = function(url) {
 function Scene() {
     this.tree = [],
     this.hash = {};
+    this.name = '';
     this.duration = 0;
     this._initHandlers(); // TODO: make automatic
 }
@@ -811,7 +816,7 @@ _Element.prototype.draw = function(ctx) {
     if (!this.sprite) {
         this.drawTo(ctx);
     } else {
-        ctx.drawImage(this.xdata.canvas, this.state.x, this.state.y);
+        ctx.drawImage(this.xdata.canvas, 0, 0);
     }
 }
 // > _Element.transform % (ctx: Context)
@@ -821,8 +826,14 @@ _Element.prototype.transform = function(ctx) {
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
 };
+_Element.prototype.posAtStart = function(ctx) {
+    var s = this.state;
+    ctx.translate(s.lx, s.ly);
+    ctx.scale(s.sx, s.sy);
+    ctx.rotate(s.angle);
+}
 _Element.prototype._drawToCache = function() {
-    var _canvas = Player.newCanvas(this.state.dimen);
+    var _canvas = newCanvas(this.state.dimen);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
@@ -1059,6 +1070,7 @@ _Element.prototype.findWrapBand = function() {
 _Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
+           "lx: " + s.lx + " ly: " + s.ly + '\n' +    
            "rx: " + s.rx + " ry: " + s.ry + '\n' +
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
@@ -1068,7 +1080,8 @@ _Element.prototype._stateStr = function() {
 
 // state of the element
 _Element.createState = function() {
-    return { 'x': 0, 'y': 0,   // position
+    return { 'x': 0, 'y': 0,   // dynamic position
+             'lx': 0, 'ly': 0, // static position
              'rx': 0, 'ry': 0, // registration point shift
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y 
@@ -1079,7 +1092,8 @@ _Element.createState = function() {
 };
 // geometric data of the element
 _Element.createXData = function() {
-    return { 'reg': null,      // registration point
+    return { 'pos': null,      // position in parent clip space
+             'reg': null,      // registration point
              'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
@@ -1087,18 +1101,20 @@ _Element.createXData = function() {
              'mode': _Element.M_PLAYONCE,         // playing mode
              'lband': [0, _Element.DEFAULT_LEN], // local band
              'gband': [0, _Element.DEFAULT_LEN], // global bane
-             'dimen': null,    // dimensions for static (cached) elements
-             'canvas': null,   // own canvas for static (cached) elements             
+             'canvas': null,   // own canvas for static (cached) elements
+             'dimen': null,    // dimensions for static (cached) elements             
              '_mpath': null };
 }
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
-    _t.translate(s.rx, s.ry);
-    _t.translate(s.x, s.y);
-    _t.rotate(s.angle);    
-    _t.scale(s.sx, s.sy);   
+    _t.translate(s.lx, s.ly);
+    _t.translate(s.x, s.y); 
+    _t.rotate(s.angle);
+    _t.scale(s.sx, s.sy);
+    _t.translate(-s.rx, -s.ry);  
     return _t;
 }
+_Element.imgFromUrl = prepareImage;
 
 var Clip = _Element;
 
@@ -1178,6 +1194,7 @@ DU.applyFill = function(ctx, fill) {
 
 // FIXME: move to `Path`?
 DU.qDraw = function(ctx, stroke, fill, func) {
+    ctx.save();
     ctx.beginPath();
     DU.applyStroke(ctx, stroke);
     DU.applyFill(ctx, fill);
@@ -1186,6 +1203,7 @@ DU.qDraw = function(ctx, stroke, fill, func) {
 
     ctx.fill();
     ctx.stroke();
+    ctx.restore();
 }
 
 var G = {}; // geometry
@@ -1293,11 +1311,11 @@ L.loadFromUrl = function(player, url, importer, callback) {
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
-    if (importer.configureMeta) {
-        player.configureMeta(importer.configureMeta(object));
-    }
     if (importer.configureAnim) {
         player.configureAnim(importer.configureAnim(object));
+    }
+    if (importer.configureMeta) {
+        player.configureMeta(importer.configureMeta(object));
     }
     L.loadScene(player, importer.load(object), callback);
 }
@@ -1341,6 +1359,7 @@ Render.addXDataRender = function(elm) {
     // modifiers
     //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
     if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
+    if (xdata.pos) elm.addModifier(Render.m_applyPos, xdata.pos);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     
     // painters
@@ -1353,7 +1372,8 @@ Render.addXDataRender = function(elm) {
 Render.addDebugRender = function(elm) {
     if (elm.xdata.reg) elm.addPainter(Render.p_drawReg, elm.xdata.reg);
     if (elm.name) elm.addPainter(Render.p_drawName, elm.name);
-    elm.on('draw', Render.p_drawMPath);
+    //elm.addPainter(Render.p_drawMPathIfSet);
+    elm.on('draw', Render.h_drawMPath);
 }
 
 Render.addTweensModifiers = function(elm, tweens) {
@@ -1381,6 +1401,8 @@ Render.addTweenModifier = function(elm, tween) {
 }
 
 Render.p_drawReg = function(ctx, reg) {
+    ctx.save();
+    ctx.translate(reg[0],reg[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
@@ -1391,6 +1413,7 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.arc(0,0,3,0,Math.PI*2,true);
     ctx.closePath();
     ctx.stroke();
+    ctx.restore();
 }
 
 Render.p_drawPath = function(ctx, path) {
@@ -1400,7 +1423,9 @@ Render.p_drawPath = function(ctx, path) {
 
 Render.p_drawImage = function(ctx, image) {
     var image = image || this.xdata.image;
+    ctx.save();
     if (image.isReady) ctx.drawImage(image, 0, 0);
+    ctx.restore();
 }
 
 Render.p_drawText = function(ctx, text) {
@@ -1408,11 +1433,12 @@ Render.p_drawText = function(ctx, text) {
     text.apply(ctx, this.xdata.reg);
 }
 
-Render.p_drawMPath = function(ctx, path) {
+Render.h_drawMPath = function(ctx, path) {
     var mPath = path || this.state._mpath;
     if (mPath) {
         ctx.save();
-        ctx.translate(this.state.rx, this.state.ry);
+        var s = this.state;
+        ctx.translate(s.lx, s.ly);
         mPath.setStroke('#600', 2.0);
         ctx.beginPath();
         mPath.apply(ctx);
@@ -1425,9 +1451,11 @@ Render.p_drawMPath = function(ctx, path) {
 Render.p_drawName = function(ctx, name) {
     var name = name || this.name;
     if (name) {
+        ctx.save();
         ctx.fillStyle = '#666';
         ctx.font = '12px sans-serif';
         ctx.fillText(name, 0, 10);
+        ctx.restore();
     };
 }
 
@@ -1441,6 +1469,12 @@ Render.m_checkBand = function(time, band) {
 Render.m_saveReg = function(time, reg) {
     this.rx = reg[0];
     this.ry = reg[1];
+    return true;
+}
+
+Render.m_applyPos = function(time, pos) {
+    this.lx = pos[0];
+    this.ly = pos[1];
     return true;
 }
 
@@ -1894,11 +1928,11 @@ Path.prototype.bounds = function() {
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
         var pts = segment.pts;
-        for (var pi = 2; pi < pts.length; pi+=2) {
+        for (var pi = 0; pi < pts.length; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 3; pi < pts.length; pi+=2) {
+        for (var pi = 1; pi < pts.length; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
@@ -1917,20 +1951,30 @@ Path.prototype.vpoints = function(func) {
         }
     });
 }
-// finds center point, moves path there,
-// and returns found point. if some point
-// passed as parameter, shifts path to that point
-Path.prototype.normalize = function(pt) {
-    var pt = pt;
-    if (!pt) {
-        var bounds = this.bounds();
-        pt = [ Math.floor((bounds[2]-bounds[0])/2), 
-               Math.floor((bounds[3]-bounds[1])/2) ];
-    };
+Path.prototype.shift = function(pt) {
     this.vpoints(function(x, y) {
-        return [ x - pt[0], y - pt[1] ];
+        return [ x + pt[0],
+                 y + pt[1] ];
     });
-    return pt;
+};
+// moves path to be positioned at 0,0 and
+// returns subtracted top-left point
+// and a center point
+Path.prototype.normalize = function() {
+    var bounds = this.bounds();
+    var w = (bounds[2]-bounds[0]),
+        h = (bounds[3]-bounds[1]);
+    var min_x = bounds[0],
+        min_y = bounds[1];
+    var pt = [ Math.floor(w/2), 
+               Math.floor(h/2) ];
+    if ((min_x > 0) || (min_y > 0)) {
+        this.vpoints(function(x, y) {
+            return [ x - min_x,
+                     y - min_y ];  
+        });
+    }
+    return [ [ min_x, min_y ], pt ];
 }
 Path.prototype.inBounds = function(point) {
     var _b = this.bounds();
@@ -2347,6 +2391,7 @@ function Text(lines, font,
     this._bnds = null;
 }
 Text.prototype.apply = function(ctx, point) {
+    ctx.save();
     var point = point || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]),
@@ -2361,6 +2406,7 @@ Text.prototype.apply = function(ctx, point) {
         DU.applyStroke(ctx, this.stroke);
         ctx.fillText(this.lines, apt[0], apt[1]);
     }
+    ctx.restore();
 }
 Text.prototype.dimen = function() {
     if (this._dimen) return this._dimen;
@@ -2422,7 +2468,7 @@ Controls.prototype.update = function(parent) {
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
-        _canvas = Player.newCanvas([ _w, _h ]);
+        _canvas = newCanvas([ _w, _h ]);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
         _canvas.style.position = 'absolute';                                 
         _canvas.style.opacity = Controls.OPACITY;
@@ -2434,7 +2480,7 @@ Controls.prototype.update = function(parent) {
         this.subscribeEvents(_canvas);          
         this.hide();
     } else {
-        Player.configureCanvas(_canvas, [ _w, _h ]);
+        canvasOpts(_canvas, [ _w, _h ]);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
@@ -2707,10 +2753,10 @@ InfoBlock.prototype.update = function(parent) {
 }
 InfoBlock.prototype.inject = function(meta, anim) {
     // TODO: show speed
-    this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+' by '+
-            '<span class="author">'+meta.author+'</span>'+'.<br/> '+
+    this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+
+            (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
-            '<span class="dimen">'+anim.width+'x'+anim.width+'</span>'+'.<br/> '+
+            '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> '+
             '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
