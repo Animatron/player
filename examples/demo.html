@@ -26,18 +26,18 @@
           var b = Builder._$;
 
           // canvas1
-          /*var scene1 = b().rect([100, 70], [70, 70])
+          var scene1 = b().rect([100, 70], [70, 70])
                           .fill('#009')
                           .stroke('#f00', 3);
-          createPlayer('canvas1').load(scene1);*/
+          createPlayer('canvas1').load(scene1);
 
           // canvas2
-          /*var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
+          var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                                              .fill('#009')
                                              .stroke('#f00', 3))
                           .add(b('def-rect').rect([115, 90], [60, 60]))
                           .rotate([0, 10], [0, Math.PI]);
-          createPlayer('canvas2').load(scene2);*/
+          createPlayer('canvas2').load(scene2);
 
           // canvas3
           var importer = new AnimatronImporter();
@@ -46,14 +46,14 @@
           p3.load(demo_project, importer);
 
           // canvas4
-          /*var p4 = createPlayer('canvas4');
+          var p4 = createPlayer('canvas4');
           p4.debug = true;
-          p4.load(rectangles_project, importer);*/
+          p4.load(rectangles_project, importer);
 
           // canvas5
-          /*var p5 = createPlayer('canvas5');
+          var p5 = createPlayer('canvas5');
           p5.debug = true; 
-          p5.load(curvy_path_project, importer);*/
+          p5.load(curvy_path_project, importer);
 
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)

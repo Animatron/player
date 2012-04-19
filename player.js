@@ -1106,16 +1106,15 @@ _Element.createXData = function() {
 }
 _Element._applyToMatrix = function(s) {
     var _t = s._matrix;
+    _t.translate(0, 0);
     _t.translate(s.lx, s.ly);
+    _t.translate(s.x, s.y); 
+    _t.rotate(s.angle);
     _t.scale(s.sx, s.sy);
-    _t.translate(s.x, s.y);
-    _t.rotate(s.angle);        
-    _t.translate(-s.rx, -s.ry);        
+    _t.translate(-s.rx, -s.ry);  
     return _t;
 }
-_Element.imgFromUrl = function(url) {
-    return prepareImage(url);
-}
+_Element.imgFromUrl = prepareImage;
 
 var Clip = _Element;
 
