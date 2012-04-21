@@ -116,8 +116,8 @@ function canvasOpts(canvas, opts) {
     if (!opts.push) { // object, not array // FIXME: test with typeof
         var _w = opts.width ? Math.floor(opts.width) : 0;
         var _h = opts.height ? Math.floor(opts.height) : 0;
-        canvas.width = _w;
-        canvas.height = _h;
+        //canvas.width = _w;
+        //canvas.height = _h;
         canvas.setAttribute('width', _w);
         canvas.setAttribute('height', _h);
         if (opts.bgcolor) { 
@@ -125,8 +125,8 @@ function canvasOpts(canvas, opts) {
     } else { // array
         var _w = Math.floor(opts[0]);
         var _h = Math.floor(opts[1]);
-        canvas.width = _w;
-        canvas.height = _h;
+        //canvas.width = _w;
+        //canvas.height = _h;
         canvas.setAttribute('width', _w);
         canvas.setAttribute('height', _h);
     }
@@ -320,10 +320,14 @@ Player.prototype.play = function(from, speed) {
 
     if (_state.__lastTimeout) window.clearTimeout(_state.__lastTimeout);
 
-    D.drawNext(player.ctx, _state, player.anim, 
+    var scene = player.anim;
+    scene.reset();
+    
+    D.drawNext(player.ctx, _state, scene, 
                function(state, time) {
                    if (time > (state.duration + Player.PEFF)) {
                        state.time = 0;
+                       scene.reset();
                        player.pause();
                        // TODO: support looping?
                        return false;
@@ -755,6 +759,11 @@ Scene.prototype.calculateDuration = function() {
     });
     return gband[1];
 }
+Scene.prototype.reset = function() {
+    this.visitRoots(function(elm) {
+        elm.reset();
+    });    
+}
 
 // === ELEMENTS ================================================================
 // =============================================================================
@@ -777,6 +786,7 @@ function _Element(draw, onframe) {
     this._onframeSeq = [];
     if (draw) this._drawSeq.push([draw, null]);
     if (onframe) this._onframeSeq.push([onframe, null]);
+    this.__lastJump = null;
     this._initHandlers(); // TODO: make automatic
 };
 _Element.M_PLAYONCE = 0;
@@ -807,7 +817,6 @@ _Element.prototype.onframe = function(gtime) {
 _Element.prototype.drawTo = function(ctx) {
     var seq = this._drawSeq;
     for (var si = 0; si < seq.length; si++) {
-        // TODO: pass xdata instead of element
         seq[si][0].call(this.xdata, ctx, seq[si][1]);
     }
 }
@@ -1016,38 +1025,76 @@ _Element.prototype.fits = function(ltime) {
     return (ltime <= (this.xdata.lband[1]
                       - this.xdata.lband[0]));
 }
+_Element.prototype._checkJump = function(gtime) {
+    var x = this.xdata,
+        s = this.state;
+    var t = null;
+    var at = gtime - x.gband[0]; // actual time
+    if ((s.t !== null) || (s.rt !== null)) {
+        // if jump-time was set either 
+        // directly or relatively,
+        // get its absolute local value
+        t = (s.t !== null)
+                 ? s.t
+                 : ((s.rt !== null)
+                          ? s.rt * (x.lband[1]
+                                  - x.lband[0])
+                          : null);
+        if ((t === null) || (t < 0)) {
+            throw new Error('failed to calculate jump');
+        }
+        if ((this.__lastJump === null) ||
+            (this.__lastJump[1] !== t)) {
+             // jump was performed if t or rt
+             // were set and new value is not
+             // equal to previous jump value:
+             // save jump time and return it
+             this.__lastJump = [ at, t ];
+             s.t = null;
+             s.rt = null;
+             return t;
+        } else {
+            // jump is already in progress, 
+            // reset values and continue
+            s.t = null;
+            s.rt = null;
+            t = null;
+        }
+    }
+    // set t to jump-time, and if no jump-time 
+    // was passed or it requires to be ignored, 
+    // just set it to actual local time
+    t = (t !== null) ? t : (gtime - x.gband[0]);
+    if (this.__lastJump !== null) {
+       // return (jump_pos + (t - jumped_at))
+       return this.__lastJump[1] + (t - this.__lastJump[0]);
+       /* // overflow will be checked in fits() method,
+       // or recalculated with loop/bounce mode
+       // so if this clip longs more than allowed,
+       // it will be just ended there
+       return ((this.__lastJump + t) > x.gband[1])
+             ? (this.__lastJump + t)
+             : x.gband[1]; */
+    }
+    return t;
+} 
 _Element.prototype.localTime = function(gtime) {
-    var t = (this.state.t !== null) 
-            ? this.state.t
-            : ((this.state.rt !== null)
-               ? this.state.rt * (this.xdata.lband[1]
-                                  - this.xdata.lband[0])
-               : 0);
-    switch (this.xdata.mode) {
+    var x = this.xdata;
+    var t = this._checkJump(gtime);
+    switch (x.mode) {
         case _Element.M_PLAYONCE:
-            return this.parent
-                   ? ((gtime - this.parent.xdata.gband[0])
-                      - this.xdata.lband[0]) + t
-                   : (gtime - this.xdata.gband[0]) + t;
+            return t;
         case _Element.M_LOOP: {
-                var duration = this.xdata.lband[1] - 
-                               this.xdata.lband[0];
-                var offset = this.parent 
-                             ? ((gtime - this.parent.xdata.gband[0])
-                                - this.xdata.lband[0])
-                             : (gtime - this.xdata.gband[0]);
-                var wtime = Math.floor(offset / duration); 
-                return offset - (duration * wtime) + t;
+                var duration = x.lband[1] - 
+                               x.lband[0];
+                var wtime = Math.floor(t / duration); 
+                return (duration * wtime);
             }
         case _Element.M_BOUNCE:
-                var duration = this.xdata.lband[1] - 
-                               this.xdata.lband[0];
-                var offset = this.parent 
-                             ? ((gtime - this.parent.xdata.gband[0])
-                                - this.xdata.lband[0])
-                             : (gtime - this.xdata.gband[0]);
-                var wtime = Math.floor(offset / duration); 
-                var result = offset - (duration * wtime) + t;
+                var duration = x.lband[1] - 
+                               x.lband[0];
+                var wtime = Math.floor(t / duration); 
+                var result = (duration * wtime);
                 return ((wtime % 2) === 0) 
                        ? result : (duration - result); 
     }
@@ -1066,6 +1113,22 @@ _Element.prototype.findWrapBand = function() {
         result = Bands.expand(result, children[ei].findWrapBand());
     }
     return (result[0] !== Number.MAX_VALUE) ? result : null;
+}
+_Element.prototype.reset = function() {
+    var s = this.state;
+    s.x = 0; s.y = 0;
+    s.lx = 0; s.ly = 0;
+    s.rx = 0; s.ry = 0;
+    s.angle = 0; s.alpha = 1;
+    s.sx = 1; s.sy = 1;
+    s.t = null; s.rt = null;
+    this.__lastJump = null;
+    s._matrix.reset();
+    // TODO: make "visitChildren" method
+    var children = this.children;
+    for (var ei = 0; ei < children.length; ei++) {
+        children[ei].reset();
+    };
 }
 _Element.prototype._stateStr = function() {
     var state = this.state;

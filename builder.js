@@ -124,7 +124,7 @@ Builder.prototype.circle = function(pt, radius) {
     this.xdata.reg = [ radius, radius ];
     var b = this;
     this.paint(function(ctx) {
-        var path = this.xdata.path;
+        var path = this.path;
         DU.qDraw(ctx, 
                  b._curStroke(),
                  b._curFill(),

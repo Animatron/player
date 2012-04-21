@@ -164,6 +164,13 @@ examples.push([ 0 /*version*/, [
                  'website%20pics/bender.jpg')
           .rotate([0, 3], [0, Math.PI / 8]); */
 
+/* return b().rect([40, 40], [40, 40])
+          .trans([0, 10], [[100, 100], [200, 200]])
+          .modify(function(t) {
+            if (t > 3) this.t = 6;
+            return true;
+          }); */
+
 var uexamples = [];
 
 function sandbox() {
@@ -179,7 +186,7 @@ function sandbox() {
 
     this.player = createPlayer('my-canvas', {
         width: 400,
-        height: 300,
+        height: 250,
         bgcolor: '#fff'
     });
     this.player.mode = Player.M_PREVIEW;
