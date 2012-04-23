@@ -171,6 +171,14 @@ examples.push([ 0 /*version*/, [
             return true;
           }); */
 
+/* return b().rect([40, 40], [40, 40])
+          .band([0, 12])
+          .trans([0, 12], [[100, 100], [200, 200]])
+          .modify(function(t) {
+            if (t > 4) this.rt = .7;
+            return true;
+          }); */
+
 var uexamples = [];
 
 function sandbox() {

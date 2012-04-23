@@ -73,6 +73,7 @@ Builder.prototype.path = function(pathStr) {
 // > Builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
     this.value.setLBand(band);
+    return this;
 }
 // > Builder.paint % (painter: Function(ctx: Context))
 //                 => Builder
@@ -184,6 +185,12 @@ Builder.prototype.transP = function(band, path, easing) {
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(Tween.T_ALPHA, band, values, easing);
+}
+// > Builder.key % (name: String, value: Float) => Builder
+Builder.prototype.key = function(name, value) {
+    // TODO: ensure value is in band?
+    this.xdata.keys[name] = value;
+    return this;
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {

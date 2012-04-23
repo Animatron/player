@@ -1030,34 +1030,37 @@ _Element.prototype._checkJump = function(gtime) {
         s = this.state;
     var t = null;
     var at = gtime - x.gband[0]; // actual time
-    if ((s.t !== null) || (s.rt !== null)) {
-        // if jump-time was set either 
-        // directly or relatively,
-        // get its absolute local value
-        t = (s.t !== null)
-                 ? s.t
-                 : ((s.rt !== null)
-                          ? s.rt * (x.lband[1]
-                                  - x.lband[0])
-                          : null);
-        if ((t === null) || (t < 0)) {
+    // if jump-time was set either 
+    // directly or relatively or with key,
+    // get its absolute local value
+    t = (s.t !== null) ? s.t : null;
+    t = ((t === null) && (s.rt !== null))
+        ? s.rt * (x.lband[1] - x.lband[0])
+        : t;
+    t = ((t === null) && (s.key !== null))
+        ? x.keys[s.key]
+        : t;
+    if (t !== null) {
+        if ((t < 0) || (t > (x.lband[1] - x.lband[0]))) {
             throw new Error('failed to calculate jump');
         }
         if ((this.__lastJump === null) ||
             (this.__lastJump[1] !== t)) {
-             // jump was performed if t or rt
+             // jump was performed if t or rt or key
              // were set and new value is not
              // equal to previous jump value:
              // save jump time and return it
              this.__lastJump = [ at, t ];
              s.t = null;
              s.rt = null;
+             s.key = null;
              return t;
         } else {
             // jump is already in progress, 
             // reset values and continue
             s.t = null;
             s.rt = null;
+            s.key = null;
             t = null;
         }
     }
@@ -1121,7 +1124,7 @@ _Element.prototype.reset = function() {
     s.rx = 0; s.ry = 0;
     s.angle = 0; s.alpha = 1;
     s.sx = 1; s.sy = 1;
-    s.t = null; s.rt = null;
+    s.t = null; s.rt = null; s.key = null;
     this.__lastJump = null;
     s._matrix.reset();
     // TODO: make "visitChildren" method
@@ -1137,7 +1140,7 @@ _Element.prototype._stateStr = function() {
            "rx: " + s.rx + " ry: " + s.ry + '\n' +
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
-           "t: " + s.t + " rt: " + s.rt + '\n';
+           "t: " + s.t + " rt: " + s.rt + " key: " + s.key + '\n';
 }
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
@@ -1149,8 +1152,9 @@ _Element.createState = function() {
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y 
              'alpha': 1,       // opacity
-             't': null, 'rt': null, // cur local time (t) or 0..1 time (rt) (t have higher priority),
-                                    // if both are null — stays as defined
+             't': null, 'rt': null, 'key': null, 
+                               // cur local time (t) or 0..1 time (rt) or by key ()(t have highest priority),
+                               // if both are null — stays as defined
              '_matrix': new Transform() };
 };
 // geometric data of the element
@@ -1165,7 +1169,8 @@ _Element.createXData = function() {
              'lband': [0, _Element.DEFAULT_LEN], // local band
              'gband': [0, _Element.DEFAULT_LEN], // global bane
              'canvas': null,   // own canvas for static (cached) elements
-             'dimen': null,    // dimensions for static (cached) elements             
+             'dimen': null,    // dimensions for static (cached) elements
+             'keys': {},           
              '_mpath': null };
 }
 _Element._applyToMatrix = function(s) {
