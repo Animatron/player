@@ -222,8 +222,8 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return _Element.M_PLAYONCE;
-    if (from === "STOP") return _Element.M_PLAYONCE;
+    if (!from) return _Element.M_ONCE;
+    if (from === "STOP") return _Element.M_ONCE;
     if (from === "LOOP") return _Element.M_LOOP;
     if (from === "BOUNCE") return _Element.M_BOUNCE; // FIXME: last is not for sure
 }
