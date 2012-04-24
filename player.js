@@ -916,6 +916,7 @@ _Element.prototype.addS = function(dimen, draw, onframe, transform) {
 _Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
+    Bands.recalc(this);
 };
 _Element.prototype._addChildren = function(elms) {
     for (var ei = 0; ei < elms.length; ei++) {
@@ -928,12 +929,9 @@ _Element.prototype.render = function(ctx, time) {
         this.transform(ctx);
         this.draw(ctx);
     }
-    if (this.children.length > 0) {
-        var children = this.children;
-        for (var ei = 0; ei < children.length; ei++) {
-            children[ei].render(ctx, time);
-        }
-    }
+    this.visitChildren(function(elm) {
+        elm.render(ctx, time);
+    });
     ctx.restore();
     this.e_draw(ctx); // call only if this element drawn
 }
@@ -948,77 +946,15 @@ _Element.prototype.contains = function(time, point) {
     var tpoint = G.adapt(this, time, point);
     return G.contains(this.xdata, tpoint);
 }
-_Element.prototype.setBand = function(band) {
-    if (!band) return;
-    this.xdata.gband = band;
-    var parent = this.parent,
-        children = this.children;
-    if (!this.__sbflag) {
-        this.__sbflag = true;
-        if (parent) {
-            parent.applyBand(band); // it will correct parent band
-                                    // if it will be wider than the
-                                    // band passed
-        }
-        for (var ei = 0; ei < children.length; ei++) {
-            children[ei].reduceBand(band); // it will correct child band
-                                           // if it will be narrower than the
-                                           // band passed
-        };
-        this.__sbflag = false;
-    }
-    this.xdata.lband = parent 
-        ? Bands.unwrap(parent.xdata.gband, band)
-        : band;
-}
-// expand element's global-time band if it is already set, 
-// or just sets it, if it is not
-_Element.prototype.applyBand = function(band) {
-    this.setBand(this.xdata.gband 
-                 ? Bands.expand(this.xdata.gband, band)
-                 : band);
-}
-// reduce element's global-time band if it is already set, 
-// or just sets it, if it is not 
-_Element.prototype.reduceBand = function(band) {
-    this.setBand(this.xdata.gband 
-                 ? Bands.reduce(this.xdata.gband, band)
-                 : band);
-}
-_Element.prototype.setLBand = function(band) {
-    if (!band) return;
-    this.xdata.lband = this.parent 
-        ? Bands.unwrap(this.parent.xdata.gband, band)
-        : band;
-    this.xdata.gband = this.parent 
-        ? Bands.wrap(this.parent.xdata.gband, 
-                     this.xdata.lband)
-        : band;
-    /*var children = this.children;
-    for (var ei = 0; ei < children.length; ei++) {
-        children[ei].reduceBand(this.xdata.gband); 
-                                       // it will correct child band
-                                       // if it will be narrower than the
-                                       // band passed
-    };*/
-}
-// reduce element's local-time band if it is already set, 
-// or just sets it, if it is not 
-_Element.prototype.applyLBand = function(band) { 
-    this.setLBand(this.xdata.lband 
-                  ? Bands.expand(this.xdata.lband, band)
-                  : band);
-}
-// expand element's local-time band if it is already set, 
-// or just sets it, if it is not
-_Element.prototype.reduceLBand = function(band) {
-    this.setLBand(this.xdata.lband 
-                  ? Bands.reduce(this.xdata.lband, band)
-                  : band);
-}
 // make element band fit all children bands
 _Element.prototype.makeBandFit = function() {
-    this.applyBand(this.findWrapBand());
+    var wband = this.findWrapBand();
+    this.xdata.gband = wband;
+    this.xdata.lband[1] = wband[1] - wband[0];
+}
+_Element.prototype.setBand = function(band) {
+    this.xdata.lband = band;
+    Bands.recalc(this);
 }
 _Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
@@ -1119,9 +1055,9 @@ _Element.prototype.findWrapBand = function() {
     var children = this.children;
     if (children.length === 0) return this.xdata.gband;
     var result = [ Number.MAX_VALUE, 0 ];
-    for (var ei = 0; ei < children.length; ei++) {
-        result = Bands.expand(result, children[ei].findWrapBand());
-    }
+    this.visitChildren(function(elm) {
+        result = Bands.expand(result, elm.findWrapBand());
+    });
     return (result[0] !== Number.MAX_VALUE) ? result : null;
 }
 _Element.prototype.reset = function() {
@@ -1134,11 +1070,15 @@ _Element.prototype.reset = function() {
     s.t = null; s.rt = null; s.key = null;
     this.__lastJump = null;
     s._matrix.reset();
-    // TODO: make "visitChildren" method
+    this.visitChildren(function(elm) {
+        elm.reset();
+    });
+}
+_Element.prototype.visitChildren = function(func) {
     var children = this.children;
     for (var ei = 0; ei < children.length; ei++) {
-        children[ei].reset();
-    };
+        func(children[ei]);
+    };   
 }
 _Element.prototype._stateStr = function() {
     var state = this.state;
@@ -1555,35 +1495,30 @@ Render.m_applyPos = function(time, pos) {
 
 var Bands = {};
 
-// makes inner band coords relative to outer space (local => global) 
+// recalculate all global bands down to the very 
+// child, starting from given element
+Bands.recalc = function(elm, in_band) {
+    var x = elm.xdata;
+    var in_band = in_band || 
+                  [ elm.parent 
+                  ? elm.parent.xdata.gband 
+                  : x.lband ];
+    x.gband = [ in_band[0] + x.lband[0], 
+                in_band[0] + x.lband[1] ]; 
+    elm.visitChildren(function(celm) {
+        Bands.recalc(celm, x.gband);
+    });
+}
+
+// makes inner band coords relative to outer space 
 Bands.wrap = function(outer, inner) {
     if (!outer) return inner;
-    /*var finish = ((outer[0] + inner[1]) <= outer[1])
-                  ? (outer[0] + inner[1])
-                  : outer[1],
-        start = (finish < outer[1]) 
-                  ? (outer[0] + inner[0])
-                  : inner[]
-         
-    return [ start, finish ]; */
     return [ outer[0] + inner[0],
              ((outer[0] + inner[1]) <= outer[1])
               ? (outer[0] + inner[1])
               : outer[1]               
             ];
-}
-// makes inner band coords relative to inner space (global => local) 
-Bands.unwrap = function(outer, inner) {
-    if (!outer) return inner;
-    return [ ((inner[0] - outer[0]) >= 0)
-              ? (inner[0] - outer[0])
-              : 0,
-             (inner[1] < outer[1])
-              ? (inner[1] - outer[0])
-              : outer[1]
-           ];
-}
-// makes band maximum wide to fith both bands 
+}// makes band maximum wide to fith both bands 
 Bands.expand = function(from, to) {
     if (!from) return to;
     return [ ((to[0] < from[0]) 

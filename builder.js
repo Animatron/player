@@ -72,7 +72,7 @@ Builder.prototype.path = function(pathStr) {
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
-    this.value.setLBand(band);
+    this.value.setBand(band);
     return this;
 }
 // > Builder.paint % (painter: Function(ctx: Context))
@@ -140,7 +140,6 @@ Builder.prototype.circle = function(pt, radius) {
 //                    data: Any,
 //                    [easing: String]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
-    this.value.applyLBand(band);
     this.value.addTween({
         type: type,
         band: band,
