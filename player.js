@@ -1025,25 +1025,32 @@ _Element.prototype.localTime = function(gtime) {
             return this._checkJump(gtime);
         case _Element.M_LOOP: {
                 var x = this.xdata;
+                var p = this.parent;
                 var durtn = x.lband[1] - 
                             x.lband[0],
-                    pdurtn = this.parent
-                        ? (parent.xdata.lband[1] -
-                           parent.xdata.gband[1])
+                    pdurtn = p
+                        ? (p.xdata.lband[1] -
+                           p.xdata.lband[0])
                         : durtn,
                     times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn);
+                    fits = Math.floor((gtime - x.gband[0]) / durtn),
                     t = gtime - (fits * durtn);
-                return (fits < times) || ((fits === times) && (t < 0.05)) 
-                       ? this._checkJump(t) : -1;
+                return (fits <= times) ? this._checkJump(t) : -1;
             }
         case _Element.M_BOUNCE:
-                var duration = x.lband[1] - 
-                               x.lband[0];
-                var wtime = Math.floor(t / duration); 
-                var result = (duration * wtime);
-                return ((wtime % 2) === 0) 
-                       ? result : (duration - result); 
+                var x = this.xdata;
+                var p = this.parent;
+                var durtn = x.lband[1] - 
+                            x.lband[0],
+                    pdurtn = p
+                        ? (p.xdata.lband[1] -
+                           p.xdata.lband[0])
+                        : durtn,
+                    times = Math.floor(pdurtn / durtn),
+                    fits = Math.floor((gtime - x.gband[0]) / durtn),
+                    t = gtime - (fits * durtn),
+                    t = ((fits % 2) == 0) ? t : durtn - t;
+                return (fits <= times) ? this._checkJump(t) : -1;
     }
 }
 _Element.prototype.handle_mdown = function(evt) {
