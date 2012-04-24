@@ -964,20 +964,21 @@ _Element.prototype.fits = function(ltime) {
 _Element.prototype._checkJump = function(gtime) {
     var x = this.xdata,
         s = this.state;
-    var t = null;
-    var at = gtime - x.gband[0] - x.lband[0]; // actual time
+    var t = null,
+        at = gtime - x.gband[0]; // actual time
+        duration = x.lband[1] - x.lband[0];
     // if jump-time was set either 
     // directly or relatively or with key,
     // get its absolute local value
     t = (s.t !== null) ? s.t : null;
     t = ((t === null) && (s.rt !== null))
-        ? s.rt * (x.lband[1] - x.lband[0])
+        ? s.rt * duration
         : t;
     t = ((t === null) && (s.key !== null))
         ? x.keys[s.key]
         : t;
     if (t !== null) {
-        if ((t < 0) || (t > (x.lband[1] - x.lband[0]))) {
+        if ((t < 0) || (t > duration)) {
             throw new Error('failed to calculate jump');
         }
         if ((this.__lastJump === null) ||
@@ -1500,9 +1501,9 @@ var Bands = {};
 Bands.recalc = function(elm, in_band) {
     var x = elm.xdata;
     var in_band = in_band || 
-                  [ elm.parent 
+                  ( elm.parent 
                   ? elm.parent.xdata.gband 
-                  : x.lband ];
+                  : x.lband );
     x.gband = [ in_band[0] + x.lband[0], 
                 in_band[0] + x.lband[1] ]; 
     elm.visitChildren(function(celm) {

@@ -188,15 +188,22 @@ examples.push([ 0 /*version*/, [
             return true;
           }); */
 
-/* return b('parent').band([0, 20])
+/* var inner = b('inner')
+    .add(b('green-rect').band([0, 5])
+                        .rect([60, 60], [40, 40])
+                        .trans([0, 5], [[0, 0], [40, 40]])
+                        .fill('#060'))
+    .add(b('blue-rect').band([5, 10])
+                       .rect([100, 100], [40, 40])
+                       .trans([0, 5], [[0, 0], [40, 40]])
+                       .fill('#006'));
+
+return b('parent').band([0, 20])
        .add(b('red-rect').band([0, 5])
-                         .rect([10, 10], [40, 40])
+                         .rect([20, 20], [40, 40])
                          .fill('#f00')
                          .trans([0, 5], [[0, 0], [40, 40]]))
-       .add(b('blue-rect').band([5, 10])
-                          .rect([100, 100], [40, 40])
-                          .trans([0, 5], [[0, 0], [40, 40]])
-                          .fill('#00f')); */
+       .add(inner.band([5, 15])); */
 
 var uexamples = [];
 
