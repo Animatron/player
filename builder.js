@@ -72,7 +72,8 @@ Builder.prototype.path = function(pathStr) {
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
-    this.value.setLBand(band);
+    this.value.setBand(band);
+    return this;
 }
 // > Builder.paint % (painter: Function(ctx: Context))
 //                 => Builder
@@ -124,7 +125,7 @@ Builder.prototype.circle = function(pt, radius) {
     this.xdata.reg = [ radius, radius ];
     var b = this;
     this.paint(function(ctx) {
-        var path = this.xdata.path;
+        var path = this.path;
         DU.qDraw(ctx, 
                  b._curStroke(),
                  b._curFill(),
@@ -139,7 +140,6 @@ Builder.prototype.circle = function(pt, radius) {
 //                    data: Any,
 //                    [easing: String]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
-    this.value.applyLBand(band);
     this.value.addTween({
         type: type,
         band: band,
@@ -184,6 +184,26 @@ Builder.prototype.transP = function(band, path, easing) {
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(Tween.T_ALPHA, band, values, easing);
+}
+// > Builder.key % (name: String, value: Float) => Builder
+Builder.prototype.key = function(name, value) {
+    // TODO: ensure value is in band?
+    this.xdata.keys[name] = value;
+    return this;
+}
+// > Builder.mode % (mode: String) => Builder
+Builder.prototype.mode = function(mode) {
+    this.xdata.mode = mode;
+    return this;
+}
+Builder.prototype.once = function() {
+    return this.mode(_Element.M_ONCE);
+}
+Builder.prototype.loop = function() {
+    return this.mode(_Element.M_LOOP);
+}
+Builder.prototype.bounce = function() {
+    return this.mode(_Element.M_BOUNCE);
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {
