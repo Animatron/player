@@ -789,7 +789,7 @@ function _Element(draw, onframe) {
     this.__lastJump = null;
     this._initHandlers(); // TODO: make automatic
 };
-_Element.M_PLAYONCE = 0;
+_Element.M_ONCE = 0;
 _Element.M_LOOP = 1;
 _Element.M_BOUNCE = 2;
 _Element.DEFAULT_LEN = 10;
@@ -994,13 +994,13 @@ _Element.prototype.setLBand = function(band) {
         ? Bands.wrap(this.parent.xdata.gband, 
                      this.xdata.lband)
         : band;
-    var children = this.children;
+    /*var children = this.children;
     for (var ei = 0; ei < children.length; ei++) {
         children[ei].reduceBand(this.xdata.gband); 
                                        // it will correct child band
                                        // if it will be narrower than the
                                        // band passed
-    };
+    };*/
 }
 // reduce element's local-time band if it is already set, 
 // or just sets it, if it is not 
@@ -1029,7 +1029,7 @@ _Element.prototype._checkJump = function(gtime) {
     var x = this.xdata,
         s = this.state;
     var t = null;
-    var at = gtime - x.gband[0]; // actual time
+    var at = gtime - x.gband[0] - x.lband[0]; // actual time
     // if jump-time was set either 
     // directly or relatively or with key,
     // get its absolute local value
@@ -1067,7 +1067,7 @@ _Element.prototype._checkJump = function(gtime) {
     // set t to jump-time, and if no jump-time 
     // was passed or it requires to be ignored, 
     // just set it to actual local time
-    t = (t !== null) ? t : (gtime - x.gband[0]);
+    t = (t !== null) ? t : at;
     if (this.__lastJump !== null) {
        // return (jump_pos + (t - jumped_at))
        return this.__lastJump[1] + (t - this.__lastJump[0]);
@@ -1083,15 +1083,22 @@ _Element.prototype._checkJump = function(gtime) {
 } 
 _Element.prototype.localTime = function(gtime) {
     var x = this.xdata;
-    var t = this._checkJump(gtime);
     switch (x.mode) {
-        case _Element.M_PLAYONCE:
-            return t;
+        case _Element.M_ONCE:
+            return this._checkJump(gtime);
         case _Element.M_LOOP: {
-                var duration = x.lband[1] - 
-                               x.lband[0];
-                var wtime = Math.floor(t / duration); 
-                return (duration * wtime);
+                var x = this.xdata;
+                var durtn = x.lband[1] - 
+                            x.lband[0],
+                    pdurtn = this.parent
+                        ? (parent.xdata.lband[1] -
+                           parent.xdata.gband[1])
+                        : durtn,
+                    times = Math.floor(pdurtn / durtn),
+                    fits = Math.floor((gtime - x.gband[0]) / durtn);
+                    t = gtime - (fits * durtn);
+                return (fits < times) || ((fits === times) && (t < 0.05)) 
+                       ? this._checkJump(t) : -1;
             }
         case _Element.M_BOUNCE:
                 var duration = x.lband[1] - 
@@ -1153,7 +1160,7 @@ _Element.createState = function() {
              'sx': 1, 'sy': 1, // scale by x / by y 
              'alpha': 1,       // opacity
              't': null, 'rt': null, 'key': null, 
-                               // cur local time (t) or 0..1 time (rt) or by key ()(t have highest priority),
+                               // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
              '_matrix': new Transform() };
 };
@@ -1165,7 +1172,7 @@ _Element.createXData = function() {
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'tweens': {},     // animation tweens (Tween class)         
-             'mode': _Element.M_PLAYONCE,         // playing mode
+             'mode': _Element.M_ONCE,            // playing mode
              'lband': [0, _Element.DEFAULT_LEN], // local band
              'gband': [0, _Element.DEFAULT_LEN], // global bane
              'canvas': null,   // own canvas for static (cached) elements

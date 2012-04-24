@@ -192,6 +192,20 @@ Builder.prototype.key = function(name, value) {
     this.xdata.keys[name] = value;
     return this;
 }
+// > Builder.mode % (mode: String) => Builder
+Builder.prototype.mode = function(mode) {
+    this.xdata.mode = mode;
+    return this;
+}
+Builder.prototype.once = function() {
+    return this.mode(_Element.M_ONCE);
+}
+Builder.prototype.loop = function() {
+    return this.mode(_Element.M_LOOP);
+}
+Builder.prototype.bounce = function() {
+    return this.mode(_Element.M_BOUNCE);
+}
 // PRIVATE
 Builder.prototype._curStroke = function() {
     var path = this.xdata.path;

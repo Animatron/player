@@ -179,6 +179,25 @@ examples.push([ 0 /*version*/, [
             return true;
           }); */
 
+/* return b().rect([40, 40], [40, 40])
+          .band([0, 12])
+          .trans([0, 12], [[100, 100], [200, 200]])
+          .key('test', 0)
+          .modify(function(t) {
+            if (t > 4) this.key = 'test';
+            return true;
+          }); */
+
+/* return b('parent').band([0, 20])
+       .add(b('red-rect').band([0, 5])
+                         .rect([10, 10], [40, 40])
+                         .fill('#f00')
+                         .trans([0, 5], [[0, 0], [40, 40]]))
+       .add(b('blue-rect').band([5, 10])
+                          .rect([100, 100], [40, 40])
+                          .trans([0, 5], [[0, 0], [40, 40]])
+                          .fill('#00f')); */
+
 var uexamples = [];
 
 function sandbox() {
