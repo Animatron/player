@@ -83,8 +83,8 @@ examples.push([ 0 /*version*/, [
 
 examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
-  'var scene = new Scene();',
-  'var elem = new _Element();',
+  'var scene = new anm.Scene();',
+  'var elem = new anm.Element();',
   'elem.xdata.path = new Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
   '                           { width: 2, color: \'#300\' },',
   '                           { color: \'#f00\' });',

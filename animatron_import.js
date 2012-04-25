@@ -53,12 +53,12 @@ AnimatronImporter.prototype.load = function(prj) {
 // ** ELEMENTS **
 
 AnimatronImporter.prototype.importScene = function(scene_id, source) {
-    var scene = new Scene();
+    var scene = new anm.Scene();
     scene.add(this.importElement(this.findElement(scene_id, source), source));
     return scene;
 }
 AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
-    var target = new _Element();
+    var target = new anm.Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?, 
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
     this._collectDynamicData(target, clip, in_band);
@@ -90,7 +90,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     if (!to.name) to.name = clip.name;
     var x = to.xdata;
     x.lband = clip.band || [0, 10]; //FIMXE: remove, when it will be always set in project
-    x.gband = in_band ? Bands.wrap(in_band, x.lband) 
+    x.gband = in_band ? anm.Bands.wrap(in_band, x.lband) 
                       : x.lband;
     x.reg = clip.reg || [0, 0];
     x.tweens = clip.tweens ? Convert.tweens(clip.tweens) : {};
@@ -98,7 +98,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
-    to.xdata.image = src.url ? _Element.imgFromUrl(src.url) : null;
+    to.xdata.image = src.url ? anm.Element.imgFromUrl(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font, 
@@ -127,18 +127,18 @@ Convert.tweens = function(tweens) {
 };
 Convert.tweenType = function(from) {
     if (!from) return null;
-    if (from === 'Rotate') return Tween.T_ROTATE;
-    if (from === 'Translate') return Tween.T_TRANSLATE;
-    if (from === 'Alpha') return Tween.T_ALPHA;
-    if (from === 'Scale') return Tween.T_SCALE;
-    if (from === 'rotate-to-path') return Tween.T_ROT_TO_PATH;
+    if (from === 'Rotate') return anm.Tween.T_ROTATE;
+    if (from === 'Translate') return anm.Tween.T_TRANSLATE;
+    if (from === 'Alpha') return anm.Tween.T_ALPHA;
+    if (from === 'Scale') return anm.Tween.T_SCALE;
+    if (from === 'rotate-to-path') return anm.Tween.T_ROT_TO_PATH;
 }
 Convert.tweenData = function(type, tween) {
     if (!tween.data) {
-        if (tween.path) return new Path(tween.path);
+        if (tween.path) return new anm.Path(tween.path);
         return null;
     }
-    if (type === Tween.T_SCALE) {
+    if (type === anm.Tween.T_SCALE) {
         var data = tween.data;
         return [ [ data[0], data[1] ],
                  [ data[2], data[3] ] ];
@@ -146,30 +146,30 @@ Convert.tweenData = function(type, tween) {
     return tween.data;
 }
 Convert.path = function(pathStr, stroke, fill) {
-    return new Path(pathStr, 
-                    Convert.stroke(stroke),
-                    Convert.fill(fill));
+    return new anm.Path(pathStr, 
+                        Convert.stroke(stroke),
+                        Convert.fill(fill));
 }
 Convert.text = function(lines, font,
                         stroke, fill) {
-    return new Text(lines, font,
-                    Convert.stroke(stroke),
-                    Convert.fill(fill));
+    return new anm.Text(lines, font,
+                        Convert.stroke(stroke),
+                        Convert.fill(fill));
 }
 Convert.easing = function(from) {
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
-          data: from.path ? (new Path('M0 0 ' + from.path + ' Z')) : null
+          data: from.path ? (new anm.Path('M0 0 ' + from.path + ' Z')) : null
         };
 }
 Convert.easingType = function(from) {
     if (!from) return null;
-    if (from === 'Unknown') return Easing.T_PATH;
-    if (from === 'Default') return Easing.T_DEF;
-    if (from === 'Ease In') return Easing.T_IN;
-    if (from === 'Ease Out') return Easing.T_OUT;
-    if (from === 'Ease In Out') return Easing.T_INOUT;
+    if (from === 'Unknown') return anm.Easing.T_PATH;
+    if (from === 'Default') return anm.Easing.T_DEF;
+    if (from === 'Ease In') return anm.Easing.T_IN;
+    if (from === 'Ease Out') return anm.Easing.T_OUT;
+    if (from === 'Ease In Out') return anm.Easing.T_INOUT;
 }
 Convert.stroke = function(stroke) {
     if (!stroke) return stroke;
@@ -222,8 +222,8 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return _Element.M_ONCE;
-    if (from === "STOP") return _Element.M_ONCE;
-    if (from === "LOOP") return _Element.M_LOOP;
-    if (from === "BOUNCE") return _Element.M_BOUNCE; // FIXME: last is not for sure
+    if (!from) return anm.Element.M_ONCE;
+    if (from === "STOP") return anm.Element.M_ONCE;
+    if (from === "LOOP") return anm.Element.M_LOOP;
+    if (from === "BOUNCE") return anm.Element.M_BOUNCE; // FIXME: last is not for sure
 }
