@@ -142,6 +142,39 @@ function prepareImage(url, callback) {
     return _img;
 }
 
+// === CONSTANTS ==================================================================
+// ================================================================================
+
+var C = {};
+
+// Player states
+
+C.NOTHING = -1;
+C.STOPPED = 0;
+C.PLAYING = 1;
+C.PAUSED = 2; 
+
+// public constants below are also appended to C object, but with `X_`-like prefix 
+// to indicate their scope, see through all file
+
+// Player Modes constants
+
+C.M_CONTROLS_DISABLED = 0;
+C.M_CONTROLS_ENABLED = 1;
+C.M_INFO_DISABLED = 0;
+C.M_INFO_ENABLED = 2;
+C.M_DO_NOT_HANDLE_EVENTS = 0;
+C.M_HANDLE_EVENTS = 4;
+C.M_PREVIEW = C.M_CONTROLS_DISABLED
+              | C.M_INFO_DISABLED       
+              | C.M_DO_NOT_HANDLE_EVENTS;
+C.M_DYNAMIC = C.M_CONTROLS_DISABLED
+              | C.M_INFO_DISABLED
+              | C.M_HANDLE_EVENTS;
+C.M_VIDEO = C.M_CONTROLS_ENABLED
+            | C.M_INFO_ENABLED       
+            | C.M_DO_NOT_HANDLE_EVENTS;
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -154,7 +187,7 @@ function prepareImage(url, callback) {
  options format:
   { "debug": false,
     "inParent": false,
-    "mode": Player.M_VIDEO,
+    "mode": C.M_VIDEO,
     "zoom": 1.0,
     "meta": { "title": "Default",
               "author": "Anonymous",
@@ -181,29 +214,8 @@ function Player(id, opts) {
     this._init(opts);
 }
 
-Player.NOTHING = -1;
-Player.STOPPED = 0;
-Player.PLAYING = 1;
-Player.PAUSED = 2;
-
 Player.PREVIEW_POS = 0.33;
 Player.PEFF = 0.07; // seconds to play more when reached end of movie
-
-Player.M_CONTROLS_DISABLED = 0;
-Player.M_CONTROLS_ENABLED = 1;
-Player.M_INFO_DISABLED = 0;
-Player.M_INFO_ENABLED = 2;
-Player.M_DO_NOT_HANDLE_EVENTS = 0;
-Player.M_HANDLE_EVENTS = 4;
-Player.M_PREVIEW = Player.M_CONTROLS_DISABLED
-                   | Player.M_INFO_DISABLED       
-                   | Player.M_DO_NOT_HANDLE_EVENTS;
-Player.M_DYNAMIC = Player.M_CONTROLS_DISABLED
-                   | Player.M_INFO_DISABLED
-                   | Player.M_HANDLE_EVENTS;
-Player.M_VIDEO = Player.M_CONTROLS_ENABLED
-                 | Player.M_INFO_ENABLED       
-                 | Player.M_DO_NOT_HANDLE_EVENTS;
 
 Player.URL_ATTR = 'data-url';
 
@@ -212,7 +224,7 @@ Player.DEFAULT_CANVAS = { 'width': 400,
                           'bgcolor': '#fff' };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
-                                 'mode': Player.M_VIDEO,
+                                 'mode': C.M_VIDEO,
                                  'zoom': 1.0,
                                  'meta': { 'title': 'Default',
                                            'author': 'Anonymous',
@@ -288,7 +300,7 @@ Player.prototype.load = function(object, importer, callback) {
 
 Player.prototype.play = function(from, speed) {
 
-    if (this.state.happens === Player.PLAYING) return;
+    if (this.state.happens === C.PLAYING) return;
 
     var player = this;
 
@@ -308,7 +320,7 @@ Player.prototype.play = function(from, speed) {
         clearInterval(player.state.__drawInterval);
     }*/
 
-    _state.happens = Player.PLAYING;
+    _state.happens = C.PLAYING;
 
     if (_state.__lastTimeout) window.clearTimeout(_state.__lastTimeout);
 
@@ -347,10 +359,10 @@ Player.prototype.stop = function() {
     _state.from = 0;
 
     if (player.anim) {
-        _state.happens = Player.STOPPED;
+        _state.happens = C.STOPPED;
         player.drawAt(_state.duration * Player.PREVIEW_POS);
     } else {
-        _state.happens = Player.NOTHING;
+        _state.happens = C.NOTHING;
         player.drawSplash();
     }
     if (player.controls) {
@@ -372,7 +384,7 @@ Player.prototype.pause = function() {
     var _state = player.state;
 
     _state.from = _state.time;
-    _state.happens = Player.PAUSED;
+    _state.happens = C.PAUSED;
 
     player.drawAt(_state.time);
 
@@ -430,7 +442,7 @@ Player.prototype._init = function(opts) {
 Player.prototype._reset = function() {
     var _state = this.state;
     _state.debug = this.debug;
-    _state.happens = Player.NOTHING;
+    _state.happens = C.NOTHING;
     _state.from = 0;
     _state.time = 0;
     _state.zoom = 1;
@@ -499,7 +511,7 @@ Player.prototype.drawLoadingSplash = function(text) {
     ctx.restore();
 }
 Player.prototype._checkMode = function() {
-    if (this.mode & Player.M_CONTROLS_ENABLED) {
+    if (this.mode & C.M_CONTROLS_ENABLED) {
         if (!this.controls) {
             this.controls = new Controls(this);
             this.controls.update(this.canvas);
@@ -511,7 +523,7 @@ Player.prototype._checkMode = function() {
             this.controls = null;
         }
     }
-    if (this.mode & Player.M_INFO_ENABLED) {
+    if (this.mode & C.M_INFO_ENABLED) {
         if (!this.info) {
             this.info = new InfoBlock(this);
             this.info.update(this.canvas);
@@ -635,7 +647,7 @@ Player.createState = function(player) {
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
         'zoom': 1.0, 'bgcolor': '#fff',
-        'happens': Player.NOTHING,
+        'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
         //'__drawInterval': null
@@ -760,6 +772,10 @@ Scene.prototype.reset = function() {
 // === ELEMENTS ================================================================
 // =============================================================================
 
+C.R_ONCE = 0;
+C.R_LOOP = 1;
+C.R_BOUNCE = 2;
+
 // > Element % (draw: Function(ctx: Context),
 //               onframe: Function(time: Float))
 // FIXME: Underscore here is to prevent conflicts with other libraries.
@@ -781,9 +797,6 @@ function Element(draw, onframe) {
     this.__lastJump = null;
     this._initHandlers(); // TODO: make automatic
 };
-Element.M_ONCE = 0;
-Element.M_LOOP = 1;
-Element.M_BOUNCE = 2;
 Element.DEFAULT_LEN = 10;
 // TODO: draw and onframe must be events also?
 provideEvents(Element, ['mdown', 'draw']);
@@ -1013,9 +1026,9 @@ Element.prototype._checkJump = function(gtime) {
 Element.prototype.localTime = function(gtime) {
     var x = this.xdata;
     switch (x.mode) {
-        case Element.M_ONCE:
+        case C.R_ONCE:
             return this._checkJump(gtime);
-        case Element.M_LOOP: {
+        case C.R_LOOP: {
                 var x = this.xdata;
                 var p = this.parent;
                 var durtn = x.lband[1] - 
@@ -1029,7 +1042,7 @@ Element.prototype.localTime = function(gtime) {
                     t = gtime - (fits * durtn);
                 return (fits <= times) ? this._checkJump(t) : -1;
             }
-        case Element.M_BOUNCE:
+        case C.R_BOUNCE:
                 var x = this.xdata;
                 var p = this.parent;
                 var durtn = x.lband[1] - 
@@ -1112,7 +1125,7 @@ Element.createXData = function() {
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'tweens': {},     // animation tweens (Tween class)         
-             'mode': Element.M_ONCE,            // playing mode
+             'mode': C.R_ONCE,            // playing mode
              'lband': [0, Element.DEFAULT_LEN], // local band
              'gband': [0, Element.DEFAULT_LEN], // global bane
              'canvas': null,   // own canvas for static (cached) elements
@@ -1144,7 +1157,7 @@ var D = {}; // means "Drawing"
 D.drawNext = function(ctx, state, scene, callback) {
     // NB: state here is a player state, not an element state
 
-    if (state.happens !== Player.PLAYING) return;
+    if (state.happens !== C.PLAYING) return;
 
     var msec = (Date.now() - state.__startTime); 
     var sec = msec / 1000;
@@ -1562,42 +1575,44 @@ Bands.adaptModifierByTime = function(tfunc, func, sband) {
 // =============================================================================
 // === TWEENS ==================================================================
 
+// Tween constants
+
+C.T_TRANSLATE   = 'TRANSLATE';
+C.T_SCALE       = 'SCALE';
+C.T_ROTATE      = 'ROTATE';
+C.T_ROT_TO_PATH = 'ROT_TO_PATH';
+C.T_ALPHA       = 'ALPHA';
+
 var Tween = {};
 var Easing = {};
 
-// tween constants
-Tween.T_TRANSLATE   = 'TRANSLATE';
-Tween.T_SCALE       = 'SCALE';
-Tween.T_ROTATE      = 'ROTATE';
-Tween.T_ROT_TO_PATH = 'ROT_TO_PATH';
-Tween.T_ALPHA       = 'ALPHA';
 // tween order
-Tween.TWEENS_ORDER = [ Tween.T_TRANSLATE, Tween.T_SCALE, Tween.T_ROTATE, 
-                       Tween.T_ROT_TO_PATH, Tween.T_ALPHA ];
+Tween.TWEENS_ORDER = [ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, 
+                       C.T_ROT_TO_PATH, C.T_ALPHA ];
 
 var Tweens = {};
-Tweens[Tween.T_ROTATE] = 
+Tweens[C.T_ROTATE] = 
     function(t, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
     };
-Tweens[Tween.T_TRANSLATE] = 
+Tweens[C.T_TRANSLATE] = 
     function(t, data) {
         var p = data.pointAt(t);
         this._mpath = data;
         this.x = p[0];
         this.y = p[1];
     };
-Tweens[Tween.T_ALPHA] =
+Tweens[C.T_ALPHA] =
     function(t, data) {
         this.alpha = data[0] * (1 - t) + data[1] * t;
     };
-Tweens[Tween.T_SCALE] =    
+Tweens[C.T_SCALE] =    
     function(t, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;  
     };
-Tweens[Tween.T_ROT_TO_PATH] = 
+Tweens[C.T_ROT_TO_PATH] = 
     function(t, data) {
         var path = this._mpath;
         this.angle = path.tangentAt(t);
@@ -1605,24 +1620,27 @@ Tweens[Tween.T_ROT_TO_PATH] =
 
 // function-based easings
 
-Easing.T_PATH = 'PATH'; // Path
-Easing.T_FUNC = 'FUNC'; // Function
-//Easing.T_CINOUT = 'CINOUT'; // Cubic InOut
+// Easings constants
+
+C.E_PATH = 'PATH'; // Path
+C.E_FUNC = 'FUNC'; // Function
+//C.E_CINOUT = 'CINOUT'; // Cubic InOut
+//....
 
 var EasingImpl = {};
 
-EasingImpl[Easing.T_PATH] = 
+EasingImpl[C.E_PATH] = 
     function(path) {
         //var path = Path.parse(str);
         return function(t) {
             return path.pointAt(t)[1];
         }
     };
-EasingImpl[Easing.T_FUNC] =
+EasingImpl[C.E_FUNC] =
     function(f) {
         return f;
     };
-/*EasingImpl[Easing.T_CINOUT] = 
+/*EasingImpl[C.E_CINOUT] = 
     function() {
         return function(t) {
             var t =  2 * t;
@@ -1639,7 +1657,7 @@ EasingImpl[Easing.T_FUNC] =
 Easing.__SEGS = {}; // segments cache for easings
 
 function __registerSegEasing(alias, points) {
-    Easing['T_'+alias] = alias;
+    C['E_'+alias] = alias;
     var seg = new CSeg(points);
     Easing.__SEGS[alias] = seg;
     EasingImpl[alias] = function() {
@@ -1770,6 +1788,11 @@ function provideEvents(subj, events) {
 // "M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z"
 // ======================================================
 
+// path constants
+C.P_MOVETO = 0;
+C.P_LINETO = 1;
+C.P_CURVETO = 2;
+
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
     this.str = str;
@@ -1778,11 +1801,6 @@ function Path(str, stroke, fill) {
     this.segs = [];
     this.parse(str);
 }
-
-// path constants
-Path.P_MOVETO = 0;
-Path.P_LINETO = 1;
-Path.P_CURVETO = 2;
 
 Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
@@ -1841,11 +1859,11 @@ Path.prototype.apply = function(ctx) {
 Path.prototype._applyVisitor = function(segment, ctx) {
     var marker = segment.type;
     var positions = segment.pts;
-    if (marker === Path.P_MOVETO) {
+    if (marker === C.P_MOVETO) {
         ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === Path.P_LINETO) {
+    } else if (marker === C.P_LINETO) {
         ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === Path.P_CURVETO) {
+    } else if (marker === C.P_CURVETO) {
         ctx.bezierCurveTo(positions[0], positions[1],
                           positions[2], positions[3],
                           positions[4], positions[5]);
@@ -2129,7 +2147,7 @@ Path.createStyle = function(ctx, brush) {
 }
 
 function MSeg(pts) {
-    this.type = Path.P_MOVETO;
+    this.type = C.P_MOVETO;
     this.pts = pts;
     this.count = pts.length;
 }
@@ -2158,7 +2176,7 @@ MSeg.prototype.crosses = function(start, point) {
 }
 
 function LSeg(pts) {
-    this.type = Path.P_LINETO;
+    this.type = C.P_LINETO;
     this.pts = pts;
     this.count = pts.length;    
 }
@@ -2195,7 +2213,7 @@ LSeg.prototype.crosses = function(start, point) {
 }
 
 function CSeg(pts) {
-    this.type = Path.P_CURVETO;
+    this.type = C.P_CURVETO;
     this.pts = pts;
     this.count = pts.length;
 }
@@ -2453,7 +2471,7 @@ function Controls(player) {
     this.hidden = false;
     this.elapsed = false;
     this._time = -1000;
-    this._lhappens = Player.NOTHING;
+    this._lhappens = C.NOTHING;
     this._initHandlers(); // TODO: make automatic 
     this._inParent = player.inParent;
 }
@@ -2536,13 +2554,13 @@ Controls.prototype.render = function(state, time, _force) {
     ctx.fillStyle = Controls.COLOR;
 
     // play/pause/stop button
-    if (_s === Player.PLAYING) {
+    if (_s === C.PLAYING) {
         // pause button
         Controls.__pause_btn(ctx);
-    } else if (_s === Player.STOPPED) {
+    } else if (_s === C.STOPPED) {
         // play button
         Controls.__play_btn(ctx);
-    } else if (_s === Player.PAUSED) {
+    } else if (_s === C.PAUSED) {
         // play button
         Controls.__play_btn(ctx);
     } else {
@@ -2589,23 +2607,23 @@ Controls.prototype.handle_mdown = function(event) {
         _w = this.bounds[2] - this.bounds[0]; 
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
         var _s = this.player.state.happens;
-        if (_s === Player.STOPPED) {
+        if (_s === C.STOPPED) {
             this.player.play(0);
-        } else if (_s === Player.PAUSED) {
+        } else if (_s === C.PAUSED) {
             this.player.play(this._time);
-        } else if (_s === Player.PLAYING) {
+        } else if (_s === C.PLAYING) {
             this.player.pause();
         }
     } else if (_lx < (_w - (_tw + _m))) { // progress area 
         var _s = this.player.state.happens;
-        if (_s === Player.NOTHING) return;
+        if (_s === C.NOTHING) return;
         var _pw = _w - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
-        if (_s === Player.PLAYING) this.player.play(_tpos);
-        else if ((_s === Player.PAUSED) ||
-                 (_s === Player.STOPPED)) {
+        if (_s === C.PLAYING) this.player.play(_tpos);
+        else if ((_s === C.PAUSED) ||
+                 (_s === C.STOPPED)) {
             this.player.drawAt(_tpos);
         }
     } else { // time area
@@ -2791,6 +2809,7 @@ InfoBlock.prototype.updateDuration = function(value) {
 
 var exports = {
     
+    'C': C, // constants
     'Player': Player,
     'Scene': Scene,
     'Element': Element,
