@@ -5,7 +5,16 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
+var AnimatronImporter = (function() {
+
 function AnimatronImporter() { };
+
+var C = anm.C,
+    Scene = anm.Scene,
+    Element = anm.Element,
+    Path = anm.Path,
+    Text = anm.Text,
+    Bands = anm.Bands;
 
 // ** META / PARAMS **
 
@@ -58,7 +67,7 @@ AnimatronImporter.prototype.importScene = function(scene_id, source) {
     return scene;
 }
 AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
-    var target = new _Element();
+    var target = new Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?, 
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
     this._collectDynamicData(target, clip, in_band);
@@ -98,7 +107,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
-    to.xdata.image = src.url ? _Element.imgFromUrl(src.url) : null;
+    to.xdata.image = src.url ? Element.imgFromUrl(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font, 
@@ -127,18 +136,18 @@ Convert.tweens = function(tweens) {
 };
 Convert.tweenType = function(from) {
     if (!from) return null;
-    if (from === 'Rotate') return Tween.T_ROTATE;
-    if (from === 'Translate') return Tween.T_TRANSLATE;
-    if (from === 'Alpha') return Tween.T_ALPHA;
-    if (from === 'Scale') return Tween.T_SCALE;
-    if (from === 'rotate-to-path') return Tween.T_ROT_TO_PATH;
+    if (from === 'Rotate') return C.T_ROTATE;
+    if (from === 'Translate') return C.T_TRANSLATE;
+    if (from === 'Alpha') return C.T_ALPHA;
+    if (from === 'Scale') return C.T_SCALE;
+    if (from === 'rotate-to-path') return C.T_ROT_TO_PATH;
 }
 Convert.tweenData = function(type, tween) {
     if (!tween.data) {
         if (tween.path) return new Path(tween.path);
         return null;
     }
-    if (type === Tween.T_SCALE) {
+    if (type === C.T_SCALE) {
         var data = tween.data;
         return [ [ data[0], data[1] ],
                  [ data[2], data[3] ] ];
@@ -165,11 +174,11 @@ Convert.easing = function(from) {
 }
 Convert.easingType = function(from) {
     if (!from) return null;
-    if (from === 'Unknown') return Easing.T_PATH;
-    if (from === 'Default') return Easing.T_DEF;
-    if (from === 'Ease In') return Easing.T_IN;
-    if (from === 'Ease Out') return Easing.T_OUT;
-    if (from === 'Ease In Out') return Easing.T_INOUT;
+    if (from === 'Unknown') return C.E_PATH;
+    if (from === 'Default') return C.E_DEF;
+    if (from === 'Ease In') return C.E_IN;
+    if (from === 'Ease Out') return C.E_OUT;
+    if (from === 'Ease In Out') return C.E_INOUT;
 }
 Convert.stroke = function(stroke) {
     if (!stroke) return stroke;
@@ -222,8 +231,12 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return _Element.M_ONCE;
-    if (from === "STOP") return _Element.M_ONCE;
-    if (from === "LOOP") return _Element.M_LOOP;
-    if (from === "BOUNCE") return _Element.M_BOUNCE; // FIXME: last is not for sure
+    if (!from) return C.R_ONCE;
+    if (from === "STOP") return C.R_ONCE;
+    if (from === "LOOP") return C.R_LOOP;
+    if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure
 }
+
+return AnimatronImporter;
+
+})();

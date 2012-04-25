@@ -7,30 +7,35 @@
 
 (function() { // anonymous wrapper to exclude global context clash
 
+var Path = anm.Path;
+var Element = anm.Element;
+var C = anm.C;
+var DU = anm.DU;
+
 // =============================================================================
 // === BUILDER =================================================================
 
 // > Builder % ()
 function Builder(obj) {
     this.name = (obj && !obj.xdata) ? obj : ''; // obj is a name string, if it has no xdata
-    this.value = (obj && obj.xdata) ? obj : new _Element(); // if it has, it is an element instance
+    this.value = (obj && obj.xdata) ? obj : new Element(); // if it has, it is an element instance
     this.value.name = this.name;
     this.xdata = this.value.xdata;
 };
-Builder._$ = function(name) {
-    return new Builder(name);
+Builder._$ = function(obj) {
+    return new Builder(obj);
 }
 
 // TODO:
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
 Builder.DEFAULT_FILL = Path.BASE_FILL;
 
-// > Builder.addS % (what: _Element | Builder) => Builder
+// > Builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     this.value.add(what);
     return this;
 }
-// > Builder.addS % (what: _Element | Builder) => Builder
+// > Builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.addS = function(what) {
     this.value.addS(what);
     return this;    
@@ -96,7 +101,7 @@ Builder.prototype.image = function(pt, src) {
         var x = this.xdata,
             b = this;
         x.image = 
-           _Element.imgFromUrl(src, function(img) {
+           Element.imgFromUrl(src, function(img) {
                 b.modify(function(t) {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
@@ -152,18 +157,18 @@ Builder.prototype.tween = function(type, band, data, easing) {
 //                     angles: Array[2,Float],
 //                     [easing: String]) => Builder
 Builder.prototype.rotate = function(band, angles, easing) {
-    return this.tween(Tween.T_ROTATE, band, angles, easing);
+    return this.tween(C.T_ROTATE, band, angles, easing);
 }
 // > Builder.rotateP % (band: Array[2,Float], 
 //                      [easing: String]) => Builder
 Builder.prototype.rotateP = function(band, easing) {
-    return this.tween(Tween.T_ROT_TO_PATH, band, null, easing);
+    return this.tween(C.T_ROT_TO_PATH, band, null, easing);
 }
 // > Builder.scale % (band: Array[2,Float], 
 //                    values: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.scale = function(band, values, easing) {
-    return this.tween(Tween.T_SCALE, band, values, easing);
+    return this.tween(C.T_SCALE, band, values, easing);
 }
 // > Builder.trans % (band: Array[2,Float], 
 //                    points: Array[2,Array[2, Float]],
@@ -177,13 +182,13 @@ Builder.prototype.trans = function(band, points, easing) {
 //                     path: String,
 //                     [easing: String]) => Builder
 Builder.prototype.transP = function(band, path, easing) {
-    return this.tween(Tween.T_TRANSLATE, band, Path.parse(path), easing);
+    return this.tween(C.T_TRANSLATE, band, Path.parse(path), easing);
 }
 // > Builder.alpha % (band: Array[2,Float], 
 //                    values: Array[2,Float],
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
-    return this.tween(Tween.T_ALPHA, band, values, easing);
+    return this.tween(C.T_ALPHA, band, values, easing);
 }
 // > Builder.key % (name: String, value: Float) => Builder
 Builder.prototype.key = function(name, value) {
@@ -197,13 +202,13 @@ Builder.prototype.mode = function(mode) {
     return this;
 }
 Builder.prototype.once = function() {
-    return this.mode(_Element.M_ONCE);
+    return this.mode(C.M_ONCE);
 }
 Builder.prototype.loop = function() {
-    return this.mode(_Element.M_LOOP);
+    return this.mode(C.M_LOOP);
 }
 Builder.prototype.bounce = function() {
-    return this.mode(_Element.M_BOUNCE);
+    return this.mode(C.M_BOUNCE);
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {
