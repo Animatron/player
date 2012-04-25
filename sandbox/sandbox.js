@@ -5,6 +5,8 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
+var DEFAULT_REFRESH_RATE = 3000;
+
 var defaultCode = [
   '// feel free to change,',
   '// just leave `return` on its place',
@@ -54,7 +56,7 @@ examples.push([ 0, [
   'return b().rect([50, 50], [40, 40])',
   '          .trans([0, 3],', 
   '                 [[0, 0], [0, 150]],', 
-  '                 Easing.T_COUT);'
+  '                 C.T_COUT);'
 ].join('\n') ]);
 
 examples.push([ 0 /*version*/, [
@@ -81,23 +83,23 @@ examples.push([ 0 /*version*/, [
 
 examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
-  'var scene = new Scene();',
-  'var elem = new _Element();',
-  'elem.xdata.path = new Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
-  '                           { width: 2, color: \'#300\' },',
-  '                           { color: \'#f00\' });',
+  'var scene = new anm.Scene();',
+  'var elem = new anm.Element();',
+  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
+  '                      { width: 2, color: \'#300\' },',
+  '                      { color: \'#f00\' });',
   'elem.addTween({',
-  '    type: Tween.T_ROTATE,',
+  '    type: C.T_ROTATE,',
   '    band: [0, 3],',
   '    data: [Math.PI / 6, 0]',
   '});',
   'elem.addTween({',
-  '    type: Tween.T_TRANSLATE,',
+  '    type: C.T_TRANSLATE,',
   '    band: [0, 3],',
-  '    data: Path.parse(\'M-100 -100 L100 100 Z\')',
+  '    data: anm.Path.parse(\'M-100 -100 L100 100 Z\')',
   '});',
   'elem.addTween({',
-  '    type: Tween.T_ALPHA,',
+  '    type: C.T_ALPHA,',
   '    band: [1.5, 3],',
   '    data: [1, 0]',
   '});',
@@ -126,38 +128,6 @@ examples.push([ 0 /*version*/, [
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
 
-/* return b().rect([0, 0], [40, 40])
-          .rotateP([0, 10], Easing.T_INOUT)
-          .transP([0, 10],
-                 'M0.0 100.0 '+
-                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
-                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
-                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
-                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
-                 Easing.T_INOUT); */
-
-/* return b().rect([0, 0], [40, 40])
-          .fill("blue")
-          .stroke("green", 4)
-          .alpha([0, 2], [0, 1])
-          .alpha([8, 10], [1, 0])
-          .scale([0, 5], [[1, 1], [2, 2]])
-          .scale([5, 10], [[2, 2], [1, 1]])    
-          .rotateP([0, 10], Easing.T_INOUT)
-          .transP([0, 10],
-                 'M0.0 100.0 '+
-                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
-                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
-                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
-                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
-                 Easing.T_INOUT); */
-
-/* return b().rect([100, 100], [50, 50])
-          .rotate([0, 1.5], [0, Math.PI * 2], 'COUT')
-          .rotate([1.5, 3], [0, Math.PI * 2], 'CIN')    
-          .trans([0, 1.5], [[0, 0], [60, 110]])
-          .trans([1.5, 3], [[60, 110], [150, 20]]); */
-
 var uexamples = [];
 
 function sandbox() {
@@ -170,13 +140,14 @@ function sandbox() {
 
     window.b = Builder._$;
     window.B = Builder;
+    window.C = anm.C;
 
     this.player = createPlayer('my-canvas', {
         width: 400,
-        height: 300,
+        height: 250,
         bgcolor: '#fff'
     });
-    this.player.mode = Player.M_PREVIEW;
+    this.player.mode = anm.C.M_PREVIEW;
     this.player._checkMode();
 
     this.cm = CodeMirror.fromTextArea(this.codeElm, 
@@ -191,7 +162,7 @@ function sandbox() {
 
     var s = this;
     var curInterval = null;
-    var refreshRate = 3000;
+    var refreshRate = DEFAULT_REFRESH_RATE;
     function refresh() {
         s.errorsElm.style.display = 'none';
         s.player.stop();
@@ -332,3 +303,96 @@ function list_examples(selectElm) {
         selectElm.appendChild(optElm);
     }
 }
+
+/* return b().rect([0, 0], [40, 40])
+          .rotateP([0, 10], Easing.T_INOUT)
+          .transP([0, 10],
+                 'M0.0 100.0 '+
+                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
+                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
+                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
+                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
+                 Easing.T_INOUT); */
+
+/* return b().rect([0, 0], [40, 40])
+          .fill("blue")
+          .stroke("green", 4)
+          .alpha([0, 2], [0, 1])
+          .alpha([8, 10], [1, 0])
+          .scale([0, 5], [[1, 1], [2, 2]])
+          .scale([5, 10], [[2, 2], [1, 1]])    
+          .rotateP([0, 10], Easing.T_INOUT)
+          .transP([0, 10],
+                 'M0.0 100.0 '+
+                 'C150.0 0.0 150.0 30.0 200.0 30.0 '+
+                 'C250.0 30.0 400.0 50.0 400.0 100.0 '+
+                 'C400.0 150.0 250.0 300.0 200.0 300.0 '+
+                 'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
+                 Easing.T_INOUT); */
+
+/* return b().rect([100, 100], [50, 50])
+          .rotate([0, 1.5], [0, Math.PI * 2], 'COUT')
+          .rotate([1.5, 3], [0, Math.PI * 2], 'CIN')    
+          .trans([0, 1.5], [[0, 0], [60, 110]])
+          .trans([1.5, 3], [[60, 110], [150, 20]]); */
+
+/* return b().image([120, 120],
+                 'http://madeira.hccanet.org'+
+                 '/project2/michels_p2/'+
+                 'website%20pics/bender.jpg')
+          .rotate([0, 3], [0, Math.PI / 8]); */
+
+/* return b().rect([40, 40], [40, 40])
+          .trans([0, 10], [[100, 100], [200, 200]])
+          .modify(function(t) {
+            if (t > 3) this.t = 6;
+            return true;
+          }); */
+
+/* return b().rect([40, 40], [40, 40])
+          .band([0, 12])
+          .trans([0, 12], [[100, 100], [200, 200]])
+          .modify(function(t) {
+            if (t > 4) this.rt = .7;
+            return true;
+          }); */
+
+/* return b().rect([40, 40], [40, 40])
+          .band([0, 12])
+          .trans([0, 12], [[100, 100], [200, 200]])
+          .key('test', 0)
+          .modify(function(t) {
+            if (t > 4) this.key = 'test';
+            return true;
+          }); */
+
+/* var inner = b('inner')
+    .add(b('green-rect').band([0, 5])
+                        .rect([60, 60], [40, 40])
+                        .trans([0, 5], [[0, 0], [40, 40]])
+                        .fill('#060'))
+    .add(b('blue-rect').band([5, 10])
+                       .rect([100, 100], [40, 40])
+                       .trans([0, 5], [[0, 0], [40, 40]])
+                       .fill('#006'));
+
+return b('parent').band([0, 20])
+       .add(b('red-rect').band([0, 5])
+                         .rect([20, 20], [40, 40])
+                         .fill('#f00')
+                         .trans([0, 5], [[0, 0], [40, 40]]))
+       .add(inner.band([5, 15])); */
+
+/* return b('parent').band([0, 20])
+       .add(b('red-rect').band([0, 3])
+                         .rect([20, 20], [40, 40])
+                         .fill('#f00')
+                         .trans([0, 5], [[0, 0], [40, 40]])
+                         .loop()) */
+
+/* return b('parent').band([0, 20])
+       .add(b('red-rect').band([0, 3])
+                         .rect([20, 20], [40, 40])
+                         .fill('#f00')
+                         .trans([0, 5], [[0, 0], [40, 40]])
+                         .bounce()); */
