@@ -56,7 +56,7 @@ examples.push([ 0, [
   'return b().rect([50, 50], [40, 40])',
   '          .trans([0, 3],', 
   '                 [[0, 0], [0, 150]],', 
-  '                 Easing.T_COUT);'
+  '                 C.T_COUT);'
 ].join('\n') ]);
 
 examples.push([ 0 /*version*/, [
@@ -83,23 +83,23 @@ examples.push([ 0 /*version*/, [
 
 examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
-  'var scene = new Scene();',
-  'var elem = new _Element();',
-  'elem.xdata.path = new Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
-  '                           { width: 2, color: \'#300\' },',
-  '                           { color: \'#f00\' });',
+  'var scene = new anm.Scene();',
+  'var elem = new anm.Element();',
+  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
+  '                      { width: 2, color: \'#300\' },',
+  '                      { color: \'#f00\' });',
   'elem.addTween({',
-  '    type: Tween.T_ROTATE,',
+  '    type: C.T_ROTATE,',
   '    band: [0, 3],',
   '    data: [Math.PI / 6, 0]',
   '});',
   'elem.addTween({',
-  '    type: Tween.T_TRANSLATE,',
+  '    type: C.T_TRANSLATE,',
   '    band: [0, 3],',
-  '    data: Path.parse(\'M-100 -100 L100 100 Z\')',
+  '    data: anm.Path.parse(\'M-100 -100 L100 100 Z\')',
   '});',
   'elem.addTween({',
-  '    type: Tween.T_ALPHA,',
+  '    type: C.T_ALPHA,',
   '    band: [1.5, 3],',
   '    data: [1, 0]',
   '});',
@@ -140,13 +140,14 @@ function sandbox() {
 
     window.b = Builder._$;
     window.B = Builder;
+    window.C = anm.C;
 
     this.player = createPlayer('my-canvas', {
         width: 400,
         height: 250,
         bgcolor: '#fff'
     });
-    this.player.mode = Player.M_PREVIEW;
+    this.player.mode = anm.C.M_PREVIEW;
     this.player._checkMode();
 
     this.cm = CodeMirror.fromTextArea(this.codeElm, 

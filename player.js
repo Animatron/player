@@ -5,14 +5,14 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+var _define; 
+if (typeof define !== "function") {
+   this.define = function(name, func) {
+      func().__injectToWindow(name);
+   };
+};
 
-// Here I use the technique where the operable object is passed as a first parameter to functions,
-// and `this` is null (window object), not to mess with it at all. So you can use this function with 
-// any object as a first parameter and you always know what `this` is in fact. You can name it `delegate`,
-// if you wish
-
-// FIXME: remove console.log
+define("anm", function() {
 
 // === UTILS ===================================================================
 // =============================================================================
@@ -46,14 +46,6 @@ function _s4() {
 }
 function guid() {
    return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
-}
-
-function inject(from, to) {
-    for (var propName in from) {
-        if (from.hasOwnProperty(propName)) {
-            to[propName] = from[propName];
-        }
-    }
 }
 
 function arr_remove(arr, idx) {
@@ -150,6 +142,39 @@ function prepareImage(url, callback) {
     return _img;
 }
 
+// === CONSTANTS ==================================================================
+// ================================================================================
+
+var C = {};
+
+// Player states
+
+C.NOTHING = -1;
+C.STOPPED = 0;
+C.PLAYING = 1;
+C.PAUSED = 2; 
+
+// public constants below are also appended to C object, but with `X_`-like prefix 
+// to indicate their scope, see through all file
+
+// Player Modes constants
+
+C.M_CONTROLS_DISABLED = 0;
+C.M_CONTROLS_ENABLED = 1;
+C.M_INFO_DISABLED = 0;
+C.M_INFO_ENABLED = 2;
+C.M_DO_NOT_HANDLE_EVENTS = 0;
+C.M_HANDLE_EVENTS = 4;
+C.M_PREVIEW = C.M_CONTROLS_DISABLED
+              | C.M_INFO_DISABLED       
+              | C.M_DO_NOT_HANDLE_EVENTS;
+C.M_DYNAMIC = C.M_CONTROLS_DISABLED
+              | C.M_INFO_DISABLED
+              | C.M_HANDLE_EVENTS;
+C.M_VIDEO = C.M_CONTROLS_ENABLED
+            | C.M_INFO_ENABLED       
+            | C.M_DO_NOT_HANDLE_EVENTS;
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -162,7 +187,7 @@ function prepareImage(url, callback) {
  options format:
   { "debug": false,
     "inParent": false,
-    "mode": Player.M_VIDEO,
+    "mode": C.M_VIDEO,
     "zoom": 1.0,
     "meta": { "title": "Default",
               "author": "Anonymous",
@@ -189,29 +214,8 @@ function Player(id, opts) {
     this._init(opts);
 }
 
-Player.NOTHING = -1;
-Player.STOPPED = 0;
-Player.PLAYING = 1;
-Player.PAUSED = 2;
-
 Player.PREVIEW_POS = 0.33;
 Player.PEFF = 0.07; // seconds to play more when reached end of movie
-
-Player.M_CONTROLS_DISABLED = 0;
-Player.M_CONTROLS_ENABLED = 1;
-Player.M_INFO_DISABLED = 0;
-Player.M_INFO_ENABLED = 2;
-Player.M_DO_NOT_HANDLE_EVENTS = 0;
-Player.M_HANDLE_EVENTS = 4;
-Player.M_PREVIEW = Player.M_CONTROLS_DISABLED
-                   | Player.M_INFO_DISABLED       
-                   | Player.M_DO_NOT_HANDLE_EVENTS;
-Player.M_DYNAMIC = Player.M_CONTROLS_DISABLED
-                   | Player.M_INFO_DISABLED
-                   | Player.M_HANDLE_EVENTS;
-Player.M_VIDEO = Player.M_CONTROLS_ENABLED
-                 | Player.M_INFO_ENABLED       
-                 | Player.M_DO_NOT_HANDLE_EVENTS;
 
 Player.URL_ATTR = 'data-url';
 
@@ -220,7 +224,7 @@ Player.DEFAULT_CANVAS = { 'width': 400,
                           'bgcolor': '#fff' };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
-                                 'mode': Player.M_VIDEO,
+                                 'mode': C.M_VIDEO,
                                  'zoom': 1.0,
                                  'meta': { 'title': 'Default',
                                            'author': 'Anonymous',
@@ -296,7 +300,7 @@ Player.prototype.load = function(object, importer, callback) {
 
 Player.prototype.play = function(from, speed) {
 
-    if (this.state.happens === Player.PLAYING) return;
+    if (this.state.happens === C.PLAYING) return;
 
     var player = this;
 
@@ -316,7 +320,7 @@ Player.prototype.play = function(from, speed) {
         clearInterval(player.state.__drawInterval);
     }*/
 
-    _state.happens = Player.PLAYING;
+    _state.happens = C.PLAYING;
 
     if (_state.__lastTimeout) window.clearTimeout(_state.__lastTimeout);
 
@@ -355,10 +359,10 @@ Player.prototype.stop = function() {
     _state.from = 0;
 
     if (player.anim) {
-        _state.happens = Player.STOPPED;
+        _state.happens = C.STOPPED;
         player.drawAt(_state.duration * Player.PREVIEW_POS);
     } else {
-        _state.happens = Player.NOTHING;
+        _state.happens = C.NOTHING;
         player.drawSplash();
     }
     if (player.controls) {
@@ -380,7 +384,7 @@ Player.prototype.pause = function() {
     var _state = player.state;
 
     _state.from = _state.time;
-    _state.happens = Player.PAUSED;
+    _state.happens = C.PAUSED;
 
     player.drawAt(_state.time);
 
@@ -438,7 +442,7 @@ Player.prototype._init = function(opts) {
 Player.prototype._reset = function() {
     var _state = this.state;
     _state.debug = this.debug;
-    _state.happens = Player.NOTHING;
+    _state.happens = C.NOTHING;
     _state.from = 0;
     _state.time = 0;
     _state.zoom = 1;
@@ -507,7 +511,7 @@ Player.prototype.drawLoadingSplash = function(text) {
     ctx.restore();
 }
 Player.prototype._checkMode = function() {
-    if (this.mode & Player.M_CONTROLS_ENABLED) {
+    if (this.mode & C.M_CONTROLS_ENABLED) {
         if (!this.controls) {
             this.controls = new Controls(this);
             this.controls.update(this.canvas);
@@ -519,7 +523,7 @@ Player.prototype._checkMode = function() {
             this.controls = null;
         }
     }
-    if (this.mode & Player.M_INFO_ENABLED) {
+    if (this.mode & C.M_INFO_ENABLED) {
         if (!this.info) {
             this.info = new InfoBlock(this);
             this.info.update(this.canvas);
@@ -643,7 +647,7 @@ Player.createState = function(player) {
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
         'zoom': 1.0, 'bgcolor': '#fff',
-        'happens': Player.NOTHING,
+        'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
         //'__drawInterval': null
@@ -686,17 +690,17 @@ Scene.prototype._addElems = function(elems) {
     }
 }
 // TODO: add chaining to all external Scene methods?
-// > Scene.add % (elem: _Element | Clip)
-// > Scene.add % (elems: Array[_Element]) => Clip
+// > Scene.add % (elem: Element | Clip)
+// > Scene.add % (elems: Array[Element]) => Clip
 // > Scene.add % (draw: Function(ctx: Context),
 //                onframe: Function(time: Float),
 //                [ transform: Function(ctx: Context, 
 //                                      prev: Function(Context)) ]) 
-//                => _Element
+//                => Element
 // > Scene.add % (builder: Builder)
 Scene.prototype.add = function(arg1, arg2, arg3) {
     if (arg2) { // element by functions mode
-        var _elm = new _Element(arg1, arg2);
+        var _elm = new Element(arg1, arg2);
         if (arg3) _elm.changeTransform(arg3);
         this._addToTree(_elm);
         return _elm;
@@ -723,13 +727,13 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
     this.add(_clip);
     return _clip;
 }
-// > Scene.visitElems % (visitor: Function(elm: _Element))
+// > Scene.visitElems % (visitor: Function(elm: Element))
 Scene.prototype.visitElems = function(visitor, data) {
     for (var elmId in this.hash) {
         visitor(this.hash[elmId], data);
     }
 }
-// > Scene.visitElems % (visitor: Function(elm: _Element))
+// > Scene.visitElems % (visitor: Function(elm: Element))
 Scene.prototype.visitRoots = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
         visitor(this.tree[i], data);
@@ -768,15 +772,19 @@ Scene.prototype.reset = function() {
 // === ELEMENTS ================================================================
 // =============================================================================
 
-// > _Element % (draw: Function(ctx: Context),
+C.R_ONCE = 0;
+C.R_LOOP = 1;
+C.R_BOUNCE = 2;
+
+// > Element % (draw: Function(ctx: Context),
 //               onframe: Function(time: Float))
 // FIXME: Underscore here is to prevent conflicts with other libraries.
 //        Find another shorter name that will also fit the meaning
-function _Element(draw, onframe) {
+function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
-    this.state = _Element.createState();
-    this.xdata = _Element.createXData();
+    this.state = Element.createState();
+    this.xdata = Element.createXData();
     this.children = [];
     this.parent = null;
     //this.draw = draw,
@@ -789,22 +797,19 @@ function _Element(draw, onframe) {
     this.__lastJump = null;
     this._initHandlers(); // TODO: make automatic
 };
-_Element.M_ONCE = 0;
-_Element.M_LOOP = 1;
-_Element.M_BOUNCE = 2;
-_Element.DEFAULT_LEN = 10;
+Element.DEFAULT_LEN = 10;
 // TODO: draw and onframe must be events also?
-provideEvents(_Element, ['mdown', 'draw']);
-// > _Element.prepare % () => Boolean
-_Element.prototype.prepare = function() {
+provideEvents(Element, ['mdown', 'draw']);
+// > Element.prepare % () => Boolean
+Element.prototype.prepare = function() {
     this.state._matrix.reset();
     if (this.sprite && !this.xdata.canvas) {
         this._drawToCache();
     }
     return true;     
 }
-// > _Element.onframe % (ltime: Float) => Boolean
-_Element.prototype.onframe = function(gtime) {
+// > Element.onframe % (ltime: Float) => Boolean
+Element.prototype.onframe = function(gtime) {
     var ltime = this.localTime(gtime);
     if (!this.fits(ltime)) return false;
     var seq = this._onframeSeq;
@@ -813,66 +818,66 @@ _Element.prototype.onframe = function(gtime) {
     }
     return true;
 }
-// > _Element.drawTo % (ctx: Context)
-_Element.prototype.drawTo = function(ctx) {
+// > Element.drawTo % (ctx: Context)
+Element.prototype.drawTo = function(ctx) {
     var seq = this._drawSeq;
     for (var si = 0; si < seq.length; si++) {
         seq[si][0].call(this.xdata, ctx, seq[si][1]);
     }
 }
-// > _Element.draw % (ctx: Context)
-_Element.prototype.draw = function(ctx) {
+// > Element.draw % (ctx: Context)
+Element.prototype.draw = function(ctx) {
     if (!this.sprite) {
         this.drawTo(ctx);
     } else {
         ctx.drawImage(this.xdata.canvas, 0, 0);
     }
 }
-// > _Element.transform % (ctx: Context)
-_Element.prototype.transform = function(ctx) {
+// > Element.transform % (ctx: Context)
+Element.prototype.transform = function(ctx) {
     var s = this.state;
-    s._matrix = _Element._applyToMatrix(s);
+    s._matrix = Element._applyToMatrix(s);
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
 };
-_Element.prototype.posAtStart = function(ctx) {
+Element.prototype.posAtStart = function(ctx) {
     var s = this.state;
     ctx.translate(s.lx, s.ly);
     ctx.scale(s.sx, s.sy);
     ctx.rotate(s.angle);
 }
-_Element.prototype._drawToCache = function() {
+Element.prototype._drawToCache = function() {
     var _canvas = newCanvas(this.state.dimen);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
 }
-// > _Element.addPainter % (painter: Function(ctx: Context)) 
+// > Element.addPainter % (painter: Function(ctx: Context)) 
 //                         => Integer
-_Element.prototype.addPainter = function(painter, data) {
+Element.prototype.addPainter = function(painter, data) {
     if (!painter) return; // FIXME: throw some error?
     this._drawSeq.push([painter, data]);
     return (this._drawSeq.length - 1);
 }
-// > _Element.addModifier % (modifier: Function(time: Float, 
+// > Element.addModifier % (modifier: Function(time: Float, 
 //                                              data: Any) => Boolean, 
 //                           data: Any) => Integer
-_Element.prototype.addModifier = function(modifier, data) {
+Element.prototype.addModifier = function(modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
     this._onframeSeq.push([modifier, data]);
     return (this._onframeSeq.length - 1);
 }
-// > _Element.addTween % (tween: Tween)
-_Element.prototype.addTween = function(tween) {
+// > Element.addTween % (tween: Tween)
+Element.prototype.addTween = function(tween) {
     var tweens = this.xdata.tweens;
     if (!(tweens[tween.type])) {
         tweens[tween.type] = [];
     }
     tweens[tween.type].push(tween);
 }
-// > _Element.changeTransform % (transform: Function(ctx: Context, 
+// > Element.changeTransform % (transform: Function(ctx: Context, 
 //                                                   prev: Function(Context)))
-_Element.prototype.changeTransform = function(transform) {
+Element.prototype.changeTransform = function(transform) {
     this.transform = (function(elm, new_, prev) { 
         return function(ctx) {
            new_.call(elm, ctx, prev); 
@@ -880,16 +885,16 @@ _Element.prototype.changeTransform = function(transform) {
     } )(this, transform, this.transform);
 }
 // TODO: removePainter/removeModifier
-// > _Element.add % (elem: _Element | Clip)
-// > _Element.add % (elems: Array[_Element])
-// > _Element.add % (draw: Function(ctx: Context),
+// > Element.add % (elem: Element | Clip)
+// > Element.add % (elems: Array[Element])
+// > Element.add % (draw: Function(ctx: Context),
 //                   onframe: Function(time: Float),
 //                   [ transform: Function(ctx: Context, 
 //                                         prev: Function(Context)) ]) 
-//                   => _Element
-_Element.prototype.add = function(arg1, arg2, arg3) {
+//                   => Element
+Element.prototype.add = function(arg1, arg2, arg3) {
     if (arg2) { // element by functions mode
-        var _elm = new _Element(arg1, arg2);
+        var _elm = new Element(arg1, arg2);
         if (arg3) _elm.changeTransform(arg3);
         this._addChild(_elm);
         return _elm;
@@ -901,29 +906,29 @@ _Element.prototype.add = function(arg1, arg2, arg3) {
         this._addChild(arg1); 
     }
 }
-// > _Element.addS % (dimen: Array[Int, 2],
+// > Element.addS % (dimen: Array[Int, 2],
 //                    draw: Function(ctx: Context),
 //                    onframe: Function(time: Float),
 //                    [ transform: Function(ctx: Context, 
 //                                          prev: Function(Context)) ])
-//                    => _Element
-_Element.prototype.addS = function(dimen, draw, onframe, transform) {
+//                    => Element
+Element.prototype.addS = function(dimen, draw, onframe, transform) {
     var _elm = this.add(draw, onframe, transform);
     _elm.sprite = true;
     _elm.state.dimen = dimen;
     return _elm;
 }    
-_Element.prototype._addChild = function(elm) {
+Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
     Bands.recalc(this);
 };
-_Element.prototype._addChildren = function(elms) {
+Element.prototype._addChildren = function(elms) {
     for (var ei = 0; ei < elms.length; ei++) {
         this._addChild(elms[ei]);
     }
 };
-_Element.prototype.render = function(ctx, time) {
+Element.prototype.render = function(ctx, time) {
     ctx.save();
     if (this.onframe(time) && this.prepare()) {
         this.transform(ctx);
@@ -935,33 +940,33 @@ _Element.prototype.render = function(ctx, time) {
     ctx.restore();
     this.e_draw(ctx); // call only if this element drawn
 }
-_Element.prototype.bounds = function(time) {
+Element.prototype.bounds = function(time) {
     return G.adaptBounds(this, time, G.bounds(this.xdata));
 }
-_Element.prototype.inBounds = function(time, point) {
+Element.prototype.inBounds = function(time, point) {
     var tpoint = G.adapt(this, time, point);
     return G.inBounds(this.xdata, tpoint);
 }
-_Element.prototype.contains = function(time, point) {
+Element.prototype.contains = function(time, point) {
     var tpoint = G.adapt(this, time, point);
     return G.contains(this.xdata, tpoint);
 }
 // make element band fit all children bands
-_Element.prototype.makeBandFit = function() {
+Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
     this.xdata.gband = wband;
     this.xdata.lband[1] = wband[1] - wband[0];
 }
-_Element.prototype.setBand = function(band) {
+Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
-_Element.prototype.fits = function(ltime) {
+Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
                       - this.xdata.lband[0]));
 }
-_Element.prototype._checkJump = function(gtime) {
+Element.prototype._checkJump = function(gtime) {
     var x = this.xdata,
         s = this.state;
     var t = null,
@@ -1018,12 +1023,12 @@ _Element.prototype._checkJump = function(gtime) {
     }
     return t;
 } 
-_Element.prototype.localTime = function(gtime) {
+Element.prototype.localTime = function(gtime) {
     var x = this.xdata;
     switch (x.mode) {
-        case _Element.M_ONCE:
+        case C.R_ONCE:
             return this._checkJump(gtime);
-        case _Element.M_LOOP: {
+        case C.R_LOOP: {
                 var x = this.xdata;
                 var p = this.parent;
                 var durtn = x.lband[1] - 
@@ -1037,7 +1042,7 @@ _Element.prototype.localTime = function(gtime) {
                     t = gtime - (fits * durtn);
                 return (fits <= times) ? this._checkJump(t) : -1;
             }
-        case _Element.M_BOUNCE:
+        case C.R_BOUNCE:
                 var x = this.xdata;
                 var p = this.parent;
                 var durtn = x.lband[1] - 
@@ -1053,13 +1058,13 @@ _Element.prototype.localTime = function(gtime) {
                 return (fits <= times) ? this._checkJump(t) : -1;
     }
 }
-_Element.prototype.handle_mdown = function(evt) {
+Element.prototype.handle_mdown = function(evt) {
     //console.log(evt);
     // TODO: call inBounds
 }
 // calculates band that fits all child elements, recursively
 // FIXME: test
-_Element.prototype.findWrapBand = function() {
+Element.prototype.findWrapBand = function() {
     var children = this.children;
     if (children.length === 0) return this.xdata.gband;
     var result = [ Number.MAX_VALUE, 0 ];
@@ -1068,7 +1073,7 @@ _Element.prototype.findWrapBand = function() {
     });
     return (result[0] !== Number.MAX_VALUE) ? result : null;
 }
-_Element.prototype.reset = function() {
+Element.prototype.reset = function() {
     var s = this.state;
     s.x = 0; s.y = 0;
     s.lx = 0; s.ly = 0;
@@ -1082,13 +1087,13 @@ _Element.prototype.reset = function() {
         elm.reset();
     });
 }
-_Element.prototype.visitChildren = function(func) {
+Element.prototype.visitChildren = function(func) {
     var children = this.children;
     for (var ei = 0; ei < children.length; ei++) {
         func(children[ei]);
     };   
 }
-_Element.prototype._stateStr = function() {
+Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
            "lx: " + s.lx + " ly: " + s.ly + '\n' +    
@@ -1100,7 +1105,7 @@ _Element.prototype._stateStr = function() {
 // FIXME: ensure element has a reg-point (auto-calculated) 
 
 // state of the element
-_Element.createState = function() {
+Element.createState = function() {
     return { 'x': 0, 'y': 0,   // dynamic position
              'lx': 0, 'ly': 0, // static position
              'rx': 0, 'ry': 0, // registration point shift
@@ -1113,22 +1118,22 @@ _Element.createState = function() {
              '_matrix': new Transform() };
 };
 // geometric data of the element
-_Element.createXData = function() {
+Element.createXData = function() {
     return { 'pos': null,      // position in parent clip space
              'reg': null,      // registration point
              'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'tweens': {},     // animation tweens (Tween class)         
-             'mode': _Element.M_ONCE,            // playing mode
-             'lband': [0, _Element.DEFAULT_LEN], // local band
-             'gband': [0, _Element.DEFAULT_LEN], // global bane
+             'mode': C.R_ONCE,            // playing mode
+             'lband': [0, Element.DEFAULT_LEN], // local band
+             'gband': [0, Element.DEFAULT_LEN], // global bane
              'canvas': null,   // own canvas for static (cached) elements
              'dimen': null,    // dimensions for static (cached) elements
              'keys': {},           
              '_mpath': null };
 }
-_Element._applyToMatrix = function(s) {
+Element._applyToMatrix = function(s) {
     var _t = s._matrix;
     _t.translate(s.lx, s.ly);
     _t.translate(s.x, s.y); 
@@ -1137,9 +1142,9 @@ _Element._applyToMatrix = function(s) {
     _t.translate(-s.rx, -s.ry);  
     return _t;
 }
-_Element.imgFromUrl = prepareImage;
+Element.imgFromUrl = prepareImage;
 
-var Clip = _Element;
+var Clip = Element;
 
 // =============================================================================
 // === DRAWING =================================================================
@@ -1152,7 +1157,7 @@ var D = {}; // means "Drawing"
 D.drawNext = function(ctx, state, scene, callback) {
     // NB: state here is a player state, not an element state
 
-    if (state.happens !== Player.PLAYING) return;
+    if (state.happens !== C.PLAYING) return;
 
     var msec = (Date.now() - state.__startTime); 
     var sec = msec / 1000;
@@ -1570,42 +1575,44 @@ Bands.adaptModifierByTime = function(tfunc, func, sband) {
 // =============================================================================
 // === TWEENS ==================================================================
 
+// Tween constants
+
+C.T_TRANSLATE   = 'TRANSLATE';
+C.T_SCALE       = 'SCALE';
+C.T_ROTATE      = 'ROTATE';
+C.T_ROT_TO_PATH = 'ROT_TO_PATH';
+C.T_ALPHA       = 'ALPHA';
+
 var Tween = {};
 var Easing = {};
 
-// tween constants
-Tween.T_TRANSLATE   = 'TRANSLATE';
-Tween.T_SCALE       = 'SCALE';
-Tween.T_ROTATE      = 'ROTATE';
-Tween.T_ROT_TO_PATH = 'ROT_TO_PATH';
-Tween.T_ALPHA       = 'ALPHA';
 // tween order
-Tween.TWEENS_ORDER = [ Tween.T_TRANSLATE, Tween.T_SCALE, Tween.T_ROTATE, 
-                       Tween.T_ROT_TO_PATH, Tween.T_ALPHA ];
+Tween.TWEENS_ORDER = [ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, 
+                       C.T_ROT_TO_PATH, C.T_ALPHA ];
 
 var Tweens = {};
-Tweens[Tween.T_ROTATE] = 
+Tweens[C.T_ROTATE] = 
     function(t, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
     };
-Tweens[Tween.T_TRANSLATE] = 
+Tweens[C.T_TRANSLATE] = 
     function(t, data) {
         var p = data.pointAt(t);
         this._mpath = data;
         this.x = p[0];
         this.y = p[1];
     };
-Tweens[Tween.T_ALPHA] =
+Tweens[C.T_ALPHA] =
     function(t, data) {
         this.alpha = data[0] * (1 - t) + data[1] * t;
     };
-Tweens[Tween.T_SCALE] =    
+Tweens[C.T_SCALE] =    
     function(t, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;  
     };
-Tweens[Tween.T_ROT_TO_PATH] = 
+Tweens[C.T_ROT_TO_PATH] = 
     function(t, data) {
         var path = this._mpath;
         this.angle = path.tangentAt(t);
@@ -1613,24 +1620,27 @@ Tweens[Tween.T_ROT_TO_PATH] =
 
 // function-based easings
 
-Easing.T_PATH = 'PATH'; // Path
-Easing.T_FUNC = 'FUNC'; // Function
-//Easing.T_CINOUT = 'CINOUT'; // Cubic InOut
+// Easings constants
+
+C.E_PATH = 'PATH'; // Path
+C.E_FUNC = 'FUNC'; // Function
+//C.E_CINOUT = 'CINOUT'; // Cubic InOut
+//....
 
 var EasingImpl = {};
 
-EasingImpl[Easing.T_PATH] = 
+EasingImpl[C.E_PATH] = 
     function(path) {
         //var path = Path.parse(str);
         return function(t) {
             return path.pointAt(t)[1];
         }
     };
-EasingImpl[Easing.T_FUNC] =
+EasingImpl[C.E_FUNC] =
     function(f) {
         return f;
     };
-/*EasingImpl[Easing.T_CINOUT] = 
+/*EasingImpl[C.E_CINOUT] = 
     function() {
         return function(t) {
             var t =  2 * t;
@@ -1647,7 +1657,7 @@ EasingImpl[Easing.T_FUNC] =
 Easing.__SEGS = {}; // segments cache for easings
 
 function __registerSegEasing(alias, points) {
-    Easing['T_'+alias] = alias;
+    C['E_'+alias] = alias;
     var seg = new CSeg(points);
     Easing.__SEGS[alias] = seg;
     EasingImpl[alias] = function() {
@@ -1778,6 +1788,11 @@ function provideEvents(subj, events) {
 // "M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z"
 // ======================================================
 
+// path constants
+C.P_MOVETO = 0;
+C.P_LINETO = 1;
+C.P_CURVETO = 2;
+
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
     this.str = str;
@@ -1786,11 +1801,6 @@ function Path(str, stroke, fill) {
     this.segs = [];
     this.parse(str);
 }
-
-// path constants
-Path.P_MOVETO = 0;
-Path.P_LINETO = 1;
-Path.P_CURVETO = 2;
 
 Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
@@ -1849,11 +1859,11 @@ Path.prototype.apply = function(ctx) {
 Path.prototype._applyVisitor = function(segment, ctx) {
     var marker = segment.type;
     var positions = segment.pts;
-    if (marker === Path.P_MOVETO) {
+    if (marker === C.P_MOVETO) {
         ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === Path.P_LINETO) {
+    } else if (marker === C.P_LINETO) {
         ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === Path.P_CURVETO) {
+    } else if (marker === C.P_CURVETO) {
         ctx.bezierCurveTo(positions[0], positions[1],
                           positions[2], positions[3],
                           positions[4], positions[5]);
@@ -2137,7 +2147,7 @@ Path.createStyle = function(ctx, brush) {
 }
 
 function MSeg(pts) {
-    this.type = Path.P_MOVETO;
+    this.type = C.P_MOVETO;
     this.pts = pts;
     this.count = pts.length;
 }
@@ -2166,7 +2176,7 @@ MSeg.prototype.crosses = function(start, point) {
 }
 
 function LSeg(pts) {
-    this.type = Path.P_LINETO;
+    this.type = C.P_LINETO;
     this.pts = pts;
     this.count = pts.length;    
 }
@@ -2203,7 +2213,7 @@ LSeg.prototype.crosses = function(start, point) {
 }
 
 function CSeg(pts) {
-    this.type = Path.P_CURVETO;
+    this.type = C.P_CURVETO;
     this.pts = pts;
     this.count = pts.length;
 }
@@ -2461,7 +2471,7 @@ function Controls(player) {
     this.hidden = false;
     this.elapsed = false;
     this._time = -1000;
-    this._lhappens = Player.NOTHING;
+    this._lhappens = C.NOTHING;
     this._initHandlers(); // TODO: make automatic 
     this._inParent = player.inParent;
 }
@@ -2544,13 +2554,13 @@ Controls.prototype.render = function(state, time, _force) {
     ctx.fillStyle = Controls.COLOR;
 
     // play/pause/stop button
-    if (_s === Player.PLAYING) {
+    if (_s === C.PLAYING) {
         // pause button
         Controls.__pause_btn(ctx);
-    } else if (_s === Player.STOPPED) {
+    } else if (_s === C.STOPPED) {
         // play button
         Controls.__play_btn(ctx);
-    } else if (_s === Player.PAUSED) {
+    } else if (_s === C.PAUSED) {
         // play button
         Controls.__play_btn(ctx);
     } else {
@@ -2597,23 +2607,23 @@ Controls.prototype.handle_mdown = function(event) {
         _w = this.bounds[2] - this.bounds[0]; 
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
         var _s = this.player.state.happens;
-        if (_s === Player.STOPPED) {
+        if (_s === C.STOPPED) {
             this.player.play(0);
-        } else if (_s === Player.PAUSED) {
+        } else if (_s === C.PAUSED) {
             this.player.play(this._time);
-        } else if (_s === Player.PLAYING) {
+        } else if (_s === C.PLAYING) {
             this.player.pause();
         }
     } else if (_lx < (_w - (_tw + _m))) { // progress area 
         var _s = this.player.state.happens;
-        if (_s === Player.NOTHING) return;
+        if (_s === C.NOTHING) return;
         var _pw = _w - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
-        if (_s === Player.PLAYING) this.player.play(_tpos);
-        else if ((_s === Player.PAUSED) ||
-                 (_s === Player.STOPPED)) {
+        if (_s === C.PLAYING) this.player.play(_tpos);
+        else if ((_s === C.PAUSED) ||
+                 (_s === C.STOPPED)) {
             this.player.drawAt(_tpos);
         }
     } else { // time area
@@ -2797,11 +2807,12 @@ InfoBlock.prototype.updateDuration = function(value) {
 // =============================================================================
 // === EXPORTS =================================================================
 
-var all = this;    
 var exports = {
+    
+    'C': C, // constants
     'Player': Player,
     'Scene': Scene,
-    '_Element': _Element,
+    'Element': Element,
     'Clip': Clip,
     'Path': Path, 'Text': Text,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
@@ -2811,8 +2822,15 @@ var exports = {
 
     'createPlayer': function(id, opts) { return new Player(id, opts); },
 
-    '__js_pl_all': all
-}
-inject(exports, window);
+};
 
-})(); // end of anonymous wrapper
+exports._$ = exports.createPlayer;
+exports.__js_pl_all = this;
+exports.__injectToWindow = function(as) {
+          window[as] = exports;
+          window.createPlayer = exports.createPlayer; 
+        };
+
+return exports;
+
+}); // end of anonymous wrapper
