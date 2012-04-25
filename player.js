@@ -2828,7 +2828,6 @@ exports._$ = exports.createPlayer;
 exports.__js_pl_all = this;
 exports.__injectToWindow = function(as) {
           window[as] = exports;
-          window.Player = exports.Player;
           window.createPlayer = exports.createPlayer; 
         };
 
