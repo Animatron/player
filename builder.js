@@ -140,10 +140,10 @@ Builder.prototype.circle = function(pt, radius) {
     });
     return this;
 }
-// > Builder.tween % (type: String, (Tween.T_*)
+// > Builder.tween % (type: String, // (C.T_*)
 //                    band: Array[2,Float], 
 //                    data: Any,
-//                    [easing: String]) => Builder // (Easing.T_*)
+//                    [easing: String]) => Builder // (C.E_*)
 Builder.prototype.tween = function(type, band, data, easing) {
     this.value.addTween({
         type: type,

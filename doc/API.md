@@ -4,24 +4,28 @@ PLAYER API
 * Intro
 * [Embedding](#Embedding)
   * Loading Scenes
+  * Player Options
   * Playing API
 * [Builder](#Builder)
   * Aliases
   * Structure 
   * Shapes
+  * Constants
   * Tweens + Easings
-  * Modes
+  * Repeat Modes
   * Modifiers/Painters
   * Time-Switch
   * [Events]
   * Minor stuff
 * [Scene](#Scene)
   * Manual Building  
-  * Element Internals 
+  * Element Structure 
   * The Flow
   * `Element` reference
-* [Importing](#Importing)
-  * From Animatron
+  * `Path` reference
+  * `Text` reference
+* [Importers](#Importers)
+  * Animatron
   
 Intro
 -----
@@ -32,32 +36,38 @@ Emdedding
 ---------
 <a name="Embedding"></a>
 
-##### 1. #####
+##### 1. Using IFRAME #####
 
 The first option is just to embed the player with some external scene to your site. You may publish one from Animatron tool (when it will be launched) and get the embed code, it will look like this:
 
         <iframe src="http://.../embed?4f97dd3de4b0fd8159a8df75"></iframe>
 
-    (Customizing player style with embed code is planned)
+(Customizing player style with embed code is planned)
 
-##### 2. #####
+##### 2. From Source #####
 
 If you need more customization or to control the flow, or if you want to _import_ some custom scene in custom format (i.e. JSON), or if you plan to _build_ a scene on your own, you may want the second option: to include player from the sourse.
 
 ###### 2a. ######
 
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`player.js`](https://raw.github.com/Animatron/player/master/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) (the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/)) files in RAW format. Now, include them in your HTML file:
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`player.js`](https://raw.github.com/Animatron/player/master/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) (the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/)) files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>
             
       <head>
         <title>My Great Page</title>
-     ⇨ <script src="./matrix.js" type="text/javascript"></script>
-     ⇨ <script src="./player.js" type="text/javascript"></script>
+     ➭  <script src="./matrix.js" type="text/javascript"></script>
+     ➭  <script src="./player.js" type="text/javascript"></script>
+     ➭  <!-- importer or scene files go here, if one required -->
+     ➭  <script type="text/javascript">
+     ➭     function startPlaying() {
+     ➭       . . . // here goes loading/playing code
+     ➭     } 
+     ➭  </script>
        </head>
       
-       <body>
+     ➭ <body onload="startPlaying();">
          <canvas id="my-canvas"></canvas>   
        </body>
       
@@ -69,25 +79,220 @@ Then, you have a `Player` object.
 
 ###### 2b. ######
 
-Now you may easily create a player with either of these two ways, just provide us the correct id of the canvas to attach to: 
+Now you may easily create a player with either of these two ways, just provide us the correct id of the canvas to attach to and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample): 
 
-    var player = new Player('my-canvas');
-    // or: var player = createPlayer('my-canvas');
+    var player = createPlayer('my-canvas')
+    // or: var player = new anm.Player('my-canvas');
 
 ###### 2c. ######
 
-And you may rule the flow with loading your own scene or imporing one:
+And you may rule the flow with loading your own scene or importing one:
 
     var my_scene = ...
     player.load(my_scene).play();
 
 (See below for more information on loading scenes, and see [Builder](#Builder) or [Scene](#Scene) sections for more information on scene creation)
 
-You may create as many players as you want, just be sure to have enough canvases for them.
+You may create as many players as you want, just be sure to have enough of canvases for them.
 
 ### Loading Scenes
 
+Player works with Scenes and plays any Scene easily, if this Scene is one of those:
+
+* Any scene in any JS-compatible format (String, JavaScript Array or Object, a Big Number), if you have an [`Importer`](#Importers) for it; 
+* An URL to JSON, the one we may load with AJAX; the returned JSON may be in any format, just ensure that you have a corresponding [`Importer`](#Importers) for it;
+* [`Builder`](#Builder) instance, see its reference below;
+* [`Scene`](#Scene) instance, see its reference below;
+* An array of `Clip`s or `Elements`, they are also described in [Scene section](#Scene);
+
+Loading and playing a scene requires a scene object (you may load it from external file or create in place) and an instance of [Importer](#Importers), if this scene is in unknown format. 
+
+#### a. from any object ####
+
+Just include the [Importer](#Importers) in the head section of your HTML file. If you store your scene in a file, then also include the scene file:
+
+`my_scene.js`:
+
+    var my_scene = { 
+        . . . 
+    };
+
+`foo.html`:
+
+    . . .
+    <!-- player files -->
+    <script src="./my_importer.js" type="text/javascript"></script>
+    <script src="./my_scene.js" type="text/javascript"></script>
+    . . .
+    
+Loading code:
+
+    createPlayer('my_canvas').load(my_scene, new MyImporter())
+                             .play();
+
+**Note**: You may re-use one importer to load several scenes.
+
+#### b. by URL ####
+
+You don't need to include the scene, since it will be loaded with AJAX, just ensure that URL returns true JSON format, that this location is accessible for your client and do not forget to include importer:
+
+    <!-- player files -->
+    <script src="./my_importer.js" type="text/javascript"></script>
+    
+Loading code:
+    
+    createPlayer('my_canvas')
+            .load('http://acme.com/my_scene.json', new MyImporter())
+            .play();
+            
+#### c. building with Builder ####
+
+[`Builder`](#Builder) is an easy way to build animations (scenes) in JQuery-like style. So you may pass the created scene to the player and have fun. Do not forget to include `Builder`, since it is not the required player file. You may get it in raw format the same way as player files: [`builder.js`](https://raw.github.com/Animatron/player/master/builder.js).
+
+    <!-- player files -->
+    <script src="./builder.js" type="text/javascript"></script>
+
+Loading code:
+
+    var scene = new Builder('blue rect').rect([100, 100], [40, 40])
+                                        .fill('#00f')
+                                        .stroke('#f00', 2)
+                                        .rotate([0, 5], [0, Math.PI / 2]);
+    createPlayer('my_canvas').load(scene).play();
+    
+**Note**: You may want to create an alias for builder, so it will look even more in JQuery-style:
+
+    var b = Builder._$; // instead of "b", you may even name it "_" or "$",
+                        // if it will not clash with JQuery or some other library
+                        // on the page
+    var scene = b().add(
+                       b().rect(. . .)
+                  ).add(
+                       b().circle(. . .)
+                  ).add(
+                       b('custom clip').. . .
+                  );
+
+More information is in [Builder](#Builder) section.
+
+#### d. creating Scene instance ####
+
+You may build a [`Scene`](#Scene) instance manually, with no usage of `Builder`, if you want (but `Builder` is really-really tiny, why? :) ). So you don't need to include anything additional to player files (except the case when you build your scene in external file, so you'll need to include this very file):
+
+    var C = anm.C;
+    var scene = new anm.Scene();
+    var elem = new anm.Element();
+    elem.xdata.path = new anm.Path('M36 35 L35 70 L90 70 L50 20 Z',
+                      { width: 2, color: '#300' },
+                      { color: '#f00' });
+    elem.addTween({
+        type: C.T_ROTATE,
+        band: [0, 3],
+        data: [Math.PI / 6, 0]
+    });
+    elem.addTween({
+        type: C.T_TRANSLATE,
+        band: [0, 3],
+        data: anm.Path.parse('M-100 -100 L100 100 Z')
+    });
+    elem.addTween({
+        type: C.T_ALPHA,
+        band: [1.5, 3],
+        data: [1, 0]
+    });
+    scene.add(elem);
+    
+    createPlayer('my_canvas').load(scene).play();
+    
+#### e. from array of Clips ####
+
+`Clip` is the nickname for `Element` in our player, so there is no difference between them, just construct some elements and add them as array (if fact, it is not the preferred method, it is just provided for the real conformists):
+
+    var first = new anm.Element();
+    first.addPainter(function(ctx) {
+      ctx.save();
+      ctx.strokeStyle = '#f00';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(0, 0);
+      ctx.lineTo(50, 50);
+      ctx.stroke(); 
+      ctx.closePath();
+      ctx.restore();
+    });
+    var second = new anm.Clip();
+    second.addPainter(function(ctx) {
+      ctx.save();
+      ctx.strokeStyle = '#0f0';
+      ctx.lineWidth = 5;
+      ctx.beginPath();
+      ctx.moveTo(50, 30);
+      ctx.lineTo(100, 100);
+      ctx.stroke(); 
+      ctx.closePath();
+      ctx.restore();
+    });
+    
+    createPlayer('my_canvas').load([first, second]).play();
+
+### Player Options
+
+You may pass options object to player, if you want to configure it accurately. 
+
+#### mode ####
+
+In fact, only `mode` option is required, if you ever decide to use it:
+
+    createPlayer('my_canvas', { 'mode': C.M_VIDEO });
+    
+Mode can be:
+
+ * `C.M_VIDEO` — (default) fits for animations that do not interact with user, like movies; controls are shown, info block is shown, mouse/keybord events on shapes are not handled;
+ * `C.M_PREVIEW` — fits for animations/movies with showing no controls/info; both controls and info block are disabled and _no_ mouse/keyboard events handled at all;
+ * `C.M_DYNAMIC` — fits for games and interactive animations; both controls and info block are disabled and all mouse/keyboard events are handled on the objects expecting them;
+ 
+There are a bit more variants for `mode` and you may mix them with single pipe (`|`), like here:
+
+    createPlayer('my_canvas', { 'mode': C.M_CONTROLS_ENABLED | C.M_INFO_DISABLED | C.M_HANDLE_EVENTS });   
+ 
+But they are intended for rare use and we hope you'll be fine with three predefined ones.
+
+**Note**: `C.M_VIDEO`, `C.M_PREVIEW` and `C.M_DYNAMIC` are the precalculated mixes of these "precise" options.
+
+#### other ####
+
+The complete options object, filled with default values, looks like this (again, all options except `mode` are optional):
+
+    { "debug": false, // in debug mode, FPS, shapes names and moving paths are shown
+      "mode": C.M_VIDEO, // player mode, may be C.M_PREVIEW or C.M_DYNAMIC
+      "zoom": 1.0, // zoom ratio for animation
+      "meta": { "title": "Default", // meta data is injected in info block
+                "author": "Anonymous",
+                "copyright": "© NaN",
+                "version": -1.0,
+                "description": 
+                        "Default project description",
+                [ "modified": 12272727271871 ] }, // in milliseconds, not used currently
+      "anim": { ["fps": 30,] // time coefficient, not used currently
+                "width": 400, // animation width, player will be resized if required  
+                "height": 250, // animation height, player will be resized if required   
+                "bgcolor": "#fff", // canvas background color
+                "duration": 0 } } // duration may be auto-calculated, but if provided,
+                                  // this value will be taken
+
 ### Playing API
+
+#### createPlayer(canvasId: String[, options: Object])
+
+#### load(scene: Any[, importer: Importer])
+
+#### play([time: Float][, speed: Float])
+
+#### pause()
+
+#### stop()
+
+#### onerror(callback: Function(evt: Event))
 
 Builder
 -------
@@ -99,9 +304,11 @@ Builder
 
 ### Shapes
 
+### Constants
+
 ### Tweens + Easings
 
-### Modes
+### Repeat Modes
 
 ### Modifiers/Painters
 
@@ -117,13 +324,18 @@ Scene
 
 ### Manual Building  
 
-### Element Internals 
+### Element Structure 
 
 ### The Flow
 
 ### Element reference
 
-Importing
+### Path reference
+
+### Text reference
+
+Importers
 ---------
+<a name="Importers"></a>
  
-### From Animatron
+### Animatron

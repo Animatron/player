@@ -198,7 +198,7 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
               [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
     "anim": { "fps": 30,
               "width": 400,
-              "height": 500,
+              "height": 250,
               "bgcolor": "#fff",
               "duration": 0 } }
 */
