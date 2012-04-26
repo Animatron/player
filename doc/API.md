@@ -10,6 +10,7 @@ PLAYER API
   * Aliases
   * Structure 
   * Shapes
+  * Bands
   * Constants
   * Tweens + Easings
   * Repeat Modes
@@ -298,11 +299,51 @@ Builder
 -------
 <a name="Builder"></a>
 
+`Builder` is the best method for accelerated scene building. It is based on JQuery-like concept (the State Monad, if it says something to you), so the instance of `Builder` is the one single object you'll need to do anything you want. If you are not JQuery lover, name it "just useful chaining".
+
+Let's give an example: this is how the typical compicated scene looks when constructed with `Builder`:
+
+    var b = Builder._$; // quick alias
+    b('scene').band([0, 20])
+              .add(b('red-rect').fill('#f00')
+                                .rect([20, 20], [10, 10])
+                                .rotate([0, 10], [0, Math.PI / 2]))
+              .add(b('bend').image('./bender.png')
+                            .band([10, 15])
+                            .trans([2, 10], [[0, 0], [20, 20]])
+                            .rotateP()
+                            .bounce())
+                            
+<!-- image: 'http://digital-photography'+
+            '-school.com/wp-content/uplo'+
+            'ads/2008/11/my-favorite-lens.jpg' -->
+
 ### Aliases
+
+It is too long to type `new Builder(. . .)` all the time when you need a new instance of `Builder`, so it is recommended to make an alias for it. Any you want, even "`_`" (underscore), just ensure that it is not clashes with some existing variable. So, if you are using JQuery on your page, don't use "`$`" alias, or wrap your code with anonymous function. We think the best one is "`b`".
+
+    var b = Builder._$; // $_ points to the function that calls 
+                        // "new Builder(arguments)" 
+
+Among with `b` (or your variant), you may need some alias to access player constants (in fact, they are only used for easings, so it is really optional, if you don't use any of these). The single object that contains player contants is `anm.C`, so you may append some `C` variable to your code, if you want to access it faster:
+
+    var C = anm.C;
+    
+The last optional variant is to make alias for a `Builder` class itself (not a constructor), because you may find useful to use its static methods [currently there is none of those, but we plan to provide some shortcuts to creating gradient-fills, for example]. Here's the way:
+
+    var B = Builder;
+    
+Now you may write something like this:
+
+    b().rect([20, 20], [10, 10])
+       .fill(B.grad(['#f00', '#00f']))
+       .alpha([0, 7], [1, 0], C.E_CINOUT); // Cubic In-Out Easing
 
 ### Structure 
 
 ### Shapes
+
+### Bands
 
 ### Constants
 
