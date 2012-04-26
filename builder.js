@@ -162,6 +162,7 @@ Builder.prototype.rotate = function(band, angles, easing) {
 // > Builder.rotateP % (band: Array[2,Float], 
 //                      [easing: String]) => Builder
 Builder.prototype.rotateP = function(band, easing) {
+    // FIXME: take band from translate tween, if it is not defined
     return this.tween(C.T_ROT_TO_PATH, band, null, easing);
 }
 // > Builder.scale % (band: Array[2,Float], 
@@ -202,13 +203,13 @@ Builder.prototype.mode = function(mode) {
     return this;
 }
 Builder.prototype.once = function() {
-    return this.mode(C.M_ONCE);
+    return this.mode(C.R_ONCE);
 }
 Builder.prototype.loop = function() {
-    return this.mode(C.M_LOOP);
+    return this.mode(C.R_LOOP);
 }
 Builder.prototype.bounce = function() {
-    return this.mode(C.M_BOUNCE);
+    return this.mode(C.R_BOUNCE);
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {

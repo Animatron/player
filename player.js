@@ -260,32 +260,30 @@ Player.prototype.load = function(object, importer, callback) {
     // TODO: configure canvas using clips bounds
     
     if (object) {
-        // FIXME: check through instanceof/typeof
-        // FIXME: split canvas configuration (size) 
-        //        and meta-information (author, duration) 
-        //        in two different objects
+
         // FIXME: load canvas parameters from canvas element, 
         //        if they are not specified
-        if (object.meta) { // exported from Animatron
-            L.loadFromObj(player, object, importer, whenDone);
-        } else if (object.value) { // Builder instance
+        if (object instanceof Builder) {  // Builder instance
             if (!player.__canvasConfigured) {
                 player._configureCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadBuilder(player, object, whenDone);
-        } else if (object.push) { // array of clips
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
-            }
-            L.loadClips(player, object, whenDone);
-        } else if (object.visitElems) { // Scene instance
+        } else if (object instanceof Scene) { // Scene instance
             if (!player.__canvasConfigured) {
                 player._configureCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadScene(player, object, whenDone);
-        } else { // URL
+        } else if (object instanceof Array) { // array of clips
+            if (!player.__canvasConfigured) {
+                player._configureCanvas(Player.DEFAULT_CANVAS);
+            }
+            L.loadClips(player, object, whenDone);
+        } else if (object instanceof String) { // URL
             L.loadFromUrl(player, object, importer, whenDone);
+        } else { // any object with importer
+            L.loadFromObj(player, object, importer, whenDone);
         }
+
     } else {
         if (!player.__canvasConfigured) {
             player._configureCanvas(Player.DEFAULT_CANVAS);
@@ -446,6 +444,7 @@ Player.prototype._reset = function() {
     _state.from = 0;
     _state.time = 0;
     _state.zoom = 1;
+    _state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, _state.width, _state.height);
@@ -966,11 +965,13 @@ Element.prototype.fits = function(ltime) {
     return (ltime <= (this.xdata.lband[1]
                       - this.xdata.lband[0]));
 }
-Element.prototype._checkJump = function(gtime) {
+Element.prototype._checkGJump = function(gtime) {
+    return this._checkJump(gtime - this.xdata.gband[0]);
+}
+Element.prototype._checkJump = function(at) {
     var x = this.xdata,
         s = this.state;
     var t = null,
-        at = gtime - x.gband[0]; // actual time
         duration = x.lband[1] - x.lband[0];
     // if jump-time was set either 
     // directly or relatively or with key,
@@ -1027,33 +1028,37 @@ Element.prototype.localTime = function(gtime) {
     var x = this.xdata;
     switch (x.mode) {
         case C.R_ONCE:
-            return this._checkJump(gtime);
+            return this._checkGJump(gtime);
         case C.R_LOOP: {
-                var x = this.xdata;
-                var p = this.parent;
+                var x = this.xdata,
+                    p = this.parent;
                 var durtn = x.lband[1] - 
                             x.lband[0],
                     pdurtn = p
                         ? (p.xdata.lband[1] -
                            p.xdata.lband[0])
-                        : durtn,
-                    times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn),
-                    t = gtime - (fits * durtn);
+                        : durtn;
+                if (durtn < 0) return -1;
+                var times = Math.floor(pdurtn / durtn),
+                    fits = Math.floor((gtime - x.gband[0]) / durtn);
+                if (fits < 0) return -1;
+                var t = (gtime - x.gband[0]) - (fits * durtn);
                 return (fits <= times) ? this._checkJump(t) : -1;
             }
         case C.R_BOUNCE:
-                var x = this.xdata;
-                var p = this.parent;
+                var x = this.xdata,
+                    p = this.parent;
                 var durtn = x.lband[1] - 
                             x.lband[0],
                     pdurtn = p
                         ? (p.xdata.lband[1] -
                            p.xdata.lband[0])
-                        : durtn,
-                    times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn),
-                    t = gtime - (fits * durtn),
+                        : durtn;
+                if (durtn < 0) return -1;
+                var times = Math.floor(pdurtn / durtn),
+                    fits = Math.floor((gtime - x.gband[0]) / durtn);
+                if (fits < 0) return -1;
+                var t = (gtime - x.gband[0]) - (fits * durtn),
                     t = ((fits % 2) == 0) ? t : durtn - t;
                 return (fits <= times) ? this._checkJump(t) : -1;
     }
