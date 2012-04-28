@@ -372,9 +372,9 @@ function list_examples(selectElm) {
                         .trans([0, 5], [[0, 0], [40, 40]])
                         .fill('#060'))
     .add(b('blue-rect').band([5, 10])
-                       .rect([100, 100], [40, 40])
+                       .circle([100, 100], 20)
                        .trans([0, 5], [[0, 0], [40, 40]])
-                       .fill('#006'));
+                       .fill('#006').bounce());
 
 return b('parent').band([0, 20])
        .add(b('red-rect').band([0, 5])

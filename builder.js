@@ -126,7 +126,7 @@ Builder.prototype.rect = function(pt, rect) {
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
 Builder.prototype.circle = function(pt, radius) {
-    this.xdata.pos = [ pt[0] - radius, pt[1] - radius ];
+    this.xdata.pos = pt;
     this.xdata.reg = [ radius, radius ];
     var b = this;
     this.paint(function(ctx) {
