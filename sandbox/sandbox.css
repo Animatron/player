@@ -165,6 +165,6 @@ select#examples-list {
 	width: 400px;
 }
 
-#refresh-calc, #debug-options {
+#refresh-calc, #debug-options, #switch-mode-l, #switch-mode {
 	font-size: .8em;
 }

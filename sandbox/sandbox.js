@@ -130,6 +130,8 @@ examples.push([ 0 /*version*/, [
 
 var uexamples = [];
 
+var _player = null; 
+
 function sandbox() {
 
     this.codeElm = document.getElementById('scene-source'),
@@ -149,6 +151,7 @@ function sandbox() {
     });
     this.player.mode = anm.C.M_PREVIEW;
     this.player._checkMode();
+    _player = this.player;
 
     this.cm = CodeMirror.fromTextArea(this.codeElm, 
               { mode: 'javascript',
@@ -241,6 +244,13 @@ function hide_csheet(csheetElmId, overlayElmId) {
     csheetElm.style.display = 'none';
     overlayElm.style.display = 'none';
 
+}
+
+function change_mode(radio) {
+  if (_player) {
+    _player.mode = C[radio.value];
+    _player._checkMode();
+  }
 }
 
 function store_examples() {

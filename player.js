@@ -175,6 +175,36 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_INFO_ENABLED       
             | C.M_DO_NOT_HANDLE_EVENTS;
 
+
+// EVENTS
+
+// mouse
+C.X_MCLICK = 1;
+C.X_MDCLICK = 2;
+C.X_MUP = 4;
+C.X_MDOWN = 8;
+C.X_MMOVE = 16;
+
+C.XT_MOUSE = C.X_MCLICK | C.X_MDCLICK | 
+             C.X_MUP | C.X_MDOWN | C.X_MMOVE;
+
+// keyboard
+C.X_KPRESS = 32;
+C.X_KUP = 64;
+C.X_KDOWN = 128;
+
+C.XT_KEYBOARD = C.X_KPRESS | C.X_KUP | C.X_KDOWN;
+
+// draw
+C.X_DRAW = 'draw';
+
+// playing
+C.X_PLAY = 'play';
+C.X_PAUSE = 'pause';
+C.X_STOP = 'stop';
+C.X_LOAD = 'load';
+C.X_ERROR = 'error';
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -252,7 +282,7 @@ Player.prototype.load = function(object, importer, callback) {
     player._reset();
 
     var whenDone = function() {
-        player.e_load();
+        player.fire(C.X_LOAD);
         player.stop();
         if (callback) callback();
     };
@@ -340,8 +370,7 @@ Player.prototype.play = function(from, speed) {
                    return true;
                });
 
-    player.e_play(_state.from);
-    //console.log('play', player.id, _state);
+    player.fire(C.X_PLAY,_state.from);
 
     return player;
 }
@@ -367,7 +396,7 @@ Player.prototype.stop = function() {
         player.controls.render(_state, 0);
     }
 
-    player.e_stop();
+    player.fire(C.X_STOP);
     //console.log('stop', player.id, _state);
 
     return player;    
@@ -386,7 +415,7 @@ Player.prototype.pause = function() {
 
     player.drawAt(_state.time);
 
-    player.e_pause(_state.time);
+    player.fire(C.X_PAUSE,_state.time);
     //console.log('pause', player.id, _state);
 
     return player;    
@@ -399,7 +428,7 @@ Player.prototype.pause = function() {
 Player.prototype.onerror = function(callback) { // TODO: make and event?
     var player = this;
 
-    player.e_error();
+    player.fire(C.X_ERROR);
     //console.log('onerror', player.id, player);
 
     player.anim = null;
@@ -412,7 +441,7 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 // === INITIALIZATION ==========================================================
 // =============================================================================
 
-provideEvents(Player, ['play', 'pause', 'stop', 'load', 'error']);
+provideEvents(Player, [C.X_PLAY, C.X_PAUSE, C.X_STOP, C.X_LOAD, C.X_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
     var opts = opts || Player.DEFAULT_CONFIGURATION;
@@ -518,7 +547,6 @@ Player.prototype._checkMode = function() {
     } else {
         if (this.controls) {
             this.controls.detach(this.canvas);
-            delete this.controls;
             this.controls = null;
         }
     }
@@ -530,7 +558,6 @@ Player.prototype._checkMode = function() {
     } else {
         if (this.info) {
             this.info.detach(this.canvas);
-            delete this.info;
             this.info = null;
         }
     }
@@ -664,7 +691,8 @@ function Scene() {
     this.duration = 0;
     this._initHandlers(); // TODO: make automatic
 }
-provideEvents(Scene, ['mdown', 'draw']);
+// mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
+provideEvents(Scene, [C.X_MDOWN, C.X_KUP, C.X_KDOWN, C.X_KPRESS, C.X_DRAW]);
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new Error('It appears that it is not a clip object or element that you pass');  
@@ -748,12 +776,13 @@ Scene.prototype.render = function(ctx, time, zoom) {
         elm.render(ctx, time);
     });
     ctx.restore();
-    this.e_draw(ctx);
+    this.fire(C.X_DRAW,ctx);
 }
-Scene.prototype.handle_mdown = function(evt) {
-    /*this.visitElems(function(elm) {
-        elm.e_mdown(evt);
-    });*/
+Scene.prototype.handle__x = function(type, evt) {
+    this.visitElems(function(elm) {
+        if (elm.visible) elm.fire(type, evt);
+    });
+    return true;
 }
 Scene.prototype.calculateDuration = function() {
     var gband = [Number.MAX_VALUE, 0];
@@ -765,7 +794,13 @@ Scene.prototype.calculateDuration = function() {
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
         elm.reset();
-    });    
+    });
+}
+Scene.prototype.dispose = function() {
+    this.disposeHandlers();
+    this.visitRoots(function(elm) {
+        elm.dispose();
+    });
 }
 
 // === ELEMENTS ================================================================
@@ -789,16 +824,17 @@ function Element(draw, onframe) {
     //this.draw = draw,
     //this.onframe = onframe;
     this.sprite = false;
+    this.visible = false;
     this._drawSeq = [];
     this._onframeSeq = [];
     if (draw) this._drawSeq.push([draw, null]);
     if (onframe) this._onframeSeq.push([onframe, null]);
     this.__lastJump = null;
+    this.__evtLock = false;
     this._initHandlers(); // TODO: make automatic
 };
 Element.DEFAULT_LEN = 10;
-// TODO: draw and onframe must be events also?
-provideEvents(Element, ['mdown', 'draw']);
+provideEvents(Element, [C.X_MDOWN, C.X_KEYUP, C.X_KDOWN, C.X_KPRESS, C.X_DRAW]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -929,15 +965,22 @@ Element.prototype._addChildren = function(elms) {
 };
 Element.prototype.render = function(ctx, time) {
     ctx.save();
-    if (this.onframe(time) && this.prepare()) {
+    this.__evtLock = true;
+    var wasDrawn = false;
+    if (wasDrawn = (this.onframe(time) 
+                    && this.prepare())) {
         this.transform(ctx);
         this.draw(ctx);
     }
+    this.__clearEvtState();
+    this.visible = wasDrawn;
+    // saving visibility before releasing a lock
+    this.__evtLock = false;
     this.visitChildren(function(elm) {
         elm.render(ctx, time);
     });
     ctx.restore();
-    this.e_draw(ctx); // call only if this element drawn
+    if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
 Element.prototype.bounds = function(time) {
     return G.adaptBounds(this, time, G.bounds(this.xdata));
@@ -960,6 +1003,8 @@ Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
+// TODO: add time function support, similar to easing
+//       without a tween
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
@@ -1063,9 +1108,27 @@ Element.prototype.localTime = function(gtime) {
                 return (fits <= times) ? this._checkJump(t) : -1;
     }
 }
-Element.prototype.handle_mdown = function(evt) {
-    //console.log(evt);
-    // TODO: call inBounds
+Element.prototype.handle__x = function(type, evt) {
+    if (this.__evtLock) return false;
+    // TODO: test with inBounds for mouse events
+    this.__saveToEvtState(type, evt);
+    return true;
+}
+Element.prototype.__saveToEvtState = function(type, evt) {
+    this.state._evt_st &= type;
+    var _evts = this.state._evts;
+    if (!_evts[type]) _evts[type] = [];
+    _evts[type].push(evt);
+}
+Element.prototype.__clearEvtState = function() {
+    var s = this.state;
+    if (s._evt_st === 0) return;
+    s._evt_st = 0;
+    var _evts = s._evts;
+    for (var type in _evts) {
+        delete _evts[type];
+    }
+    _evts = {};
 }
 // calculates band that fits all child elements, recursively
 // FIXME: test
@@ -1078,6 +1141,12 @@ Element.prototype.findWrapBand = function() {
     });
     return (result[0] !== Number.MAX_VALUE) ? result : null;
 }
+Element.prototype.dispose = function() {
+    this.disposeHandlers();
+    this.visitChildren(function(elm) {
+        elm.dispose();
+    });
+}
 Element.prototype.reset = function() {
     var s = this.state;
     s.x = 0; s.y = 0;
@@ -1088,6 +1157,7 @@ Element.prototype.reset = function() {
     s.t = null; s.rt = null; s.key = null;
     this.__lastJump = null;
     s._matrix.reset();
+    this.__clearEvtState();
     this.visitChildren(function(elm) {
         elm.reset();
     });
@@ -1120,7 +1190,9 @@ Element.createState = function() {
              't': null, 'rt': null, 'key': null, 
                                // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
-             '_matrix': new Transform() };
+             '_matrix': new Transform(),
+             '_evts': {},
+             '_evt_st': 0 };
 };
 // geometric data of the element
 Element.createXData = function() {
@@ -1150,6 +1222,104 @@ Element._applyToMatrix = function(s) {
 Element.imgFromUrl = prepareImage;
 
 var Clip = Element;
+
+// =============================================================================
+// === EVENTS ==================================================================
+
+// adds specified events support to the `subj` object. `subj` object receives 
+// `handlers` property that keeps the listeners for each event. Also, it gets
+// `e_<evt_name>` function for every event provided to call it when it is
+// required to call all handlers of all of thise event name 
+// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
+// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
+// but without messing with other handlers. 
+// And, user gets `on` function to subcribe to events and `provides` to check
+// if it is allowed.
+function provideEvents(subj, events) {
+    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
+        return function() {
+            var _hdls = {};
+            this.handlers = _hdls;
+            for (var ei = 0; ei < evts.length; ei++) {
+                _hdls[evts[ei]] = [];
+            }  
+        };
+    })(events);
+    subj.prototype.on = function(event, handler) {
+        if (!this.provides(event)) throw new Error('Event ' + event + 
+                                                   ' not provided by ' + this);
+        if (!handler) throw new Error('You are trying to assign ' + 
+                                       'undefined handler for event ' + event);
+        this.handlers[event].push(handler);
+        return (this.handlers[event].length - 1);
+    };
+    subj.prototype.fire = function(event, evtobj) {
+        if (!this.provides(event)) throw new Error('Event ' + event + 
+                                                   ' not provided by ' + this);
+        if (this.handle__x && !(this.handle__x(event, evtobj))) return;    
+        if (this['handle_'+event]) this['handle_'+event](evtobj);
+        var _hdls = this.handlers[event];
+        for (var hi = 0; hi < _hdls.length; hi++) {            
+            _hdls[hi].call(this, evtobj);
+        }
+    };
+    subj.prototype.provides = (function(evts) {
+        return function(event) {
+            if (!event) return evts;
+            return this.handlers.hasOwnProperty(event);
+        }
+    })(events);
+    subj.prototype.unbind = function(event, idx) {
+        if (!this.provides(event)) throw new Error('Event ' + event + 
+                                                   ' not provided by ' + this);
+        if (this.handlers[event][idx]) {
+            this.handlers[event] = arr_remove(this.handlers, idx);
+        } else {
+            throw new Error('No such handler ' + idx + ' for event ' + event);
+        }
+    };
+    subj.prototype.disposeHandlers = function() {
+        var _hdls = this.handlers;
+        for (var evt in _hdls) {
+            if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
+        }
+    } 
+    // FIXME: call fire/e_-funcs only from inside of their providers,
+    // TODO: wrap them with event objects
+    for (var ei = 0; ei < events.length; ei++) {
+        var _event = events[ei];
+        subj.prototype['e_'+_event] = (function(event) { 
+            return function(evtobj) {
+                this.fire(event, evtobj);
+            };
+        })(_event);
+    }
+    // subj.prototype.before = function(event, handler) { }
+    // subj.prototype.after = function(event, handler) { }
+    // subj.prototype.provide = function(event, provider) { }
+}
+
+function mevt(e, cvs) {
+  var elm = cvs, 
+      ox = 0, oy = 0, 
+      mx, my;
+ 
+  if (elm.offsetParent !== undefined) {
+    do {
+      ox += elm.offsetLeft;
+      oy += elm.offsetTop;
+    } while ((elm = elm.offsetParent));
+  }
+ 
+  ox += cvs.stylePaddingLeft + 
+        cvs.styleBorderLeft + 
+        cvs.htmlLeft;
+  oy += cvs.stylePaddingTop + 
+        cvs.styleBorderTop + 
+        cvs.htmlTop;
+ 
+  return [ e.pageX - ox, e.pageY - oy ];
+}
 
 // =============================================================================
 // === DRAWING =================================================================
@@ -1353,11 +1523,14 @@ L.loadFromObj = function(player, object, importer, callback) {
     L.loadScene(player, importer.load(object), callback);
 }
 L.loadScene = function(player, scene, callback) {
+    if (player.anim) player.anim.dispose();
     // add rendering
     scene.visitElems(Render.addXDataRender);
     if (player.state.debug) scene.visitElems(Render.addDebugRender);
     // subscribe events
-    L.subscribeEvents(player.canvas, scene);
+    if (player.mode & C.M_HANDLE_EVENTS) {
+        L.subscribeEvents(player.canvas, scene);
+    }
     // assign
     player.anim = scene;
     if (!player.state.duration) {
@@ -1377,7 +1550,16 @@ L.loadBuilder = function(player, builder, callback) {
 }
 L.subscribeEvents = function(canvas, anim) {
     canvas.addEventListener('mousedown', function(evt) {
-        anim.e_mdown(evt);
+        anim.fire(C.X_MDOWN, mevt(evt, this));
+    }, false);
+    canvas.addEventListener('keyup', function(evt) {
+        anim.fire(C.X_KUP, kevt(evt));
+    }, false);    
+    canvas.addEventListener('keydown', function(evt) {
+        anim.fire(C.X_KDOWN, kevt(evt));
+    }, false);
+    canvas.addEventListener('keypress', function(evt) {
+        anim.fire(C.X_KPRESS, kevt(evt));
     }, false);
 }
 
@@ -1406,7 +1588,7 @@ Render.addDebugRender = function(elm) {
     if (elm.xdata.reg) elm.addPainter(Render.p_drawReg, elm.xdata.reg);
     if (elm.name) elm.addPainter(Render.p_drawName, elm.name);
     //elm.addPainter(Render.p_drawMPathIfSet);
-    elm.on('draw', Render.h_drawMPath);
+    elm.on(C.X_DRAW, Render.h_drawMPath);
 }
 
 Render.addTweensModifiers = function(elm, tweens) {
@@ -1700,75 +1882,6 @@ __registerSegEasing('CRINOUT',[0.785, 0.135, 0.150, 0.860, 1.000, 1.000]); // Ci
 __registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // Back In
 __registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
 __registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
-
-// === EVENTS ==================================================================
-// =============================================================================
-
-// adds specified events support to the `subj` object. `subj` object receives 
-// `handlers` property that keeps the listeners for each event. Also, it gets
-// `e_<evt_name>` function for every event provided to call it when it is
-// required to call all handlers of all of thise event name 
-// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
-// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
-// but without messing with other handlers. 
-// And, user gets `on` function to subcribe to events and `provides` to check
-// if it is allowed.
-function provideEvents(subj, events) {
-    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
-        return function() {
-            var _hdls = {};
-            this.handlers = _hdls;
-            for (var ei = 0; ei < evts.length; ei++) {
-                _hdls[evts[ei]] = [];
-            }  
-        };
-    })(events);
-    subj.prototype.on = function(event, handler) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
-        if (!handler) throw new Error('You are trying to assign ' + 
-                                       'undefined handler for event ' + event);
-        this.handlers[event].push(handler);
-        return (this.handlers[event].length - 1);
-    };
-    subj.prototype.fire = function(event, evtobj) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
-        if (this['handle_'+event]) this['handle_'+event](evtobj);
-        var _hdls = this.handlers[event];
-        for (var hi = 0; hi < _hdls.length; hi++) {            
-            _hdls[hi].call(this, evtobj);
-        }
-    };
-    subj.prototype.provides = (function(evts) {
-        return function(event) {
-            if (!event) return evts;
-            return this.handlers.hasOwnProperty(event);
-        }
-    })(events);
-    subj.prototype.unbind = function(event, idx) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
-        if (this.handlers[event][idx]) {
-            this.handlers = arr_remove(this.handlers, idx);
-        } else {
-            throw new Error('No such handler ' + idx + ' for event ' + event);
-        }
-    };
-    // FIXME: call fire/e_-funcs only from inside of their providers,
-    // TODO: wrap them with event objects
-    for (var ei = 0; ei < events.length; ei++) {
-        var _event = events[ei];
-        subj.prototype['e_'+_event] = (function(event) { 
-            return function(evtobj) {
-                this.fire(event, evtobj);
-            };
-        })(_event);
-    }
-    // subj.prototype.before = function(event, handler) { }
-    // subj.prototype.after = function(event, handler) { }
-    // subj.prototype.provide = function(event, provider) { }
-}
 
 // =============================================================================
 // === PATHS ===================================================================
@@ -2489,7 +2602,7 @@ Controls.COLOR = '#faa';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN);
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
-provideEvents(Controls, ['mdown', 'draw']);
+provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _w = parent.width,
         _h = Controls.HEIGHT,
@@ -2530,7 +2643,7 @@ Controls.prototype.update = function(parent) {
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) { 
-            return function(evt) { controls.e_mdown(evt); };
+            return function(evt) { controls.fire(C.X_MDOWN, evt); };
         })(this), false);
     canvas.addEventListener('mouseout', (function(controls) { 
             return function(evt) { controls.hide(); };
@@ -2583,7 +2696,7 @@ Controls.prototype.render = function(state, time, _force) {
                          ? (time - state.duration) : time);
     
     ctx.restore();
-    this.e_draw(state);
+    this.fire(C.X_DRAW, state);
 }
 // TODO: take initial state from imported project
 Controls.prototype.hide = function() {

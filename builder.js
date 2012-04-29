@@ -220,6 +220,16 @@ Builder.prototype._curFill = function() {
     var path = this.xdata.path;
     return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
 }
+Builder.prototype.on = function(type, handler) {
+    this.value.modify(function(t) {
+      if (this._evt_st & type) {
+        var evts = this._evts[type];
+        for (var i = 0; i <= evts.length; i++) {
+            handler.call(this,evts[i],t);
+        }
+      }
+    });
+} 
 /*Builder.p_drawCircle = function(ctx, args) {
     var pt=args[0], radius=args[1],
         fill=args[2], stroke=args[3];
