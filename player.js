@@ -196,7 +196,7 @@ C.X_KDOWN = 128;
 C.XT_KEYBOARD = C.X_KPRESS | C.X_KUP | C.X_KDOWN;
 
 // draw
-C.X_DRAW = 'draw';
+C.X_DRAW = 256;
 
 // playing
 C.X_PLAY = 'play';
@@ -692,7 +692,9 @@ function Scene() {
     this._initHandlers(); // TODO: make automatic
 }
 // mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
-provideEvents(Scene, [C.X_MDOWN, C.X_KUP, C.X_KDOWN, C.X_KPRESS, C.X_DRAW]);
+provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
+                       C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
+                       C.X_DRAW ]);
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new Error('It appears that it is not a clip object or element that you pass');  
@@ -806,6 +808,7 @@ Scene.prototype.dispose = function() {
 // === ELEMENTS ================================================================
 // =============================================================================
 
+// repeat mode 
 C.R_ONCE = 0;
 C.R_LOOP = 1;
 C.R_BOUNCE = 2;
@@ -834,7 +837,9 @@ function Element(draw, onframe) {
     this._initHandlers(); // TODO: make automatic
 };
 Element.DEFAULT_LEN = 10;
-provideEvents(Element, [C.X_MDOWN, C.X_KEYUP, C.X_KDOWN, C.X_KPRESS, C.X_DRAW]);
+provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
+                         C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
+                         C.X_DRAW ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -1109,13 +1114,16 @@ Element.prototype.localTime = function(gtime) {
     }
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (this.__evtLock) return false;
+    if (this.__evtLock) return false; 
+    // FIXME: handling through simple handlers 
+    // (not modifiers) must, may be, work everytime
+    // with no locks
     // TODO: test with inBounds for mouse events
     this.__saveToEvtState(type, evt);
     return true;
 }
 Element.prototype.__saveToEvtState = function(type, evt) {
-    this.state._evt_st &= type;
+    this.state._evt_st |= type;
     var _evts = this.state._evts;
     if (!_evts[type]) _evts[type] = [];
     _evts[type].push(evt);
@@ -1128,7 +1136,7 @@ Element.prototype.__clearEvtState = function() {
     for (var type in _evts) {
         delete _evts[type];
     }
-    _evts = {};
+    s._evts = {};
 }
 // calculates band that fits all child elements, recursively
 // FIXME: test
@@ -1549,8 +1557,14 @@ L.loadBuilder = function(player, builder, callback) {
     L.loadScene(player, _anim, callback);
 }
 L.subscribeEvents = function(canvas, anim) {
+    canvas.addEventListener('mouseup', function(evt) {
+        anim.fire(C.X_MUP, mevt(evt, this));
+    }, false);
     canvas.addEventListener('mousedown', function(evt) {
         anim.fire(C.X_MDOWN, mevt(evt, this));
+    }, false);
+    canvas.addEventListener('mouseclick', function(evt) {
+        anim.fire(C.X_MCLICK, mevt(evt, this));
     }, false);
     canvas.addEventListener('keyup', function(evt) {
         anim.fire(C.X_KUP, kevt(evt));

@@ -406,3 +406,18 @@ return b('parent').band([0, 20])
                          .fill('#f00')
                          .trans([0, 5], [[0, 0], [40, 40]])
                          .bounce()); */
+
+/* return b()
+  .add(
+    b('blue-rect').rect([140, 25], [70, 70])
+                  .fill('#009')
+                  .stroke('#f00', 3)
+      .on(C.X_KPRESS, function(t, evt) {
+          console.log(this, t, evt);
+      })
+      .on(C.X_MDOWN, function(t, evt) {
+          console.log(this, t, evt);
+      }))
+  .add(
+    b('red-rect').rect([115, 90], [60, 60])
+                 .fill('#f00')); */
