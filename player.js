@@ -240,7 +240,7 @@ function Player(id, opts) {
     this.ctx = null;
     this.controls = null;
     this.info = null;
-    this.__canvasConfigured = false;
+    this.__canvasPrepared = false;
     this._init(opts);
 }
 
@@ -294,18 +294,18 @@ Player.prototype.load = function(object, importer, callback) {
         // FIXME: load canvas parameters from canvas element, 
         //        if they are not specified
         if (object instanceof Builder) {  // Builder instance
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
+            if (!player.__canvasPrepared) {
+                player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadBuilder(player, object, whenDone);
         } else if (object instanceof Scene) { // Scene instance
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
+            if (!player.__canvasPrepared) {
+                player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadScene(player, object, whenDone);
         } else if (object instanceof Array) { // array of clips
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
+            if (!player.__canvasPrepared) {
+                player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadClips(player, object, whenDone);
         } else if (object instanceof String) { // URL
@@ -315,8 +315,8 @@ Player.prototype.load = function(object, importer, callback) {
         }
 
     } else {
-        if (!player.__canvasConfigured) {
-            player._configureCanvas(Player.DEFAULT_CANVAS);
+        if (!player.__canvasPrepared) {
+            player._prepareCanvas(Player.DEFAULT_CANVAS);
         }
         player.anim = new Scene();
     }
@@ -480,63 +480,18 @@ Player.prototype._reset = function() {
     this.stop();
 }
 // update player's canvas with configuration 
-Player.prototype._configureCanvas = function(opts) {
-    this.__canvasConfigured = true;
+Player.prototype._prepareCanvas = function(opts) {
+    var canvas = this.canvas;
     this._canvasConf = opts;
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    canvasOpts(this.canvas, opts);
-    if (this.controls) this.controls.update(this.canvas);
-    if (this.info) this.info.update(this.canvas);
+    canvasOpts(canvas, opts);
+    if (this.controls) this.controls.update(canvas);
+    if (this.info) this.info.update(canvas);
+    this._saveCanvasPos(canvas);
+    this.__canvasPrepared = true;
     return this;
-}
-Player.prototype.drawSplash = function() {
-    var ctx = this.ctx,
-        w = this.state.width,
-        h = this.state.height,
-        rsize = 120;
-    ctx.save();
-
-    // background
-    ctx.fillStyle = '#ffe';
-    ctx.fillRect(0, 0, w, h);
-
-    // text
-    ctx.fillStyle = '#999966';
-    ctx.font = '18px sans-serif';
-    ctx.fillText('© Animatron Player', 20, h - 20);
-
-    // outer rect
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = '#fee';
-    ctx.strokeRect(0, 0, w, h);
-
-    // inner rect
-    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
-    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
-    grad.addColorStop(0, '#00abeb');
-    grad.addColorStop(.7, '#fff');
-    grad.addColorStop(.7, '#6c0');
-    grad.addColorStop(1, '#fff');
-    ctx.fillStyle = grad;
-    ctx.strokeStyle = '#bbb';
-    ctx.lineWidth = 10;
-    ctx.globalAlpha = .8;
-    ctx.fillRect(0, 0, rsize, rsize);
-    ctx.globalAlpha = .9;
-    ctx.strokeRect(0, 0, rsize, rsize);
-
-    ctx.restore();
-}
-Player.prototype.drawLoadingSplash = function(text) {
-    this.drawSplash();
-    var ctx = this.ctx;
-    ctx.save();
-    ctx.fillStyle = '#006';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(text || "Loading...", 20, 25);
-    ctx.restore();
 }
 Player.prototype._checkMode = function() {
     if (this.mode & C.M_CONTROLS_ENABLED) {
@@ -563,8 +518,9 @@ Player.prototype._checkMode = function() {
     }
     // FIXME: M_HANDLE_EVENTS
 }
+// FIXME: call changeRect on every resize
 Player.prototype.changeRect = function(rect) {
-    this._configureCanvas({
+    this._prepareCanvas({
         width: rect.width,
         height: rect.height,
         x: rect.x,
@@ -587,7 +543,7 @@ Player.prototype.changeZoom = function(ratio) {
 // }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
-    this._configureCanvas(conf);
+    this._prepareCanvas(conf);
     // inject information to html
     
     if (conf.fps) this.state.fps = conf.fps;
@@ -662,6 +618,94 @@ Player.prototype.subscribeEvents = function(canvas) {
 Player.prototype.updateDuration = function(value) {
     this.state.duration = value;
     if (this.info) this.info.updateDuration(value);
+}
+Player.prototype._saveCanvasPos = function(cvs) {
+    var gcs = (document.defaultView && 
+               document.defaultView.getComputedStyle); // last is assigned
+
+    // computed padding-left
+    var cpl = gcs ?
+          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
+    // computed padding-top
+        cpt = gcs ?
+          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
+    // computed bodrer-left
+        cbl = gcs ?
+          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
+    // computed bodrer-top
+        cbt = gcs ? 
+          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
+
+    var html = document.body.parentNode,
+        htol = html.offsetLeft,
+        htot = html.offsetTop;
+
+    var elm = cvs, 
+        ol = cpl + cbl + htol, 
+        ot = cpt + cbt + htot;
+     
+    if (elm.offsetParent !== undefined) {
+        do {
+            ol += elm.offsetLeft;
+            ot += elm.offsetTop;
+        } while (elm = elm.offsetParent);
+    };
+ 
+    ol += cpl + cbl + htol;
+    ot += cpt + cbt + htot;
+
+    // FIXME: find a method with no injection of custom properties
+    //        (data-xxx attributes are stored as strings and may work
+    //         a bit slower for events)
+    cvs.__rOffsetLeft = ol;
+    cvs.__rOffsetTop = ot;
+}
+Player.prototype.drawSplash = function() {
+    var ctx = this.ctx,
+        w = this.state.width,
+        h = this.state.height,
+        rsize = 120;
+    ctx.save();
+
+    // background
+    ctx.fillStyle = '#ffe';
+    ctx.fillRect(0, 0, w, h);
+
+    // text
+    ctx.fillStyle = '#999966';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('© Animatron Player', 20, h - 20);
+
+    // outer rect
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = '#fee';
+    ctx.strokeRect(0, 0, w, h);
+
+    // inner rect
+    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
+    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
+    grad.addColorStop(0, '#00abeb');
+    grad.addColorStop(.7, '#fff');
+    grad.addColorStop(.7, '#6c0');
+    grad.addColorStop(1, '#fff');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 10;
+    ctx.globalAlpha = .8;
+    ctx.fillRect(0, 0, rsize, rsize);
+    ctx.globalAlpha = .9;
+    ctx.strokeRect(0, 0, rsize, rsize);
+
+    ctx.restore();
+}
+Player.prototype.drawLoadingSplash = function(text) {
+    this.drawSplash();
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = '#006';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(text || "Loading...", 20, 25);
+    ctx.restore();
 }
 
 Player.createState = function(player) {
@@ -1021,6 +1065,7 @@ Element.prototype._checkGJump = function(gtime) {
 Element.prototype._checkJump = function(at) {
     var x = this.xdata,
         s = this.state;
+    if (x.tf) return x.tf(at);
     var t = null,
         duration = x.lband[1] - x.lband[0];
     // if jump-time was set either 
@@ -1138,6 +1183,17 @@ Element.prototype.__clearEvtState = function() {
     }
     s._evts = {};
 }
+Element.prototype.m_on = function(type, handler) {
+    this.addModifier(function(t) {
+      if (this._evt_st & type) {
+        var evts = this._evts[type];
+        for (var i = 0; i < evts.length; i++) {
+            handler.call(this,t,evts[i]);
+        }
+      }
+      return true;
+    });
+}
 // calculates band that fits all child elements, recursively
 // FIXME: test
 Element.prototype.findWrapBand = function() {
@@ -1215,7 +1271,8 @@ Element.createXData = function() {
              'gband': [0, Element.DEFAULT_LEN], // global bane
              'canvas': null,   // own canvas for static (cached) elements
              'dimen': null,    // dimensions for static (cached) elements
-             'keys': {},           
+             'keys': {},
+             'tf': null,
              '_mpath': null };
 }
 Element._applyToMatrix = function(s) {
@@ -1291,7 +1348,7 @@ function provideEvents(subj, events) {
         for (var evt in _hdls) {
             if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
         }
-    } 
+    }
     // FIXME: call fire/e_-funcs only from inside of their providers,
     // TODO: wrap them with event objects
     for (var ei = 0; ei < events.length; ei++) {
@@ -1307,26 +1364,13 @@ function provideEvents(subj, events) {
     // subj.prototype.provide = function(event, provider) { }
 }
 
+function kevt(e) {
+    return e;
+}
+
 function mevt(e, cvs) {
-  var elm = cvs, 
-      ox = 0, oy = 0, 
-      mx, my;
- 
-  if (elm.offsetParent !== undefined) {
-    do {
-      ox += elm.offsetLeft;
-      oy += elm.offsetTop;
-    } while ((elm = elm.offsetParent));
-  }
- 
-  ox += cvs.stylePaddingLeft + 
-        cvs.styleBorderLeft + 
-        cvs.htmlLeft;
-  oy += cvs.stylePaddingTop + 
-        cvs.styleBorderTop + 
-        cvs.htmlTop;
- 
-  return [ e.pageX - ox, e.pageY - oy ];
+    return [ e.pageX - cvs.__rOffsetLeft, 
+             e.pageY - cvs.__rOffsetTop ];
 }
 
 // =============================================================================
@@ -1861,11 +1905,14 @@ function __registerSegEasing(alias, points) {
     C['E_'+alias] = alias;
     var seg = new CSeg(points);
     Easing.__SEGS[alias] = seg;
-    EasingImpl[alias] = function() {
-        return function(t) {
+    var func = 
+        function(t) {
             return seg.atT([0, 0], t)[1];
-        }
-    }
+        };
+    C['EF_'+alias] = func;
+    EasingImpl[alias] = function() {
+        return func; 
+    } 
 }
 
 __registerSegEasing('DEF',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default

@@ -43,8 +43,9 @@ Builder.prototype.addS = function(what) {
 // > Builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
     var x = this.xdata;
-    x.reg = [ x.reg[0] + pt[0],
-              x.reg[1] + pt[1] ];
+    x.pos = [ x.pos[0] + pt[0],
+              x.pos[1] + pt[1] ];
+    return this;
 }
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
@@ -211,6 +212,19 @@ Builder.prototype.loop = function() {
 Builder.prototype.bounce = function() {
     return this.mode(C.R_BOUNCE);
 }
+Builder.prototype.time = function(f) {
+    this.xdata.tf = f;
+    return this;
+}
+Builder.prototype.tease = function(ease) {
+    if (!ease) throw new Error('Ease function not defined');
+    var x = this.xdata;
+    var duration = x.lband[1]-x.lband[0];
+    this.time(function(t) {
+        return ease(t / duration);
+    });
+    return this;
+}
 // PRIVATE
 Builder.prototype._curStroke = function() {
     var path = this.xdata.path;
@@ -221,17 +235,9 @@ Builder.prototype._curFill = function() {
     return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
 }
 Builder.prototype.on = function(type, handler) {
-    this.modify(function(t) {
-      if (this._evt_st & type) {
-        var evts = this._evts[type];
-        for (var i = 0; i <= evts.length; i++) {
-            handler.call(this,t,evts[i]);
-        }
-      }
-      return true;
-    });
+    this.value.m_on(type, handler);
     return this;
-} 
+}
 /*Builder.p_drawCircle = function(ctx, args) {
     var pt=args[0], radius=args[1],
         fill=args[2], stroke=args[3];
