@@ -41,11 +41,12 @@ Builder.prototype.addS = function(what) {
     return this;    
 }
 // > Builder.move % (pt: Array[2,Integer]) => Builder
-Builder.prototype.move = function(pt) {
+/* FIXME: implement! // Builder.prototype.move = function(pt) {
     var x = this.xdata;
     x.reg = [ x.reg[0] + pt[0],
               x.reg[1] + pt[1] ];
-}
+    return this;
+}*/
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
     if (!this.xdata.path) {
@@ -224,7 +225,7 @@ Builder.prototype.on = function(type, handler) {
     this.modify(function(t) {
       if (this._evt_st & type) {
         var evts = this._evts[type];
-        for (var i = 0; i <= evts.length; i++) {
+        for (var i = 0; i < evts.length; i++) {
             handler.call(this,t,evts[i]);
         }
       }

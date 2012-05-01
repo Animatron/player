@@ -407,16 +407,18 @@ return b('parent').band([0, 20])
                          .trans([0, 5], [[0, 0], [40, 40]])
                          .bounce()); */
 
-/* return b()
+/*  return b()
   .add(
-    b('blue-rect').rect([140, 25], [70, 70])
+    b('blue-rect').rect([0, 0], [70, 70])
                   .fill('#009')
                   .stroke('#f00', 3)
+                  //.move([70, 70])
       .on(C.X_KPRESS, function(t, evt) {
           console.log(this, t, evt);
       })
       .on(C.X_MDOWN, function(t, evt) {
-          console.log(this, t, evt);
+          this.x = evt[0];
+          this.y = evt[1];
       }))
   .add(
     b('red-rect').rect([115, 90], [60, 60])
