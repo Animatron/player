@@ -878,6 +878,7 @@ function Element(draw, onframe) {
     if (onframe) this._onframeSeq.push([onframe, null]);
     this.__lastJump = null;
     this.__evtLock = false;
+    this.__jumpLock = false;
     this._initHandlers(); // TODO: make automatic
 };
 Element.DEFAULT_LEN = 10;
@@ -1031,16 +1032,16 @@ Element.prototype.render = function(ctx, time) {
     ctx.restore();
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-Element.prototype.bounds = function(time) {
-    return G.adaptBounds(this, time, G.bounds(this.xdata));
+Element.prototype.bounds = function() {
+    return /*G.adaptBounds(this, time, */G.bounds(this.xdata)/*)*/;
 }
-Element.prototype.inBounds = function(time, point) {
-    var tpoint = G.adapt(this, time, point);
-    return G.inBounds(this.xdata, tpoint);
+Element.prototype.inBounds = function(point) {
+    //var tpoint = G.adapt(this, time, point);
+    return G.inBounds(this.xdata, point);
 }
 Element.prototype.contains = function(time, point) {
-    var tpoint = G.adapt(this, time, point);
-    return G.contains(this.xdata, tpoint);
+    //var tpoint = G.adapt(this, time, point);
+    return G.contains(this, time, point);
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
@@ -1082,24 +1083,26 @@ Element.prototype._checkJump = function(at) {
         if ((t < 0) || (t > duration)) {
             throw new Error('failed to calculate jump');
         }
-        if ((this.__lastJump === null) ||
-            (this.__lastJump[1] !== t)) {
-             // jump was performed if t or rt or key
-             // were set and new value is not
-             // equal to previous jump value:
-             // save jump time and return it
-             this.__lastJump = [ at, t ];
-             s.t = null;
-             s.rt = null;
-             s.key = null;
-             return t;
-        } else {
-            // jump is already in progress, 
-            // reset values and continue
-            s.t = null;
-            s.rt = null;
-            s.key = null;
-            t = null;
+        if (!this.__jumpLock) {
+            if ((this.__lastJump === null) ||
+                (this.__lastJump[1] !== t)) {
+                 // jump was performed if t or rt or key
+                 // were set and new value is not
+                 // equal to previous jump value:
+                 // save jump time and return it
+                 this.__lastJump = [ at, t ];
+                 s.t = null;
+                 s.rt = null;
+                 s.key = null;
+                 return t;
+            } else {
+                // jump is already in progress, 
+                // reset values and continue
+                s.t = null;
+                s.rt = null;
+                s.key = null;
+                t = null;
+            }
         }
     }
     // set t to jump-time, and if no jump-time 
@@ -1463,14 +1466,6 @@ DU.qDraw = function(ctx, stroke, fill, func) {
 
 var G = {}; // geometry
 
-G.adapt = function(elm, time, point) {
-    return point;
-    // FIXME: return real value
-}
-G.adaptBounds = function(elm, time, bounds) {
-    return bounds;
-    // FIXME: return real value
-}
 G.bounds = function(xdata) {
     if (xdata.path) {
         return xdata.path.bounds();
@@ -1484,6 +1479,28 @@ G.inBounds = function(xdata, point) {
     // TODO: handle images and stuff
 }
 G.contains = function(xdata, point) {
+    //this.__jumpLock = true;
+    /*if () {
+            ctx.save();
+        this.__evtLock = true;
+        var wasDrawn = false;
+        if (wasDrawn = (this.onframe(time) 
+                        && this.prepare())) {
+            this.transform(ctx);
+            this.draw(ctx);
+        }
+        this.__clearEvtState();
+        this.visible = wasDrawn;
+        // saving visibility before releasing a lock
+        this.__evtLock = false;
+        this.visitChildren(function(elm) {
+            elm.render(ctx, time);
+        });
+        ctx.restore();
+        if (wasDrawn) this.fire(C.X_DRAW,ctx);
+    }
+    return point;*/
+
     if (G.inBounds(xdata, point)) {
         if (xdata.path) {
             return xdata.path.contains(point);
@@ -2196,7 +2213,7 @@ Path.prototype.contains = function(t, point) {
 }
 Path.prototype.crosses = function(point) {
     // TODO: check for infinity
-    if (segs.length < 2) return false;
+    if (this.segs.length < 2) return false;
     var p = this.start();
     var crossings = 0;
     this.visit(function(segment) {

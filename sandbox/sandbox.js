@@ -442,3 +442,20 @@ return b().band([0, 15])
     b('red-rect').rect([115, 90], [60, 60])
                  .fill('#f00'))
   .rotate([0, 10], [0, Math.PI]); */
+
+/* 
+var test = b().rect([0, 0], [70, 70])
+      .fill('#009')
+      .stroke('#f00', 3)
+      .on(C.X_MDOWN, function(t, evt) {
+          console.log(test.v.contains(t, evt));
+          this.x = evt[0];
+          this.y = evt[1];
+          console.log(t, evt, test.v.contains(t, evt));
+      });
+
+return b().band([0, 15])
+  .add(test)
+  .add(
+    b('red-rect').rect([115, 90], [60, 60])
+                 .fill('#f00')); */
