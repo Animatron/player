@@ -17,10 +17,24 @@ var DU = anm.DU;
 
 // > Builder % ()
 function Builder(obj) {
-    this.name = (obj && !obj.xdata) ? obj : ''; // obj is a name string, if it has no xdata
-    this.value = (obj && obj.xdata) ? obj : new Element(); // if it has, it is an element instance
-    this.value.name = this.name;
-    this.xdata = this.value.xdata;
+    if (!obj) {
+        this.n = '';
+        this.v = new Element();
+        this.x = this.v.xdata;
+    } else if (obj instanceof Element) {
+        this.n = obj.name;
+        this.v = obj;
+        this.x = obj.xdata;
+    } else if (obj instanceof Builder) {
+        this.n = obj.n;
+        this.v = obj.v;
+        this.x = obj.x;
+    } else if (typeof obj === 'string') {
+        this.n = obj;
+        this.v = new Element();
+        this.v.name = this.n;
+        this.x = this.v.xdata;
+    }
 };
 Builder._$ = function(obj) {
     return new Builder(obj);
@@ -32,76 +46,83 @@ Builder.DEFAULT_FILL = Path.BASE_FILL;
 
 // > Builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
-    this.value.add(what);
+    if (what instanceof Element) {
+        this.v.add(what);    
+    } else if (what instanceof Builder) {
+        this.v.add(what.v);
+    }
     return this;
 }
 // > Builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.addS = function(what) {
-    this.value.addS(what);
+    if (what instanceof Element) {
+        this.v.addS(what);    
+    } else if (what instanceof Builder) {
+        this.v.addS(what.v);
+    }
     return this;    
 }
 // > Builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
-    var x = this.xdata;
+    var x = this.x;
     x.pos = [ x.pos[0] + pt[0],
               x.pos[1] + pt[1] ];
     return this;
 }
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
-    if (!this.xdata.path) {
-        this.xdata.path = new Path(); 
+    if (!this.x.path) {
+        this.x.path = new Path(); 
     }
-    this.xdata.path.setFill(color);
+    this.x.path.setFill(color);
     return this;
 }
 // > Builder.stroke % (color: String, width: Float) 
 //                  => Builder
 Builder.prototype.stroke = function(color, width) {
-    if (!this.xdata.path) {
-        this.xdata.path = new Path();
+    if (!this.x.path) {
+        this.x.path = new Path();
     }
-    this.xdata.path.setStroke(color, width);
+    this.x.path.setStroke(color, width);
     return this;
 }
 // > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
 Builder.prototype.path = function(pathStr) {
-    this.xdata.path = Path.parse(pathStr,
-                                 this.xdata.path);
-    var path = this.xdata.path;
+    this.x.path = Path.parse(pathStr,
+                             this.x.path);
+    var path = this.x.path;
     var norm = path.normalize();
-    this.xdata.pos = norm[0];
-    this.xdata.reg = norm[1];
+    this.x.pos = norm[0];
+    this.x.reg = norm[1];
     if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
     if (!path.fill) path.fill = Builder.DEFAULT_FILL;
     return this;
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
-    this.value.setBand(band);
+    this.v.setBand(band);
     return this;
 }
 // > Builder.paint % (painter: Function(ctx: Context))
 //                 => Builder
 Builder.prototype.paint = function(func, data) {
-    this.value.addPainter(func, data);
+    this.v.addPainter(func, data);
     return this;
 }
 // > Builder.modify % (modifier: Function(time: Float, 
 //                                        data: Any), 
 //                     data: Any) => Builder
 Builder.prototype.modify = function(func, data) {
-    this.value.addModifier(func, data);
+    this.v.addModifier(func, data);
     return this;
 }
 // > Builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src) {
-    this.xdata.pos = pt;
+    this.x.pos = pt;
     if (src) {
-        var x = this.xdata,
-            b = this;
-        x.image = 
+        var b = this;
+        this.x.image = 
            Element.imgFromUrl(src, function(img) {
                 b.modify(function(t) {
                     this.rx = Math.floor(img.width/2);
@@ -127,8 +148,8 @@ Builder.prototype.rect = function(pt, rect) {
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
 Builder.prototype.circle = function(pt, radius) {
-    this.xdata.pos = pt;
-    this.xdata.reg = [ radius, radius ];
+    this.x.pos = pt;
+    this.x.reg = [ radius, radius ];
     var b = this;
     this.paint(function(ctx) {
         var path = this.path;
@@ -146,7 +167,7 @@ Builder.prototype.circle = function(pt, radius) {
 //                    data: Any,
 //                    [easing: String]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
-    this.value.addTween({
+    this.v.addTween({
         type: type,
         band: band,
         data: data,
@@ -195,12 +216,12 @@ Builder.prototype.alpha = function(band, values, easing) {
 // > Builder.key % (name: String, value: Float) => Builder
 Builder.prototype.key = function(name, value) {
     // TODO: ensure value is in band?
-    this.xdata.keys[name] = value;
+    this.x.keys[name] = value;
     return this;
 }
 // > Builder.mode % (mode: String) => Builder
 Builder.prototype.mode = function(mode) {
-    this.xdata.mode = mode;
+    this.x.mode = mode;
     return this;
 }
 Builder.prototype.once = function() {
@@ -213,13 +234,12 @@ Builder.prototype.bounce = function() {
     return this.mode(C.R_BOUNCE);
 }
 Builder.prototype.time = function(f) {
-    this.xdata.tf = f;
+    this.x.tf = f;
     return this;
 }
 Builder.prototype.tease = function(ease) {
     if (!ease) throw new Error('Ease function not defined');
-    var x = this.xdata;
-    var duration = x.lband[1]-x.lband[0];
+    var duration = this.x.lband[1]-this.x.lband[0];
     this.time(function(t) {
         return ease(t / duration);
     });
@@ -227,15 +247,15 @@ Builder.prototype.tease = function(ease) {
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {
-    var path = this.xdata.path;
+    var path = this.x.path;
     return path ? (path.stroke || Builder.DEFAULT_STROKE) : Builder.DEFAULT_STROKE;
 }
 Builder.prototype._curFill = function() {
-    var path = this.xdata.path;
+    var path = this.x.path;
     return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
 }
 Builder.prototype.on = function(type, handler) {
-    this.value.m_on(type, handler);
+    this.v.m_on(type, handler);
     return this;
 }
 /*Builder.p_drawCircle = function(ctx, args) {

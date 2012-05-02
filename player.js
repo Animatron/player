@@ -308,7 +308,7 @@ Player.prototype.load = function(object, importer, callback) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadClips(player, object, whenDone);
-        } else if (object instanceof String) { // URL
+        } else if (typeof object === 'string') { // URL
             L.loadFromUrl(player, object, importer, whenDone);
         } else { // any object with importer
             L.loadFromObj(player, object, importer, whenDone);
@@ -1597,7 +1597,7 @@ L.loadClips = function(player, clips, callback) {
 }
 L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
-    _anim.add(builder);
+    _anim.add(builder.v);
     L.loadScene(player, _anim, callback);
 }
 L.subscribeEvents = function(canvas, anim) {
