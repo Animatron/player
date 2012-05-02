@@ -420,6 +420,10 @@ return b('parent').band([0, 20])
     b('blue-rect').rect([0, 0], [70, 70])
                   .fill('#009')
                   .stroke('#f00', 3)
+                  //.move([70, 70])
+      //.on(C.X_KPRESS, function(t, evt) {
+      //    console.log(this, t, evt);
+      //})
       .on(C.X_MDOWN, function(t, evt) {
           this.x = evt[0];
           this.y = evt[1];
