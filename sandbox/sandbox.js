@@ -56,7 +56,7 @@ examples.push([ 0, [
   'return b().rect([50, 50], [40, 40])',
   '          .trans([0, 3],', 
   '                 [[0, 0], [0, 150]],', 
-  '                 C.T_COUT);'
+  '                 C.E_COUT);'
 ].join('\n') ]);
 
 examples.push([ 0 /*version*/, [
@@ -315,14 +315,14 @@ function list_examples(selectElm) {
 }
 
 /* return b().rect([0, 0], [40, 40])
-          .rotateP([0, 10], Easing.T_INOUT)
+          .rotateP([0, 10], C.E_INOUT)
           .transP([0, 10],
                  'M0.0 100.0 '+
                  'C150.0 0.0 150.0 30.0 200.0 30.0 '+
                  'C250.0 30.0 400.0 50.0 400.0 100.0 '+
                  'C400.0 150.0 250.0 300.0 200.0 300.0 '+
                  'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
-                 Easing.T_INOUT); */
+                 C.E_INOUT); */
 
 /* return b().rect([0, 0], [40, 40])
           .fill("blue")
@@ -331,14 +331,14 @@ function list_examples(selectElm) {
           .alpha([8, 10], [1, 0])
           .scale([0, 5], [[1, 1], [2, 2]])
           .scale([5, 10], [[2, 2], [1, 1]])    
-          .rotateP([0, 10], Easing.T_INOUT)
+          .rotateP([0, 10], C.E_INOUT)
           .transP([0, 10],
                  'M0.0 100.0 '+
                  'C150.0 0.0 150.0 30.0 200.0 30.0 '+
                  'C250.0 30.0 400.0 50.0 400.0 100.0 '+
                  'C400.0 150.0 250.0 300.0 200.0 300.0 '+
                  'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
-                 Easing.T_INOUT); */
+                 C.E_INOUT); */
 
 /* return b().rect([100, 100], [50, 50])
           .rotate([0, 1.5], [0, Math.PI * 2], 'COUT')
@@ -407,15 +407,11 @@ return b('parent').band([0, 20])
                          .trans([0, 5], [[0, 0], [40, 40]])
                          .bounce()); */
 
-/*  return b()
+/* return b().band([0, 15])
   .add(
     b('blue-rect').rect([0, 0], [70, 70])
                   .fill('#009')
                   .stroke('#f00', 3)
-                  //.move([70, 70])
-      .on(C.X_KPRESS, function(t, evt) {
-          console.log(this, t, evt);
-      })
       .on(C.X_MDOWN, function(t, evt) {
           this.x = evt[0];
           this.y = evt[1];
@@ -432,7 +428,7 @@ return b().band([0, 15])
                   .move([40, 40])
                   .fill('#009')
                   .stroke('#f00', 3)
-                  .rotate([0, 10], [0, Math.PI / 2])
+                  .rotate([0, 5], [0, Math.PI / 2])
                   .tease(C.EF_CINOUT))
   .add(
     b('red-rect').rect([115, 90], [60, 60])
