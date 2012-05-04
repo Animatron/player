@@ -1047,16 +1047,14 @@ Element.prototype.render = function(ctx, time) {
     ctx.restore();
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-Element.prototype.bounds = function() {
-    return /*G.adaptBounds(this, time, */G.bounds(this.xdata)/*)*/;
+Element.prototype.bounds = function(time) {
+    return G.bounds(this, time);
 }
-Element.prototype.inBounds = function(point) {
-    //var tpoint = G.adapt(this, time, point);
-    return G.inBounds(this.xdata, point);
+Element.prototype.inBounds = function(point, time) {
+    return G.inBounds(this, point, time);
 }
-Element.prototype.contains = function(time, point) {
-    //var tpoint = G.adapt(this, time, point);
-    return G.contains(this, time, point);
+Element.prototype.contains = function(point, time) {
+    return G.contains(this, point, time);
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
@@ -1068,8 +1066,6 @@ Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
-// TODO: add time function support, similar to easing
-//       without a tween
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
@@ -1098,7 +1094,7 @@ Element.prototype._checkJump = function(at) {
         if ((t < 0) || (t > duration)) {
             throw new Error('failed to calculate jump');
         }
-        if (!this.__jumpLock &&) {
+        if (!this.__jumpLock) {
             if ((this.__lastJump === null) ||
                 (this.__lastJump[1] !== t)) {
                  // jump was performed if t or rt or key
