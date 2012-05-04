@@ -51,6 +51,21 @@ function guid() {
 function arr_remove(arr, idx) {
     return arr.slice(0,i).concat( arr.slice(i+1) );   
 }
+// for one-level objects, so no hasOwnProperty check
+function obj_clone(what) {
+    var dest = {};
+    for (var prop in what) {
+        dest[prop] = what[prop];
+    }
+    return dest;
+}
+// for one-level objects, so no hasOwnProperty check
+function obj_copy(what, dest) {
+    for (var prop in what) {
+        dest[prop] = what[prop];
+    }
+    return dest;
+}
 
 function find_pos(elm) {
     var curleft = curtop = 0;
@@ -1083,7 +1098,7 @@ Element.prototype._checkJump = function(at) {
         if ((t < 0) || (t > duration)) {
             throw new Error('failed to calculate jump');
         }
-        if (!this.__jumpLock) {
+        if (!this.__jumpLock &&) {
             if ((this.__lastJump === null) ||
                 (this.__lastJump[1] !== t)) {
                  // jump was performed if t or rt or key
@@ -1243,6 +1258,23 @@ Element.prototype.travelChildren = function(func) {
         elem.travelChildren(func);
     };
 }
+Element.prototype.lock = function() {
+    this.__jumpLock = true;
+    this.__lstate = obj_clone(this.state);
+}
+Element.prototype.unlock = function() {
+    var result = this.state;
+    this.state = this.__lstate;
+    this.__lstate = null;
+    this.__jumpLock = false;
+    return result;
+}
+Element.prototype.stateAt = function(t) {
+    this.lock();
+    var succeed = this.onframe(t);
+    var state = this.unlock();
+    return succeed ? state : null;
+}
 Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
@@ -1252,7 +1284,6 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "t: " + s.t + " rt: " + s.rt + " key: " + s.key + '\n';
 }
-// FIXME: ensure element has a reg-point (auto-calculated) 
 
 // state of the element
 Element.createState = function() {
@@ -1478,30 +1509,24 @@ var G = {}; // geometry
 // t is global time
 G.adopt = function(elm, pt, t) {
     if (pt === null) return null;
-    var s = Element.stateAt(elm, t);
-    if (s) {
-        var m = Element._getMatrixOf(s);
-        m.invert();
-        return m.transformPoint(pt[0], pt[1]);
+    var s; if (s = elm.stateAt(t)) {
+        return 
+            Element._getMatrixOf(s)
+                   .transformPoint(pt[0], pt[1]);
     } else return null;
-    /*var visible = false;
-    if (visible = (elm.onframe(t) 
-                   && elm.prepare())) {
-        var m = Element.applyToMatrix(elm.s);
-        //elm.transform();
-        //_m.clone().invert().transformPoint()
-    } else return null;*/
 }
 G.adoptBounds = function(elm, bounds, t) {
-    if (bounds === null) return null;
-    elm.__jumpLock = true;
-    var visible = false;
-    if (visible = (elm.onframe(t) 
-                   && elm.prepare())) {
-        //elm.transform();
-        //for all bounds points
-        //_m.clone().invert().transformPoint()
+    if (pt === null) return null;
+    var s; if (s = elm.stateAt(t)) {
+        var m = Element._getMatrixOf(s);
+        var min = m.transformPoint(bounds[0],
+                                   bounds[1]);
+        var max = m.transformPoint(bounds[2],
+                                   bounds[3]);
+        return [ min[0], min[1],
+                 max[0], max[1] ];
     } else return null;
+    if (bounds === null) return null;
 }
 // for all functions below, 
 // t is global time or undefined if
@@ -1532,7 +1557,7 @@ G.contains = function(elm, pt, t) {
     var pt = (typeof t === 'undefined')
              ? pt : G.adopt(elm, pt, t);
     var matched = [];
-    if (G.inBounds(elm, pt) 
+    if (G.inBounds(elm, pt)
         && G.__contains(elm.xdata, pt)) {
         matched.push(elm);
     }
@@ -1547,9 +1572,35 @@ G.__contains = function(x, pt) {
     if (x.path) {
         return x.path.contains(pt);
     } else if (x.image) {
+        return true; // already tested with bounds
+    } else if (x.text) {
         return true;
-    } 
-    // TODO: handle images and stuff
+        // FIXME: call ctx.measureText()
+
+        // http://mudcu.be/journal/2011/01/html5-typographic-metrics/
+
+        /* function getAlign(text, type, offsetx) {
+            var direction = window.getComputedStyle(document.body)["direction"];
+            control.textContent = text;
+            switch(type) {
+                case "left": break;
+                case "start": offsetx -= (direction == 'ltr') ? 0 : control.offsetWidth; break;
+                case "end": offsetx -= (direction == 'ltr') ? control.offsetWidth : 0; break;
+                case "right": offsetx -= control.offsetWidth; break;
+                case "center": offsetx -= control.offsetWidth / 2; break;
+            }
+            return offsetx;
+        };*/
+
+        /*function measureText(text) {
+            control.style.display = "inline";
+            control.textContent = text;
+            return {
+                height: control.offsetHeight,
+                width: control.offsetWidth
+            };
+        };*/
+    }
 }
 /**
   * Calculates the number of times the line from (x0,y0) to (x1,y1)
