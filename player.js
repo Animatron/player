@@ -921,7 +921,7 @@ Element.prototype.draw = function(ctx) {
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
     var s = this.state;
-    s._matrix = Element._applyToMatrix(s);
+    s._matrix = Element._getMatrixOf(s, s._matrix);
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
 };
@@ -1231,9 +1231,17 @@ Element.prototype.reset = function() {
 }
 Element.prototype.visitChildren = function(func) {
     var children = this.children;
-    for (var ei = 0; ei < children.length; ei++) {
+    for (var ei = 0, el = children.length; ei < el; ei++) {
         func(children[ei]);
-    };   
+    };
+}
+Element.prototype.travelChildren = function(func) {
+    var children = this.children;
+    for (var ei = 0, el = children.length; ei < el; ei++) {
+        var elem = children[ei];
+        func(elem);
+        elem.travelChildren(func);
+    };
 }
 Element.prototype._stateStr = function() {
     var state = this.state;
@@ -1278,8 +1286,8 @@ Element.createXData = function() {
              'tf': null,
              '_mpath': null };
 }
-Element._applyToMatrix = function(s) {
-    var _t = s._matrix;
+Element._getMatrixOf = function(s, m) {
+    var _t = m || new Transform();
     _t.translate(s.lx, s.ly);
     _t.translate(s.x, s.y); 
     _t.rotate(s.angle);
@@ -1466,49 +1474,90 @@ DU.qDraw = function(ctx, stroke, fill, func) {
 
 var G = {}; // geometry
 
-G.bounds = function(xdata) {
-    if (xdata.path) {
-        return xdata.path.bounds();
-    };
-    // TODO: handle images and stuff
+// for all functions below, 
+// t is global time
+G.adopt = function(elm, pt, t) {
+    if (pt === null) return null;
+    var s = Element.stateAt(elm, t);
+    if (s) {
+        var m = Element._getMatrixOf(s);
+        m.invert();
+        return m.transformPoint(pt[0], pt[1]);
+    } else return null;
+    /*var visible = false;
+    if (visible = (elm.onframe(t) 
+                   && elm.prepare())) {
+        var m = Element.applyToMatrix(elm.s);
+        //elm.transform();
+        //_m.clone().invert().transformPoint()
+    } else return null;*/
 }
-G.inBounds = function(xdata, point) {
-    if (xdata.path) {
-        return xdata.path.inBounds(point);
-    };
-    // TODO: handle images and stuff
+G.adoptBounds = function(elm, bounds, t) {
+    if (bounds === null) return null;
+    elm.__jumpLock = true;
+    var visible = false;
+    if (visible = (elm.onframe(t) 
+                   && elm.prepare())) {
+        //elm.transform();
+        //for all bounds points
+        //_m.clone().invert().transformPoint()
+    } else return null;
 }
-G.contains = function(xdata, point) {
-    //this.__jumpLock = true;
-    /*if () {
-            ctx.save();
-        this.__evtLock = true;
-        var wasDrawn = false;
-        if (wasDrawn = (this.onframe(time) 
-                        && this.prepare())) {
-            this.transform(ctx);
-            this.draw(ctx);
-        }
-        this.__clearEvtState();
-        this.visible = wasDrawn;
-        // saving visibility before releasing a lock
-        this.__evtLock = false;
-        this.visitChildren(function(elm) {
-            elm.render(ctx, time);
-        });
-        ctx.restore();
-        if (wasDrawn) this.fire(C.X_DRAW,ctx);
-    }
-    return point;*/
+// for all functions below, 
+// t is global time or undefined if
+// it time not necessary
+G.bounds = function(elm, t) {
+    var x = elm.xdata;
+    var bounds;
+    if (x.path) {
+        bounds = x.path.bounds();
+    } else if () {
+        // TODO: handle images and stuff
+    } else if () {
 
-    if (G.inBounds(xdata, point)) {
-        if (xdata.path) {
-            return xdata.path.contains(point);
-        };
-        // TODO: handle images and stuff    
-    }
-    return false;   
+    } else return null;
+    return (typeof t === 'undefined') ?
+           bounds : G.adoptBounds(elm, bounds, t);
 }
+G.inBounds = function(elm, pt, t) {
+    var bounds = G.bounds(elm, t);
+    if (bounds) {
+        return (pt[0] >= bounds[0]) &&
+               (pt[1] >= bounds[1]) &&
+               (pt[0] <= bounds[2]) &&
+               (pt[1] <= bounds[3]); 
+    } else return false;
+}
+G.contains = function(elm, pt, t) {
+    var pt = (typeof t === 'undefined')
+             ? pt : G.adopt(elm, pt, t);
+    var matched = [];
+    if (G.inBounds(elm, pt) 
+        && G.__contains(elm.xdata, pt)) {
+        matched.push(elm);
+    }
+    if (elm.children) {
+        elm.visitChildren(function(celm) {
+            matched.concat(G.contains(elm, pt, t));
+        });
+    }
+    return matched;
+}
+G.__contains = function(x, pt) {
+    if (x.path) {
+        return x.path.contains(pt);
+    } else if (x.image) {
+        return true;
+    } 
+    // TODO: handle images and stuff
+}
+/**
+  * Calculates the number of times the line from (x0,y0) to (x1,y1)
+  * crosses the ray extending to the right from (px,py).
+  * If the point lies on the line, then no crossings are recorded.
+  * +1 is returned for a crossing where the Y coordinate is increasing
+  * -1 is returned for a crossing where the Y coordinate is decreasing
+  */
 G.__lineCrosses = function(px, py, x0, y0, x1, y1) {
     if ((py < y0) && (py < y1)) return 0;
     if ((py >= y0) && (py >= y1)) return 0;
@@ -1519,6 +1568,16 @@ G.__lineCrosses = function(px, py, x0, y0, x1, y1) {
     if (px > xitcpt) return 0;
     return (y0 < y1) ? 1 : -1;
 }
+/**
+  * Calculates the number of times the cubic from (x0,y0) to (x1,y1)
+  * crosses the ray extending to the right from (px,py).
+  * If the point lies on a part of the curve,
+  * then no crossings are counted for that intersection.
+  * the level parameter should be 0 at the top-level call and will count
+  * up for each recursion level to prevent infinite recursion
+  * +1 is added for each crossing where the Y coordinate is increasing
+  * -1 is added for each crossing where the Y coordinate is decreasing
+  */
 G.__curveCrosses = function(px, py, x0, y0,
                             xc0, yc0, xc1, yc1,
                             x1, y1, level) {

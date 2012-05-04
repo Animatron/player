@@ -115,8 +115,13 @@ Transform.prototype.apply = function(ctx) {
   ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
 }
 
-/* Transform.prototype.load = function(s) {
-  this.reset();
-  this.rotate(s.rotation);
-  ...
-} */
+Transform.prototype.clone = function() {
+  var cl = new Transform();
+  cl.m[0] = this.m[0];
+  cl.m[1] = this.m[1];
+  cl.m[2] = this.m[2];
+  cl.m[3] = this.m[3];
+  cl.m[4] = this.m[4];
+  cl.m[5] = this.m[5];
+  return cl;
+}
