@@ -1536,10 +1536,10 @@ G.bounds = function(elm, t) {
     var bounds;
     if (x.path) {
         bounds = x.path.bounds();
-    } else if () {
-        // TODO: handle images and stuff
-    } else if () {
-
+    } else if (x.image) {
+        bounds = [ 0, 0, x.image.width, x.image.height ];
+    } else if (x.text) {
+        bound = [ 0, 0, 100, 100 ]; // FIXME: implement
     } else return null;
     return (typeof t === 'undefined') ?
            bounds : G.adoptBounds(elm, bounds, t);
@@ -1616,7 +1616,7 @@ G.__lineCrosses = function(px, py, x0, y0, x1, y1) {
     if ((px >= x0) && (px >= x1)) return 0;
     if ((px < x0) && (px < x1)) return (y0 < y1) ? 1 : -1;
     var xitcpt = x0 + (py - y0) * (x1 - x0) / (y1 - y0);
-    if (px > xitcpt) return 0;
+    if (px >= xitcpt) return 0;
     return (y0 < y1) ? 1 : -1;
 }
 /**
@@ -1651,17 +1651,17 @@ G.__curveCrosses = function(px, py, x0, y0,
     if (level > 52) return G.__lineCrosses(px, py, x0, y0, x1, y1);
     var xmid = (xc0 + xc1) / 2,
         ymid = (yc0 + yc1) / 2;
-    xc0 = (x0 + xc0) / 2;
-    yc0 = (y0 + yc0) / 2;
-    xc1 = (xc1 + x1) / 2;
-    yc1 = (yc1 + y1) / 2;
+    var xc0 = (x0 + xc0) / 2,
+        yc0 = (y0 + yc0) / 2,
+        xc1 = (xc1 + x1) / 2,
+        yc1 = (yc1 + y1) / 2;
     var xc0m = (xc0 + xmid) / 2,
         yc0m = (yc0 + ymid) / 2;
         xmc1 = (xmid + xc1) / 2;
         ymc1 = (ymid + yc1) / 2;
     xmid = (xc0m + xmc1) / 2;
     ymid = (yc0m + ymc1) / 2;
-    if (Math.isNaN(xmid) || Math.isNaN(ymid)) {
+    if (isNaN(xmid) || isNaN(ymid)) {
         // [xy]mid are NaN if any of [xy]c0m or [xy]mc1 are NaN
         // [xy]c0m or [xy]mc1 are NaN if any of [xy][c][01] are NaN
         // These values are also NaN if opposing infinities are added
@@ -2317,20 +2317,29 @@ Path.prototype.inBounds = function(point) {
             (point[0] <= _b[2]) &&
             (point[1] <= _b[3]));
 }
-Path.prototype.contains = function(t, point) {
-    return this.fill ? (this.crosses(point) === -1) 
-                     : false /* TODO (this.getHitAt(time, point)) ..*/;
+Path.prototype.contains = function(t, pt) {
+    /*return this.fill ? ((this.crosses(pt) & -1) != 0)
+                     : false /* TODO (this.getHitAt(time, point)) ..*/
+    return ((this.crosses(pt) & -1) != 0);
 }
-Path.prototype.crosses = function(point) {
-    // TODO: check for infinity
+Path.prototype.crosses = function(pt) {
     if (this.segs.length < 2) return false;
-    var p = this.start();
+    var start = this.start();
+    var cur = start;
     var crossings = 0;
     this.visit(function(segment) {
-        crossings += segment.crosses(p, point);
-        //if (segment.crosses(p, point)) return true; // TODO: return point?
-        p = segment.last();
+        crossings += segment.crosses(cur, pt);
+        cur = segment.last();
     });
+
+    if ((p[0] != start[0]) && 
+        (p[1] != start[1])) {
+        crossings += G.__lineCrosses(pt[0], pt[1], 
+                                     cur[0], cur[1],
+                                     start[0], start[1]);
+    }
+
+    return crossings;
 }
 // parses `count` positions from path (string form), 
 // starting at `start`, returns a length of parsed data and 
@@ -2475,10 +2484,10 @@ MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
 MSeg.prototype.crosses = function(start, point) {
-    var end = this.last();
+    var pts = this.pts; // == this.last();
     return G.__lineCrosses(point[0], point[1], // px, py
                            start[0], start[1], // x0, y0
-                           end[0], end[1]);    // x1, y1
+                           pts[0], pts[1]);    // x1, y1
 }
 
 function LSeg(pts) {
@@ -2512,10 +2521,10 @@ LSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
 LSeg.prototype.crosses = function(start, point) {
-    var end = this.last();
+    var pts = this.pts; // == this.last();
     return G.__lineCrosses(point[0], point[1], // px, py
                            start[0], start[1], // x0, y0
-                           end[0], end[1]);    // x1, y1
+                           pts[0], pts[1]);    // x1, y1
 }
 
 function CSeg(pts) {
