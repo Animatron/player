@@ -60,12 +60,12 @@ function obj_clone(what) {
     return dest;
 }
 // for one-level objects, so no hasOwnProperty check
-function obj_copy(what, dest) {
+/*function obj_copy(what, dest) {
     for (var prop in what) {
         dest[prop] = what[prop];
     }
     return dest;
-}
+}*/
 
 function find_pos(elm) {
     var curleft = curtop = 0;
@@ -872,6 +872,22 @@ C.R_ONCE = 0;
 C.R_LOOP = 1;
 C.R_BOUNCE = 2;
 
+// modifiers classes
+// the order is also determined with value
+Element.SYS_MOD = 0;
+Element.TWEEN_MOD = 1;
+Element.USER_MOD = 2;
+// TODO: JUMP_MOD ?
+Element.EVENT_MOD = 3;
+Element.MOD_TYPES = 4; // number of modifiers classes
+
+// painters classes
+// the order is also determined with value
+Element.SYS_PNT = 0;
+Element.USER_PNT = 1;
+Element.DEBUG_PNT = 2;
+Element.PNT_TYPES = 3; // number of painters classes
+
 // > Element % (draw: Function(ctx: Context),
 //               onframe: Function(time: Float))
 // FIXME: Underscore here is to prevent conflicts with other libraries.
@@ -887,10 +903,10 @@ function Element(draw, onframe) {
     //this.onframe = onframe;
     this.sprite = false;
     this.visible = false;
-    this._drawSeq = [];
-    this._onframeSeq = [];
-    if (draw) this._drawSeq.push([draw, null]);
-    if (onframe) this._onframeSeq.push([onframe, null]);
+    this._modifiers = [];
+    this._painters = [];
+    if (onframe) this._modifiers.push([onframe, null]);
+    if (draw) this._painters.push([draw, null]);
     this.__lastJump = null;
     this.__evtLock = false;
     this.__jumpLock = false;
@@ -908,21 +924,27 @@ Element.prototype.prepare = function() {
     }
     return true;     
 }
-// > Element.onframe % (ltime: Float) => Boolean
+// > Element.onframe % (gtime: Float) => Boolean
 Element.prototype.onframe = function(gtime) {
     var ltime = this.localTime(gtime);
     if (!this.fits(ltime)) return false;
-    var seq = this._onframeSeq;
-    for (var si = 0; si < seq.length; si++) {
-        if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
+    var modifiers = this._modifiers;
+    for (var type = 0, last = Element.MOD_TYPES; type < last; type++) {
+        var seq = modifiers[type];
+        for (var si = 0; si < seq.length; si++) {
+            if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
+        }
     }
     return true;
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
-    var seq = this._drawSeq;
-    for (var si = 0; si < seq.length; si++) {
-        seq[si][0].call(this.xdata, ctx, seq[si][1]);
+    var painters = this._painters;
+    for (var type = 0, last = Element.PNT_TYPES; type < last; type++) {
+        var seq = painters[type];
+        for (var si = 0; si < seq.length; si++) {
+            seq[si][0].call(this.xdata, ctx, seq[si][1]);
+        }
     }
 }
 // > Element.draw % (ctx: Context)
@@ -939,12 +961,26 @@ Element.prototype.transform = function(ctx) {
     s._matrix = Element._getMatrixOf(s, s._matrix);
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
-};
-Element.prototype.posAtStart = function(ctx) {
-    var s = this.state;
-    ctx.translate(s.lx, s.ly);
-    ctx.scale(s.sx, s.sy);
-    ctx.rotate(s.angle);
+}
+// > Element.render % (ctx: Context, gtime: Float)
+Element.prototype.render = function(ctx, time) {
+    ctx.save();
+    this.__evtLock = true;
+    var wasDrawn = false;
+    if (wasDrawn = (this.onframe(time) 
+                    && this.prepare())) {
+        this.transform(ctx);
+        this.draw(ctx);
+    }
+    this.__clearEvtState();
+    this.visible = wasDrawn;
+    // saving visibility before releasing a lock
+    this.__evtLock = false;
+    this.visitChildren(function(elm) {
+        elm.render(ctx, time);
+    });
+    ctx.restore();
+    if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
 Element.prototype._drawToCache = function() {
     var _canvas = newCanvas(this.state.dimen);
@@ -952,21 +988,34 @@ Element.prototype._drawToCache = function() {
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
 }
-// > Element.addPainter % (painter: Function(ctx: Context)) 
-//                         => Integer
-Element.prototype.addPainter = function(painter, data) {
-    if (!painter) return; // FIXME: throw some error?
-    this._drawSeq.push([painter, data]);
-    return (this._drawSeq.length - 1);
+Element.prototype.__addTypedModifier = function(type, modifier, data) {
+    if (!modifier) return; // FIXME: throw some error?
+    var modifiers = this._modifiers;
+    if (!modifiers[type]) modifiers[type] = [];
+    modifiers[type].push([modifier, data]);
+    return (modifiers[type].length - 1);
 }
+Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
+Element.prototype.__addTypedPainter = function(type, painter, data) {
+    if (!painter) return; // FIXME: throw some error?
+    var painters = this._painters;
+    if (!painters[type]) painters[type] = [];
+    painters[type].push([painter, data]);
+    return (painters[type].length - 1);
+}
+Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
 // > Element.addModifier % (modifier: Function(time: Float, 
 //                                              data: Any) => Boolean, 
 //                           data: Any) => Integer
 Element.prototype.addModifier = function(modifier, data) {
-    if (!modifier) return; // FIXME: throw some error?
-    this._onframeSeq.push([modifier, data]);
-    return (this._onframeSeq.length - 1);
+    this.__modify(Element.USER_MOD, modifier, data);
 }
+// > Element.addPainter % (painter: Function(ctx: Context)) 
+//                         => Integer
+Element.prototype.addPainter = function(painter, data) {
+    this.__paint(Element.USER_PNT, painter, data);
+}
+
 // > Element.addTween % (tween: Tween)
 Element.prototype.addTween = function(tween) {
     var tweens = this.xdata.tweens;
@@ -1028,25 +1077,6 @@ Element.prototype._addChildren = function(elms) {
         this._addChild(elms[ei]);
     }
 };
-Element.prototype.render = function(ctx, time) {
-    ctx.save();
-    this.__evtLock = true;
-    var wasDrawn = false;
-    if (wasDrawn = (this.onframe(time) 
-                    && this.prepare())) {
-        this.transform(ctx);
-        this.draw(ctx);
-    }
-    this.__clearEvtState();
-    this.visible = wasDrawn;
-    // saving visibility before releasing a lock
-    this.__evtLock = false;
-    this.visitChildren(function(elm) {
-        elm.render(ctx, time);
-    });
-    ctx.restore();
-    if (wasDrawn) this.fire(C.X_DRAW,ctx);
-}
 Element.prototype.bounds = function(time) {
     return G.bounds(this, time);
 }
@@ -1182,31 +1212,37 @@ Element.prototype.handle__x = function(type, evt) {
     return true;
 }
 Element.prototype.__saveToEvtState = function(type, evt) {
-    this.state._evt_st |= type;
-    var _evts = this.state._evts;
-    if (!_evts[type]) _evts[type] = [];
-    _evts[type].push(evt);
+    this.state.__evt_st |= type;
+    var evts = this.state.__evts;
+    if (!evts[type]) evts[type] = [];
+    evts[type].push(evt);
 }
 Element.prototype.__clearEvtState = function() {
     var s = this.state;
-    if (s._evt_st === 0) return;
-    s._evt_st = 0;
-    var _evts = s._evts;
-    for (var type in _evts) {
-        delete _evts[type];
+    if (s.__evt_st === 0) return;
+    s.__evt_st = 0;
+    var evts = s.__evts;
+    for (var type in evts) {
+        delete evts[type];
     }
-    s._evts = {};
+    s.__evts = {};
 }
 Element.prototype.m_on = function(type, handler) {
-    this.addModifier(function(t) {
-      if (this._evt_st & type) {
-        var evts = this._evts[type];
+    this.__modify(Element.EVENT_MOD, function(t) {
+      if (this.__evt_st & type) {
+        var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
             handler.call(this,t,evts[i]);
         }
       }
       return true;
     });
+}
+Element.prototype.posAtStart = function(ctx) {
+    var s = this.state;
+    ctx.translate(s.lx, s.ly);
+    ctx.scale(s.sx, s.sy);
+    ctx.rotate(s.angle);
 }
 // calculates band that fits all child elements, recursively
 // FIXME: test
@@ -1753,22 +1789,22 @@ Render.addXDataRender = function(elm) {
     var xdata = elm.xdata;
 
     // modifiers
-    //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
-    if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
-    if (xdata.pos) elm.addModifier(Render.m_applyPos, xdata.pos);
+    //if (xdata.gband) elm.__modify(Element.SYS_MOD, Render.m_checkBand, xdata.gband);
+    if (xdata.reg) elm.__modify(Element.SYS_MOD, Render.m_saveReg, xdata.reg);
+    if (xdata.pos) elm.__modify(Element.SYS_MOD, Render.m_applyPos, xdata.pos);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     
     // painters
-    if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
-    if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
-    if (xdata.text) elm.addPainter(Render.p_drawText, xdata.text);
+    if (xdata.path) elm.__paint(Element.SYS_PNT, Render.p_drawPath, xdata.path);
+    if (xdata.image) elm.__paint(Element.SYS_PNT, Render.p_drawImage, xdata.image);
+    if (xdata.text) elm.__paint(Element.SYS_PNT, Render.p_drawText, xdata.text);
         
 }
 
 Render.addDebugRender = function(elm) {
-    if (elm.xdata.reg) elm.addPainter(Render.p_drawReg, elm.xdata.reg);
-    if (elm.name) elm.addPainter(Render.p_drawName, elm.name);
-    //elm.addPainter(Render.p_drawMPathIfSet);
+    if (elm.xdata.reg) elm.__paint(Element.DEBUG_PNT, Render.p_drawReg, elm.xdata.reg);
+    if (elm.name) elm.__paint(Element.DEBUG_PNT, Render.p_drawName, elm.name);
+    //elm.__paint(Element.DEBUG_PNT, Render.p_drawMPathIfSet);
     elm.on(C.X_DRAW, Render.h_drawMPath);
 }
 
@@ -1793,7 +1829,7 @@ Render.addTweenModifier = function(elm, tween) {
                                    EasingImpl[easing.type](easing.data),
                                    Tweens[tween.type],
                                    tween.band);
-    elm.addModifier(modifier, tween.data);
+    elm.__modify(Element.TWEEN_MOD, modifier, tween.data);
 }
 
 Render.p_drawReg = function(ctx, reg) {
