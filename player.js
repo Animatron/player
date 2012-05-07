@@ -754,29 +754,6 @@ function Scene() {
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
                        C.X_DRAW ]);
-Scene.prototype._addToTree = function(elm) {
-    if (!elm.children) {
-        throw new Error('It appears that it is not a clip object or element that you pass');  
-    }
-    this.duration = this.calculateDuration();
-    if (elm.xdata.gband && 
-        (elm.xdata.gband[1] > this.duration)) {
-        this.duration = elm.xdata.gband[1];
-    };
-    this._register(elm);
-    if (elm.children) this._addElems(elm.children);
-    this.tree.push(elm);
-}
-Scene.prototype._register = function(elm) {
-    this.hash[elm.id] = elm;
-}
-Scene.prototype._addElems = function(elems) {
-    for (var ei = 0; ei < elems.length; ei++) {
-        var _elm = elems[ei];
-        this._register(_elm);
-        if (_elm.children) this._addElems(_elm.children);
-    }
-}
 // TODO: add chaining to all external Scene methods?
 // > Scene.add % (elem: Element | Clip)
 // > Scene.add % (elems: Array[Element]) => Clip
@@ -862,6 +839,29 @@ Scene.prototype.dispose = function() {
     this.visitRoots(function(elm) {
         elm.dispose();
     });
+}
+Scene.prototype._addToTree = function(elm) {
+    if (!elm.children) {
+        throw new Error('It appears that it is not a clip object or element that you pass');  
+    }
+    this.duration = this.calculateDuration();
+    if (elm.xdata.gband && 
+        (elm.xdata.gband[1] > this.duration)) {
+        this.duration = elm.xdata.gband[1];
+    };
+    this._register(elm);
+    if (elm.children) this._addElems(elm.children);
+    this.tree.push(elm);
+}
+Scene.prototype._register = function(elm) {
+    this.hash[elm.id] = elm;
+}
+Scene.prototype._addElems = function(elems) {
+    for (var ei = 0; ei < elems.length; ei++) {
+        var _elm = elems[ei];
+        this._register(_elm);
+        if (_elm.children) this._addElems(_elm.children);
+    }
 }
 
 // === ELEMENTS ================================================================
@@ -974,53 +974,6 @@ Element.prototype.render = function(ctx, time) {
     ctx.restore();
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-Element.prototype._drawToCache = function() {
-    var _canvas = newCanvas(this.state.dimen);
-    var _ctx = _canvas.getContext('2d');
-    this.drawTo(_ctx);
-    this.xdata.canvas = _canvas;
-}
-Element.prototype.__callModifiers = function(order, ltime) {
-    var modifiers = this._modifiers;
-    var type, seq;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = modifiers[type];
-        for (var si = 0; si < seq.length; si++) {
-            if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
-        }
-    }
-    return true;
-}
-Element.prototype.__callPainters = function(order, ctx) {
-    var painters = this._painters;
-    var type, seq;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = painters[type];
-        for (var si = 0; si < seq.length; si++) {
-            seq[si][0].call(this.xdata, ctx, seq[si][1]);
-        }
-    }
-}
-Element.prototype.__addTypedModifier = function(type, modifier, data) {
-    if (!modifier) return; // FIXME: throw some error?
-    var modifiers = this._modifiers;
-    if (!modifiers[type]) modifiers[type] = [];
-    modifiers[type].push([modifier, data]);
-    return (modifiers[type].length - 1);
-}
-Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
-Element.prototype.__addTypedPainter = function(type, painter, data) {
-    if (!painter) return; // FIXME: throw some error?
-    var painters = this._painters;
-    if (!painters[type]) painters[type] = [];
-    painters[type].push([painter, data]);
-    return (painters[type].length - 1);
-}
-Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
 // > Element.addModifier % (modifier: Function(time: Float, 
 //                                              data: Any) => Boolean, 
 //                           data: Any) => Integer
@@ -1084,16 +1037,6 @@ Element.prototype.addS = function(dimen, draw, onframe, transform) {
     _elm.state.dimen = dimen;
     return _elm;
 }    
-Element.prototype._addChild = function(elm) {
-    this.children.push(elm); // or add elem.id?
-    elm.parent = this;
-    Bands.recalc(this);
-};
-Element.prototype._addChildren = function(elms) {
-    for (var ei = 0; ei < elms.length; ei++) {
-        this._addChild(elms[ei]);
-    }
-};
 Element.prototype.bounds = function(time) {
     return G.bounds(this, time);
 }
@@ -1118,73 +1061,11 @@ Element.prototype.fits = function(ltime) {
     return (ltime <= (this.xdata.lband[1]
                       - this.xdata.lband[0]));
 }
-Element.prototype._checkGJump = function(gtime) {
-    return this._checkJump(gtime - this.xdata.gband[0]);
-}
-Element.prototype._checkJump = function(at) {
-    var x = this.xdata,
-        s = this.state;
-    if (x.tf) return x.tf(at);
-    var t = null,
-        duration = x.lband[1] - x.lband[0];
-    // if jump-time was set either 
-    // directly or relatively or with key,
-    // get its absolute local value
-    t = (s.t !== null) ? s.t : null;
-    t = ((t === null) && (s.rt !== null))
-        ? s.rt * duration
-        : t;
-    t = ((t === null) && (s.key !== null))
-        ? x.keys[s.key]
-        : t;
-    if (t !== null) {
-        if ((t < 0) || (t > duration)) {
-            throw new Error('failed to calculate jump');
-        }
-        if (!this.__jumpLock) {
-            if ((this.__lastJump === null) ||
-                (this.__lastJump[1] !== t)) {
-                 // jump was performed if t or rt or key
-                 // were set and new value is not
-                 // equal to previous jump value:
-                 // save jump time and return it
-                 this.__lastJump = [ at, t ];
-                 s.t = null;
-                 s.rt = null;
-                 s.key = null;
-                 return t;
-            } else {
-                // jump is already in progress, 
-                // reset values and continue
-                s.t = null;
-                s.rt = null;
-                s.key = null;
-                t = null;
-            }
-        }
-    }
-    // set t to jump-time, and if no jump-time 
-    // was passed or it requires to be ignored, 
-    // just set it to actual local time
-    t = (t !== null) ? t : at;
-    if (this.__lastJump !== null) {
-       // return (jump_pos + (t - jumped_at))
-       return this.__lastJump[1] + (t - this.__lastJump[0]);
-       /* // overflow will be checked in fits() method,
-       // or recalculated with loop/bounce mode
-       // so if this clip longs more than allowed,
-       // it will be just ended there
-       return ((this.__lastJump + t) > x.gband[1])
-             ? (this.__lastJump + t)
-             : x.gband[1]; */
-    }
-    return t;
-} 
 Element.prototype.localTime = function(gtime) {
     var x = this.xdata;
     switch (x.mode) {
         case C.R_ONCE:
-            return this._checkGJump(gtime);
+            return this.__checkGJump(gtime);
         case C.R_LOOP: {
                 var x = this.xdata,
                     p = this.parent;
@@ -1199,7 +1080,7 @@ Element.prototype.localTime = function(gtime) {
                     fits = Math.floor((gtime - x.gband[0]) / durtn);
                 if (fits < 0) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn);
-                return (fits <= times) ? this._checkJump(t) : -1;
+                return (fits <= times) ? this.__checkJump(t) : -1;
             }
         case C.R_BOUNCE:
                 var x = this.xdata,
@@ -1216,33 +1097,8 @@ Element.prototype.localTime = function(gtime) {
                 if (fits < 0) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn),
                     t = ((fits % 2) == 0) ? t : durtn - t;
-                return (fits <= times) ? this._checkJump(t) : -1;
+                return (fits <= times) ? this.__checkJump(t) : -1;
     }
-}
-Element.prototype.handle__x = function(type, evt) {
-    if (this.__evtLock) return false; 
-    // FIXME: handling through simple handlers 
-    // (not modifiers) must, may be, work everytime
-    // with no locks
-    // TODO: test with inBounds for mouse events
-    this.__saveToEvtState(type, evt);
-    return true;
-}
-Element.prototype.__saveToEvtState = function(type, evt) {
-    this.state.__evt_st |= type;
-    var evts = this.state.__evts;
-    if (!evts[type]) evts[type] = [];
-    evts[type].push(evt);
-}
-Element.prototype.__clearEvtState = function() {
-    var s = this.state;
-    if (s.__evt_st === 0) return;
-    s.__evt_st = 0;
-    var evts = s.__evts;
-    for (var type in evts) {
-        delete evts[type];
-    }
-    s.__evts = {};
 }
 Element.prototype.m_on = function(type, handler) {
     this.__modify(Element.EVENT_MOD, function(t) {
@@ -1255,12 +1111,12 @@ Element.prototype.m_on = function(type, handler) {
       return true;
     });
 }
-Element.prototype.posAtStart = function(ctx) {
+/*Element.prototype.posAtStart = function(ctx) {
     var s = this.state;
     ctx.translate(s.lx, s.ly);
     ctx.scale(s.sx, s.sy);
     ctx.rotate(s.angle);
-}
+}*/
 // calculates band that fits all child elements, recursively
 // FIXME: test
 Element.prototype.findWrapBand = function() {
@@ -1324,6 +1180,22 @@ Element.prototype.stateAt = function(t) {
     var state = this.unlock();
     return succeed ? state : null;
 }
+Element.prototype._addChild = function(elm) {
+    this.children.push(elm); // or add elem.id?
+    elm.parent = this;
+    Bands.recalc(this);
+}
+Element.prototype._addChildren = function(elms) {
+    for (var ei = 0; ei < elms.length; ei++) {
+        this._addChild(elms[ei]);
+    }
+}
+Element.prototype._drawToCache = function() {
+    var _canvas = newCanvas(this.state.dimen);
+    var _ctx = _canvas.getContext('2d');
+    this.drawTo(_ctx);
+    this.xdata.canvas = _canvas;
+}
 Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
@@ -1332,6 +1204,134 @@ Element.prototype._stateStr = function() {
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "t: " + s.t + " rt: " + s.rt + " key: " + s.key + '\n';
+}
+Element.prototype.__callModifiers = function(order, ltime) {
+    var modifiers = this._modifiers;
+    var type, seq;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = modifiers[type];
+        for (var si = 0; si < seq.length; si++) {
+            if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
+        }
+    }
+    return true;
+}
+Element.prototype.__callPainters = function(order, ctx) {
+    var painters = this._painters;
+    var type, seq;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = painters[type];
+        for (var si = 0; si < seq.length; si++) {
+            seq[si][0].call(this.xdata, ctx, seq[si][1]);
+        }
+    }
+}
+Element.prototype.__addTypedModifier = function(type, modifier, data) {
+    if (!modifier) return; // FIXME: throw some error?
+    var modifiers = this._modifiers;
+    if (!modifiers[type]) modifiers[type] = [];
+    modifiers[type].push([modifier, data]);
+    return (modifiers[type].length - 1);
+}
+Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
+Element.prototype.__addTypedPainter = function(type, painter, data) {
+    if (!painter) return; // FIXME: throw some error?
+    var painters = this._painters;
+    if (!painters[type]) painters[type] = [];
+    painters[type].push([painter, data]);
+    return (painters[type].length - 1);
+}
+Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
+Element.prototype.__checkGJump = function(gtime) {
+    return this.__checkJump(gtime - this.xdata.gband[0]);
+}
+Element.prototype.__checkJump = function(at) {
+    var x = this.xdata,
+        s = this.state;
+    if (x.tf) return x.tf(at);
+    var t = null,
+        duration = x.lband[1] - x.lband[0];
+    // if jump-time was set either 
+    // directly or relatively or with key,
+    // get its absolute local value
+    t = (s.t !== null) ? s.t : null;
+    t = ((t === null) && (s.rt !== null))
+        ? s.rt * duration
+        : t;
+    t = ((t === null) && (s.key !== null))
+        ? x.keys[s.key]
+        : t;
+    if (t !== null) {
+        if ((t < 0) || (t > duration)) {
+            throw new Error('failed to calculate jump');
+        }
+        if (!this.__jumpLock) {
+            if ((this.__lastJump === null) ||
+                (this.__lastJump[1] !== t)) {
+                 // jump was performed if t or rt or key
+                 // were set and new value is not
+                 // equal to previous jump value:
+                 // save jump time and return it
+                 this.__lastJump = [ at, t ];
+                 s.t = null;
+                 s.rt = null;
+                 s.key = null;
+                 return t;
+            } else {
+                // jump is already in progress, 
+                // reset values and continue
+                s.t = null;
+                s.rt = null;
+                s.key = null;
+                t = null;
+            }
+        }
+    }
+    // set t to jump-time, and if no jump-time 
+    // was passed or it requires to be ignored, 
+    // just set it to actual local time
+    t = (t !== null) ? t : at;
+    if (this.__lastJump !== null) {
+       // return (jump_pos + (t - jumped_at))
+       return this.__lastJump[1] + (t - this.__lastJump[0]);
+       /* // overflow will be checked in fits() method,
+       // or recalculated with loop/bounce mode
+       // so if this clip longs more than allowed,
+       // it will be just ended there
+       return ((this.__lastJump + t) > x.gband[1])
+             ? (this.__lastJump + t)
+             : x.gband[1]; */
+    }
+    return t;
+} 
+Element.prototype.handle__x = function(type, evt) {
+    if (this.__evtLock) return false; 
+    // FIXME: handling through simple handlers 
+    // (not modifiers) must, may be, work everytime
+    // with no locks
+    // TODO: test with inBounds for mouse events
+    this.__saveToEvtState(type, evt);
+    return true;
+}
+Element.prototype.__saveToEvtState = function(type, evt) {
+    this.state.__evt_st |= type;
+    var evts = this.state.__evts;
+    if (!evts[type]) evts[type] = [];
+    evts[type].push(evt);
+}
+Element.prototype.__clearEvtState = function() {
+    var s = this.state;
+    if (s.__evt_st === 0) return;
+    s.__evt_st = 0;
+    var evts = s.__evts;
+    for (var type in evts) {
+        delete evts[type];
+    }
+    s.__evts = {};
 }
 
 // state of the element
@@ -2211,19 +2211,6 @@ Path.prototype.apply = function(ctx) {
     ctx.stroke();*/
 
 }
-Path.prototype._applyVisitor = function(segment, ctx) {
-    var marker = segment.type;
-    var positions = segment.pts;
-    if (marker === C.P_MOVETO) {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === C.P_LINETO) {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === C.P_CURVETO) {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
-    }
-}
 Path.prototype.setStroke = function(strokeColor, lineWidth) {
     this.stroke = {
         'width': (lineWidth != null) ? lineWidth
@@ -2427,6 +2414,19 @@ Path.visitStrPath = function(path, visitor, data) {
         visitor(marker, positions, data);
     }
 }
+Path.prototype._applyVisitor = function(segment, ctx) {
+    var marker = segment.type;
+    var positions = segment.pts;
+    if (marker === C.P_MOVETO) {
+        ctx.moveTo(positions[0], positions[1]);
+    } else if (marker === C.P_LINETO) {
+        ctx.lineTo(positions[0], positions[1]);
+    } else if (marker === C.P_CURVETO) {
+        ctx.bezierCurveTo(positions[0], positions[1],
+                          positions[2], positions[3],
+                          positions[4], positions[5]);
+    }
+}
 // visitor to parse a string path into Path object
 Path._parserVisitor = function(marker, positions, path) {
     if (marker === 'M') {
@@ -2449,6 +2449,7 @@ Path._strApplyVisitor = function(marker, positions, ctx) {
                           positions[4], positions[5]);
     }
 };
+
 // converts path given in string form to array of segments
 Path.parse = function(path, target) {
     var target = target || new Path();
@@ -2726,6 +2727,15 @@ CSeg.prototype.tangentAt = function(start, t) {
     //var p = this.atT(start, t);
     return Math.atan2(p[1], p[0]);
 }
+CSeg.prototype.crosses = function(start, point) {
+    var level = level || 0, pts = this.pts;
+    return G.__curveCrosses(point[0], point[1], // px, py
+                            start[0], start[1], // x0, y0
+                            pts[0],   pts[1],   // xc0, yc0
+                            pts[2],   pts[3],   // xc1, yc1
+                            pts[4],   pts[5],   // x1, y1
+                            0);                 // level
+}
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart && 
         (this._lstart[0] === start[0]) &&
@@ -2757,15 +2767,6 @@ CSeg.prototype._calc_params = function(start) {
     params[7] = p0y;                        // H = y0
 
     return params;
-}
-CSeg.prototype.crosses = function(start, point) {
-    var level = level || 0, pts = this.pts;
-    return G.__curveCrosses(point[0], point[1], // px, py
-                            start[0], start[1], // x0, y0
-                            pts[0],   pts[1],   // xc0, yc0
-                            pts[2],   pts[3],   // xc1, yc1
-                            pts[4],   pts[5],   // x1, y1
-                            0);                 // level
 }
 
 // =============================================================================
