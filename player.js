@@ -879,14 +879,19 @@ Element.TWEEN_MOD = 1;
 Element.USER_MOD = 2;
 // TODO: JUMP_MOD ?
 Element.EVENT_MOD = 3;
-Element.MOD_TYPES = 4; // number of modifiers classes
+Element.ALL_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD, 
+                          Element.USER_MOD, Element.EVENT_MOD ];
+Element.NOEVT_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD, 
+                            Element.USER_MOD ];
 
 // painters classes
 // the order is also determined with value
 Element.SYS_PNT = 0;
 Element.USER_PNT = 1;
 Element.DEBUG_PNT = 2;
-Element.PNT_TYPES = 3; // number of painters classes
+Element.ALL_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT, 
+                         Element.DEBUG_PNT ];
+Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 
 // > Element % (draw: Function(ctx: Context),
 //               onframe: Function(time: Float))
@@ -905,8 +910,8 @@ function Element(draw, onframe) {
     this.visible = false;
     this._modifiers = [];
     this._painters = [];
-    if (onframe) this._modifiers.push([onframe, null]);
-    if (draw) this._painters.push([draw, null]);
+    if (onframe) this.__modify(onframe);
+    if (draw) this.__paint(draw);
     this.__lastJump = null;
     this.__evtLock = false;
     this.__jumpLock = false;
@@ -928,24 +933,11 @@ Element.prototype.prepare = function() {
 Element.prototype.onframe = function(gtime) {
     var ltime = this.localTime(gtime);
     if (!this.fits(ltime)) return false;
-    var modifiers = this._modifiers;
-    for (var type = 0, last = Element.MOD_TYPES; type < last; type++) {
-        var seq = modifiers[type];
-        for (var si = 0; si < seq.length; si++) {
-            if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
-        }
-    }
-    return true;
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
-    var painters = this._painters;
-    for (var type = 0, last = Element.PNT_TYPES; type < last; type++) {
-        var seq = painters[type];
-        for (var si = 0; si < seq.length; si++) {
-            seq[si][0].call(this.xdata, ctx, seq[si][1]);
-        }
-    }
+    return this.__callPainters(Element.ALL_PAINTERS, ctx);
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = function(ctx) {
@@ -987,6 +979,31 @@ Element.prototype._drawToCache = function() {
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
+}
+Element.prototype.__callModifiers = function(order, ltime) {
+    var modifiers = this._modifiers;
+    var type, seq;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = modifiers[type];
+        for (var si = 0; si < seq.length; si++) {
+            if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
+        }
+    }
+    return true;
+}
+Element.prototype.__callPainters = function(order, ctx) {
+    var painters = this._painters;
+    var type, seq;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = painters[type];
+        for (var si = 0; si < seq.length; si++) {
+            seq[si][0].call(this.xdata, ctx, seq[si][1]);
+        }
+    }
 }
 Element.prototype.__addTypedModifier = function(type, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
