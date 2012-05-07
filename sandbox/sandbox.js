@@ -427,6 +427,7 @@ return b('parent').band([0, 20])
       .on(C.X_MDOWN, function(t, evt) {
           this.x = evt[0];
           this.y = evt[1];
+          return true;
       }))
   .add(
     b('red-rect').rect([115, 90], [60, 60])
@@ -456,6 +457,7 @@ var test = b().rect([140, 140], [70, 70])
           this.x = evt[0];
           this.y = evt[1];
           console.log(t, evt, test.v.contains(evt, t));
+                    return true;
       });
 
 return test; */

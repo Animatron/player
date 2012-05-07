@@ -210,6 +210,9 @@ C.X_KDOWN = 128;
 
 C.XT_KEYBOARD = C.X_KPRESS | C.X_KUP | C.X_KDOWN;
 
+// controllers
+C.XT_CONTROL = C.XT_KEYBOARD | C.XT_MOUSE;
+
 // draw
 C.X_DRAW = 256;
 
@@ -818,7 +821,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
 }
 Scene.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
-        elm.fire(type, evt);
+        if (elm.visible) elm.fire(type, evt);
     });
     return true;
 }
@@ -915,7 +918,14 @@ function Element(draw, onframe) {
     this.__jumpLock = false;
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if modifying
+    this.__evtCache = [];
     this._initHandlers(); // TODO: make automatic
+    var default_on = this.on;
+    this.on = function(type, handler) {
+        if (type & C.XT_CONTROL)  {
+            this.m_on(type, handler);
+        } else default_on(type, handler);
+    };
 };
 Element.DEFAULT_LEN = 10;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
@@ -964,10 +974,9 @@ Element.prototype.render = function(ctx, time) {
         this.transform(ctx);
         this.draw(ctx);
     }
-    this.visible = wasDrawn; // FIXME: ensure that 
-                             // handling events and rendering
-                             // are in sync
-    this.__clearEvtState();
+    // immediately when drawn, element becomes visible,
+    // it is reasonable
+    this.visible = wasDrawn; 
     this.visitChildren(function(elm) {
         elm.render(ctx, time);
     });
@@ -1046,12 +1055,21 @@ Element.prototype.inBounds = function(point, time) {
 }
 Element.prototype.contains = function(pt) {
     if (this.__modifying !== Element.EVENT_MOD) throw new Error('You may call contains only inside a handler');
-    // FIXME: ensure that sequential handlers do not overlap,
-    //        may be freeze a state before calling handlers?
     // FIXME: 'contains' must check all of the children too!!!
     return G.__contains(this.xdata, 
              Element._getMatrixOf(this.state)
                     .transformPoint(pt[0], pt[1]));
+    /* var matched = [];
+    if (G.inBounds(elm, pt)
+        && G.__contains(elm.xdata, pt)) {
+        matched.push(elm);
+    }
+    if (elm.children) {
+        elm.visitChildren(function(celm) {
+            matched.concat(G.contains(elm, pt, t));
+        });
+    }
+    return matched; */
 }
 Element.prototype.containsByT = function(point, time) {
     return G.contains(this, point, time);
@@ -1115,7 +1133,7 @@ Element.prototype.m_on = function(type, handler) {
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
-            handler.call(this,t,evts[i]);
+            if (!handler.call(this,t,evts[i])) return false;
         }
       }
       return true;
@@ -1223,11 +1241,14 @@ Element.prototype.__callModifiers = function(order, ltime) {
         type = order[typenum];    
         seq = modifiers[type];
         this.__modifying = type;
+        this.__mbefore(type);
         for (var si = 0; si < seq.length; si++) {
             if (!seq[si][0].call(this.state, ltime, seq[si][1])) {
+                this.__mafter(type, false);
                 this.__modifying = null;
                 return false;
             }
+            this.__mafter(type, true);
         }
     }
     this.__modifying = null;
@@ -1241,8 +1262,10 @@ Element.prototype.__callPainters = function(order, ctx) {
         type = order[typenum];
         seq = painters[type];
         this.__painting = type;
+        this.__pbefore(type);
         for (var si = 0; si < seq.length; si++) {
             seq[si][0].call(this.xdata, ctx, seq[si][1]);
+            this.__pafter(type);
         }        
     }
     this.__painting = null;
@@ -1263,6 +1286,18 @@ Element.prototype.__addTypedPainter = function(type, painter, data) {
     return (painters[type].length - 1);
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
+Element.prototype.__mbefore = function(type) { 
+    if (type === Element.EVENT_MOD) {
+        this.__loadEvtsFromCache();
+    }
+}
+Element.prototype.__mafter = function(type, result) { 
+    if (type === Element.EVENT_MOD) {
+        this.__clearEvtState();
+    }
+}
+Element.prototype.__pbefore = function(type) { }
+Element.prototype.__pafter = function(type) { }
 Element.prototype.__checkGJump = function(gtime) {
     return this.__checkJump(gtime - this.xdata.gband[0]);
 }
@@ -1326,21 +1361,18 @@ Element.prototype.__checkJump = function(at) {
     return t;
 } 
 Element.prototype.handle__x = function(type, evt) {
-    // don't handle event while executing event handlers
-    // FIXME: add them to some cache that will be applied then 
-    if (!this.visible) return false;
-    if (this.__modifying === Element.EVENT_MOD) return false; 
-    // FIXME: handling through simple handlers 
-    // (not modifiers) must, may be, work everytime
-    // with no locks
     this.__saveToEvtState(type, evt);
     return true;
 }
 Element.prototype.__saveToEvtState = function(type, evt) {
-    this.state.__evt_st |= type;
-    var evts = this.state.__evts;
-    if (!evts[type]) evts[type] = [];
-    evts[type].push(evt);
+    if (this.__modifying !== Element.EVENT_MOD) {
+        this.state.__evt_st |= type;
+        var evts = this.state.__evts;
+        if (!evts[type]) evts[type] = [];
+        evts[type].push(evt);
+    } else {
+        this.__evtCache.push([type, evt]);
+    }
 }
 Element.prototype.__clearEvtState = function() {
     var s = this.state;
@@ -1351,6 +1383,22 @@ Element.prototype.__clearEvtState = function() {
         delete evts[type];
     }
     s.__evts = {};
+}
+Element.prototype.__loadEvtsFromCache = function() {
+    var cache = this.__evtCache;
+    var cache_len = cache.length;
+    if (cache_len > 0) {
+        var edata, type, evts;
+        for (var ei = 0; ei < cache_len; ei++) {
+            edata = cache[ei];
+            type = edata[0];
+            this.state.__evt_st |= type;
+            evts = this.state.__evts;
+            if (!evts[type]) evts[type] = [];
+            evts[type].push(edata[1]);
+        }
+        this.__evtCache = [];
+    }
 }
 
 // state of the element
@@ -1461,8 +1509,9 @@ function provideEvents(subj, events) {
     }
     // FIXME: call fire/e_-funcs only from inside of their providers,
     // TODO: wrap them with event objects
+    var _event;
     for (var ei = 0; ei < events.length; ei++) {
-        var _event = events[ei];
+        _event = events[ei];
         subj.prototype['e_'+_event] = (function(event) { 
             return function(evtobj) {
                 this.fire(event, evtobj);
@@ -1847,9 +1896,9 @@ Render.addDebugRender = function(elm) {
 Render.addTweensModifiers = function(elm, tweens) {
     var _order = Tween.TWEENS_ORDER;
 
-    for (var oi = 0; oi < _order.length; oi++) {
+    for (var oi = 0, olen = _order.length; oi < olen; oi++) {
         var _ttweens = tweens[_order[oi]];
-        if (_ttweens) { 
+        if (_ttweens) {
             for (var ti = 0; ti < _ttweens.length; ti++) {
                 Render.addTweenModifier(elm, _ttweens[ti]);
             }
@@ -2265,9 +2314,10 @@ Path.prototype.hitAt = function(t/*, func*/) {
     var distance = t * plen;
     var p = startp;
     var length = 0; // checked length in pixels
+    var seg, slen;
     for (var si = 0; si < nsegs; si++) {
-        var seg = this.segs[si];
-        var slen = seg.length(p); // segment length
+        seg = this.segs[si];
+        slen = seg.length(p); // segment length
         if (distance <= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
@@ -2498,7 +2548,7 @@ Path.createStyle = function(ctx, brush) {
             : ctx.createLinearGradient(
                             pts[0][0], pts[0][1],  // x0, y0
                             pts[1][0], pts[1][1]); // x1, y1
-        for (var i = 0; i < stops.length; i++) {
+        for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
         }
@@ -2521,7 +2571,7 @@ Path.createStyle = function(ctx, brush) {
             : ctx.createRadialGradient(
                            pts[0][0], pts[0][1], r[0],  // x0, y0, r0
                            pts[1][0], pts[1][1], r[1]); // x1, y1, r1
-        for (var i = 0; i < stops.length; i++) {
+        for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
         }
