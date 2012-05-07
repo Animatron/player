@@ -818,7 +818,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
 }
 Scene.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
-        if (elm.visible) elm.fire(type, evt);
+        elm.fire(type, evt);
     });
     return true;
 }
@@ -904,17 +904,17 @@ function Element(draw, onframe) {
     this.xdata = Element.createXData();
     this.children = [];
     this.parent = null;
-    //this.draw = draw,
-    //this.onframe = onframe;
     this.sprite = false;
     this.visible = false;
+    this.rendering = false;
     this._modifiers = [];
     this._painters = [];
     if (onframe) this.__modify(onframe);
     if (draw) this.__paint(draw);
     this.__lastJump = null;
-    this.__evtLock = false;
     this.__jumpLock = false;
+    this.__modifying = null; // current modifiers class, if modifying
+    this.__painting = null; // current painters class, if modifying
     this._initHandlers(); // TODO: make automatic
 };
 Element.DEFAULT_LEN = 10;
@@ -956,22 +956,23 @@ Element.prototype.transform = function(ctx) {
 }
 // > Element.render % (ctx: Context, gtime: Float)
 Element.prototype.render = function(ctx, time) {
+    this.rendering = true;
     ctx.save();
-    this.__evtLock = true;
     var wasDrawn = false;
     if (wasDrawn = (this.onframe(time) 
                     && this.prepare())) {
         this.transform(ctx);
         this.draw(ctx);
     }
+    this.visible = wasDrawn; // FIXME: ensure that 
+                             // handling events and rendering
+                             // are in sync
     this.__clearEvtState();
-    this.visible = wasDrawn;
-    // saving visibility before releasing a lock
-    this.__evtLock = false;
     this.visitChildren(function(elm) {
         elm.render(ctx, time);
     });
     ctx.restore();
+    this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
 // > Element.addModifier % (modifier: Function(time: Float, 
@@ -1043,7 +1044,16 @@ Element.prototype.bounds = function(time) {
 Element.prototype.inBounds = function(point, time) {
     return G.inBounds(this, point, time);
 }
-Element.prototype.contains = function(point, time) {
+Element.prototype.contains = function(pt) {
+    if (this.__modifying !== Element.EVENT_MOD) throw new Error('You may call contains only inside a handler');
+    // FIXME: ensure that sequential handlers do not overlap,
+    //        may be freeze a state before calling handlers?
+    // FIXME: 'contains' must check all of the children too!!!
+    return G.__contains(this.xdata, 
+             Element._getMatrixOf(this.state)
+                    .transformPoint(pt[0], pt[1]));
+}
+Element.prototype.containsByT = function(point, time) {
     return G.contains(this, point, time);
 }
 // make element band fit all children bands
@@ -1174,7 +1184,7 @@ Element.prototype.unlock = function() {
     this.__jumpLock = false;
     return result;
 }
-Element.prototype.stateAt = function(t) {
+Element.prototype.stateAt = function(t) { // FIXME: test
     this.lock();
     var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
@@ -1210,12 +1220,17 @@ Element.prototype.__callModifiers = function(order, ltime) {
     var type, seq;
     for (var typenum = 0, last = order.length;
          typenum < last; typenum++) {
-        type = order[typenum];
+        type = order[typenum];    
         seq = modifiers[type];
+        this.__modifying = type;
         for (var si = 0; si < seq.length; si++) {
-            if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
+            if (!seq[si][0].call(this.state, ltime, seq[si][1])) {
+                this.__modifying = null;
+                return false;
+            }
         }
     }
+    this.__modifying = null;
     return true;
 }
 Element.prototype.__callPainters = function(order, ctx) {
@@ -1225,10 +1240,12 @@ Element.prototype.__callPainters = function(order, ctx) {
          typenum < last; typenum++) {
         type = order[typenum];
         seq = painters[type];
+        this.__painting = type;
         for (var si = 0; si < seq.length; si++) {
             seq[si][0].call(this.xdata, ctx, seq[si][1]);
-        }
+        }        
     }
+    this.__painting = null;
 }
 Element.prototype.__addTypedModifier = function(type, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
@@ -1309,11 +1326,13 @@ Element.prototype.__checkJump = function(at) {
     return t;
 } 
 Element.prototype.handle__x = function(type, evt) {
-    if (this.__evtLock) return false; 
+    // don't handle event while executing event handlers
+    // FIXME: add them to some cache that will be applied then 
+    if (!this.visible) return false;
+    if (this.__modifying === Element.EVENT_MOD) return false; 
     // FIXME: handling through simple handlers 
     // (not modifiers) must, may be, work everytime
     // with no locks
-    // TODO: test with inBounds for mouse events
     this.__saveToEvtState(type, evt);
     return true;
 }
