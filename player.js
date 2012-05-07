@@ -1176,9 +1176,9 @@ Element.prototype.unlock = function() {
 }
 Element.prototype.stateAt = function(t) {
     this.lock();
-    var succeed = this.onframe(t);
+    var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
-    return succeed ? state : null;
+    return success ? state : null;
 }
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
