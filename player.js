@@ -920,11 +920,12 @@ function Element(draw, onframe) {
     this.__painting = null; // current painters class, if modifying
     this.__evtCache = [];
     this._initHandlers(); // TODO: make automatic
-    var default_on = this.on;
+    var _me = this,
+        default_on = this.on;
     this.on = function(type, handler) {
-        if (type & C.XT_CONTROL)  {
-            this.m_on(type, handler);
-        } else default_on(type, handler);
+        if (type & C.XT_CONTROL) {
+            this.m_on.call(_me, type, handler);
+        } else default_on.call(_me, type, handler);
     };
 };
 Element.DEFAULT_LEN = 10;
@@ -1248,15 +1249,17 @@ Element.prototype.__callModifiers = function(order, ltime) {
         type = order[typenum];    
         seq = modifiers[type];
         this.__modifying = type;
-        this.__mbefore(type);
-        for (var si = 0; si < seq.length; si++) {
-            if (!seq[si][0].call(this.state, ltime, seq[si][1])) {
-                this.__mafter(type, false);
-                this.__modifying = null;
-                return false;
+        this.__mbefore(type);      
+        if (seq) {
+            for (var si = 0; si < seq.length; si++) {
+                if (!seq[si][0].call(this.state, ltime, seq[si][1])) {
+                    this.__mafter(type, false);
+                    this.__modifying = null;
+                    return false;
+                }
             }
-            this.__mafter(type, true);
         }
+        this.__mafter(type, true);
     }
     this.__modifying = null;
     return true;
@@ -1270,10 +1273,12 @@ Element.prototype.__callPainters = function(order, ctx) {
         seq = painters[type];
         this.__painting = type;
         this.__pbefore(type);
-        for (var si = 0; si < seq.length; si++) {
-            seq[si][0].call(this.xdata, ctx, seq[si][1]);
-            this.__pafter(type);
-        }        
+        if (seq) {
+            for (var si = 0; si < seq.length; si++) {
+                seq[si][0].call(this.xdata, ctx, seq[si][1]);
+            }
+        }
+        this.__pafter(type);
     }
     this.__painting = null;
 }
@@ -1299,7 +1304,7 @@ Element.prototype.__mbefore = function(type) {
     }
 }
 Element.prototype.__mafter = function(type, result) { 
-    if (/*result &&*/ (type === Element.USER_MOD)) {
+    if (!result || (type === Element.USER_MOD)) {
         this.__lmatrix = Element._getMatrixOf(this.state);
     }
     if (!result || (type === Element.EVENT_MOD)) {
