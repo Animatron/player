@@ -1055,15 +1055,15 @@ Element.prototype.inBounds = function(point, time) {
 }
 Element.prototype.contains = function(pt) {
     if (this.__modifying !== Element.EVENT_MOD) throw new Error('You may call contains only inside a handler');
+    var pt = Element._getMatrixOf(this.state)
+                    .transformPoint(pt[0], pt[1]);
     if (!G.inBounds(this, pt)) return false;
-    return G.__contains(this.xdata, 
-             Element._getMatrixOf(this.state)
-                    .transformPoint(pt[0], pt[1]));
+    return G.__contains(this.xdata, pt);
 }
 Element.prototype.dcontains = function(pt) {
     var matched = [];
     if (this.contains(pt)) matched.push(elm);
-    // FIXME: implement
+    // FIXME: implement (we must draw children _before_ the element to make all work)
     return matched;
     
     /* var matched = [];
