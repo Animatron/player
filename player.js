@@ -973,13 +973,13 @@ Element.prototype.render = function(ctx, time) {
                     && this.prepare())) {
         this.transform(ctx);
         this.draw(ctx);
+        this.visitChildren(function(elm) {
+            elm.render(ctx, time);
+        });
     }
     // immediately when drawn, element becomes visible,
     // it is reasonable
     this.visible = wasDrawn; 
-    this.visitChildren(function(elm) {
-        elm.render(ctx, time);
-    });
     ctx.restore();
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
@@ -1060,23 +1060,23 @@ Element.prototype.contains = function(pt) {
     if (!G.inBounds(this, pt)) return false;
     return G.__contains(this.xdata, pt);
 }
-Element.prototype.dcontains = function(pt) {
+Element.prototype.dcontains = function(pt, level) {
+    var level = level || 0;
+    if ((level === 0) && 
+        (this.__modifying !== Element.EVENT_MOD)) throw new Error('You may call dcontains only inside a handler');
     var matched = [];
-    if (this.contains(pt)) matched.push(elm);
-    // FIXME: implement (we must draw children _before_ the element to make all work)
-    return matched;
-    
-    /* var matched = [];
-    if (G.inBounds(elm, pt)
-        && G.__contains(elm.xdata, pt)) {
-        matched.push(elm);
+    var pt = this.__lmatrix.transformPoint(pt[0], pt[1]);
+    if (G.inBounds(this, pt)) {
+        if (G.__contains(this.xdata, pt)) {
+            matched.push(elm);
+        }
     }
-    if (elm.children) {
+    if (this.children) {
         elm.visitChildren(function(celm) {
-            matched.concat(G.contains(elm, pt, t));
+            matched.concat(celm.dcontains(pt, level+1));
         });
     }
-    return matched; */
+    return matched;
 }
 Element.prototype.containsByT = function(point, time) {
     return G.contains(this, point, time);
@@ -1293,13 +1293,16 @@ Element.prototype.__addTypedPainter = function(type, painter, data) {
     return (painters[type].length - 1);
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
-Element.prototype.__mbefore = function(type) { 
+Element.prototype.__mbefore = function(type) {
     if (type === Element.EVENT_MOD) {
         this.__loadEvtsFromCache();
     }
 }
 Element.prototype.__mafter = function(type, result) { 
-    if (type === Element.EVENT_MOD) {
+    if (/*result &&*/ (type === Element.USER_MOD)) {
+        this.__lmatrix = Element._getMatrixOf(this.state);
+    }
+    if (!result || (type === Element.EVENT_MOD)) {
         this.__clearEvtState();
     }
 }
