@@ -448,16 +448,18 @@ return b().band([0, 15])
                  .fill('#f00'))
   .rotate([0, 10], [0, Math.PI]); */
 
-/* 
-var test = b().rect([140, 140], [70, 70])
+/* var test = b().rect([120, 120], [70, 70])
       .fill('#009')
       .stroke('#f00', 3)
       .on(C.X_MDOWN, function(t, evt) {
-          console.log(test.v.contains(evt, t));
-          this.x = evt[0];
-          this.y = evt[1];
-          console.log(t, evt, test.v.contains(evt, t));
-                    return true;
+          console.log(t, evt,
+                      this.rx, this.ry, 
+                      this.x, this.y,
+                      test.v.contains(evt));
+          this.x = evt[0] - this.lx;
+          this.y = evt[1] - this.ly;
+          console.log(test.v.contains(evt));
+          return true;
       });
 
 return test; */

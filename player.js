@@ -1056,7 +1056,7 @@ Element.prototype.inBounds = function(point, time) {
 }
 Element.prototype.contains = function(pt) {
     if (this.__modifying !== Element.EVENT_MOD) throw new Error('You may call contains only inside a handler');
-    var pt = Element._getMatrixOf(this.state)
+    var pt = Element._getIMatrixOf(this.state)
                     .transformPoint(pt[0], pt[1]);
     if (!G.inBounds(this, pt)) return false;
     return G.__contains(this.xdata, pt);
@@ -1177,7 +1177,7 @@ Element.prototype.reset = function() {
     s.rx = 0; s.ry = 0;
     s.angle = 0; s.alpha = 1;
     s.sx = 1; s.sy = 1;
-    s.t = null; s.rt = null; s.key = null;
+    s.p = null; s.t = null; s.key = null;
     this.__lastJump = null;
     s._matrix.reset();
     this.__clearEvtState();
@@ -1239,7 +1239,7 @@ Element.prototype._stateStr = function() {
            "rx: " + s.rx + " ry: " + s.ry + '\n' +
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
-           "t: " + s.t + " rt: " + s.rt + " key: " + s.key + '\n';
+           "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__callModifiers = function(order, ltime) {
     var modifiers = this._modifiers;
@@ -1305,7 +1305,7 @@ Element.prototype.__mbefore = function(type) {
 }
 Element.prototype.__mafter = function(type, result) { 
     if (!result || (type === Element.USER_MOD)) {
-        this.__lmatrix = Element._getMatrixOf(this.state);
+        this.__lmatrix = Element._getIMatrixOf(this.state);
     }
     if (!result || (type === Element.EVENT_MOD)) {
         this.__clearEvtState();
@@ -1325,9 +1325,9 @@ Element.prototype.__checkJump = function(at) {
     // if jump-time was set either 
     // directly or relatively or with key,
     // get its absolute local value
-    t = (s.t !== null) ? s.t : null;
-    t = ((t === null) && (s.rt !== null))
-        ? s.rt * duration
+    t = (s.p !== null) ? s.p : null;
+    t = ((t === null) && (s.t !== null))
+        ? s.t * duration
         : t;
     t = ((t === null) && (s.key !== null))
         ? x.keys[s.key]
@@ -1344,15 +1344,15 @@ Element.prototype.__checkJump = function(at) {
                  // equal to previous jump value:
                  // save jump time and return it
                  this.__lastJump = [ at, t ];
+                 s.p = null;
                  s.t = null;
-                 s.rt = null;
                  s.key = null;
                  return t;
             } else {
                 // jump is already in progress, 
                 // reset values and continue
+                s.p = null;
                 s.t = null;
-                s.rt = null;
                 s.key = null;
                 t = null;
             }
@@ -1424,8 +1424,8 @@ Element.createState = function() {
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y 
              'alpha': 1,       // opacity
-             't': null, 'rt': null, 'key': null, 
-                               // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
+             'p': null, 't': null, 'key': null, 
+                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
                                // if both are null — stays as defined
              '_matrix': new Transform(),
              '_evts': {},
@@ -1455,6 +1455,11 @@ Element._getMatrixOf = function(s, m) {
     _t.rotate(s.angle);
     _t.scale(s.sx, s.sy);
     _t.translate(-s.rx, -s.ry);  
+    return _t;
+}
+Element._getIMatrixOf = function(s, m) {
+    var _t = Element._getMatrixOf(s, m);
+    _t.invert();
     return _t;
 }
 Element.imgFromUrl = prepareImage;
@@ -1643,14 +1648,14 @@ G.adopt = function(elm, pt, t) {
     if (pt === null) return null;
     var s; if (s = elm.stateAt(t)) {
         return 
-            Element._getMatrixOf(s)
+            Element._getIMatrixOf(s)
                    .transformPoint(pt[0], pt[1]);
     } else return null;
 }
 G.adoptBounds = function(elm, bounds, t) {
     if (pt === null) return null;
     var s; if (s = elm.stateAt(t)) {
-        var m = Element._getMatrixOf(s);
+        var m = Element._getIMatrixOf(s);
         var min = m.transformPoint(bounds[0],
                                    bounds[1]);
         var max = m.transformPoint(bounds[2],
@@ -2437,7 +2442,7 @@ Path.prototype.inBounds = function(point) {
             (point[0] <= _b[2]) &&
             (point[1] <= _b[3]));
 }
-Path.prototype.contains = function(t, pt) {
+Path.prototype.contains = function(pt) {
     /*return this.fill ? ((this.crosses(pt) & -1) != 0)
                      : false /* TODO (this.getHitAt(time, point)) ..*/
     return ((this.crosses(pt) & -1) != 0);
@@ -2452,8 +2457,8 @@ Path.prototype.crosses = function(pt) {
         cur = segment.last();
     });
 
-    if ((p[0] != start[0]) && 
-        (p[1] != start[1])) {
+    if ((pt[0] != start[0]) && 
+        (pt[1] != start[1])) {
         crossings += G.__lineCrosses(pt[0], pt[1], 
                                      cur[0], cur[1],
                                      start[0], start[1]);
