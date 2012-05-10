@@ -12,15 +12,31 @@ var Element = anm.Element;
 var C = anm.C;
 var DU = anm.DU;
 
+var MSeg = anm.MSeg, LSeg = anm.LSeg;
+
 // =============================================================================
 // === BUILDER =================================================================
 
 // > Builder % ()
 function Builder(obj) {
-    this.name = (obj && !obj.xdata) ? obj : ''; // obj is a name string, if it has no xdata
-    this.value = (obj && obj.xdata) ? obj : new Element(); // if it has, it is an element instance
-    this.value.name = this.name;
-    this.xdata = this.value.xdata;
+    if (!obj) {
+        this.n = '';
+        this.v = new Element();
+        this.x = this.v.xdata;
+    } else if (obj instanceof Element) {
+        this.n = obj.name;
+        this.v = obj;
+        this.x = obj.xdata;
+    } else if (obj instanceof Builder) {
+        this.n = obj.n;
+        this.v = obj.v;
+        this.x = obj.x;
+    } else if (typeof obj === 'string') {
+        this.n = obj;
+        this.v = new Element();
+        this.v.name = this.n;
+        this.x = this.v.xdata;
+    }
 };
 Builder._$ = function(obj) {
     return new Builder(obj);
@@ -32,77 +48,98 @@ Builder.DEFAULT_FILL = Path.BASE_FILL;
 
 // > Builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
-    this.value.add(what);
+    if (what instanceof Element) {
+        this.v.add(what);    
+    } else if (what instanceof Builder) {
+        this.v.add(what.v);
+    }
     return this;
 }
 // > Builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.addS = function(what) {
-    this.value.addS(what);
+    if (what instanceof Element) {
+        this.v.addS(what);    
+    } else if (what instanceof Builder) {
+        this.v.addS(what.v);
+    }
     return this;    
 }
 // > Builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
-    var x = this.xdata;
-    x.reg = [ x.reg[0] + pt[0],
-              x.reg[1] + pt[1] ];
+    var x = this.x;
+    x.pos = [ x.pos[0] + pt[0],
+              x.pos[1] + pt[1] ];
+    return this;
+}
+// > Builder.zoom % (val: Array[2,Float]) => Builder
+Builder.prototype.zoom = function(val) {
+    if (this.x.path) {
+        this.x.path.zoom(val);
+        this.path(this.x.path); // will normalize it
+    }
+    return this;
 }
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
-    if (!this.xdata.path) {
-        this.xdata.path = new Path(); 
+    if (!this.x.path) {
+        this.x.path = new Path(); 
     }
-    this.xdata.path.setFill(color);
+    this.x.path.cfill(color);
     return this;
 }
+Builder.prototype.nofill = function() { this.fill(null); }
+Builder.prototype.nostroke = function() { this.stroke(null); }
 // > Builder.stroke % (color: String, width: Float) 
 //                  => Builder
-Builder.prototype.stroke = function(color, width) {
-    if (!this.xdata.path) {
-        this.xdata.path = new Path();
+Builder.prototype.stroke = function(color, width, cap, join) {
+    if (!this.x.path) {
+        this.x.path = new Path();
     }
-    this.xdata.path.setStroke(color, width);
+    this.x.path.cstroke(color, width, cap, join);
     return this;
 }
 // > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
-Builder.prototype.path = function(pathStr) {
-    this.xdata.path = Path.parse(pathStr,
-                                 this.xdata.path);
-    var path = this.xdata.path;
+Builder.prototype.path = function(path) {
+    var path = (path instanceof Path) ? path 
+               : Path.parse(path, this.x.path);
+    var ppath = this.x.path;
+    this.x.path = path;
     var norm = path.normalize();
-    this.xdata.pos = norm[0];
-    this.xdata.reg = norm[1];
-    if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
-    if (!path.fill) path.fill = Builder.DEFAULT_FILL;
+    this.x.pos = norm[0];
+    this.x.reg = norm[1];
+    if (!path.stroke) path.stroke = ppath ? ppath.stroke 
+                                          : Builder.DEFAULT_STROKE;
+    if (!path.fill) path.fill = ppath ? ppath.fill 
+                                      : Builder.DEFAULT_FILL;
     return this;
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
-    this.value.setBand(band);
+    this.v.setBand(band);
     return this;
 }
 // > Builder.paint % (painter: Function(ctx: Context))
 //                 => Builder
 Builder.prototype.paint = function(func, data) {
-    this.value.addPainter(func, data);
+    this.v.addPainter(func, data);
     return this;
 }
 // > Builder.modify % (modifier: Function(time: Float, 
 //                                        data: Any), 
 //                     data: Any) => Builder
 Builder.prototype.modify = function(func, data) {
-    this.value.addModifier(func, data);
+    this.v.addModifier(func, data);
     return this;
 }
 // > Builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src) {
-    this.xdata.pos = pt;
+    this.x.pos = pt;
     if (src) {
-        var x = this.xdata,
-            b = this;
-        x.image = 
+        var b = this;
+        this.x.image = 
            Element.imgFromUrl(src, function(img) {
-                b.modify(function(t) {
+                b.__modify(Element.SYS_MOD, function(t) {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
                     return true;
@@ -126,8 +163,8 @@ Builder.prototype.rect = function(pt, rect) {
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
 Builder.prototype.circle = function(pt, radius) {
-    this.xdata.pos = [ pt[0] - radius, pt[1] - radius ];
-    this.xdata.reg = [ radius, radius ];
+    this.x.pos = pt;
+    this.x.reg = [ radius, radius ];
     var b = this;
     this.paint(function(ctx) {
         var path = this.path;
@@ -143,13 +180,15 @@ Builder.prototype.circle = function(pt, radius) {
 // > Builder.tween % (type: String, (Tween.T_*)
 //                    band: Array[2,Float], 
 //                    data: Any,
-//                    [easing: String]) => Builder // (Easing.T_*)
+//                    [easing: String | Object]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
-    this.value.addTween({
+    this.v.addTween({
         type: type,
         band: band,
         data: data,
-        easing: easing ? { type: easing, data: null/*edata*/ } : null
+        easing: easing ? ((typeof object === 'string') 
+                          ? { type: easing, data: null/*edata*/ }
+                          : easing ) : null
     });
     return this;
 }
@@ -162,6 +201,7 @@ Builder.prototype.rotate = function(band, angles, easing) {
 // > Builder.rotateP % (band: Array[2,Float], 
 //                      [easing: String]) => Builder
 Builder.prototype.rotateP = function(band, easing) {
+    // FIXME: take band from translate tween, if it is not defined
     return this.tween(C.T_ROT_TO_PATH, band, null, easing);
 }
 // > Builder.scale % (band: Array[2,Float], 
@@ -169,6 +209,13 @@ Builder.prototype.rotateP = function(band, easing) {
 //                    [easing: String]) => Builder
 Builder.prototype.scale = function(band, values, easing) {
     return this.tween(C.T_SCALE, band, values, easing);
+}
+// > Builder.xscale % (band: Array[2,Float], 
+//                     values: Array[2, Float],
+//                     [easing: String]) => Builder
+Builder.prototype.xscale = function(band, values, easing) {
+    return this.scale(band, [ [ values[0], values[0] ],
+                              [ values[1], values[1] ] ], easing);
 }
 // > Builder.trans % (band: Array[2,Float], 
 //                    points: Array[2,Array[2, Float]],
@@ -193,50 +240,82 @@ Builder.prototype.alpha = function(band, values, easing) {
 // > Builder.key % (name: String, value: Float) => Builder
 Builder.prototype.key = function(name, value) {
     // TODO: ensure value is in band?
-    this.xdata.keys[name] = value;
+    this.x.keys[name] = value;
     return this;
 }
 // > Builder.mode % (mode: String) => Builder
 Builder.prototype.mode = function(mode) {
-    this.xdata.mode = mode;
+    this.x.mode = mode;
     return this;
 }
 Builder.prototype.once = function() {
-    return this.mode(C.M_ONCE);
+    return this.mode(C.R_ONCE);
 }
 Builder.prototype.loop = function() {
-    return this.mode(C.M_LOOP);
+    return this.mode(C.R_LOOP);
 }
 Builder.prototype.bounce = function() {
-    return this.mode(C.M_BOUNCE);
+    return this.mode(C.R_BOUNCE);
+}
+Builder.prototype.time = function(f) {
+    this.x.tf = f;
+    return this;
+}
+Builder.prototype.tease = function(ease) {
+    if (!ease) throw new Error('Ease function not defined');
+    var duration = this.x.lband[1]-this.x.lband[0];
+    this.time(function(t) {
+        return ease(t / duration);
+    });
+    return this;
 }
 // PRIVATE
 Builder.prototype._curStroke = function() {
-    var path = this.xdata.path;
+    var path = this.x.path;
     return path ? (path.stroke || Builder.DEFAULT_STROKE) : Builder.DEFAULT_STROKE;
 }
 Builder.prototype._curFill = function() {
-    var path = this.xdata.path;
+    var path = this.x.path;
     return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
 }
-/*Builder.p_drawCircle = function(ctx, args) {
-    var pt=args[0], radius=args[1],
-        fill=args[2], stroke=args[3];
-        x=pt[0], y=pt[1], 
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI*2, args);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-}*/
+Builder.prototype.on = function(type, handler) {
+    this.v.m_on(type, handler);
+    return this;
+}
 
-// TODO: ?
-// B.color
-// B.gradient
-// B.fill
-// B.path
-// B.tween
-// B.easing
+Builder.rgb = function(r, g, b, a) {
+    return "rgba(" + Math.floor(r) + "," +
+                     Math.floor(g) + "," +
+                     Math.floor(b) + "," +
+                     ((typeof a !== 'undefined') 
+                            ? a : 1) + ");"; 
+}
+Builder.hsv = function() {
+    // FIXME: TODO
+}
+Builder.gradient = function() {
+    // FIXME: TODO
+}
+Builder.path = function(points) {
+    var p = new Path();
+    p.add(new MSeg([points[0][0], points[0][1]]));
+    for (var i = 1; i < points.length; i++) {
+        p.add(new LSeg([ points[i][0],
+                         points[i][1] ]));
+    }
+    return p;
+}
+Builder.easing = function(func, data) {
+    return {
+        'f': function(data) {
+            return func;
+        },
+        'data': data
+    }
+}
+Builder.tween = function() {
+    // FIXME: TODO
+}
 
 window.Builder = Builder;
 

@@ -56,7 +56,7 @@ examples.push([ 0, [
   'return b().rect([50, 50], [40, 40])',
   '          .trans([0, 3],', 
   '                 [[0, 0], [0, 150]],', 
-  '                 C.T_COUT);'
+  '                 C.E_COUT);'
 ].join('\n') ]);
 
 examples.push([ 0 /*version*/, [
@@ -130,6 +130,8 @@ examples.push([ 0 /*version*/, [
 
 var uexamples = [];
 
+var _player = null; 
+
 function sandbox() {
 
     this.codeElm = document.getElementById('scene-source'),
@@ -149,6 +151,7 @@ function sandbox() {
     });
     this.player.mode = anm.C.M_PREVIEW;
     this.player._checkMode();
+    _player = this.player;
 
     this.cm = CodeMirror.fromTextArea(this.codeElm, 
               { mode: 'javascript',
@@ -163,6 +166,7 @@ function sandbox() {
     var s = this;
     var curInterval = null;
     var refreshRate = DEFAULT_REFRESH_RATE;
+    var reportErr = true;
     function refresh() {
         s.errorsElm.style.display = 'none';
         s.player.stop();
@@ -173,11 +177,18 @@ function sandbox() {
             var scene = eval(code);
             player.load(scene);
             player.play();
+            reportErr = true;
         } catch(e) {
             s.player.stop();
             s.player.drawSplash();
             s.errorsElm.style.display = 'block';
             s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
+            if (reportErr) {
+              if (console && console.error) {
+                console.error(e.stack);
+              }
+              reportErr = false;
+            }
             //throw e;
         };
     };
@@ -243,6 +254,13 @@ function hide_csheet(csheetElmId, overlayElmId) {
 
 }
 
+function change_mode(radio) {
+  if (_player) {
+    _player.mode = C[radio.value];
+    _player._checkMode();
+  }
+}
+
 function store_examples() {
     if (!localStorage) throw new Error('Local storage support required');
     var elen = examples.length;
@@ -305,14 +323,14 @@ function list_examples(selectElm) {
 }
 
 /* return b().rect([0, 0], [40, 40])
-          .rotateP([0, 10], Easing.T_INOUT)
+          .rotateP([0, 10], C.E_INOUT)
           .transP([0, 10],
                  'M0.0 100.0 '+
                  'C150.0 0.0 150.0 30.0 200.0 30.0 '+
                  'C250.0 30.0 400.0 50.0 400.0 100.0 '+
                  'C400.0 150.0 250.0 300.0 200.0 300.0 '+
                  'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
-                 Easing.T_INOUT); */
+                 C.E_INOUT); */
 
 /* return b().rect([0, 0], [40, 40])
           .fill("blue")
@@ -321,14 +339,14 @@ function list_examples(selectElm) {
           .alpha([8, 10], [1, 0])
           .scale([0, 5], [[1, 1], [2, 2]])
           .scale([5, 10], [[2, 2], [1, 1]])    
-          .rotateP([0, 10], Easing.T_INOUT)
+          .rotateP([0, 10], C.E_INOUT)
           .transP([0, 10],
                  'M0.0 100.0 '+
                  'C150.0 0.0 150.0 30.0 200.0 30.0 '+
                  'C250.0 30.0 400.0 50.0 400.0 100.0 '+
                  'C400.0 150.0 250.0 300.0 200.0 300.0 '+
                  'C150.0 300.0 160.0 100.0 0.0 100.0 Z',
-                 Easing.T_INOUT); */
+                 C.E_INOUT); */
 
 /* return b().rect([100, 100], [50, 50])
           .rotate([0, 1.5], [0, Math.PI * 2], 'COUT')
@@ -372,9 +390,9 @@ function list_examples(selectElm) {
                         .trans([0, 5], [[0, 0], [40, 40]])
                         .fill('#060'))
     .add(b('blue-rect').band([5, 10])
-                       .rect([100, 100], [40, 40])
+                       .circle([100, 100], 20)
                        .trans([0, 5], [[0, 0], [40, 40]])
-                       .fill('#006'));
+                       .fill('#006').bounce());
 
 return b('parent').band([0, 20])
        .add(b('red-rect').band([0, 5])
@@ -396,3 +414,108 @@ return b('parent').band([0, 20])
                          .fill('#f00')
                          .trans([0, 5], [[0, 0], [40, 40]])
                          .bounce()); */
+
+/* return b().band([0, 15])
+  .add(
+    b('blue-rect').rect([0, 0], [70, 70])
+                  .fill('#009')
+                  .stroke('#f00', 3)
+                  //.move([70, 70])
+      //.on(C.X_KPRESS, function(t, evt) {
+      //    console.log(this, t, evt);
+      //})
+      .on(C.X_MDOWN, function(t, evt) {
+          this.x = evt[0];
+          this.y = evt[1];
+          return true;
+      }))
+  .add(
+    b('red-rect').rect([115, 90], [60, 60])
+                 .fill('#f00')); */
+
+/* 
+return b().band([0, 15])
+  .add(
+    b('blue-rect').band([0, 3])
+                  .rect([140, 25], [70, 70])
+                  .move([40, 40])
+                  .fill('#009')
+                  .stroke('#f00', 3)
+                  .rotate([0, 5], [0, Math.PI / 2])
+                  .tease(C.EF_CINOUT))
+  .add(
+    b('red-rect').rect([115, 90], [60, 60])
+                 .fill('#f00'))
+  .rotate([0, 10], [0, Math.PI]); */
+
+/* var test = b().path(B.path([
+         [ 20,  0 ], // top
+         [ 15, 15 ], 
+         [  0, 20 ], // left
+         [ 13, 25 ], 
+         [  7, 43 ], // btm-left
+         [ 20, 30 ], 
+         [ 33, 43 ], // btm-right
+         [ 28, 25 ],
+         [ 40, 20 ], // right
+         [ 25, 15 ]
+      ]))
+      .stroke('#f00', 1.5)
+      .zoom([2, 2])    
+      .move([50, 50])
+      .on(C.X_MDOWN, function(t, evt) {
+          var lpt = test.v.local(evt);
+          console.log(evt,lpt,
+            test.v.contains(lpt));
+          this.x = lpt[0] - this.lx;
+          this.y = lpt[1] - this.ly;
+          console.log(evt,lpt,
+            test.v.contains(lpt));
+          return true;
+      });
+
+return test; */
+
+/* var test = b().path(B.path([
+         [ 20,  0 ], // top
+         [ 15, 15 ], 
+         [  0, 20 ], // left
+         [ 13, 25 ], 
+         [  7, 43 ], // btm-left
+         [ 20, 30 ], 
+         [ 33, 43 ], // btm-right
+         [ 28, 25 ],
+         [ 40, 20 ], // right
+         [ 25, 15 ]
+      ]))
+      .stroke('#f00', 1.5)
+      .zoom([2, 2])    
+      .move([50, 50])
+      .on(C.X_MDOWN, function(t, evt) {
+          var lpt = test.v.local(evt);
+          var contains = test.v.contains(lpt);
+          test.fill(contains ? '#00f' : '#f00');
+          // this.x = lpt[0] - this.lx;
+          // this.y = lpt[1] - this.ly;
+          // console.log(evt,lpt,test.v.contains(lpt));
+          return true;
+      });
+
+return test; */
+
+/* var test = b().path('M20 20 L40 40 C60 60 40 50 20 30 Z')
+      .stroke('#f00', 1.5)
+      .zoom([2, 2])    
+      .move([70, 70])
+      .on(C.X_MDOWN, function(t, evt) {
+          var lpt = test.v.local(evt);
+          var contains = test.v.contains(lpt);
+          test.fill(contains ? '#00f' : '#f00');
+          // this.x = lpt[0] - this.lx;
+          // this.y = lpt[1] - this.ly;
+          // console.log(evt,lpt,test.v.contains(lpt));
+          return true;
+      })
+      .rotate([0, 10], [0, Math.PI / 2]);
+
+return test; */
