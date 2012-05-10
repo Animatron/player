@@ -71,6 +71,14 @@ Builder.prototype.move = function(pt) {
               x.pos[1] + pt[1] ];
     return this;
 }
+// > Builder.zoom % (val: Array[2,Float]) => Builder
+Builder.prototype.zoom = function(val) {
+    if (this.x.path) {
+        this.x.path.zoom(val);
+        this.path(this.x.path); // will normalize it
+    }
+    return this;
+}
 // > Builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(color) {
     if (!this.x.path) {
@@ -99,8 +107,10 @@ Builder.prototype.path = function(path) {
     var norm = path.normalize();
     this.x.pos = norm[0];
     this.x.reg = norm[1];
-    if (!path.stroke) path.stroke = ppath ? ppath.stroke : Builder.DEFAULT_STROKE;
-    if (!path.fill) path.fill = ppath ? ppath.fill : Builder.DEFAULT_FILL;
+    if (!path.stroke) path.stroke = ppath ? ppath.stroke 
+                                          : Builder.DEFAULT_STROKE;
+    if (!path.fill) path.fill = ppath ? ppath.fill 
+                                      : Builder.DEFAULT_FILL;
     return this;
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
@@ -199,6 +209,13 @@ Builder.prototype.rotateP = function(band, easing) {
 //                    [easing: String]) => Builder
 Builder.prototype.scale = function(band, values, easing) {
     return this.tween(C.T_SCALE, band, values, easing);
+}
+// > Builder.xscale % (band: Array[2,Float], 
+//                     values: Array[2, Float],
+//                     [easing: String]) => Builder
+Builder.prototype.xscale = function(band, values, easing) {
+    return this.scale(band, [ [ values[0], values[0] ],
+                              [ values[1], values[1] ] ], easing);
 }
 // > Builder.trans % (band: Array[2,Float], 
 //                    points: Array[2,Array[2, Float]],

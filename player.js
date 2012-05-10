@@ -2440,6 +2440,12 @@ Path.prototype.shift = function(pt) {
                  y + pt[1] ];
     });
 };
+Path.prototype.zoom = function(vals) {
+    this.vpoints(function(x, y) {
+        return [ x * vals[0],
+                 y * vals[1] ];
+    });
+}
 // moves path to be positioned at 0,0 and
 // returns subtracted top-left point
 // and a center point

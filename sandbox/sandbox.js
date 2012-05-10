@@ -448,16 +448,74 @@ return b().band([0, 15])
                  .fill('#f00'))
   .rotate([0, 10], [0, Math.PI]); */
 
-/* var test = b().rect([120, 120], [70, 70])
-      .fill('#009')
-      .stroke('#f00', 3)
+/* var test = b().path(B.path([
+         [ 20,  0 ], // top
+         [ 15, 15 ], 
+         [  0, 20 ], // left
+         [ 13, 25 ], 
+         [  7, 43 ], // btm-left
+         [ 20, 30 ], 
+         [ 33, 43 ], // btm-right
+         [ 28, 25 ],
+         [ 40, 20 ], // right
+         [ 25, 15 ]
+      ]))
+      .stroke('#f00', 1.5)
+      .zoom([2, 2])    
+      .move([50, 50])
       .on(C.X_MDOWN, function(t, evt) {
           var lpt = test.v.local(evt);
-          console.log(evt,lpt,test.v.contains(lpt));
+          console.log(evt,lpt,
+            test.v.contains(lpt));
           this.x = lpt[0] - this.lx;
           this.y = lpt[1] - this.ly;
-          console.log(evt,lpt,test.v.contains(lpt));
+          console.log(evt,lpt,
+            test.v.contains(lpt));
           return true;
       });
+
+return test; */
+
+/* var test = b().path(B.path([
+         [ 20,  0 ], // top
+         [ 15, 15 ], 
+         [  0, 20 ], // left
+         [ 13, 25 ], 
+         [  7, 43 ], // btm-left
+         [ 20, 30 ], 
+         [ 33, 43 ], // btm-right
+         [ 28, 25 ],
+         [ 40, 20 ], // right
+         [ 25, 15 ]
+      ]))
+      .stroke('#f00', 1.5)
+      .zoom([2, 2])    
+      .move([50, 50])
+      .on(C.X_MDOWN, function(t, evt) {
+          var lpt = test.v.local(evt);
+          var contains = test.v.contains(lpt);
+          test.fill(contains ? '#00f' : '#f00');
+          // this.x = lpt[0] - this.lx;
+          // this.y = lpt[1] - this.ly;
+          // console.log(evt,lpt,test.v.contains(lpt));
+          return true;
+      });
+
+return test; */
+
+/* var test = b().path('M20 20 L40 40 C60 60 40 50 20 30 Z')
+      .stroke('#f00', 1.5)
+      .zoom([2, 2])    
+      .move([70, 70])
+      .on(C.X_MDOWN, function(t, evt) {
+          var lpt = test.v.local(evt);
+          var contains = test.v.contains(lpt);
+          test.fill(contains ? '#00f' : '#f00');
+          // this.x = lpt[0] - this.lx;
+          // this.y = lpt[1] - this.ly;
+          // console.log(evt,lpt,test.v.contains(lpt));
+          return true;
+      })
+      .rotate([0, 10], [0, Math.PI / 2]);
 
 return test; */
