@@ -12,6 +12,8 @@ var Element = anm.Element;
 var C = anm.C;
 var DU = anm.DU;
 
+var MSeg = anm.MSeg, LSeg = anm.LSeg;
+
 // =============================================================================
 // === BUILDER =================================================================
 
@@ -74,28 +76,31 @@ Builder.prototype.fill = function(color) {
     if (!this.x.path) {
         this.x.path = new Path(); 
     }
-    this.x.path.setFill(color);
+    this.x.path.cfill(color);
     return this;
 }
+Builder.prototype.nofill = function() { this.fill(null); }
+Builder.prototype.nostroke = function() { this.stroke(null); }
 // > Builder.stroke % (color: String, width: Float) 
 //                  => Builder
-Builder.prototype.stroke = function(color, width) {
+Builder.prototype.stroke = function(color, width, cap, join) {
     if (!this.x.path) {
         this.x.path = new Path();
     }
-    this.x.path.setStroke(color, width);
+    this.x.path.cstroke(color, width, cap, join);
     return this;
 }
 // > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
-Builder.prototype.path = function(pathStr) {
-    this.x.path = Path.parse(pathStr,
-                             this.x.path);
-    var path = this.x.path;
+Builder.prototype.path = function(path) {
+    var path = (path instanceof Path) ? path 
+               : Path.parse(path, this.x.path);
+    var ppath = this.x.path;
+    this.x.path = path;
     var norm = path.normalize();
     this.x.pos = norm[0];
     this.x.reg = norm[1];
-    if (!path.stroke) path.stroke = Builder.DEFAULT_STROKE;
-    if (!path.fill) path.fill = Builder.DEFAULT_FILL;
+    if (!path.stroke) path.stroke = ppath ? ppath.stroke : Builder.DEFAULT_STROKE;
+    if (!path.fill) path.fill = ppath ? ppath.fill : Builder.DEFAULT_FILL;
     return this;
 }
 // > Builder.band % (band: Array[2,Float]) => Builder
@@ -165,13 +170,15 @@ Builder.prototype.circle = function(pt, radius) {
 // > Builder.tween % (type: String, (Tween.T_*)
 //                    band: Array[2,Float], 
 //                    data: Any,
-//                    [easing: String]) => Builder // (Easing.T_*)
+//                    [easing: String | Object]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
     this.v.addTween({
         type: type,
         band: band,
         data: data,
-        easing: easing ? { type: easing, data: null/*edata*/ } : null
+        easing: easing ? ((typeof object === 'string') 
+                          ? { type: easing, data: null/*edata*/ }
+                          : easing ) : null
     });
     return this;
 }
@@ -259,24 +266,39 @@ Builder.prototype.on = function(type, handler) {
     return this;
 }
 
-/*Builder.p_drawCircle = function(ctx, args) {
-    var pt=args[0], radius=args[1],
-        fill=args[2], stroke=args[3];
-        x=pt[0], y=pt[1], 
-    ctx.beginPath();
-    ctx.arc(x, y, radius, 0, Math.PI*2, args);
-    ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
-}*/
-
-// TODO: ?
-// B.color
-// B.gradient
-// B.fill
-// B.path
-// B.tween
-// B.easing
+Builder.rgb = function(r, g, b, a) {
+    return "rgba(" + Math.floor(r) + "," +
+                     Math.floor(g) + "," +
+                     Math.floor(b) + "," +
+                     ((typeof a !== 'undefined') 
+                            ? a : 1) + ");"; 
+}
+Builder.hsv = function() {
+    // FIXME: TODO
+}
+Builder.gradient = function() {
+    // FIXME: TODO
+}
+Builder.path = function(points) {
+    var p = new Path();
+    p.add(new MSeg([points[0][0], points[0][1]]));
+    for (var i = 1; i < points.length; i++) {
+        p.add(new LSeg([ points[i][0],
+                         points[i][1] ]));
+    }
+    return p;
+}
+Builder.easing = function(func, data) {
+    return {
+        'f': function(data) {
+            return func;
+        },
+        'data': data
+    }
+}
+Builder.tween = function() {
+    // FIXME: TODO
+}
 
 window.Builder = Builder;
 

@@ -8,7 +8,7 @@
 var _define; 
 if (typeof define !== "function") {
    this.define = function(name, func) {
-      func().__injectToWindow(name);
+      func.call({}).__injectToWindow(name);
    };
 };
 
@@ -1654,8 +1654,8 @@ DU.qDraw = function(ctx, stroke, fill, func) {
     func();
     ctx.closePath();
 
-    ctx.fill();
-    ctx.stroke();
+    if (fill && fill.color) ctx.fill();
+    if (stroke && stroke.color) ctx.stroke();
     ctx.restore();
 }
 
@@ -1950,7 +1950,8 @@ Render.addTweenModifier = function(elm, tween) {
     var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
                                                  tween.band)
                            : Bands.adaptModifierByTime(
-                                   EasingImpl[easing.type](easing.data),
+                                   easing.type ? EasingImpl[easing.type](easing.data)
+                                               : easing.f(easing.data),
                                    Tweens[tween.type],
                                    tween.band);
     elm.__modify(Element.TWEEN_MOD, modifier, tween.data);
@@ -2006,7 +2007,7 @@ Render.h_drawMPath = function(ctx, path) {
         ctx.save();
         var s = this.state;
         ctx.translate(s.lx, s.ly);
-        mPath.setStroke('#600', 2.0);
+        mPath.cstroke('#600', 2.0);
         ctx.beginPath();
         mPath.apply(ctx);
         ctx.closePath();
@@ -2255,6 +2256,8 @@ C.P_MOVETO = 0;
 C.P_LINETO = 1;
 C.P_CURVETO = 2;
 
+C.PC_ROUND = 'round';
+
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
     this.str = str;
@@ -2265,13 +2268,15 @@ function Path(str, stroke, fill) {
 }
 
 Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
+Path.DEFAULT_CAP = C.PC_ROUND;
+Path.DEFAULT_JOIN = C.PC_ROUND;
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
 Path.DEFAULT_FILL = { 'color': 'transparent' };
 Path.BASE_FILL = { 'color': '#dfdfdf' };
 Path.BASE_STROKE = { 'width': 1.0,
                      'color': '#000',
-                     'cap': 'round',
-                     'join': 'round'
+                     'cap': Path.DEFAULT_CAP,
+                     'join': Path.DEFAULT_JOIN
                    };
 
 // visits every chunk of path in array-form and calls
@@ -2318,18 +2323,18 @@ Path.prototype.apply = function(ctx) {
     ctx.stroke();*/
 
 }
-Path.prototype.setStroke = function(strokeColor, lineWidth) {
+Path.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
-        'width': (lineWidth != null) ? lineWidth
-                            : Path.DEFAULT_STROKE.width,
-        'color': strokeColor,
-        'cap': 'round',
-        'join': 'round'
+        'width': (width != null) ? width
+                 : Path.DEFAULT_STROKE.width,
+        'color': color,
+        'cap': cap || Path.DEFAULT_CAP,
+        'join': join || Path.DEFAULT_JOIN
     };
 }
-Path.prototype.setFill = function(fillColor) {
+Path.prototype.cfill = function(color) {
     this.fill = {
-        'color': fillColor
+        'color': color
     };
 }
 // > Path.parse % (str: String) => Path
@@ -3298,7 +3303,7 @@ var exports = {
 };
 
 exports._$ = exports.createPlayer;
-exports.__js_pl_all = this;
+//exports.__js_pl_all = this;
 exports.__injectToWindow = function(as) {
           window[as] = exports;
           window.createPlayer = exports.createPlayer; 
