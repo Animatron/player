@@ -8,7 +8,7 @@
 var _define; 
 if (typeof define !== "function") {
    this.define = function(name, func) {
-      func().__injectToWindow(name);
+      func.call({}).__injectToWindow(name);
    };
 };
 
@@ -51,6 +51,21 @@ function guid() {
 function arr_remove(arr, idx) {
     return arr.slice(0,i).concat( arr.slice(i+1) );   
 }
+// for one-level objects, so no hasOwnProperty check
+function obj_clone(what) {
+    var dest = {};
+    for (var prop in what) {
+        dest[prop] = what[prop];
+    }
+    return dest;
+}
+// for one-level objects, so no hasOwnProperty check
+/*function obj_copy(what, dest) {
+    for (var prop in what) {
+        dest[prop] = what[prop];
+    }
+    return dest;
+}*/
 
 function find_pos(elm) {
     var curleft = curtop = 0;
@@ -175,6 +190,39 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_INFO_ENABLED       
             | C.M_DO_NOT_HANDLE_EVENTS;
 
+
+// EVENTS
+
+// mouse
+C.X_MCLICK = 1;
+C.X_MDCLICK = 2;
+C.X_MUP = 4;
+C.X_MDOWN = 8;
+C.X_MMOVE = 16;
+
+C.XT_MOUSE = C.X_MCLICK | C.X_MDCLICK | 
+             C.X_MUP | C.X_MDOWN | C.X_MMOVE;
+
+// keyboard
+C.X_KPRESS = 32;
+C.X_KUP = 64;
+C.X_KDOWN = 128;
+
+C.XT_KEYBOARD = C.X_KPRESS | C.X_KUP | C.X_KDOWN;
+
+// controllers
+C.XT_CONTROL = C.XT_KEYBOARD | C.XT_MOUSE;
+
+// draw
+C.X_DRAW = 256;
+
+// playing
+C.X_PLAY = 'play';
+C.X_PAUSE = 'pause';
+C.X_STOP = 'stop';
+C.X_LOAD = 'load';
+C.X_ERROR = 'error';
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -210,7 +258,7 @@ function Player(id, opts) {
     this.ctx = null;
     this.controls = null;
     this.info = null;
-    this.__canvasConfigured = false;
+    this.__canvasPrepared = false;
     this._init(opts);
 }
 
@@ -252,7 +300,7 @@ Player.prototype.load = function(object, importer, callback) {
     player._reset();
 
     var whenDone = function() {
-        player.e_load();
+        player.fire(C.X_LOAD);
         player.stop();
         if (callback) callback();
     };
@@ -260,35 +308,33 @@ Player.prototype.load = function(object, importer, callback) {
     // TODO: configure canvas using clips bounds
     
     if (object) {
-        // FIXME: check through instanceof/typeof
-        // FIXME: split canvas configuration (size) 
-        //        and meta-information (author, duration) 
-        //        in two different objects
+
         // FIXME: load canvas parameters from canvas element, 
         //        if they are not specified
-        if (object.meta) { // exported from Animatron
-            L.loadFromObj(player, object, importer, whenDone);
-        } else if (object.value) { // Builder instance
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
+        if (object instanceof Builder) {  // Builder instance
+            if (!player.__canvasPrepared) {
+                player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadBuilder(player, object, whenDone);
-        } else if (object.push) { // array of clips
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
-            }
-            L.loadClips(player, object, whenDone);
-        } else if (object.visitElems) { // Scene instance
-            if (!player.__canvasConfigured) {
-                player._configureCanvas(Player.DEFAULT_CANVAS);
+        } else if (object instanceof Scene) { // Scene instance
+            if (!player.__canvasPrepared) {
+                player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadScene(player, object, whenDone);
-        } else { // URL
+        } else if (object instanceof Array) { // array of clips
+            if (!player.__canvasPrepared) {
+                player._prepareCanvas(Player.DEFAULT_CANVAS);
+            }
+            L.loadClips(player, object, whenDone);
+        } else if (typeof object === 'string') { // URL
             L.loadFromUrl(player, object, importer, whenDone);
+        } else { // any object with importer
+            L.loadFromObj(player, object, importer, whenDone);
         }
+
     } else {
-        if (!player.__canvasConfigured) {
-            player._configureCanvas(Player.DEFAULT_CANVAS);
+        if (!player.__canvasPrepared) {
+            player._prepareCanvas(Player.DEFAULT_CANVAS);
         }
         player.anim = new Scene();
     }
@@ -342,8 +388,7 @@ Player.prototype.play = function(from, speed) {
                    return true;
                });
 
-    player.e_play(_state.from);
-    //console.log('play', player.id, _state);
+    player.fire(C.X_PLAY,_state.from);
 
     return player;
 }
@@ -369,7 +414,7 @@ Player.prototype.stop = function() {
         player.controls.render(_state, 0);
     }
 
-    player.e_stop();
+    player.fire(C.X_STOP);
     //console.log('stop', player.id, _state);
 
     return player;    
@@ -388,7 +433,7 @@ Player.prototype.pause = function() {
 
     player.drawAt(_state.time);
 
-    player.e_pause(_state.time);
+    player.fire(C.X_PAUSE,_state.time);
     //console.log('pause', player.id, _state);
 
     return player;    
@@ -401,7 +446,7 @@ Player.prototype.pause = function() {
 Player.prototype.onerror = function(callback) { // TODO: make and event?
     var player = this;
 
-    player.e_error();
+    player.fire(C.X_ERROR);
     //console.log('onerror', player.id, player);
 
     player.anim = null;
@@ -414,7 +459,7 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 // === INITIALIZATION ==========================================================
 // =============================================================================
 
-provideEvents(Player, ['play', 'pause', 'stop', 'load', 'error']);
+provideEvents(Player, [C.X_PLAY, C.X_PAUSE, C.X_STOP, C.X_LOAD, C.X_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
     var opts = opts || Player.DEFAULT_CONFIGURATION;
@@ -446,69 +491,25 @@ Player.prototype._reset = function() {
     _state.from = 0;
     _state.time = 0;
     _state.zoom = 1;
+    _state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, _state.width, _state.height);
     this.stop();
 }
 // update player's canvas with configuration 
-Player.prototype._configureCanvas = function(opts) {
-    this.__canvasConfigured = true;
+Player.prototype._prepareCanvas = function(opts) {
+    var canvas = this.canvas;
     this._canvasConf = opts;
     this.state.width = opts.width;
     this.state.height = opts.height;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    canvasOpts(this.canvas, opts);
-    if (this.controls) this.controls.update(this.canvas);
-    if (this.info) this.info.update(this.canvas);
+    canvasOpts(canvas, opts);
+    if (this.controls) this.controls.update(canvas);
+    if (this.info) this.info.update(canvas);
+    this._saveCanvasPos(canvas);
+    this.__canvasPrepared = true;
     return this;
-}
-Player.prototype.drawSplash = function() {
-    var ctx = this.ctx,
-        w = this.state.width,
-        h = this.state.height,
-        rsize = 120;
-    ctx.save();
-
-    // background
-    ctx.fillStyle = '#ffe';
-    ctx.fillRect(0, 0, w, h);
-
-    // text
-    ctx.fillStyle = '#999966';
-    ctx.font = '18px sans-serif';
-    ctx.fillText('© Animatron Player', 20, h - 20);
-
-    // outer rect
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = '#fee';
-    ctx.strokeRect(0, 0, w, h);
-
-    // inner rect
-    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
-    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
-    grad.addColorStop(0, '#00abeb');
-    grad.addColorStop(.7, '#fff');
-    grad.addColorStop(.7, '#6c0');
-    grad.addColorStop(1, '#fff');
-    ctx.fillStyle = grad;
-    ctx.strokeStyle = '#bbb';
-    ctx.lineWidth = 10;
-    ctx.globalAlpha = .8;
-    ctx.fillRect(0, 0, rsize, rsize);
-    ctx.globalAlpha = .9;
-    ctx.strokeRect(0, 0, rsize, rsize);
-
-    ctx.restore();
-}
-Player.prototype.drawLoadingSplash = function(text) {
-    this.drawSplash();
-    var ctx = this.ctx;
-    ctx.save();
-    ctx.fillStyle = '#006';
-    ctx.font = '12px sans-serif';
-    ctx.fillText(text || "Loading...", 20, 25);
-    ctx.restore();
 }
 Player.prototype._checkMode = function() {
     if (this.mode & C.M_CONTROLS_ENABLED) {
@@ -519,7 +520,6 @@ Player.prototype._checkMode = function() {
     } else {
         if (this.controls) {
             this.controls.detach(this.canvas);
-            delete this.controls;
             this.controls = null;
         }
     }
@@ -531,14 +531,14 @@ Player.prototype._checkMode = function() {
     } else {
         if (this.info) {
             this.info.detach(this.canvas);
-            delete this.info;
             this.info = null;
         }
     }
     // FIXME: M_HANDLE_EVENTS
 }
+// FIXME: call changeRect on every resize
 Player.prototype.changeRect = function(rect) {
-    this._configureCanvas({
+    this._prepareCanvas({
         width: rect.width,
         height: rect.height,
         x: rect.x,
@@ -561,7 +561,7 @@ Player.prototype.changeZoom = function(ratio) {
 // }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
-    this._configureCanvas(conf);
+    this._prepareCanvas(conf);
     // inject information to html
     
     if (conf.fps) this.state.fps = conf.fps;
@@ -637,6 +637,94 @@ Player.prototype.updateDuration = function(value) {
     this.state.duration = value;
     if (this.info) this.info.updateDuration(value);
 }
+Player.prototype._saveCanvasPos = function(cvs) {
+    var gcs = (document.defaultView && 
+               document.defaultView.getComputedStyle); // last is assigned
+
+    // computed padding-left
+    var cpl = gcs ?
+          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
+    // computed padding-top
+        cpt = gcs ?
+          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
+    // computed bodrer-left
+        cbl = gcs ?
+          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
+    // computed bodrer-top
+        cbt = gcs ? 
+          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
+
+    var html = document.body.parentNode,
+        htol = html.offsetLeft,
+        htot = html.offsetTop;
+
+    var elm = cvs, 
+        ol = cpl + cbl + htol, 
+        ot = cpt + cbt + htot;
+     
+    if (elm.offsetParent !== undefined) {
+        do {
+            ol += elm.offsetLeft;
+            ot += elm.offsetTop;
+        } while (elm = elm.offsetParent);
+    };
+ 
+    ol += cpl + cbl + htol;
+    ot += cpt + cbt + htot;
+
+    // FIXME: find a method with no injection of custom properties
+    //        (data-xxx attributes are stored as strings and may work
+    //         a bit slower for events)
+    cvs.__rOffsetLeft = ol;
+    cvs.__rOffsetTop = ot;
+}
+Player.prototype.drawSplash = function() {
+    var ctx = this.ctx,
+        w = this.state.width,
+        h = this.state.height,
+        rsize = 120;
+    ctx.save();
+
+    // background
+    ctx.fillStyle = '#ffe';
+    ctx.fillRect(0, 0, w, h);
+
+    // text
+    ctx.fillStyle = '#999966';
+    ctx.font = '18px sans-serif';
+    ctx.fillText('© Animatron Player', 20, h - 20);
+
+    // outer rect
+    ctx.lineWidth = 12;
+    ctx.strokeStyle = '#fee';
+    ctx.strokeRect(0, 0, w, h);
+
+    // inner rect
+    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
+    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
+    grad.addColorStop(0, '#00abeb');
+    grad.addColorStop(.7, '#fff');
+    grad.addColorStop(.7, '#6c0');
+    grad.addColorStop(1, '#fff');
+    ctx.fillStyle = grad;
+    ctx.strokeStyle = '#bbb';
+    ctx.lineWidth = 10;
+    ctx.globalAlpha = .8;
+    ctx.fillRect(0, 0, rsize, rsize);
+    ctx.globalAlpha = .9;
+    ctx.strokeRect(0, 0, rsize, rsize);
+
+    ctx.restore();
+}
+Player.prototype.drawLoadingSplash = function(text) {
+    this.drawSplash();
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = '#006';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(text || "Loading...", 20, 25);
+    ctx.restore();
+}
 
 Player.createState = function(player) {
     return {
@@ -665,30 +753,10 @@ function Scene() {
     this.duration = 0;
     this._initHandlers(); // TODO: make automatic
 }
-provideEvents(Scene, ['mdown', 'draw']);
-Scene.prototype._addToTree = function(elm) {
-    if (!elm.children) {
-        throw new Error('It appears that it is not a clip object or element that you pass');  
-    }
-    this.duration = this.calculateDuration();
-    if (elm.xdata.gband && 
-        (elm.xdata.gband[1] > this.duration)) {
-        this.duration = elm.xdata.gband[1];
-    };
-    this._register(elm);
-    if (elm.children) this._addElems(elm.children);
-    this.tree.push(elm);
-}
-Scene.prototype._register = function(elm) {
-    this.hash[elm.id] = elm;
-}
-Scene.prototype._addElems = function(elems) {
-    for (var ei = 0; ei < elems.length; ei++) {
-        var _elm = elems[ei];
-        this._register(_elm);
-        if (_elm.children) this._addElems(_elm.children);
-    }
-}
+// mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
+provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
+                       C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
+                       C.X_DRAW ]);
 // TODO: add chaining to all external Scene methods?
 // > Scene.add % (elem: Element | Clip)
 // > Scene.add % (elems: Array[Element]) => Clip
@@ -749,12 +817,13 @@ Scene.prototype.render = function(ctx, time, zoom) {
         elm.render(ctx, time);
     });
     ctx.restore();
-    this.e_draw(ctx);
+    this.fire(C.X_DRAW,ctx);
 }
-Scene.prototype.handle_mdown = function(evt) {
-    /*this.visitElems(function(elm) {
-        elm.e_mdown(evt);
-    });*/
+Scene.prototype.handle__x = function(type, evt) {
+    this.visitElems(function(elm) {
+        if (elm.visible) elm.fire(type, evt);
+    });
+    return true;
 }
 Scene.prototype.calculateDuration = function() {
     var gband = [Number.MAX_VALUE, 0];
@@ -766,15 +835,66 @@ Scene.prototype.calculateDuration = function() {
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
         elm.reset();
-    });    
+    });
+}
+Scene.prototype.dispose = function() {
+    this.disposeHandlers();
+    this.visitRoots(function(elm) {
+        elm.dispose();
+    });
+}
+Scene.prototype._addToTree = function(elm) {
+    if (!elm.children) {
+        throw new Error('It appears that it is not a clip object or element that you pass');  
+    }
+    this.duration = this.calculateDuration();
+    if (elm.xdata.gband && 
+        (elm.xdata.gband[1] > this.duration)) {
+        this.duration = elm.xdata.gband[1];
+    };
+    this._register(elm);
+    if (elm.children) this._addElems(elm.children);
+    this.tree.push(elm);
+}
+Scene.prototype._register = function(elm) {
+    this.hash[elm.id] = elm;
+}
+Scene.prototype._addElems = function(elems) {
+    for (var ei = 0; ei < elems.length; ei++) {
+        var _elm = elems[ei];
+        this._register(_elm);
+        if (_elm.children) this._addElems(_elm.children);
+    }
 }
 
 // === ELEMENTS ================================================================
 // =============================================================================
 
+// repeat mode 
 C.R_ONCE = 0;
 C.R_LOOP = 1;
 C.R_BOUNCE = 2;
+
+// modifiers classes
+// the order is also determined with value
+Element.SYS_MOD = 0;
+Element.TWEEN_MOD = 1;
+Element.USER_MOD = 2;
+// TODO: JUMP_MOD ?
+Element.EVENT_MOD = 3;
+Element.ALL_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD, 
+                          Element.USER_MOD, Element.EVENT_MOD ];
+Element.NOEVT_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD, 
+                            Element.USER_MOD ];
+
+// painters classes
+// the order is also determined with value
+Element.SYS_PNT = 0;
+Element.USER_PNT = 1;
+Element.DEBUG_PNT = 2;
+Element.ALL_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT, 
+                         Element.DEBUG_PNT ];
+Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 
 // > Element % (draw: Function(ctx: Context),
 //               onframe: Function(time: Float))
@@ -787,19 +907,31 @@ function Element(draw, onframe) {
     this.xdata = Element.createXData();
     this.children = [];
     this.parent = null;
-    //this.draw = draw,
-    //this.onframe = onframe;
     this.sprite = false;
-    this._drawSeq = [];
-    this._onframeSeq = [];
-    if (draw) this._drawSeq.push([draw, null]);
-    if (onframe) this._onframeSeq.push([onframe, null]);
+    this.visible = false;
+    this.rendering = false;
+    this._modifiers = [];
+    this._painters = [];
+    if (onframe) this.__modify(onframe);
+    if (draw) this.__paint(draw);
     this.__lastJump = null;
+    this.__jumpLock = false;
+    this.__modifying = null; // current modifiers class, if modifying
+    this.__painting = null; // current painters class, if modifying
+    this.__evtCache = [];
     this._initHandlers(); // TODO: make automatic
+    var _me = this,
+        default_on = this.on;
+    this.on = function(type, handler) {
+        if (type & C.XT_CONTROL) {
+            this.m_on.call(_me, type, handler);
+        } else default_on.call(_me, type, handler);
+    };
 };
 Element.DEFAULT_LEN = 10;
-// TODO: draw and onframe must be events also?
-provideEvents(Element, ['mdown', 'draw']);
+provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
+                         C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
+                         C.X_DRAW ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -808,22 +940,15 @@ Element.prototype.prepare = function() {
     }
     return true;     
 }
-// > Element.onframe % (ltime: Float) => Boolean
+// > Element.onframe % (gtime: Float) => Boolean
 Element.prototype.onframe = function(gtime) {
     var ltime = this.localTime(gtime);
     if (!this.fits(ltime)) return false;
-    var seq = this._onframeSeq;
-    for (var si = 0; si < seq.length; si++) {
-        if (!seq[si][0].call(this.state, ltime, seq[si][1])) return false;
-    }
-    return true;
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
-    var seq = this._drawSeq;
-    for (var si = 0; si < seq.length; si++) {
-        seq[si][0].call(this.xdata, ctx, seq[si][1]);
-    }
+    return this.__callPainters(Element.ALL_PAINTERS, ctx);
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = function(ctx) {
@@ -836,37 +961,42 @@ Element.prototype.draw = function(ctx) {
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
     var s = this.state;
-    s._matrix = Element._applyToMatrix(s);
+    s._matrix = Element._getMatrixOf(s, s._matrix);
     ctx.globalAlpha = s.alpha;
     s._matrix.apply(ctx);
-};
-Element.prototype.posAtStart = function(ctx) {
-    var s = this.state;
-    ctx.translate(s.lx, s.ly);
-    ctx.scale(s.sx, s.sy);
-    ctx.rotate(s.angle);
 }
-Element.prototype._drawToCache = function() {
-    var _canvas = newCanvas(this.state.dimen);
-    var _ctx = _canvas.getContext('2d');
-    this.drawTo(_ctx);
-    this.xdata.canvas = _canvas;
-}
-// > Element.addPainter % (painter: Function(ctx: Context)) 
-//                         => Integer
-Element.prototype.addPainter = function(painter, data) {
-    if (!painter) return; // FIXME: throw some error?
-    this._drawSeq.push([painter, data]);
-    return (this._drawSeq.length - 1);
+// > Element.render % (ctx: Context, gtime: Float)
+Element.prototype.render = function(ctx, time) {
+    this.rendering = true;
+    ctx.save();
+    var wasDrawn = false;
+    if (wasDrawn = (this.onframe(time) 
+                    && this.prepare())) {
+        this.transform(ctx);
+        this.draw(ctx);
+        this.visitChildren(function(elm) {
+            elm.render(ctx, time);
+        });
+    }
+    // immediately when drawn, element becomes visible,
+    // it is reasonable
+    this.visible = wasDrawn; 
+    ctx.restore();
+    this.rendering = false;
+    if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
 // > Element.addModifier % (modifier: Function(time: Float, 
 //                                              data: Any) => Boolean, 
 //                           data: Any) => Integer
 Element.prototype.addModifier = function(modifier, data) {
-    if (!modifier) return; // FIXME: throw some error?
-    this._onframeSeq.push([modifier, data]);
-    return (this._onframeSeq.length - 1);
+    this.__modify(Element.USER_MOD, modifier, data);
 }
+// > Element.addPainter % (painter: Function(ctx: Context)) 
+//                         => Integer
+Element.prototype.addPainter = function(painter, data) {
+    this.__paint(Element.USER_PNT, painter, data);
+}
+
 // > Element.addTween % (tween: Tween)
 Element.prototype.addTween = function(tween) {
     var tweens = this.xdata.tweens;
@@ -918,38 +1048,39 @@ Element.prototype.addS = function(dimen, draw, onframe, transform) {
     _elm.state.dimen = dimen;
     return _elm;
 }    
-Element.prototype._addChild = function(elm) {
-    this.children.push(elm); // or add elem.id?
-    elm.parent = this;
-    Bands.recalc(this);
-};
-Element.prototype._addChildren = function(elms) {
-    for (var ei = 0; ei < elms.length; ei++) {
-        this._addChild(elms[ei]);
-    }
-};
-Element.prototype.render = function(ctx, time) {
-    ctx.save();
-    if (this.onframe(time) && this.prepare()) {
-        this.transform(ctx);
-        this.draw(ctx);
-    }
-    this.visitChildren(function(elm) {
-        elm.render(ctx, time);
-    });
-    ctx.restore();
-    this.e_draw(ctx); // call only if this element drawn
-}
 Element.prototype.bounds = function(time) {
-    return G.adaptBounds(this, time, G.bounds(this.xdata));
+    return G.bounds(this, time);
 }
-Element.prototype.inBounds = function(time, point) {
-    var tpoint = G.adapt(this, time, point);
-    return G.inBounds(this.xdata, tpoint);
+Element.prototype.inBounds = function(point, time) {
+    return G.inBounds(this, point, time);
 }
-Element.prototype.contains = function(time, point) {
-    var tpoint = G.adapt(this, time, point);
-    return G.contains(this.xdata, tpoint);
+Element.prototype.contains = function(pt) {
+    if (this.__modifying !== Element.EVENT_MOD) throw new Error('You may call contains only inside a handler');
+    var pt = Element._getIMatrixOf(this.state)
+                    .transformPoint(pt[0], pt[1]);
+    if (!G.inBounds(this, pt)) return false;
+    return G.__contains(this.xdata, pt);
+}
+Element.prototype.dcontains = function(pt, level) {
+    var level = level || 0;
+    if ((level === 0) && 
+        (this.__modifying !== Element.EVENT_MOD)) throw new Error('You may call dcontains only inside a handler');
+    var matched = [];
+    var pt = this.__lmatrix.transformPoint(pt[0], pt[1]);
+    if (G.inBounds(this, pt)) {
+        if (G.__contains(this.xdata, pt)) {
+            matched.push(elm);
+        }
+    }
+    if (this.children) {
+        elm.visitChildren(function(celm) {
+            matched.concat(celm.dcontains(pt, level+1));
+        });
+    }
+    return matched;
+}
+Element.prototype.containsByT = function(point, time) {
+    return G.contains(this, point, time);
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
@@ -966,18 +1097,256 @@ Element.prototype.fits = function(ltime) {
     return (ltime <= (this.xdata.lband[1]
                       - this.xdata.lband[0]));
 }
-Element.prototype._checkJump = function(gtime) {
+Element.prototype.localTime = function(gtime) {
+    var x = this.xdata;
+    switch (x.mode) {
+        case C.R_ONCE:
+            return this.__checkGJump(gtime);
+        case C.R_LOOP: {
+                var x = this.xdata,
+                    p = this.parent;
+                var durtn = x.lband[1] - 
+                            x.lband[0],
+                    pdurtn = p
+                        ? (p.xdata.lband[1] -
+                           p.xdata.lband[0])
+                        : durtn;
+                if (durtn < 0) return -1;
+                var times = Math.floor(pdurtn / durtn),
+                    fits = Math.floor((gtime - x.gband[0]) / durtn);
+                if (fits < 0) return -1;
+                var t = (gtime - x.gband[0]) - (fits * durtn);
+                return (fits <= times) ? this.__checkJump(t) : -1;
+            }
+        case C.R_BOUNCE:
+                var x = this.xdata,
+                    p = this.parent;
+                var durtn = x.lband[1] - 
+                            x.lband[0],
+                    pdurtn = p
+                        ? (p.xdata.lband[1] -
+                           p.xdata.lband[0])
+                        : durtn;
+                if (durtn < 0) return -1;
+                var times = Math.floor(pdurtn / durtn),
+                    fits = Math.floor((gtime - x.gband[0]) / durtn);
+                if (fits < 0) return -1;
+                var t = (gtime - x.gband[0]) - (fits * durtn),
+                    t = ((fits % 2) == 0) ? t : durtn - t;
+                return (fits <= times) ? this.__checkJump(t) : -1;
+    }
+}
+Element.prototype.m_on = function(type, handler) {
+    this.__modify(Element.EVENT_MOD, function(t) {
+      if (this.__evt_st & type) {
+        var evts = this.__evts[type];
+        for (var i = 0; i < evts.length; i++) {
+            if (!handler.call(this,t,evts[i])) return false;
+        }
+      }
+      return true;
+    });
+}
+/*Element.prototype.posAtStart = function(ctx) {
+    var s = this.state;
+    ctx.translate(s.lx, s.ly);
+    ctx.scale(s.sx, s.sy);
+    ctx.rotate(s.angle);
+}*/
+// calculates band that fits all child elements, recursively
+// FIXME: test
+Element.prototype.findWrapBand = function() {
+    var children = this.children;
+    if (children.length === 0) return this.xdata.gband;
+    var result = [ Number.MAX_VALUE, 0 ];
+    this.visitChildren(function(elm) {
+        result = Bands.expand(result, elm.findWrapBand());
+    });
+    return (result[0] !== Number.MAX_VALUE) ? result : null;
+}
+Element.prototype.dispose = function() {
+    this.disposeHandlers();
+    this.visitChildren(function(elm) {
+        elm.dispose();
+    });
+}
+Element.prototype.reset = function() {
+    var s = this.state;
+    s.x = 0; s.y = 0;
+    s.lx = 0; s.ly = 0;
+    s.rx = 0; s.ry = 0;
+    s.angle = 0; s.alpha = 1;
+    s.sx = 1; s.sy = 1;
+    s.p = null; s.t = null; s.key = null;
+    this.__lastJump = null;
+    s._matrix.reset();
+    this.__clearEvtState();
+    this.visitChildren(function(elm) {
+        elm.reset();
+    });
+}
+Element.prototype.visitChildren = function(func) {
+    var children = this.children;
+    for (var ei = 0, el = children.length; ei < el; ei++) {
+        func(children[ei]);
+    };
+}
+Element.prototype.travelChildren = function(func) {
+    var children = this.children;
+    for (var ei = 0, el = children.length; ei < el; ei++) {
+        var elem = children[ei];
+        func(elem);
+        elem.travelChildren(func);
+    };
+}
+Element.prototype.lock = function() {
+    this.__jumpLock = true;
+    this.__lstate = obj_clone(this.state);
+}
+Element.prototype.unlock = function() {
+    var result = this.state;
+    this.state = this.__lstate;
+    this.__lstate = null;
+    this.__jumpLock = false;
+    return result;
+}
+Element.prototype.stateAt = function(t) { // FIXME: test
+    this.lock();
+    var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
+    var state = this.unlock();
+    return success ? state : null;
+}
+Element.prototype.offset = function() {
+    var xsum = 0, ysum = 0;
+    var p = this.parent;
+    while (p) {
+        var ps = p.state;
+        xsum += ps.lx + ps.x;
+        ysum += ps.ly + ps.y; 
+        p = p.parent;
+    }
+    return [ xsum, ysum ];
+}
+Element.prototype.local = function(pt) {
+    var off = this.offset();
+    return [ pt[0] - off[0], pt[1] - off[1] ];
+}
+Element.prototype.global = function(pt) {
+    var off = this.offset();
+    return [ pt[0] + off[0], pt[1] + off[1] ];
+}
+Element.prototype._addChild = function(elm) {
+    this.children.push(elm); // or add elem.id?
+    elm.parent = this;
+    Bands.recalc(this);
+}
+Element.prototype._addChildren = function(elms) {
+    for (var ei = 0; ei < elms.length; ei++) {
+        this._addChild(elms[ei]);
+    }
+}
+Element.prototype._drawToCache = function() {
+    var _canvas = newCanvas(this.state.dimen);
+    var _ctx = _canvas.getContext('2d');
+    this.drawTo(_ctx);
+    this.xdata.canvas = _canvas;
+}
+Element.prototype._stateStr = function() {
+    var state = this.state;
+    return "x: " + s.x + " y: " + s.y + '\n' +
+           "lx: " + s.lx + " ly: " + s.ly + '\n' +    
+           "rx: " + s.rx + " ry: " + s.ry + '\n' +
+           "sx: " + s.sx + " sy: " + s.sy + '\n' +
+           "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
+           "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
+}
+Element.prototype.__callModifiers = function(order, ltime) {
+    var modifiers = this._modifiers;
+    var type, seq;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];    
+        seq = modifiers[type];
+        this.__modifying = type;
+        this.__mbefore(type);      
+        if (seq) {
+            for (var si = 0; si < seq.length; si++) {
+                if (!seq[si][0].call(this.state, ltime, seq[si][1])) {
+                    this.__mafter(type, false);
+                    this.__modifying = null;
+                    return false;
+                }
+            }
+        }
+        this.__mafter(type, true);
+    }
+    this.__modifying = null;
+    return true;
+}
+Element.prototype.__callPainters = function(order, ctx) {
+    var painters = this._painters;
+    var type, seq;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = painters[type];
+        this.__painting = type;
+        this.__pbefore(type);
+        if (seq) {
+            for (var si = 0; si < seq.length; si++) {
+                seq[si][0].call(this.xdata, ctx, seq[si][1]);
+            }
+        }
+        this.__pafter(type);
+    }
+    this.__painting = null;
+}
+Element.prototype.__addTypedModifier = function(type, modifier, data) {
+    if (!modifier) return; // FIXME: throw some error?
+    var modifiers = this._modifiers;
+    if (!modifiers[type]) modifiers[type] = [];
+    modifiers[type].push([modifier, data]);
+    return (modifiers[type].length - 1);
+}
+Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
+Element.prototype.__addTypedPainter = function(type, painter, data) {
+    if (!painter) return; // FIXME: throw some error?
+    var painters = this._painters;
+    if (!painters[type]) painters[type] = [];
+    painters[type].push([painter, data]);
+    return (painters[type].length - 1);
+}
+Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
+Element.prototype.__mbefore = function(type) {
+    if (type === Element.EVENT_MOD) {
+        this.__loadEvtsFromCache();
+    }
+}
+Element.prototype.__mafter = function(type, result) { 
+    if (!result || (type === Element.USER_MOD)) {
+        this.__lmatrix = Element._getIMatrixOf(this.state);
+    }
+    if (!result || (type === Element.EVENT_MOD)) {
+        this.__clearEvtState();
+    }
+}
+Element.prototype.__pbefore = function(type) { }
+Element.prototype.__pafter = function(type) { }
+Element.prototype.__checkGJump = function(gtime) {
+    return this.__checkJump(gtime - this.xdata.gband[0]);
+}
+Element.prototype.__checkJump = function(at) {
     var x = this.xdata,
         s = this.state;
+    if (x.tf) return x.tf(at);
     var t = null,
-        at = gtime - x.gband[0]; // actual time
         duration = x.lband[1] - x.lband[0];
     // if jump-time was set either 
     // directly or relatively or with key,
     // get its absolute local value
-    t = (s.t !== null) ? s.t : null;
-    t = ((t === null) && (s.rt !== null))
-        ? s.rt * duration
+    t = (s.p !== null) ? s.p : null;
+    t = ((t === null) && (s.t !== null))
+        ? s.t * duration
         : t;
     t = ((t === null) && (s.key !== null))
         ? x.keys[s.key]
@@ -986,24 +1355,26 @@ Element.prototype._checkJump = function(gtime) {
         if ((t < 0) || (t > duration)) {
             throw new Error('failed to calculate jump');
         }
-        if ((this.__lastJump === null) ||
-            (this.__lastJump[1] !== t)) {
-             // jump was performed if t or rt or key
-             // were set and new value is not
-             // equal to previous jump value:
-             // save jump time and return it
-             this.__lastJump = [ at, t ];
-             s.t = null;
-             s.rt = null;
-             s.key = null;
-             return t;
-        } else {
-            // jump is already in progress, 
-            // reset values and continue
-            s.t = null;
-            s.rt = null;
-            s.key = null;
-            t = null;
+        if (!this.__jumpLock) {
+            if ((this.__lastJump === null) ||
+                (this.__lastJump[1] !== t)) {
+                 // jump was performed if t or rt or key
+                 // were set and new value is not
+                 // equal to previous jump value:
+                 // save jump time and return it
+                 this.__lastJump = [ at, t ];
+                 s.p = null;
+                 s.t = null;
+                 s.key = null;
+                 return t;
+            } else {
+                // jump is already in progress, 
+                // reset values and continue
+                s.p = null;
+                s.t = null;
+                s.key = null;
+                t = null;
+            }
         }
     }
     // set t to jump-time, and if no jump-time 
@@ -1023,86 +1394,46 @@ Element.prototype._checkJump = function(gtime) {
     }
     return t;
 } 
-Element.prototype.localTime = function(gtime) {
-    var x = this.xdata;
-    switch (x.mode) {
-        case C.R_ONCE:
-            return this._checkJump(gtime);
-        case C.R_LOOP: {
-                var x = this.xdata;
-                var p = this.parent;
-                var durtn = x.lband[1] - 
-                            x.lband[0],
-                    pdurtn = p
-                        ? (p.xdata.lband[1] -
-                           p.xdata.lband[0])
-                        : durtn,
-                    times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn),
-                    t = gtime - (fits * durtn);
-                return (fits <= times) ? this._checkJump(t) : -1;
-            }
-        case C.R_BOUNCE:
-                var x = this.xdata;
-                var p = this.parent;
-                var durtn = x.lband[1] - 
-                            x.lband[0],
-                    pdurtn = p
-                        ? (p.xdata.lband[1] -
-                           p.xdata.lband[0])
-                        : durtn,
-                    times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn),
-                    t = gtime - (fits * durtn),
-                    t = ((fits % 2) == 0) ? t : durtn - t;
-                return (fits <= times) ? this._checkJump(t) : -1;
+Element.prototype.handle__x = function(type, evt) {
+    this.__saveToEvtState(type, evt);
+    return true;
+}
+Element.prototype.__saveToEvtState = function(type, evt) {
+    if (this.__modifying !== Element.EVENT_MOD) {
+        this.state.__evt_st |= type;
+        var evts = this.state.__evts;
+        if (!evts[type]) evts[type] = [];
+        evts[type].push(evt);
+    } else {
+        this.__evtCache.push([type, evt]);
     }
 }
-Element.prototype.handle_mdown = function(evt) {
-    //console.log(evt);
-    // TODO: call inBounds
-}
-// calculates band that fits all child elements, recursively
-// FIXME: test
-Element.prototype.findWrapBand = function() {
-    var children = this.children;
-    if (children.length === 0) return this.xdata.gband;
-    var result = [ Number.MAX_VALUE, 0 ];
-    this.visitChildren(function(elm) {
-        result = Bands.expand(result, elm.findWrapBand());
-    });
-    return (result[0] !== Number.MAX_VALUE) ? result : null;
-}
-Element.prototype.reset = function() {
+Element.prototype.__clearEvtState = function() {
     var s = this.state;
-    s.x = 0; s.y = 0;
-    s.lx = 0; s.ly = 0;
-    s.rx = 0; s.ry = 0;
-    s.angle = 0; s.alpha = 1;
-    s.sx = 1; s.sy = 1;
-    s.t = null; s.rt = null; s.key = null;
-    this.__lastJump = null;
-    s._matrix.reset();
-    this.visitChildren(function(elm) {
-        elm.reset();
-    });
+    if (s.__evt_st === 0) return;
+    s.__evt_st = 0;
+    var evts = s.__evts;
+    for (var type in evts) {
+        delete evts[type];
+    }
+    s.__evts = {};
 }
-Element.prototype.visitChildren = function(func) {
-    var children = this.children;
-    for (var ei = 0; ei < children.length; ei++) {
-        func(children[ei]);
-    };   
+Element.prototype.__loadEvtsFromCache = function() {
+    var cache = this.__evtCache;
+    var cache_len = cache.length;
+    if (cache_len > 0) {
+        var edata, type, evts;
+        for (var ei = 0; ei < cache_len; ei++) {
+            edata = cache[ei];
+            type = edata[0];
+            this.state.__evt_st |= type;
+            evts = this.state.__evts;
+            if (!evts[type]) evts[type] = [];
+            evts[type].push(edata[1]);
+        }
+        this.__evtCache = [];
+    }
 }
-Element.prototype._stateStr = function() {
-    var state = this.state;
-    return "x: " + s.x + " y: " + s.y + '\n' +
-           "lx: " + s.lx + " ly: " + s.ly + '\n' +    
-           "rx: " + s.rx + " ry: " + s.ry + '\n' +
-           "sx: " + s.sx + " sy: " + s.sy + '\n' +
-           "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
-           "t: " + s.t + " rt: " + s.rt + " key: " + s.key + '\n';
-}
-// FIXME: ensure element has a reg-point (auto-calculated) 
 
 // state of the element
 Element.createState = function() {
@@ -1112,10 +1443,12 @@ Element.createState = function() {
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y 
              'alpha': 1,       // opacity
-             't': null, 'rt': null, 'key': null, 
-                               // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
+             'p': null, 't': null, 'key': null, 
+                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
                                // if both are null — stays as defined
-             '_matrix': new Transform() };
+             '_matrix': new Transform(),
+             '_evts': {},
+             '_evt_st': 0 };
 };
 // geometric data of the element
 Element.createXData = function() {
@@ -1130,11 +1463,12 @@ Element.createXData = function() {
              'gband': [0, Element.DEFAULT_LEN], // global bane
              'canvas': null,   // own canvas for static (cached) elements
              'dimen': null,    // dimensions for static (cached) elements
-             'keys': {},           
+             'keys': {},
+             'tf': null,
              '_mpath': null };
 }
-Element._applyToMatrix = function(s) {
-    var _t = s._matrix;
+Element._getMatrixOf = function(s, m) {
+    var _t = m || new Transform();
     _t.translate(s.lx, s.ly);
     _t.translate(s.x, s.y); 
     _t.rotate(s.angle);
@@ -1142,9 +1476,100 @@ Element._applyToMatrix = function(s) {
     _t.translate(-s.rx, -s.ry);  
     return _t;
 }
+Element._getIMatrixOf = function(s, m) {
+    var _t = Element._getMatrixOf(s, m);
+    _t.invert();
+    return _t;
+}
 Element.imgFromUrl = prepareImage;
 
 var Clip = Element;
+
+// =============================================================================
+// === EVENTS ==================================================================
+
+// adds specified events support to the `subj` object. `subj` object receives 
+// `handlers` property that keeps the listeners for each event. Also, it gets
+// `e_<evt_name>` function for every event provided to call it when it is
+// required to call all handlers of all of thise event name 
+// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
+// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
+// but without messing with other handlers. 
+// And, user gets `on` function to subcribe to events and `provides` to check
+// if it is allowed.
+function provideEvents(subj, events) {
+    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
+        return function() {
+            var _hdls = {};
+            this.handlers = _hdls;
+            for (var ei = 0; ei < evts.length; ei++) {
+                _hdls[evts[ei]] = [];
+            }  
+        };
+    })(events);
+    subj.prototype.on = function(event, handler) {
+        if (!this.provides(event)) throw new Error('Event ' + event + 
+                                                   ' not provided by ' + this);
+        if (!handler) throw new Error('You are trying to assign ' + 
+                                       'undefined handler for event ' + event);
+        this.handlers[event].push(handler);
+        return (this.handlers[event].length - 1);
+    };
+    subj.prototype.fire = function(event, evtobj) {
+        if (!this.provides(event)) throw new Error('Event ' + event + 
+                                                   ' not provided by ' + this);
+        if (this.handle__x && !(this.handle__x(event, evtobj))) return;    
+        if (this['handle_'+event]) this['handle_'+event](evtobj);
+        var _hdls = this.handlers[event];
+        for (var hi = 0; hi < _hdls.length; hi++) {            
+            _hdls[hi].call(this, evtobj);
+        }
+    };
+    subj.prototype.provides = (function(evts) {
+        return function(event) {
+            if (!event) return evts;
+            return this.handlers.hasOwnProperty(event);
+        }
+    })(events);
+    subj.prototype.unbind = function(event, idx) {
+        if (!this.provides(event)) throw new Error('Event ' + event + 
+                                                   ' not provided by ' + this);
+        if (this.handlers[event][idx]) {
+            this.handlers[event] = arr_remove(this.handlers, idx);
+        } else {
+            throw new Error('No such handler ' + idx + ' for event ' + event);
+        }
+    };
+    subj.prototype.disposeHandlers = function() {
+        var _hdls = this.handlers;
+        for (var evt in _hdls) {
+            if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
+        }
+    }
+    // FIXME: call fire/e_-funcs only from inside of their providers,
+    // TODO: wrap them with event objects
+    var _event;
+    for (var ei = 0; ei < events.length; ei++) {
+        _event = events[ei];
+        subj.prototype['e_'+_event] = (function(event) { 
+            return function(evtobj) {
+                this.fire(event, evtobj);
+            };
+        })(_event);
+    }
+    // subj.prototype.before = function(event, handler) { }
+    // subj.prototype.after = function(event, handler) { }
+    // subj.prototype.provide = function(event, provider) { }
+}
+
+function kevt(e) {
+    return e;
+}
+
+function mevt(e, cvs) {
+    return [ e.pageX - cvs.__rOffsetLeft, 
+             e.pageY - cvs.__rOffsetTop ];
+}
 
 // =============================================================================
 // === DRAWING =================================================================
@@ -1229,42 +1654,117 @@ DU.qDraw = function(ctx, stroke, fill, func) {
     func();
     ctx.closePath();
 
-    ctx.fill();
-    ctx.stroke();
+    if (fill && fill.color) ctx.fill();
+    if (stroke && stroke.color) ctx.stroke();
     ctx.restore();
 }
 
 var G = {}; // geometry
 
-G.adapt = function(elm, time, point) {
-    return point;
-    // FIXME: return real value
+// for all functions below, 
+// t is global time
+G.adopt = function(elm, pt, t) {
+    if (pt === null) return null;
+    var s; if (s = elm.stateAt(t)) {
+        return 
+            Element._getIMatrixOf(s)
+                   .transformPoint(pt[0], pt[1]);
+    } else return null;
 }
-G.adaptBounds = function(elm, time, bounds) {
-    return bounds;
-    // FIXME: return real value
+G.adoptBounds = function(elm, bounds, t) {
+    if (pt === null) return null;
+    var s; if (s = elm.stateAt(t)) {
+        var m = Element._getIMatrixOf(s);
+        var min = m.transformPoint(bounds[0],
+                                   bounds[1]);
+        var max = m.transformPoint(bounds[2],
+                                   bounds[3]);
+        return [ min[0], min[1],
+                 max[0], max[1] ];
+    } else return null;
+    if (bounds === null) return null;
 }
-G.bounds = function(xdata) {
-    if (xdata.path) {
-        return xdata.path.bounds();
-    };
-    // TODO: handle images and stuff
+// for all functions below, 
+// t is global time or undefined if
+// it time not necessary
+G.bounds = function(elm, t) {
+    var x = elm.xdata;
+    var bounds;
+    if (x.path) {
+        bounds = x.path.bounds();
+    } else if (x.image) {
+        bounds = [ 0, 0, x.image.width, x.image.height ];
+    } else if (x.text) {
+        bound = [ 0, 0, 100, 100 ]; // FIXME: implement
+    } else return null;
+    return (typeof t === 'undefined') ?
+           bounds : G.adoptBounds(elm, bounds, t);
 }
-G.inBounds = function(xdata, point) {
-    if (xdata.path) {
-        return xdata.path.inBounds(point);
-    };
-    // TODO: handle images and stuff
+G.inBounds = function(elm, pt, t) {
+    var bounds = G.bounds(elm, t);
+    if (bounds) {
+        return (pt[0] >= bounds[0]) &&
+               (pt[1] >= bounds[1]) &&
+               (pt[0] <= bounds[2]) &&
+               (pt[1] <= bounds[3]); 
+    } else return false;
 }
-G.contains = function(xdata, point) {
-    if (G.inBounds(xdata, point)) {
-        if (xdata.path) {
-            return xdata.path.contains(point);
-        };
-        // TODO: handle images and stuff    
+G.contains = function(elm, pt, t) {
+    var pt = (typeof t === 'undefined')
+             ? pt : G.adopt(elm, pt, t);
+    var matched = [];
+    if (G.inBounds(elm, pt)
+        && G.__contains(elm.xdata, pt)) {
+        matched.push(elm);
     }
-    return false;   
+    if (elm.children) {
+        elm.visitChildren(function(celm) {
+            matched.concat(G.contains(elm, pt, t));
+        });
+    }
+    return matched;
 }
+G.__contains = function(x, pt) {
+    if (x.path) {
+        return x.path.contains(pt);
+    } else if (x.image) {
+        return true; // already tested with bounds
+    } else if (x.text) {
+        return true;
+        // FIXME: call ctx.measureText()
+
+        // http://mudcu.be/journal/2011/01/html5-typographic-metrics/
+
+        /* function getAlign(text, type, offsetx) {
+            var direction = window.getComputedStyle(document.body)["direction"];
+            control.textContent = text;
+            switch(type) {
+                case "left": break;
+                case "start": offsetx -= (direction == 'ltr') ? 0 : control.offsetWidth; break;
+                case "end": offsetx -= (direction == 'ltr') ? control.offsetWidth : 0; break;
+                case "right": offsetx -= control.offsetWidth; break;
+                case "center": offsetx -= control.offsetWidth / 2; break;
+            }
+            return offsetx;
+        };*/
+
+        /*function measureText(text) {
+            control.style.display = "inline";
+            control.textContent = text;
+            return {
+                height: control.offsetHeight,
+                width: control.offsetWidth
+            };
+        };*/
+    }
+}
+/**
+  * Calculates the number of times the line from (x0,y0) to (x1,y1)
+  * crosses the ray extending to the right from (px,py).
+  * If the point lies on the line, then no crossings are recorded.
+  * +1 is returned for a crossing where the Y coordinate is increasing
+  * -1 is returned for a crossing where the Y coordinate is decreasing
+  */
 G.__lineCrosses = function(px, py, x0, y0, x1, y1) {
     if ((py < y0) && (py < y1)) return 0;
     if ((py >= y0) && (py >= y1)) return 0;
@@ -1272,9 +1772,19 @@ G.__lineCrosses = function(px, py, x0, y0, x1, y1) {
     if ((px >= x0) && (px >= x1)) return 0;
     if ((px < x0) && (px < x1)) return (y0 < y1) ? 1 : -1;
     var xitcpt = x0 + (py - y0) * (x1 - x0) / (y1 - y0);
-    if (px > xitcpt) return 0;
+    if (px >= xitcpt) return 0;
     return (y0 < y1) ? 1 : -1;
 }
+/**
+  * Calculates the number of times the cubic from (x0,y0) to (x1,y1)
+  * crosses the ray extending to the right from (px,py).
+  * If the point lies on a part of the curve,
+  * then no crossings are counted for that intersection.
+  * the level parameter should be 0 at the top-level call and will count
+  * up for each recursion level to prevent infinite recursion
+  * +1 is added for each crossing where the Y coordinate is increasing
+  * -1 is added for each crossing where the Y coordinate is decreasing
+  */
 G.__curveCrosses = function(px, py, x0, y0,
                             xc0, yc0, xc1, yc1,
                             x1, y1, level) {
@@ -1297,17 +1807,17 @@ G.__curveCrosses = function(px, py, x0, y0,
     if (level > 52) return G.__lineCrosses(px, py, x0, y0, x1, y1);
     var xmid = (xc0 + xc1) / 2,
         ymid = (yc0 + yc1) / 2;
-    xc0 = (x0 + xc0) / 2;
-    yc0 = (y0 + yc0) / 2;
-    xc1 = (xc1 + x1) / 2;
-    yc1 = (yc1 + y1) / 2;
+    var xc0 = (x0 + xc0) / 2,
+        yc0 = (y0 + yc0) / 2,
+        xc1 = (xc1 + x1) / 2,
+        yc1 = (yc1 + y1) / 2;
     var xc0m = (xc0 + xmid) / 2,
         yc0m = (yc0 + ymid) / 2;
         xmc1 = (xmid + xc1) / 2;
         ymc1 = (ymid + yc1) / 2;
     xmid = (xc0m + xmc1) / 2;
     ymid = (yc0m + ymc1) / 2;
-    if (Math.isNaN(xmid) || Math.isNaN(ymid)) {
+    if (isNaN(xmid) || isNaN(ymid)) {
         // [xy]mid are NaN if any of [xy]c0m or [xy]mc1 are NaN
         // [xy]c0m or [xy]mc1 are NaN if any of [xy][c][01] are NaN
         // These values are also NaN if opposing infinities are added
@@ -1348,11 +1858,14 @@ L.loadFromObj = function(player, object, importer, callback) {
     L.loadScene(player, importer.load(object), callback);
 }
 L.loadScene = function(player, scene, callback) {
+    if (player.anim) player.anim.dispose();
     // add rendering
     scene.visitElems(Render.addXDataRender);
     if (player.state.debug) scene.visitElems(Render.addDebugRender);
     // subscribe events
-    L.subscribeEvents(player.canvas, scene);
+    if (player.mode & C.M_HANDLE_EVENTS) {
+        L.subscribeEvents(player.canvas, scene);
+    }
     // assign
     player.anim = scene;
     if (!player.state.duration) {
@@ -1367,12 +1880,27 @@ L.loadClips = function(player, clips, callback) {
 }
 L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
-    _anim.add(builder);
+    _anim.add(builder.v);
     L.loadScene(player, _anim, callback);
 }
 L.subscribeEvents = function(canvas, anim) {
+    canvas.addEventListener('mouseup', function(evt) {
+        anim.fire(C.X_MUP, mevt(evt, this));
+    }, false);
     canvas.addEventListener('mousedown', function(evt) {
-        anim.e_mdown(evt);
+        anim.fire(C.X_MDOWN, mevt(evt, this));
+    }, false);
+    canvas.addEventListener('mouseclick', function(evt) {
+        anim.fire(C.X_MCLICK, mevt(evt, this));
+    }, false);
+    canvas.addEventListener('keyup', function(evt) {
+        anim.fire(C.X_KUP, kevt(evt));
+    }, false);    
+    canvas.addEventListener('keydown', function(evt) {
+        anim.fire(C.X_KDOWN, kevt(evt));
+    }, false);
+    canvas.addEventListener('keypress', function(evt) {
+        anim.fire(C.X_KPRESS, kevt(evt));
     }, false);
 }
 
@@ -1385,31 +1913,31 @@ Render.addXDataRender = function(elm) {
     var xdata = elm.xdata;
 
     // modifiers
-    //if (xdata.gband) elm.addModifier(Render.m_checkBand, xdata.gband);
-    if (xdata.reg) elm.addModifier(Render.m_saveReg, xdata.reg);
-    if (xdata.pos) elm.addModifier(Render.m_applyPos, xdata.pos);
+    //if (xdata.gband) elm.__modify(Element.SYS_MOD, Render.m_checkBand, xdata.gband);
+    if (xdata.reg) elm.__modify(Element.SYS_MOD, Render.m_saveReg, xdata.reg);
+    if (xdata.pos) elm.__modify(Element.SYS_MOD, Render.m_applyPos, xdata.pos);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
     
     // painters
-    if (xdata.path) elm.addPainter(Render.p_drawPath, xdata.path);
-    if (xdata.image) elm.addPainter(Render.p_drawImage, xdata.image);
-    if (xdata.text) elm.addPainter(Render.p_drawText, xdata.text);
+    if (xdata.path) elm.__paint(Element.SYS_PNT, Render.p_drawPath, xdata.path);
+    if (xdata.image) elm.__paint(Element.SYS_PNT, Render.p_drawImage, xdata.image);
+    if (xdata.text) elm.__paint(Element.SYS_PNT, Render.p_drawText, xdata.text);
         
 }
 
 Render.addDebugRender = function(elm) {
-    if (elm.xdata.reg) elm.addPainter(Render.p_drawReg, elm.xdata.reg);
-    if (elm.name) elm.addPainter(Render.p_drawName, elm.name);
-    //elm.addPainter(Render.p_drawMPathIfSet);
-    elm.on('draw', Render.h_drawMPath);
+    if (elm.xdata.reg) elm.__paint(Element.DEBUG_PNT, Render.p_drawReg, elm.xdata.reg);
+    if (elm.name) elm.__paint(Element.DEBUG_PNT, Render.p_drawName, elm.name);
+    //elm.__paint(Element.DEBUG_PNT, Render.p_drawMPathIfSet);
+    elm.on(C.X_DRAW, Render.h_drawMPath);
 }
 
 Render.addTweensModifiers = function(elm, tweens) {
     var _order = Tween.TWEENS_ORDER;
 
-    for (var oi = 0; oi < _order.length; oi++) {
+    for (var oi = 0, olen = _order.length; oi < olen; oi++) {
         var _ttweens = tweens[_order[oi]];
-        if (_ttweens) { 
+        if (_ttweens) {
             for (var ti = 0; ti < _ttweens.length; ti++) {
                 Render.addTweenModifier(elm, _ttweens[ti]);
             }
@@ -1422,10 +1950,11 @@ Render.addTweenModifier = function(elm, tween) {
     var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
                                                  tween.band)
                            : Bands.adaptModifierByTime(
-                                   EasingImpl[easing.type](easing.data),
+                                   easing.type ? EasingImpl[easing.type](easing.data)
+                                               : easing.f(easing.data),
                                    Tweens[tween.type],
                                    tween.band);
-    elm.addModifier(modifier, tween.data);
+    elm.__modify(Element.TWEEN_MOD, modifier, tween.data);
 }
 
 Render.p_drawReg = function(ctx, reg) {
@@ -1478,7 +2007,7 @@ Render.h_drawMPath = function(ctx, path) {
         ctx.save();
         var s = this.state;
         ctx.translate(s.lx, s.ly);
-        mPath.setStroke('#600', 2.0);
+        mPath.cstroke('#600', 2.0);
         ctx.beginPath();
         mPath.apply(ctx);
         ctx.closePath();
@@ -1660,11 +2189,14 @@ function __registerSegEasing(alias, points) {
     C['E_'+alias] = alias;
     var seg = new CSeg(points);
     Easing.__SEGS[alias] = seg;
-    EasingImpl[alias] = function() {
-        return function(t) {
+    var func = 
+        function(t) {
             return seg.atT([0, 0], t)[1];
-        }
-    }
+        };
+    C['EF_'+alias] = func;
+    EasingImpl[alias] = function() {
+        return func; 
+    } 
 }
 
 __registerSegEasing('DEF',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
@@ -1696,75 +2228,6 @@ __registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // B
 __registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
 __registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
-// === EVENTS ==================================================================
-// =============================================================================
-
-// adds specified events support to the `subj` object. `subj` object receives 
-// `handlers` property that keeps the listeners for each event. Also, it gets
-// `e_<evt_name>` function for every event provided to call it when it is
-// required to call all handlers of all of thise event name 
-// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
-// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
-// but without messing with other handlers. 
-// And, user gets `on` function to subcribe to events and `provides` to check
-// if it is allowed.
-function provideEvents(subj, events) {
-    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
-        return function() {
-            var _hdls = {};
-            this.handlers = _hdls;
-            for (var ei = 0; ei < evts.length; ei++) {
-                _hdls[evts[ei]] = [];
-            }  
-        };
-    })(events);
-    subj.prototype.on = function(event, handler) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
-        if (!handler) throw new Error('You are trying to assign ' + 
-                                       'undefined handler for event ' + event);
-        this.handlers[event].push(handler);
-        return (this.handlers[event].length - 1);
-    };
-    subj.prototype.fire = function(event, evtobj) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
-        if (this['handle_'+event]) this['handle_'+event](evtobj);
-        var _hdls = this.handlers[event];
-        for (var hi = 0; hi < _hdls.length; hi++) {            
-            _hdls[hi].call(this, evtobj);
-        }
-    };
-    subj.prototype.provides = (function(evts) {
-        return function(event) {
-            if (!event) return evts;
-            return this.handlers.hasOwnProperty(event);
-        }
-    })(events);
-    subj.prototype.unbind = function(event, idx) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
-        if (this.handlers[event][idx]) {
-            this.handlers = arr_remove(this.handlers, idx);
-        } else {
-            throw new Error('No such handler ' + idx + ' for event ' + event);
-        }
-    };
-    // FIXME: call fire/e_-funcs only from inside of their providers,
-    // TODO: wrap them with event objects
-    for (var ei = 0; ei < events.length; ei++) {
-        var _event = events[ei];
-        subj.prototype['e_'+_event] = (function(event) { 
-            return function(evtobj) {
-                this.fire(event, evtobj);
-            };
-        })(_event);
-    }
-    // subj.prototype.before = function(event, handler) { }
-    // subj.prototype.after = function(event, handler) { }
-    // subj.prototype.provide = function(event, provider) { }
-}
-
 // =============================================================================
 // === PATHS ===================================================================
 
@@ -1793,6 +2256,8 @@ C.P_MOVETO = 0;
 C.P_LINETO = 1;
 C.P_CURVETO = 2;
 
+C.PC_ROUND = 'round';
+
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
     this.str = str;
@@ -1803,13 +2268,15 @@ function Path(str, stroke, fill) {
 }
 
 Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
+Path.DEFAULT_CAP = C.PC_ROUND;
+Path.DEFAULT_JOIN = C.PC_ROUND;
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
 Path.DEFAULT_FILL = { 'color': 'transparent' };
 Path.BASE_FILL = { 'color': '#dfdfdf' };
 Path.BASE_STROKE = { 'width': 1.0,
                      'color': '#000',
-                     'cap': 'round',
-                     'join': 'round'
+                     'cap': Path.DEFAULT_CAP,
+                     'join': Path.DEFAULT_JOIN
                    };
 
 // visits every chunk of path in array-form and calls
@@ -1856,31 +2323,18 @@ Path.prototype.apply = function(ctx) {
     ctx.stroke();*/
 
 }
-Path.prototype._applyVisitor = function(segment, ctx) {
-    var marker = segment.type;
-    var positions = segment.pts;
-    if (marker === C.P_MOVETO) {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === C.P_LINETO) {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === C.P_CURVETO) {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
-    }
-}
-Path.prototype.setStroke = function(strokeColor, lineWidth) {
+Path.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
-        'width': (lineWidth != null) ? lineWidth
-                            : Path.DEFAULT_STROKE.width,
-        'color': strokeColor,
-        'cap': 'round',
-        'join': 'round'
+        'width': (width != null) ? width
+                 : Path.DEFAULT_STROKE.width,
+        'color': color,
+        'cap': cap || Path.DEFAULT_CAP,
+        'join': join || Path.DEFAULT_JOIN
     };
 }
-Path.prototype.setFill = function(fillColor) {
+Path.prototype.cfill = function(color) {
     this.fill = {
-        'color': fillColor
+        'color': color
     };
 }
 // > Path.parse % (str: String) => Path
@@ -1904,9 +2358,10 @@ Path.prototype.hitAt = function(t/*, func*/) {
     var distance = t * plen;
     var p = startp;
     var length = 0; // checked length in pixels
+    var seg, slen;
     for (var si = 0; si < nsegs; si++) {
-        var seg = this.segs[si];
-        var slen = seg.length(p); // segment length
+        seg = this.segs[si];
+        slen = seg.length(p); // segment length
         if (distance <= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
@@ -1985,6 +2440,12 @@ Path.prototype.shift = function(pt) {
                  y + pt[1] ];
     });
 };
+Path.prototype.zoom = function(vals) {
+    this.vpoints(function(x, y) {
+        return [ x * vals[0],
+                 y * vals[1] ];
+    });
+}
 // moves path to be positioned at 0,0 and
 // returns subtracted top-left point
 // and a center point
@@ -2011,20 +2472,29 @@ Path.prototype.inBounds = function(point) {
             (point[0] <= _b[2]) &&
             (point[1] <= _b[3]));
 }
-Path.prototype.contains = function(t, point) {
-    return this.fill ? (this.crosses(point) === -1) 
-                     : false /* TODO (this.getHitAt(time, point)) ..*/;
+Path.prototype.contains = function(pt) {
+    /*return this.fill ? ((this.crosses(pt) & -1) != 0)
+                     : false /* TODO (this.getHitAt(time, point)) ..*/
+    return ((this.crosses(pt) & -1) != 0);
 }
-Path.prototype.crosses = function(point) {
-    // TODO: check for infinity
-    if (segs.length < 2) return false;
-    var p = this.start();
+Path.prototype.crosses = function(pt) {
+    if (this.segs.length < 2) return false;
+    var start = this.start();
+    var cur = start;
     var crossings = 0;
     this.visit(function(segment) {
-        crossings += segment.crosses(p, point);
-        //if (segment.crosses(p, point)) return true; // TODO: return point?
-        p = segment.last();
+        crossings += segment.crosses(cur, pt);
+        cur = segment.last();
     });
+
+    if ((pt[0] != start[0]) && 
+        (pt[1] != start[1])) {
+        crossings += G.__lineCrosses(pt[0], pt[1], 
+                                     cur[0], cur[1],
+                                     start[0], start[1]);
+    }
+
+    return crossings;
 }
 // parses `count` positions from path (string form), 
 // starting at `start`, returns a length of parsed data and 
@@ -2063,6 +2533,19 @@ Path.visitStrPath = function(path, visitor, data) {
         visitor(marker, positions, data);
     }
 }
+Path.prototype._applyVisitor = function(segment, ctx) {
+    var marker = segment.type;
+    var positions = segment.pts;
+    if (marker === C.P_MOVETO) {
+        ctx.moveTo(positions[0], positions[1]);
+    } else if (marker === C.P_LINETO) {
+        ctx.lineTo(positions[0], positions[1]);
+    } else if (marker === C.P_CURVETO) {
+        ctx.bezierCurveTo(positions[0], positions[1],
+                          positions[2], positions[3],
+                          positions[4], positions[5]);
+    }
+}
 // visitor to parse a string path into Path object
 Path._parserVisitor = function(marker, positions, path) {
     if (marker === 'M') {
@@ -2085,6 +2568,7 @@ Path._strApplyVisitor = function(marker, positions, ctx) {
                           positions[4], positions[5]);
     }
 };
+
 // converts path given in string form to array of segments
 Path.parse = function(path, target) {
     var target = target || new Path();
@@ -2114,7 +2598,7 @@ Path.createStyle = function(ctx, brush) {
             : ctx.createLinearGradient(
                             pts[0][0], pts[0][1],  // x0, y0
                             pts[1][0], pts[1][1]); // x1, y1
-        for (var i = 0; i < stops.length; i++) {
+        for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
         }
@@ -2137,7 +2621,7 @@ Path.createStyle = function(ctx, brush) {
             : ctx.createRadialGradient(
                            pts[0][0], pts[0][1], r[0],  // x0, y0, r0
                            pts[1][0], pts[1][1], r[1]); // x1, y1, r1
-        for (var i = 0; i < stops.length; i++) {
+        for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
         }
@@ -2169,10 +2653,10 @@ MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
 MSeg.prototype.crosses = function(start, point) {
-    var end = this.last();
+    var pts = this.pts; // == this.last();
     return G.__lineCrosses(point[0], point[1], // px, py
                            start[0], start[1], // x0, y0
-                           end[0], end[1]);    // x1, y1
+                           pts[0], pts[1]);    // x1, y1
 }
 
 function LSeg(pts) {
@@ -2206,10 +2690,10 @@ LSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
 LSeg.prototype.crosses = function(start, point) {
-    var end = this.last();
+    var pts = this.pts; // == this.last();
     return G.__lineCrosses(point[0], point[1], // px, py
                            start[0], start[1], // x0, y0
-                           end[0], end[1]);    // x1, y1
+                           pts[0], pts[1]);    // x1, y1
 }
 
 function CSeg(pts) {
@@ -2362,6 +2846,15 @@ CSeg.prototype.tangentAt = function(start, t) {
     //var p = this.atT(start, t);
     return Math.atan2(p[1], p[0]);
 }
+CSeg.prototype.crosses = function(start, point) {
+    var level = level || 0, pts = this.pts;
+    return G.__curveCrosses(point[0], point[1], // px, py
+                            start[0], start[1], // x0, y0
+                            pts[0],   pts[1],   // xc0, yc0
+                            pts[2],   pts[3],   // xc1, yc1
+                            pts[4],   pts[5],   // x1, y1
+                            0);                 // level
+}
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart && 
         (this._lstart[0] === start[0]) &&
@@ -2393,15 +2886,6 @@ CSeg.prototype._calc_params = function(start) {
     params[7] = p0y;                        // H = y0
 
     return params;
-}
-CSeg.prototype.crosses = function(start, point) {
-    var level = level || 0, pts = this.pts;
-    return G.__curveCrosses(point[0], point[1], // px, py
-                            start[0], start[1], // x0, y0
-                            pts[0],   pts[1],   // xc0, yc0
-                            pts[2],   pts[3],   // xc1, yc1
-                            pts[4],   pts[5],   // x1, y1
-                            0);                 // level
 }
 
 // =============================================================================
@@ -2484,7 +2968,7 @@ Controls.COLOR = '#faa';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN);
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
-provideEvents(Controls, ['mdown', 'draw']);
+provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _w = parent.width,
         _h = Controls.HEIGHT,
@@ -2525,7 +3009,7 @@ Controls.prototype.update = function(parent) {
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) { 
-            return function(evt) { controls.e_mdown(evt); };
+            return function(evt) { controls.fire(C.X_MDOWN, evt); };
         })(this), false);
     canvas.addEventListener('mouseout', (function(controls) { 
             return function(evt) { controls.hide(); };
@@ -2578,7 +3062,7 @@ Controls.prototype.render = function(state, time, _force) {
                          ? (time - state.duration) : time);
     
     ctx.restore();
-    this.e_draw(state);
+    this.fire(C.X_DRAW, state);
 }
 // TODO: take initial state from imported project
 Controls.prototype.hide = function() {
@@ -2825,7 +3309,7 @@ var exports = {
 };
 
 exports._$ = exports.createPlayer;
-exports.__js_pl_all = this;
+//exports.__js_pl_all = this;
 exports.__injectToWindow = function(as) {
           window[as] = exports;
           window.createPlayer = exports.createPlayer; 
