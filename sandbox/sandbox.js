@@ -452,13 +452,11 @@ return b().band([0, 15])
       .fill('#009')
       .stroke('#f00', 3)
       .on(C.X_MDOWN, function(t, evt) {
-          console.log(t, evt,
-                      this.rx, this.ry, 
-                      this.x, this.y,
-                      test.v.contains(evt));
-          this.x = evt[0] - this.lx;
-          this.y = evt[1] - this.ly;
-          console.log(test.v.contains(evt));
+          var lpt = test.v.local(evt);
+          console.log(evt,lpt,test.v.contains(lpt));
+          this.x = lpt[0] - this.lx;
+          this.y = lpt[1] - this.ly;
+          console.log(evt,lpt,test.v.contains(lpt));
           return true;
       });
 

@@ -1216,6 +1216,25 @@ Element.prototype.stateAt = function(t) { // FIXME: test
     var state = this.unlock();
     return success ? state : null;
 }
+Element.prototype.offset = function() {
+    var xsum = 0, ysum = 0;
+    var p = this.parent;
+    while (p) {
+        var ps = p.state;
+        xsum += ps.lx + ps.x;
+        ysum += ps.ly + ps.y; 
+        p = p.parent;
+    }
+    return [ xsum, ysum ];
+}
+Element.prototype.local = function(pt) {
+    var off = this.offset();
+    return [ pt[0] - off[0], pt[1] - off[1] ];
+}
+Element.prototype.global = function(pt) {
+    var off = this.offset();
+    return [ pt[0] + off[0], pt[1] + off[1] ];
+}
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
