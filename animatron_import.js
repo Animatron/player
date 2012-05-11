@@ -5,25 +5,35 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
-function AnimatronImporter() { };
-AnimatronImporter.prototype.configure = function(prj) {
+var AnimatronImporter = (function() {
+
+function AnimatronImporter() { }
+
+var C = anm.C,
+    Scene = anm.Scene,
+    Element = anm.Element,
+    Path = anm.Path,
+    Text = anm.Text,
+    Bands = anm.Bands;
+
+// ** META / PARAMS **
+
+AnimatronImporter.prototype.configureMeta = function(prj) {
+    // ( id, title, author, copyright, version, description, modificationTime )
+    return prj.meta;
+};
+AnimatronImporter.prototype.configureAnim = function(prj) {
+    // ( framerate, dimension, background, duration,
+    //   elements, scenes )
     var _a = prj.anim;
     return {
-        'meta': prj.meta,
         'fps': _a.framerate, 
         'width': Math.floor(_a.dimension[0]),
         'height': Math.floor(_a.dimension[1]),
         'bgcolor': Convert.fill(_a.background),
         'duration': this.computeDuration(prj.anim.elements)
-    };
-};
-AnimatronImporter.prototype.load = function(prj) {
-    // TODO: pass concrete scene or scene index
-    //console.log('converted', this.importClips(prj.anim.scenes[0], 
-    //                                          prj.anim.elements));
-    return this.importClips(prj.anim.scenes[0], 
-                            prj.anim.elements);
-};
+    }
+}
 AnimatronImporter.prototype.computeDuration = function(elms) {
     // TODO: ensure this is the correct way to compute it
     var max_left = 0;
@@ -39,64 +49,74 @@ AnimatronImporter.prototype.computeDuration = function(elms) {
     }
     return max_left;
 }
-AnimatronImporter.prototype.importClips = function(scene_id, source) {
-    var scene = new Scene();
-    // TODO: scene must be root?
-    scene.add(this.importElement(
-                   source, this.findElement(source, scene_id)));
-    return scene;
+
+// ** PROJECT **
+
+AnimatronImporter.prototype.load = function(prj) {
+    // ( framerate, dimension, background, duration,
+    //   elements, scenes )
+    return this.importScene(prj.anim.scenes[0], 
+                            prj.anim.elements);
 };
-AnimatronImporter.prototype.findElement = function(source, id) {
+
+// ** ELEMENTS **
+
+AnimatronImporter.prototype.importScene = function(scene_id, source) {
+    var scene = new Scene();
+    scene.add(this.importElement(this.findElement(scene_id, source), source));
+    return scene;
+}
+AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
+    var target = new Element();
+    // ( id, name?, reg?, band?, eid?, tweens?, layers?, 
+    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
+    this._collectDynamicData(target, clip, in_band);
+    if (clip.eid) {
+        var inner = this.findElement(clip.eid, source);
+        if (!inner.eid && !inner.layers) {
+            // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
+            this._collectStaticData(target, inner);
+        } else {
+            target.add(this.importElement(inner, source, target.xdata.gband));
+        }
+    } else if (clip.layers) {
+        var _layers = clip.layers;
+        // in animatron, layers are in reverse order
+        for (var li = _layers.length; li--;) {
+            target.add(this.importElement(_layers[li], source, target.xdata.gband));
+        }
+    }
+    return target;
+}
+AnimatronImporter.prototype.findElement = function(id, source) {
     for (var i = 0; i < source.length; i++) {
         if (source[i].id === id) return source[i];
     }
 }
-AnimatronImporter.prototype.importElement = function(source, _src, 
-                                                     layer, in_band) {
-    var has_layers = (_src.layers != null),                                                   
-        _trg = has_layers ? (new Clip()) : (new _Element());
-    if (layer/* && layer.dynamic*/) {
-        this._collectDynamicData(_trg, layer, in_band);
-    }
-    if (has_layers) {
-        _trg.xdata.mode = Convert.mode(_src['on-end']);
-        var _layers = _src.layers;
-        // in animatron, layers are in reverse order
-        for (var li = (_layers.length - 1); li >= 0; li--) {
-            var _clyr = _layers[li];
-            var _csrc = this.findElement(source, _clyr.eid);
-            _trg.add(this.importElement(source, _csrc, _clyr, 
-                                        layer ? _trg.xdata.gband
-                                              : null));
-        };
-    } else {
-        this._collectStaticData(_trg, _src);
-    }
-    if (!layer) {
-        _trg.makeBandFit(); // if there is no parent layer, then it is a scene 
-                            // (in Animatron terms) with all elements added
-    }
-    return _trg;
-};
+
 // collect required data from source layer
-AnimatronImporter.prototype._collectDynamicData = function(to, layer, in_band) {
-    to.name = layer.name;
+AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
+    if (!to.name) to.name = clip.name;
     var x = to.xdata;
-    x.lband = layer.band ? layer.band : [0, 10]; //FIMXE: remove, when it will be always set in project
+    x.lband = clip.band || [0, 10]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband) 
                       : x.lband;
-    x.reg = layer.reg;
-    x.tweens = layer.tweens ? Convert.tweens(layer.tweens) : {};
+    x.reg = clip.reg || [0, 0];
+    x.tweens = clip.tweens ? Convert.tweens(clip.tweens) : {};
+    x.mode = Convert.mode(clip['on-end']);
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
-    //to.name = src.name;
-    to.xdata.image = src.url ? Player.prepareImage(src.url) : null;
+    if (!to.name) to.name = src.name;
+    to.xdata.image = src.url ? Element.imgFromUrl(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font, 
                                             src.stroke, src.fill)
                              : null;
 };
+
+// ** CONVERTION **
+
 var Convert = {}
 Convert.tweens = function(tweens) {
     var result = {};
@@ -116,18 +136,18 @@ Convert.tweens = function(tweens) {
 };
 Convert.tweenType = function(from) {
     if (!from) return null;
-    if (from === 'Rotate') return Tween.T_ROTATE;
-    if (from === 'Translate') return Tween.T_TRANSLATE;
-    if (from === 'Alpha') return Tween.T_ALPHA;
-    if (from === 'Scale') return Tween.T_SCALE;
-    if (from === 'rotate-to-path') return Tween.T_ROT_TO_PATH;
+    if (from === 'Rotate') return C.T_ROTATE;
+    if (from === 'Translate') return C.T_TRANSLATE;
+    if (from === 'Alpha') return C.T_ALPHA;
+    if (from === 'Scale') return C.T_SCALE;
+    if (from === 'rotate-to-path') return C.T_ROT_TO_PATH;
 }
 Convert.tweenData = function(type, tween) {
     if (!tween.data) {
         if (tween.path) return new Path(tween.path);
         return null;
     }
-    if (type === Tween.T_SCALE) {
+    if (type === C.T_SCALE) {
         var data = tween.data;
         return [ [ data[0], data[1] ],
                  [ data[2], data[3] ] ];
@@ -154,11 +174,11 @@ Convert.easing = function(from) {
 }
 Convert.easingType = function(from) {
     if (!from) return null;
-    if (from === 'Unknown') return Easing.T_PATH;
-    if (from === 'Default') return Easing.T_DEF;
-    if (from === 'Ease In') return Easing.T_IN;
-    if (from === 'Ease Out') return Easing.T_OUT;
-    if (from === 'Ease In Out') return Easing.T_INOUT;
+    if (from === 'Unknown') return C.E_PATH;
+    if (from === 'Default') return C.E_DEF;
+    if (from === 'Ease In') return C.E_IN;
+    if (from === 'Ease Out') return C.E_OUT;
+    if (from === 'Ease In Out') return C.E_INOUT;
 }
 Convert.stroke = function(stroke) {
     if (!stroke) return stroke;
@@ -211,8 +231,12 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return _Element.M_PLAYONCE;
-    if (from === "STOP") return _Element.M_PLAYONCE;
-    if (from === "LOOP") return _Element.M_LOOP;
-    if (from === "BOUNCE") return _Element.M_BOUNCE; // FIXME: last is not for sure
+    if (!from) return C.R_ONCE;
+    if (from === "STOP") return C.R_ONCE;
+    if (from === "LOOP") return C.R_LOOP;
+    if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure
 }
+
+return AnimatronImporter;
+
+})();

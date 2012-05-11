@@ -5,6 +5,8 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
+var DEFAULT_REFRESH_RATE = 3000;
+
 var defaultCode = [
   '// feel free to change,',
   '// just leave `return` on its place',
@@ -22,11 +24,12 @@ var defaultCode = [
 ].join('\n');
 
 var examples = [];
-examples[0] = [ 0 /*version*/, defaultCode ]; 
-examples[1] = [ 0 /*version*/, [
+examples.push([ 0 /*version*/, defaultCode ]);
+
+examples.push([ 0 /*version*/, [
   'var circles = [ [ 10, 15, 30 ],',
-  '              [ 70, 30, 50 ],',
-  '              [ 60, 40, 14 ] ]',
+  '                [ 70, 30, 50 ],',
+  '                [ 60, 40, 14 ] ];',
   '',
   'var o = b();',
   '',
@@ -47,8 +50,16 @@ examples[1] = [ 0 /*version*/, [
   '}',
   '',
   'return o.rotate([0, 3], [0, Math.PI / 2]);'
-].join('\n') ];
-examples[2] = [ 0 /*version*/, [
+].join('\n') ]);
+
+examples.push([ 0, [ 
+  'return b().rect([50, 50], [40, 40])',
+  '          .trans([0, 3],', 
+  '                 [[0, 0], [0, 150]],', 
+  '                 C.E_COUT);'
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(',
   '    b().path(\'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
@@ -68,39 +79,42 @@ examples[2] = [ 0 /*version*/, [
   '      ctx.strokeText(\'Boo!\', 50, 50);',
   '    }))',
   '/*.rotate([0, 3], [0, Math.PI])*/;',
-].join('\n') ];
-examples[3] = [ 0 /*version*/, [
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
-  'var scene = new Scene();',
-  'var elem = new _Element();',
-  'elem.xdata.path = new Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
-  '                           { width: 2, color: \'#300\' },',
-  '                           { color: \'#f00\' });',
+  'var scene = new anm.Scene();',
+  'var elem = new anm.Element();',
+  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
+  '                      { width: 2, color: \'#300\' },',
+  '                      { color: \'#f00\' });',
   'elem.addTween({',
-  '    type: Tween.T_ROTATE,',
+  '    type: C.T_ROTATE,',
   '    band: [0, 3],',
   '    data: [Math.PI / 6, 0]',
   '});',
   'elem.addTween({',
-  '    type: Tween.T_TRANSLATE,',
+  '    type: C.T_TRANSLATE,',
   '    band: [0, 3],',
-  '    data: Path.parse(\'M-100 -100 L100 100 Z\')',
+  '    data: anm.Path.parse(\'M-100 -100 L100 100 Z\')',
   '});',
   'elem.addTween({',
-  '    type: Tween.T_ALPHA,',
+  '    type: C.T_ALPHA,',
   '    band: [1.5, 3],',
   '    data: [1, 0]',
   '});',
   'scene.add(elem);',
   'return scene;'
-].join('\n') ];
-examples[4] = [ 0 /*version*/, [
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(b().path(\'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
   '  .add(b().rect([115, 90], [60, 60]))',
   '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);' 
-].join('\n') ];  
-examples[5] = [ 0 /*version*/, [
+].join('\n') ]);  
+
+examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(',
   '    b(\'blue-rect\').rect([100, 25], [70, 70])',
@@ -112,11 +126,11 @@ examples[5] = [ 0 /*version*/, [
   '                  .scale([0, 10], [[1, 1], [.5, .5]]))',
   '  .add(',
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
-].join('\n') ];
-
-
+].join('\n') ]);
 
 var uexamples = [];
+
+var _player = null; 
 
 function sandbox() {
 
@@ -128,14 +142,16 @@ function sandbox() {
 
     window.b = Builder._$;
     window.B = Builder;
+    window.C = anm.C;
 
     this.player = createPlayer('my-canvas', {
         width: 400,
-        height: 300,
+        height: 250,
         bgcolor: '#fff'
     });
-    this.player.mode = Player.M_PREVIEW;
+    this.player.mode = anm.C.M_PREVIEW;
     this.player._checkMode();
+    _player = this.player;
 
     this.cm = CodeMirror.fromTextArea(this.codeElm, 
               { mode: 'javascript',
@@ -149,7 +165,8 @@ function sandbox() {
 
     var s = this;
     var curInterval = null;
-    var refreshRate = 3000;
+    var refreshRate = DEFAULT_REFRESH_RATE;
+    var reportErr = true;
     function refresh() {
         s.errorsElm.style.display = 'none';
         s.player.stop();
@@ -160,20 +177,31 @@ function sandbox() {
             var scene = eval(code);
             player.load(scene);
             player.play();
+            reportErr = true;
         } catch(e) {
             s.player.stop();
             s.player.drawSplash();
             s.errorsElm.style.display = 'block';
             s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
+            if (reportErr) {
+              if (console && console.error) {
+                console.error(e.stack);
+              }
+              reportErr = false;
+            }
             //throw e;
         };
     };
 
     function updateInterval(to) {
-        if (curInterval) clearInterval(curInterval);
+        if (curInterval) clearTimeout(curInterval);
         //setTimeout(function() {
             refreshRate = to;
-            curInterval = setInterval(refresh, to);
+            var refresher = function() {
+              refresh();
+              curInterval = setTimeout(refresher, to);
+            }
+            refresher();
         //}, 1);  
     }    
 
@@ -210,7 +238,7 @@ function sandbox() {
 function show_csheet(csheetElmId, overlayElmId) {
     var csheetElm = document.getElementById(csheetElmId);
     var overlayElm = document.getElementById(overlayElmId);
-    
+
     csheetElm.style.display = 'block';
     overlayElm.style.display = 'block';
 
@@ -224,10 +252,17 @@ function show_csheet(csheetElmId, overlayElmId) {
 function hide_csheet(csheetElmId, overlayElmId) {
     var csheetElm = document.getElementById(csheetElmId);
     var overlayElm = document.getElementById(overlayElmId);
-    
+
     csheetElm.style.display = 'none';
     overlayElm.style.display = 'none';
 
+}
+
+function change_mode(radio) {
+  if (_player) {
+    _player.mode = C[radio.value];
+    _player._checkMode();
+  }
 }
 
 function store_examples() {
