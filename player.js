@@ -17,18 +17,44 @@ define("anm", function() {
 // === UTILS ===================================================================
 // =============================================================================
 
-// assigns to call a function on next animation frame
+// FRAMING
+
 // http://www.html5canvastutorials.com/advanced/html5-canvas-start-and-stop-an-animation/
-/*var */__nextFrame = (function(callback){
-    return window.requestAnimationFrame ||
-    window.webkitRequestAnimationFrame ||
-    window.mozRequestAnimationFrame ||
-    window.oRequestAnimationFrame ||
-    window.msRequestAnimationFrame ||
-    function(callback){
-        return window.setTimeout(callback, 1000 / 60);
-    };
-})();
+// http://www.w3.org/TR/animation-timing/
+// https://gist.github.com/1579671
+var __frameId = 0;
+
+var __frameFunc = (function() { 
+           return window.requestAnimationFrame ||
+                  window.webkitRequestAnimationFrame ||
+                  window.mozRequestAnimationFrame ||
+                  window.oRequestAnimationFrame ||
+                  window.msRequestAnimationFrame ||
+                  function(callback){
+                    return window.setTimeout(callback, 1000 / 60);
+                  } })();
+
+var __clearFrameFunc = (function() { 
+           return window.cancelAnimationFrame ||
+                  window.webkitCancelAnimationFrame ||
+                  window.mozCancelAnimationFrame ||
+                  window.oCancelAnimationFrame ||
+                  window.msCancelAnimationFrame ||
+                  function(id){
+                    return window.clearTimeout(id);
+                  } })();
+
+// assigns to call a function on next animation frame
+var __nextFrame = function(callback) { 
+    __frameId = __frameFunc(callback);
+};
+
+// stops the animation
+var __stopAnim = function() {
+    if (__frameId) __clearFrameFunc(__frameId);
+};
+
+// OTHER
 
 // collects all characters from string
 // before specified char, starting from start 
@@ -368,8 +394,6 @@ Player.prototype.play = function(from, speed) {
 
     _state.happens = C.PLAYING;
 
-    if (_state.__lastTimeout) window.clearTimeout(_state.__lastTimeout);
-
     var scene = player.anim;
     scene.reset();
     
@@ -397,6 +421,8 @@ Player.prototype.stop = function() {
     var player = this;
 
     player._ensureState();
+
+    __stopAnim();
 
     var _state = player.state;
 
@@ -1620,7 +1646,7 @@ D.drawNext = function(ctx, state, scene, callback) {
         if (!callback(state, time)) return;
     }
 
-    state.__lastTimeout = __nextFrame(function() {
+    __nextFrame(function() {
        D.drawNext(ctx, state, scene, callback); 
     });
 
