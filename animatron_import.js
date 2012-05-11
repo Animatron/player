@@ -7,7 +7,7 @@
 
 var AnimatronImporter = (function() {
 
-function AnimatronImporter() { };
+function AnimatronImporter() { }
 
 var C = anm.C,
     Scene = anm.Scene,

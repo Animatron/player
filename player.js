@@ -10,7 +10,7 @@ if (typeof define !== "function") {
    this.define = function(name, func) {
       func.call({}).__injectToWindow(name);
    };
-};
+}
 
 define("anm", function() {
 
@@ -94,7 +94,8 @@ function obj_clone(what) {
 }*/
 
 function find_pos(elm) {
-    var curleft = curtop = 0;
+    var curleft = 0, 
+        curtop = 0;
     do {
         curleft += elm.offsetLeft;
         curtop += elm.offsetTop;
@@ -125,7 +126,6 @@ function ajax(url, callback/*, errback*/) {
 
     if (!req) {
       throw new Error('Failed to create XMLHttp instance');
-      return;
     }
 
     var whenDone = function() {
@@ -146,18 +146,19 @@ function ajax(url, callback/*, errback*/) {
 }
 
 function canvasOpts(canvas, opts) {
+    var _w, _h;
     if (!opts.push) { // object, not array // FIXME: test with typeof
-        var _w = opts.width ? Math.floor(opts.width) : 0;
-        var _h = opts.height ? Math.floor(opts.height) : 0;
+        _w = opts.width ? Math.floor(opts.width) : 0;
+        _h = opts.height ? Math.floor(opts.height) : 0;
         //canvas.width = _w;
         //canvas.height = _h;
         canvas.setAttribute('width', _w);
         canvas.setAttribute('height', _h);
         if (opts.bgcolor) { 
-            canvas.style.backgroundColor = opts.bgcolor; };
+            canvas.style.backgroundColor = opts.bgcolor; }
     } else { // array
-        var _w = Math.floor(opts[0]);
-        var _h = Math.floor(opts[1]);
+        _w = Math.floor(opts[0]);
+        _h = Math.floor(opts[1]);
         //canvas.width = _w;
         //canvas.height = _h;
         canvas.setAttribute('width', _w);
@@ -742,8 +743,8 @@ Player.prototype._saveCanvasPos = function(cvs) {
         do {
             ol += elm.offsetLeft;
             ot += elm.offsetTop;
-        } while (elm = elm.offsetParent);
-    };
+        } while (elm = elm.offsetParent)
+    }
  
     ol += cpl + cbl + htol;
     ot += cpt + cbt + htot;
@@ -776,7 +777,7 @@ Player.createState = function(player) {
 
 // > Scene % ()
 function Scene() {
-    this.tree = [],
+    this.tree = [];
     this.hash = {};
     this.name = '';
     this.duration = 0;
@@ -883,7 +884,7 @@ Scene.prototype._addToTree = function(elm) {
     if (elm.xdata.gband && 
         (elm.xdata.gband[1] > this.duration)) {
         this.duration = elm.xdata.gband[1];
-    };
+    }
     this._register(elm);
     if (elm.children) this._addElems(elm.children);
     this.tree.push(elm);
@@ -959,7 +960,7 @@ function Element(draw, onframe) {
             this.m_on.call(_me, type, handler);
         } else default_on.call(_me, type, handler);
     };
-};
+}
 Element.DEFAULT_LEN = 10;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
@@ -1135,8 +1136,7 @@ Element.prototype.localTime = function(gtime) {
         case C.R_ONCE:
             return this.__checkGJump(gtime);
         case C.R_LOOP: {
-                var x = this.xdata,
-                    p = this.parent;
+                var p = this.parent;
                 var durtn = x.lband[1] - 
                             x.lband[0],
                     pdurtn = p
@@ -1150,9 +1150,8 @@ Element.prototype.localTime = function(gtime) {
                 var t = (gtime - x.gband[0]) - (fits * durtn);
                 return (fits <= times) ? this.__checkJump(t) : -1;
             }
-        case C.R_BOUNCE:
-                var x = this.xdata,
-                    p = this.parent;
+        case C.R_BOUNCE: {
+                var p = this.parent;
                 var durtn = x.lband[1] - 
                             x.lband[0],
                     pdurtn = p
@@ -1164,8 +1163,9 @@ Element.prototype.localTime = function(gtime) {
                     fits = Math.floor((gtime - x.gband[0]) / durtn);
                 if (fits < 0) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn),
-                    t = ((fits % 2) == 0) ? t : durtn - t;
+                    t = ((fits % 2) === 0) ? t : durtn - t;
                 return (fits <= times) ? this.__checkJump(t) : -1;
+            }
     }
 }
 Element.prototype.m_on = function(type, handler) {
