@@ -104,9 +104,8 @@ Builder.prototype.path = function(path) {
                : Path.parse(path, this.x.path);
     var ppath = this.x.path;
     this.x.path = path;
-    var norm = path.normalize();
-    this.x.pos = norm[0];
-    this.x.reg = norm[1];
+    path.normalize();
+    this.x.reg = [0, 0];
     if (!path.stroke) path.stroke = ppath ? ppath.stroke 
                                           : Builder.DEFAULT_STROKE;
     if (!path.fill) path.fill = ppath ? ppath.fill 
@@ -151,14 +150,15 @@ Builder.prototype.image = function(pt, src) {
 // > Builder.rect % (pt: Array[2,Integer], 
 //                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var w = rect[0], h = rect[1],
-        x = pt[0], y = pt[1];
-    return this.path('M'+x+' '+y+
-                    ' L'+(x+w)+' '+y+
-                    ' L'+(x+w)+' '+(y+h)+
-                    ' L'+x+' '+(y+h)+
-                    ' L'+x+' '+y+
-                    ' Z');
+    var w = rect[0], h = rect[1];
+    this.path('M0 0'+
+             ' L'+w+' 0'+
+             ' L'+w+' '+h+
+             ' L0 '+h+
+             ' L0 0'+
+             ' Z');
+    this.x.pos = pt;
+    return this;
 }
 // > Builder.circle % (pt: Array[2,Integer], 
 //                     radius: Integer) => Builder
@@ -186,7 +186,7 @@ Builder.prototype.tween = function(type, band, data, easing) {
         type: type,
         band: band,
         data: data,
-        easing: easing ? ((typeof object === 'string') 
+        easing: easing ? ((typeof easing === 'string') 
                           ? { type: easing, data: null/*edata*/ }
                           : easing ) : null
     });

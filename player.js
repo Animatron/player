@@ -483,59 +483,6 @@ Player.prototype._init = function(opts) {
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
-// reset player to initial state, called before loading any scene
-Player.prototype._reset = function() {
-    var _state = this.state;
-    _state.debug = this.debug;
-    _state.happens = C.NOTHING;
-    _state.from = 0;
-    _state.time = 0;
-    _state.zoom = 1;
-    _state.duration = 0;
-    if (this.controls) this.controls.reset();
-    if (this.info) this.info.reset();
-    this.ctx.clearRect(0, 0, _state.width, _state.height);
-    this.stop();
-}
-// update player's canvas with configuration 
-Player.prototype._prepareCanvas = function(opts) {
-    var canvas = this.canvas;
-    this._canvasConf = opts;
-    this.state.width = opts.width;
-    this.state.height = opts.height;
-    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    canvasOpts(canvas, opts);
-    if (this.controls) this.controls.update(canvas);
-    if (this.info) this.info.update(canvas);
-    this._saveCanvasPos(canvas);
-    this.__canvasPrepared = true;
-    return this;
-}
-Player.prototype._checkMode = function() {
-    if (this.mode & C.M_CONTROLS_ENABLED) {
-        if (!this.controls) {
-            this.controls = new Controls(this);
-            this.controls.update(this.canvas);
-        }
-    } else {
-        if (this.controls) {
-            this.controls.detach(this.canvas);
-            this.controls = null;
-        }
-    }
-    if (this.mode & C.M_INFO_ENABLED) {
-        if (!this.info) {
-            this.info = new InfoBlock(this);
-            this.info.update(this.canvas);
-        }
-    } else {
-        if (this.info) {
-            this.info.detach(this.canvas);
-            this.info = null;
-        }
-    }
-    // FIXME: M_HANDLE_EVENTS
-}
 // FIXME: call changeRect on every resize
 Player.prototype.changeRect = function(rect) {
     this._prepareCanvas({
@@ -593,20 +540,6 @@ Player.prototype.drawAt = function(time) {
         this.controls.render(state, time);
     }
 }
-Player.prototype._ensureState = function() {
-    if (!this.state) {
-        throw new Error('There\'s no player state defined, nowhere to draw, ' +
-                        'please load something in player before ' +
-                        'calling \'play\'');
-    }
-}
-Player.prototype._ensureAnim = function() {
-    if (!this.anim) {
-        throw new Error('There\'s nothing to play at all, ' +
-                        'please load something in player before ' +
-                        'calling \'play\'');
-    }
-}
 Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
     if (this.info) this.info.detach(this.canvas);
@@ -636,47 +569,6 @@ Player.prototype.subscribeEvents = function(canvas) {
 Player.prototype.updateDuration = function(value) {
     this.state.duration = value;
     if (this.info) this.info.updateDuration(value);
-}
-Player.prototype._saveCanvasPos = function(cvs) {
-    var gcs = (document.defaultView && 
-               document.defaultView.getComputedStyle); // last is assigned
-
-    // computed padding-left
-    var cpl = gcs ?
-          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
-    // computed padding-top
-        cpt = gcs ?
-          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
-    // computed bodrer-left
-        cbl = gcs ?
-          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
-    // computed bodrer-top
-        cbt = gcs ? 
-          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
-
-    var html = document.body.parentNode,
-        htol = html.offsetLeft,
-        htot = html.offsetTop;
-
-    var elm = cvs, 
-        ol = cpl + cbl + htol, 
-        ot = cpt + cbt + htot;
-     
-    if (elm.offsetParent !== undefined) {
-        do {
-            ol += elm.offsetLeft;
-            ot += elm.offsetTop;
-        } while (elm = elm.offsetParent);
-    };
- 
-    ol += cpl + cbl + htol;
-    ot += cpt + cbt + htot;
-
-    // FIXME: find a method with no injection of custom properties
-    //        (data-xxx attributes are stored as strings and may work
-    //         a bit slower for events)
-    cvs.__rOffsetLeft = ol;
-    cvs.__rOffsetTop = ot;
 }
 Player.prototype.drawSplash = function() {
     var ctx = this.ctx,
@@ -724,6 +616,117 @@ Player.prototype.drawLoadingSplash = function(text) {
     ctx.font = '12px sans-serif';
     ctx.fillText(text || "Loading...", 20, 25);
     ctx.restore();
+}
+Player.prototype.toString = function() {
+    return "[ Player '" + this.id + "' m-" + this.mode + " ]";   
+}
+// reset player to initial state, called before loading any scene
+Player.prototype._reset = function() {
+    var _state = this.state;
+    _state.debug = this.debug;
+    _state.happens = C.NOTHING;
+    _state.from = 0;
+    _state.time = 0;
+    _state.zoom = 1;
+    _state.duration = 0;
+    if (this.controls) this.controls.reset();
+    if (this.info) this.info.reset();
+    this.ctx.clearRect(0, 0, _state.width, _state.height);
+    this.stop();
+}
+// update player's canvas with configuration 
+Player.prototype._prepareCanvas = function(opts) {
+    var canvas = this.canvas;
+    this._canvasConf = opts;
+    this.state.width = opts.width;
+    this.state.height = opts.height;
+    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
+    canvasOpts(canvas, opts);
+    if (this.controls) this.controls.update(canvas);
+    if (this.info) this.info.update(canvas);
+    this._saveCanvasPos(canvas);
+    this.__canvasPrepared = true;
+    return this;
+}
+Player.prototype._checkMode = function() {
+    if (this.mode & C.M_CONTROLS_ENABLED) {
+        if (!this.controls) {
+            this.controls = new Controls(this);
+            this.controls.update(this.canvas);
+        }
+    } else {
+        if (this.controls) {
+            this.controls.detach(this.canvas);
+            this.controls = null;
+        }
+    }
+    if (this.mode & C.M_INFO_ENABLED) {
+        if (!this.info) {
+            this.info = new InfoBlock(this);
+            this.info.update(this.canvas);
+        }
+    } else {
+        if (this.info) {
+            this.info.detach(this.canvas);
+            this.info = null;
+        }
+    }
+    // FIXME: M_HANDLE_EVENTS
+}
+Player.prototype._ensureState = function() {
+    if (!this.state) {
+        throw new Error('There\'s no player state defined, nowhere to draw, ' +
+                        'please load something in player before ' +
+                        'calling \'play\'');
+    }
+}
+Player.prototype._ensureAnim = function() {
+    if (!this.anim) {
+        throw new Error('There\'s nothing to play at all, ' +
+                        'please load something in player before ' +
+                        'calling \'play\'');
+    }
+}
+Player.prototype._saveCanvasPos = function(cvs) {
+    var gcs = (document.defaultView && 
+               document.defaultView.getComputedStyle); // last is assigned
+
+    // computed padding-left
+    var cpl = gcs ?
+          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
+    // computed padding-top
+        cpt = gcs ?
+          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
+    // computed bodrer-left
+        cbl = gcs ?
+          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
+    // computed bodrer-top
+        cbt = gcs ? 
+          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
+
+    var html = document.body.parentNode,
+        htol = html.offsetLeft,
+        htot = html.offsetTop;
+
+    var elm = cvs, 
+        ol = cpl + cbl + htol, 
+        ot = cpt + cbt + htot;
+     
+    if (elm.offsetParent !== undefined) {
+        do {
+            ol += elm.offsetLeft;
+            ot += elm.offsetTop;
+        } while (elm = elm.offsetParent);
+    };
+ 
+    ol += cpl + cbl + htol;
+    ot += cpt + cbt + htot;
+
+    // FIXME: find a method with no injection of custom properties
+    //        (data-xxx attributes are stored as strings and may work
+    //         a bit slower for events)
+    cvs.__rOffsetLeft = ol;
+    cvs.__rOffsetTop = ot;
 }
 
 Player.createState = function(player) {
@@ -842,6 +845,9 @@ Scene.prototype.dispose = function() {
     this.visitRoots(function(elm) {
         elm.dispose();
     });
+}
+Scene.prototype.toString = function() {
+    return "[ Scene "+(this.name ? "'"+this.name+"'" : "")+"]";
 }
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
@@ -1235,6 +1241,9 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 }
+Element.prototype.toString = function() {
+    return "[ Element '" + (this.name || this.id) + "' ]";
+}
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
@@ -1452,8 +1461,8 @@ Element.createState = function() {
 };
 // geometric data of the element
 Element.createXData = function() {
-    return { 'pos': null,      // position in parent clip space
-             'reg': null,      // registration point
+    return { 'pos': [0, 0],      // position in parent clip space
+             'reg': [0, 0],      // registration point
              'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape 
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
@@ -2257,6 +2266,8 @@ C.P_LINETO = 1;
 C.P_CURVETO = 2;
 
 C.PC_ROUND = 'round';
+C.PC_BUTT = 'butt';
+C.PC_MITER = 'miter';
 
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
@@ -2311,7 +2322,7 @@ Path.prototype.apply = function(ctx) {
     var p = this;
     DU.qDraw(ctx, p.stroke || Path.DEFAULT_STROKE,
                   p.fill || Path.DEFAULT_FILL,
-             function() { p.visit(p._applyVisitor,ctx); });
+             function() { p.visit(Path._applyVisitor,ctx); });
 
     /*ctx.beginPath();
     DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
@@ -2453,17 +2464,15 @@ Path.prototype.normalize = function() {
     var bounds = this.bounds();
     var w = (bounds[2]-bounds[0]),
         h = (bounds[3]-bounds[1]);
+    var hw = Math.floor(w/2),
+        hh = Math.floor(h/2);
     var min_x = bounds[0],
         min_y = bounds[1];
-    var pt = [ Math.floor(w/2), 
-               Math.floor(h/2) ];
-    if ((min_x > 0) || (min_y > 0)) {
-        this.vpoints(function(x, y) {
-            return [ x - min_x,
-                     y - min_y ];  
+    this.vpoints(function(x, y) {
+        return [ x - min_x - hw,
+                 y - min_y - hh];  
         });
-    }
-    return [ [ min_x, min_y ], pt ];
+    return [ hw, hh ];
 }
 Path.prototype.inBounds = function(point) {
     var _b = this.bounds();
@@ -2496,20 +2505,10 @@ Path.prototype.crosses = function(pt) {
 
     return crossings;
 }
-// parses `count` positions from path (string form), 
-// starting at `start`, returns a length of parsed data and 
-// positions array
-Path._collectPositions = function(path, start, count) {
-    var pos = start + 1;
-    var positions = [];
-    var got = 0;
-    while (got != count) {
-        var posstr = __collect_to(path, pos, ' ');
-        pos += posstr.length + 1; got++;
-        positions.push(parseFloat(posstr));        
-    }
-    return [pos - start, positions];
-}
+Path.prototype.toString = function() {
+    return "[ Path '" + Path.toSVGString(this) + "' ]";
+} 
+
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets 
 // chunk marker and positions sequentially
@@ -2533,18 +2532,25 @@ Path.visitStrPath = function(path, visitor, data) {
         visitor(marker, positions, data);
     }
 }
-Path.prototype._applyVisitor = function(segment, ctx) {
-    var marker = segment.type;
-    var positions = segment.pts;
-    if (marker === C.P_MOVETO) {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === C.P_LINETO) {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === C.P_CURVETO) {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
+Path.toSVGString = function(path) {
+    var buffer = [];
+    path.visit(Path._encodeVisitor, buffer);
+    buffer.push('Z');
+    return buffer.join(' ');
+}
+// parses `count` positions from path (string form), 
+// starting at `start`, returns a length of parsed data and 
+// positions array
+Path._collectPositions = function(path, start, count) {
+    var pos = start + 1;
+    var positions = [];
+    var got = 0;
+    while (got != count) {
+        var posstr = __collect_to(path, pos, ' ');
+        pos += posstr.length + 1; got++;
+        positions.push(parseFloat(posstr));        
     }
+    return [pos - start, positions];
 }
 // visitor to parse a string path into Path object
 Path._parserVisitor = function(marker, positions, path) {
@@ -2568,6 +2574,32 @@ Path._strApplyVisitor = function(marker, positions, ctx) {
                           positions[4], positions[5]);
     }
 };
+Path._applyVisitor = function(segment, ctx) {
+    var type = segment.type;
+    var positions = segment.pts;
+    if (type === C.P_MOVETO) {
+        ctx.moveTo(positions[0], positions[1]);
+    } else if (type === C.P_LINETO) {
+        ctx.lineTo(positions[0], positions[1]);
+    } else if (type === C.P_CURVETO) {
+        ctx.bezierCurveTo(positions[0], positions[1],
+                          positions[2], positions[3],
+                          positions[4], positions[5]);
+    }
+}
+Path._encodeVisitor = function(segment, buffer) {
+    var type = segment.type;
+    var positions = segment.pts;
+    if (type === C.P_MOVETO) {
+        buffer.push('M'+positions[0]+' '+positions[1]);
+    } else if (type === C.P_LINETO) {
+        buffer.push('L'+positions[0]+' '+positions[1]);
+    } else if (type === C.P_CURVETO) {
+        buffer.push('C'+positions[0]+' '+positions[1]+' '+
+                        positions[2]+' '+positions[3]+' '+
+                        positions[4]+' '+positions[5]);
+    }
+}
 
 // converts path given in string form to array of segments
 Path.parse = function(path, target) {

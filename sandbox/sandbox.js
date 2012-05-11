@@ -519,3 +519,56 @@ return test; */
       .rotate([0, 10], [0, Math.PI / 2]);
 
 return test; */
+
+/* var pathCache = {};
+
+function starPath(x, y, orad, irad) {
+    var pathId = orad + ":" + irad;
+    if (pathCache[pathId]) return pathCache[pathId];
+    var points = [],
+        ipoints = [],
+        opoints = [];
+    // inner points
+    var p = (Math.PI * 2) / 5;
+    var shift = p/4;
+    for (var i = 0; i <= 5; i++) {
+        points.push([
+              x + orad * Math.cos(shift+(i*p)),
+              y + orad * Math.sin(shift+(i*p)) 
+        ]);
+        points.push([
+              x + irad * Math.cos(shift+(i*p)),
+              y + irad * Math.sin(shift+(i*p)) 
+        ]);
+    }
+    return (pathCache[pathId] = B.path(points));
+}
+
+function star(x, y, orad, irad) {
+    return b().path(starPath(x,y,orad,irad));
+}
+
+return star(200, 200, 90, 30);
+
+/*return b().paint(function(ctx) {
+    var ox = 60;
+    var oy = 60;
+    var oradius = 90;
+    var iradius = 30;
+    ctx.beginPath();
+    //ctx.moveTo(oradius, oradius);
+    var p = (Math.PI * 2) / 5;
+    var shift = p/4;
+    for (var i = 0; i < 6; i++) {
+        var x = iradius * Math.cos(shift+(i*p));
+        var y = iradius * Math.sin(shift+(i*p));
+        ctx.lineTo(ox+x, oy+y);
+    }
+    var shift = -p/4;
+    for (var i = 0; i < 6; i++) {
+        var x = oradius * Math.cos(shift+(i*p));
+        var y = oradius * Math.sin(shift+(i*p));
+        ctx.lineTo(ox+x, oy+y);
+    }
+    ctx.stroke();
+}).move([50, 50]);*/
