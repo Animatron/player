@@ -12,7 +12,7 @@ var Element = anm.Element;
 var C = anm.C;
 var DU = anm.DU;
 
-var MSeg = anm.MSeg, LSeg = anm.LSeg;
+var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
 // =============================================================================
 // === BUILDER =================================================================
@@ -29,8 +29,8 @@ function Builder(obj) {
         this.x = obj.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
-        this.v = obj.v;
-        this.x = obj.x;
+        this.v = obj.v.clone();
+        this.x = this.v.xdata;
     } else if (typeof obj === 'string') {
         this.n = obj;
         this.v = new Element();
@@ -46,7 +46,7 @@ Builder._$ = function(obj) {
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
 Builder.DEFAULT_FILL = Path.BASE_FILL;
 
-// > Builder.addS % (what: Element | Builder) => Builder
+// > Builder.add % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     if (what instanceof Element) {
         this.v.add(what);    
@@ -98,7 +98,8 @@ Builder.prototype.stroke = function(color, width, cap, join) {
     this.x.path.cstroke(color, width, cap, join);
     return this;
 }
-// > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
+// > Builder.path % (path: String | Path,
+//                   [pt: Array[2,Integer]]) => Builder
 Builder.prototype.path = function(path) {
     var path = (path instanceof Path) ? path 
                : Path.parse(path, this.x.path);
@@ -147,16 +148,16 @@ Builder.prototype.image = function(pt, src) {
     }
     return this;
 }
+// TODO: move shapes to B.P.rect/... ?
 // > Builder.rect % (pt: Array[2,Integer], 
 //                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
     var w = rect[0], h = rect[1];
-    this.path('M0 0'+
-             ' L'+w+' 0'+
-             ' L'+w+' '+h+
-             ' L0 '+h+
-             ' L0 0'+
-             ' Z');
+    this.path(Builder.path([[0, 0],
+                            [w, 0],
+                            [w, h],
+                            [0, h],
+                            [0, 0]]));
     this.x.pos = pt;
     return this;
 }
@@ -182,13 +183,17 @@ Builder.prototype.circle = function(pt, radius) {
 //                    data: Any,
 //                    [easing: String | Object]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
+    var aeasing = (easing && (typeof easing === 'string')) 
+                  ? { type: easing, data: null }
+                  : easing,
+        aeasing = (easing && (typeof easing === 'function'))
+                  ? { f: function() { return easing; }, data: null }
+                  : easing;
     this.v.addTween({
         type: type,
         band: band,
         data: data,
-        easing: easing ? ((typeof easing === 'string') 
-                          ? { type: easing, data: null/*edata*/ }
-                          : easing ) : null
+        easing: aeasing
     });
     return this;
 }
@@ -221,15 +226,15 @@ Builder.prototype.xscale = function(band, values, easing) {
 //                    points: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.trans = function(band, points, easing) {
-    return this.transP(band, 'M'+points[0][0]+' '+points[0][1]+
-                            ' L'+points[1][0]+' '+points[1][1]+
-                            ' Z', easing);
+    return this.transP(band, B.path([[points[0][0],points[0][1]],
+                                     [points[1][0],points[1][1]]]), easing);
 }
 // > Builder.transP % (band: Array[2,Float],
-//                     path: String,
+//                     path: String | Path,
 //                     [easing: String]) => Builder
 Builder.prototype.transP = function(band, path, easing) {
-    return this.tween(C.T_TRANSLATE, band, Path.parse(path), easing);
+    return this.tween(C.T_TRANSLATE, band, (path instanceof Path)
+                                           ? path : Path.parse(path), easing);
 }
 // > Builder.alpha % (band: Array[2,Float], 
 //                    values: Array[2,Float],
@@ -300,16 +305,20 @@ Builder.path = function(points) {
     var p = new Path();
     p.add(new MSeg([points[0][0], points[0][1]]));
     for (var i = 1; i < points.length; i++) {
-        p.add(new LSeg([ points[i][0],
-                         points[i][1] ]));
+        var pts = points[i];
+        if (pts.length < 3) {
+            p.add(new LSeg([ pts[0], pts[1] ]));
+        } else {
+            p.add(new CSeg([ pts[0], pts[1],
+                             pts[2], pts[3],
+                             pts[4], pts[5] ]));
+        }
     }
     return p;
 }
 Builder.easing = function(func, data) {
     return {
-        'f': function(data) {
-            return func;
-        },
+        'f': function(data) { return func; },
         'data': data
     }
 }

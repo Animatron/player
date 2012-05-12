@@ -1270,6 +1270,15 @@ Element.prototype.global = function(pt) {
 Element.prototype.toString = function() {
     return "[ Element '" + (this.name || this.id) + "' ]";
 }
+Element.prototype.clone = function() {
+    var clone = new Element();
+    clone.name = this.name;
+    clone.children = this.children;
+    clone.sprite = this.sprite;
+    clone._modifiers = this._modifiers;
+    clone._painters = this._painters;
+    clone.xdata = obj_clone(this.xdata);
+}
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;

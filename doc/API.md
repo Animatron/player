@@ -2,22 +2,26 @@ PLAYER API
 ==========
 
 * Intro
+* Sandbox
 * [Embedding](#Embedding)
   * Loading Scenes
   * Player Options
   * Playing API
 * [Builder](#Builder)
   * Aliases
-  * Structure 
+  * Instantiation
+  * Structures 
   * Shapes
   * Bands
   * Constants
-  * Tweens + Easings
+  * Tweens
+  * Easings
   * Repeat Modes
-  * Modifiers/Painters
+  * Modifiers &amp; Painters
   * Time-Switch
-  * [Events]
-  * Minor stuff
+  * Events
+  * Interactions
+  * Helpers
 * [Scene](#Scene)
   * Manual Building  
   * Element Structure 
@@ -33,6 +37,13 @@ Intro
 
 Here's the documentation on using Animatron Player to load external scenes and play them at your site. _And_ it's also about building your scenes manually, but in a very easy way (we're sure you haven't seen the easier one). The two in one. Let's start.
 
+Sandbox
+-------
+
+To get the feel on how player works, you may want to play with it at [Sandbox](animatron.com/player/sandbox/sandbox.html) section. There are several examples you may observe in action there. If you want to create some animation on your own, please follow the [Builder](#Builder) section, it is the general and the single class that gives you the real power over the moving scenes. 
+
+You'll find a lot of checkboxes and radio buttons there, feel free to check and uncheck them. In fact, 'Debug' checkbox turns player in the mode where it shows additional info on current animation for developer (such as FPS, elements' names and their registration points), 'Interactive/Non-Interactive' button (it is not a checkbox, because an additional option may appear in future) enables/disables capturing mouse/keyboard events by canvas.
+
 Emdedding
 ---------
 <a name="Embedding"></a>
@@ -47,11 +58,11 @@ The first option is just to embed the player with some external scene to your si
 
 ##### 2. From Source #####
 
-If you need more customization or to control the flow, or if you want to _import_ some custom scene in custom format (i.e. JSON), or if you plan to _build_ a scene on your own, you may want the second option: to include player from the sourse.
+If you'd like to _customize_ things a bit more, or to have more control over the flow, or if you want to _import_ some custom scene in custom format (i.e. JSON), or if you plan to _build_ a scene on your own, you may want the second option: to include a player from the sourse.
 
 ###### 2a. ######
 
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`player.js`](https://raw.github.com/Animatron/player/master/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) (the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/)) files in raw format. Now, include them in your HTML file:
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`player.js`](https://raw.github.com/Animatron/player/master/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix)</sub>, thanks to [Simon Sarris](http://simonsarris.com/)) files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>
@@ -80,14 +91,14 @@ Then, you have a `Player` object.
 
 ###### 2b. ######
 
-Now you may easily create a player with either of these two ways, just provide us the correct id of the canvas to attach to and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample): 
+Now you may easily create a player with either of two ways below, just provide us with correct id of the canvas to attach to, and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample): 
 
     var player = createPlayer('my-canvas')
     // or: var player = new anm.Player('my-canvas');
 
 ###### 2c. ######
 
-And you may rule the flow with loading your own scene or importing one:
+And you may easily rule the flow by loading your own scene or importing one:
 
     var my_scene = ...
     player.load(my_scene).play();
@@ -98,7 +109,7 @@ You may create as many players as you want, just be sure to have enough of canva
 
 ### Loading Scenes
 
-Player works with Scenes and plays any Scene easily, if this Scene is one of those:
+Player works with Scenes and plays any Scene easily, if this Scene is of those:
 
 * Any scene in any JS-compatible format (String, JavaScript Array or Object, a Big Number), if you have an [`Importer`](#Importers) for it; 
 * An URL to JSON, the one we may load with AJAX; the returned JSON may be in any format, just ensure that you have a corresponding [`Importer`](#Importers) for it;
@@ -108,7 +119,7 @@ Player works with Scenes and plays any Scene easily, if this Scene is one of tho
 
 Loading and playing a scene requires a scene object (you may load it from external file or create in place) and an instance of [Importer](#Importers), if this scene is in unknown format. 
 
-#### a. from any object ####
+#### a. from any object (with Importer) ####
 
 Just include the [Importer](#Importers) in the head section of your HTML file. If you store your scene in a file, then also include the scene file:
 
@@ -244,6 +255,7 @@ You may pass options object to player, if you want to configure it accurately.
 
 In fact, only `mode` option is required, if you ever decide to use it:
 
+    //var C = anm.C;
     createPlayer('my_canvas', { 'mode': C.M_VIDEO });
     
 Mode can be:
@@ -283,44 +295,48 @@ The complete options object, filled with default values, looks like this (again,
 
 ### Playing API
 
-#### createPlayer(canvasId: String[, options: Object])
+> ♦ `createPlayer(canvasId: String[, options: Object])`
 
-#### load(scene: Any[, importer: Importer])
+> ♦ `load(scene: Any[, importer: Importer])`
 
-#### play([time: Float][, speed: Float])
+> ♦ `play([time: Float][, speed: Float])`
 
-#### pause()
+> ♦ `pause()`
 
-#### stop()
+> ♦ `stop()`
 
-#### onerror(callback: Function(evt: Event))
+> ♦ `onerror(callback: Function(evt: Event))`
 
 Builder
 -------
 <a name="Builder"></a>
 
-`Builder` is the best method for accelerated scene building. It is based on JQuery-like concept (the State Monad, if it says something to you), so the instance of `Builder` is the one single object you'll need to do anything you want. If you are not JQuery lover, name it "just useful chaining".
+`Builder` is the best method for accelerated scene building. It is based on JQuery-like concept (the _State Monad_, if it says something to you), so the instance of `Builder` is the one single object you'll need to do anything you want. If you are not JQuery lover, name it "just useful chaining".
+
+Below is the reference for all of the `Builder` possibilities.
 
 Let's give an example: this is how the typical compicated scene looks when constructed with `Builder`:
 
-    var b = Builder._$; // quick alias
+    var b = Builder._$; // quick alias                              
     b('scene').band([0, 20])
               .add(b('red-rect').fill('#f00')
-                                .rect([20, 20], [10, 10])
+                                .rect([30, 30], [20, 40])
                                 .rotate([0, 10], [0, Math.PI / 2]))
-              .add(b('bend').image('./bender.png')
-                            .band([10, 15])
-                            .trans([2, 10], [[0, 0], [20, 20]])
-                            .rotateP()
-                            .bounce())
+              .add(b('bendie').image('./bender.png')
+                              .band([10, 15])
+                              .alpha([0, 1], [0, 1])                             
+                              .trans([1, 5], [[0, 0], [20, 20]])
+                              .bounce());                              
                             
-<!-- image: 'http://digital-photography'+
-            '-school.com/wp-content/uplo'+
-            'ads/2008/11/my-favorite-lens.jpg' -->
+You may load any animation created with `Builder` directly to player, so this code, for example, will nicely work:
+
+    createPlayer('my-canvas').load(b().rect([0, 20], [40, 40])).play(); 
+    
+[Sandbox](http://animatron.com/player/sandbox/sandbox.html) also works with the examples constructed with `Builder` (among with manually created [Scene](#Scene) instances), it just uses the value returned from user code as the scene to load into player.
 
 ### Aliases
 
-It is too long to type `new Builder(. . .)` all the time when you need a new instance of `Builder`, so it is recommended to make an alias for it. Any you want, even "`_`" (underscore), just ensure that it is not clashes with some existing variable. So, if you are using JQuery on your page, don't use "`$`" alias, or wrap your code with anonymous function. We think the best one is "`b`".
+It is too long to type `new Builder(. . .)` all the time when you need a new instance of `Builder`, so it is recommended to make an alias for it. Any you want, even "`_`" (underscore), just ensure that it not clashes with some existing variable. So, if you are using JQuery on your page, please don't use "`$`" alias, or wrap your code with anonymous function. We think the best one is "`b`".
 
     var b = Builder._$; // $_ points to the function that calls 
                         // "new Builder(arguments)" 
@@ -329,7 +345,7 @@ Among with `b` (or your variant), you may need some alias to access player const
 
     var C = anm.C;
     
-The last optional variant is to make alias for a `Builder` class itself (not a constructor), because you may find useful to use its static methods [currently there is none of those, but we plan to provide some shortcuts to creating gradient-fills, for example]. Here's the way:
+The last optional variant is to make alias for a `Builder` class itself (not a constructor), because you may find useful to use its static methods (they allow to quickly create paths from points and gradients and make other complicated things easier). Here's the way:
 
     var B = Builder;
     
@@ -339,7 +355,76 @@ Now you may write something like this:
        .fill(B.grad(['#f00', '#00f']))
        .alpha([0, 7], [1, 0], C.E_CINOUT); // Cubic In-Out Easing
 
-### Structure 
+### Instantiation
+
+> ♦ `Builder % ([String | Element | Builder])`
+
+`Builder` constructor takes either of:
+
+* Nothing — creates an empty element and keeps it inside to work with it during next calls;
+* `String` — creates an element with given name and keeps it inside to work with it during next calls;
+* `Element` — keeps the given element inside to work with it during next calls;
+* `Builder` — creates a clone of the given `Builder`, so next changes for the last
+              one does not apply to created one and vise versa;
+
+Every `Builder` instance have three public properties: `v`, `n` and `x`. Factually, you will need only the `v` one: it points to the `Element` instance `Builder` works with. `n` is the name of element, and `x` is element's `xdata` (see `xdata` explanation in [Element](#Element) reference section, but you'll for sure don't need it if you use `Builder` to build scenes):
+
+    var b = Builder._$; // we will omit it in next snippets
+
+    // Nothing
+    var b_noname = b();
+    console.log(b_noname.v instanceof anm.Element); // true
+    console.log(b_noname.n === ''); // true
+
+    // String
+    var b_named = b('shape');
+    console.log(b_named.v instanceof anm.Element); // true
+    console.log(b_named.n === 'shape'); // true
+
+    // Element
+    var elem = new anm.Element();
+    elem.name = 'foo';
+    var b_elem = b(elem);
+    elem.name = 'bar';
+    console.log(b_elem.v instanceof anm.Element); // true
+    console.log(b_elem.n === 'foo'); // true
+
+    // Builder
+    var b_src = b('src');
+    var b_dst = b(b_src);
+    console.log(b_src.n === b_dst.n); // true
+    console.log(b_src.v === b_dst.v); // false (they're different instances)
+
+### Structures
+
+Thanks to `Builder` mechanics, you may build scenes with nesting levels of any depth. Just put one inside another, once again with other one, and keep adding and adding, and wow — you accidentally have the tree of elements at your hands:
+
+> ♦ `Builder.add % (what: Element | Builder) => Builder`
+
+Any `Element` or `Builder` instances are allowed to add; by the way, you may treat the top (root) element as the scene:
+
+    var scene = b('scene');
+    var cols_count = 26;
+    var rows_count = 16;
+    var column;
+    for (var i = 0; i < cols_count; i++) {
+        scene.add(column = b('column-' + i));
+        // you may keep adding sub-child elements after appending 
+        // a child to scene, it is only important to do it
+        // before calling player.load for this scene 
+        for (var j = 0; j < rows_count; j++) {
+            column.add(b('elm-' + j)
+                        .rect([i*15, j*15], [10, 10])
+                        .rotate([0, 3], [0, Math.PI * 2]));
+        }
+        column.trans([0, 1.5], [[0, 0], [10, 10]]);
+        column.trans([1.5, 0], [[10, 10], [0, 0]]);
+        /*var offset = cols_count / i;
+        column.band([0, 3])
+              .trans([0, 1.5], [[0, 0], 
+                                [offset, offset]]).bounce();*/
+    }
+    scene.move([10, 10]);
 
 ### Shapes
 
@@ -347,17 +432,21 @@ Now you may write something like this:
 
 ### Constants
 
-### Tweens + Easings
+### Tweens
+
+### Easings
 
 ### Repeat Modes
 
-### Modifiers/Painters
+### Modifiers &amp; Painters
 
 ### Time-Switch
 
-### [Events]
+### Events
 
-### Minor stuff
+### Interactions
+
+### Helpers
 
 Scene
 -----
