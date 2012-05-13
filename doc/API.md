@@ -12,6 +12,8 @@ PLAYER API
   * Instantiation
   * Structures 
   * Shapes
+  * Fill &amp; Stroke
+  * Static Modification
   * Bands
   * Constants
   * Tweens
@@ -332,7 +334,11 @@ You may load any animation created with `Builder` directly to player, so this co
 
     createPlayer('my-canvas').load(b().rect([0, 20], [40, 40])).play(); 
     
-[Sandbox](http://animatron.com/player/sandbox/sandbox.html) also works with the examples constructed with `Builder` (among with manually created [Scene](#Scene) instances), it just uses the value returned from user code as the scene to load into player.
+By the way, order of operations over the `Builder` instance has <sub>almost</sub> absolutely no matter for the result, it is only the matter of easy-reading your own code. To be honest, there are several minor exceptions, and if they will be important, we'll mention them individually in the corresponding section. Until that, feel free to mess things while it fits you and your friends. 
+
+#### Sandbox
+    
+[Sandbox](http://animatron.com/player/sandbox/sandbox.html) also works with the examples constructed with `Builder` (among with manually created [Scene](#Scene) instances), it just uses the value returned from user code as the scene to load into player. So if you want to see any example from this document in action, just copy-paste it to Sanbox page and add the last line returning any `b` instance to the player, like `return scene;` or `return child;` or `return b('wrapper').add(child).add(child);`. 
 
 ### Aliases
 
@@ -397,36 +403,108 @@ Every `Builder` instance have three public properties: `v`, `n` and `x`. Factual
 
 ### Structures
 
-Thanks to `Builder` mechanics, you may build scenes with nesting levels of any depth. Just put one inside another, once again with other one, and keep adding and adding, and wow — you accidentally have the tree of elements at your hands:
+Thanks to `Builder` mechanics, you may build scenes with nesting level of any depth. Just put one element inside another, once again with other one, and keep adding and adding, and wow — you accidentally have the tree of elements right in your hands:
 
 > ♦ `Builder.add % (what: Element | Builder) => Builder`
 
 Any `Element` or `Builder` instances are allowed to add; by the way, you may treat the top (root) element as the scene:
 
-    var scene = b('scene');
+    var scene = b('scene').band([0, 3]);
     var cols_count = 26;
     var rows_count = 16;
     var column;
     for (var i = 0; i < cols_count; i++) {
         scene.add(column = b('column-' + i));
-        // you may keep adding sub-child elements after appending 
-        // a child to scene, it is only important to do it
-        // before calling player.load for this scene 
+        // you may keep adding sub-child elements even when
+        // you've already appended a child to your scene, 
+        // it is only important to do it before 
+        // calling player.load for this scene 
         for (var j = 0; j < rows_count; j++) {
             column.add(b('elm-' + j)
-                        .rect([i*15, j*15], [10, 10])
-                        .rotate([0, 3], [0, Math.PI * 2]));
+                       .rect([i*15, j*15], [10, 10])
+                       .rotate([0, 3], [0, Math.PI * 2]));
         }
-        column.trans([0, 1.5], [[0, 0], [10, 10]]);
-        column.trans([1.5, 0], [[10, 10], [0, 0]]);
-        /*var offset = cols_count / i;
-        column.band([0, 3])
+        var offset = (cols_count / (i+1))*6;
+        column.band([0, 1.5])
               .trans([0, 1.5], [[0, 0], 
-                                [offset, offset]]).bounce();*/
+                                [offset, offset]])
+              .bounce();
     }
     scene.move([10, 10]);
+    
+So, to resume: any element may be a parent one, it may have any number of children (it only may affect performance, but we keep working to enhance these limits), you may (but not required to) draw something with a parent element, and then with its children, and they will be drawn one over another.
+
+Just add something like `.circle([0, 0], 50)` to the `column` element in example above, and you'll see how it works. (It will shift the location of columns to be in center of circle, so you may want to change `scene.move([10, 10])` to `scene.move([60, 60])`, like the radius of circle + padding of 10, and the animation will be back in bounds).
 
 ### Shapes
+
+If you will dive into internals of player API ([Scene](#Scene) section), you will notice that any element may represent:
+
+* Nothing — so nothing will be drawn with it (however, you may affect children elements whithout even drawing something);
+* Path — any path, including rectangles, circles, polygons or any of your custom-shaped-curves;
+* Image — just give us just an accessible URL, soon we will even support splitting the image and showing it's parts in different acts of the scene;
+* Text — any text, this one is separate from "Path" concept, because it has a lot of own manners;
+
+In fact, you may use several of those in one element, they will be drawn correctly, but why you'd need it? So please, treat every single element as only one of these. 
+
+So, how'd you create them? Let's start from two basic shapes, rectangle and circle. If you test the examples, they will be drawn with default fill and stroke, so you'll see them for sure.
+
+> ♦ `Builder.rect % (pt: Array[2,Integer],`
+>   `                rect: Array[2,Integer]) => Builder`
+
+You may easily create a rectangle by specifying its location and its width/height, like this:
+
+    b().rect([ 50, 50 ], // its center will pe placed at (50,50)
+             [ 100, 50 ]); // it will have 100-unit width and 50-unit height
+             
+> ♦ `Builder.circle % (pt: Array[2,Integer],`
+>   `                  radius: Float) => Builder`
+
+To create circle, specify its location and radius, and that's all:
+
+    b().circle([ 40, 35 ], // its center will pe placed at (40,35)
+               8); // it will have 8-unit radius
+               
+**NB:** Circle is not a Path, if you want the truth, it is created with Painter (see below) and draws a corresponding arc, but for a user point of view, we think, it best fits this chapter
+
+> ♦ `Builder.path % (path: String | Path,`
+>   `                [pt: Array[2,Integer]]) => Builder`
+
+Now, if you want some custom shape, you may have it with the similary easy way
+(may be just a bit complex, though :) ). There's two ways to do it: 
+
+1. If you know & like SVG, you'll like to pass the string here.
+
+        b().path('M0 0 L50 50 C105 260 260 260 380 40 Z');
+        
+     The string format currently differs from 'standard' SVG path description, 
+     it only supports `M`|`L`|`C` commands, only in upper-case, and we don't
+     think it will be required to extend it, may be only adding `Q`-quad segment.
+
+2. If not, we have an even simpler way for you, you just create the array of points, using `B.path` helper (remember static methods from 'Aliases' chapter?)
+
+        b().path(B.path([ [ 0, 0 ], [ 50, 50 ],
+                          [ 80, 80 ], [ 120, 100 ] ]))
+                          
+    This path will 'turn' at each of four points and end at (120, 100). If you add a last point of (0, 0) (equal to start point), it will be the closed path.
+    
+    This way even accepts curve segments. If you specify six coodinates instead of two, it will treat that element as bezier-curve points (see [`bezierCurveTo`](http://www.html5canvastutorials.com/tutorials/html5-canvas-bezier-curves/) to know what means each of points). It works like this:
+    
+         b().path([ [ 0, 0 ], [ 50, 50 ],
+                    [ 105, 260, 260, 260, 380, 40 ],
+                    [ 0, 0 ] ]);
+                    
+    The second one works even faster, because it don't parses a string.
+                    
+You may want to draw a shape by yourself, if it is someway more complex than a path (ellipse, for example), then you may use Painters (see chapter below) and use a cnavas-context command dirreclty.
+                    
+<!-- TODO: path as painter --> 
+
+### Fill &amp; Stroke
+
+By default, any path or text are represented with default fill (gray) and stroke (black, 1-unit width), if you are not specifying them.
+
+### Static Modification
 
 ### Bands
 

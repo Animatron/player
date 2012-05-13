@@ -46,6 +46,8 @@ Builder._$ = function(obj) {
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
 Builder.DEFAULT_FILL = Path.BASE_FILL;
 
+// * STRUCTURE *
+
 // > Builder.add % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     if (what instanceof Element) {
@@ -64,71 +66,53 @@ Builder.prototype.addS = function(what) {
     }
     return this;    
 }
-// > Builder.move % (pt: Array[2,Integer]) => Builder
-Builder.prototype.move = function(pt) {
-    var x = this.x;
-    x.pos = [ x.pos[0] + pt[0],
-              x.pos[1] + pt[1] ];
-    return this;
-}
-// > Builder.zoom % (val: Array[2,Float]) => Builder
-Builder.prototype.zoom = function(val) {
-    if (this.x.path) {
-        this.x.path.zoom(val);
-        this.path(this.x.path); // will normalize it
-    }
-    return this;
-}
-// > Builder.fill % (color: String) => Builder
-Builder.prototype.fill = function(color) {
-    if (!this.x.path) {
-        this.x.path = new Path(); 
-    }
-    this.x.path.cfill(color);
-    return this;
-}
-Builder.prototype.nofill = function() { this.fill(null); }
-Builder.prototype.nostroke = function() { this.stroke(null); }
-// > Builder.stroke % (color: String, width: Float) 
-//                  => Builder
-Builder.prototype.stroke = function(color, width, cap, join) {
-    if (!this.x.path) {
-        this.x.path = new Path();
-    }
-    this.x.path.cstroke(color, width, cap, join);
-    return this;
-}
+
+// * SHAPES *
+
+// TODO: move shapes to B.P.rect/... ?
+
 // > Builder.path % (path: String | Path,
 //                   [pt: Array[2,Integer]]) => Builder
-Builder.prototype.path = function(path) {
+Builder.prototype.path = function(path, pt) {
     var path = (path instanceof Path) ? path 
                : Path.parse(path, this.x.path);
     var ppath = this.x.path;
     this.x.path = path;
     path.normalize();
     this.x.reg = [0, 0];
+    if (pt) this.x.pos = pt;
     if (!path.stroke) path.stroke = ppath ? ppath.stroke 
                                           : Builder.DEFAULT_STROKE;
     if (!path.fill) path.fill = ppath ? ppath.fill 
                                       : Builder.DEFAULT_FILL;
     return this;
 }
-// > Builder.band % (band: Array[2,Float]) => Builder
-Builder.prototype.band = function(band) {
-    this.v.setBand(band);
+// > Builder.rect % (pt: Array[2,Integer], 
+//                   rect: Array[2,Integer]) => Builder
+Builder.prototype.rect = function(pt, rect) {
+    var w = rect[0], h = rect[1];
+    this.path(Builder.path([[0, 0],
+                            [w, 0],
+                            [w, h],
+                            [0, h],
+                            [0, 0]]), pt);
     return this;
 }
-// > Builder.paint % (painter: Function(ctx: Context))
-//                 => Builder
-Builder.prototype.paint = function(func, data) {
-    this.v.addPainter(func, data);
-    return this;
-}
-// > Builder.modify % (modifier: Function(time: Float, 
-//                                        data: Any), 
-//                     data: Any) => Builder
-Builder.prototype.modify = function(func, data) {
-    this.v.addModifier(func, data);
+// > Builder.circle % (pt: Array[2,Integer], 
+//                     radius: Float) => Builder
+Builder.prototype.circle = function(pt, radius) {
+    this.x.pos = pt;
+    this.x.reg = [ radius, radius ];
+    var b = this;
+    this.paint(function(ctx) {
+        var path = this.path;
+        DU.qDraw(ctx, 
+                 b._curStroke(),
+                 b._curFill(),
+                 function() {
+                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
+                 });
+    });
     return this;
 }
 // > Builder.image % (pt: Array[2,Integer],
@@ -148,36 +132,71 @@ Builder.prototype.image = function(pt, src) {
     }
     return this;
 }
-// TODO: move shapes to B.P.rect/... ?
-// > Builder.rect % (pt: Array[2,Integer], 
-//                   rect: Array[2,Integer]) => Builder
-Builder.prototype.rect = function(pt, rect) {
-    var w = rect[0], h = rect[1];
-    this.path(Builder.path([[0, 0],
-                            [w, 0],
-                            [w, h],
-                            [0, h],
-                            [0, 0]]));
-    this.x.pos = pt;
-    return this;
-}
-// > Builder.circle % (pt: Array[2,Integer], 
-//                     radius: Integer) => Builder
-Builder.prototype.circle = function(pt, radius) {
-    this.x.pos = pt;
-    this.x.reg = [ radius, radius ];
-    var b = this;
+// > Builder.text % (pt: Array[2,Integer],
+//                   text: String,
+//                   [font: String]) => Builder
+Builder.prototype.text = function(pt, text, font) {
+    /*var stroke = this.path.stroke;
     this.paint(function(ctx) {
-        var path = this.path;
-        DU.qDraw(ctx, 
-                 b._curStroke(),
-                 b._curFill(),
-                 function() {
-                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
-                 });
-    });
+      ctx.lineWidth = 2;
+      ctx.strokeStyle = '#f35';
+      ctx.font = '30pt serif';
+      ctx.strokeText('Boo!', 50, 50);
+    });*/
+    // TODO: use local stroke and fill vars to sync 
+    // between path and text
+}
+
+// * FILL & STROKE *
+
+// > Builder.fill % (color: String) => Builder
+Builder.prototype.fill = function(color) {
+    if (!this.x.path) {
+        this.x.path = new Path(); 
+    }
+    this.x.path.cfill(color);
     return this;
 }
+// > Builder.stroke % (color: String, width: Float) 
+//                  => Builder
+Builder.prototype.stroke = function(color, width, cap, join) {
+    if (!this.x.path) {
+        this.x.path = new Path();
+    }
+    this.x.path.cstroke(color, width, cap, join);
+    return this;
+}
+Builder.prototype.nofill = function() { this.fill(null); }
+Builder.prototype.nostroke = function() { this.stroke(null); }
+
+// * STATIC MODIFICATION *
+
+// > Builder.move % (pt: Array[2,Integer]) => Builder
+Builder.prototype.move = function(pt) {
+    var x = this.x;
+    x.pos = [ x.pos[0] + pt[0],
+              x.pos[1] + pt[1] ];
+    return this;
+}
+// > Builder.zoom % (val: Array[2,Float]) => Builder
+Builder.prototype.zoom = function(val) {
+    if (this.x.path) {
+        this.x.path.zoom(val);
+        this.path(this.x.path); // will normalize it
+    }
+    return this;
+}
+
+// * BANDS *
+
+// > Builder.band % (band: Array[2,Float]) => Builder
+Builder.prototype.band = function(band) {
+    this.v.setBand(band);
+    return this;
+}
+
+// * TWEENS *
+
 // > Builder.tween % (type: String, // (C.T_*)
 //                    band: Array[2,Float], 
 //                    data: Any,
@@ -242,12 +261,9 @@ Builder.prototype.transP = function(band, path, easing) {
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(C.T_ALPHA, band, values, easing);
 }
-// > Builder.key % (name: String, value: Float) => Builder
-Builder.prototype.key = function(name, value) {
-    // TODO: ensure value is in band?
-    this.x.keys[name] = value;
-    return this;
-}
+
+// * REPEAT MODES *
+
 // > Builder.mode % (mode: String) => Builder
 Builder.prototype.mode = function(mode) {
     this.x.mode = mode;
@@ -262,6 +278,31 @@ Builder.prototype.loop = function() {
 Builder.prototype.bounce = function() {
     return this.mode(C.R_BOUNCE);
 }
+
+// * MODIFIERS & PAINTERS *
+
+// > Builder.modify % (modifier: Function(time: Float, 
+//                                        data: Any), 
+//                     data: Any) => Builder
+Builder.prototype.modify = function(func, data) {
+    this.v.addModifier(func, data);
+    return this;
+}
+// > Builder.paint % (painter: Function(ctx: Context))
+//                 => Builder
+Builder.prototype.paint = function(func, data) {
+    this.v.addPainter(func, data);
+    return this;
+}
+
+// * TIME-SWITCH *
+
+// > Builder.key % (name: String, value: Float) => Builder
+Builder.prototype.key = function(name, value) {
+    // TODO: ensure value is in band?
+    this.x.keys[name] = value;
+    return this;
+}
 Builder.prototype.time = function(f) {
     this.x.tf = f;
     return this;
@@ -274,7 +315,16 @@ Builder.prototype.tease = function(ease) {
     });
     return this;
 }
-// PRIVATE
+
+// * EVENTS *
+
+Builder.prototype.on = function(type, handler) {
+    this.v.m_on(type, handler);
+    return this;
+}
+
+// * PRIVATE *
+
 Builder.prototype._curStroke = function() {
     var path = this.x.path;
     return path ? (path.stroke || Builder.DEFAULT_STROKE) : Builder.DEFAULT_STROKE;
@@ -283,10 +333,8 @@ Builder.prototype._curFill = function() {
     var path = this.x.path;
     return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
 }
-Builder.prototype.on = function(type, handler) {
-    this.v.m_on(type, handler);
-    return this;
-}
+
+// * HELPERS *
 
 Builder.rgb = function(r, g, b, a) {
     return "rgba(" + Math.floor(r) + "," +
