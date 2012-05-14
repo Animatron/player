@@ -157,7 +157,8 @@ Builder.prototype.fill = function(color) {
     this.x.path.cfill(color);
     return this;
 }
-// > Builder.stroke % (color: String, width: Float) 
+// > Builder.stroke % (color: String[, width: Float, 
+//                     cap: String, join: String]) // C.PC_* 
 //                  => Builder
 Builder.prototype.stroke = function(color, width, cap, join) {
     if (!this.x.path) {
@@ -371,6 +372,9 @@ Builder.easing = function(func, data) {
     }
 }
 Builder.tween = function() {
+    // FIXME: TODO
+}
+Builder.font = function(name, size) {
     // FIXME: TODO
 }
 

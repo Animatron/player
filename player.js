@@ -271,7 +271,7 @@ C.X_ERROR = 'error';
               "description": 
                       "Default project description",
               [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
-    "anim": { "fps": 30,
+    "cnvs": { "fps": 30,
               "width": 400,
               "height": 250,
               "bgcolor": "#fff",
@@ -307,7 +307,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'version': -1.0,
                                            'description': 
                                                 'Default project description' },
-                                 'anim': { 'fps': 30,
+                                 'cnvs': { 'fps': 30,
                                            'width': Player.DEFAULT_CANVAS.width,
                                            'height': Player.DEFAULT_CANVAS.height,
                                            'bgcolor': Player.DEFAULT_CANVAS.bgcolor,
@@ -500,7 +500,7 @@ Player.prototype._init = function(opts) {
     this.state.zoom = opts.zoom || 1;
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
-    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
+    this.configureCnvs(opts.cnvs || Player.DEFAULT_CONFIGURATION.cnvs);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
     this.subscribeEvents(this.canvas);
     this.stop();
@@ -533,7 +533,7 @@ Player.prototype.changeZoom = function(ratio) {
 //   ["bgcolor": "#f00",] // in canvas-friendly format
 //   ["duration": 10.0] // in seconds
 // }
-Player.prototype.configureAnim = function(conf) {
+Player.prototype.configureCnvs = function(conf) {
     this._animInfo = conf;
     this._prepareCanvas(conf);
     // inject information to html
@@ -1894,7 +1894,7 @@ L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
     if (importer.configureAnim) {
-        player.configureAnim(importer.configureAnim(object));
+        player.configureCnvs(importer.configureAnim(object));
     }
     if (importer.configureMeta) {
         player.configureMeta(importer.configureMeta(object));
