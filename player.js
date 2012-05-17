@@ -1689,17 +1689,21 @@ DU.applyFill = function(ctx, fill) {
                   || (fill._style = Path.createStyle(ctx, fill));
 }
 
+DU._hasVal = function(fsval) {
+    return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
+}
+
 // FIXME: move to `Path`?
 DU.qDraw = function(ctx, stroke, fill, func) {
     ctx.save();
     ctx.beginPath();
-    DU.applyStroke(ctx, stroke);
     DU.applyFill(ctx, fill);
+    DU.applyStroke(ctx, stroke);
     func();
     ctx.closePath();
 
-    if (fill && fill.color) ctx.fill();
-    if (stroke && stroke.color) ctx.stroke();
+    if (DU._hasVal(fill)) ctx.fill();
+    if (DU._hasVal(stroke)) ctx.stroke();
     ctx.restore();
 }
 
@@ -2031,7 +2035,7 @@ Render.p_drawImage = function(ctx, image) {
 
 Render.p_drawText = function(ctx, text) {
     var text = text || this.text;
-    text.apply(ctx, this.reg);
+    text.apply(ctx);
 }
 
 Render.p_drawName = function(ctx, name) {
@@ -2313,17 +2317,18 @@ function Path(str, stroke, fill) {
     this.parse(str);
 }
 
-Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_CAP = C.PC_ROUND;
 Path.DEFAULT_JOIN = C.PC_ROUND;
-Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
 Path.DEFAULT_FILL = { 'color': 'transparent' };
 Path.BASE_FILL = { 'color': '#dfdfdf' };
+Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
+Path.DEFAULT_STROKE = Path.EMPTY_STROKE;
 Path.BASE_STROKE = { 'width': 1.0,
                      'color': '#000',
                      'cap': Path.DEFAULT_CAP,
                      'join': Path.DEFAULT_JOIN
                    };
+                   
 
 // visits every chunk of path in array-form and calls
 // visitor function, so visitor function gets 
@@ -2357,11 +2362,11 @@ Path.prototype.apply = function(ctx) {
     var p = this;
     DU.qDraw(ctx, p.stroke || Path.DEFAULT_STROKE,
                   p.fill || Path.DEFAULT_FILL,
-             function() { p.visit(Path._applyVisitor,ctx); });
+             function() { p.visit(Path._applyVisitor, ctx); });
 
     /*ctx.beginPath();
-    DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
     DU.applyFill(ctx, this.fill || Path.DEFAULT_FILL);
+    DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
     this.visit(this._applyVisitor,ctx);
     ctx.closePath();
 
@@ -2654,17 +2659,17 @@ Path.createStyle = function(ctx, brush) {
     if (brush.lgrad) {
         var src = brush.lgrad,
             stops = src.stops,
-            pts = src.pts,
+            dir = src.dir,
             bounds = src.bounds;
         var grad = bounds
             ? ctx.createLinearGradient(
-                            bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 
-                            bounds[1] + pts[0][1] * bounds[3], // b.y + y0 * b.height
-                            bounds[0] + pts[1][0] * bounds[2], // b.x + x1 * b.width 
-                            bounds[1] + pts[1][1] * bounds[3]) // b.y + y1 * b.height
+                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width 
+                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
+                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width 
+                            bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
             : ctx.createLinearGradient(
-                            pts[0][0], pts[0][1],  // x0, y0
-                            pts[1][0], pts[1][1]); // x1, y1
+                            dir[0][0], dir[0][1],  // x0, y0
+                            dir[1][0], dir[1][1]); // x1, y1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
@@ -2674,20 +2679,20 @@ Path.createStyle = function(ctx, brush) {
     if (brush.rgrad) {
         var src = brush.rgrad,
             stops = src.stops,
-            pts = src.pts,
+            dir = src.dir,
             r = src.r,
             bounds = src.bounds;
         var grad = bounds
             ? ctx.createRadialGradient(
-                            bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 
-                            bounds[1] + pts[0][1] * bounds[3], // b.y + y0 * b.height
+                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width 
+                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
                             Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
-                            bounds[0] + pts[1][0] * bounds[2], // b.x + x1 * b.width 
-                            bounds[1] + pts[1][1] * bounds[3], // b.y + y1 * b.height
+                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width 
+                            bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
                             Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
             : ctx.createRadialGradient(
-                           pts[0][0], pts[0][1], r[0],  // x0, y0, r0
-                           pts[1][0], pts[1][1], r[1]); // x1, y1, r1
+                           dir[0][0], dir[0][1], r[0],  // x0, y0, r0
+                           dir[1][0], dir[1][1], r[1]); // x1, y1, r1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
@@ -2958,14 +2963,19 @@ CSeg.prototype._calc_params = function(start) {
 // =============================================================================
 // === TEXT ====================================================================
 
-Text.DEFAULT_FONT = '12px sans-serif';
+Text.DEFAULT_CAP = C.PC_ROUND;
+Text.DEFAULT_JOIN = C.PC_ROUND;
+Text.DEFAULT_FFACE = 'sans-serif';
+Text.DEFAULT_FSIZE = 12;
+Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;  
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.BASELINE_RULE = 'bottom';
+Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 function Text(lines, font,
               stroke, fill) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
-    this.stroke = stroke || null;
+    this.stroke = stroke || Text.DEFAULT_STROKE;
     this.fill = fill || Text.DEFAULT_FILL;
     this._bnds = null;
 }
@@ -2979,11 +2989,19 @@ Text.prototype.apply = function(ctx, point) {
     ctx.textBaseline = Text.BASELINE_RULE;
     if (this.fill) {
         DU.applyFill(ctx, this.fill);
-        ctx.strokeText(this.lines, apt[0], apt[1]);
+        var x = apt[0], y = apt[1];
+        this.visitLines(function(line) {
+            ctx.fillText(line, x, y);
+            y += 1.2 * accent;
+        });
     }
     if (this.stroke) {
         DU.applyStroke(ctx, this.stroke);
-        ctx.fillText(this.lines, apt[0], apt[1]);
+        var x = apt[0], y = apt[1];
+        this.visitLines(function(line) {
+            ctx.strokeText(line, x, y);
+            y += 1.2 * accent;
+        });
     }
     ctx.restore();
 }
@@ -3008,6 +3026,31 @@ Text._createBuffer = function() {
     _div.appendChild(_span);
     document.body.appendChild(_div);
     return _span; 
+}
+Text.prototype.cstroke = function(color, width, cap, join) {
+    this.stroke = {
+        'width': (width != null) ? width : 0,
+        'color': color,
+        'cap': cap || Text.DEFAULT_CAP,
+        'join': join || Text.DEFAULT_JOIN
+    };
+}
+Text.prototype.cfill = function(color) {
+    this.fill = {
+        'color': color
+    };
+}
+Text.prototype.visitLines = function(func, data) {
+    var lines = this.lines;
+    if (typeof lines === 'string') {
+        func(lines, data);
+    } else {
+        var line;
+        for (var i = 0, ilen = lines.length; i < ilen; i++) {
+            line = lines[i];
+            func(line, data);
+        }  
+    }
 }
 
 // =============================================================================

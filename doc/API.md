@@ -64,7 +64,7 @@ The first option is just to embed the player with some external scene to your si
 
 #### 2. From Source ####
 
-If you'd like to _customize_ things a bit more, or to have more control over the flow, or if you want to _import_ some custom scene in custom format (i.e. JSON), or if you plan to _build_ a scene on your own, you may want the second option: to include a player from the sourse.
+If you'd like to _customize_ things a bit more, or to have more control over the flow, or if you want to _import_ some custom scene in custom format (i.e. JSON), or if you plan to _build_ a scene on your own, you may want the second option: to include a player from the source.
 
 ##### 2a. #####
 
@@ -121,7 +121,7 @@ You may pass options object to player, if you want to configure it accurately.
 
 In fact, only `mode` option is required, if you ever decide to use options:
 
-    //var C = anm.C;
+    // var C = anm.C;
     createPlayer('my_canvas', { 'mode': C.M_VIDEO });
     
 Mode can be:
@@ -136,15 +136,17 @@ There are a bit more variants for `mode` and you may mix them with single pipe (
  
 But they are intended for rare use and we hope you'll be fine with three predefined ones.
 
+You may also do this with `var player = createPlayer(...); player.mode = C.M_...;`, it has the same effect.
+
 **NB**: `C.M_VIDEO`, `C.M_PREVIEW` and `C.M_DYNAMIC` are the precalculated mixes of these "precise" options.
 
 #### debug ####
 
-If you want to see the FPS rate, shapes origin points, names of the shapes, the traces of their translate operations, set `debug` to `true`. 
+If you want to see the FPS rate, shapes origin points, names of the shapes, the traces of their translate operations, set `debug` to `true`. You may also do this with `var player = createPlayer(...); player.debug = true;`, it has the same effect.
 
 #### zoom ####
 
-To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option.
+To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = createPlayer(...); player.zoom = ...;`, it has the same effect.
 
 #### meta ####
 
@@ -336,7 +338,7 @@ Builder
 
 Below is the reference for all of the `Builder` possibilities.
 
-Let's give an example: this is how the typical compicated scene looks when constructed with `Builder`:
+Let's give an example: this is how the typical complicated scene looks when constructed with `Builder`:
 
     var b = Builder._$; // quick alias                              
     b('scene').band([0, 20])
@@ -366,7 +368,7 @@ It is too long to type `new Builder(. . .)` all the time when you need a new ins
     var b = Builder._$; // $_ points to the function that calls 
                         // "new Builder(arguments)" 
 
-Among with `b` (or your variant), you may need some alias to access player constants (in fact, they are only used for easings, so it is really optional, if you don't use any of these). The single object that contains player contants is `anm.C`, so you may append some `C` variable to your code, if you want to access it faster:
+Among with `b` (or your variant), you may need some alias to access player constants (in fact, they are only used for easings, so it is really optional, if you don't use any of these). The single object that contains player constants is `anm.C`, so you may append some `C` variable to your code, if you want to access it faster:
 
     var C = anm.C;
     
@@ -392,7 +394,7 @@ Now you may write something like this:
 * `Builder` — creates a clone of the given `Builder`, so next changes for the last
               one does not apply to created one and vise versa;
 
-Every `Builder` instance have three public properties: `v`, `n` and `x`. Factually, you will need only the `v` one: it points to the `Element` instance `Builder` works with. `n` is the name of element, and `x` is element's `xdata` (see `xdata` explanation in [Element](#element) reference section, but you'll for sure don't need it if you use `Builder` to build scenes):
+Every `Builder` instance have five public properties: `v`, `n`, `x` and `f`, `s`. Factually, you will need only the `v` one: it points to the `Element` instance `Builder` works with. `f` and `s` are current fill and stroke, `n` is the name of element, and `x` is element's `xdata` (see `xdata` explanation in [Element](#element) reference section, but you'll for sure don't need it if you use `Builder` to build scenes):
 
     var b = Builder._$; // we will omit it in next snippets
 
@@ -418,7 +420,7 @@ Every `Builder` instance have three public properties: `v`, `n` and `x`. Factual
     var b_src = b('src');
     var b_dst = b(b_src);
     console.log(b_src.n === b_dst.n); // true
-    console.log(b_src.v === b_dst.v); // false (they're different instances)
+    console.log(b_src.v === b_dst.v); // false (they're different instances) 
     
 When you have an instance of `Builder`, it is just the prepared state of some [shape](#shapes): path, image, or text. It becomes dynamic when you add [tweens](#tweens) and/or [modifiers](#modifiers) to it. But it is still just prepared — to make it possible to work, you need to pass (load) it into player. This is when the system adds required functionality to it. The same is true for [Element](#element-reference). Of course, you don't need to add every Builder/Element, it happens automatically for the complete scene tree when you load it into player. See [Scene](#scene) section for more information on this, if you want. 
 
@@ -426,7 +428,7 @@ When you have an instance of `Builder`, it is just the prepared state of some [s
 
 Thanks to `Builder` mechanics, you may build scenes with nesting level of any depth. Just put one element inside another, once again with other one, and keep adding and adding, and wow — you accidentally have the tree of elements right in your hands:
 
-> ♦ `Builder.add % (what: Element | Builder) => Builder`
+> ♦ `builder.add % (what: Element | Builder) => Builder`
 
 Any `Element` or `Builder` instances are allowed to add; by the way, you may treat the top (root) element as the scene:
 
@@ -453,7 +455,7 @@ Any `Element` or `Builder` instances are allowed to add; by the way, you may tre
     }
     scene.move([10, 10]);
     
-So, to resume: any element may be a parent one, it may have any number of children (it only may affect performance, but we keep working to enhance these limits), you may (but not required to) draw something with a parent element, and then with its children, and they will be drawn one over another.
+So, to resume: any element may be a parent one, it may have any number of children (it only may affect performance, but we keep working to enhance these limits), you may (but not required to) draw something with a parent element, and then with its children, and they will be drawn one over another. All of the values (like points, angles, time bands) of some element are relative to the parent element, if it exist. If it not, they are relative to global things. If you change the parent, values stay the same, but now they are relative to a new parent. 
 
 Just add something like `.circle([0, 0], 50)` to the `column` element in example above, and you'll see how it works. (It will shift the location of columns to be in center of circle, so you may want to change `scene.move([10, 10])` to `scene.move([60, 60])`, like the radius of circle + padding of 10, and the animation will be back in bounds).
 
@@ -461,7 +463,7 @@ Just add something like `.circle([0, 0], 50)` to the `column` element in example
 
 If you will dive into internals of player API ([Scene](#scene) section), you will notice that any element may represent:
 
-* Nothing — so nothing will be drawn with it (however, you may affect children elements whithout even drawing something);
+* Nothing — so nothing will be drawn with it (however, you may affect children elements without even drawing something);
 * Path — any path, including rectangles, circles, polygons or any of your custom-shaped-curves;
 * Image — just give us just an accessible URL, soon we will even support splitting the image and showing it's parts in different acts of the scene;
 * Text — any text, this one is separate from "Path" concept, because it has a lot of own manners;
@@ -472,29 +474,29 @@ So, how'd you create them? Let's start from two basic shapes, rectangle and circ
 
 #### rect ####
 
-> ♦ `Builder.rect % (pt: Array[2,Integer], rect: Array[2,Integer]) => Builder`
+> ♦ `builder.rect % (pt: Array[2,Integer], rect: Array[2,Integer]) => Builder`
 
 You may easily create a rectangle by specifying its location and its width/height this way:
 
-    b().rect([ 50, 50 ], // its center will pe placed at (50,50)
+    b().rect([ 50, 50 ], // its center will pe placed at (50,50) of parent
              [ 100, 50 ]); // it will have 100-unit width and 50-unit height
              
 #### circle ####
              
-> ♦ `Builder.circle % (pt: Array[2,Integer], radius: Float) => Builder`
+> ♦ `builder.circle % (pt: Array[2,Integer], radius: Float) => Builder`
 
 To create circle, specify its location and radius, and that's all:
 
-    b().circle([ 40, 35 ], // its center will pe placed at (40,35)
+    b().circle([ 40, 35 ], // its center will pe placed at (40,35) of parent
                8); // it will have 8-unit radius
-               
-**NB:** Circle is not a Path, if you want the truth — it is created with [Painter](#painters) and draws a corresponding arc, but from a user point of view, we think, it best fits this chapter
+
+**NB:** Circle is not a Path, unlike rectangle, if you want the truth — it is created with [Painter](#painters) and draws a corresponding arc, but from a user point of view, we think, it best fits this disguise.
 
 #### path ####
 
-> ♦ `Builder.path % (path: String | Path, [pt: Array[2,Integer]]) => Builder`
+> ♦ `builder.path % (path: String | Path, [pt: Array[2,Integer]]) => Builder`
 
-Now, if you want some custom shape, you may have it with the similary easy way
+Now, if you want some custom shape, you may have it with the similarly easy way
 (may be just a bit complex, though :) ). There's two ways to do it: 
 
 1. If you know & like SVG, you'll like to pass the string here.
@@ -512,19 +514,33 @@ Now, if you want some custom shape, you may have it with the similary easy way
                           
     This path will 'turn' at each of four points and end at (120, 100). If you add a last point of (0, 0) (equal to start point), it will be the closed path.
     
-    This way even accepts curve segments. If you specify six coodinates instead of two, it will treat that element as bezier-curve points (see [`bezierCurveTo`](http://www.html5canvastutorials.com/tutorials/html5-canvas-bezier-curves/) to know what means each of points). It works like this:
+    This way even accepts curve segments. If you specify six coordinates instead of two, it will treat that element as bezier-curve points (see [`bezierCurveTo`](http://www.html5canvastutorials.com/tutorials/html5-canvas-bezier-curves/) to know what means each of points). It works like this:
     
-         b().path([ [ 0, 0 ], [ 50, 50 ],
-                    [ 105, 260, 260, 260, 380, 40 ],
-                    [ 0, 0 ] ]);
+         b().path(B.path([ [ 0, 0 ], [ 50, 50 ],
+                         [ 105, 260, 260, 260, 380, 40 ],
+                         [ 0, 0 ] ]));
                     
     The second one works even faster, because it don't parses a string.
+    
+The optional `pt` argument specifies the future position of the path in parent space and defaults to `[0, 0]`. 
                     
 You may want to draw a shape by yourself, if it is someway more complex than a path or it is hard to describe it with a path (ellipse, for example). Then you may use [Painters](#painters) and use a canvas-context commands direclty.
 
+**NB:** One important thing to inform you: every path passed to this function will be normalized. It means that its points will be recalculated to be relative to its center, so if you'll make a shift of 50 by x for each point before passing it to `path()`, you will surely lose the effect: change registration point with [`reg()`](#static-modification) method after the path creation for this purpose. The illustration:
+
+    // all these calls will lead to the paths with absolutely equal points
+    b().path(B.path([ [ 50, 50 ], [ 100, 100 ] ]));
+    b().path(B.path([ [ 0, 0 ], [ 50, 50 ] ]));
+    b().path(B.path([ [ -25, -25 ], [ 25, 25 ] ])); // this one will
+                                                    // not even change
+    // use this method to change the registration point
+    b().path(B.path([ [ -25, -25 ], [ 25, 25 ] ]))
+       .reg([ -75, -75 ]) // relative to [ 0, 0 ]
+    
+
 #### image ####
 
-> ♦ `> Builder.image % (pt: Array[2,Integer], src: String) => Builder`
+> ♦ `> builder.image % (pt: Array[2,Integer], src: String) => Builder`
 
 To load an image into player, just provide its URL and the point where you want it to be located at first. Please ensure that this image is accessible for the player client, this restriction is the same restriction as for `drawImage` of HTML5 canvas. And supported formats are the same. And, also, please ensure you have the copyrights for the image, it will be your problem if you violate them. 
 
@@ -535,58 +551,258 @@ To load an image into player, just provide its URL and the point where you want 
 
 #### text ####
 
-> ♦ `> Builder.text % (pt: Array[2,Integer], text: String, [font: String]) => Builder`
+> ♦ `> builder.text % (pt: Array[2,Integer], lines: String | Array[String] | Text, [size: Float], [face: String | Array[String]]) => Builder`
 
-**NOT IMPLEMENTED**
-
-To place a text somewhere, specify its location and the characters line. Optionally, you may pass the font, either in CSS-way or with the help of `B.font()` helper.
+To place a text somewhere, specify its location and the characters line. Optionally, you may pass the font and size. Lines may be specified with array instead of string, then they will be drawn one below the other, like in text.
 
     b().text([ 60, 40 ], 'My text');
-    b().text([ 100, 100 ], My text', B.font('sans-serif', 10));
-    b().text([ 120, 10 ], 'My another text', 'Arial 10px');
+    b().text([ 100, 100 ], My text', 12);
+    b().text([ 100, 100 ], My text', 10, 'sans-serif').nostroke();
+    b().text([ 120, 10 ], ['This One', 'Above', 'The Other'])
+       .stroke('red').nofill();
 
 ### Fill &amp; Stroke
 
 Any path or text are represented with default fill (gray) and stroke (black, 1-unit width), until you haven't specified another. For sure, you would like to override these depressive colors and, of course, there is a way to do it.
 
-> ♦ `> Builder.fill % (color: String | Gradient) => Builder`
-> ♦ `> Builder.stroke % (color: String | Gradient, [width: Float, cap: C.PC_*, join: C.PC_*]) => Builder`
+> ♦ `> builder.fill % (color: String | Gradient) => Builder`
+> ♦ `> builder.stroke % (color: String | Gradient, [width: Float, cap: C.PC_*, join: C.PC_*]) => Builder`
 
-The color format is either CSS-like (`#ff0060`, `#a69` `blue`) or `RGB/HSL[A]`-string (`rgb(20, 20, 90)`, `rgba(20, 20, 90, .5)`, `hsla(70, 30, 120, .7)`), similar to canvas specifications for colors. If you calculate the color in place, you may find useful `B.rgb()` and `B.hsv()` methods, they take numeric values and concatenate them into properly-formatted color-string.
+The color format is either CSS-like (`#ff0060`, `#a69` `blue`) or `RGB/HSL[A]`-string (`rgb(20, 20, 90)`, `rgba(20, 20, 90, .5)`, `hsla(70, 30, 120, .7)`), similar to canvas specifications for colors. If you calculate the color in place, you may find useful `B.rgb()` and `B.hsv()` methods, they take numeric values and concatenate them into properly-formatted color-string. 
 
     b().fill('#f00');
     b().fill('black');
     b().fill('rgba(20, 40, 19, 0.3)');
     b().fill(B.rgb(20, 20, 70));
     b().fill(B.rgb(25, 40, 70, .5));
+    b().fill(B.frgb(0, 0, .5));
+    b().stroke(B.frgb(.5, .8, .9, .5));
     b().stroke('#c60000');
-    b().stroke(B.hsv(70, 30, 120), 7);
+    b().stroke(B.hsv(270, .3, .9), 7);
+    b().stroke(B.fhsv(.9, 0, .6, 1), 7);
+
+Color values for `rgb()` parameters are laying between `[0..255]`, alpha is a fraction of 1, `[0..1]`. For `hsv()`, hue is `[0, 360]`, because it is an angle, and all other values, including alpha, are `[0..1]`. There are also `frgb()` and `fhsv()` functions, where all values are `[0..1]`.
 
 And, you may use gradients here! It is not so easy to create canvas-compatible gradient manually, so there is also a helper for it:
 
+    // linear gradient
+    b().fill(B.lgrad([ [ -35, -35 ], [ 35, 35 ] ], // direction of the gradient
+                     [ [ 0, 'black' ], // any number of color stops
+                       [ 1, 'blue'  ] ]));
+    // radial gradient
+    b().fill(B.rgrad([ [ 0, 0 ], [ 15, 5 ] ], // direction of the gradient
+                     [ 0, 35 ], // inner and outer bounding circles radius
+                     [ [ 0, 'black' ], // any number of color stops
+                       [ .5, 'yellow' ],
+                       [ 1, 'blue' ] ]);
+      
+Note that gradient direction points are specified relatively to origin point of the shape.
+
 Besides the width (which is 1 by default), `stroke` also takes two optional parameters named `cap` and `join`. They describe the way successive strokes are connected in the paths: possible values for these will be described in [Constants](#constants) section. 
+
+If you don't like the default stroke or fill, you'd probably want to turn one off. There are `nofill()` and `nostroke()` methods that may help with this:
+
+> ♦ `builder.nofill % () => Builder`
+
+> ♦ `builder.nostoke % () => Builder`
 
 ### Static Modification
 
+As in difference with [Tweens](#tweens), sometimes you need to "correct" the state of some shape to be applied through all the scene. It makes sense when you are not able to set wanted value with the shape creation function. There's only three such methods, they correct the shape inner state: other things may be easily done with [Modifiers](#modifiers--painters).
+
+> ♦ `builder.reg % (pt: Array[2,Integer]) => Builder`
+
+This method changes the registration point position of the shape, this point affects tweens, so the rotation will be performed around this point, translation will be shifted with this point and so on. This point needs to be specified relative to the center of the shape. Use ['debug' mode](#player-options) of the player to see the registrations points of the shapes.
+
+    b().cilcle([ 20, 20 ], 60).reg([ -10, -10 ]);
+
+> ♦ `builder.move % (pt: Array[2,Integer]) => Builder`
+
+Moving changes the position of the element in its parent coordinate system. It is a bit different thing to the point of the shape, because setting point also recalculates the path to be centered at this point and move does not. Also it is useful if you want to move a group of elements when they were already created.
+
+    b().rect([ 10, 10 ], [ 60, 60 ]).move([ 40, 40 ]);
+
+> ♦ `builder.zoom % (val: Array[2,Float]) => Builder`
+
+Zooming will recalculate the path points to be positioned with the specified zoom (so it won't work for circle). There's no 'undo', you'll need to recalculate to inverted zoom to return everything back.
+
+    b().rect([ 10, 10 ], [ 60, 60 ]).zoom([ .5, 2 ]);
+
 ### Bands
+
+When you costruct a complex animation scene, you need to set time regions where the particular element stays visible. These regions are often called 'bands'. By default, for every shape the band is `[0, 10]`. It means that this shape is visible from 0 seconds to 10 seconds of the parent element's band, or the global time, if there's no parent specified. 
+
+> ♦ `builder.band % (band: Array[2,Float]) => Builder`
+
+This way you may wrap three elements and show them one by one:
+
+    // seconds in comments are global-time seconds; 
+    b('root')
+      .band([2, 16])
+      .circle([ 0, 0 ], 16) // this circle will be visible
+                            // from 2 sec to 16 sec
+      .move([40, 40])
+      .add(b('child') // no band specified, so its band
+                      // is [0, 10] -> 2 sec to 12 sec
+            .add(b('2-4').band([0, 2]) // 2 sec to 4 sec
+                         .circle([60, 20], 20))
+            .add(b('3-6').band([1, 4]) // 3 sec to 6 sec
+                         .circle([60, 40], 20))
+            .add(b('6-9').band([4, 7]) // 6 sec to 9 sec
+                         .circle([80, 60], 20))
+            .add(b('8-12').band([6, 10]) // 8 sec to 12 sec
+                         .circle([100, 100], 20)));             
+                        
+Time values may be fractional, so the band `[1.5, 3.7]` is totally correct.
+
+Among with that, setting a band affects the [Repeat Mode](#repeat-modes) of the shape animation within the parent's time space.
 
 ### Constants
 
+<!-- TODO: move to the top ? -->
+
+Some of the functions described below (such as tweens, easings, repeat modes and events managers in [Builder](#builder) and a lot of methods of [Element](#element)) use some string value determining the type of action to perform as a parameter. It is recommended to use constants for these cases, because string values may change with time, but constants will not. All constants are defined in `anm.C` object, so it will also be useful for you to you use `C` [alias](#aliases) for `anm.C`, then any constant name will look for you like `C.<constant-type>_<constant-name>`. The places where constants may be used are also marked with the same pattern. The below is the list of the possible constants grouped by type.
+
+1. Player state `C.*` /read-only, `player.state`/
+    * `C.NOTHING` — nothing loaded into player
+    * `C.STOPPED` — playing stopped
+    * `C.PLAYING` — playing
+    * `C.PAUSED` — playing paused
+2. Player mode `C.M_*` /`player.mode`/
+    * Grouped
+        * `C.M_PREVIEW` - Preview Mode, controls and interaction disabled
+        * `C.M_DYNAMIC` - Dynamic Mode, controls disabled and user interaction enabled
+        * `C.M_VIDEO` - Video Mode, controls enabled, but interaction disabled   
+    * Separate
+        * `C.M_HANDLE_EVENTS` | `C.M_DO_NOT_HANDLE_EVENTS` — Handling events (interaction) enabled/disabled  
+        * `C.M_CONTROLS_ENABLED` | `C.M_CONTROLS_DISABLED` — Controls enabled/disabled
+        * `C.M_INFO_ENABLED` | `C.M_INFO_DISABLED` — Info block enabled/disabled
+3. Events `C.X_*`, `C.XT_*`
+    * Player
+        * `C.X_PLAY` — Playing started
+        * `C.X_PAUSE` — Playing paused
+        * `C.X_STOP` — Playing stopped
+        * `C.X_LOAD` — Scene loaded
+        * `C.X_ERROR` — Error happened
+    * Element
+        * Mouse `C.X_M*`, `C.XT_MOUSE`
+            * `C.X_MCLICK` — Mouse Click event
+            * `C.X_MDCLICK` — Mouse Double-Click event
+            * `C.X_MMOVE` — Mouse Move event
+            * `C.X_MUP` — Mouse Up event
+            * `C.X_MDOWN` — Mouse Down event
+        * Keyboard `C.X_K*`, `C.XT_KEYBOARD`
+            * `C.X_KPRESS` — Key Press event
+            * `C.X_KUP` — Key Up event
+            * `C.X_KDOWN` — Key Down event
+        * `C.X_DRAW` — Draw event
+4. Repeat mode `C.R_*`
+    * `C.R_ONCE` — play once
+    * `C.R_REPEAT` — repeat playing
+    * `C.R_BOUNCE` — play forward-backward and repeat
+5. Tweens `C.T_*`
+    * `C.T_TRANSLATE` — Translate Tween
+    * `C.T_SCALE` — Scale Tween
+    * `C.T_ROTATE` — Rotate Tween
+    * `C.T_ROT_TO_PATH` — Rotate-To-Path Tween
+    * `C.T_ALPHA` — Alpha Tween
+6. Easings `C.E_*`
+    * `C.E_PATH` — Path-based easing
+    * `C.E_FUNC` — Function-based easing
+    * Curve-based Easings
+        * `C.E_DEF` — Default easing
+        * `C.E_IN` | `C.E_OUT` | `C.E_INOUT` — Standard In, Out and In/Out easings
+        * `C.E_SIN` | `C.E_SOUT` | `C.E_SINOUT` — Sine In, Out and In/Out easings
+        * `C.E_QIN` | `C.E_QOUT` | `C.E_QINOUT` — Quad In, Out and In/Out easings
+        * `C.E_CIN` | `C.E_COUT` | `C.E_CINOUT` — Cubic In, Out and In/Out easings
+        * `C.E_QTIN` | `C.E_QTOUT` | `C.E_QTINOUT` — Quart In, Out and In/Out easings
+        * `C.E_QIIN` | `C.E_QIOUT` | `C.E_QIINOUT` — Quint In, Out and In/Out easings
+        * `C.E_EIN` | `C.E_EOUT` | `C.E_EINOUT` — Exponent In, Out and In/Out easings        
+        * `C.E_CRIN` | `C.E_CROUT` | `C.E_CRINOUT` — Circular In, Out and In/Out easings
+        * `C.E_BIN` | `C.E_BOUT` | `C.E_BINOUT` — Back In, Out and In/Out easings
+7. Paths `C.P_*`
+    * Segment type
+        * `C.P_MOVE` - Move-Segment
+        * `C.P_LINETO` - LineTo-Segment
+        * `C.P_CURVETO` - CurveTo-Segment
+8. Stroke `C.PC_*`
+    * Cap/Join type
+        * `C.PC_ROUND`
+        * `C.PC_BUTT`
+        * `C.PC_MITER`
+
+
 ### Tweens
+
+builder.tween % (type: C.T_*,
+//                    band: Array[2,Float], 
+//                    data: Any,
+//                    [easing: String | Object]) => Builder // (Easing.T_*)
+
+builder.rotate % (band: Array[2,Float], 
+//                     angles: Array[2,Float],
+//                     [easing: String]) => Builder
+
+// > Builder.rotateP % (band: Array[2,Float], 
+//                      [easing: String]) => Builder
+
+// > Builder.scale % (band: Array[2,Float], 
+//                    values: Array[2,Array[2, Float]],
+//                    [easing: String]) => Builder
+
+// > Builder.xscale % (band: Array[2,Float], 
+//                     values: Array[2, Float],
+//                     [easing: String]) => Builder
+
+// > Builder.trans % (band: Array[2,Float], 
+//                    points: Array[2,Array[2, Float]],
+//                    [easing: String]) => Builder
+
+// > Builder.transP % (band: Array[2,Float],
+//                     path: String | Path,
+//                     [easing: String]) => Builder
+
+// > Builder.alpha % (band: Array[2,Float], 
+//                    values: Array[2,Float],
+//                    [easing: String]) => Builder
 
 ### Easings
 
 ### Repeat Modes
 
+// > Builder.mode % (mode: String) => Builder
+
+// > Builder.once % () => Builder
+
+// > Builder.loop % () => Builder
+
+// > Builder.bounce % () => Builder
+
 ### Modifiers &amp; Painters
 
 #### Modifiers
 
+// > Builder.modify % (modifier: Function(time: Float, 
+//                                        data: Any), 
+//                     [data: Any]) => Builder
+
 #### Painters
+
+// > Builder.paint % (painter: Function(ctx: Context,
+//                                      data: Any),
+//                    [data: Any]) => Builder
 
 ### Time-Switch
 
+// > Builder.key % (name: String, value: Float) => Builder
+
+// > Builder.time % (f: Function(t: Float)) => Builder
+
+// > Builder.tease % (ease: Function(t: Float)) => Builder
+
 ### Events
+
+// > Builder.on % (type: String, handler: Function(evt: Event, t: Float)) => Builder
 
 ### Elements Interactions
 
