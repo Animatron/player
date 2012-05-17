@@ -731,46 +731,65 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.PC_BUTT`
         * `C.PC_MITER`
 
-
 ### Tweens
 
-builder.tween % (type: C.T_*,
-//                    band: Array[2,Float], 
-//                    data: Any,
-//                    [easing: String | Object]) => Builder // (Easing.T_*)
+Tween is some modification of the shape that continously changes shape state from one to another during some concrete time period. If you want to move a shape from one point to another, rotate from one angle to another, scale it from one size to another, change its opacity, ..., in some time frame, this is the thing you need.
 
-builder.rotate % (band: Array[2,Float], 
-//                     angles: Array[2,Float],
-//                     [easing: String]) => Builder
+There's a generic method of adding any type of the tween, but for better code-readability it is recommended to use the concrete methods instead of gereric one. Though, we need to give you a spec of it anyway, because it will make you know what things are general for tweens:
 
-// > Builder.rotateP % (band: Array[2,Float], 
-//                      [easing: String]) => Builder
+> ♦ `builder.tween % (type: C.T_*, band: Array[2,Float], [data: Any], [easing: C.E_* | Object]) => Builder`
 
-// > Builder.scale % (band: Array[2,Float], 
-//                    values: Array[2,Array[2, Float]],
-//                    [easing: String]) => Builder
+It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#easings) section below). Examples:
 
-// > Builder.xscale % (band: Array[2,Float], 
-//                     values: Array[2, Float],
-//                     [easing: String]) => Builder
+    b().rect([10, 10], [90, 30])
+       .tween(C.T_TRANSLATE, [ 0, 3 ], 
+              B.path([ [0, 0], [20, 20], [10, 30],
+                       [70, 70], [12, 12], [100, 50] ]));
+    b().rect([40, 40], [12, 70])
+       .tween(C.T_ROTATE, [ 0, 1.5 ], 
+              [ Math.PI, Math.PI / 2 ], C.E_CINOUT)
+       .tween(C.T_ROTATE, [ 1.5, 3 ], 
+              [ Math.PI / 2, Math.PI ], C.E_QINOUT);
+              
+Now, the methods for concrete tweens:
 
-// > Builder.trans % (band: Array[2,Float], 
-//                    points: Array[2,Array[2, Float]],
-//                    [easing: String]) => Builder
+> ♦ `builder.trans % (band: Array[2,Float], points: Array[2,Array[2, Float]], [easing: C.E_* | Object]) => Builder`
 
-// > Builder.transP % (band: Array[2,Float],
+> ♦ builder.transP % (band: Array[2,Float],
 //                     path: String | Path,
-//                     [easing: String]) => Builder
+//                     [easing: C.E_* | Object]) => Builder
 
-// > Builder.alpha % (band: Array[2,Float], 
+> ♦ `builder.rotate % (band: Array[2,Float], angles: Array[2,Float], [easing: C.E_* | Object]) => Builder`
+
+Rotates the shape around its registration point, starting from first angle to another angle (in radians):
+
+    b().rotate([5, 20], [ 0, Math.PI * 2 ]);
+    b().rotate([1, 10], [ Math.PI / 2, Math.PI * 2 ], C.E_IN);    
+
+// > builder.rotateP % (band: Array[2,Float], 
+//                      [easing: C.E_* | Object]) => Builder
+
+// > builder.scale % (band: Array[2,Float], 
+//                    values: Array[2,Array[2, Float]],
+//                    [easing: C.E_* | Object]) => Builder
+
+// > builder.xscale % (band: Array[2,Float], 
+//                     values: Array[2, Float],
+//                     [easing: C.E_* | Object]) => Builder
+
+
+
+// > builder.alpha % (band: Array[2,Float], 
 //                    values: Array[2,Float],
-//                    [easing: String]) => Builder
+//                    [easing: C.E_* | Object]) => Builder
+
+Order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the same type do matters if their time frames overlap.
 
 ### Easings
 
 ### Repeat Modes
 
-// > Builder.mode % (mode: String) => Builder
+// > Builder.mode % (mode: C.R_*) => Builder
 
 // > Builder.once % () => Builder
 
@@ -802,7 +821,7 @@ builder.rotate % (band: Array[2,Float],
 
 ### Events
 
-// > Builder.on % (type: String, handler: Function(evt: Event, t: Float)) => Builder
+// > Builder.on % (type: C.X_*, handler: Function(evt: Event, t: Float)) => Builder
 
 ### Elements Interactions
 
