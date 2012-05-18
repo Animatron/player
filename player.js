@@ -2201,6 +2201,7 @@ Tweens[C.T_ROT_TO_PATH] =
 
 C.E_PATH = 'PATH'; // Path
 C.E_FUNC = 'FUNC'; // Function
+C.E_CSEG = 'CSEG'; // Function
 //C.E_CINOUT = 'CINOUT'; // Cubic InOut
 //....
 
@@ -2217,6 +2218,12 @@ EasingImpl[C.E_FUNC] =
     function(f) {
         return f;
     };
+EasingImpl[C.E_CSEG] =
+    function(seg) {
+        return function(t) {
+            return seg.atT([0, 0], t)[1];
+        };
+    };    
 /*EasingImpl[C.E_CINOUT] = 
     function() {
         return function(t) {

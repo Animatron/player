@@ -422,7 +422,9 @@ Every `Builder` instance have five public properties: `v`, `n`, `x` and `f`, `s`
     console.log(b_src.n === b_dst.n); // true
     console.log(b_src.v === b_dst.v); // false (they're different instances) 
     
-When you have an instance of `Builder`, it is just the prepared state of some [shape](#shapes): path, image, or text. It becomes dynamic when you add [tweens](#tweens) and/or [modifiers](#modifiers) to it. But it is still just prepared — to make it possible to work, you need to pass (load) it into player. This is when the system adds required functionality to it. The same is true for [Element](#element-reference). Of course, you don't need to add every Builder/Element, it happens automatically for the complete scene tree when you load it into player. See [Scene](#scene) section for more information on this, if you want. 
+<!-- TODO: image of the process described in paragraph below -->    
+    
+When you have an instance of `Builder`, it is just the prepared state of some [shape](#shapes): path, image, or text. It becomes dynamic when you add [tweens](#tweens) and/or [modifiers](#modifiers) to it. But it is still just prepared dynamic condition — to make it play, you need to pass (load) it into player. This is when system appends all required functionality to it, allows it to act. The same is true for [Element](#element-reference). Of course, you don't need to add every Builder/Element, it happens automatically for the complete scene tree when you load it into player. See [Scene](#scene) section for more information on this, if you want. 
 
 ### Structures
 
@@ -639,7 +641,7 @@ This way you may wrap three elements and show them one by one:
     // seconds in comments are global-time seconds; 
     b('root')
       .band([2, 16])
-      .circle([ 0, 0 ], 16) // this circle will be visible
+      .circle([0, 0], 16) // this circle will be visible
                             // from 2 sec to 16 sec
       .move([40, 40])
       .add(b('child') // no band specified, so its band
@@ -707,8 +709,6 @@ Some of the functions described below (such as tweens, easings, repeat modes and
     * `C.T_ROT_TO_PATH` — Rotate-To-Path Tween
     * `C.T_ALPHA` — Alpha Tween
 6. Easings `C.E_*`
-    * `C.E_PATH` — Path-based easing
-    * `C.E_FUNC` — Function-based easing
     * Curve-based Easings
         * `C.E_DEF` — Default easing
         * `C.E_IN` | `C.E_OUT` | `C.E_INOUT` — Standard In, Out and In/Out easings
@@ -720,6 +720,10 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.E_EIN` | `C.E_EOUT` | `C.E_EINOUT` — Exponent In, Out and In/Out easings        
         * `C.E_CRIN` | `C.E_CROUT` | `C.E_CRINOUT` — Circular In, Out and In/Out easings
         * `C.E_BIN` | `C.E_BOUT` | `C.E_BINOUT` — Back In, Out and In/Out easings
+    * Easings that require data (see [Easings](#easings) section)
+        * `C.E_PATH` — Path-based easing
+        * `C.E_CSEG` — Curve Segment-based easing
+        * `C.E_FUNC` — Function-based easing                
 7. Paths `C.P_*`
     * Segment type
         * `C.P_MOVE` - Move-Segment
@@ -739,63 +743,127 @@ There's a generic method of adding any type of the tween, but for better code-re
 
 > ♦ `builder.tween % (type: C.T_*, band: Array[2,Float], [data: Any], [easing: C.E_* | Object]) => Builder`
 
-It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#easings) section below). Examples:
+It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#easings) section below to know more about easings). See type constants for tweens and easings in [Constants](#constants) section. Examples:
 
-    b().rect([10, 10], [90, 30])
-       .tween(C.T_TRANSLATE, [ 0, 3 ], 
+    b().rect([10, 10], [90,30 ])
+       .tween(C.T_TRANSLATE, [0, 3], 
               B.path([ [0, 0], [20, 20], [10, 30],
                        [70, 70], [12, 12], [100, 50] ]));
     b().rect([40, 40], [12, 70])
-       .tween(C.T_ROTATE, [ 0, 1.5 ], 
-              [ Math.PI, Math.PI / 2 ], C.E_CINOUT)
-       .tween(C.T_ROTATE, [ 1.5, 3 ], 
-              [ Math.PI / 2, Math.PI ], C.E_QINOUT);
+       .tween(C.T_ROTATE, [0, 1.5], 
+              [ Math.PI, Math.PI/2 ], C.E_CINOUT)
+       .tween(C.T_ROTATE, [1.5, 3], 
+              [ Math.PI/2, Math.PI ], C.E_QINOUT);
               
 Now, the methods for concrete tweens:
 
 > ♦ `builder.trans % (band: Array[2,Float], points: Array[2,Array[2, Float]], [easing: C.E_* | Object]) => Builder`
 
-> ♦ builder.transP % (band: Array[2,Float],
-//                     path: String | Path,
-//                     [easing: C.E_* | Object]) => Builder
+Translates the shape from point to point (handle is at registration point) during the given time frame:
+
+    b().trans([7, 30], [[12, 40], [50, 30]]); // from (12, 40) to (50, 30)
+
+> ♦ `builder.transP % (band: Array[2,Float], path: String | Path, [easing: C.E_* | Object]) => Builder`
+
+Translate the shape along the points of given path. This one is useful when you want something to follow some other thing or move along some complex line or curve. The speed may be controlled with easing. 
+
+    b().transP([5, 13], 'M40 40 C40 40 20 120 200 30 L80 80 '+ 
+                        'C70 70 24 35 40 100 L40 40 Z');
+    b().transP([0, 20], B.path([[ 40, 40 ], 
+                        [ 40, 40, 20, 120, 200, 30 ],
+                        [ 80, 80 ], 
+                        [ 70, 70, 24, 35, 40, 100 ],
+                        [ 40, 40 ]));
+    b().transP([1, 9], 'M30 30 L0 0 Z', C.E_QIOUT);
 
 > ♦ `builder.rotate % (band: Array[2,Float], angles: Array[2,Float], [easing: C.E_* | Object]) => Builder`
 
 Rotates the shape around its registration point, starting from first angle to another angle (in radians):
 
     b().rotate([5, 20], [ 0, Math.PI * 2 ]);
-    b().rotate([1, 10], [ Math.PI / 2, Math.PI * 2 ], C.E_IN);    
+    b().rotate([1, 10], [ Math.PI / 2, Math.PI * 2 ], C.E_IN); 
 
-// > builder.rotateP % (band: Array[2,Float], 
-//                      [easing: C.E_* | Object]) => Builder
+> ♦ `builder.rotateP % (band: Array[2,Float], [easing: C.E_* | Object]) => Builder`
 
-// > builder.scale % (band: Array[2,Float], 
-//                    values: Array[2,Array[2, Float]],
-//                    [easing: C.E_* | Object]) => Builder
+Rotates the shape to be aligned to the current moving path, so it will be pointed perpendicularly to the active section. That's why this tween makes sense (and works) only when used with `translate()` (which in fact constructs a linear path from given points) and `translateP()`. If you have two translate tweens applied one after another, you may specify a wrapping band for `rotateP`.
 
-// > builder.xscale % (band: Array[2,Float], 
-//                     values: Array[2, Float],
-//                     [easing: C.E_* | Object]) => Builder
+     b().translate([2, 4], [[20, 15], [30, 40]]).rotateP([2, 4]);
+     b().translateP([0, 6], 'M20 20 L40 40 Z')
+        .translate([4, 9], [[12, 40], [25, 16]]).rotateP([0, 9], C.E_IN);
 
+> ♦ `builder.scale % (band: Array[2,Float], values: Array[2,Array[2, Float]], [easing: C.E_* | Object]) => Builder`
 
+Scales the shape by x and y separately. The values required to be specified in this format: `[ [ startScaleX, startScaleY ], [ endScaleX, endScaleY ] ]`, all of them are relative to the starting size.
 
-// > builder.alpha % (band: Array[2,Float], 
-//                    values: Array[2,Float],
-//                    [easing: C.E_* | Object]) => Builder
+    b().scale([3, 6], [[.5, .3], [1.7, 2.1]]);
 
-Order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the same type do matters if their time frames overlap.
+> ♦ `builder.xscale % (band: Array[2,Float], values: Array[2, Float], [easing: C.E_* | Object]) => Builder`
+
+Scales the shape both width and height simultaneously. So it is literally means 'make shape larger' or 'make shape smaller'.
+
+    b().xscale([3, 9], [.5, 2]);
+
+> ♦ `builder.alpha % (band: Array[2,Float], values: Array[2,Float], [easing: C.E_* | Object]) => Builder`
+
+Changes the opacity value of the shape through time. The acceptable values are fractions of 1.
+
+    b().alpha([8, 16], [.5, 1]);
+    b().alpha([1.2, 3], [0, 1], C.E_COUT);    
+
+The order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the *same type* do matters if their time frames overlap.
 
 ### Easings
 
+Easing of the tween is the function that takes actual time of the tween animation and substitues it with another, returned to the tween. The function of time. In result you may get the effect of accelerating or slowing down or even bouncing animations. Every tween method has an optional possibility to use some provided easing function or any custom one:
+
+    b().trans(..., C.E_CINOUT);
+    b().xscale(..., function(t) { return 1-t; });
+    b().alpha(..., B.easing(function(t, obj) {
+                     return obj.width * t;
+                   }, obj));
+
+If there's no easing specified for a tween, you may say that it has easing function of `function(t) { return t; }`. Both `t` parameter value and required returned value are values from `[0..1]` range, relative to the duration of the tween.
+
+There are a lot of predefined easing (27, currently), see [Constants](#constants) for a list of their types. All predefined easings are curve-segment-based, it means that the easing function takes a correspoing point from some internal curve segment of a path and returns it's position relatively to segment length. You may see all of them (and some more) in action [at this site](http://easings.net/).
+
+    b().rotate([2, 17], [0, Math.PI*2], C.E_QTIN);
+
+You have, however, the option to set any function you want (again, just ensure that it returns value from 0 to 1):
+
+    b().rotate([2, 17], [0, Math.PI*2], function(t) { return 1-t; });
+    
+If you want the easing based on segment, use `B.easingC()` method and pass 6 curve segment points there:
+
+    b().rotate([2, 17], [0, Math.PI*2], B.easingC([20, 20, 19, 30, 45, 120]));
+    
+If you want the easing based on segment, use `B.easingP()` method and pass there a path with either string or `B.path()`:
+
+    b().rotate([2, 17], [0, Math.PI*2], B.easingP('M20 20 C20 20 19 30 45 120 Z'));
+    b().rotate([2, 17], [0, Math.PI*2], B.easingP(B.path([20, 20], [20, 20, 19, 30, 45, 120], [20, 20]));        
+
 ### Repeat Modes
 
-// > Builder.mode % (mode: C.R_*) => Builder
+Sometimes you want certain animation of a shape or shape group to repeat until the end. Use the repeat modes to achieve this! If you set a repeat mode to a shape, it keeps repeating/applying its tweens until the finish of the parent band. Please always remember that default band for all elements is `[0, 10]`, so when you are using repeat modes you'll often need to specify band not only for the shape to repeat, but also to its parents, if they exist.
 
-// > Builder.once % () => Builder
+There are three repeat modes currently supported:
 
-// > Builder.loop % () => Builder
+* `C.R_ONCE` — play once (`once()`)
+* `C.R_REPEAT` — repeat playing (`loop()`) 
+* `C.R_BOUNCE` — play forward, then backward, and repeat (`bounce()`)
 
-// > Builder.bounce % () => Builder
+You may set one with a constant or with a concrete method (provided in brackets) for a mode. You may also reset `loop()` and `bounce()` with `once()` call in the end:
+
+    b().mode(C.R_REPEAT);
+    b().loop();
+    b().rect([20, 40], [10, 70]).rotate([0, 2], [0, Math.PI]).bounce();
+
+> ♦ `builder.mode % (mode: C.R_*) => Builder`
+
+> ♦ `builder.once % () => Builder`
+
+> ♦ `builder.loop % () => Builder`
+
+> ♦ `builder.bounce % () => Builder`
 
 ### Modifiers &amp; Painters
 

@@ -439,6 +439,16 @@ Builder.easing = function(func, data) {
         'data': data
     }
 }
+Builder.easingP = function(path) {
+    return { type: C.E_PATH, 
+        data: ((path instanceof Path)
+               ? path : Path.parse(path)) };
+}
+Builder.easingC = function(seg) {
+    return { type: C.E_CSEG, 
+        data: ((seg instanceof CSeg)
+               ? seg : new CSeg(seg)); };
+}
 Builder.tween = function() {
     // FIXME: TODO
 }
