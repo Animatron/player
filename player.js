@@ -1125,6 +1125,9 @@ Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
+Element.prototype.duration = function() { // for external use
+    return this.xdata.lband[1] - this.xdata.lband[0];
+}
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]

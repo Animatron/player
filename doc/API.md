@@ -657,7 +657,7 @@ This way you may wrap three elements and show them one by one:
                         
 Time values may be fractional, so the band `[1.5, 3.7]` is totally correct.
 
-Among with that, setting a band affects the [Repeat Mode](#repeat-modes) of the shape animation within the parent's time space.
+Among with that, setting a band affects the [Repeat Mode](#repeat-modes) of the shape animation within the parent's time space.  
 
 ### Constants
 
@@ -843,7 +843,9 @@ If you want the easing based on segment, use `B.easingP()` method and pass there
 
 ### Repeat Modes
 
-Sometimes you want certain animation of a shape or shape group to repeat until the end. Use the repeat modes to achieve this! If you set a repeat mode to a shape, it keeps repeating/applying its tweens until the finish of the parent band. Please always remember that default band for all elements is `[0, 10]`, so when you are using repeat modes you'll often need to specify band not only for the shape to repeat, but also to its parents, if they exist.
+<!-- TODO: test repeat methods at global level and in different levels of inside -->
+
+Sometimes you want certain animation of a shape or shape group to repeat until the end. Use the repeat modes to achieve this! If you set a repeat mode to a shape, it keeps repeating/applying its tweens until the finish of the parent band. The band of the element to repeat must be less than the band of the parent to make it work as it should. So, if parent band is `[2, 102]` and a child has band `[0, 5]` with `loop()` mode, then the tweens of the last will be repeated exactly 25 times. Please always remember that default band for all elements is `[0, 10]`, so when you are using repeat modes you'll often need to specify band not only for the shape to repeat, but also for its parents, if they exist.
 
 There are three repeat modes currently supported:
 
@@ -851,7 +853,7 @@ There are three repeat modes currently supported:
 * `C.R_REPEAT` — repeat playing (`loop()`) 
 * `C.R_BOUNCE` — play forward, then backward, and repeat (`bounce()`)
 
-You may set one with a constant or with a concrete method (provided in brackets) for a mode. You may also reset `loop()` and `bounce()` with `once()` call in the end:
+You may set one with a constant or using a concrete method (provided in brackets). You may also reset `loop()` and `bounce()` modes with `once()` call in the end:
 
     b().mode(C.R_REPEAT);
     b().loop();
@@ -867,17 +869,90 @@ You may set one with a constant or with a concrete method (provided in brackets)
 
 ### Modifiers &amp; Painters
 
+Every [Element](#element) stores two split parts of data inside: static and dynamic. Static part is a read/only data that will not be changed through animation process. Dynamic part is about the actions to perform with (or parameters to apply to) these drawn things on every frame, so it is allowed to be changed. Static data (called `xdata`) contains links to the current path or text or image, its registration point, band and repeat mode. Dynamic part (called `state`) contains shape coordinates, scale for each side, rotation angle, opacity and current time position. 
+
+Conforming to canvas mechanics, on every frame, to draw every single element, we need two steps. Fisrt step is to modify the canvas coordinate space to match element position, rotation angle and scale; it is the data we take from `state`. Second step is to draw the element in current coordinate space; is uses data from `xdata`.
+
+See [The Flow](#the-flow) section for more detailed description. 
+
 #### Modifiers
 
-// > Builder.modify % (modifier: Function(time: Float, 
-//                                        data: Any), 
-//                     [data: Any]) => Builder
+__Modifier__ is the function that gets current local time and changes shape's `state` conforming to it. It may even substitute this time. And any shape may have any number of such functions, they will be applied to this shape one by one on every frame before drawing. Tweens are also modifiers. In fact, they are prepared when you load your scene into player. One modifier checks if element band fits current time. If any of modifiers fail, the element will not be drawn.
+
+> ♦ `builder.modify % (modifier: Function(time: Float, data: Any), [data: Any]) => Builder`
+
+To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range); its `this` pointer points to the shape's `state`, so you may freely *modify* it; this function *must* return either `true` or `false`, if one of such functions returns `false`, the element will not even be drawn.
+
+<!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
+
+<!-- TODO: may be it is more convenient to return false (nothing) for modifier to pass and true if it needs to be stopped? because most of modifiers now return true -->
+
+    b().modify(function(t) {
+        this.x = 10 * t;
+        this.sy = t / 15;
+        return true;
+    });
+    
+    // adding prepared modifier to several shapes
+    // and passing some data to it
+    var preparedModifier = function(t, value) {
+        this.angle = Math.PI / (t * value);
+        return true;
+    };
+    b().modify(preparedModifier, .1);
+    b().modify(preparedModifier, .5);
+    b().modify(preparedModifier, .7);
+    b().modify(preparedModifier, 1);
+    
+    // you may add several modifiers to one shape
+    var my_shape = b();
+    my_shape.modify(preparedModifier, .6);
+    my_shape.modify(function(t) {
+        this.alpha = t / my_shape.v.duration();
+    });
+    
+    // returning false if this element must not be visible
+    b().modify(function(t) {
+        return (t > 4);
+    });
 
 #### Painters
 
-// > Builder.paint % (painter: Function(ctx: Context,
-//                                      data: Any),
-//                    [data: Any]) => Builder
+__Painter__ is the function that gets current context and applies shape's `xdata` to draw something. And any shape may have any number of such functions, they will be applied one by one on every frame to draw it. Debug function that draw registration points and moving paths are also painters. In fact, they are prepared when you load your scene into player.
+
+> ♦ `builder.paint % (painter: Function(ctx: Context, data: Any), [data: Any]) => Builder`
+
+To add painter function to a shape, use `paint()` method. This function gets canvas context; its `this` pointer points to the shape's `xdata`, so you may use it to draw something, but please *do not* modify anything at first level of `xdata`.
+
+<!-- TODO: or `xdata` is allowed to modify? -->
+
+    b().paint(function(ctx) {
+        ctx.fillStyle = '#f00';
+        ctx.beginPath();
+        ctx.moveTo(50, 50);
+        ctx.lineTo(60, 60);
+        ctx.lineTo(160, 50);
+        ctx.closePath();
+        ctx.fill();
+    });
+    
+    // adding prepared painter to several shapes
+    // and passing some data to it
+    var preparedPainter = function(ctx, text) {
+        this.text.lines = text;
+        this.text.apply(ctx);
+    }
+    b().paint(preparedPainter, "Y");
+    b().paint(preparedPainter, "M");
+    b().paint(preparedPainter, "C");
+    b().paint(preparedPainter, "A");
+    
+    // you may add several painters to one shape
+    var my_shape = b();
+    my_shape.paint(preparedPainter, "G");
+    my_shape.paint(function(ctx) {
+        ctx.arc(....);
+    });
 
 ### Time-Switch
 
