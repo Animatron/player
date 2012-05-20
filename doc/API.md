@@ -18,11 +18,12 @@ PLAYER API
   * [Bands](#bands)
   * [Constants](#constants)
   * [Tweens](#tweens)
-  * [Easings](#easings)
+  * [Tween Easings](#tween-easings)
+  * [Time Easing](#time-easing)  
   * [Repeat Modes](#repeat-modes)
   * [Modifiers &amp; Painters](#modifiers--painters)
-  * [Time-Switch](#time-switch)
   * [Events](#events)
+  * [Time Jumps](#time-jumps)  
   * [Elements Interactions](#elements-interactions)
   * [Helpers](#helpers)
 * [Scene](#scene)
@@ -670,7 +671,7 @@ Some of the functions described below (such as tweens, easings, repeat modes and
     * `C.STOPPED` — playing stopped
     * `C.PLAYING` — playing
     * `C.PAUSED` — playing paused
-2. Player mode `C.M_*` /`player.mode`/
+2. [Player mode](#mode) `C.M_*` /`player.mode`/
     * Grouped
         * `C.M_PREVIEW` - Preview Mode, controls and interaction disabled
         * `C.M_DYNAMIC` - Dynamic Mode, controls disabled and user interaction enabled
@@ -679,7 +680,7 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.M_HANDLE_EVENTS` | `C.M_DO_NOT_HANDLE_EVENTS` — Handling events (interaction) enabled/disabled  
         * `C.M_CONTROLS_ENABLED` | `C.M_CONTROLS_DISABLED` — Controls enabled/disabled
         * `C.M_INFO_ENABLED` | `C.M_INFO_DISABLED` — Info block enabled/disabled
-3. Events `C.X_*`, `C.XT_*`
+3. [Events](#events) `C.X_*`, `C.XT_*`
     * Player
         * `C.X_PLAY` — Playing started
         * `C.X_PAUSE` — Playing paused
@@ -698,17 +699,17 @@ Some of the functions described below (such as tweens, easings, repeat modes and
             * `C.X_KUP` — Key Up event
             * `C.X_KDOWN` — Key Down event
         * `C.X_DRAW` — Draw event
-4. Repeat mode `C.R_*`
+4. [Repeat mode](#repeat-modes) `C.R_*`
     * `C.R_ONCE` — play once
     * `C.R_REPEAT` — repeat playing
     * `C.R_BOUNCE` — play forward-backward and repeat
-5. Tweens `C.T_*`
+5. [Tweens](#tweens) `C.T_*`
     * `C.T_TRANSLATE` — Translate Tween
     * `C.T_SCALE` — Scale Tween
     * `C.T_ROTATE` — Rotate Tween
     * `C.T_ROT_TO_PATH` — Rotate-To-Path Tween
     * `C.T_ALPHA` — Alpha Tween
-6. Easings `C.E_*`
+6. [Easings](#tween-easings) `C.E_*`
     * Curve-based Easings
         * `C.E_DEF` — Default easing
         * `C.E_IN` | `C.E_OUT` | `C.E_INOUT` — Standard In, Out and In/Out easings
@@ -720,16 +721,16 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.E_EIN` | `C.E_EOUT` | `C.E_EINOUT` — Exponent In, Out and In/Out easings        
         * `C.E_CRIN` | `C.E_CROUT` | `C.E_CRINOUT` — Circular In, Out and In/Out easings
         * `C.E_BIN` | `C.E_BOUT` | `C.E_BINOUT` — Back In, Out and In/Out easings
-    * Easings that require data (see [Easings](#easings) section)
+    * Easings that require data
         * `C.E_PATH` — Path-based easing
         * `C.E_CSEG` — Curve Segment-based easing
         * `C.E_FUNC` — Function-based easing                
-7. Paths `C.P_*`
+7. [Paths](#path) `C.P_*`
     * Segment type
         * `C.P_MOVE` - Move-Segment
         * `C.P_LINETO` - LineTo-Segment
         * `C.P_CURVETO` - CurveTo-Segment
-8. Stroke `C.PC_*`
+8. [Stroke](#fill--stroke) `C.PC_*`
     * Cap/Join type
         * `C.PC_ROUND`
         * `C.PC_BUTT`
@@ -743,7 +744,7 @@ There's a generic method of adding any type of the tween, but for better code-re
 
 > ♦ `builder.tween % (type: C.T_*, band: Array[2,Float], [data: Any], [easing: C.E_* | Object]) => Builder`
 
-It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#easings) section below to know more about easings). See type constants for tweens and easings in [Constants](#constants) section. Examples:
+It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#tween-easings) section below to know more about easings). See type constants for tweens and easings in [Constants](#constants) section. Examples:
 
     b().rect([10, 10], [90,30 ])
        .tween(C.T_TRANSLATE, [0, 3], 
@@ -812,7 +813,7 @@ Changes the opacity value of the shape through time. The acceptable values are f
 
 The order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the *same type* do matters if their time frames overlap.
 
-### Easings
+### Tween Easings
 
 Easing of the tween is the function that takes actual time of the tween animation and substitues it with another, returned to the tween. The function of time. In result you may get the effect of accelerating or slowing down or even bouncing animations. Every tween method has an optional possibility to use some provided easing function or any custom one:
 
@@ -839,7 +840,25 @@ If you want the easing based on segment, use `B.easingC()` method and pass 6 cur
 If you want the easing based on segment, use `B.easingP()` method and pass there a path with either string or `B.path()`:
 
     b().rotate([2, 17], [0, Math.PI*2], B.easingP('M20 20 C20 20 19 30 45 120 Z'));
-    b().rotate([2, 17], [0, Math.PI*2], B.easingP(B.path([20, 20], [20, 20, 19, 30, 45, 120], [20, 20]));        
+    b().rotate([2, 17], [0, Math.PI*2], B.easingP(B.path([20, 20], [20, 20, 19, 30, 45, 120], [20, 20]));   
+    
+### Time Easing
+
+Except easing for concrete tweens, you may want to set a function to substitute time for all tweens of the shape in the range of shape's band. There are two methods for it, first one gets time in the bounds of the band, the second one gets time in the bounds of `[0..1]`, relative to the band.
+
+> ♦ `builder.time % (f: Function(t: Float)) => Builder`
+
+    b().band([3, 16]).time(function(t) {
+        console.log(t); // will get values from 3 to 16
+        return 19-t; // turn time backwards
+    });
+
+> ♦ `builder.tease % (ease: Function(t: Float)) => Builder`
+
+    b().band([3, 16]).tease(function(t) {
+        console.log(t); // will get values from 0 to 1
+        return 1-t; // turn time backwards
+    });
 
 ### Repeat Modes
 
@@ -954,17 +973,73 @@ To add painter function to a shape, use `paint()` method. This function gets can
         ctx.arc(....);
     });
 
-### Time-Switch
-
-// > Builder.key % (name: String, value: Float) => Builder
-
-// > Builder.time % (f: Function(t: Float)) => Builder
-
-// > Builder.tease % (ease: Function(t: Float)) => Builder
-
 ### Events
 
 // > Builder.on % (type: C.X_*, handler: Function(evt: Event, t: Float)) => Builder
+
+<!-- about 'contains' -->
+
+### Time Jumps
+
+Sometimes you need to change time/frame while playing or on some event, mostly when you have some complex animation, like human body or so. Sometimes it is enough to jump in time, sometimes there's a lot of stuff in a scene, or even its frames calculated dynamically, so its easier to assign a name to frame.
+
+There are more than one way to do it.
+
+To perform a jump in some concrete moment of time, you may either use a `time()` function described [above](#time-easing):
+
+    b().band([5, 15]).time(function(t) {
+        if (t > 10) return (t - 8); // the same as jump to local 2
+        else return t; 
+    });
+    
+    b().band([5, 15]).tease(function(t) {
+        if (t > 0.5) return (t - 0.3); // the same as jump to local 2
+        else return t; 
+    });
+    
+Or you may jump with [modifier](#modifiers):
+
+    b().band([5, 15]).modify(function(t) {
+        if (t > 5) this.p = 2; // this.p sets local time to jump 
+                               // to and proceed from
+    });
+    
+    b().band([5, 15]).modify(function(t) {
+        if (t > 5) this.t = .2; // this.t sets relative time to jump 
+                                // to and proceed from 
+    });
+    
+You may do the similar jump while handling an [event](#events):
+
+    b().band(...).on(C.X_MCLICK, function(evt) {
+        if (evt.pos[0] > 50) this.t = 2; // or this.p = .2 
+    });
+    
+Also you may set a name to some frame using `key()` function and jump to it with modifier or event handler by assigning the name to `this.key`:
+
+> ♦ `builder.key % (name: String, value: Float) => Builder`
+
+    b().band([5, 45])
+       .add(b('red').rect(...).band([0, 10])
+                              .alpha([0, 2], [0, 1])
+                              .rotate([2, 5], ...)
+                              .trans([5, 10]))
+       .add(b('blue').rect(...).band([10, 20])
+                               .alpha([0, 1], [0, 1])
+                               .rotate([1, 6], ...)
+                               .trans([6, 10], ...))
+       .key('red-appeared', 2) // value is local time
+       .key('red-rotated', 5) 
+       .key('red-moved', 10)
+       .key('blue-appeared', 11)
+       .key('blue-rotated', 16)
+       .key('blue-moved', 20)
+       .on(C.X_MCLICK, function(evt) {
+           if (evt.pos[0] > 50) this.key = 'blue-rotated';
+       })
+       .modify(function(t) {
+           if (t > 20) this.key = 'red-appeared';
+       });
 
 ### Elements Interactions
 
