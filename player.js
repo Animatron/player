@@ -1610,12 +1610,13 @@ function provideEvents(subj, events) {
 }
 
 function kevt(e) {
-    return e;
+    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
+             char: e.charCode };
 }
 
 function mevt(e, cvs) {
-    return [ e.pageX - cvs.__rOffsetLeft, 
-             e.pageY - cvs.__rOffsetTop ];
+    return { pos: [ e.pageX - cvs.__rOffsetLeft, 
+                    e.pageY - cvs.__rOffsetTop ] };
 }
 
 // =============================================================================

@@ -975,9 +975,32 @@ To add painter function to a shape, use `paint()` method. This function gets can
 
 ### Events
 
-// > Builder.on % (type: C.X_*, handler: Function(evt: Event, t: Float)) => Builder
+Every shape may receive the events user perform with the canvas. Shape receives all occuring events if it was visible for user in the moment when the event took place, its position has no matter.
 
-<!-- about 'contains' -->
+<!-- TODO: need to test the case when shape is not visible but there was a click and it receives it -->
+
+> ♦ `builder.on % (type: C.X_*, handler: Function(evt: Event, t: Float)) => Builder`
+
+**NB**: Event handling way may change in near future, it is not a stable part of API for the moment. Look for the changes of this document when you use new version of player.
+
+Currently, only keyup / keydown / keypress (`C.X_KUP`, `C.X_KDOWN`, `C.X_KPRESS`) and mclick / mdown / mup / mmove (`C.X_MCLICK`, `C.X_MDOWN`, `C.X_MUP`, `C.X_MMOVE`) events are supported.
+
+Event handlers have the same access to state as modifiers do (in fact, they are modifiers that perform last, when all others modifiers were performed):
+
+    var my_elm = b();
+    my_elm.on(C.M_CLICK, function(evt) {
+        if (my_elm.v.contains(evt.pos)) {
+            this.x = evt.pos[0];
+            this.y = evt.pos[1];  
+        }
+        return true;
+    });
+    
+You may see the use of `contains()` in the example: it tests if shape has the point given, and it is a special method made to match current time of animation, use it only in events handlers.
+    
+<!-- TODO: it's hard to use my_elm-like var every time, but `this` always points to state... -->
+    
+Currently, every mouse event contains only a mouse position (`evt.pos`) and every key event contains only a pressed key info (`evt.key`).
 
 ### Time Jumps
 
