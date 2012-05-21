@@ -447,7 +447,7 @@ Builder.easingP = function(path) {
 Builder.easingC = function(seg) {
     return { type: C.E_CSEG, 
         data: ((seg instanceof CSeg)
-               ? seg : new CSeg(seg)); };
+               ? seg : new CSeg(seg)) };
 }
 Builder.tween = function() {
     // FIXME: TODO
