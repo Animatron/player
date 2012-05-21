@@ -190,8 +190,8 @@ function sandbox() {
               reportErr = false;
             }
             //throw e;
-        };
-    };
+        }
+    }
 
     function updateInterval(to) {
         if (curInterval) clearTimeout(curInterval);

@@ -225,7 +225,7 @@ Convert.gradient = function(src) {
     }
     return {
         r: (typeof src.r0 !== 'undefined') ? [ src.r0, src.r1 ] : null,
-        pts: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
+        dir: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
         stops: stops,
         bounds: src.bounds
     };
