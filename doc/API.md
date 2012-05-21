@@ -120,7 +120,7 @@ You may pass options object to player, if you want to configure it accurately.
 
 #### mode ####
 
-In fact, only `mode` option is required, if you ever decide to use options:
+`mode` is a way player will interact with user and how it will look like to him. You may set it this way:
 
     // var C = anm.C;
     createPlayer('my_canvas', { 'mode': C.M_VIDEO });
@@ -159,7 +159,7 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 
 #### Example ####
 
-The complete options object, filled with default values, looks like this (again, all options except `mode` are optional):
+The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you want):
 
     { "debug": false, // in debug mode, FPS, shapes names and moving paths are shown
       "mode": C.M_VIDEO, // player mode, may be C.M_PREVIEW or C.M_DYNAMIC

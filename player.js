@@ -145,17 +145,20 @@ function ajax(url, callback/*, errback*/) {
     req.send(null); 
 }
 
+var DEF_CNVS_WIDTH = 400;
+var DEF_CNVS_HEIGHT = 250;
+var DEF_CNVS_BG = '#fff';
+
 function canvasOpts(canvas, opts) {
     var _w, _h;
-    if (!opts.push) { // object, not array // FIXME: test with typeof
-        _w = opts.width ? Math.floor(opts.width) : 0;
-        _h = opts.height ? Math.floor(opts.height) : 0;
+    if (!(opts instanceof Array)) { // object, not array
         //canvas.width = _w;
         //canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
+        canvas.setAttribute('width', opts.width);
+        canvas.setAttribute('height', opts.height);
         if (opts.bgcolor) { 
-            canvas.style.backgroundColor = opts.bgcolor; }
+            canvas.style.backgroundColor = opts.bgcolor; 
+        }
     } else { // array
         _w = Math.floor(opts[0]);
         _h = Math.floor(opts[1]);
@@ -294,9 +297,9 @@ Player.PEFF = 0.07; // seconds to play more when reached end of movie
 
 Player.URL_ATTR = 'data-url';
 
-Player.DEFAULT_CANVAS = { 'width': 400,
-                          'height': 250, 
-                          'bgcolor': '#fff' };
+Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
+                          'height': DEF_CNVS_HEIGHT, 
+                          'bgcolor': DEF_CNVS_BG };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'mode': C.M_VIDEO,
@@ -308,9 +311,9 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'description': 
                                                 'Default project description' },
                                  'cnvs': { 'fps': 30,
-                                           'width': Player.DEFAULT_CANVAS.width,
-                                           'height': Player.DEFAULT_CANVAS.height,
-                                           'bgcolor': Player.DEFAULT_CANVAS.bgcolor,
+                                           'width': DEF_CNVS_WIDTH,
+                                           'height': DEF_CNVS_HEIGHT,
+                                           'bgcolor': DEF_CNVS_BG,
                                            'duration': 0 }
                                };
 
@@ -491,7 +494,7 @@ provideEvents(Player, [C.X_PLAY, C.X_PAUSE, C.X_STOP, C.X_LOAD, C.X_ERROR]);
 Player.prototype._init = function(opts) {
     var opts = opts || Player.DEFAULT_CONFIGURATION;
     this.inParent = opts.inParent;
-    this.mode = opts.mode;
+    this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
     this._initHandlers(); // TODO: make automatic
     this.canvas = document.getElementById(this.id);
@@ -665,8 +668,12 @@ Player.prototype._reset = function() {
 Player.prototype._prepareCanvas = function(opts) {
     var canvas = this.canvas;
     this._canvasConf = opts;
-    this.state.width = opts.width;
-    this.state.height = opts.height;
+    var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
+    var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
+    opts.width = _w;
+    opts.height = _h;
+    this.state.width = _w;
+    this.state.height = _h;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
     canvasOpts(canvas, opts);
     if (this.controls) this.controls.update(canvas);
@@ -3389,7 +3396,8 @@ InfoBlock.prototype.inject = function(meta, anim) {
     this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+
             (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
-            '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> '+
+            (((anim.width!=null) && (anim.height!=null)) 
+             ? '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> ' : '')+
             '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
