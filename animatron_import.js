@@ -30,7 +30,7 @@ AnimatronImporter.prototype.configureAnim = function(prj) {
         'fps': _a.framerate, 
         'width': Math.floor(_a.dimension[0]),
         'height': Math.floor(_a.dimension[1]),
-        'bgcolor': Convert.fill(_a.background),
+        'bgfill': _a.background ? Convert.fill({ color: _a.background }) : null,
         'duration': this.computeDuration(prj.anim.elements)
     }
 }

@@ -29,10 +29,7 @@
           var scene1 = b().rect([100, 70], [70, 70])
                           .fill('#009')
                           .stroke('#f00', 3);
-          createPlayer('canvas1', {
-              mode: C.M_VIDEO,
-              cnvs: { bgcolor: '#f00' }
-          }).load(scene1);
+          createPlayer('canvas1').load(scene1);
 
           // canvas2
           var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])

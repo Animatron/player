@@ -156,8 +156,8 @@ function canvasOpts(canvas, opts) {
         //canvas.height = _h;
         canvas.setAttribute('width', opts.width);
         canvas.setAttribute('height', opts.height);
-        if (opts.bgcolor) { 
-            canvas.style.backgroundColor = opts.bgcolor; 
+        if (opts.bgfill) { // TODO: support other fill types
+            canvas.style.backgroundColor = opts.bgfill.color; 
         }
     } else { // array
         _w = Math.floor(opts[0]);
@@ -277,7 +277,7 @@ C.X_ERROR = 'error';
     "cnvs": { "fps": 30,
               "width": 400,
               "height": 250,
-              "bgcolor": "#fff",
+              "bgfill": { color: "#fff" },
               "duration": 0 } }
 */
 function Player(id, opts) {
@@ -299,7 +299,7 @@ Player.URL_ATTR = 'data-url';
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'height': DEF_CNVS_HEIGHT, 
-                          'bgcolor': DEF_CNVS_BG };
+                          'bgfill': { 'color': DEF_CNVS_BG } };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'mode': C.M_VIDEO,
@@ -313,7 +313,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'cnvs': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
-                                           'bgcolor': DEF_CNVS_BG,
+                                           'bgfill': { 'color': DEF_CNVS_BG },
                                            'duration': 0 }
                                };
 
@@ -520,7 +520,7 @@ Player.prototype.changeRect = function(rect) {
         height: rect.height,
         x: rect.x,
         y: rect.y,
-        bgcolor: this.state.bgcolor
+        bgfill: this.state.bgfill
     });
 }
 Player.prototype.changeZoom = function(ratio) {
@@ -533,7 +533,7 @@ Player.prototype.changeZoom = function(ratio) {
 // { ["fps": 24.0,] // NB: currently not applied in any way, default is 30 
 //   "width": 640,
 //   "height": 480,
-//   ["bgcolor": "#f00",] // in canvas-friendly format
+//   ["bgfill": { color: "#f00" },] // in canvas-friendly format
 //   ["duration": 10.0] // in seconds
 // }
 Player.prototype.configureCnvs = function(conf) {
@@ -674,7 +674,7 @@ Player.prototype._prepareCanvas = function(opts) {
     opts.height = _h;
     this.state.width = _w;
     this.state.height = _h;
-    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
+    if (opts.bgfill) this.state.bgfill = opts.bgfill;
     canvasOpts(canvas, opts);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
@@ -771,7 +771,7 @@ Player.createState = function(player) {
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
-        'zoom': 1.0, 'bgcolor': '#fff',
+        'zoom': 1.0, 'bgfill': { color: '#fff' },
         'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0

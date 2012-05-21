@@ -174,7 +174,7 @@ The complete options object, filled with default values, looks like this (any op
       "cnvs": { ["fps": 30,] // time coefficient, not used currently
                 "width": 400, // animation width, player will be resized if required
                 "height": 250, // animation height, player will be resized if required   
-                "bgcolor": "#fff", // canvas background color
+                "bgfill": { color: "#fff" }, // canvas background color
                 "duration": 10 } } // duration may be auto-calculated, but if provided,
                                   // this value will be taken
 

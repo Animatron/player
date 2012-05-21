@@ -10,7 +10,7 @@ var demo_project =
 {
   "meta": {
     "id": "4f8858d7e4b04a1e87bc594f",
-    "title": "New Test Project",
+    "title": "Demo Project",
     "author": "",
     "copyright": "",
     "version": 0.1,
