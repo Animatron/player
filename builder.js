@@ -379,7 +379,7 @@ Builder.rgb = function(r, g, b, a) {
                      Math.floor(g) + "," +
                      Math.floor(b) + "," +
                      ((typeof a !== 'undefined') 
-                            ? a : 1) + ");"; 
+                            ? a : 1) + ")"; 
 }
 Builder.frgb = function(r, g, b, a) {
     return B.rgb(r*255,g*255,b*255,a); 
