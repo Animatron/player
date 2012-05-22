@@ -134,7 +134,7 @@ var _player = null;
 
 function sandbox() {
 
-    this.codeElm = document.getElementById('scene-source'),
+    this.codeElm = document.getElementById('scene-source');
     this.errorsElm = document.getElementById('errors');
     this.selectElm = document.getElementById('examples-list');
     this.tangleElm = document.getElementById('refresh-calc');

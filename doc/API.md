@@ -33,6 +33,7 @@ PLAYER API
   * [`Element` reference](#element-reference)
   * [`Path` reference](#path-reference)
   * [`Text` reference](#text-reference)
+  * [Events, Deeply](#events--deeply)
 * [Importers](#importers)
   * [Animatron](#animatron)
   
@@ -680,13 +681,13 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.M_HANDLE_EVENTS` | `C.M_DO_NOT_HANDLE_EVENTS` — Handling events (interaction) enabled/disabled  
         * `C.M_CONTROLS_ENABLED` | `C.M_CONTROLS_DISABLED` — Controls enabled/disabled
         * `C.M_INFO_ENABLED` | `C.M_INFO_DISABLED` — Info block enabled/disabled
-3. [Events](#events) `C.X_*`, `C.XT_*`
+3. [Events](#events) `C.S_*`, `C.X_*`, `C.XT_*`
     * Player
-        * `C.X_PLAY` — Playing started
-        * `C.X_PAUSE` — Playing paused
-        * `C.X_STOP` — Playing stopped
-        * `C.X_LOAD` — Scene loaded
-        * `C.X_ERROR` — Error happened
+        * `C.S_PLAY` — Playing started
+        * `C.S_PAUSE` — Playing paused
+        * `C.S_STOP` — Playing stopped
+        * `C.S_LOAD` — Scene loaded
+        * `C.S_ERROR` — Error happened
     * Element
         * Mouse `C.X_M*`, `C.XT_MOUSE`
             * `C.X_MCLICK` — Mouse Click event
@@ -1082,6 +1083,8 @@ Scene
 ### Path reference
 
 ### Text reference
+
+### Events, Deeply
 
 Importers
 ---------

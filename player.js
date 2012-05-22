@@ -223,35 +223,47 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
 
 // EVENTS
 
-// mouse
-C.X_MCLICK = 1;
-C.X_MDCLICK = 2;
-C.X_MUP = 4;
-C.X_MDOWN = 8;
-C.X_MMOVE = 16;
+C.__enmap = {};
 
-C.XT_MOUSE = C.X_MCLICK | C.X_MDCLICK | 
-             C.X_MUP | C.X_MDOWN | C.X_MMOVE;
+function __reg_event(id, name, value) {
+    C[id] = value;
+    C.__enmap[value] = name;
+}
+
+// NB: All of the events must have different values, or the flow will be broken
+
+// mouse
+__reg_event('X_MCLICK', 'mclick', 1);
+__reg_event('X_MDCLICK', 'mdclick', 2);
+__reg_event('X_MUP', 'mup', 4);
+__reg_event('X_MDOWN', 'mdown', 8);
+__reg_event('X_MMOVE', 'mmove', 16);
+
+__reg_event('XT_MOUSE', 'mouse', 
+  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE));
 
 // keyboard
-C.X_KPRESS = 32;
-C.X_KUP = 64;
-C.X_KDOWN = 128;
+__reg_event('X_KPRESS', 'kpress', 32);
+__reg_event('X_KUP', 'kup', 64);
+__reg_event('X_KDOWN', 'kdown', 128);
 
-C.XT_KEYBOARD = C.X_KPRESS | C.X_KUP | C.X_KDOWN;
+__reg_event('XT_KEYBOARD', 'keyboard', 
+  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
 
 // controllers
-C.XT_CONTROL = C.XT_KEYBOARD | C.XT_MOUSE;
+__reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
 // draw
-C.X_DRAW = 256;
+__reg_event('X_DRAW', 'draw', 256);
 
 // playing
-C.X_PLAY = 'play';
-C.X_PAUSE = 'pause';
-C.X_STOP = 'stop';
-C.X_LOAD = 'load';
-C.X_ERROR = 'error';
+__reg_event('S_PLAY', 'play', 'play');
+__reg_event('S_PAUSE', 'pause', 'pause');
+__reg_event('S_STOP', 'pause', 'pause');
+__reg_event('S_LOAD', 'load', 'load');
+__reg_event('S_ERROR', 'error', 'error');
+
+// TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick'
 
 // === PLAYER ==================================================================
 // =============================================================================
@@ -330,7 +342,7 @@ Player.prototype.load = function(object, importer, callback) {
     player._reset();
 
     var whenDone = function() {
-        player.fire(C.X_LOAD);
+        player.fire(C.S_LOAD);
         player.stop();
         if (callback) callback();
     };
@@ -416,7 +428,7 @@ Player.prototype.play = function(from, speed) {
                    return true;
                });
 
-    player.fire(C.X_PLAY,_state.from);
+    player.fire(C.S_PLAY,_state.from);
 
     return player;
 }
@@ -444,7 +456,7 @@ Player.prototype.stop = function() {
         player.controls.render(_state, 0);
     }
 
-    player.fire(C.X_STOP);
+    player.fire(C.S_STOP);
     //console.log('stop', player.id, _state);
 
     return player;    
@@ -463,7 +475,7 @@ Player.prototype.pause = function() {
 
     player.drawAt(_state.time);
 
-    player.fire(C.X_PAUSE,_state.time);
+    player.fire(C.S_PAUSE,_state.time);
     //console.log('pause', player.id, _state);
 
     return player;    
@@ -476,7 +488,7 @@ Player.prototype.pause = function() {
 Player.prototype.onerror = function(callback) { // TODO: make and event?
     var player = this;
 
-    player.fire(C.X_ERROR);
+    player.fire(C.S_ERROR);
     //console.log('onerror', player.id, player);
 
     player.anim = null;
@@ -489,7 +501,7 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 // === INITIALIZATION ==========================================================
 // =============================================================================
 
-provideEvents(Player, [C.X_PLAY, C.X_PAUSE, C.X_STOP, C.X_LOAD, C.X_ERROR]);
+provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
     var opts = opts || Player.DEFAULT_CONFIGURATION;
@@ -1572,8 +1584,9 @@ function provideEvents(subj, events) {
     subj.prototype.fire = function(event, evtobj) {
         if (!this.provides(event)) throw new Error('Event ' + event + 
                                                    ' not provided by ' + this);
-        if (this.handle__x && !(this.handle__x(event, evtobj))) return;    
-        if (this['handle_'+event]) this['handle_'+event](evtobj);
+        if (this.handle__x && !(this.handle__x(event, evtobj))) return;
+        var name = C.__enmap[event]; 
+        if (this['handle_'+name]) this['handle_'+name](evtobj);
         var _hdls = this.handlers[event];
         for (var hi = 0; hi < _hdls.length; hi++) {            
             _hdls[hi].call(this, evtobj);
@@ -3137,10 +3150,14 @@ Controls.prototype.update = function(parent) {
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) { 
-            return function(evt) { controls.fire(C.X_MDOWN, evt); };
+            return function(evt) { 
+                controls.fire(C.X_MDOWN, evt); 
+            };
         })(this), false);
     canvas.addEventListener('mouseout', (function(controls) { 
-            return function(evt) { controls.hide(); };
+            return function(evt) { 
+                controls.hide(); 
+            };
         })(this), false);  
 }
 Controls.prototype.render = function(state, time, _force) {
