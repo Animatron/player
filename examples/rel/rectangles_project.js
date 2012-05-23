@@ -23,7 +23,7 @@ var rectangles_project =
       350.0
     ],
     "framerate": 24.0,
-    "background": "#ff0",
+    "background": { "color": "#ff0" },
     "elements": [
       {
         "id": "1642011daa58f4e5bc4aec02",

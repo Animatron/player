@@ -58,9 +58,9 @@ var __stopAnim = function() {
 
 // collects all characters from string
 // before specified char, starting from start 
-function __collect_to(str, start, char) {
+function __collect_to(str, start, ch) {
     var result = '';
-    for (var i = start; str[i] !== char; i++) {
+    for (var i = start; str[i] !== ch; i++) {
         if (i === str.length) throw new Error('Reached end of string');
         result += str[i];
     }
@@ -353,7 +353,8 @@ Player.prototype.load = function(object, importer, callback) {
 
         // FIXME: load canvas parameters from canvas element, 
         //        if they are not specified
-        if (object instanceof Builder) {  // Builder instance
+        if ((typeof Builder !== 'undefined') && 
+            (object instanceof Builder)) {  // Builder instance
             if (!player.__canvasPrepared) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
@@ -1631,7 +1632,7 @@ function provideEvents(subj, events) {
 
 function kevt(e) {
     return { key: ((e.keyCode != null) ? e.keyCode : e.which),
-             char: e.charCode };
+             ch: e.charCode };
 }
 
 function mevt(e, cvs) {
@@ -3450,7 +3451,7 @@ var exports = {
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU,
 
-    'createPlayer': function(id, opts) { return new Player(id, opts); },
+    'createPlayer': function(id, opts) { return new Player(id, opts); }
 
 };
 
