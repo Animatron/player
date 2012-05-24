@@ -187,6 +187,15 @@ function prepareImage(url, callback) {
     return _img;
 }
 
+function __builder(obj) {
+    return (typeof Builder !== 'undefined') && 
+           (obj instanceof Builder);
+}
+
+function __array(obj) {
+    return Array.isArray(obj);
+}
+
 // === CONSTANTS ==================================================================
 // ================================================================================
 
@@ -353,8 +362,7 @@ Player.prototype.load = function(object, importer, callback) {
 
         // FIXME: load canvas parameters from canvas element, 
         //        if they are not specified
-        if ((typeof Builder !== 'undefined') && 
-            (object instanceof Builder)) {  // Builder instance
+        if (__builder(object)) {  // Builder instance
             if (!player.__canvasPrepared) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
@@ -364,7 +372,7 @@ Player.prototype.load = function(object, importer, callback) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadScene(player, object, whenDone);
-        } else if (object instanceof Array) { // array of clips
+        } else if (__array(obj)) { // array of clips
             if (!player.__canvasPrepared) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
@@ -822,12 +830,12 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
         if (arg3) _elm.changeTransform(arg3);
         this._addToTree(_elm);
         return _elm;
-    } else if (arg1.push) { // elements array mode
+    } else if (__array(arg1)) { // elements array mode
         var _clip = new Clip();
         _clip.add(arg1);
         this._addToTree(_clip);
         return _clip;
-    } else if (arg1.value) { // builder instance
+    } else if (__builder(arg1)) { // builder instance
         this._addToTree(arg1.value);
     } else { // element object mode
         this._addToTree(arg1); 
@@ -1081,10 +1089,10 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         if (arg3) _elm.changeTransform(arg3);
         this._addChild(_elm);
         return _elm;
-    } else if (arg1.push) { // elements array mode
+    } else if (__array(arg1)) { // elements array mode
         this._addChildren(arg1);
-    } else if (arg1.value) { // builder instance
-        this._addChild(arg1.value); 
+    } else if (__builder(arg1)) { // builder instance
+        this._addChild(arg1.v); 
     } else { // element object mode
         this._addChild(arg1); 
     }
@@ -1296,11 +1304,12 @@ Element.prototype.toString = function() {
 Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
-    clone.children = this.children;
+    clone.children = this.children.slice(0);
     clone.sprite = this.sprite;
-    clone._modifiers = this._modifiers;
-    clone._painters = this._painters;
+    clone._modifiers = this._modifiers.slice(0);
+    clone._painters = this._painters.slice(0);
     clone.xdata = obj_clone(this.xdata);
+    return clone;
 }
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
@@ -2339,6 +2348,8 @@ C.P_CURVETO = 2;
 C.PC_ROUND = 'round';
 C.PC_BUTT = 'butt';
 C.PC_MITER = 'miter';
+C.PC_SQUARE = 'square';
+C.PC_BEVEL = 'square';
 
 // > Path % (str: String) 
 function Path(str, stroke, fill) {

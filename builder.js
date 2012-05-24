@@ -359,6 +359,8 @@ Builder.prototype.on = function(type, handler) {
     return this;
 }
 
+// TODO: Builder.each
+
 // * PRIVATE *
 
 Builder.prototype._extractStroke = function() {
@@ -421,7 +423,8 @@ Builder.rgrad = function(dir, rad, stops) {
 Builder.path = function(points) {
     var p = new Path();
     p.add(new MSeg([points[0][0], points[0][1]]));
-    for (var i = 1; i < points.length; i++) {
+    var i = 1, pl = points.length;
+    for (; i < pl; i++) {
         var pts = points[i];
         if (pts.length < 3) {
             p.add(new LSeg([ pts[0], pts[1] ]));
@@ -431,6 +434,7 @@ Builder.path = function(points) {
                              pts[4], pts[5] ]));
         }
     }
+    /*p.add(new MSeg([ points[pl-1][0], points[pl-1][1] ]));*/
     return p;
 }
 Builder.easing = function(func, data) {

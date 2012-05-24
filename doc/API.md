@@ -428,6 +428,26 @@ Every `Builder` instance have five public properties: `v`, `n`, `x` and `f`, `s`
     
 When you have an instance of `Builder`, it is just the prepared state of some [shape](#shapes): path, image, or text. It becomes dynamic when you add [tweens](#tweens) and/or [modifiers](#modifiers) to it. But it is still just prepared dynamic condition — to make it play, you need to pass (load) it into player. This is when system appends all required functionality to it, allows it to act. The same is true for [Element](#element-reference). Of course, you don't need to add every Builder/Element, it happens automatically for the complete scene tree when you load it into player. See [Scene](#scene) section for more information on this, if you want. 
 
+**NB:** Cloning (the last one in the list) is a very tasty feature, but you need to be very accurate with it. Among with element internals it clones its children array, but not deep-clones. So, if you create a recursive scene, be accurate with things like this:
+
+    var c = b().circle([0, 0], 20);
+    for (var i = 0; i < 30; i++) {
+        c.add(b(c).move([10, 10])); // will add 30x30 children to tree 
+    } // this will end up with hanging player
+    
+    // safe way with nesting:
+    var c = b().circle([0, 0], 20);
+    for (var i = 0; i < 30; i++) {
+        c.add(c = b(c).move([10, 10])); // will nest every new child a level below
+    }
+    
+    // safe way with 30 children:
+    var c = b().circle([0, 0], 20);
+    var clone = b(c);
+    for (var i = 0; i < 30; i++) {
+        c.add(b(clone).move([i*10, i*10])); // add new clone 
+    }
+
 ### Structures
 
 Thanks to `Builder` mechanics, you may build scenes with nesting level of any depth. Just put one element inside another, once again with other one, and keep adding and adding, and wow — you accidentally have the tree of elements right in your hands:
@@ -736,6 +756,8 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.PC_ROUND`
         * `C.PC_BUTT`
         * `C.PC_MITER`
+        * `C.PC_BEVEL`
+        * `C.PC_SQUARE`                
 
 ### Tweens
 
