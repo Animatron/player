@@ -1011,7 +1011,7 @@ Currently, only keyup / keydown / keypress (`C.X_KUP`, `C.X_KDOWN`, `C.X_KPRESS`
 Event handlers have the same access to state as modifiers do (in fact, they are modifiers that perform last, when all others modifiers were performed):
 
     var my_elm = b();
-    my_elm.on(C.M_CLICK, function(evt) {
+    my_elm.on(C.X_MCLICK, function(evt) {
         if (my_elm.v.contains(evt.pos)) {
             this.x = evt.pos[0];
             this.y = evt.pos[1];  
