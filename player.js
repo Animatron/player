@@ -372,7 +372,7 @@ Player.prototype.load = function(object, importer, callback) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadScene(player, object, whenDone);
-        } else if (__array(obj)) { // array of clips
+        } else if (__array(object)) { // array of clips
             if (!player.__canvasPrepared) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
