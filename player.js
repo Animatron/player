@@ -58,9 +58,9 @@ var __stopAnim = function() {
 
 // collects all characters from string
 // before specified char, starting from start 
-function __collect_to(str, start, char) {
+function __collect_to(str, start, ch) {
     var result = '';
-    for (var i = start; str[i] !== char; i++) {
+    for (var i = start; str[i] !== ch; i++) {
         if (i === str.length) throw new Error('Reached end of string');
         result += str[i];
     }
@@ -145,17 +145,20 @@ function ajax(url, callback/*, errback*/) {
     req.send(null); 
 }
 
+var DEF_CNVS_WIDTH = 400;
+var DEF_CNVS_HEIGHT = 250;
+var DEF_CNVS_BG = '#fff';
+
 function canvasOpts(canvas, opts) {
     var _w, _h;
-    if (!opts.push) { // object, not array // FIXME: test with typeof
-        _w = opts.width ? Math.floor(opts.width) : 0;
-        _h = opts.height ? Math.floor(opts.height) : 0;
+    if (!(opts instanceof Array)) { // object, not array
         //canvas.width = _w;
         //canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
-        if (opts.bgcolor) { 
-            canvas.style.backgroundColor = opts.bgcolor; }
+        canvas.setAttribute('width', opts.width);
+        canvas.setAttribute('height', opts.height);
+        if (opts.bgfill) { // TODO: support other fill types
+            canvas.style.backgroundColor = opts.bgfill.color; 
+        }
     } else { // array
         _w = Math.floor(opts[0]);
         _h = Math.floor(opts[1]);
@@ -182,6 +185,15 @@ function prepareImage(url, callback) {
     };
     _img.src = url;
     return _img;
+}
+
+function __builder(obj) {
+    return (typeof Builder !== 'undefined') && 
+           (obj instanceof Builder);
+}
+
+function __array(obj) {
+    return Array.isArray(obj);
 }
 
 // === CONSTANTS ==================================================================
@@ -220,35 +232,47 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
 
 // EVENTS
 
-// mouse
-C.X_MCLICK = 1;
-C.X_MDCLICK = 2;
-C.X_MUP = 4;
-C.X_MDOWN = 8;
-C.X_MMOVE = 16;
+C.__enmap = {};
 
-C.XT_MOUSE = C.X_MCLICK | C.X_MDCLICK | 
-             C.X_MUP | C.X_MDOWN | C.X_MMOVE;
+function __reg_event(id, name, value) {
+    C[id] = value;
+    C.__enmap[value] = name;
+}
+
+// NB: All of the events must have different values, or the flow will be broken
+
+// mouse
+__reg_event('X_MCLICK', 'mclick', 1);
+__reg_event('X_MDCLICK', 'mdclick', 2);
+__reg_event('X_MUP', 'mup', 4);
+__reg_event('X_MDOWN', 'mdown', 8);
+__reg_event('X_MMOVE', 'mmove', 16);
+
+__reg_event('XT_MOUSE', 'mouse', 
+  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE));
 
 // keyboard
-C.X_KPRESS = 32;
-C.X_KUP = 64;
-C.X_KDOWN = 128;
+__reg_event('X_KPRESS', 'kpress', 32);
+__reg_event('X_KUP', 'kup', 64);
+__reg_event('X_KDOWN', 'kdown', 128);
 
-C.XT_KEYBOARD = C.X_KPRESS | C.X_KUP | C.X_KDOWN;
+__reg_event('XT_KEYBOARD', 'keyboard', 
+  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
 
 // controllers
-C.XT_CONTROL = C.XT_KEYBOARD | C.XT_MOUSE;
+__reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
 // draw
-C.X_DRAW = 256;
+__reg_event('X_DRAW', 'draw', 256);
 
 // playing
-C.X_PLAY = 'play';
-C.X_PAUSE = 'pause';
-C.X_STOP = 'stop';
-C.X_LOAD = 'load';
-C.X_ERROR = 'error';
+__reg_event('S_PLAY', 'play', 'play');
+__reg_event('S_PAUSE', 'pause', 'pause');
+__reg_event('S_STOP', 'pause', 'pause');
+__reg_event('S_LOAD', 'load', 'load');
+__reg_event('S_ERROR', 'error', 'error');
+
+// TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick'
 
 // === PLAYER ==================================================================
 // =============================================================================
@@ -271,10 +295,10 @@ C.X_ERROR = 'error';
               "description": 
                       "Default project description",
               [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
-    "anim": { "fps": 30,
+    "cnvs": { "fps": 30,
               "width": 400,
-              "height": 500,
-              "bgcolor": "#fff",
+              "height": 250,
+              "bgfill": { color: "#fff" },
               "duration": 0 } }
 */
 function Player(id, opts) {
@@ -294,9 +318,9 @@ Player.PEFF = 0.07; // seconds to play more when reached end of movie
 
 Player.URL_ATTR = 'data-url';
 
-Player.DEFAULT_CANVAS = { 'width': 400,
-                          'height': 250, 
-                          'bgcolor': '#fff' };
+Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
+                          'height': DEF_CNVS_HEIGHT, 
+                          'bgfill': { 'color': DEF_CNVS_BG } };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'mode': C.M_VIDEO,
@@ -307,10 +331,10 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'version': -1.0,
                                            'description': 
                                                 'Default project description' },
-                                 'anim': { 'fps': 30,
-                                           'width': Player.DEFAULT_CANVAS.width,
-                                           'height': Player.DEFAULT_CANVAS.height,
-                                           'bgcolor': Player.DEFAULT_CANVAS.bgcolor,
+                                 'cnvs': { 'fps': 30,
+                                           'width': DEF_CNVS_WIDTH,
+                                           'height': DEF_CNVS_HEIGHT,
+                                           'bgfill': { 'color': DEF_CNVS_BG },
                                            'duration': 0 }
                                };
 
@@ -327,18 +351,18 @@ Player.prototype.load = function(object, importer, callback) {
     player._reset();
 
     var whenDone = function() {
-        player.fire(C.X_LOAD);
+        player.fire(C.S_LOAD);
         player.stop();
         if (callback) callback();
     };
 
     // TODO: configure canvas using clips bounds
-    
+
     if (object) {
 
         // FIXME: load canvas parameters from canvas element, 
         //        if they are not specified
-        if (object instanceof Builder) {  // Builder instance
+        if (__builder(object)) {  // Builder instance
             if (!player.__canvasPrepared) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
@@ -348,7 +372,7 @@ Player.prototype.load = function(object, importer, callback) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
             L.loadScene(player, object, whenDone);
-        } else if (object instanceof Array) { // array of clips
+        } else if (__array(obj)) { // array of clips
             if (!player.__canvasPrepared) {
                 player._prepareCanvas(Player.DEFAULT_CANVAS);
             }
@@ -397,7 +421,7 @@ Player.prototype.play = function(from, speed) {
 
     var scene = player.anim;
     scene.reset();
-    
+
     D.drawNext(player.ctx, _state, scene, 
                function(state, time) {
                    if (time > (state.duration + Player.PEFF)) {
@@ -413,7 +437,7 @@ Player.prototype.play = function(from, speed) {
                    return true;
                });
 
-    player.fire(C.X_PLAY,_state.from);
+    player.fire(C.S_PLAY,_state.from);
 
     return player;
 }
@@ -441,7 +465,7 @@ Player.prototype.stop = function() {
         player.controls.render(_state, 0);
     }
 
-    player.fire(C.X_STOP);
+    player.fire(C.S_STOP);
     //console.log('stop', player.id, _state);
 
     return player;    
@@ -449,7 +473,7 @@ Player.prototype.stop = function() {
 
 Player.prototype.pause = function() {
     var player = this;
-    
+
     player._ensureState();
     player._ensureAnim();
 
@@ -460,20 +484,20 @@ Player.prototype.pause = function() {
 
     player.drawAt(_state.time);
 
-    player.fire(C.X_PAUSE,_state.time);
+    player.fire(C.S_PAUSE,_state.time);
     //console.log('pause', player.id, _state);
 
     return player;    
 }
 
 /*Player.prototype.reset = function() {
-    
+
 }*/
 
 Player.prototype.onerror = function(callback) { // TODO: make and event?
     var player = this;
 
-    player.fire(C.X_ERROR);
+    player.fire(C.S_ERROR);
     //console.log('onerror', player.id, player);
 
     player.anim = null;
@@ -486,12 +510,12 @@ Player.prototype.onerror = function(callback) { // TODO: make and event?
 // === INITIALIZATION ==========================================================
 // =============================================================================
 
-provideEvents(Player, [C.X_PLAY, C.X_PAUSE, C.X_STOP, C.X_LOAD, C.X_ERROR]);
+provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
     var opts = opts || Player.DEFAULT_CONFIGURATION;
     this.inParent = opts.inParent;
-    this.mode = opts.mode;
+    this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
     this._initHandlers(); // TODO: make automatic
     this.canvas = document.getElementById(this.id);
@@ -500,7 +524,7 @@ Player.prototype._init = function(opts) {
     this.state.zoom = opts.zoom || 1;
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
-    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
+    this.configureCnvs(opts.cnvs || Player.DEFAULT_CONFIGURATION.cnvs);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
     this.subscribeEvents(this.canvas);
     this.stop();
@@ -517,7 +541,7 @@ Player.prototype.changeRect = function(rect) {
         height: rect.height,
         x: rect.x,
         y: rect.y,
-        bgcolor: this.state.bgcolor
+        bgfill: this.state.bgfill
     });
 }
 Player.prototype.changeZoom = function(ratio) {
@@ -530,14 +554,14 @@ Player.prototype.changeZoom = function(ratio) {
 // { ["fps": 24.0,] // NB: currently not applied in any way, default is 30 
 //   "width": 640,
 //   "height": 480,
-//   ["bgcolor": "#f00",] // in canvas-friendly format
+//   ["bgfill": { color: "#f00" },] // in canvas-friendly format
 //   ["duration": 10.0] // in seconds
 // }
-Player.prototype.configureAnim = function(conf) {
+Player.prototype.configureCnvs = function(conf) {
     this._animInfo = conf;
     this._prepareCanvas(conf);
     // inject information to html
-    
+
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
 
@@ -665,9 +689,13 @@ Player.prototype._reset = function() {
 Player.prototype._prepareCanvas = function(opts) {
     var canvas = this.canvas;
     this._canvasConf = opts;
-    this.state.width = opts.width;
-    this.state.height = opts.height;
-    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
+    var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
+    var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
+    opts.width = _w;
+    opts.height = _h;
+    this.state.width = _w;
+    this.state.height = _h;
+    if (opts.bgfill) this.state.bgfill = opts.bgfill;
     canvasOpts(canvas, opts);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
@@ -738,14 +766,14 @@ Player.prototype._saveCanvasPos = function(cvs) {
     var elm = cvs, 
         ol = cpl + cbl + htol, 
         ot = cpt + cbt + htot;
-     
+
     if (elm.offsetParent !== undefined) {
         do {
             ol += elm.offsetLeft;
             ot += elm.offsetTop;
         } while (elm = elm.offsetParent)
     }
- 
+
     ol += cpl + cbl + htol;
     ot += cpt + cbt + htot;
 
@@ -764,7 +792,7 @@ Player.createState = function(player) {
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
-        'zoom': 1.0, 'bgcolor': '#fff',
+        'zoom': 1.0, 'bgfill': { color: '#fff' },
         'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
@@ -802,12 +830,12 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
         if (arg3) _elm.changeTransform(arg3);
         this._addToTree(_elm);
         return _elm;
-    } else if (arg1.push) { // elements array mode
+    } else if (__array(arg1)) { // elements array mode
         var _clip = new Clip();
         _clip.add(arg1);
         this._addToTree(_clip);
         return _clip;
-    } else if (arg1.value) { // builder instance
+    } else if (__builder(arg1)) { // builder instance
         this._addToTree(arg1.value);
     } else { // element object mode
         this._addToTree(arg1); 
@@ -1061,10 +1089,10 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         if (arg3) _elm.changeTransform(arg3);
         this._addChild(_elm);
         return _elm;
-    } else if (arg1.push) { // elements array mode
+    } else if (__array(arg1)) { // elements array mode
         this._addChildren(arg1);
-    } else if (arg1.value) { // builder instance
-        this._addChild(arg1.value); 
+    } else if (__builder(arg1)) { // builder instance
+        this._addChild(arg1.v); 
     } else { // element object mode
         this._addChild(arg1); 
     }
@@ -1124,6 +1152,9 @@ Element.prototype.makeBandFit = function() {
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
+}
+Element.prototype.duration = function() { // for external use
+    return this.xdata.lband[1] - this.xdata.lband[0];
 }
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
@@ -1269,6 +1300,16 @@ Element.prototype.global = function(pt) {
 }
 Element.prototype.toString = function() {
     return "[ Element '" + (this.name || this.id) + "' ]";
+}
+Element.prototype.clone = function() {
+    var clone = new Element();
+    clone.name = this.name;
+    clone.children = this.children.slice(0);
+    clone.sprite = this.sprite;
+    clone._modifiers = this._modifiers.slice(0);
+    clone._painters = this._painters.slice(0);
+    clone.xdata = obj_clone(this.xdata);
+    return clone;
 }
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
@@ -1553,8 +1594,9 @@ function provideEvents(subj, events) {
     subj.prototype.fire = function(event, evtobj) {
         if (!this.provides(event)) throw new Error('Event ' + event + 
                                                    ' not provided by ' + this);
-        if (this.handle__x && !(this.handle__x(event, evtobj))) return;    
-        if (this['handle_'+event]) this['handle_'+event](evtobj);
+        if (this.handle__x && !(this.handle__x(event, evtobj))) return;
+        var name = C.__enmap[event]; 
+        if (this['handle_'+name]) this['handle_'+name](evtobj);
         var _hdls = this.handlers[event];
         for (var hi = 0; hi < _hdls.length; hi++) {            
             _hdls[hi].call(this, evtobj);
@@ -1598,12 +1640,13 @@ function provideEvents(subj, events) {
 }
 
 function kevt(e) {
-    return e;
+    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
+             ch: e.charCode };
 }
 
 function mevt(e, cvs) {
-    return [ e.pageX - cvs.__rOffsetLeft, 
-             e.pageY - cvs.__rOffsetTop ];
+    return { pos: [ e.pageX - cvs.__rOffsetLeft, 
+                    e.pageY - cvs.__rOffsetTop ] };
 }
 
 // =============================================================================
@@ -1680,17 +1723,21 @@ DU.applyFill = function(ctx, fill) {
                   || (fill._style = Path.createStyle(ctx, fill));
 }
 
+DU._hasVal = function(fsval) {
+    return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
+}
+
 // FIXME: move to `Path`?
 DU.qDraw = function(ctx, stroke, fill, func) {
     ctx.save();
     ctx.beginPath();
-    DU.applyStroke(ctx, stroke);
     DU.applyFill(ctx, fill);
+    DU.applyStroke(ctx, stroke);
     func();
     ctx.closePath();
 
-    if (fill && fill.color) ctx.fill();
-    if (stroke && stroke.color) ctx.stroke();
+    if (DU._hasVal(fill)) ctx.fill();
+    if (DU._hasVal(stroke)) ctx.stroke();
     ctx.restore();
 }
 
@@ -1885,7 +1932,7 @@ L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
     if (importer.configureAnim) {
-        player.configureAnim(importer.configureAnim(object));
+        player.configureCnvs(importer.configureAnim(object));
     }
     if (importer.configureMeta) {
         player.configureMeta(importer.configureMeta(object));
@@ -1952,12 +1999,12 @@ Render.addXDataRender = function(elm) {
     if (xdata.reg) elm.__modify(Element.SYS_MOD, Render.m_saveReg, xdata.reg);
     if (xdata.pos) elm.__modify(Element.SYS_MOD, Render.m_applyPos, xdata.pos);
     if (xdata.tweens) Render.addTweensModifiers(elm, xdata.tweens);
-    
+
     // painters
     if (xdata.path) elm.__paint(Element.SYS_PNT, Render.p_drawPath, xdata.path);
     if (xdata.image) elm.__paint(Element.SYS_PNT, Render.p_drawImage, xdata.image);
     if (xdata.text) elm.__paint(Element.SYS_PNT, Render.p_drawText, xdata.text);
-        
+
 }
 
 Render.addDebugRender = function(elm) {
@@ -2022,7 +2069,7 @@ Render.p_drawImage = function(ctx, image) {
 
 Render.p_drawText = function(ctx, text) {
     var text = text || this.text;
-    text.apply(ctx, this.reg);
+    text.apply(ctx);
 }
 
 Render.p_drawName = function(ctx, name) {
@@ -2188,6 +2235,7 @@ Tweens[C.T_ROT_TO_PATH] =
 
 C.E_PATH = 'PATH'; // Path
 C.E_FUNC = 'FUNC'; // Function
+C.E_CSEG = 'CSEG'; // Function
 //C.E_CINOUT = 'CINOUT'; // Cubic InOut
 //....
 
@@ -2204,6 +2252,12 @@ EasingImpl[C.E_FUNC] =
     function(f) {
         return f;
     };
+EasingImpl[C.E_CSEG] =
+    function(seg) {
+        return function(t) {
+            return seg.atT([0, 0], t)[1];
+        };
+    };    
 /*EasingImpl[C.E_CINOUT] = 
     function() {
         return function(t) {
@@ -2294,6 +2348,8 @@ C.P_CURVETO = 2;
 C.PC_ROUND = 'round';
 C.PC_BUTT = 'butt';
 C.PC_MITER = 'miter';
+C.PC_SQUARE = 'square';
+C.PC_BEVEL = 'square';
 
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
@@ -2304,17 +2360,18 @@ function Path(str, stroke, fill) {
     this.parse(str);
 }
 
-Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_CAP = C.PC_ROUND;
 Path.DEFAULT_JOIN = C.PC_ROUND;
-Path.DEFAULT_STROKE = Path.EMPTY_STROKE;                    
 Path.DEFAULT_FILL = { 'color': 'transparent' };
 Path.BASE_FILL = { 'color': '#dfdfdf' };
+Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
+Path.DEFAULT_STROKE = Path.EMPTY_STROKE;
 Path.BASE_STROKE = { 'width': 1.0,
                      'color': '#000',
                      'cap': Path.DEFAULT_CAP,
                      'join': Path.DEFAULT_JOIN
                    };
+
 
 // visits every chunk of path in array-form and calls
 // visitor function, so visitor function gets 
@@ -2348,11 +2405,11 @@ Path.prototype.apply = function(ctx) {
     var p = this;
     DU.qDraw(ctx, p.stroke || Path.DEFAULT_STROKE,
                   p.fill || Path.DEFAULT_FILL,
-             function() { p.visit(Path._applyVisitor,ctx); });
+             function() { p.visit(Path._applyVisitor, ctx); });
 
     /*ctx.beginPath();
-    DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
     DU.applyFill(ctx, this.fill || Path.DEFAULT_FILL);
+    DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
     this.visit(this._applyVisitor,ctx);
     ctx.closePath();
 
@@ -2645,17 +2702,17 @@ Path.createStyle = function(ctx, brush) {
     if (brush.lgrad) {
         var src = brush.lgrad,
             stops = src.stops,
-            pts = src.pts,
+            dir = src.dir,
             bounds = src.bounds;
         var grad = bounds
             ? ctx.createLinearGradient(
-                            bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 
-                            bounds[1] + pts[0][1] * bounds[3], // b.y + y0 * b.height
-                            bounds[0] + pts[1][0] * bounds[2], // b.x + x1 * b.width 
-                            bounds[1] + pts[1][1] * bounds[3]) // b.y + y1 * b.height
+                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width 
+                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
+                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width 
+                            bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
             : ctx.createLinearGradient(
-                            pts[0][0], pts[0][1],  // x0, y0
-                            pts[1][0], pts[1][1]); // x1, y1
+                            dir[0][0], dir[0][1],  // x0, y0
+                            dir[1][0], dir[1][1]); // x1, y1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
@@ -2665,20 +2722,20 @@ Path.createStyle = function(ctx, brush) {
     if (brush.rgrad) {
         var src = brush.rgrad,
             stops = src.stops,
-            pts = src.pts,
+            dir = src.dir,
             r = src.r,
             bounds = src.bounds;
         var grad = bounds
             ? ctx.createRadialGradient(
-                            bounds[0] + pts[0][0] * bounds[2], // b.x + x0 * b.width 
-                            bounds[1] + pts[0][1] * bounds[3], // b.y + y0 * b.height
+                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width 
+                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
                             Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
-                            bounds[0] + pts[1][0] * bounds[2], // b.x + x1 * b.width 
-                            bounds[1] + pts[1][1] * bounds[3], // b.y + y1 * b.height
+                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width 
+                            bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
                             Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
             : ctx.createRadialGradient(
-                           pts[0][0], pts[0][1], r[0],  // x0, y0, r0
-                           pts[1][0], pts[1][1], r[1]); // x1, y1, r1
+                           dir[0][0], dir[0][1], r[0],  // x0, y0, r0
+                           dir[1][0], dir[1][1], r[1]); // x1, y1, r1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], stop[1]);
@@ -2829,9 +2886,9 @@ CSeg.prototype.length = function(start) {
     var p2to3 = Math.sqrt(Math.pow(p3x-p2x, 2) + Math.pow(p3y-p2y, 2));
 
     var len = p0to1 + p1to2 + p2to3 + 1;
-    
+
     var count = len * 3;
-    
+
     // choose the step as 1/len
     var dt = 1.0 / len;
 
@@ -2932,7 +2989,7 @@ CSeg.prototype._calc_params = function(start) {
     var p2y = pts[3];
     var p3x = pts[4];
     var p3y = pts[5];
-    
+
     params[0] = p3x - 3*p2x + 3*p1x - p0x;  // A = x3 - 3 * x2 + 3 * x1 - x0
     params[1] = 3*p2x - 6*p1x + 3*p0x;      // B = 3 * x2 - 6 * x1 + 3 * x0
     params[2] = 3*p1x - 3*p0x;              // C = 3 * x1 - 3 * x0
@@ -2949,14 +3006,19 @@ CSeg.prototype._calc_params = function(start) {
 // =============================================================================
 // === TEXT ====================================================================
 
-Text.DEFAULT_FONT = '12px sans-serif';
+Text.DEFAULT_CAP = C.PC_ROUND;
+Text.DEFAULT_JOIN = C.PC_ROUND;
+Text.DEFAULT_FFACE = 'sans-serif';
+Text.DEFAULT_FSIZE = 12;
+Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;  
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.BASELINE_RULE = 'bottom';
+Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 function Text(lines, font,
               stroke, fill) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
-    this.stroke = stroke || null;
+    this.stroke = stroke || Text.DEFAULT_STROKE;
     this.fill = fill || Text.DEFAULT_FILL;
     this._bnds = null;
 }
@@ -2970,11 +3032,19 @@ Text.prototype.apply = function(ctx, point) {
     ctx.textBaseline = Text.BASELINE_RULE;
     if (this.fill) {
         DU.applyFill(ctx, this.fill);
-        ctx.strokeText(this.lines, apt[0], apt[1]);
+        var x = apt[0], y = apt[1];
+        this.visitLines(function(line) {
+            ctx.fillText(line, x, y);
+            y += 1.2 * accent;
+        });
     }
     if (this.stroke) {
         DU.applyStroke(ctx, this.stroke);
-        ctx.fillText(this.lines, apt[0], apt[1]);
+        var x = apt[0], y = apt[1];
+        this.visitLines(function(line) {
+            ctx.strokeText(line, x, y);
+            y += 1.2 * accent;
+        });
     }
     ctx.restore();
 }
@@ -2986,7 +3056,7 @@ Text.prototype.dimen = function() {
     buff.innerText = this.lines;
     return (this._dimen = [ buff.offsetWidth,
                             buff.offsetHeight ]);
-    
+
 }
 Text.prototype.accent = function(height) {
     return height; // FIXME
@@ -2999,6 +3069,31 @@ Text._createBuffer = function() {
     _div.appendChild(_span);
     document.body.appendChild(_div);
     return _span; 
+}
+Text.prototype.cstroke = function(color, width, cap, join) {
+    this.stroke = {
+        'width': (width != null) ? width : 0,
+        'color': color,
+        'cap': cap || Text.DEFAULT_CAP,
+        'join': join || Text.DEFAULT_JOIN
+    };
+}
+Text.prototype.cfill = function(color) {
+    this.fill = {
+        'color': color
+    };
+}
+Text.prototype.visitLines = function(func, data) {
+    var lines = this.lines;
+    if (typeof lines === 'string') {
+        func(lines, data);
+    } else {
+        var line;
+        for (var i = 0, ilen = lines.length; i < ilen; i++) {
+            line = lines[i];
+            func(line, data);
+        }  
+    }
 }
 
 // =============================================================================
@@ -3067,10 +3162,14 @@ Controls.prototype.update = function(parent) {
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) { 
-            return function(evt) { controls.fire(C.X_MDOWN, evt); };
+            return function(evt) { 
+                controls.fire(C.X_MDOWN, evt); 
+            };
         })(this), false);
     canvas.addEventListener('mouseout', (function(controls) { 
-            return function(evt) { controls.hide(); };
+            return function(evt) { 
+                controls.hide(); 
+            };
         })(this), false);  
 }
 Controls.prototype.render = function(state, time, _force) {
@@ -3081,7 +3180,7 @@ Controls.prototype.render = function(state, time, _force) {
         (_s === this._lhappens)) return;
     this._time = time;
     this._lhappens = _s; 
-    
+
     var ctx = this.ctx;
     var _bh = Controls._BH, // button height
         _w = this.canvas.width,
@@ -3109,7 +3208,7 @@ Controls.prototype.render = function(state, time, _force) {
         // stop button
         Controls.__stop_btn(ctx);
     }
-    
+
     // progress
     ctx.translate(_bh + _m, 0);
     Controls.__progress(ctx, _pw, time, state.duration);
@@ -3118,7 +3217,7 @@ Controls.prototype.render = function(state, time, _force) {
     ctx.translate(_pw + _m, 0);
     Controls.__time(ctx, this.elapsed 
                          ? (time - state.duration) : time);
-    
+
     ctx.restore();
     this.fire(C.X_DRAW, state);
 }
@@ -3326,13 +3425,14 @@ InfoBlock.prototype.inject = function(meta, anim) {
     this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+
             (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
-            '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> '+
+            (((anim.width!=null) && (anim.height!=null)) 
+             ? '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> ' : '')+
             '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
 }
 InfoBlock.prototype.reset = function() {
-    
+
 }
 InfoBlock.prototype.hide = function() {
     this.hidden = true;
@@ -3350,7 +3450,7 @@ InfoBlock.prototype.updateDuration = function(value) {
 // === EXPORTS =================================================================
 
 var exports = {
-    
+
     'C': C, // constants
     'Player': Player,
     'Scene': Scene,
@@ -3362,7 +3462,7 @@ var exports = {
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU,
 
-    'createPlayer': function(id, opts) { return new Player(id, opts); },
+    'createPlayer': function(id, opts) { return new Player(id, opts); }
 
 };
 

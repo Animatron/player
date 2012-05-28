@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 by Animatron.
+ * Copyright (c) 2011-2012 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
@@ -9,10 +9,11 @@
 
 var Path = anm.Path;
 var Element = anm.Element;
+var Text = anm.Text;
 var C = anm.C;
 var DU = anm.DU;
 
-var MSeg = anm.MSeg, LSeg = anm.LSeg;
+var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
 // =============================================================================
 // === BUILDER =================================================================
@@ -29,24 +30,31 @@ function Builder(obj) {
         this.x = obj.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
-        this.v = obj.v;
-        this.x = obj.x;
+        this.v = obj.v.clone();
+        this.x = this.v.xdata;
     } else if (typeof obj === 'string') {
         this.n = obj;
         this.v = new Element();
         this.v.name = this.n;
         this.x = this.v.xdata;
     }
-};
+    this.f = this._extractFill();
+    this.s = this._extractStroke();
+}
 Builder._$ = function(obj) {
     return new Builder(obj);
 }
 
-// TODO:
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
 Builder.DEFAULT_FILL = Path.BASE_FILL;
+Builder.DEFAULT_CAP = Path.DEFAULT_CAP;
+Builder.DEFAULT_JOIN = Path.DEFAULT_JOIN;
+Builder.DEFAULT_FFACE = Text.DEFAULT_FFACE;
+Builder.DEFAULT_FSIZE = Text.DEFAULT_FSIZE;
 
-// > Builder.addS % (what: Element | Builder) => Builder
+// * STRUCTURE *
+
+// > builder.add % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     if (what instanceof Element) {
         this.v.add(what);    
@@ -55,7 +63,7 @@ Builder.prototype.add = function(what) {
     }
     return this;
 }
-// > Builder.addS % (what: Element | Builder) => Builder
+// > builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.addS = function(what) {
     if (what instanceof Element) {
         this.v.addS(what);    
@@ -64,73 +72,53 @@ Builder.prototype.addS = function(what) {
     }
     return this;    
 }
-// > Builder.move % (pt: Array[2,Integer]) => Builder
-Builder.prototype.move = function(pt) {
-    var x = this.x;
-    x.pos = [ x.pos[0] + pt[0],
-              x.pos[1] + pt[1] ];
-    return this;
-}
-// > Builder.zoom % (val: Array[2,Float]) => Builder
-Builder.prototype.zoom = function(val) {
-    if (this.x.path) {
-        this.x.path.zoom(val);
-        this.path(this.x.path); // will normalize it
-    }
-    return this;
-}
-// > Builder.fill % (color: String) => Builder
-Builder.prototype.fill = function(color) {
-    if (!this.x.path) {
-        this.x.path = new Path(); 
-    }
-    this.x.path.cfill(color);
-    return this;
-}
-Builder.prototype.nofill = function() { this.fill(null); }
-Builder.prototype.nostroke = function() { this.stroke(null); }
-// > Builder.stroke % (color: String, width: Float) 
-//                  => Builder
-Builder.prototype.stroke = function(color, width, cap, join) {
-    if (!this.x.path) {
-        this.x.path = new Path();
-    }
-    this.x.path.cstroke(color, width, cap, join);
-    return this;
-}
-// > Builder.path % (path: String[, pt: Array[2,Integer]]) => Builder
-Builder.prototype.path = function(path) {
+
+// * SHAPES *
+
+// TODO: move shapes to B.P.rect/... ?
+
+// > builder.path % (path: String | Path,
+//                   [pt: Array[2,Integer]]) => Builder
+Builder.prototype.path = function(path, pt) {
     var path = (path instanceof Path) ? path 
                : Path.parse(path, this.x.path);
-    var ppath = this.x.path;
     this.x.path = path;
     path.normalize();
     this.x.reg = [0, 0];
-    if (!path.stroke) path.stroke = ppath ? ppath.stroke 
-                                          : Builder.DEFAULT_STROKE;
-    if (!path.fill) path.fill = ppath ? ppath.fill 
-                                      : Builder.DEFAULT_FILL;
+    this.x.pos = pt || [0, 0];
+    if (!path.stroke) { path.stroke = this.s; }
+    else { this.s = path.stroke; }
+    if (!path.fill) { path.fill = this.f; }
+    else { this.f = path.fill; }
     return this;
 }
-// > Builder.band % (band: Array[2,Float]) => Builder
-Builder.prototype.band = function(band) {
-    this.v.setBand(band);
+// > builder.rect % (pt: Array[2,Integer], 
+//                   rect: Array[2,Integer]) => Builder
+Builder.prototype.rect = function(pt, rect) {
+    var w = rect[0], h = rect[1];
+    this.path(Builder.path([[0, 0],
+                            [w, 0],
+                            [w, h],
+                            [0, h],
+                            [0, 0]]), pt);
     return this;
 }
-// > Builder.paint % (painter: Function(ctx: Context))
-//                 => Builder
-Builder.prototype.paint = function(func, data) {
-    this.v.addPainter(func, data);
+// > builder.circle % (pt: Array[2,Integer], 
+//                     radius: Float) => Builder
+Builder.prototype.circle = function(pt, radius) {
+    this.x.pos = pt;
+    this.x.reg = [ radius, radius ];
+    var b = this;
+    this.paint(function(ctx) {
+        var path = this.path;
+        DU.qDraw(ctx, b.s, b.f,
+                 function() {
+                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
+                 });
+    });
     return this;
 }
-// > Builder.modify % (modifier: Function(time: Float, 
-//                                        data: Any), 
-//                     data: Any) => Builder
-Builder.prototype.modify = function(func, data) {
-    this.v.addModifier(func, data);
-    return this;
-}
-// > Builder.image % (pt: Array[2,Integer],
+// > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src) {
     this.x.pos = pt;
@@ -147,120 +135,213 @@ Builder.prototype.image = function(pt, src) {
     }
     return this;
 }
-// > Builder.rect % (pt: Array[2,Integer], 
-//                   rect: Array[2,Integer]) => Builder
-Builder.prototype.rect = function(pt, rect) {
-    var w = rect[0], h = rect[1];
-    this.path('M0 0'+
-             ' L'+w+' 0'+
-             ' L'+w+' '+h+
-             ' L0 '+h+
-             ' L0 0'+
-             ' Z');
+// > builder.text % (pt: Array[2,Integer],
+//                   lines: String | Array | Text,
+//                   [size: Float],
+//                   [font: String | Array]) => Builder
+Builder.prototype.text = function(pt, lines, size, font) {
     this.x.pos = pt;
+    var text = lines instanceof Text ? lines
+                     : new Text(lines, B.font(font, size));
+    this.x.text = text;
+    if (!text.stroke) { text.stroke = this.s; }
+    else { this.s = text.stroke; }
+    if (!text.fill) { text.fill = this.f; }
+    else { this.f = text.fill; }
     return this;
 }
-// > Builder.circle % (pt: Array[2,Integer], 
-//                     radius: Integer) => Builder
-Builder.prototype.circle = function(pt, radius) {
-    this.x.pos = pt;
-    this.x.reg = [ radius, radius ];
-    var b = this;
-    this.paint(function(ctx) {
-        var path = this.path;
-        DU.qDraw(ctx, 
-                 b._curStroke(),
-                 b._curFill(),
-                 function() {
-                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
-                 });
-    });
+
+// * FILL & STROKE *
+
+// > builder.fill % (color: String) => Builder
+Builder.prototype.fill = function(fval) {
+    this.f = ((typeof fval === 'string') 
+              ? { color: fval }
+              : (fval.r ? { 'rgrad': fval } : { 'lgrad': fval }));
+    if (this.x.path) this.x.path.fill = this.f;
+    if (this.x.text) this.x.text.fill = this.f;
     return this;
 }
-// > Builder.tween % (type: String, (Tween.T_*)
+// > builder.stroke % (color: String[, width: Float, 
+//                     cap: String, join: String]) // C.PC_* 
+//                  => Builder
+Builder.prototype.stroke = function(sval, width, cap, join) {
+    this.s = ((typeof sval === 'string') ? {
+        'width': (width != null) ? width
+                 : Builder.DEFAULT_STROKE.width,
+        'color': sval,
+        'cap': cap || Builder.DEFAULT_CAP,
+        'join': join || Builder.DEFAULT_JOIN
+    } : (sval.r ? { 'rgrad': sval } : { 'lgrad': sval }));
+    if (this.x.path) this.x.path.stroke = this.s;
+    if (this.x.text) this.x.text.stroke = this.s;
+    return this;
+}
+// > builder.nofill % () => Builder
+Builder.prototype.nofill = function() { 
+    this.f = null;
+    if (this.x.path) this.x.path.fill = null;
+    if (this.x.text) this.x.text.fill = null;
+    return this; 
+}
+// > builder.nostroke % () => Builder
+Builder.prototype.nostroke = function() { 
+    this.s = null;
+    if (this.x.path) this.x.path.stroke = null;
+    if (this.x.text) this.x.text.stroke = null;
+    return this; 
+}
+
+// * STATIC MODIFICATION *
+
+// > builder.reg % (pt: Array[2,Integer]) => Builder
+Builder.prototype.reg = function(pt) {
+    var x = this.x;
+    x.reg = pt;
+    return this;
+}
+// > builder.move % (pt: Array[2,Integer]) => Builder
+Builder.prototype.move = function(pt) {
+    var x = this.x;
+    x.pos = [ x.pos[0] + pt[0],
+              x.pos[1] + pt[1] ];
+    return this;
+}
+// > builder.zoom % (val: Array[2,Float]) => Builder
+Builder.prototype.zoom = function(val) {
+    if (this.x.path) {
+        this.x.path.zoom(val);
+        this.path(this.x.path); // will normalize it
+    }
+    return this;
+}
+
+// * BANDS *
+
+// > builder.band % (band: Array[2,Float]) => Builder
+Builder.prototype.band = function(band) {
+    this.v.setBand(band);
+    return this;
+}
+
+// * TWEENS *
+
+// > builder.tween % (type: String, // (C.T_*)
 //                    band: Array[2,Float], 
 //                    data: Any,
 //                    [easing: String | Object]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
+    var aeasing = (easing && (typeof easing === 'string')) 
+                  ? { type: easing, data: null }
+                  : easing,
+        aeasing = (easing && (typeof easing === 'function'))
+                  ? { f: function() { return easing; }, data: null }
+                  : aeasing;
     this.v.addTween({
         type: type,
         band: band,
         data: data,
-        easing: easing ? ((typeof easing === 'string') 
-                          ? { type: easing, data: null/*edata*/ }
-                          : easing ) : null
+        easing: aeasing
     });
     return this;
 }
-// > Builder.rotate % (band: Array[2,Float], 
+// > builder.rotate % (band: Array[2,Float], 
 //                     angles: Array[2,Float],
 //                     [easing: String]) => Builder
 Builder.prototype.rotate = function(band, angles, easing) {
     return this.tween(C.T_ROTATE, band, angles, easing);
 }
-// > Builder.rotateP % (band: Array[2,Float], 
+// > builder.rotateP % (band: Array[2,Float], 
 //                      [easing: String]) => Builder
 Builder.prototype.rotateP = function(band, easing) {
     // FIXME: take band from translate tween, if it is not defined
     return this.tween(C.T_ROT_TO_PATH, band, null, easing);
 }
-// > Builder.scale % (band: Array[2,Float], 
+// > builder.scale % (band: Array[2,Float], 
 //                    values: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.scale = function(band, values, easing) {
     return this.tween(C.T_SCALE, band, values, easing);
 }
-// > Builder.xscale % (band: Array[2,Float], 
+// > builder.xscale % (band: Array[2,Float], 
 //                     values: Array[2, Float],
 //                     [easing: String]) => Builder
 Builder.prototype.xscale = function(band, values, easing) {
     return this.scale(band, [ [ values[0], values[0] ],
                               [ values[1], values[1] ] ], easing);
 }
-// > Builder.trans % (band: Array[2,Float], 
+// > builder.trans % (band: Array[2,Float], 
 //                    points: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.trans = function(band, points, easing) {
-    return this.transP(band, 'M'+points[0][0]+' '+points[0][1]+
-                            ' L'+points[1][0]+' '+points[1][1]+
-                            ' Z', easing);
+    return this.transP(band, B.path([[points[0][0],points[0][1]],
+                                     [points[1][0],points[1][1]]]), easing);
 }
-// > Builder.transP % (band: Array[2,Float],
-//                     path: String,
+// > builder.transP % (band: Array[2,Float],
+//                     path: String | Path,
 //                     [easing: String]) => Builder
 Builder.prototype.transP = function(band, path, easing) {
-    return this.tween(C.T_TRANSLATE, band, Path.parse(path), easing);
+    return this.tween(C.T_TRANSLATE, band, (path instanceof Path)
+                                           ? path : Path.parse(path), easing);
 }
-// > Builder.alpha % (band: Array[2,Float], 
+// > builder.alpha % (band: Array[2,Float], 
 //                    values: Array[2,Float],
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
     return this.tween(C.T_ALPHA, band, values, easing);
 }
-// > Builder.key % (name: String, value: Float) => Builder
+
+// * REPEAT MODES *
+
+// > builder.mode % (mode: String) => Builder
+Builder.prototype.mode = function(mode) {
+    this.x.mode = mode;
+    return this;
+}
+// > builder.once % () => Builder
+Builder.prototype.once = function() {
+    return this.mode(C.R_ONCE);
+}
+// > builder.loop % () => Builder
+Builder.prototype.loop = function() {
+    return this.mode(C.R_LOOP);
+}
+// > builder.bounce % () => Builder
+Builder.prototype.bounce = function() {
+    return this.mode(C.R_BOUNCE);
+}
+
+// * MODIFIERS & PAINTERS *
+
+// > builder.modify % (modifier: Function(time: Float, 
+//                                        data: Any), 
+//                     data: Any) => Builder
+Builder.prototype.modify = function(func, data) {
+    this.v.addModifier(func, data);
+    return this;
+}
+// > builder.paint % (painter: Function(ctx: Context,
+//                                      data: Any),
+//                    data: Any) => Builder
+Builder.prototype.paint = function(func, data) {
+    this.v.addPainter(func, data);
+    return this;
+}
+
+// * TIME-SWITCH *
+
+// > builder.key % (name: String, value: Float) => Builder
 Builder.prototype.key = function(name, value) {
     // TODO: ensure value is in band?
     this.x.keys[name] = value;
     return this;
 }
-// > Builder.mode % (mode: String) => Builder
-Builder.prototype.mode = function(mode) {
-    this.x.mode = mode;
-    return this;
-}
-Builder.prototype.once = function() {
-    return this.mode(C.R_ONCE);
-}
-Builder.prototype.loop = function() {
-    return this.mode(C.R_LOOP);
-}
-Builder.prototype.bounce = function() {
-    return this.mode(C.R_BOUNCE);
-}
+// > builder.time % (f: Function(t: Float)) => Builder
 Builder.prototype.time = function(f) {
     this.x.tf = f;
     return this;
 }
+// > builder.tease % (ease: Function(t: Float)) => Builder
 Builder.prototype.tease = function(ease) {
     if (!ease) throw new Error('Ease function not defined');
     var duration = this.x.lband[1]-this.x.lband[0];
@@ -269,52 +350,117 @@ Builder.prototype.tease = function(ease) {
     });
     return this;
 }
-// PRIVATE
-Builder.prototype._curStroke = function() {
-    var path = this.x.path;
-    return path ? (path.stroke || Builder.DEFAULT_STROKE) : Builder.DEFAULT_STROKE;
-}
-Builder.prototype._curFill = function() {
-    var path = this.x.path;
-    return path ? (path.fill || Builder.DEFAULT_FILL) : Builder.DEFAULT_FILL;
-}
+
+// * EVENTS *
+
+// > builder.on % (type: String, handler: Function(evt: Event, t: Float)) => Builder
 Builder.prototype.on = function(type, handler) {
     this.v.m_on(type, handler);
     return this;
 }
+
+// TODO: Builder.each
+
+// * PRIVATE *
+
+Builder.prototype._extractStroke = function() {
+    if (this.x.path) return this.x.path.stroke || Builder.DEFAULT_STROKE;
+    if (this.x.text) return this.x.text.stroke || Builder.DEFAULT_STROKE;
+    return Builder.DEFAULT_STROKE;
+}
+Builder.prototype._extractFill = function() {
+    if (this.x.path) return this.x.path.fill || Builder.DEFAULT_FILL;
+    if (this.x.text) return this.x.text.fill || Builder.DEFAULT_FILL;
+    return Builder.DEFAULT_FILL;
+}
+
+// * HELPERS *
 
 Builder.rgb = function(r, g, b, a) {
     return "rgba(" + Math.floor(r) + "," +
                      Math.floor(g) + "," +
                      Math.floor(b) + "," +
                      ((typeof a !== 'undefined') 
-                            ? a : 1) + ");"; 
+                            ? a : 1) + ")"; 
 }
-Builder.hsv = function() {
-    // FIXME: TODO
+Builder.frgb = function(r, g, b, a) {
+    return B.rgb(r*255,g*255,b*255,a); 
 }
-Builder.gradient = function() {
-    // FIXME: TODO
+Builder.hsv = function(h, s, v, a) {
+    return B.fhsv(h/360,s,v,a);
+}
+Builder.fhsv = function(h, s, v, a) {
+    var c = v * s;  
+    var h1 = h * 6; // h * 360 / 60  
+    var x = c * (1 - Math.abs((h1 % 2) - 1));  
+    var m = v - c;  
+    var rgb;  
+
+    if (h1 < 1) rgb = [c, x, 0];  
+    else if (h1 < 2) rgb = [x, c, 0];  
+    else if (h1 < 3) rgb = [0, c, x];  
+    else if (h1 < 4) rgb = [0, x, c];  
+    else if (h1 < 5) rgb = [x, 0, c];  
+    else if (h1 <= 6) rgb = [c, 0, x];  
+
+    return Builder.rgb(255 * (rgb[0] + m), 
+                       255 * (rgb[1] + m), 
+                       255 * (rgb[2] + m), a);
+}
+Builder.lgrad = function(dir, stops) {
+    return {
+        dir: dir,
+        stops: stops
+    };
+}
+Builder.rgrad = function(dir, rad, stops) {
+    return {
+        dir: dir,
+        r: rad,
+        stops: stops
+    };
 }
 Builder.path = function(points) {
     var p = new Path();
     p.add(new MSeg([points[0][0], points[0][1]]));
-    for (var i = 1; i < points.length; i++) {
-        p.add(new LSeg([ points[i][0],
-                         points[i][1] ]));
+    var i = 1, pl = points.length;
+    for (; i < pl; i++) {
+        var pts = points[i];
+        if (pts.length < 3) {
+            p.add(new LSeg([ pts[0], pts[1] ]));
+        } else {
+            p.add(new CSeg([ pts[0], pts[1],
+                             pts[2], pts[3],
+                             pts[4], pts[5] ]));
+        }
     }
+    /*p.add(new MSeg([ points[pl-1][0], points[pl-1][1] ]));*/
     return p;
 }
 Builder.easing = function(func, data) {
     return {
-        'f': function(data) {
-            return func;
-        },
+        'f': function(data) { return func; },
         'data': data
     }
 }
+Builder.easingP = function(path) {
+    return { type: C.E_PATH, 
+        data: ((path instanceof Path)
+               ? path : Path.parse(path)) };
+}
+Builder.easingC = function(seg) {
+    return { type: C.E_CSEG, 
+        data: ((seg instanceof CSeg)
+               ? seg : new CSeg(seg)) };
+}
 Builder.tween = function() {
     // FIXME: TODO
+}
+Builder.font = function(name, size) {
+    var fface = name || Builder.DEFAULT_FFACE;
+        fface = (typeof fface === 'string') ? fface : fface.join(',');
+    var fsize = (size != null) ? size : Builder.DEFAULT_FSIZE;
+    return fsize + 'px ' + fface;
 }
 
 window.Builder = Builder;
