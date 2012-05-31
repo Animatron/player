@@ -1023,7 +1023,7 @@ Element.prototype.draw = function(ctx) {
 Element.prototype.transform = function(ctx) {
     var s = this.state;
     s._matrix = Element._getMatrixOf(s, s._matrix);
-    ctx.globalAlpha = s.alpha;
+    ctx.globalAlpha *= s.alpha;
     s._matrix.apply(ctx);
 }
 // > Element.render % (ctx: Context, gtime: Float)
