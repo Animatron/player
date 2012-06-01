@@ -518,7 +518,7 @@ To create circle, specify its location and radius, and that's all:
 
 #### path ####
 
-> ♦ `builder.path % (path: String | Path, [pt: Array[2,Integer]]) => Builder`
+> ♦ `builder.path % (path: Array | String | Path, [pt: Array[2,Integer]]) => Builder`
 
 Now, if you want some custom shape, you may have it with the similarly easy way
 (may be just a bit complex, though :) ). There's two ways to do it: 
@@ -531,18 +531,18 @@ Now, if you want some custom shape, you may have it with the similarly easy way
      it only supports `M`|`L`|`C` commands, only in upper-case, and we don't
      think it will be required to extend it, may be only adding `Q`-quad segment.
 
-2. If not, we have an even simpler way for you: you just create the array of points, using `B.path` helper (remember static methods from [Aliases](#aliases) chapter?)
+2. If not, we have an even simpler way for you: you just pass the array of points and we create the path:
 
-        b().path(B.path([ [ 0, 0 ], [ 50, 50 ],
-                          [ 80, 80 ], [ 120, 100 ] ]))
+        b().path([ [ 0, 0 ], [ 50, 50 ],
+                   [ 80, 80 ], [ 120, 100 ] ])
                           
     This path will 'turn' at each of four points and end at (120, 100). If you add a last point of (0, 0) (equal to start point), it will be the closed path.
     
     This way even accepts curve segments. If you specify six coordinates instead of two, it will treat that element as bezier-curve points (see [`bezierCurveTo`](http://www.html5canvastutorials.com/tutorials/html5-canvas-bezier-curves/) to know what means each of points). It works like this:
     
-         b().path(B.path([ [ 0, 0 ], [ 50, 50 ],
-                         [ 105, 260, 260, 260, 380, 40 ],
-                         [ 0, 0 ] ]));
+         b().path([ [ 0, 0 ], [ 50, 50 ],
+                    [ 105, 260, 260, 260, 380, 40 ],
+                    [ 0, 0 ] ]);
                     
     The second one works even faster, because it don't parses a string.
     
@@ -550,15 +550,26 @@ The optional `pt` argument specifies the future position of the path in parent s
                     
 You may want to draw a shape by yourself, if it is someway more complex than a path or it is hard to describe it with a path (ellipse, for example). Then you may use [Painters](#painters) and use a canvas-context commands direclty.
 
+3. If you want to cache some path and pass it several times to different shapes, you may use `B.path` helper (remember static methods from [Aliases](#aliases) chapter?) to create it from points array or `anm.Path.parse()` static method to parse it from string:
+
+    var my_path_one = B.path([[ 0, 0 ], [ 50, 50 ], [ 30, 60 ], [ 0, 0 ]]);
+    var my_path_two = anm.Path.parse('M0 0 L50 50 L30 60 L0 0 Z');
+    for (var i = 0; i < 20; i++) {
+       scene.add(b().path(my_path_one).move([i*10, i*10]));
+       scene.add(b().path(my_path_two).move([i*10+5, i*10+5]));
+    }
+
+**NB:** All builder methods who work with paths do accept all these three ways of specifying the path. 
+
 **NB:** One important thing to inform you: every path passed to this function will be normalized. It means that its points will be recalculated to be relative to its center, so if you'll make a shift of 50 by x for each point before passing it to `path()`, you will surely lose the effect: change registration point with [`reg()`](#static-modification) method after the path creation for this purpose. The illustration:
 
     // all these calls will lead to the paths with absolutely equal points
-    b().path(B.path([ [ 50, 50 ], [ 100, 100 ] ]));
-    b().path(B.path([ [ 0, 0 ], [ 50, 50 ] ]));
-    b().path(B.path([ [ -25, -25 ], [ 25, 25 ] ])); // this one will
-                                                    // not even change
+    b().path([ [ 50, 50 ], [ 100, 100 ] ]);
+    b().path([ [ 0, 0 ], [ 50, 50 ] ]);
+    b().path([ [ -25, -25 ], [ 25, 25 ] ]); // this one will
+                                            // not even change
     // use this method to change the registration point
-    b().path(B.path([ [ -25, -25 ], [ 25, 25 ] ]))
+    b().path([ [ -25, -25 ], [ 25, 25 ] ])
        .reg([ -75, -75 ]) // relative to [ 0, 0 ]
     
 
@@ -860,10 +871,10 @@ If you want the easing based on segment, use `B.easingC()` method and pass 6 cur
 
     b().rotate([2, 17], [0, Math.PI*2], B.easingC([20, 20, 19, 30, 45, 120]));
     
-If you want the easing based on segment, use `B.easingP()` method and pass there a path with either string or `B.path()`:
+If you want the easing based on segment, use `B.easingP()` method and pass there a path with either string or array of points:
 
     b().rotate([2, 17], [0, Math.PI*2], B.easingP('M20 20 C20 20 19 30 45 120 Z'));
-    b().rotate([2, 17], [0, Math.PI*2], B.easingP(B.path([20, 20], [20, 20, 19, 30, 45, 120], [20, 20]));   
+    b().rotate([2, 17], [0, Math.PI*2], B.easingP([[20, 20], [20, 20, 19, 30, 45, 120], [20, 20]]));   
     
 ### Time Easing
 

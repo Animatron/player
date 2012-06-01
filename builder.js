@@ -45,6 +45,13 @@ Builder._$ = function(obj) {
     return new Builder(obj);
 }
 
+Builder.__path = function(val, join) {
+    return (Array.isArray(val))
+           ? Builder.path(val) 
+           : ((val instanceof Path) ? val 
+              : Path.parse(path, join))
+}
+
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
 Builder.DEFAULT_FILL = Path.BASE_FILL;
 Builder.DEFAULT_CAP = Path.DEFAULT_CAP;
@@ -80,8 +87,7 @@ Builder.prototype.addS = function(what) {
 // > builder.path % (path: String | Path,
 //                   [pt: Array[2,Integer]]) => Builder
 Builder.prototype.path = function(path, pt) {
-    var path = (path instanceof Path) ? path 
-               : Path.parse(path, this.x.path);
+    var path = Builder.__path(path, this.x.path);
     this.x.path = path;
     path.normalize();
     this.x.reg = [0, 0];
@@ -96,11 +102,9 @@ Builder.prototype.path = function(path, pt) {
 //                   rect: Array[2,Integer]) => Builder
 Builder.prototype.rect = function(pt, rect) {
     var w = rect[0], h = rect[1];
-    this.path(Builder.path([[0, 0],
-                            [w, 0],
-                            [w, h],
-                            [0, h],
-                            [0, 0]]), pt);
+    this.path([[0, 0], [w, 0],
+               [w, h], [0, h],
+               [0, 0]], pt);
     return this;
 }
 // > builder.circle % (pt: Array[2,Integer], 
@@ -274,15 +278,14 @@ Builder.prototype.xscale = function(band, values, easing) {
 //                    points: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.trans = function(band, points, easing) {
-    return this.transP(band, B.path([[points[0][0],points[0][1]],
-                                     [points[1][0],points[1][1]]]), easing);
+    return this.transP(band, [[points[0][0],points[0][1]],
+                              [points[1][0],points[1][1]]], easing);
 }
 // > builder.transP % (band: Array[2,Float],
 //                     path: String | Path,
 //                     [easing: String]) => Builder
 Builder.prototype.transP = function(band, path, easing) {
-    return this.tween(C.T_TRANSLATE, band, (path instanceof Path)
-                                           ? path : Path.parse(path), easing);
+    return this.tween(C.T_TRANSLATE, band, Builder.__path(path, this.x.path), easing);
 }
 // > builder.alpha % (band: Array[2,Float], 
 //                    values: Array[2,Float],
@@ -444,9 +447,7 @@ Builder.easing = function(func, data) {
     }
 }
 Builder.easingP = function(path) {
-    return { type: C.E_PATH, 
-        data: ((path instanceof Path)
-               ? path : Path.parse(path)) };
+    return { type: C.E_PATH, data: Builder.__path(path) };
 }
 Builder.easingC = function(seg) {
     return { type: C.E_CSEG, 
