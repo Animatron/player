@@ -1025,6 +1025,8 @@ You may see the use of `contains()` in the example: it tests if shape has the po
     
 Currently, every mouse event contains only a mouse position (`evt.pos`) and every key event contains only a pressed key info (`evt.key`).
 
+The second optional incoming argument for handler is `t`, it is a render time when handler-modifier was called.
+
 ### Time Jumps
 
 Sometimes you need to change time/frame while playing or on some event, mostly when you have some complex animation, like human body or so. Sometimes it is enough to jump in time, sometimes there's a lot of stuff in a scene, or even its frames calculated dynamically, so its easier to assign a name to frame.

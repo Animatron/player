@@ -812,7 +812,7 @@ function Scene() {
     this._initHandlers(); // TODO: make automatic
 }
 // mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
-provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
+provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
                        C.X_DRAW ]);
 // TODO: add chaining to all external Scene methods?
@@ -990,7 +990,7 @@ function Element(draw, onframe) {
     };
 }
 Element.DEFAULT_LEN = 10;
-provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, 
+provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
                          C.X_DRAW ]);
 // > Element.prepare % () => Boolean
@@ -1204,7 +1204,7 @@ Element.prototype.m_on = function(type, handler) {
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
-            if (!handler.call(this,t,evts[i])) return false;
+            if (!handler.call(this,evts[i],t)) return false;
         }
       }
       return true;
@@ -1584,16 +1584,16 @@ function provideEvents(subj, events) {
         };
     })(events);
     subj.prototype.on = function(event, handler) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
+        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] + 
+                                                   '\' not provided by ' + this);
         if (!handler) throw new Error('You are trying to assign ' + 
                                        'undefined handler for event ' + event);
         this.handlers[event].push(handler);
         return (this.handlers[event].length - 1);
     };
     subj.prototype.fire = function(event, evtobj) {
-        if (!this.provides(event)) throw new Error('Event ' + event + 
-                                                   ' not provided by ' + this);
+        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] + 
+                                                   '\' not provided by ' + this);
         if (this.handle__x && !(this.handle__x(event, evtobj))) return;
         var name = C.__enmap[event]; 
         if (this['handle_'+name]) this['handle_'+name](evtobj);
@@ -1969,19 +1969,22 @@ L.subscribeEvents = function(canvas, anim) {
     canvas.addEventListener('mouseup', function(evt) {
         anim.fire(C.X_MUP, mevt(evt, this));
     }, false);
-    canvas.addEventListener('mousedown', function(evt) {
+    canvas.addEventListener('mousedown', function(evt) {    
         anim.fire(C.X_MDOWN, mevt(evt, this));
     }, false);
-    canvas.addEventListener('mouseclick', function(evt) {
+    canvas.addEventListener('mousemove', function(evt) {    
+        anim.fire(C.X_MMOVE, mevt(evt, this));
+    }, false);    
+    canvas.addEventListener('click', function(evt) {
         anim.fire(C.X_MCLICK, mevt(evt, this));
     }, false);
     canvas.addEventListener('keyup', function(evt) {
         anim.fire(C.X_KUP, kevt(evt));
     }, false);    
-    canvas.addEventListener('keydown', function(evt) {
+    canvas.addEventListener('keydown', function(evt) {    
         anim.fire(C.X_KDOWN, kevt(evt));
     }, false);
-    canvas.addEventListener('keypress', function(evt) {
+    canvas.addEventListener('keypress', function(evt) {    
         anim.fire(C.X_KPRESS, kevt(evt));
     }, false);
 }
@@ -2349,7 +2352,7 @@ C.PC_ROUND = 'round';
 C.PC_BUTT = 'butt';
 C.PC_MITER = 'miter';
 C.PC_SQUARE = 'square';
-C.PC_BEVEL = 'square';
+C.PC_BEVEL = 'bevel';
 
 // > Path % (str: String) 
 function Path(str, stroke, fill) {
