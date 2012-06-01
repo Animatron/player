@@ -1027,6 +1027,8 @@ Currently, every mouse event contains only a mouse position (`evt.pos`) and ever
 
 The second optional incoming argument for handler is `t`, it is a render time when handler-modifier was called.
 
+**NB** Don't forget to return `true` when you handle an event, otherwise it will flicker on handling. May be soon we will change the behaviour to the opposite in event handlers and modifiers, `return true` will mean **not** to draw the shape and default `return false` will mean that it is ok to draw it.
+
 ### Time Jumps
 
 Sometimes you need to change time/frame while playing or on some event, mostly when you have some complex animation, like human body or so. Sometimes it is enough to jump in time, sometimes there's a lot of stuff in a scene, or even its frames calculated dynamically, so its easier to assign a name to frame.
