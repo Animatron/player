@@ -1710,6 +1710,7 @@ var DU = {}; // means "Drawing Utils"
 
 // FIXME: move to `Path`?
 DU.applyStroke = function(ctx, stroke) {
+    if (!stroke) return;
     ctx.lineWidth = stroke.width;
     ctx.strokeStyle = stroke._style // calculated once for stroke
                       || (stroke._style = Path.createStyle(ctx, stroke)); 
@@ -1719,6 +1720,7 @@ DU.applyStroke = function(ctx, stroke) {
 
 // FIXME: move to `Path`?
 DU.applyFill = function(ctx, fill) {
+    if (!fill) return;
     ctx.fillStyle = fill._style // calculated once for fill
                   || (fill._style = Path.createStyle(ctx, fill));
 }
