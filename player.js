@@ -73,10 +73,21 @@ function _s4() {
 function guid() {
    return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
 }
+/*function _strhash() {
+  var hash = 0;
+  if (this.length == 0) return hash;
+  for (i = 0; i < this.length; i++) {
+    char = this.charCodeAt(i);
+    hash = ((hash<<5)-hash)+char;
+    hash = hash & hash; // Convert to 32bit integer
+  }
+  return hash;
+}*/
 
 function arr_remove(arr, idx) {
     return arr.slice(0,i).concat( arr.slice(i+1) );   
 }
+
 // for one-level objects, so no hasOwnProperty check
 function obj_clone(what) {
     var dest = {};

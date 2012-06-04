@@ -15,6 +15,8 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
+var __b_cache = {};
+
 // =============================================================================
 // === BUILDER =================================================================
 
@@ -42,7 +44,13 @@ function Builder(obj) {
     this.s = this._extractStroke();
 }
 Builder._$ = function(obj) {
-    return new Builder(obj);
+    if (obj && (obj instanceof Element)) {
+        if (__b_cache[obj.id]) return __b_cache[obj.id];
+        return (__b_cache[obj.id] = new Builder(obj));
+    }
+    var inst = new Builder(obj);
+    __b_cache[inst.v.id] = inst;
+    return inst;
 }
 
 Builder.__path = function(val, join) {
@@ -365,7 +373,10 @@ Builder.prototype.on = function(type, handler) {
 // * UTILS *
 
 // > builder.each % (visitor: Function(elm: Element)) => Builder
-/* Builder.prototype.each = function() */
+Builder.prototype.each = function(func) {
+    this.v.visitChildren(func);
+    return this;
+} 
 
 // > builder.data % ([val: value]) => Builder
 Builder.prototype.data = function(value) {

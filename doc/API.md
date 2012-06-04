@@ -258,7 +258,7 @@ Loading code:
                                         .rotate([0, 5], [0, Math.PI / 2]);
     createPlayer('my_canvas').load(scene).play();
 
-**Note**: You may want to create an alias for builder, so it will look even more in JQuery-style:
+**Note**: You may want to create an alias for builder, so it will look even more in JQuery-style (and in that version it auto-caches the instances):
 
     var b = Builder._$; // instead of "b", you may even name it "_" or "$",
                         // if it will not clash with JQuery or some other library
@@ -367,8 +367,8 @@ By the way, order of operations over the `Builder` instance has <sub>almost</sub
 
 It is too long to type `new Builder(. . .)` all the time when you need a new instance of `Builder`, so it is recommended to make an alias for it. Any you want, even "`_`" (underscore), just ensure that it not clashes with some existing variable. So, if you are using JQuery on your page, please don't use "`$`" alias, or wrap your code with anonymous function. We think the best one is "`b`".
 
-    var b = Builder._$; // $_ points to the function that calls 
-                        // "new Builder(arguments)" 
+    var b = Builder._$; // `._$` points to the function that calls 
+                        // "new Builder(arguments)" or takes one from cache
 
 Among with `b` (or your variant), you may need some alias to access player constants (in fact, they are only used for easings, so it is really optional, if you don't use any of these). The single object that contains player constants is `anm.C`, so you may append some `C` variable to your code, if you want to access it faster:
 
@@ -447,6 +447,8 @@ When you have an instance of `Builder`, it is just the prepared state of some [s
     for (var i = 0; i < 30; i++) {
         c.add(b(clone).move([i*10, i*10])); // add new clone 
     }
+
+**NB:** `Builder._$(...)`/`b(...)` function differs from `new Builder(...)` call — if `Element` is passed there, it checks if there was one created for this element already, and instantiates _new_ `Builder` only if not, else it returns the cached one. Cloning is cloning however, so if there is a `Builder` passed, it honestly creates a clone.
 
 ### Structures
 
@@ -1103,6 +1105,18 @@ Also you may set a name to some frame using `key()` function and jump to it with
        });
 
 ### Elements Interactions
+
+> ♦ `builder.each % (visitor: Function(elm: Element)) => Builder`
+
+With `each()` method you may loop through all of the children of the element. Note that you get the `Element` instance each time, not the `Builder`, so if you want, you may wrap it or may not:
+
+    var root = b();
+    for (var i = 0; i < 100; i++) {
+      root.add(b().circle([i*10, i*10], 5));
+    }
+    root.each(function(elm) {
+      b(elm).stroke('#f00');
+    });
 
 > ♦ `builder.data % ([value: Any]) => Builder | Any`
 
