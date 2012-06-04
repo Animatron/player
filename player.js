@@ -980,6 +980,7 @@ function Element(draw, onframe) {
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if modifying
     this.__evtCache = [];
+    this.__data = null;
     this._initHandlers(); // TODO: make automatic
     var _me = this,
         default_on = this.on;
@@ -1297,6 +1298,10 @@ Element.prototype.local = function(pt) {
 Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
+}
+Element.prototype.data = function(val) {
+  if (typeof val !== 'undefined') return (this.__data = val);
+  return this.__data;
 }
 Element.prototype.toString = function() {
     return "[ Element '" + (this.name || this.id) + "' ]";

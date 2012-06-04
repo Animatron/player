@@ -362,7 +362,19 @@ Builder.prototype.on = function(type, handler) {
     return this;
 }
 
-// TODO: Builder.each
+// * UTILS *
+
+// > builder.each % (visitor: Function(elm: Element)) => Builder
+/* Builder.prototype.each = function() */
+
+// > builder.data % ([val: value]) => Builder
+Builder.prototype.data = function(value) {
+    if (typeof value !== 'undefined') {
+        this.v.data(value)
+        return this;
+    }
+    return this.v.data();
+}
 
 // * PRIVATE *
 

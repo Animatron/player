@@ -1104,6 +1104,18 @@ Also you may set a name to some frame using `key()` function and jump to it with
 
 ### Elements Interactions
 
+> ♦ `builder.data % ([value: Any]) => Builder | Any`
+
+`data(...)`  method allows you to store any additional data in the element. If there is no parameter, method returns the current stored value. If there is one, method updates element's stored value with the passed one and returns `Builder` instance:
+
+    var my_state = { foo: 'foo' };
+    var c = b().circle([140, 25], 20).data(my_state);
+    console.log(c.data().foo);
+    my_state.foo = 'bar';
+    console.log(c.data().foo);
+
+Internally, this data is saved as `Element`'s `.__data` property, so you may access it directly with `b().v.__data`, if you want.
+
 ### Helpers
 
 Scene
