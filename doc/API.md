@@ -1118,6 +1118,10 @@ With `each()` method you may loop through all of the children of the element. No
       b(elm).stroke('#f00');
     });
 
+> ♦ `builder.deach % (visitor: Function(elm: Element)) => Builder`
+
+There is a `deach()` ("deep-each") method with the same definition to iterate deeper through each of the `(`grand-`)*`children.
+
 > ♦ `builder.data % ([value: Any]) => Builder | Any`
 
 `data(...)`  method allows you to store any additional data in the element. If there is no parameter, method returns the current stored value. If there is one, method updates element's stored value with the passed one and returns `Builder` instance:

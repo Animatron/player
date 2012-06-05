@@ -1255,7 +1255,7 @@ Element.prototype.reset = function() {
     s.p = null; s.t = null; s.key = null;
     this.__lastJump = null;
     s._matrix.reset();
-    this.__clearEvtState();
+    //this.__clearEvtState();
     this.visitChildren(function(elm) {
         elm.reset();
     });
@@ -1286,6 +1286,7 @@ Element.prototype.unlock = function() {
     return result;
 }
 Element.prototype.stateAt = function(t) { // FIXME: test
+    //throw new Error('not implemented');
     this.lock();
     var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
@@ -1353,6 +1354,20 @@ Element.prototype._stateStr = function() {
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__callModifiers = function(order, ltime) {
+    // save the previous state
+    this.state._ = null; // clear the pointer, so it will not be cloned
+    this._state = obj_clone(this.state);
+    this._state._ = this.state;
+
+    // now it looks like:
+    // this.
+    //     .state -> state from the last modifiers call
+    //     ._state -> clone of the last state, it is passed to modifiers as `this`
+    //     ._state._ -> a pointer to the last state, so it will be accessible in
+    //                  modifiers as `this._`
+
+    this.__loadEvts(this._state);
+
     var modifiers = this._modifiers;
     var type, seq;
     for (var typenum = 0, last = order.length;
@@ -1363,9 +1378,12 @@ Element.prototype.__callModifiers = function(order, ltime) {
         this.__mbefore(type);      
         if (seq) {
             for (var si = 0; si < seq.length; si++) {
-                if (!seq[si][0].call(this.state, ltime, seq[si][1])) {
+                if (!seq[si][0].call(this._state, ltime, seq[si][1])) {
                     this.__mafter(type, false);
                     this.__modifying = null;
+                    this.__clearEvts(this._state);
+                    // NB: nothing happens to the state here,
+                    //     the modified things are not applied
                     return false;
                 }
             }
@@ -1373,6 +1391,14 @@ Element.prototype.__callModifiers = function(order, ltime) {
         this.__mafter(type, true);
     }
     this.__modifying = null;
+
+    this.__clearEvts(this._state);
+
+    // apply the modified state
+    this.state = this._state;
+    this._state = null;
+    this.state._ = null;
+
     return true;
 }
 Element.prototype.__callPainters = function(order, ctx) {
@@ -1410,17 +1436,17 @@ Element.prototype.__addTypedPainter = function(type, painter, data) {
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
 Element.prototype.__mbefore = function(type) {
-    if (type === Element.EVENT_MOD) {
+    /*if (type === Element.EVENT_MOD) {
         this.__loadEvtsFromCache();
-    }
+    }*/
 }
 Element.prototype.__mafter = function(type, result) { 
     if (!result || (type === Element.USER_MOD)) {
         this.__lmatrix = Element._getIMatrixOf(this.state);
     }
-    if (!result || (type === Element.EVENT_MOD)) {
+    /*if (!result || (type === Element.EVENT_MOD)) {
         this.__clearEvtState();
-    }
+    }*/
 }
 Element.prototype.__pbefore = function(type) { }
 Element.prototype.__pafter = function(type) { }
@@ -1487,10 +1513,33 @@ Element.prototype.__checkJump = function(at) {
     return t;
 } 
 Element.prototype.handle__x = function(type, evt) {
-    this.__saveToEvtState(type, evt);
+    this.__saveEvt(type, evt);
     return true;
 }
-Element.prototype.__saveToEvtState = function(type, evt) {
+Element.prototype.__saveEvt = function(type, evt) {
+    this.__evtCache.push([type, evt]);
+}
+Element.prototype.__loadEvts = function(to) {
+    var cache = this.__evtCache;
+    var cache_len = cache.length;
+    this.__clearEvts(to);
+    if (cache_len > 0) {
+        var edata, type, evts;
+        for (var ei = 0; ei < cache_len; ei++) {
+            edata = cache[ei];
+            type = edata[0];
+            to.__evt_st |= type;
+            evts = to.__evts;
+            if (!evts[type]) evts[type] = [];
+            evts[type].push(edata[1]);
+        }
+        this.__evtCache = [];
+    }
+}
+Element.prototype.__clearEvts = function(from) {
+    from.__evt_st = 0; from.__evts = {};
+}
+/*Element.prototype.__saveToEvtState = function(type, evt) {
     if (this.__modifying !== Element.EVENT_MOD) {
         this.state.__evt_st |= type;
         var evts = this.state.__evts;
@@ -1525,7 +1574,7 @@ Element.prototype.__loadEvtsFromCache = function() {
         }
         this.__evtCache = [];
     }
-}
+}*/
 
 // state of the element
 Element.createState = function() {

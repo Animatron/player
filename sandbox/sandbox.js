@@ -128,6 +128,15 @@ examples.push([ 0 /*version*/, [
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
 
+/* var sc = b().rect([40, 40], [20, 20])
+            .fill('#f00')
+            .on(C.X_MCLICK, function(evt, t) {
+                console.log(evt, t);
+                console.log(sc.v.contains(evt.pos))
+                return true;
+            });
+return sc; */
+
 var uexamples = [];
 
 var _player = null; 
