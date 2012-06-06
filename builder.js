@@ -57,7 +57,7 @@ Builder.__path = function(val, join) {
     return (Array.isArray(val))
            ? Builder.path(val) 
            : ((val instanceof Path) ? val 
-              : Path.parse(path, join))
+              : Path.parse(val, join))
 }
 
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
@@ -125,7 +125,7 @@ Builder.prototype.circle = function(pt, radius) {
         var path = this.path;
         DU.qDraw(ctx, b.s, b.f,
                  function() {
-                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
+                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                  });
     });
     return this;
@@ -375,6 +375,11 @@ Builder.prototype.on = function(type, handler) {
 // > builder.each % (visitor: Function(elm: Element)) => Builder
 Builder.prototype.each = function(func) {
     this.v.visitChildren(func);
+    return this;
+}
+// > builder.deach % (visitor: Function(elm: Element)) => Builder
+Builder.prototype.deach = function(func) {
+    this.v.travelChildren(func);
     return this;
 } 
 
