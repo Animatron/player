@@ -971,6 +971,8 @@ To add modifier function to a shape, use `modify()` method. This function gets l
         return (t > 4);
     });
 
+In fact, when you change the `state` in any modifier, you change not the current element `.state`, but the cloned state, which will be applied only when all modifiers passed successfully. It gives you the ability to safely get previous (from last render) element state with `b().v.state`. Inside the modifier, previous state is also accessible through `this._` (`this._.x`, `this._.angle`, `this._.alpha`, ....).
+
 #### Painters
 
 __Painter__ is the function that gets current context and applies shape's `xdata` to draw something. And any shape may have any number of such functions, they will be applied one by one on every frame to draw it. Debug function that draw registration points and moving paths are also painters. In fact, they are prepared when you load your scene into player.

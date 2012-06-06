@@ -137,6 +137,24 @@ examples.push([ 0 /*version*/, [
             });
 return sc; */
 
+/* 
+var root = b().rect([0, 0], [40, 40])
+              .fill('#06f')
+              .stroke('#036', 2);
+var t = root;
+
+for (var i = 0; i < 3; i++) {
+  var inner = b(t).trans([0, 3], [[-20,-20],
+                                  [0,0]]);
+  t.add(inner);
+  t = inner;
+}
+
+var cvselm = document.getElementById('my-canvas');
+return root.move([ cvselm.width / 2,
+                   cvselm.height / 2 ]);
+*/
+
 var uexamples = [];
 
 var _player = null; 

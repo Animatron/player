@@ -1609,7 +1609,8 @@ Element.createXData = function() {
              '_mpath': null };
 }
 Element._getMatrixOf = function(s, m) {
-    var _t = m || new Transform();
+    var _t = (m ? (m.reset(), m) 
+                : new Transform());
     _t.translate(s.lx, s.ly);
     _t.translate(s.x, s.y); 
     _t.rotate(s.angle);
