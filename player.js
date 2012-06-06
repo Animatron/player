@@ -1001,7 +1001,7 @@ function Element(draw, onframe) {
         } else default_on.call(_me, type, handler);
     };
 }
-Element.DEFAULT_LEN = 10;
+Element.DEFAULT_LEN = Number.MAX_VALUE;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
                          C.X_DRAW ]);
@@ -1601,7 +1601,7 @@ Element.createXData = function() {
              'tweens': {},     // animation tweens (Tween class)         
              'mode': C.R_ONCE,            // playing mode
              'lband': [0, Element.DEFAULT_LEN], // local band
-             'gband': [0, Element.DEFAULT_LEN], // global bane
+             'gband': [0, Element.DEFAULT_LEN], // global band
              'canvas': null,   // own canvas for static (cached) elements
              'dimen': null,    // dimensions for static (cached) elements
              'keys': {},

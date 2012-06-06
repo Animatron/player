@@ -119,10 +119,9 @@ Builder.prototype.rect = function(pt, rect) {
 //                     radius: Float) => Builder
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
-    this.x.reg = [ radius, radius ];
+    this.x.reg = [ 0, 0 ];
     var b = this;
     this.paint(function(ctx) {
-        var path = this.path;
         DU.qDraw(ctx, b.s, b.f,
                  function() {
                     ctx.arc(0, 0, radius, 0, Math.PI*2, true);

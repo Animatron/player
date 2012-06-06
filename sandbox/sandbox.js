@@ -138,21 +138,27 @@ examples.push([ 0 /*version*/, [
 return sc; */
 
 /* 
-var root = b().rect([0, 0], [40, 40])
+var size = 35;
+var t = root = b().rect([0, 0], [size, size])
               .fill('#06f')
               .stroke('#036', 2);
-var t = root;
 
-for (var i = 0; i < 3; i++) {
-  var inner = b(t).trans([0, 3], [[-20,-20],
-                                  [0,0]]);
+for (var i = 0; i < 8; i++) {
+  var inner = b(t).fill(B.rgb(i*30,0,0))
+                  .reg([size*1.5, 0])
+                  .rotate([0, 1.5],
+                    [ Math.PI / 2, 0 ],
+                    C.X_CIN)
+                  .rotate([1.5, 3],
+                    [ 0, Math.PI / 2 ],
+                    C.X_COUT);
   t.add(inner);
   t = inner;
 }
 
 var cvselm = document.getElementById('my-canvas');
-return root.move([ cvselm.width / 2,
-                   cvselm.height / 2 ]);
+return root.move([ (cvselm.width / 2) - (size),
+                   (cvselm.height / 2) - (size/2) ]);
 */
 
 var uexamples = [];
