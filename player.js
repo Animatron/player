@@ -616,6 +616,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                                                        player.state.time);
                             }
                             if (player.info) player.info.show(); 
+                            return true;
                         };
                     })(this), false);
     this.canvas.addEventListener('mouseout', (function(player) { 
@@ -624,7 +625,11 @@ Player.prototype.subscribeEvents = function(canvas) {
                                 (!player.controls.evtInBounds(evt))) {
                                 player.controls.hide();
                             }
-                            if (player.info) player.info.hide(); 
+                            if (player.info &&
+                                (!player.info.evtInBounds(evt))) {
+                              player.info.hide(); 
+                            }
+                            return true;
                         };
                     })(this), false);
 }
@@ -3241,7 +3246,7 @@ Controls.prototype.subscribeEvents = function(canvas) {
             return function(evt) { 
                 controls.hide(); 
             };
-        })(this), false);  
+        })(this), false);
 }
 Controls.prototype.render = function(state, time, _force) {
     if (this.hidden) return;
@@ -3482,6 +3487,7 @@ InfoBlock.prototype.update = function(parent) {
     _div.style.height = _h + 'px';
     _div.style.top = _t + 'px';
     _div.style.left = _l + 'px';
+    this.bounds = [ _l, _t, _l+_w, _t+_h ];
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
@@ -3501,6 +3507,18 @@ InfoBlock.prototype.inject = function(meta, anim) {
             '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
+}
+InfoBlock.prototype.inBounds = function(point) {
+    if (this.hidden || !this.bounds) return false;
+    var _b = this.bounds;
+    return (point[0] >= _b[0]) &&
+           (point[0] <= _b[2]) &&
+           (point[1] >= _b[1]) &&
+           (point[1] <= _b[3]); 
+}
+InfoBlock.prototype.evtInBounds = function(evt) {
+    if (this.hidden) return false;
+    return this.inBounds([evt.pageX, evt.pageY]);
 }
 InfoBlock.prototype.reset = function() {
     
