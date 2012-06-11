@@ -120,6 +120,7 @@ Builder.prototype.rect = function(pt, rect) {
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
+    this.path(DU.drawArc(0,0,radius, 0, 1, 12));
     var b = this;
     this.paint(function(ctx) {
         DU.qDraw(ctx, b.s, b.f,

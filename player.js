@@ -1814,6 +1814,39 @@ DU.qDraw = function(ctx, stroke, fill, func) {
     ctx.restore();
 }
 
+DU.drawArc = function(centerX, centerY, radius, startAngle, arcAngle, steps){
+    //
+    // For convenience, store the number of radians in a full circle.
+    var twoPI = 2 * Math.PI;
+    //
+    // To determine the size of the angle between each point on the
+    // arc, divide the overall angle by the total number of points.
+    var angleStep = arcAngle/steps;
+    //
+    // Determine coordinates of first point using basic circle math.
+    var res = [];
+    var xx = centerX + Math.cos(startAngle * twoPI) * radius;
+    var yy = centerY + Math.sin(startAngle * twoPI) * radius;
+    //
+    // Move to the first point.
+    res.push([xx, yy]);
+    //
+    // Draw a line to each point on the arc.
+    for(var i=1; i<=steps; i++){
+        //
+        // Increment the angle by "angleStep".
+        var angle = startAngle + i * angleStep;
+        //
+        // Determine next point's coordinates using basic circle math.
+        xx = centerX + Math.cos(angle * twoPI) * radius;
+        yy = centerY + Math.sin(angle * twoPI) * radius;
+        //
+        // Draw a line to the next point.
+        res.push([xx, yy]);
+    }
+    return res;
+}
+
 var G = {}; // geometry
 
 // for all functions below, 
