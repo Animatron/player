@@ -570,6 +570,11 @@ Player.prototype.changeZoom = function(ratio) {
 // }
 Player.prototype.configureCnvs = function(conf) {
     this._animInfo = conf;
+    var cnvs = this.canvas;
+    if (cnvs.hasAttribute('width') && cnvs.hasAttribute('height')) {
+        conf.width = cnvs.getAttribute('width');
+        conf.height = cnvs.getAttribute('height');
+    }
     this._prepareCanvas(conf);
     // inject information to html
     

@@ -158,6 +158,8 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 
 `cnvs` (shorten from 'canvas') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
 
+**NB:** If canvas element where player attached to has `width` and `height` attributes set, then they have a higher priority over configuration when loading a scene. So if you want player to update its size dynamically from options or animation configuration, ensure to remove these attributes from element. 
+
 #### Example ####
 
 The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you want):
