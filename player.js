@@ -467,7 +467,9 @@ Player.prototype.stop = function() {
 
     if (player.anim) {
         _state.happens = C.STOPPED;
-        player.drawAt(_state.duration * Player.PREVIEW_POS);
+        player.drawAt((player.mode & C.M_DYNAMIC) 
+            ? 0 
+            : _state.duration * Player.PREVIEW_POS);
     } else {
         _state.happens = C.NOTHING;
         player.drawSplash();
@@ -832,6 +834,9 @@ function Scene() {
     this.duration = 0;
     this._initHandlers(); // TODO: make automatic
 }
+
+Scene.DEFAULT_VIDEO_DURATION = 10;
+
 // mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN, 
@@ -2029,6 +2034,10 @@ L.loadScene = function(player, scene, callback) {
     // assign
     player.anim = scene;
     if (!player.state.duration) {
+        if (!(player.mode & C.M_DYNAMIC) 
+            && (scene.duration === Number.MAX_VALUE)) {
+          scene.duration = Scene.DEFAULT_VIDEO_DURATION;
+        }
         player.updateDuration(scene.duration);
     }
     if (callback) callback.call(player);
