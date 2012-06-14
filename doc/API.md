@@ -487,6 +487,10 @@ So, to resume: any element may be a parent one, it may have any number of childr
 
 Just add something like `.circle([0, 0], 50)` to the `column` element in example above, and you'll see how it works. (It will shift the location of columns to be in center of circle, so you may want to change `scene.move([10, 10])` to `scene.move([60, 60])`, like the radius of circle + padding of 10, and the animation will be back in bounds).
 
+> ♦ `builder.remove % (what: Element | Builder) => Builder`
+
+You may permanently remove some element from scene if you want. Just call `remove()` method at any of its parents. But it is a slow operation (the deeper element distance from callee is, the operation slower), please just use it if you really know what you want to do. If you want to disable an element (completely), just call [`b().disable()`](#elements-interactions).
+
 ### Shapes
 
 If you will dive into internals of player API ([Scene](#scene) section), you will notice that any element may represent:
@@ -936,9 +940,9 @@ See [The Flow](#the-flow) section for more detailed description.
 
 __Modifier__ is the function that gets current local time and changes shape's `state` conforming to it. It may even substitute this time. And any shape may have any number of such functions, they will be applied to this shape one by one on every frame before drawing. Tweens are also modifiers. In fact, they are prepared when you load your scene into player. One modifier checks if element band fits current time. If any of modifiers fail, the element will not be drawn.
 
-> ♦ `builder.modify % (modifier: Function(time: Float, data: Any), [data: Any]) => Builder`
+> ♦ `builder.modify % (modifier: Function(time: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range); its `this` pointer points to the shape's `state`, so you may freely *modify* it; this function *must* return either `true` or `false`, if one of such functions returns `false`, the element will not even be drawn.
+To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range); its `this` pointer points to the shape's `state`, so you may freely *modify* it; every such function returns `false` by default (when you return nothing) and it means "do not stop execution, continue". It is done to let you forget to return something, so all modifiers do pass by default. If you will manually return `true` (treat it as "please stop execution, I don't need this element now"), the execution will stop.
 
 <!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
 
@@ -947,14 +951,12 @@ To add modifier function to a shape, use `modify()` method. This function gets l
     b().modify(function(t) {
         this.x = 10 * t;
         this.sy = t / 15;
-        return true;
     });
     
     // adding prepared modifier to several shapes
     // and passing some data to it
     var preparedModifier = function(t, value) {
         this.angle = Math.PI / (t * value);
-        return true;
     };
     b().modify(preparedModifier, .1);
     b().modify(preparedModifier, .5);
@@ -968,18 +970,38 @@ To add modifier function to a shape, use `modify()` method. This function gets l
         this.alpha = t / my_shape.v.duration();
     });
     
-    // returning false if this element must not be visible
+    // returning true if this element must not be visible
     b().modify(function(t) {
-        return (t > 4);
+        return !(t > 4);
     });
 
-In fact, when you change the `state` in any modifier, you change not the current element `.state`, but the cloned state, which will be applied only when all modifiers passed successfully. It gives you the ability to safely get previous (from last render) element state with `b().v.state`. Inside the modifier, previous state is also accessible through `this._` (`this._.x`, `this._.angle`, `this._.alpha`, ....).
+In fact, when you change the `state` in any modifier, you change not the current element `.state`, but the cloned state, which will be applied only when all modifiers passed successfully. It gives you the ability to safely get previous (from last render) element state with `b().v.state` (there is no meaning in modifying it, it is the _previous_ state). Inside the modifier, previous state is also accessible through `this._` (`this._.x`, `this._.angle`, `this._.alpha`, ....). Also, there is a link to current element (modifier owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases. Anyway, you may wrap `this.$` with `b()` (like `b(this.$)`), and you will get the same builder you use outside from cache (if it wasn't created, it will be created).
+
+As you may noticed in example, you may optionally pass `data` object of any type, it will be passed to your modifier as second parameter every time it will be called. Also, you may specify a priority number, the higher this number, the later this modifier will be called in the modifiers sequence. The modifiers with the same priority will be called in the order of addition.
+
+It is ok to have a number of modifiers that check some flag and return `true` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 20 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
+
+    var scene = b();
+    var ctx = {};
+    // which elements to hide
+    ctx.hide = [ false, true, true, false, false,
+                 true, false, true, false, true ];
+    for (var i = 0; i < 10; i++) {
+        b().rect([10, 10], [5, 5])
+           .modify((function(i) { // closure for i
+              return function(t, ctx) {
+                 return ctx.hide[i];
+              }
+            })(i), ctx);
+    };
+
+However, please don't forget about [`data()` method](#elements-interactions). It will better fit you needs (and speed) in most cases.
 
 #### Painters
 
 __Painter__ is the function that gets current context and applies shape's `xdata` to draw something. And any shape may have any number of such functions, they will be applied one by one on every frame to draw it. Debug function that draw registration points and moving paths are also painters. In fact, they are prepared when you load your scene into player.
 
-> ♦ `builder.paint % (painter: Function(ctx: Context, data: Any), [data: Any]) => Builder`
+> ♦ `builder.paint % (painter: Function(ctx: Context, data: Any), [data: Any], [priority: Integer]) => Builder`
 
 To add painter function to a shape, use `paint()` method. This function gets canvas context; its `this` pointer points to the shape's `xdata`, so you may use it to draw something, but please *do not* modify anything at first level of `xdata`.
 
@@ -1012,6 +1034,8 @@ To add painter function to a shape, use `paint()` method. This function gets can
     my_shape.paint(function(ctx) {
         ctx.arc(....);
     });
+
+As for modifiers, you may optionally pass `data` object of any type, and it will be passed to your painter as second parameter every time it will be called. And again, you may specify a priority number — the higher this number, the later this painter will be called in the painters sequence. The painters with the same priority will be called in the order of addition. Also, there is a link to current element (painter owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases.
 
 ### Events
 
@@ -1109,6 +1133,32 @@ Also you may set a name to some frame using `key()` function and jump to it with
        });
 
 ### Elements Interactions
+
+> ♦ `builder.disable % () => Builder`
+
+Disable an element, so it will not be rendered or calculated at all, including its children. It is the same to setting `b().v.disable` (or `this.$.disable` in modifiers/painters) to `true`. If you disable an element from inside of modifier, you can not enable it back from the same modifier, because this modifier will not be called at all while the element stays disabled — you only may enable it from outside. If you want to hide element temporary, use the return value of modifier. But disabling is useful to switch scenes, for example:
+
+    var scene1 = b()....;
+    var scene2 = b()....;
+    var scene3 = b()....;
+    scene1.on(C.X_MCLICK, function(evt) {
+                if (/* next button clicked */) {
+                    scene1.disable();
+                    scene2.enable();
+                }
+             });
+    scene2.modify(function(t) {
+                if (t > 10) {
+                    scene2.disable();
+                    scene3.enable();
+                }
+             });
+
+However, if there are a lot of elements (dozens) in your scene and you see that it all works slow, may be it is better to [`remove()` it](#structures).
+
+> ♦ `builder.enable % () => Builder`
+
+The inverse to `disable()` operation. Enables element back, so it will participate in calculations. It is the same to setting `b().v.disable` (or `this.$.disable` in modifiers/painters) to `false`.
 
 > ♦ `builder.each % (visitor: Function(elm: Element)) => Builder`
 

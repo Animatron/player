@@ -87,6 +87,15 @@ Builder.prototype.addS = function(what) {
     }
     return this;    
 }
+// > builder.remove % (what: Element | Builder) => Builder
+Builder.prototype.remove = function(what) {
+    if (what instanceof Element) {
+        this.v.remove(what);    
+    } else if (what instanceof Builder) {
+        this.v.remove(what.v);
+    }
+    return this;       
+}
 
 // * SHAPES *
 
@@ -140,7 +149,6 @@ Builder.prototype.image = function(pt, src) {
                 b.__modify(Element.SYS_MOD, function(t) {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
-                    return true;
                 });
            });
     }
@@ -325,16 +333,16 @@ Builder.prototype.bounce = function() {
 
 // > builder.modify % (modifier: Function(time: Float, 
 //                                        data: Any), 
-//                     data: Any) => Builder
-Builder.prototype.modify = function(func, data) {
-    this.v.addModifier(func, data);
+//                     [data: Any, priority: Integer]) => Builder
+Builder.prototype.modify = function(func, data, priority) {
+    this.v.addModifier(func, data, priority);
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,
 //                                      data: Any),
-//                    data: Any) => Builder
-Builder.prototype.paint = function(func, data) {
-    this.v.addPainter(func, data);
+//                    [data: Any, priority: Integer]) => Builder
+Builder.prototype.paint = function(func, data, priority) {
+    this.v.addPainter(func, data, priority);
     return this;
 }
 
@@ -371,6 +379,16 @@ Builder.prototype.on = function(type, handler) {
 
 // * UTILS *
 
+// > builder.disable % () => Builder
+Builder.prototype.disable = function(func) {
+    this.v.disabled = true;
+    return this;
+}
+// > builder.enable % () => Builder
+Builder.prototype.enable = function(func) {
+    this.v.disabled = false;
+    return this;
+}
 // > builder.each % (visitor: Function(elm: Element)) => Builder
 Builder.prototype.each = function(func) {
     this.v.visitChildren(func);
