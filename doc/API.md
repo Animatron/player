@@ -70,7 +70,7 @@ If you'd like to _customize_ things a bit more, or to have more control over the
 
 ##### 2a. #####
 
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`player.js`](https://raw.github.com/Animatron/player/master/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`anm.player.js`](https://raw.github.com/Animatron/player/master/anm.player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>
@@ -78,7 +78,7 @@ To do so, either clone [the repository](https://github.com/Animatron/player) or 
       <head>
         <title>My Great Page</title>
      ➭  <script src="./matrix.js" type="text/javascript"></script>
-     ➭  <script src="./player.js" type="text/javascript"></script>
+     ➭  <script src="./anm.player.js" type="text/javascript"></script>
      ➭  <!-- importer or scene files go here, if one required -->
      ➭  <script type="text/javascript">
      ➭     function startPlaying() {
@@ -247,10 +247,10 @@ Loading code:
 
 #### c. building with Builder ####
 
-[`Builder`](#builder) is an easy way to build animations (scenes) in JQuery-like style. So you may pass the created scene to the player and have fun. Do not forget to include `Builder`, since it is not the required player file. You may get it in raw format the same way as player files: [`builder.js`](https://raw.github.com/Animatron/player/master/builder.js).
+[`Builder`](#builder) is an easy way to build animations (scenes) in JQuery-like style. So you may pass the created scene to the player and have fun. Do not forget to include `Builder`, since it is not the required player file. You may get it in raw format the same way as player files: [`anm.builder.js`](https://raw.github.com/Animatron/player/master/anm.builder.js).
 
     <!-- player files -->
-    <script src="./builder.js" type="text/javascript"></script>
+    <script src="./anm.builder.js" type="text/javascript"></script>
 
 Loading code:
 
