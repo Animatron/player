@@ -25,6 +25,7 @@ PLAYER API
   * [Events](#events)
   * [Time Jumps](#time-jumps)  
   * [Elements Interactions](#elements-interactions)
+  * [Live Changes](#live-changes)
   * [Helpers](#helpers)
 * [Scene](#scene)
   * [Manual Building](#manual-building)  
@@ -1136,7 +1137,23 @@ Also you may set a name to some frame using `key()` function and jump to it with
 
 > ♦ `builder.disable % () => Builder`
 
-Disable an element, so it will not be rendered or calculated at all, including its children. It is the same to setting `b().v.disable` (or `this.$.disable` in modifiers/painters) to `true`. If you disable an element from inside of modifier, you can not enable it back from the same modifier, because this modifier will not be called at all while the element stays disabled — you only may enable it from outside. If you want to hide element temporary, use the return value of modifier. But disabling is useful to switch scenes, for example:
+Disable an element, so it will not be rendered or calculated at all, including its children. It is the same to setting `b().v.disable` (or `this.$.disable` in modifiers/painters) to `true`. If you disable an element from inside of its own modifier, you can not enable it back from the same modifier, because this modifier will not be called at all while the element stays disabled — you only may enable it from outside. Another variant if you want to hide element temporary is to use the [return value of modifier](#modifiers), and I can't say which one is better: return values work good if element depends on its local state a lot, disabling works good when you make a decision globally or you enable/disable a lot of elements at one moment. 
+
+    var first = b('first')....;
+    var second = b('second')....;
+    var scene = b().add(first)
+                   .add(second)
+        .modify(function(t) {
+            if ((Math.floor(t) % 2) == 0) {
+                first.disable();
+                second.enable();
+            } else {
+                first.enable();
+                second.disable();            
+            }
+        });
+
+By the way, disabling is useful to switch scenes, for example:
 
     var scene1 = b()....;
     var scene2 = b()....;
@@ -1154,7 +1171,8 @@ Disable an element, so it will not be rendered or calculated at all, including i
                 }
              });
 
-However, if there are a lot of elements (dozens) in your scene and you see that it all works slow, may be it is better to [`remove()` it](#structures).
+
+However, if you want to remove a number of elements forever, and this number is really big and/or you see that all this disabling stuff works slow in your case, may be it is better to [`remove()` it](#structures). But if it works ok, disabling is nicer and faster way.
 
 > ♦ `builder.enable % () => Builder`
 
@@ -1188,6 +1206,37 @@ There is a `deach()` ("deep-each") method with the same definition to iterate de
 
 Internally, this data is saved as `Element`'s `.__data` property, so you may access it directly with `b().v.__data`, if you want.
 
+### Live Changes
+
+A very delicious feature is that you may change almost everything that happens on the scene in real time ("almost" — because we haven't tested all the variant of doing it, please file issues if you'll find something that don't works when it looks like it should).
+
+Here's an example of live adding an element and animating it:
+
+    var pos = [140, 25];
+
+    var circle = b().circle([0, 0], 20)
+                    .move(pos);
+
+    var blueRect = b('blue-rect').rect(pos, [70, 70])
+                      .fill('#009')
+                      .stroke('#f00', 3)
+                      .rotate([0, 10], [0, Math.PI / 2]);
+    var redRect = b('red-rect').rect([115, 90], [60, 60])
+                     .fill('#f00');
+
+    var scene = b().add(blueRect).add(redRect)
+                   .rotate([0, 10], [0, Math.PI]);
+
+    blueRect.modify(function(t) {
+        if (t > 1.5) {
+            this.$.disabled = true;
+            scene.add(circle.band([t, t+3])
+                            .xscale([0, 3], [1, 0]));
+        }
+    });
+
+<!-- TODO: Live changing paths or colors, more examples -->
+ 
 ### Helpers
 
 Scene
