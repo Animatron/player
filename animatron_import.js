@@ -102,8 +102,13 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     x.gband = in_band ? Bands.wrap(in_band, x.lband) 
                       : x.lband;
     x.reg = clip.reg || [0, 0];
-    x.tweens = clip.tweens ? Convert.tweens(clip.tweens) : {};
     x.mode = Convert.mode(clip['on-end']);
+    if (clip.tweens) {
+        for (var tweens = clip.tweens, ti = 0, tl = tweens.length;
+             ti < tl; ti++) {
+            to.addTween(Convert.tween(tweens[it]));
+        }
+    }
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
@@ -118,21 +123,16 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
 // ** CONVERTION **
 
 var Convert = {}
-Convert.tweens = function(tweens) {
-    var result = {};
-    for (var ti = 0; ti < tweens.length; ti++) {
-        var _t = tweens[ti],
-            _type = Convert.tweenType(_t.type);
+Convert.tween = function(tween) {
+    var _t = tween,
+        _type = Convert.tweenType(_t.type);
 
-        if (!result[_type]) result[_type] = [];
-        result[_type].push({
-            'band': _t.band,
-            'type': _type,
-            'data': Convert.tweenData(_type, _t),
-            'easing': Convert.easing(_t.easing)
-        });
-    }
-    return result;
+    return {
+        'band': _t.band,
+        'type': _type,
+        'data': Convert.tweenData(_type, _t),
+        'easing': Convert.easing(_t.easing)
+    };
 };
 Convert.tweenType = function(from) {
     if (!from) return null;

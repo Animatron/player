@@ -13,8 +13,8 @@ Run `sandbox/sandbox.html` to try it yourself.
 To use JS player in current state, download or copy from the cloned repository:
 
  * `vendor/matrix.js`
- * `player.js`
- * [Optional] `builder.js` (allows to build animations in a functional way)
+ * `anm.player.js`
+ * [Optional] `anm.builder.js` (allows to build animations in a functional way)
  * [Optional] `animatron_import.js` (allows to load animations from Animatron tool)
  * [Optional] `json2.js` (JSON parser, if target broswer not supports it (currently required only for Animatron Import)) 
    
