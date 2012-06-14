@@ -980,7 +980,7 @@ Scene.prototype._unregister = function(elm) {
     });
     var pos = -1;
     while ((pos = this.tree.indexOf(elm)) >= 0) {
-      this.tree.splice(pos);
+      this.tree.splice(pos, 1);
     }
     delete this.hash[elm.id];
     elm.registered = false;
@@ -1176,7 +1176,7 @@ Element.prototype.remove = function(elm) {
         var pos = -1, found = cnt || 0;
         var children = where.children;
         if ((pos = children.indexOf(what)) >= 0) {
-            children.splice(pos);
+            children.splice(pos, 1);
             return 1;
         } else {
             where.visitChildren(function(elm) {
