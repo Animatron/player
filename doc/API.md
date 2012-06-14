@@ -943,7 +943,9 @@ __Modifier__ is the function that gets current local time and changes shape's `s
 
 > ♦ `builder.modify % (modifier: Function(time: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range); its `this` pointer points to the shape's `state`, so you may freely *modify* it; every such function returns `false` by default (when you return nothing) and it means "do not stop execution, continue". It is done to let you forget to return something, so all modifiers do pass by default. If you will manually return `true` (treat it as "please stop execution, I don't need this element now"), the execution will stop.
+To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range); its `this` pointer points to the shape's `state`, so you may freely *modify* it. 
+
+Every such function returns `null` by default (when you return nothing) and it means "do not stop execution, continue", the same as `return true`. It is done to let you forget to return something, so all modifiers do pass by default. If you will manually return `false` (treat it as "please stop execution, I don't need this element now"), the execution will stop. So it is optional to return something from modifier while you want to see it, but if you return `false` and only `false` (not `0`, `null`, empty string or something), element will not be rendered this time; any other return values or omitting return statement are considered as `true`, do render.
 
 <!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
 
@@ -971,27 +973,27 @@ To add modifier function to a shape, use `modify()` method. This function gets l
         this.alpha = t / my_shape.v.duration();
     });
     
-    // returning true if this element must not be visible
+    // returning false if this element must not be visible
     b().modify(function(t) {
-        return !(t > 4);
+        return (t > 4);
     });
 
 In fact, when you change the `state` in any modifier, you change not the current element `.state`, but the cloned state, which will be applied only when all modifiers passed successfully. It gives you the ability to safely get previous (from last render) element state with `b().v.state` (there is no meaning in modifying it, it is the _previous_ state). Inside the modifier, previous state is also accessible through `this._` (`this._.x`, `this._.angle`, `this._.alpha`, ....). Also, there is a link to current element (modifier owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases. Anyway, you may wrap `this.$` with `b()` (like `b(this.$)`), and you will get the same builder you use outside from cache (if it wasn't created, it will be created).
 
 As you may noticed in example, you may optionally pass `data` object of any type, it will be passed to your modifier as second parameter every time it will be called. Also, you may specify a priority number, the higher this number, the later this modifier will be called in the modifiers sequence. The modifiers with the same priority will be called in the order of addition.
 
-It is ok to have a number of modifiers that check some flag and return `true` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 20 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
+It is ok to have a number of modifiers that check some flag and return `false` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 20 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
 
     var scene = b();
     var ctx = {};
-    // which elements to hide
-    ctx.hide = [ false, true, true, false, false,
+    // which elements to show
+    ctx.show = [ false, true, true, false, false,
                  true, false, true, false, true ];
     for (var i = 0; i < 10; i++) {
         b().rect([10, 10], [5, 5])
            .modify((function(i) { // closure for i
               return function(t, ctx) {
-                 return ctx.hide[i];
+                 return ctx.show[i];
               }
             })(i), ctx);
     };

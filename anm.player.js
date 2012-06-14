@@ -1449,7 +1449,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci] && cur[ci][0].call(this._state, ltime, cur[ci][1])) {
+                if (cur[ci] && (cur[ci][0].call(this._state, ltime, cur[ci][1]) === false)) {
                   this.__mafter(type, false);
                   this.__modifying = null;
                   this.__clearEvts(this._state);
@@ -2198,8 +2198,8 @@ Render.h_drawMPath = function(ctx, mPath) {
 }
 
 Render.m_checkBand = function(time, band) {
-    if (band[0] > time) return true;
-    if (band[1] < time) return true;
+    if (band[0] > time) return false; // exit
+    if (band[1] < time) return false; // exit
 }
 
 Render.m_saveReg = function(time, reg) {
