@@ -490,7 +490,7 @@ Just add something like `.circle([0, 0], 50)` to the `column` element in example
 
 > ♦ `builder.remove % (what: Element | Builder) => Builder`
 
-You may permanently remove some element from scene if you want. Just call `remove()` method at any of its parents. But it is a slow operation (the deeper element distance from callee is, the operation slower), please just use it if you really know what you want to do. If you want to disable an element (completely), just call [`b().disable()`](#elements-interactions).
+You may permanently remove some element from scene if you want. Just call `remove()` method at any of its parents. But it is a slow operation (the deeper element distance from callee is, the operation slower), please just use it if you really know what you want to do. If you want to disable an element (completely), just call [`b().disable()`](#elements-interactions). Also, as for `disable()`, please note that removing element stops all its calculations, so there is no chance for logic or something to be called when it was removed, even if its band is infinite.
 
 ### Shapes
 
@@ -1139,7 +1139,7 @@ Also you may set a name to some frame using `key()` function and jump to it with
 
 > ♦ `builder.disable % () => Builder`
 
-Disable an element, so it will not be rendered or calculated at all, including its children. It is the same to setting `b().v.disable` (or `this.$.disable` in modifiers/painters) to `true`. If you disable an element from inside of its own modifier, you can not enable it back from the same modifier, because this modifier will not be called at all while the element stays disabled — you only may enable it from outside. Another variant if you want to hide element temporary is to use the [return value of modifier](#modifiers), and I can't say which one is better: return values work good if element depends on its local state a lot, disabling works good when you make a decision globally or you enable/disable a lot of elements at one moment. 
+Disable an element, so it will not be rendered or calculated at all, including its children. It is the same to setting `b().v.disabled` (or `this.$.disabled` in modifiers/painters) to `true`. If you disable an element from inside of its own modifier, you can not enable it back from the same modifier, because this modifier will not be called at all while the element stays disabled — you only may enable it from outside. Another variant if you want to hide element temporary is to use the [return value of modifier](#modifiers), and I can't say which one is better: return values work good if element depends on its local state a lot, disabling works good when you make a decision globally or you enable/disable a lot of elements at one moment. 
 
     var first = b('first')....;
     var second = b('second')....;
@@ -1154,6 +1154,8 @@ Disable an element, so it will not be rendered or calculated at all, including i
                 second.disable();            
             }
         });
+
+Hope you've noticed trick: you may easily re-enable (not to restore, if it is removed — then it is removed) the element from it's parent: wrap this element with an empty another, and add a modifier to a new parent — there you may freely disable/enable any of children elements any number of times, this modifier will be called all through the parent band.
 
 By the way, disabling is useful to switch scenes, for example:
 
@@ -1176,9 +1178,15 @@ By the way, disabling is useful to switch scenes, for example:
 
 However, if you want to remove a number of elements forever, and this number is really big and/or you see that all this disabling stuff works slow in your case, may be it is better to [`remove()` it](#structures). But if it works ok, disabling is nicer and faster way.
 
+Here are the differences in hiding-disabling-removing:
+
+* Hiding an element (returning `false` from modifier) stops its rendering sequence but calls all modifiers before and calls this modifier every render even if the element is hidden, just stops and returns at this point: skipping next modifiers, drawing, and skipping all of its children logic/painiting, if there are any (no modifiers will be called for any of the children since they are not even calculated).
+* Disabling an element sets its `disabled` flag to `true`. This flag is checked on every render call for this element, _before_ any time-checking / time-jumping, modifiers and painters, so no modifiers will be called nor for this element nor for its children, if any. However, if you enable this element from its parent, neighbour or somewhere outside, flag-check will pass and modifiers will be called again (and for children) like there's nothing happend.
+* Removing the element removes this element *totally*. There is no such element in the scene anymore. Don't expect it to appear again) (...Until you re-add it, if you really serious in it, but pssssst, you really don't need it, are you?).
+
 > ♦ `builder.enable % () => Builder`
 
-The inverse to `disable()` operation. Enables element back, so it will participate in calculations. It is the same to setting `b().v.disable` (or `this.$.disable` in modifiers/painters) to `false`.
+The inverse to `disable()` operation. Enables element back, so it will participate in calculations. It is the same to setting `b().v.disabled` (or `this.$.disabled` in modifiers/painters) to `false`.
 
 > ♦ `builder.each % (visitor: Function(elm: Element)) => Builder`
 
