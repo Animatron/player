@@ -24,7 +24,7 @@ define("anm", function() {
 // https://gist.github.com/1579671
 var __frameId = 0;
 
-var __frameFunc = (function() { 
+var __frameFunc = (function() {
            return window.requestAnimationFrame ||
                   window.webkitRequestAnimationFrame ||
                   window.mozRequestAnimationFrame ||
@@ -1283,10 +1283,9 @@ Element.prototype.m_on = function(type, handler) {
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
-            if (!handler.call(this,evts[i],t)) return false;
+            if (handler.call(this,evts[i],t) === false) return false;
         }
       }
-      return true;
     });
 }
 /*Element.prototype.posAtStart = function(ctx) {
