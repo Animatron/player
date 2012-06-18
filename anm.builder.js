@@ -15,6 +15,8 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
+var modCollisions = anm.MODULES['COLLISIONS'];
+
 var __b_cache = {};
 
 // =============================================================================
@@ -129,9 +131,6 @@ Builder.prototype.rect = function(pt, rect) {
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
-    // FIXME: change this to allow user to 
-    //        add custom collision path
-    this.path(Builder.arcPath(0,0,radius, 0, 1, 12));
     var b = this;
     this.paint(function(ctx) {
         DU.qDraw(ctx, b.s, b.f,
@@ -139,6 +138,8 @@ Builder.prototype.circle = function(pt, radius) {
                     ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                  });
     });
+    if (modCollisions) this.v.reactAs(
+            Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
     return this;
 }
 // > builder.image % (pt: Array[2,Integer],
@@ -412,6 +413,29 @@ Builder.prototype.data = function(value) {
     return this.v.data();
 }
 
+/*if (modCollisions) { // IF Collisions Module enabled
+
+    // > builder.local % (pt: Array[2, Float]) => Array[2, Float]
+    Builder.prototype.local = function(pt, t) {
+        return this.v.local(pt, t);
+    }
+    // > builder.global % (pt: Array[2, Float]) => Array[2, Float]
+    Builder.prototype.global = function(pt, t) {
+        return this.v.global(pt, t);
+    }
+    Builder.prototype.bounds = function(t) {
+        return this.v.bounds(t);
+    }
+    Builder.prototype.bounds = function(t) {
+        return this.v.bounds(t);
+    }    
+
+    // TODO: bounds, dbounds, contains, dcontains, 
+    //       collides, dcollides, intersects, dintersects,
+    //       offset, reactAs  
+
+} // end IF modCollisions*/
+
 // * PRIVATE *
 
 Builder.prototype._extractStroke = function() {
@@ -542,7 +566,7 @@ Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps
         // Draw a line to the next point.
         res.push([xx, yy]);
     }
-    return res;
+    return Builder.path(res);
 }
 
 window.Builder = Builder;

@@ -1201,40 +1201,6 @@ Element.prototype.remove = function(elm) {
     if (remover(this, elm) == 0) throw new Error('No such element found');
     if (elm.scene) elm.scene._unregister(elm);
 }
-Element.prototype.bounds = function(time) {
-    return G.bounds(this, time);
-}
-Element.prototype.inBounds = function(point, time) {
-    return G.inBounds(this, point, time);
-}
-Element.prototype.contains = function(pt) {
-    if (this.__modifying !== Element.EVENT_MOD) throw new Error('You may call contains only inside a handler');
-    var pt = Element._getIMatrixOf(this.state)
-                    .transformPoint(pt[0], pt[1]);
-    if (!G.inBounds(this, pt)) return false;
-    return G.__contains(this.xdata, pt);
-}
-Element.prototype.dcontains = function(pt, level) {
-    var level = level || 0;
-    if ((level === 0) && 
-        (this.__modifying !== Element.EVENT_MOD)) throw new Error('You may call dcontains only inside a handler');
-    var matched = [];
-    var pt = this.__lmatrix.transformPoint(pt[0], pt[1]);
-    if (G.inBounds(this, pt)) {
-        if (G.__contains(this.xdata, pt)) {
-            matched.push(elm);
-        }
-    }
-    if (this.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(celm.dcontains(pt, level+1));
-        });
-    }
-    return matched;
-}
-Element.prototype.containsByT = function(point, time) {
-    return G.contains(this, point, time);
-}
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
@@ -1382,13 +1348,25 @@ Element.prototype.offset = function() {
     }
     return [ xsum, ysum ];
 }
-Element.prototype.local = function(pt) {
+/*Element.prototype.local = function(pt) {
     var off = this.offset();
     return [ pt[0] - off[0], pt[1] - off[1] ];
 }
 Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
+}*/
+Element.prototype.ibounds = function() {
+    var x = this.xdata;
+    var bounds;
+    if (x.path) {
+        bounds = x.path.bounds();
+    } else if (x.image) {
+        bounds = [ 0, 0, x.image.width, x.image.height ];
+    } else if (x.text) {
+        bound = x.text.bounds();
+    } else return null;
+    return bounds;
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);
@@ -1902,179 +1880,6 @@ DU.qDraw = function(ctx, stroke, fill, func) {
     if (DU._hasVal(stroke)) ctx.stroke();
     ctx.restore();
 }
-
-var G = {}; // geometry
-
-// for all functions below, 
-// t is global time
-G.adopt = function(elm, pt, t) {
-    if (pt === null) return null;
-    var s; if (s = elm.stateAt(t)) {
-        return 
-            Element._getIMatrixOf(s)
-                   .transformPoint(pt[0], pt[1]);
-    } else return null;
-}
-G.adoptBounds = function(elm, bounds, t) {
-    if (pt === null) return null;
-    var s; if (s = elm.stateAt(t)) {
-        var m = Element._getIMatrixOf(s);
-        var min = m.transformPoint(bounds[0],
-                                   bounds[1]);
-        var max = m.transformPoint(bounds[2],
-                                   bounds[3]);
-        return [ min[0], min[1],
-                 max[0], max[1] ];
-    } else return null;
-    if (bounds === null) return null;
-}
-// for all functions below, 
-// t is global time or undefined if
-// it time not necessary
-G.bounds = function(elm, t) {
-    var x = elm.xdata;
-    var bounds;
-    if (x.path) {
-        bounds = x.path.bounds();
-    } else if (x.image) {
-        bounds = [ 0, 0, x.image.width, x.image.height ];
-    } else if (x.text) {
-        bound = [ 0, 0, 100, 100 ]; // FIXME: implement
-    } else return null;
-    return (typeof t === 'undefined') ?
-           bounds : G.adoptBounds(elm, bounds, t);
-}
-G.inBounds = function(elm, pt, t) {
-    var bounds = G.bounds(elm, t);
-    if (bounds) {
-        return (pt[0] >= bounds[0]) &&
-               (pt[1] >= bounds[1]) &&
-               (pt[0] <= bounds[2]) &&
-               (pt[1] <= bounds[3]); 
-    } else return false;
-}
-G.contains = function(elm, pt, t) {
-    var pt = (typeof t === 'undefined')
-             ? pt : G.adopt(elm, pt, t);
-    var matched = [];
-    if (G.inBounds(elm, pt)
-        && G.__contains(elm.xdata, pt)) {
-        matched.push(elm);
-    }
-    if (elm.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(G.contains(elm, pt, t));
-        });
-    }
-    return matched;
-}
-G.__contains = function(x, pt) {
-    if (x.path) {
-        return x.path.contains(pt);
-    } else if (x.image) {
-        return true; // already tested with bounds
-    } else if (x.text) {
-        return true;
-        // FIXME: call ctx.measureText()
-
-        // http://mudcu.be/journal/2011/01/html5-typographic-metrics/
-
-        /* function getAlign(text, type, offsetx) {
-            var direction = window.getComputedStyle(document.body)["direction"];
-            control.textContent = text;
-            switch(type) {
-                case "left": break;
-                case "start": offsetx -= (direction == 'ltr') ? 0 : control.offsetWidth; break;
-                case "end": offsetx -= (direction == 'ltr') ? control.offsetWidth : 0; break;
-                case "right": offsetx -= control.offsetWidth; break;
-                case "center": offsetx -= control.offsetWidth / 2; break;
-            }
-            return offsetx;
-        };*/
-
-        /*function measureText(text) {
-            control.style.display = "inline";
-            control.textContent = text;
-            return {
-                height: control.offsetHeight,
-                width: control.offsetWidth
-            };
-        };*/
-    }
-}
-/**
-  * Calculates the number of times the line from (x0,y0) to (x1,y1)
-  * crosses the ray extending to the right from (px,py).
-  * If the point lies on the line, then no crossings are recorded.
-  * +1 is returned for a crossing where the Y coordinate is increasing
-  * -1 is returned for a crossing where the Y coordinate is decreasing
-  */
-G.__lineCrosses = function(px, py, x0, y0, x1, y1) {
-    if ((py < y0) && (py < y1)) return 0;
-    if ((py >= y0) && (py >= y1)) return 0;
-    // assert y0 != y1
-    if ((px >= x0) && (px >= x1)) return 0;
-    if ((px < x0) && (px < x1)) return (y0 < y1) ? 1 : -1;
-    var xitcpt = x0 + (py - y0) * (x1 - x0) / (y1 - y0);
-    if (px >= xitcpt) return 0;
-    return (y0 < y1) ? 1 : -1;
-}
-/**
-  * Calculates the number of times the cubic from (x0,y0) to (x1,y1)
-  * crosses the ray extending to the right from (px,py).
-  * If the point lies on a part of the curve,
-  * then no crossings are counted for that intersection.
-  * the level parameter should be 0 at the top-level call and will count
-  * up for each recursion level to prevent infinite recursion
-  * +1 is added for each crossing where the Y coordinate is increasing
-  * -1 is added for each crossing where the Y coordinate is decreasing
-  */
-G.__curveCrosses = function(px, py, x0, y0,
-                            xc0, yc0, xc1, yc1,
-                            x1, y1, level) {
-    var level = level || 0;
-    if ((py < y0) && (py < yc0) && (py < yc1) && (py < y1)) return 0;
-    if ((py >= y0) && (py >= yc0) && (py >= yc1) && (py >= y1)) return 0;
-    // Note y0 could equal yc0...
-    if ((px >= x0) && (px >= xc0) && (px >= xc1) && (px >= x1)) return 0;
-    if ((px < x0) && (px < xc0) && (px < xc1) && (px < x1)) {
-        if (py >= y0) {
-            if (py < y1) return 1;
-        } else {
-            // py < y0
-            if (py >= y1) return -1;
-        }
-        // py outside of y01 range, and/or y0==yc0
-        return 0;
-    }
-    // double precision only has 52 bits of mantissa
-    if (level > 52) return G.__lineCrosses(px, py, x0, y0, x1, y1);
-    var xmid = (xc0 + xc1) / 2,
-        ymid = (yc0 + yc1) / 2;
-    var xc0 = (x0 + xc0) / 2,
-        yc0 = (y0 + yc0) / 2,
-        xc1 = (xc1 + x1) / 2,
-        yc1 = (yc1 + y1) / 2;
-    var xc0m = (xc0 + xmid) / 2,
-        yc0m = (yc0 + ymid) / 2;
-        xmc1 = (xmid + xc1) / 2;
-        ymc1 = (ymid + yc1) / 2;
-    xmid = (xc0m + xmc1) / 2;
-    ymid = (yc0m + ymc1) / 2;
-    if (isNaN(xmid) || isNaN(ymid)) {
-        // [xy]mid are NaN if any of [xy]c0m or [xy]mc1 are NaN
-        // [xy]c0m or [xy]mc1 are NaN if any of [xy][c][01] are NaN
-        // These values are also NaN if opposing infinities are added
-        return 0;
-    }
-    return (G.__curveCrosses(px, py, x0, y0, 
-                             xc0, yc0, xc0m, yc0m, 
-                             xmid, ymid, level + 1) +
-            G.__curveCrosses(px, py, xmid, ymid, 
-                             xmc1, ymc1, xc1, yc1, 
-                             x1, y1, level + 1));                            
-}
-
 
 // =============================================================================
 // === IMPORT ==================================================================
@@ -2677,40 +2482,9 @@ Path.prototype.normalize = function() {
         });
     return [ hw, hh ];
 }
-Path.prototype.inBounds = function(point) {
-    var _b = this.bounds();
-    return ((point[0] >= _b[0]) &&
-            (point[1] >= _b[1]) &&
-            (point[0] <= _b[2]) &&
-            (point[1] <= _b[3]));
-}
-Path.prototype.contains = function(pt) {
-    /*return this.fill ? ((this.crosses(pt) & -1) != 0)
-                     : false /* TODO (this.getHitAt(time, point)) ..*/
-    return ((this.crosses(pt) & -1) != 0);
-}
-Path.prototype.crosses = function(pt) {
-    if (this.segs.length < 2) return false;
-    var start = this.start();
-    var cur = start;
-    var crossings = 0;
-    this.visit(function(segment) {
-        crossings += segment.crosses(cur, pt);
-        cur = segment.last();
-    });
-
-    if ((pt[0] != start[0]) && 
-        (pt[1] != start[1])) {
-        crossings += G.__lineCrosses(pt[0], pt[1], 
-                                     cur[0], cur[1],
-                                     start[0], start[1]);
-    }
-
-    return crossings;
-}
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
-} 
+}
 
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets 
@@ -2887,12 +2661,6 @@ MSeg.prototype.tangentAt = function(start, t) {
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
-MSeg.prototype.crosses = function(start, point) {
-    var pts = this.pts; // == this.last();
-    return G.__lineCrosses(point[0], point[1], // px, py
-                           start[0], start[1], // x0, y0
-                           pts[0], pts[1]);    // x1, y1
-}
 
 function LSeg(pts) {
     this.type = C.P_LINETO;
@@ -2924,71 +2692,12 @@ LSeg.prototype.tangentAt = function(start, t) {
 LSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
-LSeg.prototype.crosses = function(start, point) {
-    var pts = this.pts; // == this.last();
-    return G.__lineCrosses(point[0], point[1], // px, py
-                           start[0], start[1], // x0, y0
-                           pts[0], pts[1]);    // x1, y1
-}
 
 function CSeg(pts) {
     this.type = C.P_CURVETO;
     this.pts = pts;
     this.count = pts.length;
 }
-/*
-// A point in two-dimensional space.
-typedef struct {
-    double x, y;
-} point;
-// The control points (0 and 1) and end point (2) of a cubic Bezier
-// curve.
-typedef struct {
-    point pt[3];
-} curve;
-
-// Calculate parametric value of x or y given t and the four point
-// coordinates of a cubic bezier curve. This is a separate function
-// because we need it for both x and y values.
-
-double _bezier_point (double t, double start, double control_1,
-                 double control_2, double end)
-{
-    // Formula from Wikipedia article on Bezier curves. 
-    return              start * (1.0 - t) * (1.0 - t)  * (1.0 - t) 
-           + 3.0 *  control_1 * (1.0 - t) * (1.0 - t)  * t 
-           + 3.0 *  control_2 * (1.0 - t) * t          * t
-           +              end * t         * t          * t;
-}
-#define STEPS 10
-// Approximate length of the Bezier curve which starts at "start" and
-// is defined by "c". According to Computing the Arc Length of Cubic Bezier Curves
-// there is no closed form integral for it.
-
-double bezier_length (point start, curve * c)
-{
-    double t;
-    int i;
-    int steps;
-    point dot;
-    point previous_dot;
-    double length = 0.0;
-    steps = STEPS;
-    for (i = 0; i <= steps; i++) {
-    t = (double) i / (double) steps;
-    dot.x = _bezier_point (t, start.x, c->pt[0].x, 
-                   c->pt[1].x, c->pt[2].x);
-    dot.y = _bezier_point (t, start.y, c->pt[0].y, 
-                   c->pt[1].y, c->pt[2].y);
-    if (i > 0) {
-        double x_diff = dot.x - previous_dot.x;
-        double y_diff = dot.y - previous_dot.y;
-        length += sqrt (x_diff * x_diff + y_diff * y_diff);
-    }
-    previous_dot = dot;
-    }
-    return length;
-} */
 CSeg.prototype.length = function(start) {
     // FIXME: cache length data and points somewhere
     var positions = this.pts;
@@ -3081,15 +2790,6 @@ CSeg.prototype.tangentAt = function(start, t) {
     //var p = this.atT(start, t);
     return Math.atan2(p[1], p[0]);
 }
-CSeg.prototype.crosses = function(start, point) {
-    var level = level || 0, pts = this.pts;
-    return G.__curveCrosses(point[0], point[1], // px, py
-                            start[0], start[1], // x0, y0
-                            pts[0],   pts[1],   // xc0, yc0
-                            pts[2],   pts[3],   // xc1, yc1
-                            pts[4],   pts[5],   // x1, y1
-                            0);                 // level
-}
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart && 
         (this._lstart[0] === start[0]) &&
@@ -3177,6 +2877,10 @@ Text.prototype.dimen = function() {
     return (this._dimen = [ buff.offsetWidth,
                             buff.offsetHeight ]);
     
+}
+Text.prototype.bounds = function() {
+    var dimen = this.dimen();
+    return [ 0, 0, dimen[0], dimen[1] ];
 }
 Text.prototype.accent = function(height) {
     return height; // FIXME
@@ -3594,6 +3298,7 @@ var exports = {
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU,
+    'MODULES': {},
 
     'createPlayer': function(id, opts) { return new Player(id, opts); }
 
