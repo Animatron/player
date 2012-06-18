@@ -24,7 +24,7 @@ define("anm", function() {
 // https://gist.github.com/1579671
 var __frameId = 0;
 
-var __frameFunc = (function() { 
+var __frameFunc = (function() {
            return window.requestAnimationFrame ||
                   window.webkitRequestAnimationFrame ||
                   window.mozRequestAnimationFrame ||
@@ -84,8 +84,15 @@ function guid() {
   return hash;
 }*/
 
-function arr_remove(arr, idx) {
-    return arr.slice(0,i).concat( arr.slice(i+1) );   
+function arr_remove(arr, elms) {
+    var idx;
+    for (var ei = 0, el = elms.length; ei < el; ei++) {
+        // may be improve with equals or smth,
+        // but === checks memory address and it is cool
+        if ((idx = arr.indexOf(elms[ei])) >= 0) {
+            arr.splice(idx, 1);
+        }
+    }
 }
 
 // for one-level objects, so no hasOwnProperty check
@@ -984,6 +991,8 @@ Scene.prototype._unregister = function(elm) {
     }
     delete this.hash[elm.id];
     elm.registered = false;
+    elm.scene = null;
+    //elm.parent = null;
 }
 
 // === ELEMENTS ================================================================
@@ -1023,7 +1032,7 @@ function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
     this.state = Element.createState(this);
-    this.xdata = Element.createXData(this);
+    this.xdata = Element.createXData(this);    
     this.children = [];
     this.parent = null;
     this.sprite = false;
@@ -1032,6 +1041,7 @@ function Element(draw, onframe) {
     this.disabled = false;
     this.rendering = false;
     this.scene = null;
+    this.__data = null;
     this._modifiers = [];
     this._painters = [];
     if (onframe) this.__modify(Element.USER_MOD, 0, onframe);
@@ -1041,7 +1051,7 @@ function Element(draw, onframe) {
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if modifying
     this.__evtCache = [];
-    this.__data = null;
+    this.__removeQueue = [];
     this._initHandlers(); // TODO: make automatic
     var _me = this,
         default_on = this.on;
@@ -1106,8 +1116,9 @@ Element.prototype.render = function(ctx, time) {
     }
     // immediately when drawn, element becomes visible,
     // it is reasonable
-    this.visible = wasDrawn; 
+    this.visible = wasDrawn;
     ctx.restore();
+    this.__postRender();
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
@@ -1176,16 +1187,18 @@ Element.prototype.remove = function(elm) {
         var pos = -1, found = cnt || 0;
         var children = where.children;
         if ((pos = children.indexOf(what)) >= 0) {
-            children.splice(pos, 1);
+            where.__removeQueue.push(what/*pos*/);
+            //children.splice(pos, 1);
+            what.parent = null;
             return 1;
         } else {
-            where.visitChildren(function(elm) {
-                found += remover(elm, what, found);
+            where.visitChildren(function(ielm) {
+                found += remover(ielm, what, found);
             });
             return found;
         }
     }
-    if (remover(this, elm) == 0) throw new Error('No such element found') 
+    if (remover(this, elm) == 0) throw new Error('No such element found');
     if (elm.scene) elm.scene._unregister(elm);
 }
 Element.prototype.bounds = function(time) {
@@ -1283,10 +1296,9 @@ Element.prototype.m_on = function(type, handler) {
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
-            if (!handler.call(this,evts[i],t)) return false;
+            if (handler.call(this,evts[i],t) === false) return false;
         }
       }
-      return true;
     });
 }
 /*Element.prototype.posAtStart = function(ctx) {
@@ -1403,7 +1415,7 @@ Element.prototype._addChild = function(elm) {
     Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
-    for (var ei = 0; ei < elms.length; ei++) {
+    for (var ei = 0, el = elms.length; ei < el; ei++) {
         this._addChild(elms[ei]);
     }
 }
@@ -1650,6 +1662,12 @@ Element.prototype.__loadEvts = function(to) {
 Element.prototype.__clearEvts = function(from) {
     from.__evt_st = 0; from.__evts = {};
 }
+Element.prototype.__postRender = function() {
+    // clear remove-queue
+    if (this.__removeQueue.length == 0) return;
+    arr_remove(this.children, this.__removeQueue);
+    this.__removeQueue = [];
+}
 
 // state of the element
 Element.createState = function(owner) {
@@ -1754,7 +1772,7 @@ function provideEvents(subj, events) {
         if (!this.provides(event)) throw new Error('Event ' + event + 
                                                    ' not provided by ' + this);
         if (this.handlers[event][idx]) {
-            this.handlers[event] = arr_remove(this.handlers, idx);
+            this.handlers[event].splice(idx, 1);
         } else {
             throw new Error('No such handler ' + idx + ' for event ' + event);
         }
