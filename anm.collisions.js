@@ -99,19 +99,10 @@ E.prototype.dcollides = function(elm, t) {
 }
 
 E.prototype.intersects = function(elm, t) {
-    var in_bounds = G.__inBounds;
-    var this_b = this.bounds(t);
-    var other_b = elm.bounds(t);
-    if (in_bounds(other_b, [this_b[0], this_b[1]])) return true; // x1, y1
-    if (in_bounds(other_b, [this_b[2], this_b[1]])) return true; // x2, y1
-    if (in_bounds(other_b, [this_b[2], this_b[3]])) return true; // x2, y2
-    if (in_bounds(other_b, [this_b[0], this_b[3]])) return true; // x1, y2
-    if (in_bounds(this_b, [other_b[0], other_b[1]])) return true; // x1, y1
-    if (in_bounds(this_b, [other_b[2], other_b[1]])) return true; // x2, y1
-    if (in_bounds(this_b, [other_b[2], other_b[3]])) return true; // x2, y2
-    if (in_bounds(this_b, [other_b[0], other_b[3]])) return true; // x1, y2
-    if (opts.pathCheck) throw new Error('Not implemented');
-    return false;
+    var bsec = G.__isecBounds(this.bounds(t),
+                              elm.bounds(t));
+    if (!opts.pathCheck) return bsec;
+    throw new Error('Not implemented');
 }
 
 E.prototype.dintersects = function(elm, t) {
@@ -129,7 +120,7 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     if ((t != null) &&
         (this.__modifying != null)
-        && (this.__modifying !== Element.EVENT_MOD)) {
+        && (this.__modifying !== E.EVENT_MOD)) {
         throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
     }
     var s = (t == null) ? this.state : this.stateAt(t);
@@ -146,7 +137,7 @@ E.prototype._radopt = function(pts, t) {
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     if ((t != null) &&
         (this.__modifying != null)
-        && (this.__modifying !== Element.EVENT_MOD)) {
+        && (this.__modifying !== E.EVENT_MOD)) {
         throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
     }
     var s = (t == null) ? this.state : this.stateAt(t);
@@ -249,6 +240,18 @@ G.__inBounds = function(b, pt) {
             (pt[0] <= b[2]) &&
             (pt[1] >= b[1]) &&
             (pt[1] <= b[3]));
+}
+G.__isecBounds = function(b1, b2) {
+    var in_bounds = G.__inBounds;
+    if (in_bounds(b2, [b1[0], b1[1]])) return true; // x1, y1
+    if (in_bounds(b2, [b1[2], b1[1]])) return true; // x2, y1
+    if (in_bounds(b2, [b1[2], b1[3]])) return true; // x2, y2
+    if (in_bounds(b2, [b1[0], b1[3]])) return true; // x1, y2
+    if (in_bounds(b1, [b2[0], b2[1]])) return true; // x1, y1
+    if (in_bounds(b1, [b2[2], b2[1]])) return true; // x2, y1
+    if (in_bounds(b1, [b2[2], b2[3]])) return true; // x2, y2
+    if (in_bounds(b1, [b2[0], b2[3]])) return true; // x1, y2
+    return false; 
 }
 /**
   * Calculates the number of times the line from (x0,y0) to (x1,y1)
