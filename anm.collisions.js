@@ -3,7 +3,7 @@
 if (anm.MODULES['COLLISIONS']) throw new Error('COLLISIONS module already enabled');
 
 var opts = {
-	'pathCheck': false
+    'pathCheck': false
 };
 
 anm.MODULES['COLLISIONS'] = opts;
@@ -12,59 +12,8 @@ var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg,
                                       LSeg = anm.LSeg, 
                                       CSeg = anm.CSeg;
 
-E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
-    if (!pts) return null;
-    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
-    if ((t != null) &&
-        (this.__modifying != null)
-        && (this.__modifying !== Element.EVENT_MOD)) {
-        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
-    }
-    return this.__adoptWithM(pts, 
-        E._getIMatrixOf(
-            (t == null) ? this.state : this.stateAt(t)
-        ));
-}
-E.prototype._radopt = function(pts, t) {
-    if (!pts) return null;
-    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
-    if ((t != null) &&
-        (this.__modifying != null)
-        && (this.__modifying !== Element.EVENT_MOD)) {
-        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
-    }
-    return this.__adoptWithM(pts, 
-        E._getMatrixOf(
-            (t == null) ? this.state : this.stateAt(t)
-        ));    
-}
-E.prototype.__adoptWithM = function(pts, m) {
-    if (pts.length > 2) {
-        var transformed = [];
-        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
-            var tpt = m.transformPoint(pts[pi], pts[pi+1]);
-            transformed.push(tpt[0], tpt[1]);
-        }
-        return transformed;
-    } else {
-        return m.transformPoint(pts[0], pts[1]);
-    }
-}
-E.prototype._cpa_bounds= function() { // cpath-aware bounds
-    var cpath = this.__cpath;
-    return cpath 
-            ? cpath.bounds()
-            : this.ibounds();
-}
-
 E.prototype.bounds = function(t) {
-    var pts = this._cpa_bounds();
-    while (p) {
-        pts = p._radopt(pts, t);
-        //if (!G.__inBounds(p._cpa_bounds(), pt)) return false; // FIXME: check bounds
-        p = p.parent;
-    }
-    return this._radopt(pts, t);
+    return this._pradopt(this._cpa_bounds(), t);
 }
 
 E.prototype.dbounds = function(t) {
@@ -92,13 +41,7 @@ E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
     if (!b) return false;
-    var p = this.parent;
-    while (p) {
-        pt = p._adopt(pt, t);
-        //if (!G.__inBounds(p._cpa_bounds(), pt)) return false; // FIXME: check bounds
-        p = p.parent;
-    }
-    var pt = this._adopt(pt, t);
+    var pt = this._padopt(pt, t);
     if (this.__cfunc) return this.__cfunc.call(this, pt);
     if (G.__inBounds(b, pt)) {
         if (!opts.pathCheck) return true;
@@ -129,7 +72,7 @@ E.prototype.local = function(pt, t) {
     var lpt = this._adopt(pt, t);
     return [ lpt[0] - off[0],
              lpt[1] - off[1] ];*/
-    return this._adopt(pt, t);
+    return this._padopt(pt, t);
 }
 
 E.prototype.global = function(pt, t) {
@@ -137,7 +80,7 @@ E.prototype.global = function(pt, t) {
     var gpt = this._radopt(pt, t);
     return [ gpt[0] + off[0],
              gpt[1] + off[1] ];*/ 
-    return this._radopt(pt, t);
+    return this._pradopt(pt, t);
 }
 
 E.prototype.reactAs = function(path) {
@@ -170,6 +113,67 @@ E.prototype.intersects = function(elm, t) {
 
 E.prototype.dintersects = function(elm, t) {
     throw new Error('Not implemented');
+}
+
+E.prototype._cpa_bounds= function() { // cpath-aware bounds
+    var cpath = this.__cpath;
+    return cpath 
+            ? cpath.bounds()
+            : this.ibounds();
+}
+E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
+    if (!pts) return null;
+    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
+    if ((t != null) &&
+        (this.__modifying != null)
+        && (this.__modifying !== Element.EVENT_MOD)) {
+        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
+    }
+    return this.__adoptWithM(pts, 
+        E._getIMatrixOf(
+            (t == null) ? this.state : this.stateAt(t)
+        ));
+}
+E.prototype._radopt = function(pts, t) {
+    if (!pts) return null;
+    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
+    if ((t != null) &&
+        (this.__modifying != null)
+        && (this.__modifying !== Element.EVENT_MOD)) {
+        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
+    }
+    return this.__adoptWithM(pts, 
+        E._getMatrixOf(
+            (t == null) ? this.state : this.stateAt(t)
+        ));    
+}
+E.prototype._padopt = function(pt, t) {
+    var p = this.parent;
+    while (p) {
+        pt = p._adopt(pt, t);
+        p = p.parent;
+    } 
+    return this._adopt(pt, t);
+}
+E.prototype._pradopt = function(pt, t) {
+    var p = this.parent;
+    while (p) {
+        pt = p._radopt(pt, t);
+        p = p.parent;
+    } 
+    return this._radopt(pt, t);
+}
+E.prototype.__adoptWithM = function(pts, m) {
+    if (pts.length > 2) {
+        var transformed = [];
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            var tpt = m.transformPoint(pts[pi], pts[pi+1]);
+            transformed.push(tpt[0], tpt[1]);
+        }
+        return transformed;
+    } else {
+        return m.transformPoint(pts[0], pts[1]);
+    }
 }
 
 Path.prototype.contains = function(pt) {
@@ -302,5 +306,5 @@ G.__curveCrosses = function(px, py, x0, y0,
                              xmc1, ymc1, xc1, yc1, 
                              x1, y1, level + 1));                            
 }
-	
+    
 })();  // end of anonymous wrapper
