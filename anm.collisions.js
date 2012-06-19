@@ -99,16 +99,19 @@ E.prototype.dcollides = function(elm, t) {
 }
 
 E.prototype.intersects = function(elm, t) {
-    if (!opts.pathCheck) {
-        /*var this_b = this.bounds(t);
-        var other_b = elm.bounds(t);
-        return (((this_b[0] >= other_b[0]) &&
-                 (this_b[2] <= other_b[2])) &&
-                ((this_b[1] >= other_b[1]) &&*/
-        throw new Error('Not implemented');
-    } else {
-        throw new Error('Not implemented');
-    }
+    var in_bounds = G.__inBounds;
+    var this_b = this.bounds(t);
+    var other_b = elm.bounds(t);
+    if (in_bounds(other_b, [this_b[0], this_b[1]])) return true;
+    if (in_bounds(other_b, [this_b[3], this_b[1]])) return true;
+    if (in_bounds(other_b, [this_b[0], this_b[3]])) return true;
+    if (in_bounds(other_b, [this_b[2], this_b[3]])) return true;
+    if (in_bounds(this_b, [other_b[0], other_b[1]])) return true;
+    if (in_bounds(this_b, [other_b[3], other_b[1]])) return true;
+    if (in_bounds(this_b, [other_b[0], other_b[3]])) return true;
+    if (in_bounds(this_b, [other_b[2], other_b[3]])) return true;
+    if (opts.pathCheck) throw new Error('Not implemented');
+    return false;
 }
 
 E.prototype.dintersects = function(elm, t) {
@@ -129,10 +132,14 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
         && (this.__modifying !== Element.EVENT_MOD)) {
         throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
     }
-    return this.__adoptWithM(pts, 
-        E._getIMatrixOf(
-            (t == null) ? this.state : this.stateAt(t)
-        ));
+    var s = (t == null) ? this.state : this.stateAt(t);
+    if (!s._applied) {
+        // fill result with min-values
+        var l = pts.length; result = new Array(l), i = l;
+        while (i--) result[i] = Number.MIN_VALUE;
+        return result;
+    }
+    return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
     if (!pts) return null;
@@ -142,10 +149,14 @@ E.prototype._radopt = function(pts, t) {
         && (this.__modifying !== Element.EVENT_MOD)) {
         throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
     }
-    return this.__adoptWithM(pts, 
-        E._getMatrixOf(
-            (t == null) ? this.state : this.stateAt(t)
-        ));    
+    var s = (t == null) ? this.state : this.stateAt(t);
+    if (!s._applied) {
+        // fill result with min-values
+        var l = pts.length; result = new Array(l), i = l;
+        while (i--) result[i] = Number.MIN_VALUE;
+        return result;
+    }
+    return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
     var p = this.parent;
@@ -229,10 +240,15 @@ CSeg.prototype.crosses = function(start, point) {
 var G = {}; // geometry
 
 G.__inBounds = function(b, pt) {
+    // zero-bounds don't match
+    if ((b[0] === b[1]) &&
+        (b[1] === b[2]) &&
+        (b[2] === b[3])/* &&
+        (b[3] === b[0])*/) return false;
     return ((pt[0] >= b[0]) &&
-            (pt[0] <= b[3]) &&
+            (pt[0] <= b[2]) &&
             (pt[1] >= b[1]) &&
-            (pt[1] <= b[2]));
+            (pt[1] <= b[3]));
 }
 /**
   * Calculates the number of times the line from (x0,y0) to (x1,y1)

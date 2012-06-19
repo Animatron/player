@@ -157,6 +157,23 @@ for (var i = 0; i < 8; i++) {
 var cvselm = document.getElementById('my-canvas');
 return root.move([ (cvselm.width / 2) - (size),
                    (cvselm.height / 2) - (size/2) ]);
+
+var circleOne = b().circle([0, 0], 30).trans([0, 3],
+                                             [[0, 0],
+                                              [400, 400]])
+    .modify(function(t) {
+        var isects = this.$.intersects(circleTwo.v);
+        if (isects) console.log(t, 'circle one intersects circle two');
+        circleOne.fill(isects ? '#0f0' : '#ccc');
+    });
+var circleTwo = b().circle([0, 0], 50).trans([0, 3],
+                                             [[400, 400],
+                                              [0, 0]])
+    .modify(function(t) {
+        var isects = this.$.intersects(circleOne.v);
+        if (isects) console.log(t, 'circle two intersects circle one');
+        circleTwo.fill(isects ? '#f00' : '#ccc');
+    });
 */
 
 var uexamples = [];
