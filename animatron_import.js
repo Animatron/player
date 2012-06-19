@@ -106,7 +106,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     if (clip.tweens) {
         for (var tweens = clip.tweens, ti = 0, tl = tweens.length;
              ti < tl; ti++) {
-            to.addTween(Convert.tween(tweens[it]));
+            to.addTween(Convert.tween(tweens[ti]));
         }
     }
 };
