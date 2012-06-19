@@ -1325,10 +1325,12 @@ Element.prototype.travelChildren = function(func) {
 Element.prototype.lock = function() {
     this.__jumpLock = true;
     this.__lstate = obj_clone(this.state);
+    this.__pstate = this._state ? obj_clone(this._state) : null;
 }
 Element.prototype.unlock = function() {
     var result = this.state;
     this.state = this.__lstate;
+    this._state = this.__pstate;
     this.__lstate = null;
     this.__jumpLock = false;
     return result;
