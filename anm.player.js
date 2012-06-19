@@ -611,6 +611,7 @@ Player.prototype.drawAt = function(time) {
     var ctx = this.ctx,
         state = this.state;
     ctx.clearRect(0, 0, state.width, state.height);
+    this.anim.reset();
     this.anim.render(ctx, time, state.zoom);
     if (this.controls) {
         this.controls.render(state, time);
@@ -1299,6 +1300,8 @@ Element.prototype.reset = function() {
     s.sx = 1; s.sy = 1;
     s.p = null; s.t = null; s.key = null;
     this.__lastJump = null;
+    s._applied = false;
+    s._appliedAt = null;
     s._matrix.reset();
     //this.__clearEvtState();
     this.visitChildren(function(elm) {
@@ -1454,6 +1457,8 @@ Element.prototype.__callModifiers = function(order, ltime) {
         this.__mafter(type, true);
     }
     this.__modifying = null;
+    this._state._applied = true;
+    this._state._appliedAt = ltime;
 
     this.__clearEvts(this._state);
 
@@ -1512,9 +1517,9 @@ Element.prototype.__mbefore = function(type) {
     }*/
 }
 Element.prototype.__mafter = function(type, result) { 
-    if (!result || (type === Element.USER_MOD)) {
+    /*if (!result || (type === Element.USER_MOD)) {
         this.__lmatrix = Element._getIMatrixOf(this.state);
-    }
+    }*/
     /*if (!result || (type === Element.EVENT_MOD)) {
         this.__clearEvtState();
     }*/
