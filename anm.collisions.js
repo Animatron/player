@@ -42,11 +42,11 @@ E.prototype.contains = function(pt, t) {
     var b = this._cpa_bounds();
     if (!b) return false;
     var pt = this._padopt(pt, t);
-    if (this.__cfunc) return this.__cfunc.call(this, pt);
+    var x = this.xdata;
+    if (x.__cfunc) return x.__cfunc.call(this, pt);
     if (G.__inBounds(b, pt)) {
         if (!opts.pathCheck) return true;
-        if (this.__cpath) return this.__cpath.contains(pt);
-        var x = this.xdata;
+        if (x.__cpath) return x.__cpath.contains(pt);        
         if (x.path) return x.path.contains(pt);
         if (x.image) return G.__inBounds(this._cpa_bounds(), pt);
         if (x.text) throw new Error('Not implemented');
@@ -84,10 +84,10 @@ E.prototype.global = function(pt, t) {
 }
 
 E.prototype.reactAs = function(path) {
-    this.__cpath = path;
+    this.xdata.__cpath = path;
 }
 E.prototype.reactWith = function(func) {
-    this.__cfunc = func;
+    this.xdata.__cfunc = func;
 }
 
 E.prototype.collides = function(elm, t) {
@@ -99,10 +99,16 @@ E.prototype.dcollides = function(elm, t) {
 }
 
 E.prototype.intersects = function(elm, t) {
-    var bsec = G.__isecBounds(this.bounds(t),
-                              elm.bounds(t));
-    if (!opts.pathCheck) return bsec;
-    throw new Error('Not implemented');
+    var x = this.xdata;
+    if (x.__cfunc) return x.__cfunc.call(this, pt);
+    if (G.__isecBounds(this.bounds(t), elm.bounds(t))) {
+        if (!opts.pathCheck) return true;
+        if (x.__cpath) return x.__cpath.contains(pt);
+        throw new Error('Not implemented');
+        /*if (x.path) return x.path.contains(pt);
+        if (x.image) return G.__inBounds(this._cpa_bounds(), pt);
+        if (x.text) throw new Error('Not implemented');*/
+    }
 }
 
 E.prototype.dintersects = function(elm, t) {
@@ -110,7 +116,7 @@ E.prototype.dintersects = function(elm, t) {
 }
 
 E.prototype._cpa_bounds= function() { // cpath-aware bounds
-    var cpath = this.__cpath;
+    var cpath = this.xdata.__cpath;
     return cpath 
             ? cpath.bounds()
             : this.ibounds();
@@ -231,6 +237,7 @@ CSeg.prototype.crosses = function(start, point) {
 var G = {}; // geometry
 
 G.__inBounds = function(b, pt) {
+    if (!b) throw new Error('Bounds are not accessible');
     // zero-bounds don't match
     if ((b[0] === b[1]) &&
         (b[1] === b[2]) &&
@@ -243,6 +250,7 @@ G.__inBounds = function(b, pt) {
 }
 G.__isecBounds = function(b1, b2) {
     var in_bounds = G.__inBounds;
+    if (!b1 || !b2) throw new Error('Bounds are not accessible');
     if (in_bounds(b2, [b1[0], b1[1]])) return true; // x1, y1
     if (in_bounds(b2, [b1[2], b1[1]])) return true; // x2, y1
     if (in_bounds(b2, [b1[2], b1[3]])) return true; // x2, y2
