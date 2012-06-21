@@ -35,7 +35,8 @@ PLAYER API
   * [`Path` reference](#path-reference)
   * [`Text` reference](#text-reference)
   * [Events, Deeply](#events--deeply)
-  * [Collisions, Deeply](#collisions--deeply)
+* [Modules](#modules)
+  * [Collisions](#collisions)
 * [Importers](#importers)
   * [Animatron](#animatron)
   
@@ -508,13 +509,18 @@ So, how'd you create them? Let's start from two basic shapes, rectangle and circ
 
 #### rect ####
 
-> ♦ `builder.rect % (pt: Array[2,Integer], rect: Array[2,Integer]) => Builder`
+> ♦ `builder.rect % (pt: Array[2,Integer], rect: Array[2,Integer] | Integer) => Builder`
 
 You may easily create a rectangle by specifying its location and its width/height this way:
 
     b().rect([ 50, 50 ], // its center will pe placed at (50,50) of parent
              [ 100, 50 ]); // it will have 100-unit width and 50-unit height
              
+If you want to get rect with equal width and height, just give one number as second argument:
+
+    b().rect([ 50, 60 ], // its center will pe placed at (50,60) of parent
+             57);        // it will have 57-unit width and 57-unit height
+
 #### circle ####
              
 > ♦ `builder.circle % (pt: Array[2,Integer], radius: Float) => Builder`
@@ -1267,7 +1273,10 @@ Scene
 
 ### Events, Deeply
 
-### Collisions, Deeply
+Modules
+-------
+
+### Collisions
 
 Importers
 ---------
