@@ -37,6 +37,13 @@ E.prototype.dbounds = function(t) {
     return [ minX, minY, maxX, maxY ];
 }
 
+E.prototype.collectPoints = function() {
+    var x = this.xdata;
+    if (x.__cpath) return x.__cpath.getPoints();
+    if (x.path) return x.path.getPoints();
+    if (x.image || x.text) return this.ibounds();
+}
+
 E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
@@ -44,12 +51,12 @@ E.prototype.contains = function(pt, t) {
     var pt = this._padopt(pt, t);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);
-    if (G.__inBounds(b, pt)) {
+    var inBounds;
+    if (inBounds = G.__inBounds(b, pt)) {
         if (!opts.pathCheck) return true;
         if (x.__cpath) return x.__cpath.contains(pt);        
         if (x.path) return x.path.contains(pt);
-        if (x.image) return G.__inBounds(this._cpa_bounds(), pt);
-        if (x.text) throw new Error('Not implemented');
+        if (x.image || x.text) return inBounds;
     } 
     return false;
 }
@@ -57,14 +64,14 @@ E.prototype.contains = function(pt, t) {
 E.prototype.dcontains = function(pt, t) {
     var matched = [];
     if (this.contains(pt, t)) {
-        matched.push(elm);
+        matched.push(this);
     }
     if (this.children) {
         elm.visitChildren(function(celm) {
             matched.concat(celm.dcontains(pt, t));
         });
     }
-    return matched.length;
+    return matched;
 }
 
 E.prototype.local = function(pt, t) {
@@ -99,20 +106,43 @@ E.prototype.dcollides = function(elm, t) {
 }
 
 E.prototype.intersects = function(elm, t) {
-    var x = this.xdata;
-    if (x.__cfunc) return x.__cfunc.call(this, pt);
-    if (G.__isecBounds(this.bounds(t), elm.bounds(t))) {
+    var boundsMatched;
+    if (boundsMatched = 
+        G.__isecBounds(this.bounds(t), elm.bounds(t))) {
         if (!opts.pathCheck) return true;
-        if (x.__cpath) return x.__cpath.contains(pt);
-        throw new Error('Not implemented');
-        /*if (x.path) return x.path.contains(pt);
-        if (x.image) return G.__inBounds(this._cpa_bounds(), pt);
-        if (x.text) throw new Error('Not implemented');*/
+        var cx = this.xdata, ex = elm.xdata;
+        var cIsPath = (cx.__cpath || cx.path);
+        var eIsPath = (ex.__cpath || ex.path);
+        if (!cIsPath && !eIsPath) return boundsMatched;
+        else if (cIsPath && eIsPath) {
+            return G.__pointsInPath(cx.__cpath || cx.path, 
+                                    elm._pradopt(elm.collectPoints(), t)) ||
+                   G.__pointsInPath(ex.__cpath || ex.path,
+                                    this._pradopt(this.collectPoints(), t));
+        } else if (cIsPath && !eIsPath) {
+            var epts = elm._pradopt(elm.ibounds(), t);
+            return G.__pointsInPath(cx.__cpath || cx.path, epts) ||
+                   G.__pointsInBounds(this._pradopt(this.collectPoints(), t), epts);
+        } else if (!cIsPath && eIsPath) {
+            var cpts = this._pradopt(this.ibounds(), t);
+            return G.__pointsInPath(ex.__cpath || ex.path, cpts) ||
+                   G.__pointsInBounds(elm._pradopt(elm.collectPoints(), t), cpts);
+        }
+        return false;
     }
 }
 
 E.prototype.dintersects = function(elm, t) {
-    throw new Error('Not implemented');
+    var matched = [];
+    if (this.intersects(elm, t)) {
+        matched.push(this);
+    }
+    if (this.children) {
+        elm.visitChildren(function(celm) {
+            matched.concat(celm.dintersects(elm, t));
+        });
+    }
+    return matched;
 }
 
 E.prototype._cpa_bounds= function() { // cpath-aware bounds
@@ -236,10 +266,11 @@ CSeg.prototype.crosses = function(start, point) {
 
 var G = {}; // geometry
 
-G.__inBounds = function(b, pt) {
+G.__inBounds = function(b, pt, zeroTest) {
     if (!b) throw new Error('Bounds are not accessible');
     // zero-bounds don't match
-    if ((b[0] === b[1]) &&
+    if (zeroTest &&
+        (b[0] === b[1]) &&
         (b[1] === b[2]) &&
         (b[2] === b[3])/* &&
         (b[3] === b[0])*/) return false;
@@ -249,17 +280,34 @@ G.__inBounds = function(b, pt) {
             (pt[1] <= b[3]));
 }
 G.__isecBounds = function(b1, b2) {
-    var in_bounds = G.__inBounds;
+    var inBounds = G.__inBounds;
     if (!b1 || !b2) throw new Error('Bounds are not accessible');
-    if (in_bounds(b2, [b1[0], b1[1]])) return true; // x1, y1
-    if (in_bounds(b2, [b1[2], b1[1]])) return true; // x2, y1
-    if (in_bounds(b2, [b1[2], b1[3]])) return true; // x2, y2
-    if (in_bounds(b2, [b1[0], b1[3]])) return true; // x1, y2
-    if (in_bounds(b1, [b2[0], b2[1]])) return true; // x1, y1
-    if (in_bounds(b1, [b2[2], b2[1]])) return true; // x2, y1
-    if (in_bounds(b1, [b2[2], b2[3]])) return true; // x2, y2
-    if (in_bounds(b1, [b2[0], b2[3]])) return true; // x1, y2
+    if (inBounds(b2, [b1[0], b1[1]])) return true; // x1, y1
+    if (inBounds(b2, [b1[2], b1[1]])) return true; // x2, y1
+    if (inBounds(b2, [b1[2], b1[3]])) return true; // x2, y2
+    if (inBounds(b2, [b1[0], b1[3]])) return true; // x1, y2
+    if (inBounds(b1, [b2[0], b2[1]])) return true; // x1, y1
+    if (inBounds(b1, [b2[2], b2[1]])) return true; // x2, y1
+    if (inBounds(b1, [b2[2], b2[3]])) return true; // x2, y2
+    if (inBounds(b1, [b2[0], b2[3]])) return true; // x1, y2
     return false; 
+}
+G.__pointsInPath = function(path, pts) {
+    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+        if (path.contains([pts[pi], pts[pi+1]])) return true;
+    }
+    return false; // return count?
+}
+G.__pointsInBounds = function(b, pts) {
+    if ((b[0] === b[1]) &&
+        (b[1] === b[2]) &&
+        (b[2] === b[3])/* &&
+        (b[3] === b[0])*/) return false;
+    var inBounds = G.__inBounds;    
+    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+        if (inBounds(b, [pts[pi], pts[pi+1]], false)) return true;
+    }
+    return false; // return count?    
 }
 /**
   * Calculates the number of times the line from (x0,y0) to (x1,y1)

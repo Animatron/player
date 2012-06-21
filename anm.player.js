@@ -2489,6 +2489,13 @@ Path.prototype.normalize = function() {
         });
     return [ hw, hh ];
 }
+Path.prototype.getPoints = function() {
+    var points = [];
+    this.visit(function(seg) {
+       points.concat(seg.pts);
+    });
+    return points;
+}
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
 }

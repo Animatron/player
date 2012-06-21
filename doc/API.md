@@ -35,7 +35,8 @@ PLAYER API
   * [`Path` reference](#path-reference)
   * [`Text` reference](#text-reference)
   * [Events, Deeply](#events--deeply)
-  * [Collisions, Deeply](#collisions--deeply)
+* [Modules](#modules)
+  * [Collisions](#collisions)
 * [Importers](#importers)
   * [Animatron](#animatron)
   
@@ -1267,7 +1268,10 @@ Scene
 
 ### Events, Deeply
 
-### Collisions, Deeply
+Modules
+-------
+
+### Collisions
 
 Importers
 ---------
