@@ -126,56 +126,6 @@ examples.push([ 0 /*version*/, [
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
 
-/* var sc = b().rect([40, 40], [20, 20])
-            .fill('#f00')
-            .on(C.X_MCLICK, function(evt, t) {
-                console.log(evt, t);
-                console.log(sc.v.contains(evt.pos))
-                return true;
-            });
-return sc; */
-
-/* 
-var size = 35;
-var t = root = b().rect([0, 0], [size, size])
-              .fill('#06f')
-              .stroke('#036', 2);
-
-for (var i = 0; i < 8; i++) {
-  var inner = b(t).fill(B.rgb(i*30,0,0))
-                  .reg([size*1.5, 0])
-                  .rotate([0, 1.5],
-                    [ Math.PI / 2, 0 ],
-                    C.X_CIN)
-                  .rotate([1.5, 3],
-                    [ 0, Math.PI / 2 ],
-                    C.X_COUT);
-  t.add(inner);
-  t = inner;
-}
-
-var cvselm = document.getElementById('my-canvas');
-return root.move([ (cvselm.width / 2) - (size),
-                   (cvselm.height / 2) - (size/2) ]);
-
-var circleOne = b().circle([0, 0], 30).trans([0, 3],
-                                             [[0, 0],
-                                              [400, 400]])
-    .modify(function(t) {
-        var isects = this.$.intersects(circleTwo.v);
-        if (isects) console.log(t, 'circle one intersects circle two');
-        circleOne.fill(isects ? '#0f0' : '#ccc');
-    });
-var circleTwo = b().circle([0, 0], 50).trans([0, 3],
-                                             [[400, 400],
-                                              [0, 0]])
-    .modify(function(t) {
-        var isects = this.$.intersects(circleOne.v);
-        if (isects) console.log(t, 'circle two intersects circle one');
-        circleTwo.fill(isects ? '#f00' : '#ccc');
-    });
-*/
-
 var uexamples = [];
 
 var _player = null; 
