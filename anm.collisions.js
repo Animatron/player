@@ -213,6 +213,31 @@ E.prototype.__adoptWithM = function(pts, m) {
         return m.transformPoint(pts[0], pts[1]);
     }
 }
+var prevAddDebugRender = E.__addDebugRender;
+function h_drawCPath(ctx, cPath) {
+    if (!(cPath = cPath || this.xdata.__cpath)) return;
+    ctx.save();
+    var s = this.state;
+    ctx.translate(s.lx, s.ly);
+    cPath.cstroke('#f00', 2.0);
+    ctx.beginPath();
+    cPath.apply(ctx);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+}
+function p_drawCPath(ctx, cPath) {
+    if (!(cPath = cPath || this.__cpath)) return;
+    cPath.cstroke('#f00', 2.0);
+    cPath.apply(ctx);
+}
+E.__addDebugRender = function(elm) {
+    prevAddDebugRender(elm);
+
+    elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
+
+    //elm.on(C.X_DRAW, h_drawCPath); // to call out of the 2D context changes
+}
 
 Path.prototype.contains = function(pt) {
     // FIXME: add stroke width
