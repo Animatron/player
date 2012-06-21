@@ -214,18 +214,6 @@ E.prototype.__adoptWithM = function(pts, m) {
     }
 }
 var prevAddDebugRender = E.__addDebugRender;
-function h_drawCPath(ctx, cPath) {
-    if (!(cPath = cPath || this.xdata.__cpath)) return;
-    ctx.save();
-    var s = this.state;
-    ctx.translate(s.lx, s.ly);
-    cPath.cstroke('#f00', 2.0);
-    ctx.beginPath();
-    cPath.apply(ctx);
-    ctx.closePath();
-    ctx.stroke();
-    ctx.restore();
-}
 function p_drawCPath(ctx, cPath) {
     if (!(cPath = cPath || this.__cpath)) return;
     cPath.cstroke('#f00', 2.0);
@@ -235,8 +223,6 @@ E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
     elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
-
-    //elm.on(C.X_DRAW, h_drawCPath); // to call out of the 2D context changes
 }
 
 Path.prototype.contains = function(pt) {
@@ -291,14 +277,17 @@ CSeg.prototype.crosses = function(start, point) {
 
 var G = {}; // geometry
 
+G.__zeroBounds = function(b) {
+    return (b[0] === b[1]) &&
+           (b[1] === b[2]) &&
+           (b[2] === b[3])/* &&
+           (b[3] === b[0])*/;
+}
+
 G.__inBounds = function(b, pt, zeroTest) {
     if (!b) throw new Error('Bounds are not accessible');
     // zero-bounds don't match
-    if (zeroTest &&
-        (b[0] === b[1]) &&
-        (b[1] === b[2]) &&
-        (b[2] === b[3])/* &&
-        (b[3] === b[0])*/) return false;
+    if (zeroTest && G.__zeroBounds(b)) return false;
     return ((pt[0] >= b[0]) &&
             (pt[0] <= b[2]) &&
             (pt[1] >= b[1]) &&
@@ -307,6 +296,7 @@ G.__inBounds = function(b, pt, zeroTest) {
 G.__isecBounds = function(b1, b2) {
     var inBounds = G.__inBounds;
     if (!b1 || !b2) throw new Error('Bounds are not accessible');
+    if (G.__zeroBounds(b1) || G.__zeroBounds(b2)) return false;
     if (inBounds(b2, [b1[0], b1[1]])) return true; // x1, y1
     if (inBounds(b2, [b1[2], b1[1]])) return true; // x2, y1
     if (inBounds(b2, [b1[2], b1[3]])) return true; // x2, y2
@@ -324,10 +314,7 @@ G.__pointsInPath = function(path, pts) {
     return false; // return count?
 }
 G.__pointsInBounds = function(b, pts) {
-    if ((b[0] === b[1]) &&
-        (b[1] === b[2]) &&
-        (b[2] === b[3])/* &&
-        (b[3] === b[0])*/) return false;
+    if (G.__zeroBounds(b)) return false;
     var inBounds = G.__inBounds;    
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
         if (inBounds(b, [pts[pi], pts[pi+1]], false)) return true;
