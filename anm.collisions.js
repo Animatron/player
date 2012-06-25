@@ -166,6 +166,7 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
         while (i--) result[i] = Number.MIN_VALUE;
         return result;
     }
+    //return this.__adoptWithM(pts, s._matrix.inverted());
     return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
@@ -183,6 +184,7 @@ E.prototype._radopt = function(pts, t) {
         while (i--) result[i] = Number.MIN_VALUE;
         return result;
     }
+    //return this.__adoptWithM(pts, s._matrix);
     return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
@@ -219,10 +221,51 @@ function p_drawCPath(ctx, cPath) {
     cPath.cstroke('#f00', 2.0);
     cPath.apply(ctx);
 }
+function p_drawAdoptedBounds(ctx) {
+    var bounds = this.$.bounds();
+    //var bounds = this.$._cpa_bounds();
+    if (bounds) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(bounds[0]-2,bounds[1]-2,4,4);
+        ctx.fillRect(bounds[2]-2,bounds[1]-2,4,4);
+        ctx.fillRect(bounds[2]-2,bounds[3]-2,4,4);        
+        ctx.fillRect(bounds[0]-2,bounds[3]-2,4,4);
+        ctx.beginPath();
+        ctx.strokeStyle = '#0f0';
+        ctx.lineWidth = 2;
+        ctx.moveTo(bounds[0], bounds[1]);
+        ctx.lineTo(bounds[2], bounds[1]);
+        ctx.lineTo(bounds[2], bounds[3]);
+        ctx.lineTo(bounds[0], bounds[3]);
+        ctx.lineTo(bounds[0], bounds[1]);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+function p_drawAdoptedPoints(ctx) {
+    var path, adopt = this.$._pradopt;
+    if (path = (this.__cpath || this.path)) {
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        ctx.fillStyle = '#00f';
+        var pts = path.getPoints();
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            var apt = adopt(pts[pi], pts[pi+1]);
+            ctx.fillRect(apt[0]-2,apt[1]-2,4,4);
+        }
+        ctx.restore();
+    }
+    // TODO: image & text
+}
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
     elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedBounds);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
 }
 
 Path.prototype.contains = function(pt) {

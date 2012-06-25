@@ -101,11 +101,8 @@ Transform.prototype.scale = function(sx, sy) {
 };
 
 Transform.prototype.transformPoint = function(px, py) {
-  var x = px;
-  var y = py;
-  px = x * this.m[0] + y * this.m[2] + this.m[4];
-  py = x * this.m[1] + y * this.m[3] + this.m[5];
-  return [px, py];
+  return [ px * this.m[0] + py * this.m[2] + this.m[4], 
+           px * this.m[1] + py * this.m[3] + this.m[5] ];
 };
 
 // customized methods
@@ -124,4 +121,10 @@ Transform.prototype.clone = function() {
   cl.m[4] = this.m[4];
   cl.m[5] = this.m[5];
   return cl;
+}
+
+Transform.prototype.inverted = function() {
+  var clone = this.clone();
+  clone.invert();
+  return clone;
 }
