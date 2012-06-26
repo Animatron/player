@@ -1361,7 +1361,7 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 }*/
-Element.prototype.ibounds = function() {
+Element.prototype.lbounds = function() {
     var x = this.xdata;
     var bounds;
     if (x.path) {
@@ -1372,6 +1372,16 @@ Element.prototype.ibounds = function() {
         bound = x.text.bounds();
     } else return null;
     return bounds;
+}
+Element.prototype.lrect = function() {
+    var b = this.lbounds();
+    if (!b) return null;
+    // returns clockwise coordinates of the points
+    // for easier drawing
+          // minX, minY, maxX, minY,
+    return [ b[0], b[1], b[2], b[1],
+          // maxX, maxY, minX, maxY
+             b[2], b[3], b[0], b[3] ];
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);
@@ -2431,7 +2441,7 @@ Path.prototype.end = function() {
              this.segs[lastidx].pts[s-1] ]; // last-y
 }
 Path.prototype.bounds = function() {
-    // FIXME: it is not ok for curve path
+    // FIXME: it is not ok for curve path, possibly
     if (this.segs.length <= 0) return [0, 0, 0, 0];
     var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
@@ -2447,6 +2457,15 @@ Path.prototype.bounds = function() {
         }
     });
     return [ minX, minY, maxX, maxY ];
+}
+Path.prototype.rect = function() {
+    var b = this.bounds();
+    // returns clockwise coordinates of the points
+    // for easier drawing
+          // minX, minY, maxX, minY,
+    return [ b[0], b[1], b[2], b[1],
+          // maxX, maxY, minX, maxY
+             b[2], b[3], b[0], b[3] ];
 }
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
