@@ -13,7 +13,7 @@ var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg,
                                       CSeg = anm.CSeg;
 
 E.prototype.bounds = function(t) {
-    return this._pradopt(this._cpa_bounds(), t);
+    return this._radopt(this._cpa_bounds(), t);
 }
 
 E.prototype.dbounds = function(t) {
@@ -224,20 +224,22 @@ E.prototype._radopt = function(pts, t) {
     return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
+    var pt = this._adopt(pt, t);
     var p = this.parent;
     while (p) {
         pt = p._adopt(pt, t);
         p = p.parent;
     } 
-    return this._adopt(pt, t);
+    return pt;
 }
 E.prototype._pradopt = function(pt, t) {
+    var pt = this._radopt(pt, t);
     var p = this.parent;
     while (p) {
         pt = p._radopt(pt, t);
         p = p.parent;
-    } 
-    return this._radopt(pt, t);
+    }
+    return pt;
 }
 E.prototype.__adoptWithM = function(pts, m) {
     if (pts.length > 2) {
@@ -257,7 +259,7 @@ function p_drawCPath(ctx, cPath) {
     cPath.cstroke('#f00', 2.0);
     cPath.apply(ctx);
 }
-function p_drawAdoptedBounds(ctx) {
+function p_drawAdoptedRect(ctx) {
     var rect = this.$._cpa_rect();
     if (rect) {
         rect = this.$._pradopt(rect);
@@ -298,7 +300,7 @@ E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
     elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
-    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedBounds);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
 }
 
@@ -402,11 +404,11 @@ G.__isecRects = function(r1, r2) {
     var inRect = G.__inRect;
     if (!r1 || !r2) throw new Error('Rects are not accessible');
     if (G.__zeroRect(r1) || G.__zeroRect(r2)) return false;
-    for (var r1i = 0, r1l = r1.length; r1i < r1l; r1i+2) {
-        if (inRect(r2, [r1[r1i], r1[r1i+1]])) return true;
+    for (var r1i = 0, r1l = r1.length; r1i < r1l; r1i+=2) {
+        if (inRect(r2, [r1[r1i], r1[r1i+1]], false)) return true;
     }
-    for (var r2i = 0, r2l = r2.length; r2i < r2l; r2i+2) {
-        if (inRect(r1, [r2[r2i], r2[r2i+1]])) return true;
+    for (var r2i = 0, r2l = r2.length; r2i < r2l; r2i+=2) {
+        if (inRect(r1, [r2[r2i], r2[r2i+1]], false)) return true;
     }
     return false; 
 }

@@ -2511,7 +2511,7 @@ Path.prototype.normalize = function() {
 Path.prototype.getPoints = function() {
     var points = [];
     this.visit(function(seg) {
-       points.concat(seg.pts);
+        points = points.concat(seg.pts);
     });
     return points;
 }
