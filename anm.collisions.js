@@ -8,6 +8,12 @@ var opts = {
 
 anm.MODULES['COLLISIONS'] = opts;
 
+function __filled(arr, val) {
+    var l = arr.length; result = new Array(l), i = l;
+    while (i--) result[i] = val;
+    return result;   
+}
+
 var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg, 
                                       LSeg = anm.LSeg, 
                                       CSeg = anm.CSeg;
@@ -133,28 +139,41 @@ E.prototype.dcollides = function(elm, t) {
     throw new Error('Not implemented');
 }
 
+E.prototype.__pathAt = function(t) {
+    var path = this.xdata.__cpath || this.xdata.path;
+    if (!path) throw new Error("No path found for elm " + this.id);
+    var mpath = path.duplicate();
+    var me = this;
+    mpath.vpoints(function(x, y) {
+        return me._pradopt([x, y], t);
+    });
+    return mpath;
+}
+
+E.prototype.__pointsAt = function(t) {
+    return this._pradopt(this.collectPoints(), t);
+}
+
 E.prototype.intersects = function(elm, t) {
     var rectsMatched;
     if (rectsMatched =
         G.__isecRects(this.rect(t), elm.rect(t))) {
         if (!opts.pathCheck) return true;
         var cx = this.xdata, ex = elm.xdata;
-        var cIsPath = (cx.__cpath || cx.path);
-        var eIsPath = (ex.__cpath || ex.path);
-        if (!cIsPath && !eIsPath) return rectsMatched;
-        else if (cIsPath && eIsPath) {
-            return G.__pointsInPath(cx.__cpath || cx.path, 
-                                    elm._pradopt(elm.collectPoints(), t)) ||
-                   G.__pointsInPath(ex.__cpath || ex.path,
-                                    this._pradopt(this.collectPoints(), t));
-        } else if (cIsPath && !eIsPath) {
-            var epts = elm._pradopt(elm.lrect(), t);
-            return G.__pointsInPath(cx.__cpath || cx.path, epts) ||
-                   G.__pointsInRect(this._pradopt(this.collectPoints(), t), epts);
-        } else if (!cIsPath && eIsPath) {
-            var cpts = this._pradopt(this.lrect(), t);
-            return G.__pointsInPath(ex.__cpath || ex.path, cpts) ||
-                   G.__pointsInRect(elm._pradopt(elm.collectPoints(), t), cpts);
+        var pathOfC = (cx.__cpath || cx.path);
+        var pathOfE = (ex.__cpath || ex.path);
+        if (!pathOfC && !pathOfE) return rectsMatched;
+        else if (pathOfC && pathOfE) {
+            return G.__pointsInPath(this.__pathAt(t), elm.__pointsAt(t)) ||
+                   G.__pointsInPath(elm.__pathAt(t), this.__pointsAt(t));
+        } else if (pathOfC && !pathOfE) {
+            var e_rect = elm.rect(t);
+            return G.__pointsInRect(this.__pointsAt(t), e_rect) ||
+                   G.__pointsInPath(this.__pathAt(t), e_rect);
+        } else if (!pathOfC && pathOfE) {
+            var с_rect = this.rect(t);
+            return G.__pointsInRect(elm.__pointsAt(t), с_rect) ||
+                   G.__pointsInPath(elm.__pathAt(t), с_rect);
         }
         return false;
     }
@@ -186,51 +205,39 @@ E.prototype._cpa_rect = function() { // cpath-aware rect
             ? cpath.rect()
             : this.lrect();
 }
-
-E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
-    if (!pts) return null;
-    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
+E.prototype.__ensureTimeTestAllowedFor = function(t) {
     if ((t != null) &&
         (this.__modifying != null)
         && (this.__modifying !== E.EVENT_MOD)) {
         throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
     }
+    return true;
+}
+E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
+    if (!pts) return null;
+    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
+    this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? this.state : this.stateAt(t);
-    if (!s._applied) {
-        // fill result with min-values
-        var l = pts.length; result = new Array(l), i = l;
-        while (i--) result[i] = Number.MIN_VALUE;
-        return result;
-    }
+    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
     return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
-    if ((t != null) &&
-        (this.__modifying != null)
-        && (this.__modifying !== E.EVENT_MOD)) {
-        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
-    }
+    this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? this.state : this.stateAt(t);
-    if (!s._applied) {
-        // fill result with min-values
-        var l = pts.length; result = new Array(l), i = l;
-        while (i--) result[i] = Number.MIN_VALUE;
-        return result;
-    }
-    //return this.__adoptWithM(pts, s._matrix);
+    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
+    //return this.__adoptWithM(pts, s._matrix.inverted());
     return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
-    var pt = this._adopt(pt, t);
     var p = this.parent;
     while (p) {
         pt = p._adopt(pt, t);
         p = p.parent;
     } 
-    return pt;
+    return this._adopt(pt, t);
 }
 E.prototype._pradopt = function(pt, t) {
     var pt = this._radopt(pt, t);
@@ -296,12 +303,24 @@ function p_drawAdoptedPoints(ctx) {
         ctx.restore();
     }
 }
+/*function p_drawPathAt(ctx) {
+    try {
+        var p = this.$.__pathAt();
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        p.fill = Path.BASE_FILL;
+        p.stroke = Path.BASE_STROKE;
+        p.apply(ctx);
+        ctx.restore();
+    } catch(e) { };
+}*/
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
     elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
+    //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
 }
 
 Path.prototype.contains = function(pt) {
@@ -405,6 +424,7 @@ G.__isecRects = function(r1, r2) {
     if (!r1 || !r2) throw new Error('Rects are not accessible');
     if (G.__zeroRect(r1) || G.__zeroRect(r2)) return false;
     for (var r1i = 0, r1l = r1.length; r1i < r1l; r1i+=2) {
+        console.log(r2, )
         if (inRect(r2, [r1[r1i], r1[r1i+1]], false)) return true;
     }
     for (var r2i = 0, r2l = r2.length; r2i < r2l; r2i+=2) {

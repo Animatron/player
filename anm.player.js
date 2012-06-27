@@ -2467,6 +2467,7 @@ Path.prototype.rect = function() {
           // maxX, maxY, minX, maxY
              b[2], b[3], b[0], b[3] ];
 }
+// TODO: rename to `modify`?
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
         var pts = segment.pts;
@@ -2517,6 +2518,14 @@ Path.prototype.getPoints = function() {
 }
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
+}
+// not a clone, but only segments-copy
+Path.prototype.duplicate = function() {
+    var clone = new Path();
+    this.visit(function(seg) {
+        clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
+    });
+    return clone;
 }
 
 // visits every chunk of path in string-form and calls
@@ -2622,6 +2631,11 @@ Path.parse = function(path, target) {
 // parses a path in string form and immediately applies it to context
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, Path._strApplyVisitor, ctx);
+}
+Path.makeSeg = function(type, pts) {
+    if (type === C.P_MOVETO) { return new MSeg(pts); }
+    else if (type === C.P_LINETO) { return new LSeg(pts); }
+    else if (type === C.P_CURVETO) { return new CSeg(pts); }
 }
 // create canvas-compatible style from brush
 Path.createStyle = function(ctx, brush) {
