@@ -405,10 +405,10 @@ G.__inRect = function(r, pt, zeroTest) {
             (pt[1] >= r[1]) &&
             (pt[1] <= r[5]));
 }
-G.__isecBounds = function(b1, b2) {
-    var inBounds = G.__inBounds;
+/*G.__isecBounds = function(b1, b2) {
     if (!b1 || !b2) throw new Error('Bounds are not accessible');
     if (G.__zeroBounds(b1) || G.__zeroBounds(b2)) return false;
+    var inBounds = G.__inBounds;
     if (inBounds(b2, [b1[0], b1[1]])) return true; // x1, y1
     if (inBounds(b2, [b1[2], b1[1]])) return true; // x2, y1
     if (inBounds(b2, [b1[2], b1[3]])) return true; // x2, y2
@@ -418,19 +418,42 @@ G.__isecBounds = function(b1, b2) {
     if (inBounds(b1, [b2[2], b2[3]])) return true; // x2, y2
     if (inBounds(b1, [b2[0], b2[3]])) return true; // x1, y2
     return false; 
+}*/
+G.__edgeTest = function(p1, p2, p3, r2) {
+    var rot = [ -(p2[1] - p1[1]),
+                  p2[0] - p1[0] ];
+
+    var ref = (rot[0] * (p3[0] - p1[0]) +
+               rot[1] * (p3[1] - p1[1])) >= 0;
+
+    for (var i = 0, il = r2.length; i < il; i+=2) {
+        if (((rot[0] * (r2[i]   - p1[0]) +
+              rot[1] * (r2[i+1] - p1[1])) >= 0) === ref) return false;
+    }
+
+    return true;
 }
 G.__isecRects = function(r1, r2) {
-    var inRect = G.__inRect;
     if (!r1 || !r2) throw new Error('Rects are not accessible');
     if (G.__zeroRect(r1) || G.__zeroRect(r2)) return false;
-    for (var r1i = 0, r1l = r1.length; r1i < r1l; r1i+=2) {
-        console.log(r2, )
-        if (inRect(r2, [r1[r1i], r1[r1i+1]], false)) return true;
+    var edgeTest = G.__edgeTest;
+
+    var pn, px;
+    for (var pi = 0, pl = r1.length; pi < pl; pi += 2) {
+        pn = (pi === (pl - 2)) ? 0 : pi + 2; // next point
+        px = (pn === (pl - 2)) ? 0 : pn + 2;
+        if (edgeTest([r1[pi], r1[pi+1]],
+                     [r1[pn], r1[pn+1]],
+                     [r1[px], r1[px+1]], r2)) return false;
     }
-    for (var r2i = 0, r2l = r2.length; r2i < r2l; r2i+=2) {
-        if (inRect(r1, [r2[r2i], r2[r2i+1]], false)) return true;
+    for (var pi = 0, pl = r2.length; pi < pl; pi += 2) {
+        pn = (pi === (pl - 2)) ? 0 : pi + 2; // next point
+        px = (pn === (pl - 2)) ? 0 : pn + 2;
+        if (edgeTest([r2[pi], r2[pi+1]],
+                     [r2[pn], r2[pn+1]],
+                     [r2[px], r2[px+1]], r1)) return false;
     }
-    return false; 
+    return true;
 }
 G.__pointsInPath = function(path, pts) {
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
