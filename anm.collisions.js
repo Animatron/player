@@ -19,7 +19,7 @@ var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg,
                                       CSeg = anm.CSeg;
 
 E.prototype.bounds = function(t) {
-    return this._radopt(this._cpa_bounds(), t);
+    return this._pradopt(this._cpa_bounds(), t);
 }
 
 E.prototype.dbounds = function(t) {
