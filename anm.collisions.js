@@ -8,6 +8,12 @@ var opts = {
 
 anm.MODULES['COLLISIONS'] = opts;
 
+function __filled(arr, val) {
+    var l = arr.length; result = new Array(l), i = l;
+    while (i--) result[i] = val;
+    return result;   
+}
+
 var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg, 
                                       LSeg = anm.LSeg, 
                                       CSeg = anm.CSeg;
@@ -37,11 +43,39 @@ E.prototype.dbounds = function(t) {
     return [ minX, minY, maxX, maxY ];
 }
 
+E.prototype.rect = function(t) {
+    return this._pradopt(this._cpa_rect(), t);
+}
+
+E.prototype.drect = function(t) {
+    var r = this.rect(t);
+    var x1, y1, x2, y2, x3, y3, x4, y4;
+    if (r) {
+        x1 = r[0]; y1 = r[1];
+        x2 = r[2]; y2 = r[3];
+        x3 = r[4]; y3 = r[5];
+        x4 = r[6]; y4 = r[7];
+    } else {
+        x1 = y1 = y2 = x4 = Number.MAX_VALUE;
+        x2 = y4 = x3 = y3 = 0;
+    }
+    this.travelChildren(function(elm) {
+        var cr = elm.rect(t);
+        if (!cr) return;
+        x1 = Math.min(x1, cr[0]); y1 = Math.min(y1, cr[1]);
+        x2 = Math.max(x2, cr[2]); y2 = Math.min(y2, cr[3]);
+        x3 = Math.max(x3, cr[4]); y3 = Math.max(y3, cr[5]);
+        x4 = Math.min(x4, cr[6]); y4 = Math.max(y4, cr[7]);
+        // it may be rotate, so we correct it before
+    });
+    return [ x1, y1, x2, y2, x3, y3, x4, y4 ];
+}
+
 E.prototype.collectPoints = function() {
     var x = this.xdata;
     if (x.__cpath) return x.__cpath.getPoints();
     if (x.path) return x.path.getPoints();
-    if (x.image || x.text) return this.ibounds();
+    if (x.image || x.text) return this.lrect();
 }
 
 E.prototype.contains = function(pt, t) {
@@ -105,28 +139,41 @@ E.prototype.dcollides = function(elm, t) {
     throw new Error('Not implemented');
 }
 
+E.prototype.__pathAt = function(t) {
+    var path = this.xdata.__cpath || this.xdata.path;
+    if (!path) throw new Error("No path found for elm " + this.id);
+    var mpath = path.duplicate();
+    var me = this;
+    mpath.vpoints(function(x, y) {
+        return me._pradopt([x, y], t);
+    });
+    return mpath;
+}
+
+E.prototype.__pointsAt = function(t) {
+    return this._pradopt(this.collectPoints(), t);
+}
+
 E.prototype.intersects = function(elm, t) {
-    var boundsMatched;
-    if (boundsMatched = 
-        G.__isecBounds(this.bounds(t), elm.bounds(t))) {
+    var rectsMatched;
+    if (rectsMatched =
+        G.__isecRects(this.rect(t), elm.rect(t))) {
         if (!opts.pathCheck) return true;
         var cx = this.xdata, ex = elm.xdata;
-        var cIsPath = (cx.__cpath || cx.path);
-        var eIsPath = (ex.__cpath || ex.path);
-        if (!cIsPath && !eIsPath) return boundsMatched;
-        else if (cIsPath && eIsPath) {
-            return G.__pointsInPath(cx.__cpath || cx.path, 
-                                    elm._pradopt(elm.collectPoints(), t)) ||
-                   G.__pointsInPath(ex.__cpath || ex.path,
-                                    this._pradopt(this.collectPoints(), t));
-        } else if (cIsPath && !eIsPath) {
-            var epts = elm._pradopt(elm.ibounds(), t);
-            return G.__pointsInPath(cx.__cpath || cx.path, epts) ||
-                   G.__pointsInBounds(this._pradopt(this.collectPoints(), t), epts);
-        } else if (!cIsPath && eIsPath) {
-            var cpts = this._pradopt(this.ibounds(), t);
-            return G.__pointsInPath(ex.__cpath || ex.path, cpts) ||
-                   G.__pointsInBounds(elm._pradopt(elm.collectPoints(), t), cpts);
+        var pathOfC = (cx.__cpath || cx.path);
+        var pathOfE = (ex.__cpath || ex.path);
+        if (!pathOfC && !pathOfE) return rectsMatched;
+        else if (pathOfC && pathOfE) {
+            return G.__pointsInPath(this.__pathAt(t), elm.__pointsAt(t)) ||
+                   G.__pointsInPath(elm.__pathAt(t), this.__pointsAt(t));
+        } else if (pathOfC && !pathOfE) {
+            var e_rect = elm.rect(t);
+            return G.__pointsInRect(this.__pointsAt(t), e_rect) ||
+                   G.__pointsInPath(this.__pathAt(t), e_rect);
+        } else if (!pathOfC && pathOfE) {
+            var с_rect = this.rect(t);
+            return G.__pointsInRect(elm.__pointsAt(t), с_rect) ||
+                   G.__pointsInPath(elm.__pathAt(t), с_rect);
         }
         return false;
     }
@@ -145,44 +192,43 @@ E.prototype.dintersects = function(elm, t) {
     return matched;
 }
 
-E.prototype._cpa_bounds= function() { // cpath-aware bounds
+E.prototype._cpa_bounds = function() { // cpath-aware bounds
     var cpath = this.xdata.__cpath;
     return cpath 
             ? cpath.bounds()
-            : this.ibounds();
+            : this.lbounds();
 }
-E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
-    if (!pts) return null;
-    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
+
+E.prototype._cpa_rect = function() { // cpath-aware rect
+    var cpath = this.xdata.__cpath;
+    return cpath
+            ? cpath.rect()
+            : this.lrect();
+}
+E.prototype.__ensureTimeTestAllowedFor = function(t) {
     if ((t != null) &&
         (this.__modifying != null)
         && (this.__modifying !== E.EVENT_MOD)) {
         throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
     }
+    return true;
+}
+E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
+    if (!pts) return null;
+    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
+    this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? this.state : this.stateAt(t);
-    if (!s._applied) {
-        // fill result with min-values
-        var l = pts.length; result = new Array(l), i = l;
-        while (i--) result[i] = Number.MIN_VALUE;
-        return result;
-    }
+    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
+    //return this.__adoptWithM(pts, s._matrix.inverted());
     return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
-    if ((t != null) &&
-        (this.__modifying != null)
-        && (this.__modifying !== E.EVENT_MOD)) {
-        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
-    }
+    this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? this.state : this.stateAt(t);
-    if (!s._applied) {
-        // fill result with min-values
-        var l = pts.length; result = new Array(l), i = l;
-        while (i--) result[i] = Number.MIN_VALUE;
-        return result;
-    }
+    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
+    //return this.__adoptWithM(pts, s._matrix.inverted());
     return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
@@ -194,12 +240,13 @@ E.prototype._padopt = function(pt, t) {
     return this._adopt(pt, t);
 }
 E.prototype._pradopt = function(pt, t) {
+    var pt = this._radopt(pt, t);
     var p = this.parent;
     while (p) {
         pt = p._radopt(pt, t);
         p = p.parent;
-    } 
-    return this._radopt(pt, t);
+    }
+    return pt;
 }
 E.prototype.__adoptWithM = function(pts, m) {
     if (pts.length > 2) {
@@ -219,10 +266,61 @@ function p_drawCPath(ctx, cPath) {
     cPath.cstroke('#f00', 2.0);
     cPath.apply(ctx);
 }
+function p_drawAdoptedRect(ctx) {
+    var rect = this.$._cpa_rect();
+    if (rect) {
+        rect = this.$._pradopt(rect);
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        ctx.fillStyle = '#0f0';
+        ctx.fillRect(rect[0]-2,rect[1]-2,4,4);
+        ctx.fillRect(rect[2]-2,rect[3]-2,4,4);
+        ctx.fillRect(rect[4]-2,rect[5]-2,4,4);
+        ctx.fillRect(rect[6]-2,rect[7]-2,4,4);
+        ctx.beginPath();
+        ctx.strokeStyle = '#0f0';
+        ctx.lineWidth = 2;
+        ctx.moveTo(rect[0], rect[1]);
+        ctx.lineTo(rect[2], rect[3]);
+        ctx.lineTo(rect[4], rect[5]);
+        ctx.lineTo(rect[6], rect[7]);
+        ctx.lineTo(rect[0], rect[1]);
+        ctx.closePath();
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+function p_drawAdoptedPoints(ctx) {
+    var pts = this.$.collectPoints();
+    if (pts) {
+        pts = this.$._pradopt(pts);
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        ctx.fillStyle = '#00f';
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            ctx.fillRect(pts[pi]-2,pts[pi+1]-2,4,4);
+        }
+        ctx.restore();
+    }
+}
+/*function p_drawPathAt(ctx) {
+    try {
+        var p = this.$.__pathAt();
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        p.fill = Path.BASE_FILL;
+        p.stroke = Path.BASE_STROKE;
+        p.apply(ctx);
+        ctx.restore();
+    } catch(e) { };
+}*/
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
     elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
+    //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
 }
 
 Path.prototype.contains = function(pt) {
@@ -283,7 +381,12 @@ G.__zeroBounds = function(b) {
            (b[2] === b[3])/* &&
            (b[3] === b[0])*/;
 }
-
+G.__zeroRect = function(r) {
+    return (r[0] === r[1]) && (r[1] === r[2]) &&
+           (r[2] === r[3]) && (r[3] === r[4]) &&
+           (r[4] === r[5]) && (r[5] === r[6]) &&
+           (r[6] === r[7])/* && (r[7] === r[0])*/;
+}
 G.__inBounds = function(b, pt, zeroTest) {
     if (!b) throw new Error('Bounds are not accessible');
     // zero-bounds don't match
@@ -293,10 +396,19 @@ G.__inBounds = function(b, pt, zeroTest) {
             (pt[1] >= b[1]) &&
             (pt[1] <= b[3]));
 }
-G.__isecBounds = function(b1, b2) {
-    var inBounds = G.__inBounds;
+G.__inRect = function(r, pt, zeroTest) {
+    if (!r) throw new Error('Rect is not accessible');
+    // zero-rect don't match
+    if (zeroTest && G.__zeroRect(r)) return false;
+    return ((pt[0] >= r[0]) &&
+            (pt[0] <= r[2]) &&
+            (pt[1] >= r[1]) &&
+            (pt[1] <= r[5]));
+}
+/*G.__isecBounds = function(b1, b2) {
     if (!b1 || !b2) throw new Error('Bounds are not accessible');
     if (G.__zeroBounds(b1) || G.__zeroBounds(b2)) return false;
+    var inBounds = G.__inBounds;
     if (inBounds(b2, [b1[0], b1[1]])) return true; // x1, y1
     if (inBounds(b2, [b1[2], b1[1]])) return true; // x2, y1
     if (inBounds(b2, [b1[2], b1[3]])) return true; // x2, y2
@@ -306,6 +418,42 @@ G.__isecBounds = function(b1, b2) {
     if (inBounds(b1, [b2[2], b2[3]])) return true; // x2, y2
     if (inBounds(b1, [b2[0], b2[3]])) return true; // x1, y2
     return false; 
+}*/
+G.__edgeTest = function(p1, p2, p3, r2) {
+    var rot = [ -(p2[1] - p1[1]),
+                  p2[0] - p1[0] ];
+
+    var ref = (rot[0] * (p3[0] - p1[0]) +
+               rot[1] * (p3[1] - p1[1])) >= 0;
+
+    for (var i = 0, il = r2.length; i < il; i+=2) {
+        if (((rot[0] * (r2[i]   - p1[0]) +
+              rot[1] * (r2[i+1] - p1[1])) >= 0) === ref) return false;
+    }
+
+    return true;
+}
+G.__isecRects = function(r1, r2) {
+    if (!r1 || !r2) throw new Error('Rects are not accessible');
+    if (G.__zeroRect(r1) || G.__zeroRect(r2)) return false;
+    var edgeTest = G.__edgeTest;
+
+    var pn, px;
+    for (var pi = 0, pl = r1.length; pi < pl; pi += 2) {
+        pn = (pi === (pl - 2)) ? 0 : pi + 2; // next point
+        px = (pn === (pl - 2)) ? 0 : pn + 2;
+        if (edgeTest([r1[pi], r1[pi+1]],
+                     [r1[pn], r1[pn+1]],
+                     [r1[px], r1[px+1]], r2)) return false;
+    }
+    for (var pi = 0, pl = r2.length; pi < pl; pi += 2) {
+        pn = (pi === (pl - 2)) ? 0 : pi + 2; // next point
+        px = (pn === (pl - 2)) ? 0 : pn + 2;
+        if (edgeTest([r2[pi], r2[pi+1]],
+                     [r2[pn], r2[pn+1]],
+                     [r2[px], r2[px+1]], r1)) return false;
+    }
+    return true;
 }
 G.__pointsInPath = function(path, pts) {
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
@@ -318,6 +466,14 @@ G.__pointsInBounds = function(b, pts) {
     var inBounds = G.__inBounds;    
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
         if (inBounds(b, [pts[pi], pts[pi+1]], false)) return true;
+    }
+    return false; // return count?    
+}
+G.__pointsInRect = function(r, pts) {
+    if (G.__zeroRect(r)) return false;
+    var inRect = G.__inRect;    
+    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+        if (inRect(r, [pts[pi], pts[pi+1]], false)) return true;
     }
     return false; // return count?    
 }

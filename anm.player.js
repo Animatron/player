@@ -1361,7 +1361,7 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 }*/
-Element.prototype.ibounds = function() {
+Element.prototype.lbounds = function() {
     var x = this.xdata;
     var bounds;
     if (x.path) {
@@ -1372,6 +1372,16 @@ Element.prototype.ibounds = function() {
         bound = x.text.bounds();
     } else return null;
     return bounds;
+}
+Element.prototype.lrect = function() {
+    var b = this.lbounds();
+    if (!b) return null;
+    // returns clockwise coordinates of the points
+    // for easier drawing
+          // minX, minY, maxX, minY,
+    return [ b[0], b[1], b[2], b[1],
+          // maxX, maxY, minX, maxY
+             b[2], b[3], b[0], b[3] ];
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);
@@ -2431,7 +2441,7 @@ Path.prototype.end = function() {
              this.segs[lastidx].pts[s-1] ]; // last-y
 }
 Path.prototype.bounds = function() {
-    // FIXME: it is not ok for curve path
+    // FIXME: it is not ok for curve path, possibly
     if (this.segs.length <= 0) return [0, 0, 0, 0];
     var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
@@ -2448,6 +2458,16 @@ Path.prototype.bounds = function() {
     });
     return [ minX, minY, maxX, maxY ];
 }
+Path.prototype.rect = function() {
+    var b = this.bounds();
+    // returns clockwise coordinates of the points
+    // for easier drawing
+          // minX, minY, maxX, minY,
+    return [ b[0], b[1], b[2], b[1],
+          // maxX, maxY, minX, maxY
+             b[2], b[3], b[0], b[3] ];
+}
+// TODO: rename to `modify`?
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
         var pts = segment.pts;
@@ -2492,12 +2512,20 @@ Path.prototype.normalize = function() {
 Path.prototype.getPoints = function() {
     var points = [];
     this.visit(function(seg) {
-       points.concat(seg.pts);
+        points = points.concat(seg.pts);
     });
     return points;
 }
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
+}
+// not a clone, but only segments-copy
+Path.prototype.duplicate = function() {
+    var clone = new Path();
+    this.visit(function(seg) {
+        clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
+    });
+    return clone;
 }
 
 // visits every chunk of path in string-form and calls
@@ -2603,6 +2631,11 @@ Path.parse = function(path, target) {
 // parses a path in string form and immediately applies it to context
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, Path._strApplyVisitor, ctx);
+}
+Path.makeSeg = function(type, pts) {
+    if (type === C.P_MOVETO) { return new MSeg(pts); }
+    else if (type === C.P_LINETO) { return new LSeg(pts); }
+    else if (type === C.P_CURVETO) { return new CSeg(pts); }
 }
 // create canvas-compatible style from brush
 Path.createStyle = function(ctx, brush) {
