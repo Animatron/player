@@ -15,7 +15,7 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
-var modCollisions = anm.MODULES['COLLISIONS'];
+//var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
 
@@ -167,7 +167,7 @@ Builder.prototype.image = function(pt, src) {
 Builder.prototype.text = function(pt, lines, size, font) {
     this.x.pos = pt;
     var text = lines instanceof Text ? lines
-                     : new Text(lines, B.font(font, size));
+                     : new Text(lines, Builder.font(font, size));
     this.x.text = text;
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }

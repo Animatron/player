@@ -3,10 +3,13 @@
 if (anm.MODULES['COLLISIONS']) throw new Error('COLLISIONS module already enabled');
 
 var opts = {
-    'pathCheck': false
+    'pathDriven': false
 };
 
-anm.MODULES['COLLISIONS'] = opts;
+var C = anm.C;
+
+C.MOD_COLLISIONS = 'collisions';
+anm.M[C.MOD_COLLISIONS] = opts;
 
 function __filled(arr, val) {
     var l = arr.length; result = new Array(l), i = l;
@@ -87,7 +90,7 @@ E.prototype.contains = function(pt, t) {
     if (x.__cfunc) return x.__cfunc.call(this, pt);
     var inBounds;
     if (inBounds = G.__inBounds(b, pt)) {
-        if (!opts.pathCheck) return true;
+        if (!opts.pathDriven) return true;
         if (x.__cpath) return x.__cpath.contains(pt);        
         if (x.path) return x.path.contains(pt);
         if (x.image || x.text) return inBounds;
@@ -158,7 +161,7 @@ E.prototype.intersects = function(elm, t) {
     var rectsMatched;
     if (rectsMatched =
         G.__isecRects(this.rect(t), elm.rect(t))) {
-        if (!opts.pathCheck) return true;
+        if (!opts.pathDriven) return true;
         var cx = this.xdata, ex = elm.xdata;
         var pathOfC = (cx.__cpath || cx.path);
         var pathOfE = (ex.__cpath || ex.path);
@@ -405,20 +408,6 @@ G.__inRect = function(r, pt, zeroTest) {
             (pt[1] >= r[1]) &&
             (pt[1] <= r[5]));
 }
-/*G.__isecBounds = function(b1, b2) {
-    if (!b1 || !b2) throw new Error('Bounds are not accessible');
-    if (G.__zeroBounds(b1) || G.__zeroBounds(b2)) return false;
-    var inBounds = G.__inBounds;
-    if (inBounds(b2, [b1[0], b1[1]])) return true; // x1, y1
-    if (inBounds(b2, [b1[2], b1[1]])) return true; // x2, y1
-    if (inBounds(b2, [b1[2], b1[3]])) return true; // x2, y2
-    if (inBounds(b2, [b1[0], b1[3]])) return true; // x1, y2
-    if (inBounds(b1, [b2[0], b2[1]])) return true; // x1, y1
-    if (inBounds(b1, [b2[2], b2[1]])) return true; // x2, y1
-    if (inBounds(b1, [b2[2], b2[3]])) return true; // x2, y2
-    if (inBounds(b1, [b2[0], b2[3]])) return true; // x1, y2
-    return false; 
-}*/
 G.__edgeTest = function(p1, p2, p3, r2) {
     var rot = [ -(p2[1] - p1[1]),
                   p2[0] - p1[0] ];
@@ -460,14 +449,6 @@ G.__pointsInPath = function(path, pts) {
         if (path.contains([pts[pi], pts[pi+1]])) return true;
     }
     return false; // return count?
-}
-G.__pointsInBounds = function(b, pts) {
-    if (G.__zeroBounds(b)) return false;
-    var inBounds = G.__inBounds;    
-    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
-        if (inBounds(b, [pts[pi], pts[pi+1]], false)) return true;
-    }
-    return false; // return count?    
 }
 G.__pointsInRect = function(r, pts) {
     if (G.__zeroRect(r)) return false;

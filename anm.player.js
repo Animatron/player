@@ -292,6 +292,20 @@ __reg_event('S_ERROR', 'error', 'error');
 
 // TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick'
 
+// === MODULES ====================================================================
+// ================================================================================
+
+var M = {};
+
+C.MOD_PLAYER = 'player';
+
+// === OPTIONS ====================================================================
+// ================================================================================
+
+var opts = { 'liveDebug': false };
+
+M[C.MOD_PLAYER] = opts;
+
 // === PLAYER ==================================================================
 // =============================================================================
 
@@ -1061,8 +1075,9 @@ function Element(draw, onframe) {
             this.m_on.call(_me, type, handler);
         } else default_on.call(_me, type, handler);
     };
-    this.__addSysModifiers();
-    this.__addSysPainters();
+    Element.__addSysModifiers(this);
+    Element.__addSysPainters(this);
+    if (opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.DEFAULT_LEN = Number.MAX_VALUE;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
@@ -1137,7 +1152,7 @@ Element.prototype.addPainter = function(painter, data, priority) {
 
 // > Element.addTween % (tween: Tween)
 Element.prototype.addTween = function(tween) {
-    this.__addTweenModifier(tween);
+    Element.__addTweenModifier(this, tween);
 }
 // > Element.changeTransform % (transform: Function(ctx: Context, 
 //                                                   prev: Function(Context)))
@@ -1538,36 +1553,6 @@ Element.prototype.__mafter = function(type, result) {
 }
 Element.prototype.__pbefore = function(type) { }
 Element.prototype.__pafter = function(type) { }
-Element.prototype.__addSysModifiers = function() {
-    // band check performed in checkJump
-    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, Render.m_checkBand, xdata.gband); 
-    this.__modify(Element.SYS_MOD, 0, Render.m_saveReg);
-    this.__modify(Element.SYS_MOD, 0, Render.m_applyPos);
-}
-Element.prototype.__addSysPainters = function() {
-    this.__paint(Element.SYS_PNT, 0, Render.p_drawPath);
-    this.__paint(Element.SYS_PNT, 0, Render.p_drawImage);
-    this.__paint(Element.SYS_PNT, 0, Render.p_drawText);
-}
-Element.__addDebugRender = function(elm) {
-    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawReg);
-    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawName);
-    //elm.__paint(Element.DEBUG_PNT, 1, Render.p_drawMPath);
-
-    elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
-}
-Element.prototype.__addTweenModifier = function(tween) {
-    var easing = tween.easing;
-    var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
-                                                 tween.band)
-                           : Bands.adaptModifierByTime(
-                                   easing.type ? EasingImpl[easing.type](easing.data)
-                                               : easing.f(easing.data),
-                                   Tweens[tween.type],
-                                   tween.band);
-    this.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type], 
-                  modifier, tween.data);
-}
 Element.prototype.__checkGJump = function(gtime) {
     return this.__checkJump(gtime - this.xdata.gband[0]);
 }
@@ -1697,6 +1682,37 @@ Element.createXData = function(owner) {
              '_mpath': null,
              '$': owner };
 }
+Element.__addSysModifiers = function(elm) {
+    // band check performed in checkJump
+    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, Render.m_checkBand, xdata.gband); 
+    elm.__modify(Element.SYS_MOD, 0, Render.m_saveReg);
+    elm.__modify(Element.SYS_MOD, 0, Render.m_applyPos);
+}
+Element.__addSysPainters = function(elm) {
+    elm.__paint(Element.SYS_PNT, 0, Render.p_drawPath);
+    elm.__paint(Element.SYS_PNT, 0, Render.p_drawImage);
+    elm.__paint(Element.SYS_PNT, 0, Render.p_drawText);
+}
+Element.__addDebugRender = function(elm) {
+    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawReg);
+    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawName);
+    //elm.__paint(Element.DEBUG_PNT, 1, Render.p_drawMPath);
+
+    elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
+}
+Element.__addTweenModifier = function(elm, tween) {
+    var easing = tween.easing;
+    var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type], 
+                                                 tween.band)
+                           : Bands.adaptModifierByTime(
+                                   easing.type ? EasingImpl[easing.type](easing.data)
+                                               : easing.f(easing.data),
+                                   Tweens[tween.type],
+                                   tween.band);
+    elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type], 
+                 modifier, tween.data);
+}
+
 Element._getMatrixOf = function(s, m) {
     var _t = (m ? (m.reset(), m) 
                 : new Transform());
@@ -1926,7 +1942,9 @@ L.loadFromObj = function(player, object, importer, callback) {
 L.loadScene = function(player, scene, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
-    if (player.state.debug) scene.visitElems(Element.__addDebugRender);
+    if (player.state.debug
+        && !opts.liveDebug) 
+        scene.visitElems(Element.__addDebugRender);
     // subscribe events
     if (player.mode & C.M_HANDLE_EVENTS) {
         L.subscribeEvents(player.canvas, scene);
@@ -3336,6 +3354,7 @@ InfoBlock.prototype.updateDuration = function(value) {
 var exports = {
     
     'C': C, // constants
+    'M': M, // modules
     'Player': Player,
     'Scene': Scene,
     'Element': Element,
