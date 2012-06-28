@@ -15,7 +15,7 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
-var modCollisions = anm.MODULES['COLLISIONS'];
+//var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
 
