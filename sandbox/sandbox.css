@@ -96,16 +96,16 @@ textarea, .CodeMirror {
 
 #csheet {
 	background-color: #FFFFFF;
-	left: 10%;
-	top: 10%;
-	position: fixed;
-	z-index: 100;
-	width: 630px;
-	font-size: .9em;
-	padding: 15px;
-	border: 2px solid #666;
-	height: 75%;
-	overflow-y: scroll;
+    left: 10%;
+    top: 10%;
+    position: fixed;
+    z-index: 100;
+    width: 630px;
+    font-size: .9em;
+    padding: 15px;
+    border: 2px solid #666;
+    height: 75%;
+    overflow-y: scroll;
 }
 
 #csheet dt {
@@ -148,7 +148,7 @@ textarea, .CodeMirror {
 }
 
 a#csheet-link:hover, a#api-link:hover {
-	background-color: #eee;
+    background-color: #eee;
 }
 
 #csheet-link {

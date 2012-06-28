@@ -45,7 +45,6 @@ examples.push([ 0 /*version*/, [
   '               this.y = 20;',
   '               this.sx = 1 / t;',
   '               this.sy = 1 / t;',
-  '               return true;',
   '           }));',
   '}',
   '',
@@ -68,7 +67,6 @@ examples.push([ 0 /*version*/, [
   '       .modify(function() {',
   '         this.x = 150;',
   '         this.y = 150;',
-  '          return true;',
   '        })',
   '       .rotate([0, 3], [0, Math.PI * 4]))',
   '  .add(',
@@ -238,7 +236,7 @@ function sandbox() {
 function show_csheet(csheetElmId, overlayElmId) {
     var csheetElm = document.getElementById(csheetElmId);
     var overlayElm = document.getElementById(overlayElmId);
-
+    
     csheetElm.style.display = 'block';
     overlayElm.style.display = 'block';
 
@@ -252,7 +250,7 @@ function show_csheet(csheetElmId, overlayElmId) {
 function hide_csheet(csheetElmId, overlayElmId) {
     var csheetElm = document.getElementById(csheetElmId);
     var overlayElm = document.getElementById(overlayElmId);
-
+    
     csheetElm.style.display = 'none';
     overlayElm.style.display = 'none';
 

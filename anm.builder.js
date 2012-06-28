@@ -15,6 +15,10 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
+var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
+
+var __b_cache = {};
+
 // =============================================================================
 // === BUILDER =================================================================
 
@@ -42,7 +46,20 @@ function Builder(obj) {
     this.s = this._extractStroke();
 }
 Builder._$ = function(obj) {
-    return new Builder(obj);
+    if (obj && (obj instanceof Element)) {
+        if (__b_cache[obj.id]) return __b_cache[obj.id];
+        return (__b_cache[obj.id] = new Builder(obj));
+    }
+    var inst = new Builder(obj);
+    __b_cache[inst.v.id] = inst;
+    return inst;
+}
+
+Builder.__path = function(val, join) {
+    return (Array.isArray(val))
+           ? Builder.path(val) 
+           : ((val instanceof Path) ? val 
+              : Path.parse(val, join))
 }
 
 Builder.DEFAULT_STROKE = Path.BASE_STROKE;
@@ -72,6 +89,15 @@ Builder.prototype.addS = function(what) {
     }
     return this;    
 }
+// > builder.remove % (what: Element | Builder) => Builder
+Builder.prototype.remove = function(what) {
+    if (what instanceof Element) {
+        this.v.remove(what);    
+    } else if (what instanceof Builder) {
+        this.v.remove(what.v);
+    }
+    return this;       
+}
 
 // * SHAPES *
 
@@ -80,8 +106,7 @@ Builder.prototype.addS = function(what) {
 // > builder.path % (path: String | Path,
 //                   [pt: Array[2,Integer]]) => Builder
 Builder.prototype.path = function(path, pt) {
-    var path = (path instanceof Path) ? path 
-               : Path.parse(path, this.x.path);
+    var path = Builder.__path(path, this.x.path);
     this.x.path = path;
     path.normalize();
     this.x.reg = [0, 0];
@@ -93,29 +118,30 @@ Builder.prototype.path = function(path, pt) {
     return this;
 }
 // > builder.rect % (pt: Array[2,Integer], 
-//                   rect: Array[2,Integer]) => Builder
+//                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
+    var rect = Array.isArray(rect) ? rect 
+                                   : [ rect, rect ]; 
     var w = rect[0], h = rect[1];
-    this.path(Builder.path([[0, 0],
-                            [w, 0],
-                            [w, h],
-                            [0, h],
-                            [0, 0]]), pt);
+    this.path([[0, 0], [w, 0],
+               [w, h], [0, h],
+               [0, 0]], pt);
     return this;
 }
 // > builder.circle % (pt: Array[2,Integer], 
 //                     radius: Float) => Builder
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
-    this.x.reg = [ radius, radius ];
+    this.x.reg = [ 0, 0 ];
     var b = this;
     this.paint(function(ctx) {
-        var path = this.path;
         DU.qDraw(ctx, b.s, b.f,
                  function() {
-                    ctx.arc(radius, radius, radius, 0, Math.PI*2, true);
+                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                  });
     });
+    if (modCollisions) this.v.reactAs(
+            Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
     return this;
 }
 // > builder.image % (pt: Array[2,Integer],
@@ -129,7 +155,6 @@ Builder.prototype.image = function(pt, src) {
                 b.__modify(Element.SYS_MOD, function(t) {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
-                    return true;
                 });
            });
     }
@@ -142,7 +167,7 @@ Builder.prototype.image = function(pt, src) {
 Builder.prototype.text = function(pt, lines, size, font) {
     this.x.pos = pt;
     var text = lines instanceof Text ? lines
-                     : new Text(lines, B.font(font, size));
+                     : new Text(lines, Builder.font(font, size));
     this.x.text = text;
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
@@ -274,15 +299,14 @@ Builder.prototype.xscale = function(band, values, easing) {
 //                    points: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.trans = function(band, points, easing) {
-    return this.transP(band, B.path([[points[0][0],points[0][1]],
-                                     [points[1][0],points[1][1]]]), easing);
+    return this.transP(band, [[points[0][0],points[0][1]],
+                              [points[1][0],points[1][1]]], easing);
 }
 // > builder.transP % (band: Array[2,Float],
 //                     path: String | Path,
 //                     [easing: String]) => Builder
 Builder.prototype.transP = function(band, path, easing) {
-    return this.tween(C.T_TRANSLATE, band, (path instanceof Path)
-                                           ? path : Path.parse(path), easing);
+    return this.tween(C.T_TRANSLATE, band, Builder.__path(path, this.x.path), easing);
 }
 // > builder.alpha % (band: Array[2,Float], 
 //                    values: Array[2,Float],
@@ -315,16 +339,16 @@ Builder.prototype.bounce = function() {
 
 // > builder.modify % (modifier: Function(time: Float, 
 //                                        data: Any), 
-//                     data: Any) => Builder
-Builder.prototype.modify = function(func, data) {
-    this.v.addModifier(func, data);
+//                     [data: Any, priority: Integer]) => Builder
+Builder.prototype.modify = function(func, data, priority) {
+    this.v.addModifier(func, data, priority);
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,
 //                                      data: Any),
-//                    data: Any) => Builder
-Builder.prototype.paint = function(func, data) {
-    this.v.addPainter(func, data);
+//                    [data: Any, priority: Integer]) => Builder
+Builder.prototype.paint = function(func, data, priority) {
+    this.v.addPainter(func, data, priority);
     return this;
 }
 
@@ -359,7 +383,60 @@ Builder.prototype.on = function(type, handler) {
     return this;
 }
 
-// TODO: Builder.each
+// * UTILS *
+
+// > builder.disable % () => Builder
+Builder.prototype.disable = function(func) {
+    this.v.disabled = true;
+    return this;
+}
+// > builder.enable % () => Builder
+Builder.prototype.enable = function(func) {
+    this.v.disabled = false;
+    return this;
+}
+// > builder.each % (visitor: Function(elm: Element)) => Builder
+Builder.prototype.each = function(func) {
+    this.v.visitChildren(func);
+    return this;
+}
+// > builder.deach % (visitor: Function(elm: Element)) => Builder
+Builder.prototype.deach = function(func) {
+    this.v.travelChildren(func);
+    return this;
+} 
+
+// > builder.data % ([val: value]) => Builder
+Builder.prototype.data = function(value) {
+    if (typeof value !== 'undefined') {
+        this.v.data(value)
+        return this;
+    }
+    return this.v.data();
+}
+
+/*if (modCollisions) { // IF Collisions Module enabled
+
+    // > builder.local % (pt: Array[2, Float]) => Array[2, Float]
+    Builder.prototype.local = function(pt, t) {
+        return this.v.local(pt, t);
+    }
+    // > builder.global % (pt: Array[2, Float]) => Array[2, Float]
+    Builder.prototype.global = function(pt, t) {
+        return this.v.global(pt, t);
+    }
+    Builder.prototype.bounds = function(t) {
+        return this.v.bounds(t);
+    }
+    Builder.prototype.bounds = function(t) {
+        return this.v.bounds(t);
+    }    
+
+    // TODO: bounds, dbounds, contains, dcontains, 
+    //       collides, dcollides, intersects, dintersects,
+    //       offset, reactAs  
+
+} // end IF modCollisions*/
 
 // * PRIVATE *
 
@@ -395,14 +472,14 @@ Builder.fhsv = function(h, s, v, a) {
     var x = c * (1 - Math.abs((h1 % 2) - 1));  
     var m = v - c;  
     var rgb;  
-
+       
     if (h1 < 1) rgb = [c, x, 0];  
     else if (h1 < 2) rgb = [x, c, 0];  
     else if (h1 < 3) rgb = [0, c, x];  
     else if (h1 < 4) rgb = [0, x, c];  
     else if (h1 < 5) rgb = [x, 0, c];  
     else if (h1 <= 6) rgb = [c, 0, x];  
-
+      
     return Builder.rgb(255 * (rgb[0] + m), 
                        255 * (rgb[1] + m), 
                        255 * (rgb[2] + m), a);
@@ -444,9 +521,7 @@ Builder.easing = function(func, data) {
     }
 }
 Builder.easingP = function(path) {
-    return { type: C.E_PATH, 
-        data: ((path instanceof Path)
-               ? path : Path.parse(path)) };
+    return { type: C.E_PATH, data: Builder.__path(path) };
 }
 Builder.easingC = function(seg) {
     return { type: C.E_CSEG, 
@@ -461,6 +536,39 @@ Builder.font = function(name, size) {
         fface = (typeof fface === 'string') ? fface : fface.join(',');
     var fsize = (size != null) ? size : Builder.DEFAULT_FSIZE;
     return fsize + 'px ' + fface;
+}
+// Thanks for Nek (github.com/Nek) for this function
+Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps){
+    //
+    // For convenience, store the number of radians in a full circle.
+    var twoPI = 2 * Math.PI;
+    //
+    // To determine the size of the angle between each point on the
+    // arc, divide the overall angle by the total number of points.
+    var angleStep = arcAngle/steps;
+    //
+    // Determine coordinates of first point using basic circle math.
+    var res = [];
+    var xx = centerX + Math.cos(startAngle * twoPI) * radius;
+    var yy = centerY + Math.sin(startAngle * twoPI) * radius;
+    //
+    // Move to the first point.
+    res.push([xx, yy]);
+    //
+    // Draw a line to each point on the arc.
+    for(var i=1; i<=steps; i++){
+        //
+        // Increment the angle by "angleStep".
+        var angle = startAngle + i * angleStep;
+        //
+        // Determine next point's coordinates using basic circle math.
+        xx = centerX + Math.cos(angle * twoPI) * radius;
+        yy = centerY + Math.sin(angle * twoPI) * radius;
+        //
+        // Draw a line to the next point.
+        res.push([xx, yy]);
+    }
+    return Builder.path(res);
 }
 
 window.Builder = Builder;
