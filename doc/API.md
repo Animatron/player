@@ -141,7 +141,7 @@ There are a bit more variants for `mode` and you may mix them with single pipe (
  
 But they are intended for rare use and we hope you'll be fine with three predefined ones.
 
-You may also do this with `var player = createPlayer(...); player.mode = C.M_...;`, it has the same effect.
+You may also do this with `var player = createPlayer(...); player.mode = C.M_...;`, it has the same effect. 
 
 **NB**: `C.M_VIDEO`, `C.M_PREVIEW` and `C.M_DYNAMIC` are the precalculated mixes of these "precise" options.
 
@@ -665,6 +665,8 @@ As in difference with [Tweens](#tweens), sometimes you need to "correct" the sta
 
 This method changes the registration point position of the shape, this point affects tweens, so the rotation will be performed around this point, translation will be shifted with this point and so on. This point needs to be specified relative to the center of the shape. Use ['debug' mode](#player-options) of the player to see the registrations points of the shapes.
 
+<!-- TODO: regAt & its constants (not works for circle) -->
+
     b().cilcle([ 20, 20 ], 60).reg([ -10, -10 ]);
 
 > ♦ `builder.move % (pt: Array[2,Integer]) => Builder`
@@ -965,17 +967,17 @@ Every such function returns `null` by default (when you return nothing) and it m
     
     // adding prepared modifier to several shapes
     // and passing some data to it
-    var preparedModifier = function(t, value) {
+    var m_prepared = function(t, value) {
         this.angle = Math.PI / (t * value);
     };
-    b().modify(preparedModifier, .1);
-    b().modify(preparedModifier, .5);
-    b().modify(preparedModifier, .7);
-    b().modify(preparedModifier, 1);
+    b().modify(m_prepared, .1);
+    b().modify(m_prepared, .5);
+    b().modify(m_prepared, .7);
+    b().modify(m_prepared, 1);
     
     // you may add several modifiers to one shape
     var my_shape = b();
-    my_shape.modify(preparedModifier, .6);
+    my_shape.modify(m_prepared, .6);
     my_shape.modify(function(t) {
         this.alpha = t / my_shape.v.duration();
     });
@@ -1013,7 +1015,7 @@ __Painter__ is the function that gets current context and applies shape's `xdata
 
 > ♦ `builder.paint % (painter: Function(ctx: Context, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-To add painter function to a shape, use `paint()` method. This function gets canvas context; its `this` pointer points to the shape's `xdata`, so you may use it to draw something, but please *do not* modify anything at first level of `xdata`.
+To add painter function to a shape, use `paint()` method. This function gets canvas context; its `this` pointer points to the shape's `xdata`, so you may use it to draw something, you may even modify anything at first level of `xdata`.
 
 <!-- TODO: or `xdata` is allowed to modify? -->
 
@@ -1029,23 +1031,25 @@ To add painter function to a shape, use `paint()` method. This function gets can
     
     // adding prepared painter to several shapes
     // and passing some data to it
-    var preparedPainter = function(ctx, text) {
+    var p_prepared = function(ctx, text) {
         this.text.lines = text;
         this.text.apply(ctx);
     }
-    b().paint(preparedPainter, "Y");
-    b().paint(preparedPainter, "M");
-    b().paint(preparedPainter, "C");
-    b().paint(preparedPainter, "A");
+    b().paint(p_prepared, "Y");
+    b().paint(p_prepared, "M");
+    b().paint(p_prepared, "C");
+    b().paint(p_prepared, "A");
     
     // you may add several painters to one shape
     var my_shape = b();
-    my_shape.paint(preparedPainter, "G");
+    my_shape.paint(p_prepared, "G");
     my_shape.paint(function(ctx) {
         ctx.arc(....);
     });
 
 As for modifiers, you may optionally pass `data` object of any type, and it will be passed to your painter as second parameter every time it will be called. And again, you may specify a priority number — the higher this number, the later this painter will be called in the painters sequence. The painters with the same priority will be called in the order of addition. Also, there is a link to current element (painter owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases.
+
+> We strongly recommend to use prefixes in the names of your Modifiers/Painters/Handlers if they are prepared before, so you'd easy distinguish what is what even if you have a lot of code. We use `m_`, `p_` and `h_` correspondingly. 
 
 ### Events
 
@@ -1061,24 +1065,23 @@ Currently, only keyup / keydown / keypress (`C.X_KUP`, `C.X_KDOWN`, `C.X_KPRESS`
 
 Event handlers have the same access to state as modifiers do (in fact, they are modifiers that perform last, when all others modifiers were performed):
 
-    var my_elm = b();
-    my_elm.on(C.X_MCLICK, function(evt) {
-        if (my_elm.v.contains(evt.pos)) {
+    b().on(C.X_MCLICK, function(evt) {
+        if (this.$.contains(evt.pos)) {
             this.x = evt.pos[0];
             this.y = evt.pos[1];  
         }
         return true;
     });
+
+    b().on(C.X_KPRESS, function(evt) {
+        console.log(evt);
+    });
     
 You may see the use of `contains()` in the example: it tests if shape has the point given, and it is a special method made to match current time of animation, use it only in events handlers.
-    
-<!-- TODO: it's hard to use my_elm-like var every time, but `this` always points to state... -->
     
 Currently, every mouse event contains only a mouse position (`evt.pos`) and every key event contains only a pressed key info (`evt.key`).
 
 The second optional incoming argument for handler is `t`, it is a render time when handler-modifier was called.
-
-**NB** Don't forget to return `true` when you handle an event, otherwise it will flicker on handling. May be soon we will change the behaviour to the opposite in event handlers and modifiers, `return true` will mean **not** to draw the shape and default `return false` will mean that it is ok to draw it.
 
 ### Time Jumps
 
