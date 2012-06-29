@@ -663,7 +663,9 @@ As in difference with [Tweens](#tweens), sometimes you need to "correct" the sta
 
 > ♦ `builder.reg % (pt: Array[2,Integer]) => Builder`
 
-This method changes the registration point position of the shape, this point affects tweens, so the rotation will be performed around this point, translation will be shifted with this point and so on. This point needs to be specified relative to the previous registration point of the shape. Use ['debug' mode](#player-options) of the player to see the registrations points of the shapes.
+This method changes the registration point position of the shape, this point affects tweens, so the rotation will be performed around this point, translation will be shifted with this point and so on. This point needs to be specified relative to the center of the shape. Use ['debug' mode](#player-options) of the player to see the registrations points of the shapes.
+
+<!-- TODO: regAt & its constants (not works for circle) -->
 
     b().cilcle([ 20, 20 ], 60).reg([ -10, -10 ]);
 

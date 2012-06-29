@@ -134,6 +134,7 @@ Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
     var b = this;
+    this.x.__bounds = [ 0, 0, radius*2, radius*2];
     this.paint(function(ctx) {
         DU.qDraw(ctx, b.s, b.f,
                  function() {
@@ -170,8 +171,7 @@ Builder.prototype.text = function(pt, lines, size, font) {
     var text = lines instanceof Text ? lines
                      : new Text(lines, Builder.font(font, size));
     this.x.text = text;
-    var dimen = text.dimen();
-    this.x.reg = [ dimen[0] / 2, dimen[1] / 2];
+    this.x.reg = [ 0, 0 ];
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
     if (!text.fill) { text.fill = this.f; }
@@ -228,6 +228,32 @@ Builder.prototype.reg = function(pt) {
     x.reg = pt;
     return this;
 }
+C.R_TL = 1; C.R_TC = 5; C.R_TR = 2;
+C.R_ML = 6; C.R_MC = 0; C.R_MR = 7;
+C.R_BL = 3; C.R_BC = 8; C.R_BR = 4;
+// > builder.reg % (side: C.R_*) => Builder
+Builder.prototype.regAt = function(side) {
+    var x = this.x, _new = x.reg;
+    var b = this.v.lbounds();
+    if (!b) return this; // throw error?
+    var w = b[2] - b[0],
+        h = b[3] - b[1];
+    switch (side) {
+        case C.R_TL: _new = [ -w/2, -h/2 ]; break;
+        case C.R_TC: _new = [    0, -h/2 ]; break;
+        case C.R_TR: _new = [  w/2, -h/2 ]; break;
+
+        case C.R_ML: _new = [ -w/2,    0 ]; break;
+        case C.R_MC: _new = [    0,    0 ]; break;
+        case C.R_MR: _new = [  w/2,    0 ]; break;
+
+        case C.R_BL: _new = [ -w/2,  h/2 ]; break;
+        case C.R_BC: _new = [    0,  h/2 ]; break;
+        case C.R_BR: _new = [  w/2,  h/2 ]; break;
+    } 
+    x.reg = _new;
+    return this;
+}
 // > builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
     var x = this.x;
@@ -241,6 +267,12 @@ Builder.prototype.zoom = function(val) {
         this.x.path.zoom(val);
         this.path(this.x.path); // will normalize it
     }
+    return this;
+}
+// > builder.bounds % (val: Array[4,Float]) => Builder
+Builder.prototype.bounds = function(bounds) {
+    if (!bounds.length === 4) throw new Error('Incorrect bounds');
+    this.x.__bounds = bounds;
     return this;
 }
 

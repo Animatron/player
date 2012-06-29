@@ -1406,13 +1406,14 @@ Element.prototype.global = function(pt) {
 }*/
 Element.prototype.lbounds = function() {
     var x = this.xdata;
+    if (x.__bounds) return x.__bounds;
     var bounds;
     if (x.path) {
         bounds = x.path.bounds();
     } else if (x.image) {
         bounds = [ 0, 0, x.image.width, x.image.height ];
     } else if (x.text) {
-        bound = x.text.bounds();
+        bounds = x.text.bounds();
     } else return null;
     return bounds;
 }
@@ -2939,7 +2940,8 @@ Text.prototype.apply = function(ctx, point) {
     var point = point || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]),
-        apt = [ point[0], point[1] + accent];
+        apt = [ point[0] - dimen[0]/2, 
+                point[1] + accent - dimen[1]/2];
     ctx.font = this.font;
     ctx.textBaseline = Text.BASELINE_RULE;
     if (this.fill) {
