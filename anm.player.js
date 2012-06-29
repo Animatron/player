@@ -302,9 +302,11 @@ C.MOD_PLAYER = 'player';
 // === OPTIONS ====================================================================
 // ================================================================================
 
-var opts = { 'liveDebug': false };
+var global_opts = { 'liveDebug': false,
+                    'autoFocus': true,
+                    'setTabindex': true };
 
-M[C.MOD_PLAYER] = opts;
+M[C.MOD_PLAYER] = global_opts;
 
 // === PLAYER ==================================================================
 // =============================================================================
@@ -342,8 +344,10 @@ function Player(id, opts) {
     this.controls = null;
     this.info = null;
     this.__canvasPrepared = false;
+    this.__instanceNum = ++Player.__instances;
     this._init(opts);
 }
+Player.__instances = 0;
 
 Player.PREVIEW_POS = 0.33;
 Player.PEFF = 0.07; // seconds to play more when reached end of movie
@@ -377,8 +381,6 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
-
-    player._checkMode();
 
     player._reset();
 
@@ -562,6 +564,7 @@ Player.prototype._init = function(opts) {
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
     this.subscribeEvents(this.canvas);
     this.stop();
+    this._checkMode();
     // TODO: load some default information into player
     if (!Text.__buff) Text.__buff = Text._createBuffer(); // so it will be performed onload
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
@@ -637,8 +640,14 @@ Player.prototype.detach = function() {
     this._reset();
 }
 Player.prototype.subscribeEvents = function(canvas) {
+    // TODO: move to _checkMode?
     this.canvas.addEventListener('mouseover', (function(player) { 
                         return function(evt) {
+                            if (global_opts.autoFocus &&
+                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                player.canvas) {
+                                player.canvas.focus();
+                            }
                             if (player.controls) {
                                 player.controls.show();
                                 player.controls.render(player.state, 
@@ -649,7 +658,12 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this), false);
     this.canvas.addEventListener('mouseout', (function(player) { 
-                        return function(evt) { 
+                        return function(evt) {
+                            if (global_opts.autoFocus &&
+                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                player.canvas) {
+                                player.canvas.blur();
+                            }
                             if (player.controls && 
                                 (!player.controls.evtInBounds(evt))) {
                                 player.controls.hide();
@@ -745,33 +759,47 @@ Player.prototype._prepareCanvas = function(opts) {
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
     this._saveCanvasPos(canvas);
+    this._checkMode();
     this.__canvasPrepared = true;
     return this;
 }
 Player.prototype._checkMode = function() {
+    if (!this.canvas) return;
+    
+    var canvas = this.canvas;
     if (this.mode & C.M_CONTROLS_ENABLED) {
         if (!this.controls) {
             this.controls = new Controls(this);
-            this.controls.update(this.canvas);
+            this.controls.update(canvas);
         }
     } else {
         if (this.controls) {
-            this.controls.detach(this.canvas);
+            this.controls.detach(canvas);
             this.controls = null;
         }
     }
     if (this.mode & C.M_INFO_ENABLED) {
         if (!this.info) {
             this.info = new InfoBlock(this);
-            this.info.update(this.canvas);
+            this.info.update(canvas);
         }
     } else {
         if (this.info) {
-            this.info.detach(this.canvas);
+            this.info.detach(canvas);
             this.info = null;
         }
     }
-    // FIXME: M_HANDLE_EVENTS
+    if (this.mode & C.M_HANDLE_EVENTS) {
+        if (global_opts.setTabindex) {
+            canvas.setAttribute('tabindex',this.__instanceNum);
+        } 
+        var scene = this.anim;
+        if (scene && !scene.__subscribedEvts) {
+            L.subscribeEvents(canvas, scene);
+            scene.__subscribedEvts = true;
+        }
+    }
+
 }
 Player.prototype._ensureState = function() {
     if (!this.state) {
@@ -1077,7 +1105,7 @@ function Element(draw, onframe) {
     };
     Element.__addSysModifiers(this);
     Element.__addSysPainters(this);
-    if (opts.liveDebug) Element.__addDebugRender(this);
+    if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.DEFAULT_LEN = Number.MAX_VALUE;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
@@ -1943,14 +1971,13 @@ L.loadScene = function(player, scene, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
     if (player.state.debug
-        && !opts.liveDebug) 
+        && !global_opts.liveDebug) 
         scene.visitElems(Element.__addDebugRender);
-    // subscribe events
-    if (player.mode & C.M_HANDLE_EVENTS) {
-        L.subscribeEvents(player.canvas, scene);
-    }
     // assign
     player.anim = scene;
+    // subscribe events
+    player._checkMode();
+    // update duration
     if (!player.state.duration) {
         if (!(player.mode & C.M_DYNAMIC) 
             && (scene.duration === Number.MAX_VALUE)) {

@@ -151,6 +151,7 @@ Builder.prototype.image = function(pt, src) {
     if (src) {
         var b = this;
         this.x.image = 
+           // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src, function(img) {
                 b.__modify(Element.SYS_MOD, function(t) {
                     this.rx = Math.floor(img.width/2);
@@ -169,6 +170,8 @@ Builder.prototype.text = function(pt, lines, size, font) {
     var text = lines instanceof Text ? lines
                      : new Text(lines, Builder.font(font, size));
     this.x.text = text;
+    var dimen = text.dimen();
+    this.x.reg = [ dimen[0] / 2, dimen[1] / 2];
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
     if (!text.fill) { text.fill = this.f; }
