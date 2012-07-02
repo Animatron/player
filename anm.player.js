@@ -1416,6 +1416,15 @@ Element.prototype.clone = function() {
     clone.xdata.$ = clone;
     return clone;
 }
+Element.prototype.dclone = function() {
+    var clone = this.clone();
+    var src_x = this.xdata,
+        trg_x = clone.xdata;
+    if (src_x.path) trg_x.path = src_x.path.clone();
+    //if (src_x.image) trg_x.image = src_x.image.clone();
+    if (src_x.text) trg_x.text = src_x.text.clone();
+    return clone;
+}
 Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
@@ -2539,12 +2548,19 @@ Path.prototype.toString = function() {
 }
 // not a clone, but only segments-copy
 Path.prototype.duplicate = function() {
-    var clone = new Path();
+    var seg_copy = new Path();
     this.visit(function(seg) {
-        clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
+        seg_copy.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
     });
+    return seg_copy;
+}
+Path.prototype.clone = function() {
+    var clone = this.duplicate();
+    if (this.stroke) clone.stroke = obj_clone(this.stroke);
+    if (this.fill) clone.fill = obj_clone(this.fill);
     return clone;
 }
+
 
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets 
@@ -2983,6 +2999,16 @@ Text.prototype.visitLines = function(func, data) {
             func(line, data);
         }  
     }
+}
+Text.prototype.clone = function() {
+    var c = new Text(this.lines, this.font,
+                     this.stroke, this.fill);
+    if (this.lines && Array.isArray(this.lines)) {
+        c.lines = [].concat(this.lines); 
+    }
+    if (this.stroke) c.stroke = obj_clone(this.stroke);
+    if (this.fill) c.fill = obj_clone(this.fill); 
+    return c;
 }
 
 // =============================================================================

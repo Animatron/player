@@ -34,7 +34,7 @@ function Builder(obj) {
         this.x = obj.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
-        this.v = obj.v.clone();
+        this.v = obj.v.dclone();
         this.x = this.v.xdata;
     } else if (typeof obj === 'string') {
         this.n = obj;
@@ -385,13 +385,29 @@ Builder.prototype.on = function(type, handler) {
 
 // * UTILS *
 
+// > builder.take % (b: Builder) => Builder
+Builder.prototype.take = function(b) {
+    this.n = obj.n;
+    // xdata contents points to the same objects
+    // as source's xdata do
+    this.v = obj.v.clone(); 
+    this.x = this.v.xdata;
+}
+// > builder.copy % (b: Builder) => Builder
+Builder.prototype.use = function(b) {
+    this.n = obj.n;
+    // xdata takes the clones of the objects 
+    // source's xdata points do
+    this.v = obj.v.dclone();
+    this.x = this.v.xdata;
+}
 // > builder.disable % () => Builder
-Builder.prototype.disable = function(func) {
+Builder.prototype.disable = function() {
     this.v.disabled = true;
     return this;
 }
 // > builder.enable % () => Builder
-Builder.prototype.enable = function(func) {
+Builder.prototype.enable = function() {
     this.v.disabled = false;
     return this;
 }

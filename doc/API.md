@@ -257,7 +257,7 @@ Loading code:
 
 Loading code:
 
-    var scene = new Builder('blue rect').rect([100, 100], [40, 40])
+    var scene = new Builder('blue rect').rect([100, 100], [40, 60])
                                         .fill('#00f')
                                         .stroke('#f00', 2)
                                         .rotate([0, 5], [0, Math.PI / 2]);
@@ -360,7 +360,7 @@ Let's give an example: this is how the typical complicated scene looks when cons
                             
 You may load any animation created with `Builder` directly to player, so this code, for example, will nicely work:
 
-    createPlayer('my-canvas').load(b().rect([0, 20], [40, 40])).play(); 
+    createPlayer('my-canvas').load(b().rect([0, 20], 40)).play(); 
     
 By the way, order of operations over the `Builder` instance has <sub>almost</sub> absolutely no matter for the result, it is only the matter of easy-reading your own code. To be honest, there are several minor exceptions, and if they will be important, we'll mention them individually in the corresponding section. Until that, feel free to mess things while it fits you and your friends. 
 
@@ -385,7 +385,7 @@ The last optional variant is to make alias for a `Builder` class itself (not a c
     
 Now you may write something like this:
 
-    b().rect([20, 20], [10, 10])
+    b().rect([20, 20], [10, 30])
        .fill(B.grad(['#f00', '#00f']))
        .alpha([0, 7], [1, 0], C.E_CINOUT); // Cubic In-Out Easing
 
@@ -475,7 +475,7 @@ Any `Element` or `Builder` instances are allowed to add; by the way, you may tre
         // calling player.load for this scene 
         for (var j = 0; j < rows_count; j++) {
             column.add(b('elm-' + j)
-                       .rect([i*15, j*15], [10, 10])
+                       .rect([i*15, j*15], 10)
                        .rotate([0, 3], [0, Math.PI * 2]));
         }
         var offset = (cols_count / (i+1))*6;
@@ -671,13 +671,13 @@ This method changes the registration point position of the shape, this point aff
 
 Moving changes the position of the element in its parent coordinate system. It is a bit different thing to the point of the shape, because setting point also recalculates the path to be centered at this point and move does not. Also it is useful if you want to move a group of elements when they were already created.
 
-    b().rect([ 10, 10 ], [ 60, 60 ]).move([ 40, 40 ]);
+    b().rect([ 10, 10 ], 60).move([ 40, 40 ]);
 
 > ♦ `builder.zoom % (val: Array[2,Float]) => Builder`
 
 Zooming will recalculate the path points to be positioned with the specified zoom (so it won't work for circle). There's no 'undo', you'll need to recalculate to inverted zoom to return everything back.
 
-    b().rect([ 10, 10 ], [ 60, 60 ]).zoom([ .5, 2 ]);
+    b().rect([ 10, 10 ], 60).zoom([ .5, 2 ]);
 
 ### Bands
 
@@ -796,7 +796,7 @@ There's a generic method of adding any type of the tween, but for better code-re
 
 It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#tween-easings) section below to know more about easings). See type constants for tweens and easings in [Constants](#constants) section. Examples:
 
-    b().rect([10, 10], [90,30 ])
+    b().rect([10, 10], [90, 30])
        .tween(C.T_TRANSLATE, [0, 3], 
               B.path([ [0, 0], [20, 20], [10, 30],
                        [70, 70], [12, 12], [100, 50] ]));
@@ -997,7 +997,7 @@ It is ok to have a number of modifiers that check some flag and return `false` (
     ctx.show = [ false, true, true, false, false,
                  true, false, true, false, true ];
     for (var i = 0; i < 10; i++) {
-        b().rect([10, 10], [5, 5])
+        b().rect([10, 10], 5)
            .modify((function(i) { // closure for i
               return function(t, ctx) {
                  return ctx.show[i];
@@ -1144,6 +1144,24 @@ Also you may set a name to some frame using `key()` function and jump to it with
 
 ### Elements Interactions
 
+> ♦ `builder.take % (b: Builder) => Builder`
+
+Make the given `Builder` to be the source of the data for current `Builder`, its contents pointers will be copied so any changes of fill, stroke, path, text, shape will apply to both instances:
+
+    var src = b().rect([40, 40], 20).fill('#006');
+    var clone = b().take(src).fill('#f06').move([70, 70]);
+    // fill will be changed to `#f06` for both `src` and `clone`
+
+> ♦ `builder.use % (b: Builder) => Builder`
+
+Use the given `Builder`  to make a clone of the data for this `Builder`, all its contents will be cloned so it will be the separate object, but with the same content:
+
+    var src = b().rect([40, 40], 20).fill('#006');
+    var clone = b().use(src).fill('#f06').move([70, 70]);
+    // fill will be separate for `src` and `clone`, as it is usually expected
+
+**NB**: `clone = b().use(src)` in fact is equal to `clone = b(src)`, you may use any method you prefer.
+
 > ♦ `builder.disable % () => Builder`
 
 Disable an element, so it will not be rendered or calculated at all, including its children. It is the same to setting `b().v.disabled` (or `this.$.disabled` in modifiers/painters) to `true`. If you disable an element from inside of its own modifier, you can not enable it back from the same modifier, because this modifier will not be called at all while the element stays disabled — you only may enable it from outside. Another variant if you want to hide element temporary is to use the [return value of modifier](#modifiers), and I can't say which one is better: return values work good if element depends on its local state a lot, disabling works good when you make a decision globally or you enable/disable a lot of elements at one moment. 
@@ -1234,11 +1252,11 @@ Here's an example of live adding an element and animating it:
     var circle = b().circle([0, 0], 20)
                     .move(pos);
 
-    var blueRect = b('blue-rect').rect(pos, [70, 70])
+    var blueRect = b('blue-rect').rect(pos, 70)
                       .fill('#009')
                       .stroke('#f00', 3)
                       .rotate([0, 10], [0, Math.PI / 2]);
-    var redRect = b('red-rect').rect([115, 90], [60, 60])
+    var redRect = b('red-rect').rect([115, 90], 60)
                      .fill('#f00');
 
     var scene = b().add(blueRect).add(redRect)
