@@ -34,7 +34,7 @@ function Builder(obj) {
         this.x = obj.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
-        this.v = obj.v.clone();
+        this.v = obj.v.dclone();
         this.x = this.v.xdata;
     } else if (typeof obj === 'string') {
         this.n = obj;
@@ -133,13 +133,16 @@ Builder.prototype.rect = function(pt, rect) {
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
-    var b = this;
-    this.paint(function(ctx) {
-        DU.qDraw(ctx, b.s, b.f,
-                 function() {
-                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
-                 });
-    });
+    this.x.__bounds = [ 0, 0, radius*2, radius*2];
+    this.paint((function(b) {
+        return function(ctx) {
+            var bi = b(this.$);
+            DU.qDraw(ctx, bi.s, bi.f,
+                     function() {
+                        ctx.arc(0, 0, radius, 0, Math.PI*2, true);
+                     });
+        }
+    })(Builder._$));
     if (modCollisions) this.v.reactAs(
             Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
     return this;
@@ -151,6 +154,7 @@ Builder.prototype.image = function(pt, src) {
     if (src) {
         var b = this;
         this.x.image = 
+           // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src, function(img) {
                 b.__modify(Element.SYS_MOD, function(t) {
                     this.rx = Math.floor(img.width/2);
@@ -169,6 +173,7 @@ Builder.prototype.text = function(pt, lines, size, font) {
     var text = lines instanceof Text ? lines
                      : new Text(lines, Builder.font(font, size));
     this.x.text = text;
+    this.x.reg = [ 0, 0 ];
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
     if (!text.fill) { text.fill = this.f; }
@@ -225,6 +230,32 @@ Builder.prototype.reg = function(pt) {
     x.reg = pt;
     return this;
 }
+C.R_TL = 1; C.R_TC = 5; C.R_TR = 2;
+C.R_ML = 6; C.R_MC = 0; C.R_MR = 7;
+C.R_BL = 3; C.R_BC = 8; C.R_BR = 4;
+// > builder.reg % (side: C.R_*) => Builder
+Builder.prototype.regAt = function(side) {
+    var x = this.x, _new = x.reg;
+    var b = this.v.lbounds();
+    if (!b) return this; // throw error?
+    var w = b[2] - b[0],
+        h = b[3] - b[1];
+    switch (side) {
+        case C.R_TL: _new = [ -w/2, -h/2 ]; break;
+        case C.R_TC: _new = [    0, -h/2 ]; break;
+        case C.R_TR: _new = [  w/2, -h/2 ]; break;
+
+        case C.R_ML: _new = [ -w/2,    0 ]; break;
+        case C.R_MC: _new = [    0,    0 ]; break;
+        case C.R_MR: _new = [  w/2,    0 ]; break;
+
+        case C.R_BL: _new = [ -w/2,  h/2 ]; break;
+        case C.R_BC: _new = [    0,  h/2 ]; break;
+        case C.R_BR: _new = [  w/2,  h/2 ]; break;
+    } 
+    x.reg = _new;
+    return this;
+}
 // > builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
     var x = this.x;
@@ -238,6 +269,12 @@ Builder.prototype.zoom = function(val) {
         this.x.path.zoom(val);
         this.path(this.x.path); // will normalize it
     }
+    return this;
+}
+// > builder.bounds % (val: Array[4,Float]) => Builder
+Builder.prototype.bounds = function(bounds) {
+    if (!bounds.length === 4) throw new Error('Incorrect bounds');
+    this.x.__bounds = bounds;
     return this;
 }
 
@@ -385,13 +422,29 @@ Builder.prototype.on = function(type, handler) {
 
 // * UTILS *
 
+// > builder.take % (b: Builder) => Builder
+Builder.prototype.take = function(b) {
+    this.n = obj.n;
+    // xdata contents points to the same objects
+    // as source's xdata do
+    this.v = obj.v.clone(); 
+    this.x = this.v.xdata;
+}
+// > builder.copy % (b: Builder) => Builder
+Builder.prototype.use = function(b) {
+    this.n = obj.n;
+    // xdata takes the clones of the objects 
+    // source's xdata points do
+    this.v = obj.v.dclone();
+    this.x = this.v.xdata;
+}
 // > builder.disable % () => Builder
-Builder.prototype.disable = function(func) {
+Builder.prototype.disable = function() {
     this.v.disabled = true;
     return this;
 }
 // > builder.enable % () => Builder
-Builder.prototype.enable = function(func) {
+Builder.prototype.enable = function() {
     this.v.disabled = false;
     return this;
 }

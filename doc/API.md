@@ -141,7 +141,7 @@ There are a bit more variants for `mode` and you may mix them with single pipe (
  
 But they are intended for rare use and we hope you'll be fine with three predefined ones.
 
-You may also do this with `var player = createPlayer(...); player.mode = C.M_...;`, it has the same effect.
+You may also do this with `var player = createPlayer(...); player.mode = C.M_...;`, it has the same effect. 
 
 **NB**: `C.M_VIDEO`, `C.M_PREVIEW` and `C.M_DYNAMIC` are the precalculated mixes of these "precise" options.
 
@@ -257,7 +257,7 @@ Loading code:
 
 Loading code:
 
-    var scene = new Builder('blue rect').rect([100, 100], [40, 40])
+    var scene = new Builder('blue rect').rect([100, 100], [40, 60])
                                         .fill('#00f')
                                         .stroke('#f00', 2)
                                         .rotate([0, 5], [0, Math.PI / 2]);
@@ -360,7 +360,7 @@ Let's give an example: this is how the typical complicated scene looks when cons
                             
 You may load any animation created with `Builder` directly to player, so this code, for example, will nicely work:
 
-    createPlayer('my-canvas').load(b().rect([0, 20], [40, 40])).play(); 
+    createPlayer('my-canvas').load(b().rect([0, 20], 40)).play(); 
     
 By the way, order of operations over the `Builder` instance has <sub>almost</sub> absolutely no matter for the result, it is only the matter of easy-reading your own code. To be honest, there are several minor exceptions, and if they will be important, we'll mention them individually in the corresponding section. Until that, feel free to mess things while it fits you and your friends. 
 
@@ -385,7 +385,7 @@ The last optional variant is to make alias for a `Builder` class itself (not a c
     
 Now you may write something like this:
 
-    b().rect([20, 20], [10, 10])
+    b().rect([20, 20], [10, 30])
        .fill(B.grad(['#f00', '#00f']))
        .alpha([0, 7], [1, 0], C.E_CINOUT); // Cubic In-Out Easing
 
@@ -475,7 +475,7 @@ Any `Element` or `Builder` instances are allowed to add; by the way, you may tre
         // calling player.load for this scene 
         for (var j = 0; j < rows_count; j++) {
             column.add(b('elm-' + j)
-                       .rect([i*15, j*15], [10, 10])
+                       .rect([i*15, j*15], 10)
                        .rotate([0, 3], [0, Math.PI * 2]));
         }
         var offset = (cols_count / (i+1))*6;
@@ -665,19 +665,21 @@ As in difference with [Tweens](#tweens), sometimes you need to "correct" the sta
 
 This method changes the registration point position of the shape, this point affects tweens, so the rotation will be performed around this point, translation will be shifted with this point and so on. This point needs to be specified relative to the center of the shape. Use ['debug' mode](#player-options) of the player to see the registrations points of the shapes.
 
+<!-- TODO: regAt & its constants (not works for circle) -->
+
     b().cilcle([ 20, 20 ], 60).reg([ -10, -10 ]);
 
 > ♦ `builder.move % (pt: Array[2,Integer]) => Builder`
 
 Moving changes the position of the element in its parent coordinate system. It is a bit different thing to the point of the shape, because setting point also recalculates the path to be centered at this point and move does not. Also it is useful if you want to move a group of elements when they were already created.
 
-    b().rect([ 10, 10 ], [ 60, 60 ]).move([ 40, 40 ]);
+    b().rect([ 10, 10 ], 60).move([ 40, 40 ]);
 
 > ♦ `builder.zoom % (val: Array[2,Float]) => Builder`
 
 Zooming will recalculate the path points to be positioned with the specified zoom (so it won't work for circle). There's no 'undo', you'll need to recalculate to inverted zoom to return everything back.
 
-    b().rect([ 10, 10 ], [ 60, 60 ]).zoom([ .5, 2 ]);
+    b().rect([ 10, 10 ], 60).zoom([ .5, 2 ]);
 
 ### Bands
 
@@ -796,7 +798,7 @@ There's a generic method of adding any type of the tween, but for better code-re
 
 It takes type of the tween, its time-band (relatively to the band of its owner), optional data that will be passed to tween function on every call, and optional easing of the tween (the function that changes the speed tween performs depending of current time), which is a type constant or a custom object created with `B.easing()` (see [Easings](#tween-easings) section below to know more about easings). See type constants for tweens and easings in [Constants](#constants) section. Examples:
 
-    b().rect([10, 10], [90,30 ])
+    b().rect([10, 10], [90, 30])
        .tween(C.T_TRANSLATE, [0, 3], 
               B.path([ [0, 0], [20, 20], [10, 30],
                        [70, 70], [12, 12], [100, 50] ]));
@@ -965,17 +967,17 @@ Every such function returns `null` by default (when you return nothing) and it m
     
     // adding prepared modifier to several shapes
     // and passing some data to it
-    var preparedModifier = function(t, value) {
+    var m_prepared = function(t, value) {
         this.angle = Math.PI / (t * value);
     };
-    b().modify(preparedModifier, .1);
-    b().modify(preparedModifier, .5);
-    b().modify(preparedModifier, .7);
-    b().modify(preparedModifier, 1);
+    b().modify(m_prepared, .1);
+    b().modify(m_prepared, .5);
+    b().modify(m_prepared, .7);
+    b().modify(m_prepared, 1);
     
     // you may add several modifiers to one shape
     var my_shape = b();
-    my_shape.modify(preparedModifier, .6);
+    my_shape.modify(m_prepared, .6);
     my_shape.modify(function(t) {
         this.alpha = t / my_shape.v.duration();
     });
@@ -997,7 +999,7 @@ It is ok to have a number of modifiers that check some flag and return `false` (
     ctx.show = [ false, true, true, false, false,
                  true, false, true, false, true ];
     for (var i = 0; i < 10; i++) {
-        b().rect([10, 10], [5, 5])
+        b().rect([10, 10], 5)
            .modify((function(i) { // closure for i
               return function(t, ctx) {
                  return ctx.show[i];
@@ -1013,7 +1015,7 @@ __Painter__ is the function that gets current context and applies shape's `xdata
 
 > ♦ `builder.paint % (painter: Function(ctx: Context, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-To add painter function to a shape, use `paint()` method. This function gets canvas context; its `this` pointer points to the shape's `xdata`, so you may use it to draw something, but please *do not* modify anything at first level of `xdata`.
+To add painter function to a shape, use `paint()` method. This function gets canvas context; its `this` pointer points to the shape's `xdata`, so you may use it to draw something, you may even modify anything at first level of `xdata`.
 
 <!-- TODO: or `xdata` is allowed to modify? -->
 
@@ -1029,23 +1031,25 @@ To add painter function to a shape, use `paint()` method. This function gets can
     
     // adding prepared painter to several shapes
     // and passing some data to it
-    var preparedPainter = function(ctx, text) {
+    var p_prepared = function(ctx, text) {
         this.text.lines = text;
         this.text.apply(ctx);
     }
-    b().paint(preparedPainter, "Y");
-    b().paint(preparedPainter, "M");
-    b().paint(preparedPainter, "C");
-    b().paint(preparedPainter, "A");
+    b().paint(p_prepared, "Y");
+    b().paint(p_prepared, "M");
+    b().paint(p_prepared, "C");
+    b().paint(p_prepared, "A");
     
     // you may add several painters to one shape
     var my_shape = b();
-    my_shape.paint(preparedPainter, "G");
+    my_shape.paint(p_prepared, "G");
     my_shape.paint(function(ctx) {
         ctx.arc(....);
     });
 
 As for modifiers, you may optionally pass `data` object of any type, and it will be passed to your painter as second parameter every time it will be called. And again, you may specify a priority number — the higher this number, the later this painter will be called in the painters sequence. The painters with the same priority will be called in the order of addition. Also, there is a link to current element (painter owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases.
+
+> We strongly recommend to use prefixes in the names of your Modifiers/Painters/Handlers if they are prepared before, so you'd easy distinguish what is what even if you have a lot of code. We use `m_`, `p_` and `h_` correspondingly. 
 
 ### Events
 
@@ -1061,24 +1065,23 @@ Currently, only keyup / keydown / keypress (`C.X_KUP`, `C.X_KDOWN`, `C.X_KPRESS`
 
 Event handlers have the same access to state as modifiers do (in fact, they are modifiers that perform last, when all others modifiers were performed):
 
-    var my_elm = b();
-    my_elm.on(C.X_MCLICK, function(evt) {
-        if (my_elm.v.contains(evt.pos)) {
+    b().on(C.X_MCLICK, function(evt) {
+        if (this.$.contains(evt.pos)) {
             this.x = evt.pos[0];
             this.y = evt.pos[1];  
         }
         return true;
     });
+
+    b().on(C.X_KPRESS, function(evt) {
+        console.log(evt);
+    });
     
 You may see the use of `contains()` in the example: it tests if shape has the point given, and it is a special method made to match current time of animation, use it only in events handlers.
-    
-<!-- TODO: it's hard to use my_elm-like var every time, but `this` always points to state... -->
     
 Currently, every mouse event contains only a mouse position (`evt.pos`) and every key event contains only a pressed key info (`evt.key`).
 
 The second optional incoming argument for handler is `t`, it is a render time when handler-modifier was called.
-
-**NB** Don't forget to return `true` when you handle an event, otherwise it will flicker on handling. May be soon we will change the behaviour to the opposite in event handlers and modifiers, `return true` will mean **not** to draw the shape and default `return false` will mean that it is ok to draw it.
 
 ### Time Jumps
 
@@ -1143,6 +1146,24 @@ Also you may set a name to some frame using `key()` function and jump to it with
        });
 
 ### Elements Interactions
+
+> ♦ `builder.take % (b: Builder) => Builder`
+
+Make the given `Builder` to be the source of the data for current `Builder`, its contents pointers will be copied so any changes of fill, stroke, path, text, shape will apply to both instances:
+
+    var src = b().rect([40, 40], 20).fill('#006');
+    var clone = b().take(src).fill('#f06').move([70, 70]);
+    // fill will be changed to `#f06` for both `src` and `clone`
+
+> ♦ `builder.use % (b: Builder) => Builder`
+
+Use the given `Builder`  to make a clone of the data for this `Builder`, all its contents will be cloned so it will be the separate object, but with the same content:
+
+    var src = b().rect([40, 40], 20).fill('#006');
+    var clone = b().use(src).fill('#f06').move([70, 70]);
+    // fill will be separate for `src` and `clone`, as it is usually expected
+
+**NB**: `clone = b().use(src)` in fact is equal to `clone = b(src)`, you may use any method you prefer.
 
 > ♦ `builder.disable % () => Builder`
 
@@ -1234,11 +1255,11 @@ Here's an example of live adding an element and animating it:
     var circle = b().circle([0, 0], 20)
                     .move(pos);
 
-    var blueRect = b('blue-rect').rect(pos, [70, 70])
+    var blueRect = b('blue-rect').rect(pos, 70)
                       .fill('#009')
                       .stroke('#f00', 3)
                       .rotate([0, 10], [0, Math.PI / 2]);
-    var redRect = b('red-rect').rect([115, 90], [60, 60])
+    var redRect = b('red-rect').rect([115, 90], 60)
                      .fill('#f00');
 
     var scene = b().add(blueRect).add(redRect)

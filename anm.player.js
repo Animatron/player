@@ -302,9 +302,11 @@ C.MOD_PLAYER = 'player';
 // === OPTIONS ====================================================================
 // ================================================================================
 
-var opts = { 'liveDebug': false };
+var global_opts = { 'liveDebug': false,
+                    'autoFocus': true,
+                    'setTabindex': true };
 
-M[C.MOD_PLAYER] = opts;
+M[C.MOD_PLAYER] = global_opts;
 
 // === PLAYER ==================================================================
 // =============================================================================
@@ -342,8 +344,10 @@ function Player(id, opts) {
     this.controls = null;
     this.info = null;
     this.__canvasPrepared = false;
+    this.__instanceNum = ++Player.__instances;
     this._init(opts);
 }
+Player.__instances = 0;
 
 Player.PREVIEW_POS = 0.33;
 Player.PEFF = 0.07; // seconds to play more when reached end of movie
@@ -377,8 +381,6 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
-
-    player._checkMode();
 
     player._reset();
 
@@ -562,6 +564,7 @@ Player.prototype._init = function(opts) {
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
     this.subscribeEvents(this.canvas);
     this.stop();
+    this._checkMode();
     // TODO: load some default information into player
     if (!Text.__buff) Text.__buff = Text._createBuffer(); // so it will be performed onload
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
@@ -637,8 +640,14 @@ Player.prototype.detach = function() {
     this._reset();
 }
 Player.prototype.subscribeEvents = function(canvas) {
+    // TODO: move to _checkMode?
     this.canvas.addEventListener('mouseover', (function(player) { 
                         return function(evt) {
+                            if (global_opts.autoFocus &&
+                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                player.canvas) {
+                                player.canvas.focus();
+                            }
                             if (player.controls) {
                                 player.controls.show();
                                 player.controls.render(player.state, 
@@ -649,7 +658,12 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this), false);
     this.canvas.addEventListener('mouseout', (function(player) { 
-                        return function(evt) { 
+                        return function(evt) {
+                            if (global_opts.autoFocus &&
+                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                player.canvas) {
+                                player.canvas.blur();
+                            }
                             if (player.controls && 
                                 (!player.controls.evtInBounds(evt))) {
                                 player.controls.hide();
@@ -745,33 +759,47 @@ Player.prototype._prepareCanvas = function(opts) {
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
     this._saveCanvasPos(canvas);
+    this._checkMode();
     this.__canvasPrepared = true;
     return this;
 }
 Player.prototype._checkMode = function() {
+    if (!this.canvas) return;
+    
+    var canvas = this.canvas;
     if (this.mode & C.M_CONTROLS_ENABLED) {
         if (!this.controls) {
             this.controls = new Controls(this);
-            this.controls.update(this.canvas);
+            this.controls.update(canvas);
         }
     } else {
         if (this.controls) {
-            this.controls.detach(this.canvas);
+            this.controls.detach(canvas);
             this.controls = null;
         }
     }
     if (this.mode & C.M_INFO_ENABLED) {
         if (!this.info) {
             this.info = new InfoBlock(this);
-            this.info.update(this.canvas);
+            this.info.update(canvas);
         }
     } else {
         if (this.info) {
-            this.info.detach(this.canvas);
+            this.info.detach(canvas);
             this.info = null;
         }
     }
-    // FIXME: M_HANDLE_EVENTS
+    if (this.mode & C.M_HANDLE_EVENTS) {
+        if (global_opts.setTabindex) {
+            canvas.setAttribute('tabindex',this.__instanceNum);
+        } 
+        var scene = this.anim;
+        if (scene && !scene.__subscribedEvts) {
+            L.subscribeEvents(canvas, scene);
+            scene.__subscribedEvts = true;
+        }
+    }
+
 }
 Player.prototype._ensureState = function() {
     if (!this.state) {
@@ -1077,7 +1105,7 @@ function Element(draw, onframe) {
     };
     Element.__addSysModifiers(this);
     Element.__addSysPainters(this);
-    if (opts.liveDebug) Element.__addDebugRender(this);
+    if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.DEFAULT_LEN = Number.MAX_VALUE;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
@@ -1378,13 +1406,14 @@ Element.prototype.global = function(pt) {
 }*/
 Element.prototype.lbounds = function() {
     var x = this.xdata;
+    if (x.__bounds) return x.__bounds;
     var bounds;
     if (x.path) {
         bounds = x.path.bounds();
     } else if (x.image) {
         bounds = [ 0, 0, x.image.width, x.image.height ];
     } else if (x.text) {
-        bound = x.text.bounds();
+        bounds = x.text.bounds();
     } else return null;
     return bounds;
 }
@@ -1414,6 +1443,20 @@ Element.prototype.clone = function() {
     clone._painters = this._painters.slice(0);
     clone.xdata = obj_clone(this.xdata);
     clone.xdata.$ = clone;
+    return clone;
+}
+Element.prototype.dclone = function() {
+    var clone = this.clone();
+    var src_x = this.xdata,
+        trg_x = clone.xdata;
+    if (src_x.path) trg_x.path = src_x.path.clone();
+    //if (src_x.image) trg_x.image = src_x.image.clone();
+    if (src_x.text) trg_x.text = src_x.text.clone();
+    trg_x.pos = [].concat(src_x.pos);
+    trg_x.reg = [].concat(src_x.reg);
+    trg_x.lband = [].concat(src_x.lband);
+    trg_x.gband = [].concat(src_x.gband);
+    trg_x.keys = obj_clone(src_x.keys);
     return clone;
 }
 Element.prototype._addChild = function(elm) {
@@ -1943,14 +1986,13 @@ L.loadScene = function(player, scene, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
     if (player.state.debug
-        && !opts.liveDebug) 
+        && !global_opts.liveDebug) 
         scene.visitElems(Element.__addDebugRender);
-    // subscribe events
-    if (player.mode & C.M_HANDLE_EVENTS) {
-        L.subscribeEvents(player.canvas, scene);
-    }
     // assign
     player.anim = scene;
+    // subscribe events
+    player._checkMode();
+    // update duration
     if (!player.state.duration) {
         if (!(player.mode & C.M_DYNAMIC) 
             && (scene.duration === Number.MAX_VALUE)) {
@@ -2539,12 +2581,19 @@ Path.prototype.toString = function() {
 }
 // not a clone, but only segments-copy
 Path.prototype.duplicate = function() {
-    var clone = new Path();
+    var seg_copy = new Path();
     this.visit(function(seg) {
-        clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
+        seg_copy.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
     });
+    return seg_copy;
+}
+Path.prototype.clone = function() {
+    var clone = this.duplicate();
+    if (this.stroke) clone.stroke = obj_clone(this.stroke);
+    if (this.fill) clone.fill = obj_clone(this.fill);
     return clone;
 }
+
 
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets 
@@ -2912,7 +2961,8 @@ Text.prototype.apply = function(ctx, point) {
     var point = point || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]),
-        apt = [ point[0], point[1] + accent];
+        apt = [ point[0] - dimen[0]/2, 
+                point[1] + accent - dimen[1]/2];
     ctx.font = this.font;
     ctx.textBaseline = Text.BASELINE_RULE;
     if (this.fill) {
@@ -2983,6 +3033,16 @@ Text.prototype.visitLines = function(func, data) {
             func(line, data);
         }  
     }
+}
+Text.prototype.clone = function() {
+    var c = new Text(this.lines, this.font,
+                     this.stroke, this.fill);
+    if (this.lines && Array.isArray(this.lines)) {
+        c.lines = [].concat(this.lines); 
+    }
+    if (this.stroke) c.stroke = obj_clone(this.stroke);
+    if (this.fill) c.fill = obj_clone(this.fill); 
+    return c;
 }
 
 // =============================================================================
