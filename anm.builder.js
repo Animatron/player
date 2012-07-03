@@ -28,22 +28,25 @@ function Builder(obj) {
         this.n = '';
         this.v = new Element();
         this.x = this.v.xdata;
-    } else if (obj instanceof Element) {
-        this.n = obj.name;
-        this.v = obj;
-        this.x = obj.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
         this.v = obj.v.dclone();
         this.x = this.v.xdata;
+        this.f = this._extractFill(obj.f);
+        this.s = this._extractStroke(obj.s);
+        return; // all done
+    } else if (obj instanceof Element) {
+        this.n = obj.name;
+        this.v = obj;
+        this.x = obj.xdata;
     } else if (typeof obj === 'string') {
         this.n = obj;
         this.v = new Element();
         this.v.name = this.n;
         this.x = this.v.xdata;
     }
-    this.f = this._extractFill();
-    this.s = this._extractStroke();
+    this.f = this._extractFill(Builder.DEFAULT_FILL);
+    this.s = this._extractStroke(Builder.DEFAULT_STROKE);
 }
 Builder._$ = function(obj) {
     if (obj && (obj instanceof Element)) {
@@ -493,15 +496,15 @@ Builder.prototype.data = function(value) {
 
 // * PRIVATE *
 
-Builder.prototype._extractStroke = function() {
-    if (this.x.path) return this.x.path.stroke || Builder.DEFAULT_STROKE;
-    if (this.x.text) return this.x.text.stroke || Builder.DEFAULT_STROKE;
-    return Builder.DEFAULT_STROKE;
+Builder.prototype._extractStroke = function(def_) {
+    if (this.x.path) return this.x.path.stroke || def_;
+    if (this.x.text) return this.x.text.stroke || def_;
+    return def_;
 }
-Builder.prototype._extractFill = function() {
-    if (this.x.path) return this.x.path.fill || Builder.DEFAULT_FILL;
-    if (this.x.text) return this.x.text.fill || Builder.DEFAULT_FILL;
-    return Builder.DEFAULT_FILL;
+Builder.prototype._extractFill = function(def_) {
+    if (this.x.path) return this.x.path.fill || def_;
+    if (this.x.text) return this.x.text.fill || def_;
+    return def_;
 }
 
 // * HELPERS *
