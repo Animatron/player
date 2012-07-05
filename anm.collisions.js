@@ -4,7 +4,7 @@ if (anm.MODULES['COLLISIONS']) throw new Error('COLLISIONS module already enable
 
 var opts = {
     'pathDriven': false,
-    'useSnaps': false,
+    'useSnaps': false, 
     'vectorSpan': 1, // seconds
     'predictSpan': 1, // seconds 
 };
@@ -137,8 +137,30 @@ E.prototype.reactWith = function(func) {
     this.xdata.__cfunc = func;
 }
 
-E.prototype.collides = function(elm, t) {
-    throw new Error('Not implemented');
+E.prototype.collides = function(elm, func) {
+    // TODO: if (!useSnaps) -> 
+    //       defer, call on next __mafter ,
+    //       check _state compared with state
+    if (!this._collisionTests) this._collisionTests = [];
+    if (!this._collisionElms) this._collisionElms = [];
+    this._collisionTests.push(func);
+    this._collisionElms.push(elm);
+}
+E.prototype._defCollides = function(t, elm, func) {
+    var useSnaps = opts.useSnaps;
+    var m0, m1;
+    var v_prev, v_next;
+    if (!opts.useSnaps) {
+        // get vectors from _state / state
+    } else {
+        // get vector using _getVects(t)
+    }
+    // loop through parents to get vector in global coords?
+    // get velocity/direction from v_past to build v_next
+    // find intersection of v_next vector with every segment of path
+    // in global coords, use _vecEntersPath
+    // we need to save used matrix with each vectors pair
+    // what to do with parents chain?
 }
 
 E.prototype.dcollides = function(elm, t) {
@@ -225,7 +247,7 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? this.state : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
-    //return this.__adoptWithM(pts, s._matrix.inverted());
+    //return this.__adoptWithM(pts, s._matrix);
     return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
@@ -333,8 +355,20 @@ E.__addDebugRender = function(elm) {
 var prevMAfter = E.prototype.__mafter;
 E.prototype.__mafter = function(t, type, result) {
     prevMAfter.call(this, t, type, result);
-    if (result && (type === E.LAST_MOD) && opts.useSnaps && this.track) {
-        this.__updateSnaps(t);
+    if (result && (type === E.LAST_MOD))
+        if (opts.useSnaps && this.track) {
+            this.__updateSnaps(t);
+        }
+        var colTests = this._collisionTests;
+        if (colTests && colTests.length > 0) {
+            var colElms = this._collisionElms;
+            for (var ci = 0, cl = colTests.length;
+                 ci < cl; ci++) {
+                this._defCollides(t, colElms[ci], colTests[ci]);
+            }
+            this._collisionTests = [];
+            this._collisionElms = [];
+        }
     }
 }
 E.prototype.__updateSnaps = function(t) {
