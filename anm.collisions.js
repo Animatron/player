@@ -150,17 +150,35 @@ E.prototype.reactWith = function(func) {
     this.xdata.__cfunc = func;
 }
 
+/*
+var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
+                  .trans([0, 3], [[120, 20], [40, 40]])
+                  .fill('#009')
+                  .stroke('#f00', 3)
+                  .rotate([0, 10], [0, Math.PI / 2]);
+var red_rect = b('red-rect').rect([115, 90], [60, 60])
+                 .fill('#f00');
+
+blue_rect.modify(function(t) {
+    this.$.collides(red_rect.v, function() {
+        console.log(arguments);
+    });
+});
+
+return b()
+  .add(blue_rect)
+  .add(red_rect)
+  .rotate([0, 10], [0, Math.PI]); 
+*/
 E.prototype.collides = function(elm, func) {
     if (!this._collisionTests) this._collisionTests = [];
     if (!this._collisionElms) this._collisionElms = [];
     this._collisionTests.push(func);
     this._collisionElms.push(elm);
 }
-E.prototype._defCollides = function(t, elm, func) {
-    // NB: ensure t is _current_ time, not any other,
-    //     many functions below rely on that fact
+E.prototype._getNextVect = function(t) {
     var useSnaps = opts.useSnaps;
-    var v_prev, v_next;
+    var v_prev;
     var ptime = opts.predictSpan;
     if (!opts.useSnaps) {
         var s = this.state, _s = this._state;
@@ -173,24 +191,31 @@ E.prototype._defCollides = function(t, elm, func) {
     }
     var vel = __velocity_of(v_prev),
         pt = [ v_prev[2], v_prev[3] ]; // start point
-    v_next = [ pt[0], pt[1],
-               pt[0] + (vel[0] * ptime),
-               pt[1] + (vel[1] * ptime), ptime ];
-    var apt0 = this.pradopt([ v_next[0], v_next[1] ]), // absolute point 0
-        apt1 = this.pradopt([ v_next[2], v_next[3] ]); // absolute point 1
-    var pts = opts.pathDriven ? this._pointsAt() : this.rect();
+    return [ pt[0], pt[1],
+             pt[0] + (vel[0] * ptime),
+             pt[1] + (vel[1] * ptime), ptime ];    
+}
+E.prototype._defCollides = function(t, elm, func) {
+    // NB: ensure t is _current_ time, not any other,
+    //     many functions below rely on that fact
+    var v_next = this._getNextVect(t);
+    this.__nvec = v_next;
+    var apt0 = this._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
+        apt1 = this._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+    var pts = opts.pathDriven ? elm._pointsAt() : elm.rect();
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
         var lpt0 = [ pts[pi], pts[pi+1] ];
         var lpt1 = ((pi + 2) != pl) 
                    ? [ pts[pi+2], pts[pi+3] ]
                    : [ pts[0], pts[1] ];
-        if (this._vecEntresLine(apt0, apt1, 
+        if (this._vecEntersLine(apt0, apt1, 
                                 lpt0, lpt1)) {
             func.call(this, t, elm);
             // save that we've tested collision
             return;
         }
     }
+
 }
 E.prototype._vecEntersLine = function(vpt0, vpt1, lpt0, lpt1) {
     var S1 = [ vpt1[0] - vpt0[0],
@@ -388,6 +413,23 @@ function p_drawAdoptedPoints(ctx) {
         ctx.restore();
     } catch(e) { };
 }*/
+function p_drawPrediction(ctx) {
+    var me = this.$;
+    if (me.__nvec) {
+        var v_next = me.__nvec;
+        var apt0 = me._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
+            apt1 = me._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        ctx.beginPath();
+        ctx.strokeStyle = '#ff0';
+        ctx.lineWidth = 4;
+        ctx.moveTo(apt0[0], apt0[1]);
+        ctx.lineTo(apt1[0], apt1[1]);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
 var prevAddDebugRender = E.__addDebugRender;
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
@@ -396,6 +438,7 @@ E.__addDebugRender = function(elm) {
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
     //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawPrediction);
 }
 
 var prevMAfter = E.prototype.__mafter;
