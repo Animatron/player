@@ -20,6 +20,19 @@ function __filled(arr, val) {
     return result;   
 }
 
+/* function __wnorm_vec(vec) {
+    var w = vec[4];
+    return [ 0, 0,
+             (vec[2] - vec[0]) / w,
+             (vec[3] - vec[1]) / w, 1 ];
+} */
+
+function __velocity_of(vec) {
+    var w = vec[4];
+    return [ (vec[2] - vec[0]) / w,
+             (vec[3] - vec[1]) / w ];
+}
+
 var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg, 
                                       LSeg = anm.LSeg, 
                                       CSeg = anm.CSeg;
@@ -138,29 +151,62 @@ E.prototype.reactWith = function(func) {
 }
 
 E.prototype.collides = function(elm, func) {
-    // TODO: if (!useSnaps) -> 
-    //       defer, call on next __mafter ,
-    //       check _state compared with state
     if (!this._collisionTests) this._collisionTests = [];
     if (!this._collisionElms) this._collisionElms = [];
     this._collisionTests.push(func);
     this._collisionElms.push(elm);
 }
 E.prototype._defCollides = function(t, elm, func) {
+    // NB: ensure t is _current_ time, not any other,
+    //     many functions below rely on that fact
     var useSnaps = opts.useSnaps;
-    var m0, m1;
     var v_prev, v_next;
+    var ptime = opts.predictSpan;
     if (!opts.useSnaps) {
-        // get vectors from _state / state
+        var s = this.state, _s = this._state;
+        v_prev = [  s.x,  s.y, 
+                   _s.x, _s.y,
+                   t - s._appliedAt ];
     } else {
-        // get vector using _getVects(t)
+        // TODO: special func for getting just mov vect?
+        v_prev = this._getVects(t)['mov'];
     }
-    // loop through parents to get vector in global coords?
-    // get velocity/direction from v_past to build v_next
-    // find intersection of v_next vector with every segment of path
-    // in global coords, use _vecEntersPath
-    // we need to save used matrix with each vectors pair
-    // what to do with parents chain?
+    var vel = __velocity_of(v_prev),
+        pt = [ v_prev[2], v_prev[3] ]; // start point
+    v_next = [ pt[0], pt[1],
+               pt[0] + (vel[0] * ptime),
+               pt[1] + (vel[1] * ptime), ptime ];
+    var apt0 = this.pradopt([ v_next[0], v_next[1] ]), // absolute point 0
+        apt1 = this.pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+    var pts = opts.pathDriven ? this._pointsAt() : this.rect();
+    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+        var lpt0 = [ pts[pi], pts[pi+1] ];
+        var lpt1 = ((pi + 2) != pl) 
+                   ? [ pts[pi+2], pts[pi+3] ]
+                   : [ pts[0], pts[1] ];
+        if (this._vecEntresLine(apt0, apt1, 
+                                lpt0, lpt1)) {
+            func.call(this, t, elm);
+            // save that we've tested collision
+            return;
+        }
+    }
+}
+E.prototype._vecEntersLine = function(vpt0, vpt1, lpt0, lpt1) {
+    var S1 = [ vpt1[0] - vpt0[0],
+               vpt1[1] - vpt0[1] ],
+        S2 = [ lpt1[0] - lpt0[0],
+               lpt1[1] - lpt0[1] ];
+    var sup = ((vpt0[0] - lpt0[0]) * -S1[1]) -
+              ((vpt0[1] - lpt0[1]) * -S1[0]),
+        sdn = (S2[0] * -S1[1]) - (S2[1] * -S1[0]),
+        s = sup / sdn;
+    var tup = (S2[0] * (vpt0[1] - lpt0[1])) -
+              (S2[1] * (vpt0[0] - lpt0[0])),
+        tdn = sdn,
+        t = tup / tdn; 
+    return (s >= 0) && (s <= 1) &&
+           (t >= 0) && (t <= 1); 
 }
 
 E.prototype.dcollides = function(elm, t) {
@@ -355,7 +401,7 @@ E.__addDebugRender = function(elm) {
 var prevMAfter = E.prototype.__mafter;
 E.prototype.__mafter = function(t, type, result) {
     prevMAfter.call(this, t, type, result);
-    if (result && (type === E.LAST_MOD))
+    if (result && (type === E.LAST_MOD)) {
         if (opts.useSnaps && this.track) {
             this.__updateSnaps(t);
         }
@@ -401,10 +447,10 @@ E.prototype.__updateSnaps = function(t) {
     }
 }
 E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
-                                '(current) time to _getVecs ' + 
+                                '(current) time to _getVects ' + 
                                 'or check if vectorSpan value is > (1 / min.framerate) ' +
                                 'or may be framerate itself is too low'/*)*/;
-E.prototype._getVecs = function(t) {
+E.prototype._getVects = function(t) {
     var s = this.state,
         s0 = s.snap0, s1 = s.snap1;
     if (!s0 && !s1) throw new Error('No vector data available');
