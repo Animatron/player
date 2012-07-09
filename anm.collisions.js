@@ -1,6 +1,9 @@
 (function() { // anonymous wrapper to exclude global context clash
 
-if (anm.MODULES['COLLISIONS']) throw new Error('COLLISIONS module already enabled');
+var C = anm.C;
+
+C.MOD_COLLISIONS = 'collisions';
+if (anm.M[C.MOD_COLLISIONS]) throw new Error('COLLISIONS module already enabled');
 
 var opts = {
     'pathDriven': false,
@@ -9,9 +12,6 @@ var opts = {
     'predictSpan': 1, // seconds 
 };
 
-var C = anm.C;
-
-C.MOD_COLLISIONS = 'collisions';
 anm.M[C.MOD_COLLISIONS] = opts;
 
 function __filled(arr, val) {
@@ -151,11 +151,15 @@ E.prototype.reactWith = function(func) {
 }
 
 /*
+//anm.M[C.MOD_COLLISIONS].useSnaps = true;
+//anm.M[C.MOD_COLLISIONS].vectorSpan = 1;
+anm.M[C.MOD_COLLISIONS].predictSpan = 2;
+
 var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
                   .trans([0, 3], [[120, 20], [40, 40]])
                   .fill('#009')
                   .stroke('#f00', 3)
-                  .rotate([0, 10], [0, Math.PI / 2]);
+                  //.rotate([0, 10], [0, Math.PI / 2]);
 var red_rect = b('red-rect').rect([115, 90], [60, 60])
                  .fill('#f00');
 
@@ -168,7 +172,7 @@ blue_rect.modify(function(t) {
 return b()
   .add(blue_rect)
   .add(red_rect)
-  .rotate([0, 10], [0, Math.PI]); 
+  //.rotate([0, 10], [0, Math.PI]);
 */
 E.prototype.collides = function(elm, func) {
     if (!this._collisionTests) this._collisionTests = [];
@@ -186,11 +190,14 @@ E.prototype._getNextVect = function(t) {
                    _s.x, _s.y,
                    t - s._appliedAt ];
     } else {
-        // TODO: special func for getting just mov vect?
+        // TODO: special func for getting only a mov vect?
         v_prev = this._getVects(t)['mov'];
     }
     var vel = __velocity_of(v_prev),
         pt = [ v_prev[2], v_prev[3] ]; // start point
+    /*console.log(v_prev, pt, vel, ptime, [ pt[0], pt[1],
+             pt[0] + (vel[0] * ptime),
+             pt[1] + (vel[1] * ptime), ptime ]);*/
     return [ pt[0], pt[1],
              pt[0] + (vel[0] * ptime),
              pt[1] + (vel[1] * ptime), ptime ];    
@@ -199,9 +206,13 @@ E.prototype._defCollides = function(t, elm, func) {
     // NB: ensure t is _current_ time, not any other,
     //     many functions below rely on that fact
     var v_next = this._getNextVect(t);
-    this.__nvec = v_next;
-    var apt0 = this._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
-        apt1 = this._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+    //var apt0 = this._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
+    //    apt1 = this._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+    var apt0 = this._pradopt([ 0, 0 ]), // absolute point 0
+        apt1 = this._pradopt([ v_next[2] - v_next[0], 
+                               v_next[3] - v_next[1] ]); // absolute point 1
+    this.__napt0 = apt0;
+    this.__napt1 = apt1;
     var pts = opts.pathDriven ? elm._pointsAt() : elm.rect();
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
         var lpt0 = [ pts[pi], pts[pi+1] ];
@@ -415,10 +426,9 @@ function p_drawAdoptedPoints(ctx) {
 }*/
 function p_drawPrediction(ctx) {
     var me = this.$;
-    if (me.__nvec) {
-        var v_next = me.__nvec;
-        var apt0 = me._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
-            apt1 = me._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+    if (me.__napt0) {
+        var apt0 = me.__napt0, // absolute point 0
+            apt1 = me.__napt1; // absolute point 1
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
         ctx.beginPath();
@@ -463,10 +473,11 @@ E.prototype.__mafter = function(t, type, result) {
 E.prototype.__updateSnaps = function(t) {
     var pos = Math.floor(t / opts.vectorSpan);
     var s = this.state, _s = this._state;
-    if (!s._applied || !s.span0) {
+    if (!s._applied || !s.snap0) {
         _s.snap0 = anm.obj_clone(_s); // FIXME: may be cloning is dangerous for arrays?
         _s.snap0._at = pos;
         _s.snap0._atT = t;
+        _s.snap1 = null;
         // assert(pos === 0)
     } else if (s.snap0) {
         var offset0 = pos - s.snap0._at;
@@ -475,7 +486,7 @@ E.prototype.__updateSnaps = function(t) {
             _s.snap1._at = pos;
             _s.snap1._atT = t;
             // assert(pos > 0)
-        } else if ((offset > 1) && (pos != s.snap1._at)) {
+        } else if ((offset0 > 1) && (pos != s.snap1._at)) {
             // assert(pos > 1)
             _s.snap0 = s.snap1;
             _s.snap1 = anm.obj_clone(_s);
@@ -487,6 +498,10 @@ E.prototype.__updateSnaps = function(t) {
             _s.snap1 = s.snap1;
             // assert(pos === s.snap1)
         }
+        if (_s.snap1 && ((t - _s.snap1._at) < 0)) {
+            _s.snap0 = null;
+            _s.snap1 = null;
+        }
     }
 }
 E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
@@ -494,9 +509,10 @@ E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
                                 'or check if vectorSpan value is > (1 / min.framerate) ' +
                                 'or may be framerate itself is too low'/*)*/;
 E.prototype._getVects = function(t) {
-    var s = this.state,
+    // may be called only on __mafter
+    var s = this._state,
         s0 = s.snap0, s1 = s.snap1;
-    if (!s0 && !s1) throw new Error('No vector data available');
+    if (!s0 && !s1) throw new Error('No vector data available, is this element tracked?');
     var pos = Math.floor(t / opts.vectorSpan);
     if (!s1) {
         if (pos != s0._at) throw new Error(E.__vecErrText);
