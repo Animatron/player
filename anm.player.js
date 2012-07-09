@@ -103,13 +103,6 @@ function obj_clone(what) {
     }
     return dest;
 }
-// for one-level objects, so no hasOwnProperty check
-/*function obj_copy(what, dest) {
-    for (var prop in what) {
-        dest[prop] = what[prop];
-    }
-    return dest;
-}*/
 
 function find_pos(elm) {
     var curleft = 0, 
@@ -1053,6 +1046,10 @@ Element.TWEEN_MOD = 1;
 Element.USER_MOD = 2;
 // TODO: JUMP_MOD ?
 Element.EVENT_MOD = 3;
+// these two simplify checking in __mafter/__mbefore
+Element.FIRST_MOD = Element.SYS_MOD;
+Element.LAST_MOD = Element.EVENT_MOD;
+// modifiers groups
 Element.ALL_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD, 
                           Element.USER_MOD, Element.EVENT_MOD ];
 Element.NOEVT_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD, 
@@ -1063,6 +1060,10 @@ Element.NOEVT_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD,
 Element.SYS_PNT = 0;
 Element.USER_PNT = 1;
 Element.DEBUG_PNT = 2;
+// these two simplify checking in __mafter/__mbefore
+Element.FIRST_PNT = Element.SYS_PNT;
+Element.LAST_PNT = Element.DEBUG_PNT;
+// painters groups
 Element.ALL_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT, 
                          Element.DEBUG_PNT ];
 Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
@@ -1513,10 +1514,10 @@ Element.prototype.__callModifiers = function(order, ltime) {
             if (cur = seq[pi]) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 if (cur[ci] && (cur[ci][0].call(this._state, ltime, cur[ci][1]) === false)) {
-                  this.__mafter(type, false);
+                  this.__mafter(ltime, type, false);
                   this.__modifying = null;
                   this.__clearEvts(this._state);
-                  // NB: nothing happens to the state here,
+                  // NB: nothing happens to the state or element here,
                   //     the modified things are not applied
                   return false;
                 }
@@ -1524,7 +1525,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
             }
           }
         }
-        this.__mafter(type, true);
+        this.__mafter(ltime, type, true);
     }
     this.__modifying = null;
     this._state._applied = true;
@@ -1532,11 +1533,12 @@ Element.prototype.__callModifiers = function(order, ltime) {
 
     this.__clearEvts(this._state);
 
-    // apply the modified state
+    // save modified state as last
     this.state = this._state;
     this._state = null;
     this.state._ = null;
 
+    // apply last state
     return true;
 }
 Element.prototype.__callPainters = function(order, ctx) {
@@ -1547,7 +1549,7 @@ Element.prototype.__callPainters = function(order, ctx) {
         type = order[typenum];
         seq = painters[type];
         this.__painting = type;
-        this.__pbefore(type);
+        this.__pbefore(ctx, type);
         if (seq) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
@@ -1557,7 +1559,7 @@ Element.prototype.__callPainters = function(order, ctx) {
             }
           }
         }
-        this.__pafter(type);
+        this.__pafter(ctx, type);
     }
     this.__painting = null;
 }
@@ -1581,12 +1583,12 @@ Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     return (painters[type][priority].length - 1);
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
-Element.prototype.__mbefore = function(type) {
+Element.prototype.__mbefore = function(t, type) {
     /*if (type === Element.EVENT_MOD) {
         this.__loadEvtsFromCache();
     }*/
 }
-Element.prototype.__mafter = function(type, result) { 
+Element.prototype.__mafter = function(t, type, result) { 
     /*if (!result || (type === Element.USER_MOD)) {
         this.__lmatrix = Element._getIMatrixOf(this.state);
     }*/
@@ -1594,8 +1596,8 @@ Element.prototype.__mafter = function(type, result) {
         this.__clearEvtState();
     }*/
 }
-Element.prototype.__pbefore = function(type) { }
-Element.prototype.__pafter = function(type) { }
+Element.prototype.__pbefore = function(ctx, type) { }
+Element.prototype.__pafter = function(ctx, type) { }
 Element.prototype.__checkGJump = function(gtime) {
     return this.__checkJump(gtime - this.xdata.gband[0]);
 }
@@ -3425,6 +3427,8 @@ var exports = {
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU,
     'MODULES': {},
+
+    'obj_clone': obj_clone,
 
     'createPlayer': function(id, opts) { return new Player(id, opts); }
 

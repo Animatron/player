@@ -1,20 +1,36 @@
 (function() { // anonymous wrapper to exclude global context clash
 
-if (anm.MODULES['COLLISIONS']) throw new Error('COLLISIONS module already enabled');
-
-var opts = {
-    'pathDriven': false
-};
-
 var C = anm.C;
 
 C.MOD_COLLISIONS = 'collisions';
+if (anm.M[C.MOD_COLLISIONS]) throw new Error('COLLISIONS module already enabled');
+
+var opts = {
+    'pathDriven': false,
+    'useSnaps': false, 
+    'vectorSpan': 1, // seconds
+    'predictSpan': 1, // seconds 
+};
+
 anm.M[C.MOD_COLLISIONS] = opts;
 
 function __filled(arr, val) {
     var l = arr.length; result = new Array(l), i = l;
     while (i--) result[i] = val;
     return result;   
+}
+
+/* function __wnorm_vec(vec) {
+    var w = vec[4];
+    return [ 0, 0,
+             (vec[2] - vec[0]) / w,
+             (vec[3] - vec[1]) / w, 1 ];
+} */
+
+function __velocity_of(vec) {
+    var w = vec[4];
+    return [ (vec[2] - vec[0]) / w,
+             (vec[3] - vec[1]) / w ];
 }
 
 var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg, 
@@ -134,8 +150,99 @@ E.prototype.reactWith = function(func) {
     this.xdata.__cfunc = func;
 }
 
-E.prototype.collides = function(elm, t) {
-    throw new Error('Not implemented');
+/*
+//anm.M[C.MOD_COLLISIONS].useSnaps = true;
+//anm.M[C.MOD_COLLISIONS].vectorSpan = 1;
+anm.M[C.MOD_COLLISIONS].predictSpan = 2;
+
+var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
+                  .trans([0, 3], [[120, 20], [40, 40]])
+                  .fill('#009')
+                  .stroke('#f00', 3)
+                  //.rotate([0, 10], [0, Math.PI / 2]);
+var red_rect = b('red-rect').rect([115, 90], [60, 60])
+                 .fill('#f00');
+
+blue_rect.modify(function(t) {
+    this.$.collides(red_rect.v, function() {
+        console.log(arguments);
+    });
+});
+
+return b()
+  .add(blue_rect)
+  .add(red_rect)
+  //.rotate([0, 10], [0, Math.PI]);
+*/
+E.prototype.collides = function(elm, func) {
+    if (!this._collisionTests) this._collisionTests = [];
+    if (!this._collisionElms) this._collisionElms = [];
+    this._collisionTests.push(func);
+    this._collisionElms.push(elm);
+}
+E.prototype._getNextVect = function(t) {
+    var useSnaps = opts.useSnaps;
+    var v_prev;
+    var ptime = opts.predictSpan;
+    if (!opts.useSnaps) {
+        var s = this.state, _s = this._state;
+        v_prev = [  s.x,  s.y, 
+                   _s.x, _s.y,
+                   t - s._appliedAt ];
+    } else {
+        // TODO: special func for getting only a mov vect?
+        v_prev = this._getVects(t)['mov'];
+    }
+    var vel = __velocity_of(v_prev),
+        pt = [ v_prev[2], v_prev[3] ]; // start point
+    /*console.log(v_prev, pt, vel, ptime, [ pt[0], pt[1],
+             pt[0] + (vel[0] * ptime),
+             pt[1] + (vel[1] * ptime), ptime ]);*/
+    return [ pt[0], pt[1],
+             pt[0] + (vel[0] * ptime),
+             pt[1] + (vel[1] * ptime), ptime ];    
+}
+E.prototype._defCollides = function(t, elm, func) {
+    // NB: ensure t is _current_ time, not any other,
+    //     many functions below rely on that fact
+    var v_next = this._getNextVect(t);
+    //var apt0 = this._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
+    //    apt1 = this._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
+    var apt0 = this._pradopt([ 0, 0 ]), // absolute point 0
+        apt1 = this._pradopt([ v_next[2] - v_next[0], 
+                               v_next[3] - v_next[1] ]); // absolute point 1
+    this.__napt0 = apt0;
+    this.__napt1 = apt1;
+    var pts = opts.pathDriven ? elm._pointsAt() : elm.rect();
+    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+        var lpt0 = [ pts[pi], pts[pi+1] ];
+        var lpt1 = ((pi + 2) != pl) 
+                   ? [ pts[pi+2], pts[pi+3] ]
+                   : [ pts[0], pts[1] ];
+        if (this._vecEntersLine(apt0, apt1, 
+                                lpt0, lpt1)) {
+            func.call(this, t, elm);
+            // save that we've tested collision
+            return;
+        }
+    }
+
+}
+E.prototype._vecEntersLine = function(vpt0, vpt1, lpt0, lpt1) {
+    var S1 = [ vpt1[0] - vpt0[0],
+               vpt1[1] - vpt0[1] ],
+        S2 = [ lpt1[0] - lpt0[0],
+               lpt1[1] - lpt0[1] ];
+    var sup = ((vpt0[0] - lpt0[0]) * -S1[1]) -
+              ((vpt0[1] - lpt0[1]) * -S1[0]),
+        sdn = (S2[0] * -S1[1]) - (S2[1] * -S1[0]),
+        s = sup / sdn;
+    var tup = (S2[0] * (vpt0[1] - lpt0[1])) -
+              (S2[1] * (vpt0[0] - lpt0[0])),
+        tdn = sdn,
+        t = tup / tdn; 
+    return (s >= 0) && (s <= 1) &&
+           (t >= 0) && (t <= 1); 
 }
 
 E.prototype.dcollides = function(elm, t) {
@@ -222,7 +329,7 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? this.state : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
-    //return this.__adoptWithM(pts, s._matrix.inverted());
+    //return this.__adoptWithM(pts, s._matrix);
     return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
@@ -263,7 +370,7 @@ E.prototype.__adoptWithM = function(pts, m) {
         return m.transformPoint(pts[0], pts[1]);
     }
 }
-var prevAddDebugRender = E.__addDebugRender;
+
 function p_drawCPath(ctx, cPath) {
     if (!(cPath = cPath || this.__cpath)) return;
     cPath.cstroke('#f00', 2.0);
@@ -317,6 +424,23 @@ function p_drawAdoptedPoints(ctx) {
         ctx.restore();
     } catch(e) { };
 }*/
+function p_drawPrediction(ctx) {
+    var me = this.$;
+    if (me.__napt0) {
+        var apt0 = me.__napt0, // absolute point 0
+            apt1 = me.__napt1; // absolute point 1
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        ctx.beginPath();
+        ctx.strokeStyle = '#ff0';
+        ctx.lineWidth = 4;
+        ctx.moveTo(apt0[0], apt0[1]);
+        ctx.lineTo(apt1[0], apt1[1]);
+        ctx.stroke();
+        ctx.restore();
+    }
+}
+var prevAddDebugRender = E.__addDebugRender;
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
@@ -324,7 +448,126 @@ E.__addDebugRender = function(elm) {
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
     //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawPrediction);
 }
+
+var prevMAfter = E.prototype.__mafter;
+E.prototype.__mafter = function(t, type, result) {
+    prevMAfter.call(this, t, type, result);
+    if (result && (type === E.LAST_MOD)) {
+        if (opts.useSnaps && this.track) {
+            this.__updateSnaps(t);
+        }
+        var colTests = this._collisionTests;
+        if (colTests && colTests.length > 0) {
+            var colElms = this._collisionElms;
+            for (var ci = 0, cl = colTests.length;
+                 ci < cl; ci++) {
+                this._defCollides(t, colElms[ci], colTests[ci]);
+            }
+            this._collisionTests = [];
+            this._collisionElms = [];
+        }
+    }
+}
+E.prototype.__updateSnaps = function(t) {
+    var pos = Math.floor(t / opts.vectorSpan);
+    var s = this.state, _s = this._state;
+    if (!s._applied || !s.snap0) {
+        _s.snap0 = anm.obj_clone(_s); // FIXME: may be cloning is dangerous for arrays?
+        _s.snap0._at = pos;
+        _s.snap0._atT = t;
+        _s.snap1 = null;
+        // assert(pos === 0)
+    } else if (s.snap0) {
+        var offset0 = pos - s.snap0._at;
+        if (!s.snap1 && (pos > 0)) {
+            _s.snap1 = anm.obj_clone(_s);
+            _s.snap1._at = pos;
+            _s.snap1._atT = t;
+            // assert(pos > 0)
+        } else if ((offset0 > 1) && (pos != s.snap1._at)) {
+            // assert(pos > 1)
+            _s.snap0 = s.snap1;
+            _s.snap1 = anm.obj_clone(_s);
+            _s.snap1._at = pos;
+            _s.snap1._atT = pos;
+            // assert(offset > 0)
+        } else {
+            _s.snap0 = s.snap0;
+            _s.snap1 = s.snap1;
+            // assert(pos === s.snap1)
+        }
+        if (_s.snap1 && ((t - _s.snap1._at) < 0)) {
+            _s.snap0 = null;
+            _s.snap1 = null;
+        }
+    }
+}
+E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
+                                '(current) time to _getVects ' + 
+                                'or check if vectorSpan value is > (1 / min.framerate) ' +
+                                'or may be framerate itself is too low'/*)*/;
+E.prototype._getVects = function(t) {
+    // may be called only on __mafter
+    var s = this._state,
+        s0 = s.snap0, s1 = s.snap1;
+    if (!s0 && !s1) throw new Error('No vector data available, is this element tracked?');
+    var pos = Math.floor(t / opts.vectorSpan);
+    if (!s1) {
+        if (pos != s0._at) throw new Error(E.__vecErrText);
+        var vec_t = t - s0._at;
+        return {
+            'mov': [ s0.x, s0.y, s.x, s.y, vec_t ],
+            'rot': [ s0.angle, s.angle, vec_t ],
+            'scl': [ s0.sx, s0.sy, s.sx, s.sy, vec_t ]
+        };
+    } else {
+        //if (pos != s1._at) throw new Error(E.__vecErrText);
+        /*var eps = 0.05 * opts.vectorSpan; // epsilon
+        if ((t > (pos - eps)) && (t < (pos + eps)) {
+            var vec_t = s1._at - s0._at;
+            return {
+                'mov': [ s0.x, s0.y, s1.x, s1.y, vec_t ],
+                'rot': [ s0.angle, s1.angle, vec_t ],
+                'scl': [ s0.sx, s0.sy, s1.sx, s1.sy, vec_t ]
+            };
+        };*/
+        var pass_t = t - s1._at;
+        if (pass_t > opts.vectorSpan) { //throw new Error(E.__vecErrText);
+            return {
+                'mov': [ s1.x, s1.y, s.x, s.y, pass_t ],
+                'rot': [ s1.angle, s.angle, pass_t ],
+                'scl': [ s1.sx, s1.sy, s.x, s.y, pass_t ]
+            };
+        }
+        var span_t = s1._at - s0._at;
+        if (span_t < (opts.vectorSpan - pass_t)) throw new Error(E.__vecErrText);
+        var span_pos = span_t - (opts.vectorSpan - pass_t); 
+        // we take the approx. point between two states as
+        // first point and current point as second to
+        // make vector time equal to vector span
+        var vec_t = opts.vectorSpan;
+        // assert(opts.vectorSpan === (span_t - span_pos + pass_t))
+        return {
+            'mov': [ s0.x + ((s1.x - s0.x) * span_pos),
+                     s0.y + ((s1.y - s0.y) * span_pos),
+                     s1.x + ((s.x - s1.x) * pass_t),
+                     s1.y + ((s.y - s1.y) * pass_t),
+                     vec_t ],
+            'rot': [ s0.angle + ((s1.angle - s0.angle) * span_pos),
+                     s1.angle + ((s.x - s1.x) * pass_t),
+                     s1.y + ((s.y - s1.y) * pass_t),
+                     vec_t ],
+            'scl': [ s0.sx + ((s1.sx - s0.sx) * span_pos),
+                     s0.sy + ((s1.sy - s0.sy) * span_pos),
+                     s1.sx + ((s.sx - s1.sx) * pass_t),
+                     s1.sy + ((s.sy - s1.sy) * pass_t),
+                     vec_t ]
+        }
+    }
+    throw new Error(E.__vecErrText);
+} 
 
 Path.prototype.contains = function(pt) {
     // FIXME: add stroke width
