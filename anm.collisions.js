@@ -20,19 +20,6 @@ function __filled(arr, val) {
     return result;   
 }
 
-/* function __wnorm_vec(vec) {
-    var w = vec[4];
-    return [ 0, 0,
-             (vec[2] - vec[0]) / w,
-             (vec[3] - vec[1]) / w, 1 ];
-} */
-
-function __velocity_of(vec) {
-    var w = vec[4];
-    return [ (vec[2] - vec[0]) / w,
-             (vec[3] - vec[1]) / w ];
-}
-
 var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg, 
                                       LSeg = anm.LSeg, 
                                       CSeg = anm.CSeg;
@@ -90,6 +77,28 @@ E.prototype.drect = function(t) {
     return [ x1, y1, x2, y2, x3, y3, x4, y4 ];
 }
 
+E.prototype.local = function(pt, t) {
+    /*var off = this.offset();
+    var lpt = this._adopt(pt, t);
+    return [ lpt[0] - off[0],
+             lpt[1] - off[1] ];*/
+    return this._padopt(pt, t);
+}
+E.prototype.global = function(pt, t) {
+    /*var off = this.offset();
+    var gpt = this._radopt(pt, t);
+    return [ gpt[0] + off[0],
+             gpt[1] + off[1] ];*/ 
+    return this._pradopt(pt, t);
+}
+
+E.prototype.reactAs = function(path) {
+    this.xdata.__cpath = path;
+}
+E.prototype.reactWith = function(func) {
+    this.xdata.__cfunc = func;
+}
+
 E.prototype.collectPoints = function() {
     var x = this.xdata;
     if (x.__cpath) return x.__cpath.getPoints();
@@ -113,7 +122,6 @@ E.prototype.contains = function(pt, t) {
     } 
     return false;
 }
-
 E.prototype.dcontains = function(pt, t) {
     var matched = [];
     if (this.contains(pt, t)) {
@@ -127,27 +135,41 @@ E.prototype.dcontains = function(pt, t) {
     return matched;
 }
 
-E.prototype.local = function(pt, t) {
-    /*var off = this.offset();
-    var lpt = this._adopt(pt, t);
-    return [ lpt[0] - off[0],
-             lpt[1] - off[1] ];*/
-    return this._padopt(pt, t);
+E.prototype.intersects = function(elm, t) {
+    var rectsMatched;
+    if (rectsMatched =
+        G.__isecRects(this.rect(t), elm.rect(t))) {
+        if (!opts.pathDriven) return true;
+        var cx = this.xdata, ex = elm.xdata;
+        var pathOfC = (cx.__cpath || cx.path);
+        var pathOfE = (ex.__cpath || ex.path);
+        if (!pathOfC && !pathOfE) return rectsMatched;
+        else if (pathOfC && pathOfE) {
+            return G.__pointsInPath(this.__pathAt(t), elm.__pointsAt(t)) ||
+                   G.__pointsInPath(elm.__pathAt(t), this.__pointsAt(t));
+        } else if (pathOfC && !pathOfE) {
+            var e_rect = elm.rect(t);
+            return G.__pointsInRect(this.__pointsAt(t), e_rect) ||
+                   G.__pointsInPath(this.__pathAt(t), e_rect);
+        } else if (!pathOfC && pathOfE) {
+            var с_rect = this.rect(t);
+            return G.__pointsInRect(elm.__pointsAt(t), с_rect) ||
+                   G.__pointsInPath(elm.__pathAt(t), с_rect);
+        }
+        return false;
+    }
 }
-
-E.prototype.global = function(pt, t) {
-    /*var off = this.offset();
-    var gpt = this._radopt(pt, t);
-    return [ gpt[0] + off[0],
-             gpt[1] + off[1] ];*/ 
-    return this._pradopt(pt, t);
-}
-
-E.prototype.reactAs = function(path) {
-    this.xdata.__cpath = path;
-}
-E.prototype.reactWith = function(func) {
-    this.xdata.__cfunc = func;
+E.prototype.dintersects = function(elm, t) {
+    var matched = [];
+    if (this.intersects(elm, t)) {
+        matched.push(this);
+    }
+    if (this.children) {
+        elm.visitChildren(function(celm) {
+            matched.concat(celm.dintersects(elm, t));
+        });
+    }
+    return matched;
 }
 
 /*
@@ -180,149 +202,10 @@ E.prototype.collides = function(elm, func) {
     this._collisionTests.push(func);
     this._collisionElms.push(elm);
 }
-E.prototype._getNextVect = function(t) {
-    var useSnaps = opts.useSnaps;
-    var v_prev;
-    var ptime = opts.predictSpan;
-    if (!opts.useSnaps) {
-        var s = this.state, _s = this._state;
-        v_prev = [  s.x,  s.y, 
-                   _s.x, _s.y,
-                   t - s._appliedAt ];
-    } else {
-        // TODO: special func for getting only a mov vect?
-        v_prev = this._getVects(t)['mov'];
-    }
-    var vel = __velocity_of(v_prev),
-        pt = [ v_prev[2], v_prev[3] ]; // start point
-    /*console.log(v_prev, pt, vel, ptime, [ pt[0], pt[1],
-             pt[0] + (vel[0] * ptime),
-             pt[1] + (vel[1] * ptime), ptime ]);*/
-    return [ pt[0], pt[1],
-             pt[0] + (vel[0] * ptime),
-             pt[1] + (vel[1] * ptime), ptime ];    
-}
-E.prototype._defCollides = function(t, elm, func) {
-    // NB: ensure t is _current_ time, not any other,
-    //     many functions below rely on that fact
-    var v_next = this._getNextVect(t);
-    //var apt0 = this._pradopt([ v_next[0], v_next[1] ]), // absolute point 0
-    //    apt1 = this._pradopt([ v_next[2], v_next[3] ]); // absolute point 1
-    var apt0 = this._pradopt([ 0, 0 ]), // absolute point 0
-        apt1 = this._pradopt([ v_next[2] - v_next[0], 
-                               v_next[3] - v_next[1] ]); // absolute point 1
-    this.__napt0 = apt0;
-    this.__napt1 = apt1;
-    var pts = opts.pathDriven ? elm._pointsAt() : elm.rect();
-    for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
-        var lpt0 = [ pts[pi], pts[pi+1] ];
-        var lpt1 = ((pi + 2) != pl) 
-                   ? [ pts[pi+2], pts[pi+3] ]
-                   : [ pts[0], pts[1] ];
-        if (this._vecEntersLine(apt0, apt1, 
-                                lpt0, lpt1)) {
-            func.call(this, t, elm);
-            // save that we've tested collision
-            return;
-        }
-    }
-
-}
-E.prototype._vecEntersLine = function(vpt0, vpt1, lpt0, lpt1) {
-    var S1 = [ vpt1[0] - vpt0[0],
-               vpt1[1] - vpt0[1] ],
-        S2 = [ lpt1[0] - lpt0[0],
-               lpt1[1] - lpt0[1] ];
-    var sup = ((vpt0[0] - lpt0[0]) * -S1[1]) -
-              ((vpt0[1] - lpt0[1]) * -S1[0]),
-        sdn = (S2[0] * -S1[1]) - (S2[1] * -S1[0]),
-        s = sup / sdn;
-    var tup = (S2[0] * (vpt0[1] - lpt0[1])) -
-              (S2[1] * (vpt0[0] - lpt0[0])),
-        tdn = sdn,
-        t = tup / tdn; 
-    return (s >= 0) && (s <= 1) &&
-           (t >= 0) && (t <= 1); 
-}
-
 E.prototype.dcollides = function(elm, t) {
     throw new Error('Not implemented');
 }
 
-E.prototype.__pathAt = function(t) {
-    var path = this.xdata.__cpath || this.xdata.path;
-    if (!path) throw new Error("No path found for elm " + this.id);
-    var mpath = path.duplicate();
-    var me = this;
-    mpath.vpoints(function(x, y) {
-        return me._pradopt([x, y], t);
-    });
-    return mpath;
-}
-
-E.prototype.__pointsAt = function(t) {
-    return this._pradopt(this.collectPoints(), t);
-}
-
-E.prototype.intersects = function(elm, t) {
-    var rectsMatched;
-    if (rectsMatched =
-        G.__isecRects(this.rect(t), elm.rect(t))) {
-        if (!opts.pathDriven) return true;
-        var cx = this.xdata, ex = elm.xdata;
-        var pathOfC = (cx.__cpath || cx.path);
-        var pathOfE = (ex.__cpath || ex.path);
-        if (!pathOfC && !pathOfE) return rectsMatched;
-        else if (pathOfC && pathOfE) {
-            return G.__pointsInPath(this.__pathAt(t), elm.__pointsAt(t)) ||
-                   G.__pointsInPath(elm.__pathAt(t), this.__pointsAt(t));
-        } else if (pathOfC && !pathOfE) {
-            var e_rect = elm.rect(t);
-            return G.__pointsInRect(this.__pointsAt(t), e_rect) ||
-                   G.__pointsInPath(this.__pathAt(t), e_rect);
-        } else if (!pathOfC && pathOfE) {
-            var с_rect = this.rect(t);
-            return G.__pointsInRect(elm.__pointsAt(t), с_rect) ||
-                   G.__pointsInPath(elm.__pathAt(t), с_rect);
-        }
-        return false;
-    }
-}
-
-E.prototype.dintersects = function(elm, t) {
-    var matched = [];
-    if (this.intersects(elm, t)) {
-        matched.push(this);
-    }
-    if (this.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(celm.dintersects(elm, t));
-        });
-    }
-    return matched;
-}
-
-E.prototype._cpa_bounds = function() { // cpath-aware bounds
-    var cpath = this.xdata.__cpath;
-    return cpath 
-            ? cpath.bounds()
-            : this.lbounds();
-}
-
-E.prototype._cpa_rect = function() { // cpath-aware rect
-    var cpath = this.xdata.__cpath;
-    return cpath
-            ? cpath.rect()
-            : this.lrect();
-}
-E.prototype.__ensureTimeTestAllowedFor = function(t) {
-    if ((t != null) &&
-        (this.__modifying != null)
-        && (this.__modifying !== E.EVENT_MOD)) {
-        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
-    }
-    return true;
-}
 E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
@@ -368,6 +251,168 @@ E.prototype.__adoptWithM = function(pts, m) {
         return transformed;
     } else {
         return m.transformPoint(pts[0], pts[1]);
+    }
+}
+
+E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
+                                '(current) time to _getVects ' + 
+                                'or check if vectorSpan value is > (1 / min.framerate) ' +
+                                'or may be framerate itself is too low'/*)*/;
+E.prototype._makeGhostMatrix = function(t) {
+    // NB: ensure t is _current_ time, not any other,
+    //     many functions below rely on that fact
+    var s0, s1,
+        t_diff;
+    var t_pred = opts.predictSpan;
+
+    // get first and second state to calculate
+    // vector from. s0 will hold first state,
+    // s1 — second, t_diff — time difference between them
+    if (!opts.useSnaps) {
+        s0 = this.state;
+        s1 = this._state;
+        t_diff = t - s0._appliedAt;
+    } else {
+        var s = this._state,
+            sn0 = s.snap0, sn1 = s.snap1;
+        if (!sn0 && !sn1) throw new Error('No vector data available, is this element tracked?');
+        var pos = Math.floor(t / opts.vectorSpan);
+        if (!sn1) {
+            if (pos != sn0._at) throw new Error(E.__vecErrText);
+            s0 = sn0; s1 = s;
+            t_diff = t - sn0._atT;
+        } else {
+            var pass_t = t - sn1._atT;
+            if (pass_t <= opts.vectorSpan) {
+                var span_t = sn1._atT - sn0._atT;
+                if (span_t < (opts.vectorSpan - pass_t)) throw new Error(E.__vecErrText);
+                var span_pos = span_t - (opts.vectorSpan - pass_t);
+                s0 = E._stateBetween(sn0, sn1, span_t, span_pos); s1 = s;
+                t_diff = opts.vectorSpan;
+            } else {
+                s0 = sn1; s1 = s;
+                t_diff = pass_t;                
+            }
+        }
+    }
+
+    var vec = E._getVect(s0, s1, t_diff);
+    var predicted = E._predictState(s1, vec, opts.predictSpan);
+    var ghost_m = this._getMatrixOf(predicted);
+
+    this.__ghost_matrix = ghost_m;
+
+    return ghost_m;
+}
+E.prototype._defCollides = function(t, elm, func) {
+
+    var prev_src_st = this.state;
+    var prev_cmp_st = elm.state;
+
+    this.state = this._makeGhostMatrix(t);
+    elm.state  = elm._makeGhostMatrix(t);
+
+    var pts = opts.pathDriven ? elm._pointsAt() : elm.rect();
+    // if (this._vecEntersLine(apt0, apt1, lpt0, lpt1)) {
+        // save that we've tested collision
+        
+    func.call(this, t, elm);
+
+}
+/*E.prototype._vecEntersLine = function(vpt0, vpt1, lpt0, lpt1) {
+    var S1 = [ vpt1[0] - vpt0[0],
+               vpt1[1] - vpt0[1] ],
+        S2 = [ lpt1[0] - lpt0[0],
+               lpt1[1] - lpt0[1] ];
+    var sup = ((vpt0[0] - lpt0[0]) * -S1[1]) -
+              ((vpt0[1] - lpt0[1]) * -S1[0]),
+        sdn = (S2[0] * -S1[1]) - (S2[1] * -S1[0]),
+        s = sup / sdn;
+    var tup = (S2[0] * (vpt0[1] - lpt0[1])) -
+              (S2[1] * (vpt0[0] - lpt0[0])),
+        tdn = sdn,
+        t = tup / tdn; 
+    return (s >= 0) && (s <= 1) &&
+           (t >= 0) && (t <= 1); 
+}*/
+
+E.prototype.__pathAt = function(t) {
+    var path = this.xdata.__cpath || this.xdata.path;
+    if (!path) throw new Error("No path found for elm " + this.id);
+    var mpath = path.duplicate();
+    var me = this;
+    mpath.vpoints(function(x, y) {
+        return me._pradopt([x, y], t);
+    });
+    return mpath;
+}
+E.prototype.__pointsAt = function(t) {
+    return this._pradopt(this.collectPoints(), t);
+}
+E.prototype._cpa_bounds = function() { // cpath-aware bounds
+    var cpath = this.xdata.__cpath;
+    return cpath 
+            ? cpath.bounds()
+            : this.lbounds();
+}
+
+E.prototype._cpa_rect = function() { // cpath-aware rect
+    var cpath = this.xdata.__cpath;
+    return cpath
+            ? cpath.rect()
+            : this.lrect();
+}
+E.prototype.__ensureTimeTestAllowedFor = function(t) {
+    if ((t != null) &&
+        (this.__modifying != null)
+        && (this.__modifying !== E.EVENT_MOD)) {
+        throw new Error('Time-related tests may happen only outside of modifier or inside event handler');
+    }
+    return true;
+}
+
+// TODO: iterate through objects' properties and call function
+// for each property
+E._getVect = function(s0, s1, t_diff) {
+    return {
+        'x': (s1.x - s0.x) / t_diff,
+        'y': (s1.y - s0.y) / t_diff,
+        'lx': (s1.lx - s0.lx) / t_diff,
+        'ly': (s1.ly - s0.ly) / t_diff,
+        'rx': (s1.rx - s0.rx) / t_diff,
+        'ry': (s1.ry - s0.ry) / t_diff,
+        'sx': (s1.sx - s0.sx) / t_diff,
+        'sy': (s1.sy - s0.sy) / t_diff,
+        'angle': (s1.angle - s0.angle) / t_diff,
+        'alpha': (s1.alpha - s0.alpha) / t_diff
+    }
+}
+E._stateBetween = function(s0, s1, t_diff, at) {
+    return {
+        'x': s0.x + ((s1.x - s0.x) / t_diff) * at,
+        'y': s0.y + ((s1.y - s0.y) / t_diff) * at,
+        'lx': s0.lx + ((s1.lx - s0.lx) / t_diff) * at,
+        'ly': s0.lx + ((s1.ly - s0.ly) / t_diff) * at,
+        'rx': s0.rx + ((s1.rx - s0.rx) / t_diff) * at,
+        'ry': s0.ry + ((s1.ry - s0.ry) / t_diff) * at,
+        'sx': s0.sx + ((s1.sx - s0.sx) / t_diff) * at,
+        'sy': s0.sy + ((s1.sy - s0.sy) / t_diff) * at,
+        'angle': s0.angle + ((s1.angle - s0.angle) / t_diff) * at,
+        'alpha': s0.alpha + ((s1.alpha - s0.alpha) / t_diff) * at
+    }
+}
+E._predictState = function(s1, vec, t_pred) {
+    return {
+        'x': s1.x + vec.x * t_pred,
+        'y': s1.y + vec.y * t_pred,
+        'lx': s1.lx + vec.lx * t_pred,
+        'ly': s1.ly + vec.ly * t_pred,
+        'rx': s1.rx + vec.rx * t_pred,
+        'ry': s1.ry + vec.ry * t_pred,
+        'sx': s1.rx + vec.sx * t_pred,
+        'sy': s1.ry + vec.sy * t_pred,
+        'angle': s1.angle + vec.angle * t_pred,
+        'alpha': s1.alpha + vec.alpha * t_pred
     }
 }
 
@@ -424,7 +469,7 @@ function p_drawAdoptedPoints(ctx) {
         ctx.restore();
     } catch(e) { };
 }*/
-function p_drawPrediction(ctx) {
+function p_drawGhost(ctx) {
     var me = this.$;
     if (me.__napt0) {
         var apt0 = me.__napt0, // absolute point 0
@@ -448,7 +493,7 @@ E.__addDebugRender = function(elm) {
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
     //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
-    elm.__paint(E.DEBUG_PNT, 0, p_drawPrediction);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawGhost);
 }
 
 var prevMAfter = E.prototype.__mafter;
@@ -504,10 +549,7 @@ E.prototype.__updateSnaps = function(t) {
         }
     }
 }
-E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
-                                '(current) time to _getVects ' + 
-                                'or check if vectorSpan value is > (1 / min.framerate) ' +
-                                'or may be framerate itself is too low'/*)*/;
+
 E.prototype._getVects = function(t) {
     // may be called only on __mafter
     var s = this._state,
