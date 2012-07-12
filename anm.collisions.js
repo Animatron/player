@@ -296,11 +296,14 @@ E.prototype._makeGhost = function(t) {
         }
     }
 
-    var vec = E._getVect(s0, s1, t_diff);
-    var ghost = E._predictState(s1, vec, opts.predictSpan);
-    ghost._matrix = this._getMatrixOf(ghost);
+    var vec = E._getVect(s0, s1 || s0, t_diff);
+    var ghost = E._predictState(s1 || s0, vec, opts.predictSpan);
+    ghost._matrix = E._getMatrixOf(ghost, ghost._matrix);
     ghost._vec = vec;
     ghost._tdiff = t_diff;
+
+    this.__ghost_m = ghost._matrix;
+    this.__ghost_v = ghost._vec
 
     return ghost;
 }
@@ -383,6 +386,7 @@ E.prototype.__ensureTimeTestAllowedFor = function(t) {
 // TODO: iterate through objects' properties and call function
 // for each property
 E._getVect = function(s0, s1, t_diff) {
+    if (t_diff == 0) return E.createState();
     return {
         'x': (s1.x - s0.x) / t_diff,
         'y': (s1.y - s0.y) / t_diff,
@@ -397,6 +401,7 @@ E._getVect = function(s0, s1, t_diff) {
     }
 }
 E._stateBetween = function(s0, s1, t_diff, at) {
+    if (t_diff == 0) return s0;
     return {
         'x': s0.x + ((s1.x - s0.x) / t_diff) * at,
         'y': s0.y + ((s1.y - s0.y) / t_diff) * at,
@@ -480,16 +485,27 @@ function p_drawAdoptedPoints(ctx) {
 }*/
 function p_drawGhost(ctx) {
     var me = this.$;
-    if (me.__napt0) {
-        var apt0 = me.__napt0, // absolute point 0
-            apt1 = me.__napt1; // absolute point 1
+    if (me.__ghost_m && !me.__ghostLock) {
         ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
+        me.__ghostLock = true;
+        me.__ghost_m.apply(ctx);
+        ctx.globalAlpha = 0.6;
+        me.draw(ctx);
+        me.__ghostLock = false;
+        ctx.restore();
+    }
+}
+function p_drawGhostVec(ctx) {
+    var me = this.$;
+    if (me.__ghost_m) {
+        ctx.save();
+        me.__ghost_m.apply(ctx);
+        var apt = me._adopt([ -10, 0 ]);
         ctx.beginPath();
         ctx.strokeStyle = '#ff0';
         ctx.lineWidth = 4;
-        ctx.moveTo(apt0[0], apt0[1]);
-        ctx.lineTo(apt1[0], apt1[1]);
+        ctx.moveTo(0, 0);
+        ctx.lineTo(apt[0], apt[1]);
         ctx.stroke();
         ctx.restore();
     }
@@ -503,6 +519,7 @@ E.__addDebugRender = function(elm) {
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
     //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
     elm.__paint(E.DEBUG_PNT, 0, p_drawGhost);
+    elm.__paint(E.DEBUG_PNT, 0, p_drawGhostVec);
 }
 
 var prevMAfter = E.prototype.__mafter;
