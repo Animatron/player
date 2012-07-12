@@ -175,7 +175,7 @@ E.prototype.dintersects = function(elm, t) {
 /*
 //anm.M[C.MOD_COLLISIONS].useSnaps = true;
 //anm.M[C.MOD_COLLISIONS].vectorSpan = 1;
-anm.M[C.MOD_COLLISIONS].predictSpan = 2;
+anm.M[C.MOD_COLLISIONS].predictSpan = 6;
 
 var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
                   .trans([0, 3], [[120, 20], [40, 40]])
@@ -269,11 +269,17 @@ E.prototype._makeGhost = function(t) {
     // vector from. s0 will hold first state,
     // s1 — second, t_diff — time difference between them
     if (!opts.useSnaps) {
-        s0 = this.state;
-        s1 = this._state;
+        if (this.__modifying !== null) {
+            s0 = this.state;
+            s1 = this._state;
+        } else {
+            s0 = this.state._ || this.state;
+            s1 = this.state;
+        }
         t_diff = t - s0._appliedAt;
     } else {
-        var s = this._state,
+        var s = (this.__modifying !== null) ? this._state 
+                                            : this.state,
             sn0 = s.snap0, sn1 = s.snap1;
         if (!sn0 && !sn1) throw new Error('No vector data available, is this element tracked?');
         var pos = Math.floor(t / opts.vectorSpan);
@@ -494,7 +500,7 @@ function p_drawGhost(ctx) {
         ctx.restore();
     }
 }
-function p_drawGhostVec(ctx) {
+/*function p_drawGhostVec(ctx) {
     var me = this.$;
     if (me.__ghost_m) {
         ctx.save();
@@ -508,7 +514,7 @@ function p_drawGhostVec(ctx) {
         ctx.stroke();
         ctx.restore();
     }
-}
+}*/
 var prevAddDebugRender = E.__addDebugRender;
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
