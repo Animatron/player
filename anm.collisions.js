@@ -302,8 +302,7 @@ E.prototype._makeGhost = function(t) {
     ghost._vec = vec;
     ghost._tdiff = t_diff;
 
-    this.__ghost_m = ghost._matrix;
-    this.__ghost_v = ghost._vec
+    this.__ghost = ghost;
 
     return ghost;
 }
@@ -423,8 +422,8 @@ E._predictState = function(s1, vec, t_pred) {
         'ly': s1.ly + vec.ly * t_pred,
         'rx': s1.rx + vec.rx * t_pred,
         'ry': s1.ry + vec.ry * t_pred,
-        'sx': s1.rx + vec.sx * t_pred,
-        'sy': s1.ry + vec.sy * t_pred,
+        'sx': s1.sx + vec.sx * t_pred,
+        'sy': s1.sy + vec.sy * t_pred,
         'angle': s1.angle + vec.angle * t_pred,
         'alpha': s1.alpha + vec.alpha * t_pred
     }
@@ -485,10 +484,10 @@ function p_drawAdoptedPoints(ctx) {
 }*/
 function p_drawGhost(ctx) {
     var me = this.$;
-    if (me.__ghost_m && !me.__ghostLock) {
+    if (me.__ghost && !me.__ghostLock) {
         ctx.save();
         me.__ghostLock = true;
-        me.__ghost_m.apply(ctx);
+        me.__ghost._matrix.apply(ctx);
         ctx.globalAlpha = 0.6;
         me.draw(ctx);
         me.__ghostLock = false;
@@ -519,7 +518,7 @@ E.__addDebugRender = function(elm) {
     elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
     //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
     elm.__paint(E.DEBUG_PNT, 0, p_drawGhost);
-    elm.__paint(E.DEBUG_PNT, 0, p_drawGhostVec);
+    //elm.__paint(E.DEBUG_PNT, 0, p_drawGhostVec);
 }
 
 var prevMAfter = E.prototype.__mafter;
