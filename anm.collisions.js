@@ -258,7 +258,7 @@ E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
                                 '(current) time to _getVects ' + 
                                 'or check if vectorSpan value is > (1 / min.framerate) ' +
                                 'or may be framerate itself is too low'/*)*/;
-E.prototype._makeGhostMatrix = function(t) {
+E.prototype._makeGhost = function(t) {
     // NB: ensure t is _current_ time, not any other,
     //     many functions below rely on that fact
     var s0, s1,
@@ -297,26 +297,35 @@ E.prototype._makeGhostMatrix = function(t) {
     }
 
     var vec = E._getVect(s0, s1, t_diff);
-    var predicted = E._predictState(s1, vec, opts.predictSpan);
-    var ghost_m = this._getMatrixOf(predicted);
+    var ghost = E._predictState(s1, vec, opts.predictSpan);
+    ghost._matrix = this._getMatrixOf(ghost);
+    ghost._vec = vec;
+    ghost._tdiff = t_diff;
 
-    this.__ghost_matrix = ghost_m;
-
-    return ghost_m;
+    return ghost;
 }
 E.prototype._defCollides = function(t, elm, func) {
 
     var prev_src_st = this.state;
     var prev_cmp_st = elm.state;
 
-    this.state = this._makeGhostMatrix(t);
-    elm.state  = elm._makeGhostMatrix(t);
+    var src_ghost = this._makeGhost(t);
+    var cmp_ghost = elm._makeGhost(t);
 
-    var pts = opts.pathDriven ? elm._pointsAt() : elm.rect();
-    // if (this._vecEntersLine(apt0, apt1, lpt0, lpt1)) {
-        // save that we've tested collision
-        
-    func.call(this, t, elm);
+    this.state = src_ghost;
+    elm.state  = cmp_ghost;
+
+    var intersects = this.intersects(elm/*, t*/);
+
+    this.state = prev_src_st;
+    elm.state  = prev_cmp_st;
+
+    if (intersects) {
+        func.call(this, t, 
+                  src_ghost._tdiff/* === cmp_ghost._tdiff */,
+                  src_ghost._vec, cmp_ghost._vec
+                  /*, deep_vec*/);
+    }
 
 }
 /*E.prototype._vecEntersLine = function(vpt0, vpt1, lpt0, lpt1) {
