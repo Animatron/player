@@ -1536,7 +1536,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
     // save modified state as last
     this.state = this._state;
     this._state = null;
-    this.state._ = null;
+    // state._ keeps pointing to prev state
 
     // apply last state
     return true;
