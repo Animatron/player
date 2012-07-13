@@ -175,7 +175,7 @@ E.prototype.dintersects = function(elm, t) {
 /*
 //anm.M[C.MOD_COLLISIONS].useSnaps = true;
 //anm.M[C.MOD_COLLISIONS].vectorSpan = 1;
-anm.M[C.MOD_COLLISIONS].predictSpan = 6;
+anm.M[C.MOD_COLLISIONS].predictSpan = 2;
 
 var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
                   .trans([0, 3], [[120, 20], [40, 40]])
@@ -185,6 +185,8 @@ var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
 var red_rect = b('red-rect').rect([115, 90], [60, 60])
                  .fill('#f00');
 
+//blue_rect.v.track = true;
+//red_rect.v.track = true;
 blue_rect.modify(function(t) {
     this.$.collides(red_rect.v, function() {
         console.log(arguments);
@@ -493,6 +495,7 @@ function p_drawGhost(ctx) {
     if (me.__ghost && !me.__ghostLock) {
         ctx.save();
         me.__ghostLock = true;
+        ctx.setTransform(1, 0, 0, 1, 0, 0); // reset
         me.__ghost._matrix.apply(ctx);
         ctx.globalAlpha = 0.6;
         me.draw(ctx);
