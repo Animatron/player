@@ -175,13 +175,13 @@ E.prototype.dintersects = function(elm, t) {
 /*
 //anm.M[C.MOD_COLLISIONS].useSnaps = true;
 //anm.M[C.MOD_COLLISIONS].vectorSpan = 1;
-anm.M[C.MOD_COLLISIONS].predictSpan = 2;
+anm.M[C.MOD_COLLISIONS].predictSpan = 1;
 
 var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
                   .trans([0, 3], [[120, 20], [40, 40]])
                   .fill('#009')
                   .stroke('#f00', 3)
-                  //.rotate([0, 10], [0, Math.PI / 2]);
+                  .rotate([0, 10], [0, Math.PI / 2]);
 var red_rect = b('red-rect').rect([115, 90], [60, 60])
                  .fill('#f00');
 
@@ -306,6 +306,8 @@ E.prototype._makeGhost = function(t) {
 
     var vec = E._getVect(s0, s1 || s0, t_diff);
     var ghost = E._predictState(s1 || s0, vec, opts.predictSpan);
+    ghost._applied = true;
+    ghost._appliedAt = t;
     ghost._matrix = E._getMatrixOf(ghost, ghost._matrix);
     ghost._vec = vec;
     ghost._tdiff = t_diff;
