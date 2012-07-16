@@ -1448,6 +1448,15 @@ Element.prototype.clone = function() {
 }
 Element.prototype.dclone = function() {
     var clone = this.clone();
+    clone.children = [];
+    var src_children = this.children;
+    var trg_children = clone.children;
+    for (var sci = 0, scl = src_children.length; sci < scl; sci++) {
+        var csrc = src_children[sci],
+            cclone = csrc.dclone();
+        cclone.parent = csrc.parent;
+        trg_children.push(cclone);
+    }
     var src_x = this.xdata,
         trg_x = clone.xdata;
     if (src_x.path) trg_x.path = src_x.path.clone();

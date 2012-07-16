@@ -433,27 +433,30 @@ Every `Builder` instance have five public properties: `v`, `n`, `x` and `f`, `s`
     
 When you have an instance of `Builder`, it is just the prepared state of some [shape](#shapes): path, image, or text. It becomes dynamic when you add [tweens](#tweens) and/or [modifiers](#modifiers) to it. But it is still just prepared dynamic condition — to make it play, you need to pass (load) it into player. This is when system appends all required functionality to it, allows it to act. The same is true for [Element](#element-reference). Of course, you don't need to add every Builder/Element, it happens automatically for the complete scene tree when you load it into player. See [Scene](#scene) section for more information on this, if you want. 
 
-**NB:** Cloning (the last one in the list) is a very tasty feature, but you need to be very accurate with it. Among with element internals it clones its children array, but not deep-clones. So, if you create a recursive scene, be accurate with things like this:
+**NB:** Cloning (the last one in the list) is a very tasty feature, but you need to be very accurate with it. Among with element internals it deeply-clones its children array. So, if you create a recursive scene, be accurate with things like this:
 
     var c = b().circle([0, 0], 20);
+    // var scene = c;
     for (var i = 0; i < 30; i++) {
         c.add(b(c).move([10, 10])); // will add 30x30 children to tree 
     } // this will end up with hanging player
     
     // safe way with nesting:
     var c = b().circle([0, 0], 20);
+    // var scene = c;
     for (var i = 0; i < 30; i++) {
         c.add(c = b(c).move([10, 10])); // will nest every new child a level below
     }
     
     // safe way with 30 children:
     var c = b().circle([0, 0], 20);
+    // var scene = c;
     var clone = b(c);
     for (var i = 0; i < 30; i++) {
-        c.add(b(clone).move([i*10, i*10])); // add new clone 
+        c.add(b(clone).move([i*10, i*10])); // add new clone, all children are on the same level
     }
 
-**NB:** `Builder._$(...)`/`b(...)` function differs from `new Builder(...)` call — if `Element` is passed there, it checks if there was one created for this element already, and instantiates _new_ `Builder` only if not, else it returns the cached one. Cloning is cloning however, so if there is a `Builder` passed, it honestly creates a clone.
+**NB:** `Builder._$(...)`/`b(...)` function differs from `new Builder(...)` call — if `Element` is passed to the first one, it checks if there was one created for this element already, and instantiates _new_ `Builder` only if not, else it returns the cached one. Cloning is cloning however, so if there is a `Builder` passed, it honestly creates a clone in both cases.
 
 ### Structures
 
@@ -1149,7 +1152,7 @@ Also you may set a name to some frame using `key()` function and jump to it with
 
 > ♦ `builder.take % (b: Builder) => Builder`
 
-Make the given `Builder` to be the source of the data for current `Builder`, its contents pointers will be copied so any changes of fill, stroke, path, text, shape will apply to both instances:
+Make the given `Builder` to be the source of the data for current `Builder`, its contents pointers will be copied so any changes of fill, stroke, path, text, shape will apply to both instances (the same for children, they are not cloned, but pointers to them are copied):
 
     var src = b().rect([40, 40], 20).fill('#006');
     var clone = b().take(src).fill('#f06').move([70, 70]);
@@ -1157,7 +1160,7 @@ Make the given `Builder` to be the source of the data for current `Builder`, its
 
 > ♦ `builder.use % (b: Builder) => Builder`
 
-Use the given `Builder`  to make a clone of the data for this `Builder`, all its contents will be cloned so it will be the separate object, but with the same content:
+Use the given `Builder`  to make a clone of the data for this `Builder`, all its contents, including children, will be cloned so it will be the separate object, but with the same content:
 
     var src = b().rect([40, 40], 20).fill('#006');
     var clone = b().use(src).fill('#f06').move([70, 70]);
