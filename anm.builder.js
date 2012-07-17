@@ -34,6 +34,7 @@ function Builder(obj) {
         this.x = this.v.xdata;
         this.f = this._extractFill(obj.f);
         this.s = this._extractStroke(obj.s);
+        this.v.__b$ = this;
         return; // all done
     } else if (obj instanceof Element) {
         this.n = obj.name;
@@ -45,6 +46,7 @@ function Builder(obj) {
         this.v.name = this.n;
         this.x = this.v.xdata;
     }
+    this.v.__b$ = this;
     this.f = this._extractFill(Builder.DEFAULT_FILL);
     this.s = this._extractStroke(Builder.DEFAULT_STROKE);
 }
@@ -137,15 +139,13 @@ Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
     this.x.__bounds = [ 0, 0, radius*2, radius*2];
-    this.paint((function(b) {
-        return function(ctx) {
-            var bi = b(this.$);
-            DU.qDraw(ctx, bi.s, bi.f,
-                     function() {
-                        ctx.arc(0, 0, radius, 0, Math.PI*2, true);
-                     });
-        }
-    })(Builder._$));
+    this.paint(function(ctx) {
+            var b = this.$.__b$;
+            DU.qDraw(ctx, b.s, b.f,
+                function() {
+                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
+                });
+        });
     if (modCollisions) this.v.reactAs(
             Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
     return this;
@@ -625,6 +625,13 @@ Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps
         res.push([xx, yy]);
     }
     return Builder.path(res);
+}
+
+var prevClone = Element.prototype.clone;
+Element.prototype.clone = function() {
+    var clone = prevClone.call(this);
+    clone.__b$ = this.__b$;
+    return clone;
 }
 
 window.Builder = Builder;
