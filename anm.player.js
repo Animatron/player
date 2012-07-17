@@ -1444,10 +1444,21 @@ Element.prototype.clone = function() {
     clone._painters = this._painters.slice(0);
     clone.xdata = obj_clone(this.xdata);
     clone.xdata.$ = clone;
+    clone.__data = this.__data;
     return clone;
 }
 Element.prototype.dclone = function() {
     var clone = this.clone();
+    clone.children = [];
+    var src_children = this.children;
+    var trg_children = clone.children;
+    for (var sci = 0, scl = src_children.length; sci < scl; sci++) {
+        var csrc = src_children[sci],
+            cclone = csrc.dclone();
+        cclone.parent = clone;
+        trg_children.push(cclone);
+    }
+    clone.__data = obj_clone(this.__data); 
     var src_x = this.xdata,
         trg_x = clone.xdata;
     if (src_x.path) trg_x.path = src_x.path.clone();
