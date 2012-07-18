@@ -531,10 +531,10 @@ Player.prototype.onerror = function(callback) {
     return this;
 }
 
-Player.prototype._fireError = function() {
+Player.prototype._fireError = function(err) {
     var player = this;
 
-    player.fire(C.S_ERROR);
+    player.fire(C.S_ERROR, err);
     //console.log('onerror', player.id, player);
 
     player.anim = null;
@@ -1648,25 +1648,14 @@ Element.prototype.__checkJump = function(at) {
             throw new Error('failed to calculate jump');
         }
         if (!this.__jumpLock) {
-            if ((this.__lastJump === null) ||
-                (this.__lastJump[1] !== t)) {
-                 // jump was performed if t or rt or key
-                 // were set and new value is not
-                 // equal to previous jump value:
-                 // save jump time and return it
-                 this.__lastJump = [ at, t ];
-                 s.p = null;
-                 s.t = null;
-                 s.key = null;
-                 return t;
-            } else {
-                // jump is already in progress,
-                // reset values and continue
-                s.p = null;
-                s.t = null;
-                s.key = null;
-                t = null;
-            }
+            // jump was performed if t or rt or key
+            // were set:
+            // save jump time and return it
+            this.__lastJump = [ at, t ];
+            s.p = null;
+            s.t = null;
+            s.key = null;
+            return t;
         }
     }
     // set t to jump-time, and if no jump-time
