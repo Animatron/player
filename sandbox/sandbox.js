@@ -51,10 +51,10 @@ examples.push([ 0 /*version*/, [
   'return o.rotate([0, 3], [0, Math.PI / 2]);'
 ].join('\n') ]);
 
-examples.push([ 0, [ 
+examples.push([ 0, [
   'return b().rect([50, 50], [40, 40])',
-  '          .trans([0, 3],', 
-  '                 [[0, 0], [0, 150]],', 
+  '          .trans([0, 3],',
+  '                 [[0, 0], [0, 150]],',
   '                 C.E_COUT);'
 ].join('\n') ]);
 
@@ -109,8 +109,8 @@ examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(b().path(\'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
   '  .add(b().rect([115, 90], [60, 60]))',
-  '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);' 
-].join('\n') ]);  
+  '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);'
+].join('\n') ]);
 
 examples.push([ 0 /*version*/, [
   'return b()',
@@ -118,7 +118,7 @@ examples.push([ 0 /*version*/, [
   '    b(\'blue-rect\').rect([100, 25], [70, 70])',
   '                  .fill(\'#009\')',
   '                  .stroke(\'#f00\', 3)',
-  '                  .alpha([0, 3], [0, 1])',                  
+  '                  .alpha([0, 3], [0, 1])',
   '                  .trans([0, 4], [[0, 0], [ 100, 100 ]])',
   '                  .trans([4, 8], [[100, 100], [-200, 300]])',
   '                  .scale([0, 10], [[1, 1], [.5, .5]]))',
@@ -128,7 +128,7 @@ examples.push([ 0 /*version*/, [
 
 var uexamples = [];
 
-var _player = null; 
+var _player = null;
 
 function sandbox() {
 
@@ -151,7 +151,7 @@ function sandbox() {
     this.player._checkMode();
     _player = this.player;
 
-    this.cm = CodeMirror.fromTextArea(this.codeElm, 
+    this.cm = CodeMirror.fromTextArea(this.codeElm,
               { mode: 'javascript',
                 indentUnit: 4,
                 lineNumbers: false,
@@ -168,10 +168,10 @@ function sandbox() {
 
     function refresh() {
         s.errorsElm.style.display = 'none';
-        s.player.stop();
         try {
-            reportErr = true;          
-            var code = ['(function(){', 
+          s.player.stop();
+            reportErr = true;
+            var code = ['(function(){',
                         '  '+s.cm.getValue(),
                         '})();'].join('\n');
             var scene = eval(code);
@@ -183,18 +183,22 @@ function sandbox() {
     }
 
     function onerror(e) {
-        s.player.stop();
-        s.player.drawSplash();
+        var e2;
+        try {
+          s.player.stop();
+          s.player.drawSplash();
+        } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
         if (reportErr) {
           if (console && console.error) {
             console.error(e.stack);
+            if (e2) console.error(e2.stack);
           }
           reportErr = false;
         }
         //throw e;
-    }    
+    }
 
     this.player.onerror(onerror);
 
@@ -207,11 +211,11 @@ function sandbox() {
               curInterval = setTimeout(refresher, to);
             }
             refresher();
-        //}, 1);  
-    }    
+        //}, 1);
+    }
 
     setTimeout(function() {
-        store_examples(); // store current examples, it will skip if their versions match 
+        store_examples(); // store current examples, it will skip if their versions match
         load_examples(); // load new examples, it will skip the ones with matching versions
         list_examples(s.selectElm); // list the examples in select element
     }, 1);
@@ -243,11 +247,11 @@ function sandbox() {
 function show_csheet(csheetElmId, overlayElmId) {
     var csheetElm = document.getElementById(csheetElmId);
     var overlayElm = document.getElementById(overlayElmId);
-    
+
     csheetElm.style.display = 'block';
     overlayElm.style.display = 'block';
 
-    csheetElm.onclick = function() { 
+    csheetElm.onclick = function() {
         return hide_csheet(csheetElmId, overlayElmId);
     }
 
@@ -257,7 +261,7 @@ function show_csheet(csheetElmId, overlayElmId) {
 function hide_csheet(csheetElmId, overlayElmId) {
     var csheetElm = document.getElementById(csheetElmId);
     var overlayElm = document.getElementById(overlayElmId);
-    
+
     csheetElm.style.display = 'none';
     overlayElm.style.display = 'none';
 
@@ -313,7 +317,7 @@ function load_examples() {
 }
 
 function save_example(code) {
-    var pos = examples.length; 
+    var pos = examples.length;
     examples[pos] = [ 0, code ];
     store_example(pos);
 }
@@ -326,7 +330,7 @@ function list_examples(selectElm) {
         var optElm = document.createElement('option');
         optElm.setAttribute('value', i);
         optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
-                           examples[i][1].substring(0, 45).split('\n').join('↵');            
+                           examples[i][1].substring(0, 45).split('\n').join('↵');
         selectElm.appendChild(optElm);
     }
 }
