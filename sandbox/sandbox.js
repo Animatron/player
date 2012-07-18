@@ -164,32 +164,39 @@ function sandbox() {
     var s = this;
     var curInterval = null;
     var refreshRate = DEFAULT_REFRESH_RATE;
-    var reportErr = true;
+    var reportErr = true; // log only one error for one refresh
+
     function refresh() {
         s.errorsElm.style.display = 'none';
         s.player.stop();
         try {
+            reportErr = true;          
             var code = ['(function(){', 
                         '  '+s.cm.getValue(),
                         '})();'].join('\n');
             var scene = eval(code);
             player.load(scene);
             player.play();
-            reportErr = true;
         } catch(e) {
-            s.player.stop();
-            s.player.drawSplash();
-            s.errorsElm.style.display = 'block';
-            s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
-            if (reportErr) {
-              if (console && console.error) {
-                console.error(e.stack);
-              }
-              reportErr = false;
-            }
-            //throw e;
+            onerror(e);
         }
     }
+
+    function onerror(e) {
+        s.player.stop();
+        s.player.drawSplash();
+        s.errorsElm.style.display = 'block';
+        s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
+        if (reportErr) {
+          if (console && console.error) {
+            console.error(e.stack);
+          }
+          reportErr = false;
+        }
+        //throw e;
+    }    
+
+    this.player.onerror(onerror);
 
     function updateInterval(to) {
         if (curInterval) clearTimeout(curInterval);
