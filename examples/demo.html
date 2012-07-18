@@ -19,7 +19,7 @@
     <!-- <script src="./rel/tiger_project.js" type="text/javascript"></script> -->
     <script src="./rel/rectangles_project.js" type="text/javascript"></script>
     <script src="./rel/curvy_path_project.js" type="text/javascript"></script>
-    <script src="./rel/alpha_project.js" type="text/javascript"></script>    
+    <script src="./rel/alpha_project.js" type="text/javascript"></script>
     <!-- <script src="./rel/draw_tiger.js" type="text/javascript"></script> -->
 
     <script type="text/javascript">
@@ -33,16 +33,20 @@
           createPlayer('canvas1').load(scene1);
 
           // canvas2
+          var pl2 = createPlayer('canvas2', { 'mode': C.M_DYNAMIC });
           var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                                              .fill('#009')
                                              .stroke('#f00', 3))
-                          .add(b('def-rect').rect([115, 90], [60, 60]))
-                          .rotate([0, 10], [0, Math.PI]);
-          createPlayer('canvas2').load(scene2);
+                          .add(b('def-rect').rect([115, 90], [60, 60]).rotate([0, 5], [0, Math.PI]).band([0, 5]).loop())
+                          .band([0, 20]);
+          pl2.load(scene2).play(1);
+          setTimeout(function() {
+              pl2.stop().play(0);
+          }, 700);
 
           // canvas3
           var importer = new AnimatronImporter();
-          var p3 = createPlayer('canvas3'); 
+          var p3 = createPlayer('canvas3');
           p3.debug = true;
           p3.load(demo_project, importer);
 
@@ -53,13 +57,13 @@
 
           // canvas5
           var p5 = createPlayer('canvas5');
-          p5.debug = true; 
+          p5.debug = true;
           p5.load(curvy_path_project, importer);
-          
+
           // canvas6
           var p6 = createPlayer('canvas6');
-          p6.debug = true; 
-          p6.load(alpha_project, importer);          
+          p6.debug = true;
+          p6.load(alpha_project, importer);
 
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
@@ -119,8 +123,8 @@ createPlayer('canvas2').load(scene2);
     <hr />
     <pre><code>
 var importer = new AnimatronImporter();
-var p3 = createPlayer('canvas3'); 
-p3.debug = true;         
+var p3 = createPlayer('canvas3');
+p3.debug = true;
 p3.load(demo_project, importer);
 p3.play(6);
     </code></pre>
@@ -141,15 +145,15 @@ createPlayer('canvas4').load(rectangles_project, new AnimatronImporter());
 createPlayer('canvas5').load(curvy_path_project, new AnimatronImporter());
     </code></pre>
     <canvas id="canvas5"></canvas>
-    
+
     <!-- canvas5 -->
-    
+
         <hr />
         <pre><code>
     createPlayer('canvas6').load(alpha_project, new AnimatronImporter());
         </code></pre>
-        <canvas id="canvas6"></canvas>    
-    
+        <canvas id="canvas6"></canvas>
+
 
     <div id="copyright"><span>© 2011-2012 by Animatron.</span></div>
 
