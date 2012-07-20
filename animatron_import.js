@@ -27,7 +27,7 @@ AnimatronImporter.prototype.configureAnim = function(prj) {
     //   elements, scenes )
     var _a = prj.anim;
     return {
-        'fps': _a.framerate, 
+        'fps': _a.framerate,
         'width': Math.floor(_a.dimension[0]),
         'height': Math.floor(_a.dimension[1]),
         'bgfill': _a.background ? Convert.fill(_a.background) : null,
@@ -55,7 +55,7 @@ AnimatronImporter.prototype.computeDuration = function(elms) {
 AnimatronImporter.prototype.load = function(prj) {
     // ( framerate, dimension, background, duration,
     //   elements, scenes )
-    return this.importScene(prj.anim.scenes[0], 
+    return this.importScene(prj.anim.scenes[0],
                             prj.anim.elements);
 };
 
@@ -68,7 +68,7 @@ AnimatronImporter.prototype.importScene = function(scene_id, source) {
 }
 AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     var target = new Element();
-    // ( id, name?, reg?, band?, eid?, tweens?, layers?, 
+    // ( id, name?, reg?, band?, eid?, tweens?, layers?,
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
     this._collectDynamicData(target, clip, in_band);
     if (clip.eid) {
@@ -99,7 +99,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     if (!to.name) to.name = clip.name;
     var x = to.xdata;
     x.lband = clip.band || [0, 10]; //FIMXE: remove, when it will be always set in project
-    x.gband = in_band ? Bands.wrap(in_band, x.lband) 
+    x.gband = in_band ? Bands.wrap(in_band, x.lband)
                       : x.lband;
     x.reg = clip.reg || [0, 0];
     x.mode = Convert.mode(clip['on-end']);
@@ -113,9 +113,9 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
     to.xdata.image = src.url ? Element.imgFromUrl(src.url) : null;
-    to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill) 
+    to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill)
                              : null;
-    to.xdata.text = src.text ? Convert.text(src.text, src.font, 
+    to.xdata.text = src.text ? Convert.text(src.text, src.font,
                                             src.stroke, src.fill)
                              : null;
 };
@@ -155,7 +155,7 @@ Convert.tweenData = function(type, tween) {
     return tween.data;
 }
 Convert.path = function(pathStr, stroke, fill) {
-    return new Path(pathStr, 
+    return new Path(pathStr,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }
@@ -192,7 +192,7 @@ Convert.stroke = function(stroke) {
             brush.color = paint.color;
         } else if ((typeof paint.r0 !== 'undefined')
                 && (typeof paint.r1 !== 'undefined')) {
-            brush.rgrad = Convert.gradient(paint);  
+            brush.rgrad = Convert.gradient(paint);
         } else if (stroke.paint.colors) {
             brush.lgrad = Convert.gradient(paint);
         }
@@ -231,8 +231,8 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return C.R_ONCE;
-    if (from === "STOP") return C.R_ONCE;
+    if (!from) return C.R_STAY;
+    if (from === "STOP") return C.R_STAY; // C.R_ONCE?
     if (from === "LOOP") return C.R_LOOP;
     if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure
 }

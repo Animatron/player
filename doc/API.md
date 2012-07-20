@@ -919,11 +919,12 @@ Except easing for concrete tweens, you may want to set a function to substitute 
 
 <!-- TODO: test repeat methods at global level and in different levels of inside -->
 
-Sometimes you want certain animation of a shape or shape group to repeat until the end. Use the repeat modes to achieve this! If you set a repeat mode to a shape, it keeps repeating/applying its tweens until the finish of the parent band. The band of the element to repeat must be less than the band of the parent to make it work as it should. So, if parent band is `[2, 102]` and a child has band `[0, 5]` with `loop()` mode, then the tweens of the last will be repeated exactly 25 times. Please always remember that default band for all elements is `[0, Infinity]`, so when you are using repeat modes you'll often need to specify band not only for the shape to repeat, but also for its parents, if they exist — in most cases, without accurate setting of a band, you'll see no effect of repeat mode.
+Sometimes you want certain animation of a shape or shape group to repeat until the end. Use the repeat modes to achieve this! If you set a repeat mode to a shape, it keeps repeating/applying its tweens until the finish of the parent band. The band of the element to repeat must be less than the band of the parent to make it work as it should. So, if parent band is `[2, 102]` and a child has band `[0, 5]` with `loop()` mode, then the tweens of the last will be repeated exactly 25 times. Please always remember that default band for all elements is `[0, Infinity]`, so when you are using repeat modes you'll often need to specify band not only for the shape to repeat, but also for its parents, if they exist — in most cases, without accurate setting of a band, you may see no effect of repeat mode.
 
 There are three repeat modes currently supported:
 
-* `C.R_ONCE` — play once (`once()`)
+* `C.R_ONCE` — play once and disappear (`once()`)
+* `C.R_STAY` — play once and stay at the last frame (`stay()`)
 * `C.R_REPEAT` — repeat playing (`loop()`)
 * `C.R_BOUNCE` — play forward, then backward, and repeat (`bounce()`)
 
