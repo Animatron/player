@@ -1044,8 +1044,9 @@ Scene.prototype._unregister = function(elm) {
 
 // repeat mode
 C.R_ONCE = 0;
-C.R_LOOP = 1;
-C.R_BOUNCE = 2;
+C.R_STAY = 1;
+C.R_LOOP = 2;
+C.R_BOUNCE = 3;
 
 // modifiers classes
 // the order is also determined with value
@@ -1284,6 +1285,10 @@ Element.prototype.ltime = function(gtime) {
     switch (x.mode) {
         case C.R_ONCE:
             return this.__checkGJump(gtime);
+        case C.R_STAY:
+            return (gtime <= x.gband[1])
+                   ? (gtime - x.gband[0])
+                   : (x.lband[1] - x.lband[0]);
         case C.R_LOOP: {
                 var p = this.parent;
                 var durtn = x.lband[1] -
