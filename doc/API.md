@@ -754,6 +754,7 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.X_DRAW` — Draw event
 4. [Repeat mode](#repeat-modes) `C.R_*`
     * `C.R_ONCE` — play once
+    * `C.R_STAY` — play once and stay
     * `C.R_REPEAT` — repeat playing
     * `C.R_BOUNCE` — play forward-backward and repeat
 5. [Tweens](#tweens) `C.T_*`
