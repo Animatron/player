@@ -791,6 +791,19 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.PC_MITER`
         * `C.PC_BEVEL`
         * `C.PC_SQUARE`
+9. [Composition](#elements-interactions)
+    * `C.C_SRC_OVER` - Source over
+    * `C.C_SRC_ATOP` - Source atop
+    * `C.C_SRC_IN` - Source in
+    * `C.C_SRC_OUT` - Source out
+    * `C.C_DST_OVER` - Destination over
+    * `C.C_DST_ATOP` - Destination atop
+    * `C.C_DST_IN` - Destination in
+    * `C.C_DST_OUT` - Destination out
+    * `C.C_LIGHTER` - Lighter
+    * `C.C_DARKER` - Darker
+    * `C.C_COPY` - Copy
+    * `C.C_XOR` - XOR
 
 ### Tweens
 
@@ -1248,6 +1261,12 @@ There is a `deach()` ("deep-each") method with the same definition to iterate de
     console.log(c.data().foo);
 
 Internally, this data is saved as `Element`'s `.__data` property, so you may access it directly with `b().v.__data`, if you want.
+
+> ♦ `builder.acomp % (comp: C.C_*) => Builder`
+
+Change the global composition operation for alpha blending, see the accepted values in [Constants](#constants) section.
+
+    b().acomp(C.C_SRC_IN);
 
 ### Live Changes
 

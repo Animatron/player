@@ -474,6 +474,10 @@ Builder.prototype.data = function(value) {
     }
     return this.v.data();
 }
+Builder.prototype.acomp = function(value) {
+    this.x.acomp = value;
+    return this;
+}
 
 /*if (modCollisions) { // IF Collisions Module enabled
 
