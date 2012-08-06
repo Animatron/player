@@ -164,13 +164,10 @@ function sandbox() {
     var s = this;
     var curInterval = null;
     var refreshRate = DEFAULT_REFRESH_RATE;
-    var reportErr = true; // log only one error for one refresh
-
     function refresh() {
         s.errorsElm.style.display = 'none';
         try {
-          s.player.stop();
-            reportErr = true;
+            s.player.stop();
             var code = ['(function(){',
                         '  '+s.cm.getValue(),
                         '})();'].join('\n');
@@ -185,17 +182,15 @@ function sandbox() {
     function onerror(e) {
         var e2;
         try {
+          s.player.anim = null;
           s.player.stop();
           s.player.drawSplash();
         } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
-        if (reportErr) {
-          if (console && console.error) {
-            console.error(e.stack);
-            if (e2) console.error(e2.stack);
-          }
-          reportErr = false;
+        if (console && console.error) {
+          console.error(e.stack);
+          if (e2) console.error(e2.stack);
         }
         //throw e;
     }
