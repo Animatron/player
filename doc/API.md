@@ -1266,7 +1266,35 @@ Internally, this data is saved as `Element`'s `.__data` property, so you may acc
 
 Change the global composition operation for alpha blending, see the accepted values in [Constants](#constants) section.
 
-    b().acomp(C.C_SRC_IN);
+    // a trick on how to achieve no-looking-through
+    // elements on the layer with 0.5 opacity
+    b("scene").add(
+        b("big").add(b().circle([80, 80], 60)
+                        .fill('#f60')
+                        .nostroke())
+                .add(b().circle([130, 150], 60)
+                        .fill('#f60')
+                        .nostroke())
+                .add(b().circle([230, 100], 60)
+                        .fill('#f60')
+                        .nostroke())
+    ).add(
+        b("small").acomp(C.C_DST_OUT)
+                  .add(b().circle([80, 80], 55)
+                          .fill('#f60')
+                          .nostroke())
+                  .add(b().circle([130, 150], 55)
+                          .fill('#f60')
+                          .nostroke())
+                  .add(b().circle([230, 100], 55)
+                          .fill('#f60')
+                          .nostroke())
+    ).add(
+        b("rect").acomp(C.C_DST_OUT)
+                 .rect([400 / 2, 250 / 2], [400, 250])
+                 .modify(function(t) { this.alpha = 0.5; })
+
+    );
 
 ### Live Changes
 
