@@ -1048,6 +1048,34 @@ C.R_STAY = 1;
 C.R_LOOP = 2;
 C.R_BOUNCE = 3;
 
+// composite operation
+C.C_SRC_OVER = 1; // first (default) is 1, to pass if test
+C.C_SRC_ATOP = 2;
+C.C_SRC_IN = 3;
+C.C_SRC_OUT = 4;
+C.C_DST_OVER = 5;
+C.C_DST_ATOP = 6;
+C.C_DST_IN = 7;
+C.C_DST_OUT = 8;
+C.C_LIGHTER = 9;
+C.C_DARKER = 10;
+C.C_COPY = 11;
+C.C_XOR = 12;
+
+C.AC_NAMES = [];
+C.AC_NAMES[C.C_SRC_OVER] = 'source-over';
+C.AC_NAMES[C.C_SRC_ATOP] = 'source-atop';
+C.AC_NAMES[C.C_SRC_IN] = 'source-in';
+C.AC_NAMES[C.C_SRC_OUT] = 'source-out';
+C.AC_NAMES[C.C_DST_OVER] = 'destination-over';
+C.AC_NAMES[C.C_DST_ATOP] = 'destination-atop';
+C.AC_NAMES[C.C_DST_IN] = 'destination-in';
+C.AC_NAMES[C.C_DST_OUT] = 'destination-out';
+C.AC_NAMES[C.C_LIGHTER] = 'lighter';
+C.AC_NAMES[C.C_DARKER] = 'darker';
+C.AC_NAMES[C.C_COPY] = 'copy';
+C.AC_NAMES[C.C_XOR] = 'xor';
+
 // modifiers classes
 // the order is also determined with value
 Element.SYS_MOD = 0;
@@ -1744,6 +1772,7 @@ Element.createXData = function(owner) {
              'dimen': null,    // dimensions for static (cached) elements
              'keys': {},
              'tf': null,
+             'acomp': null,    // alpha composition
              '_mpath': null,
              '$': owner };
 }
@@ -1754,6 +1783,7 @@ Element.__addSysModifiers = function(elm) {
     elm.__modify(Element.SYS_MOD, 0, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
+    elm.__paint(Element.SYS_PNT, 0, Render.p_applyAComp);
     elm.__paint(Element.SYS_PNT, 0, Render.p_drawPath);
     elm.__paint(Element.SYS_PNT, 0, Render.p_drawImage);
     elm.__paint(Element.SYS_PNT, 0, Render.p_drawText);
@@ -2111,6 +2141,10 @@ Render.p_drawName = function(ctx, name) {
     ctx.font = '12px sans-serif';
     ctx.fillText(name, 0, 10);
     ctx.restore();
+}
+
+Render.p_applyAComp = function(ctx) {
+    if (this.acomp) ctx.globalCompositeOperation = C.AC_NAMES[this.acomp];
 }
 
 Render.h_drawMPath = function(ctx, mPath) {
