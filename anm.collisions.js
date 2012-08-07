@@ -10,7 +10,7 @@ var opts = {
     'useSnaps': false,
     'vectorSpan': 1, // seconds
     'predictSpan': 1, // seconds
-    'mouseBind': true
+    'mouseBind': false
 };
 
 anm.M[C.MOD_COLLISIONS] = opts;
