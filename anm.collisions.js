@@ -629,37 +629,33 @@ Scene.prototype.handle__x = function(type, evt) {
     if (opts.mouseBind) {
         if (type & C.XT_MOUSE) {
             switch (type) {
-                // C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                case C.X_MCLICK: case C.X_MDCLICK: case C.X_MUP: case C.X_MDOWN:
-                case C.X_MMOVE: case C.X_MOVER: case C.X_MOUT: {
+                case C.X_MCLICK: case C.X_MDCLICK: case C.X_MUP: case C.X_MDOWN: {
                     this.visitElems(function(elm) {
                         if (elm.visible &&
                             elm.contains(evt.pos)) elm.fire(type, evt);
                     });
                     return true;
                 }
-                case C.X_MOVER: {
+                case C.X_MMOVE: {
                     this.visitElems(function(elm) {
-                        if (elm.visible &&
-                            elm.contains(evt.pos) &&
-                            elm.__wout) {
-                            elm.__wout = false;
-                            elm.fire(type, evt);
+                        if (elm.visible) {
+                            if (elm.contains(evt.pos)) {
+                                elm.fire(C.X_MMOVE, evt);
+                                if (elm.__wout) {
+                                    elm.fire(C.X_MOVER, evt);
+                                    elm.__wout = false;
+                                }
+                            } else {
+                                if (!elm.__wout) {
+                                    elm.fire(C.X_MOUT, evt);
+                                    elm.__wout = true;
+                                }
+                            }
                         }
                     });
                     return true;
                 }
-                case C.X_MOUT: {
-                    this.visitElems(function(elm) {
-                        if (elm.visible &&
-                            elm.contains(evt.pos) &&
-                            !elm.__wout) {
-                            elm.__wout = true;
-                            elm.fire(type, evt);
-                        }
-                    });
-                    return true;
-                }
+                case C.X_MOVER: case C.X_MOUT: { return true; }
             }
         }
     }
