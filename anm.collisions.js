@@ -10,7 +10,7 @@ var opts = {
     'useSnaps': false,
     'vectorSpan': 1, // seconds
     'predictSpan': 1, // seconds
-    'mouseBind': false
+    'mouseBound': false
 };
 
 anm.M[C.MOD_COLLISIONS] = opts;
@@ -626,7 +626,7 @@ E.prototype._getVects = function(t) {
 
 var prev_handle__x = Scene.prototype.handle__x
 Scene.prototype.handle__x = function(type, evt) {
-    if (opts.mouseBind) {
+    if (opts.mouseBound) {
         if (type & C.XT_MOUSE) {
             switch (type) {
                 case C.X_MCLICK: case C.X_MDCLICK: case C.X_MUP: case C.X_MDOWN: {
