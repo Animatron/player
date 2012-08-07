@@ -7,9 +7,10 @@ if (anm.M[C.MOD_COLLISIONS]) throw new Error('COLLISIONS module already enabled'
 
 var opts = {
     'pathDriven': false,
-    'useSnaps': false, 
+    'useSnaps': false,
     'vectorSpan': 1, // seconds
-    'predictSpan': 1, // seconds 
+    'predictSpan': 1, // seconds
+    'mouseBound': false
 };
 
 anm.M[C.MOD_COLLISIONS] = opts;
@@ -17,12 +18,14 @@ anm.M[C.MOD_COLLISIONS] = opts;
 function __filled(arr, val) {
     var l = arr.length; result = new Array(l), i = l;
     while (i--) result[i] = val;
-    return result;   
+    return result;
 }
 
-var E = anm.Element; Path = anm.Path, MSeg = anm.MSeg, 
-                                      LSeg = anm.LSeg, 
-                                      CSeg = anm.CSeg;
+var E = anm.Element;
+var Path = anm.Path, MSeg = anm.MSeg,
+                     LSeg = anm.LSeg,
+                     CSeg = anm.CSeg;
+var Scene = anm.Scene;
 
 E.prototype.bounds = function(t) {
     return this._pradopt(this._cpa_bounds(), t);
@@ -36,7 +39,7 @@ E.prototype.dbounds = function(t) {
         maxX = b[2]; maxY = b[3];
     } else {
         minX = minY = Number.MAX_VALUE;
-        maxX = maxY = 0; 
+        maxX = maxY = 0;
     }
     this.travelChildren(function(elm) {
         var cb = elm.bounds(t);
@@ -88,7 +91,7 @@ E.prototype.global = function(pt, t) {
     /*var off = this.offset();
     var gpt = this._radopt(pt, t);
     return [ gpt[0] + off[0],
-             gpt[1] + off[1] ];*/ 
+             gpt[1] + off[1] ];*/
     return this._pradopt(pt, t);
 }
 
@@ -116,10 +119,10 @@ E.prototype.contains = function(pt, t) {
     var inBounds;
     if (inBounds = G.__inBounds(b, pt)) {
         if (!opts.pathDriven) return true;
-        if (x.__cpath) return x.__cpath.contains(pt);        
+        if (x.__cpath) return x.__cpath.contains(pt);
         if (x.path) return x.path.contains(pt);
         if (x.image || x.text) return inBounds;
-    } 
+    }
     return false;
 }
 E.prototype.dcontains = function(pt, t) {
@@ -172,32 +175,6 @@ E.prototype.dintersects = function(elm, t) {
     return matched;
 }
 
-/*
-//anm.M[C.MOD_COLLISIONS].useSnaps = true;
-//anm.M[C.MOD_COLLISIONS].vectorSpan = 1;
-anm.M[C.MOD_COLLISIONS].predictSpan = 1;
-
-var blue_rect = b('blue-rect').rect([140, 25], [70, 70])
-                  .trans([0, 3], [[120, 20], [40, 40]])
-                  .fill('#009')
-                  .stroke('#f00', 3)
-                  .rotate([0, 10], [0, Math.PI / 2]);
-var red_rect = b('red-rect').rect([115, 90], [60, 60])
-                 .fill('#f00');
-
-//blue_rect.v.track = true;
-//red_rect.v.track = true;
-blue_rect.modify(function(t) {
-    this.$.collides(red_rect.v, function() {
-        console.log(arguments);
-    });
-});
-
-return b()
-  .add(blue_rect)
-  .add(red_rect)
-  //.rotate([0, 10], [0, Math.PI]);
-*/
 E.prototype.collides = function(elm, func) {
     if (!this._collisionTests) this._collisionTests = [];
     if (!this._collisionElms) this._collisionElms = [];
@@ -231,7 +208,7 @@ E.prototype._padopt = function(pt, t) {
     while (p) {
         pt = p._adopt(pt, t);
         p = p.parent;
-    } 
+    }
     return this._adopt(pt, t);
 }
 E.prototype._pradopt = function(pt, t) {
@@ -257,7 +234,7 @@ E.prototype.__adoptWithM = function(pts, m) {
 }
 
 E.___vecErrText = /*new Error(*/'Ensure you have passed actual '+
-                                '(current) time to _getVects ' + 
+                                '(current) time to _getVects ' +
                                 'or check if vectorSpan value is > (1 / min.framerate) ' +
                                 'or may be framerate itself is too low'/*)*/;
 E.prototype._makeGhost = function(t) {
@@ -280,7 +257,7 @@ E.prototype._makeGhost = function(t) {
         }
         t_diff = t - s0._appliedAt;
     } else {
-        var s = (this.__modifying !== null) ? this._state 
+        var s = (this.__modifying !== null) ? this._state
                                             : this.state,
             sn0 = s.snap0, sn1 = s.snap1;
         if (!sn0 && !sn1) throw new Error('No vector data available, is this element tracked?');
@@ -299,7 +276,7 @@ E.prototype._makeGhost = function(t) {
                 t_diff = opts.vectorSpan;
             } else {
                 s0 = sn1; s1 = s;
-                t_diff = pass_t;                
+                t_diff = pass_t;
             }
         }
     }
@@ -333,7 +310,7 @@ E.prototype._defCollides = function(t, elm, func) {
     elm.state  = prev_cmp_st;
 
     if (intersects) {
-        func.call(this, t, 
+        func.call(this, t,
                   src_ghost._tdiff/* === cmp_ghost._tdiff */,
                   src_ghost._vec, cmp_ghost._vec
                   /*, deep_vec*/);
@@ -352,9 +329,9 @@ E.prototype._defCollides = function(t, elm, func) {
     var tup = (S2[0] * (vpt0[1] - lpt0[1])) -
               (S2[1] * (vpt0[0] - lpt0[0])),
         tdn = sdn,
-        t = tup / tdn; 
+        t = tup / tdn;
     return (s >= 0) && (s <= 1) &&
-           (t >= 0) && (t <= 1); 
+           (t >= 0) && (t <= 1);
 }*/
 
 E.prototype.__pathAt = function(t) {
@@ -372,7 +349,7 @@ E.prototype.__pointsAt = function(t) {
 }
 E.prototype._cpa_bounds = function() { // cpath-aware bounds
     var cpath = this.xdata.__cpath;
-    return cpath 
+    return cpath
             ? cpath.bounds()
             : this.lbounds();
 }
@@ -621,7 +598,7 @@ E.prototype._getVects = function(t) {
         }
         var span_t = s1._at - s0._at;
         if (span_t < (opts.vectorSpan - pass_t)) throw new Error(E.__vecErrText);
-        var span_pos = span_t - (opts.vectorSpan - pass_t); 
+        var span_pos = span_t - (opts.vectorSpan - pass_t);
         // we take the approx. point between two states as
         // first point and current point as second to
         // make vector time equal to vector span
@@ -645,7 +622,45 @@ E.prototype._getVects = function(t) {
         }
     }
     throw new Error(E.__vecErrText);
-} 
+}
+
+var prev_handle__x = Scene.prototype.handle__x
+Scene.prototype.handle__x = function(type, evt) {
+    if (opts.mouseBound) {
+        if (type & C.XT_MOUSE) {
+            switch (type) {
+                case C.X_MCLICK: case C.X_MDCLICK: case C.X_MUP: case C.X_MDOWN: {
+                    this.visitElems(function(elm) {
+                        if (elm.visible &&
+                            elm.contains(evt.pos)) elm.fire(type, evt);
+                    });
+                    return true;
+                }
+                case C.X_MMOVE: {
+                    this.visitElems(function(elm) {
+                        if (elm.visible) {
+                            if (elm.contains(evt.pos)) {
+                                elm.fire(C.X_MMOVE, evt);
+                                if (elm.__wout) {
+                                    elm.fire(C.X_MOVER, evt);
+                                    elm.__wout = false;
+                                }
+                            } else {
+                                if (!elm.__wout) {
+                                    elm.fire(C.X_MOUT, evt);
+                                    elm.__wout = true;
+                                }
+                            }
+                        }
+                    });
+                    return true;
+                }
+                case C.X_MOVER: case C.X_MOUT: { return true; }
+            }
+        }
+    }
+    prev_handle__x.call(this, type, evt);
+}
 
 Path.prototype.contains = function(pt) {
     // FIXME: add stroke width
@@ -663,9 +678,9 @@ Path.prototype.crosses = function(pt) {
         cur = segment.last();
     });
 
-    if ((pt[0] != start[0]) && 
+    if ((pt[0] != start[0]) &&
         (pt[1] != start[1])) {
-        crossings += G.__lineCrosses(pt[0], pt[1], 
+        crossings += G.__lineCrosses(pt[0], pt[1],
                                      cur[0], cur[1],
                                      start[0], start[1]);
     }
@@ -773,11 +788,11 @@ G.__pointsInPath = function(path, pts) {
 }
 G.__pointsInRect = function(r, pts) {
     if (G.__zeroRect(r)) return false;
-    var inRect = G.__inRect;    
+    var inRect = G.__inRect;
     for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
         if (inRect(r, [pts[pi], pts[pi+1]], false)) return true;
     }
-    return false; // return count?    
+    return false; // return count?
 }
 /**
   * Calculates the number of times the line from (x0,y0) to (x1,y1)
@@ -844,12 +859,12 @@ G.__curveCrosses = function(px, py, x0, y0,
         // These values are also NaN if opposing infinities are added
         return 0;
     }
-    return (G.__curveCrosses(px, py, x0, y0, 
-                             xc0, yc0, xc0m, yc0m, 
+    return (G.__curveCrosses(px, py, x0, y0,
+                             xc0, yc0, xc0m, yc0m,
                              xmid, ymid, level + 1) +
-            G.__curveCrosses(px, py, xmid, ymid, 
-                             xmc1, ymc1, xc1, yc1, 
-                             x1, y1, level + 1));                            
+            G.__curveCrosses(px, py, xmid, ymid,
+                             xmc1, ymc1, xc1, yc1,
+                             x1, y1, level + 1));
 }
-    
+
 })();  // end of anonymous wrapper

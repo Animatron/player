@@ -258,14 +258,16 @@ __reg_event('X_MDCLICK', 'mdclick', 2);
 __reg_event('X_MUP', 'mup', 4);
 __reg_event('X_MDOWN', 'mdown', 8);
 __reg_event('X_MMOVE', 'mmove', 16);
+__reg_event('X_MOVER', 'mover', 32);
+__reg_event('X_MOUT', 'mout', 64);
 
 __reg_event('XT_MOUSE', 'mouse',
-  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE));
+  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
 
 // keyboard
-__reg_event('X_KPRESS', 'kpress', 32);
-__reg_event('X_KUP', 'kup', 64);
-__reg_event('X_KDOWN', 'kdown', 128);
+__reg_event('X_KPRESS', 'kpress', 128);
+__reg_event('X_KUP', 'kup', 256);
+__reg_event('X_KDOWN', 'kdown', 1024);
 
 __reg_event('XT_KEYBOARD', 'keyboard',
   (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
@@ -274,7 +276,7 @@ __reg_event('XT_KEYBOARD', 'keyboard',
 __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
 // draw
-__reg_event('X_DRAW', 'draw', 256);
+__reg_event('X_DRAW', 'draw', 2048);
 
 // playing
 __reg_event('S_PLAY', 'play', 'play');
@@ -282,6 +284,8 @@ __reg_event('S_PAUSE', 'pause', 'pause');
 __reg_event('S_STOP', 'pause', 'pause');
 __reg_event('S_LOAD', 'load', 'load');
 __reg_event('S_ERROR', 'error', 'error');
+
+// X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events
 
 // TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick'
 
@@ -796,7 +800,7 @@ Player.prototype._checkMode = function() {
         }
         var scene = this.anim;
         if (scene && !scene.__subscribedEvts) {
-            L.subscribeEvents(canvas, scene);
+            scene.subscribeEvents(canvas);
             scene.__subscribedEvts = true;
         }
     }
@@ -874,6 +878,11 @@ Player.createState = function(player) {
     };
 }
 
+// the dynamic method subsribes player itself to
+Player.subscribeEvents = function(canvas, anim) {
+
+}
+
 // === SCENE ===================================================================
 // =============================================================================
 
@@ -889,7 +898,8 @@ function Scene() {
 Scene.DEFAULT_VIDEO_DURATION = 10;
 
 // mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
-provideEvents(Scene, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
+provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+                       C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW ]);
 // TODO: add chaining to all external Scene methods?
@@ -993,6 +1003,39 @@ Scene.prototype.dispose = function() {
 }
 Scene.prototype.toString = function() {
     return "[ Scene "+(this.name ? "'"+this.name+"'" : "")+"]";
+}
+Scene.prototype.subscribeEvents = function(canvas) {
+    var anim = this;
+    canvas.addEventListener('mouseup', function(evt) {
+        anim.fire(C.X_MUP, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('mousedown', function(evt) {
+        anim.fire(C.X_MDOWN, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('mousemove', function(evt) {
+        anim.fire(C.X_MMOVE, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('mouseover', function(evt) {
+        anim.fire(C.X_MOVER, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('mouseout', function(evt) {
+        anim.fire(C.X_MOUT, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('click', function(evt) {
+        anim.fire(C.X_MCLICK, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('dblclick', function(evt) {
+        anim.fire(C.X_MDCLICK, mevt(evt, canvas));
+    }, false);
+    canvas.addEventListener('keyup', function(evt) {
+        anim.fire(C.X_KUP, kevt(evt));
+    }, false);
+    canvas.addEventListener('keydown', function(evt) {
+        anim.fire(C.X_KDOWN, kevt(evt));
+    }, false);
+    canvas.addEventListener('keypress', function(evt) {
+        anim.fire(C.X_KPRESS, kevt(evt));
+    }, false);
 }
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
@@ -1146,7 +1189,8 @@ function Element(draw, onframe) {
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.DEFAULT_LEN = Number.MAX_VALUE;
-provideEvents(Element, [ C.X_MCLICK, C.X_MDOWN, C.X_MUP, C.X_MMOVE,
+provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+                         C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_DRAW ]);
 // > Element.prepare % () => Boolean
@@ -2049,7 +2093,7 @@ L.loadScene = function(player, scene, callback) {
         scene.visitElems(Element.__addDebugRender);
     // assign
     player.anim = scene;
-    // subscribe events
+    // subscribe events, depending on current mode
     player._checkMode();
     // update duration
     if (!player.state.duration) {
@@ -2070,29 +2114,6 @@ L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
     _anim.add(builder.v);
     L.loadScene(player, _anim, callback);
-}
-L.subscribeEvents = function(canvas, anim) {
-    canvas.addEventListener('mouseup', function(evt) {
-        anim.fire(C.X_MUP, mevt(evt, this));
-    }, false);
-    canvas.addEventListener('mousedown', function(evt) {
-        anim.fire(C.X_MDOWN, mevt(evt, this));
-    }, false);
-    canvas.addEventListener('mousemove', function(evt) {
-        anim.fire(C.X_MMOVE, mevt(evt, this));
-    }, false);
-    canvas.addEventListener('click', function(evt) {
-        anim.fire(C.X_MCLICK, mevt(evt, this));
-    }, false);
-    canvas.addEventListener('keyup', function(evt) {
-        anim.fire(C.X_KUP, kevt(evt));
-    }, false);
-    canvas.addEventListener('keydown', function(evt) {
-        anim.fire(C.X_KDOWN, kevt(evt));
-    }, false);
-    canvas.addEventListener('keypress', function(evt) {
-        anim.fire(C.X_KPRESS, kevt(evt));
-    }, false);
 }
 
 // =============================================================================

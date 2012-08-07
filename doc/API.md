@@ -747,6 +747,8 @@ Some of the functions described below (such as tweens, easings, repeat modes and
             * `C.X_MMOVE` — Mouse Move event
             * `C.X_MUP` — Mouse Up event
             * `C.X_MDOWN` — Mouse Down event
+            * `C.X_MOVER` — Mouse Over event
+            * `C.X_MOUT` — Mouse Out event
         * Keyboard `C.X_K*`, `C.XT_KEYBOARD`
             * `C.X_KPRESS` — Key Press event
             * `C.X_KUP` — Key Up event
