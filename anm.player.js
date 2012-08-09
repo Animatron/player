@@ -1142,6 +1142,10 @@ C.AC_NAMES[C.C_DARKER] = 'darker';
 C.AC_NAMES[C.C_COPY] = 'copy';
 C.AC_NAMES[C.C_XOR] = 'xor';
 
+Element.TYPE_MAX_BIT = 16;
+Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
+    // they are: (type << TYPE_MAX_BIT) | (priot << PRRT_MAX_BIT) | i
+
 // modifiers classes
 // the order is also determined with value
 Element.SYS_MOD = 0;
@@ -1196,7 +1200,7 @@ function Element(draw, onframe) {
     this.__lastJump = null;
     this.__jumpLock = false;
     this.__modifying = null; // current modifiers class, if modifying
-    this.__painting = null; // current painters class, if modifying
+    this.__painting = null; // current painters class, if painting
     this.__evtCache = [];
     this.__removeQueue = [];
     this._initHandlers(); // TODO: make automatic
@@ -1279,17 +1283,36 @@ Element.prototype.render = function(ctx, gtime) {
 //                                              data: Any) => Boolean,
 //                           data: Any) => Integer
 Element.prototype.addModifier = function(modifier, data, priority) {
-    this.__modify(Element.USER_MOD, priority || 0, modifier, data);
+    return this.__modify(Element.USER_MOD, priority || 0, modifier, data);
+}
+// > Element.removeModifier % (id: Integer)
+Element.prototype.removeModifier = function(id) {
+    if (this.__modifying) throw new Error("Can't remove modifiers while modifying");
+    var TB = Element.TYPE_MAX_BIT,
+        PB = Element.PRRT_MAX_BIT;
+    var type = id >> TB,
+        priority = id - (type << TB),
+        i = id - (type << TB) - (priority << PB);
+    this._modifiers[type][priority].splice(i, 1);
 }
 // > Element.addPainter % (painter: Function(ctx: Context))
 //                         => Integer
 Element.prototype.addPainter = function(painter, data, priority) {
-    this.__paint(Element.USER_PNT, priority || 0, painter, data);
+    return this.__paint(Element.USER_PNT, priority || 0, painter, data);
 }
-
+// > Element.removePainter % (id: Integer)
+Element.prototype.removePainter = function(id) {
+    if (this.__painting) throw new Error("Can't remove painters while painting");
+    var TB = Element.TYPE_MAX_BIT,
+        PB = Element.PRRT_MAX_BIT;
+    var type = id >> TB,
+        priority = id - (type << TB),
+        i = id - (type << TB) - (priority << PB);
+    this._painters[type][priority].splice(i, 1);
+}
 // > Element.addTween % (tween: Tween)
 Element.prototype.addTween = function(tween) {
-    Element.__addTweenModifier(this, tween);
+    return Element.__addTweenModifier(this, tween);
 }
 // > Element.changeTransform % (transform: Function(ctx: Context,
 //                                                   prev: Function(Context)))
@@ -1300,7 +1323,6 @@ Element.prototype.changeTransform = function(transform) {
         }
     } )(this, transform, this.transform);
 }
-// TODO: removePainter/removeModifier
 // > Element.add % (elem: Element | Clip)
 // > Element.add % (elems: Array[Element])
 // > Element.add % (draw: Function(ctx: Context),
@@ -1418,7 +1440,7 @@ Element.prototype.ltime = function(gtime) {
     }
 }
 Element.prototype.m_on = function(type, handler) {
-    this.__modify(Element.EVENT_MOD, 0, function(t) { // FIXME: handlers must have priority?
+    return this.__modify(Element.EVENT_MOD, 0, function(t) { // FIXME: handlers must have priority?
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
@@ -1696,7 +1718,8 @@ Element.prototype.__addTypedModifier = function(type, priority, modifier, data) 
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
     modifiers[type][priority].push([modifier, data]);
-    return (modifiers[type][priority].length - 1);
+    return (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+           (modifiers[type][priority].length - 1);
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
 Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
@@ -1706,7 +1729,8 @@ Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     if (!painters[type]) painters[type] = [];
     if (!painters[type][priority]) painters[type][priority] = [];
     painters[type][priority].push([painter, data]);
-    return (painters[type][priority].length - 1);
+    return (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+           (painters[type][priority].length - 1);
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
 Element.prototype.__mbefore = function(t, type) {
@@ -1871,8 +1895,8 @@ Element.__addTweenModifier = function(elm, tween) {
                                                : easing.f(easing.data),
                                    Tweens[tween.type],
                                    tween.band);
-    elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                 modifier, tween.data);
+    return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
+                        modifier, tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
