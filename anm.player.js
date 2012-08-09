@@ -645,7 +645,30 @@ Player.prototype.detach = function() {
     this._reset();
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    // TODO: move to _checkMode?
+    window.addEventListener('scroll', (function(player) {
+                        return function(evt) {
+                            var canvas = player.canvas;
+                            var pos = find_pos(canvas);
+                            player.changeRect({
+                                'width': canvas.offsetWidth,
+                                'height': canvas.offsetHeight,
+                                'x': pos[0],
+                                'y': pos[1]
+                            });
+                        };
+                    })(this), false);
+    window.addEventListener('resize', (function(player) {
+                        return function(evt) {
+                            var canvas = player.canvas;
+                            var pos = find_pos(canvas);
+                            player.changeRect({
+                                'width': canvas.offsetWidth,
+                                'height': canvas.offsetHeight,
+                                'x': pos[0],
+                                'y': pos[1]
+                            });
+                        };
+                    })(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
