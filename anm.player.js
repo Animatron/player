@@ -554,20 +554,22 @@ Player.prototype._fireError = function(err) {
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
-    var opts = opts || Player.DEFAULT_CONFIGURATION;
+    var canvas = document.getElementById(this.id);
+    var opts = opts || Player._optsFromAttrsOrDefault(canvas)
+                    || Player.DEFAULT_CONFIGURATION;
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
     this._initHandlers(); // TODO: make automatic
-    this.canvas = document.getElementById(this.id);
-    this.ctx = this.canvas.getContext("2d");
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
     this.state.zoom = opts.zoom || 1;
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
     this.configureCnvs(opts.cnvs || Player.DEFAULT_CONFIGURATION.cnvs);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
-    this.subscribeEvents(this.canvas);
+    this.subscribeEvents(canvas);
     this.stop();
     this._checkMode();
     // TODO: load some default information into player
@@ -901,10 +903,35 @@ Player.createState = function(player) {
     };
 }
 
-// the dynamic method subsribes player itself to
-Player.subscribeEvents = function(canvas, anim) {
-
+function __attrOr(canvas, attr, _default) {
+    return canvas.hasAttribute(attr)
+           ? canvas.getAttribute(attr)
+           : _default;
 }
+Player._optsFromAttrsOrDefault = function(canvas) {
+    var _default = Player.DEFAULT_CONFIGURATION;
+    return { 'debug': __attrOr(canvas, 'data-debug', _default.debug),
+             'inParent': _default.inParent,
+             'mode': __attrOr(canvas, 'data-mode', _default.mode),
+             'zoom': __attrOr(canvas, 'data-zoom', _default.zoom),
+             'meta': { 'title': __attrOr(canvas, 'data-title', _default.meta.title),
+                        'author': __attrOr(canvas, 'data-author', _default.meta.author),
+                        'copyright': _default.meta.copyright,
+                        'version': _default.meta.version,
+                        'description': _default.meta.description },
+              'cnvs': { 'fps': _default.cnvs.fps,
+                        'width': __attrOr(canvas, 'data-width', _default.cnvs.width),
+                        'height': __attrOr(canvas, 'data-height', _default.cnvs.height),
+                        'bgfill': { 'color':
+                              __attrOr(canvas, 'data-bgcolor', _default.cnvs.bgfill.color) },
+                        'duration': _default.cnvs.duration }
+                      };
+};
+
+// the dynamic method subsribes player itself to
+/* Player.subscribeEvents = function(canvas, anim) {
+
+} */
 
 // === SCENE ===================================================================
 // =============================================================================
