@@ -1287,13 +1287,13 @@ Element.prototype.addModifier = function(modifier, data, priority) {
 }
 // > Element.removeModifier % (id: Integer)
 Element.prototype.removeModifier = function(id) {
-    if (this.__modifying) throw new Error("Can't remove modifiers while modifying");
+    //if (this.__modifying) throw new Error("Can't remove modifiers while modifying");
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
-        priority = id - (type << TB),
+        priority = (id - (type << TB)) >> PB,
         i = id - (type << TB) - (priority << PB);
-    this._modifiers[type][priority].splice(i, 1);
+    this._modifiers[type][priority][i] = null;
 }
 // > Element.addPainter % (painter: Function(ctx: Context))
 //                         => Integer
@@ -1302,13 +1302,13 @@ Element.prototype.addPainter = function(painter, data, priority) {
 }
 // > Element.removePainter % (id: Integer)
 Element.prototype.removePainter = function(id) {
-    if (this.__painting) throw new Error("Can't remove painters while painting");
+    //if (this.__painting) throw new Error("Can't remove painters while painting");
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
-        priority = id - (type << TB),
+        priority = (id - (type << TB)) >> PB,
         i = id - (type << TB) - (priority << PB);
-    this._painters[type][priority].splice(i, 1);
+    this._painters[type][priority][i] = null;
 }
 // > Element.addTween % (tween: Tween)
 Element.prototype.addTween = function(tween) {
