@@ -367,7 +367,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'cnvs': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
-                                           'bgfill': { 'color': DEF_CNVS_BG },
+                                           'bgfill': null,
                                            'duration': 0 }
                                };
 
@@ -554,20 +554,22 @@ Player.prototype._fireError = function(err) {
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
-    var opts = opts || Player.DEFAULT_CONFIGURATION;
+    var canvas = document.getElementById(this.id);
+    var opts = opts || Player._optsFromAttrsOrDefault(canvas)
+                    || Player.DEFAULT_CONFIGURATION;
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
     this._initHandlers(); // TODO: make automatic
-    this.canvas = document.getElementById(this.id);
-    this.ctx = this.canvas.getContext("2d");
+    this.canvas = canvas;
+    this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
     this.state.zoom = opts.zoom || 1;
     this.controls = new Controls(this); // controls enabled by default
     this.info = new InfoBlock(this); // info enabled by default
     this.configureCnvs(opts.cnvs || Player.DEFAULT_CONFIGURATION.cnvs);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
-    this.subscribeEvents(this.canvas);
+    this.subscribeEvents(canvas);
     this.stop();
     this._checkMode();
     // TODO: load some default information into player
@@ -893,7 +895,7 @@ Player.createState = function(player) {
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
-        'zoom': 1.0, 'bgfill': { color: '#fff' },
+        'zoom': 1.0, 'bgfill': null,
         'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
@@ -901,10 +903,36 @@ Player.createState = function(player) {
     };
 }
 
-// the dynamic method subsribes player itself to
-Player.subscribeEvents = function(canvas, anim) {
-
+function __attrOr(canvas, attr, _default) {
+    return canvas.hasAttribute(attr)
+           ? canvas.getAttribute(attr)
+           : _default;
 }
+Player._optsFromAttrsOrDefault = function(canvas) {
+    var _default = Player.DEFAULT_CONFIGURATION;
+    return { 'debug': __attrOr(canvas, 'data-debug', _default.debug),
+             'inParent': _default.inParent,
+             'mode': __attrOr(canvas, 'data-mode', _default.mode),
+             'zoom': __attrOr(canvas, 'data-zoom', _default.zoom),
+             'meta': { 'title': __attrOr(canvas, 'data-title', _default.meta.title),
+                        'author': __attrOr(canvas, 'data-author', _default.meta.author),
+                        'copyright': _default.meta.copyright,
+                        'version': _default.meta.version,
+                        'description': _default.meta.description },
+              'cnvs': { 'fps': _default.cnvs.fps,
+                        'width': __attrOr(canvas, 'data-width', _default.cnvs.width),
+                        'height': __attrOr(canvas, 'data-height', _default.cnvs.height),
+                        'bgfill': canvas.hasAttribute('data-bgcolor')
+                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
+                                  : _default.cnvs.bgfill,
+                        'duration': _default.cnvs.duration }
+                      };
+};
+
+// the dynamic method subsribes player itself to
+/* Player.subscribeEvents = function(canvas, anim) {
+
+} */
 
 // === SCENE ===================================================================
 // =============================================================================
@@ -3195,9 +3223,9 @@ function Controls(player) {
 // TODO: move these settings to default css rule?
 Controls.HEIGHT = 40;
 Controls.MARGIN = 5;
-Controls.BGCOLOR = '#c22';
 Controls.OPACITY = 0.8;
-Controls.COLOR = '#faa';
+Controls.DEF_FGCOLOR = '#faa';
+Controls.DEF_BGCOLOR = '#c22';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN);
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
@@ -3215,15 +3243,16 @@ Controls.prototype.update = function(parent) {
     if (!_canvas) {
         _canvas = newCanvas([ _w, _h ]);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
+        _canvas.className = 'anm-controls';
         _canvas.style.position = 'absolute';
         _canvas.style.opacity = Controls.OPACITY;
-        _canvas.style.backgroundColor = Controls.BGCOLOR;
         _canvas.style.zIndex = 100;
         this.id = _canvas.id;
         this.canvas = _canvas;
         this.ctx = _canvas.getContext('2d');
         this.subscribeEvents(_canvas);
         this.hide();
+        this.changeColor(Controls.DEF_FGCOLOR);
     } else {
         canvasOpts(_canvas, [ _w, _h ]);
     }
@@ -3238,6 +3267,7 @@ Controls.prototype.update = function(parent) {
         appendTo.appendChild(_canvas);
         this.ready = true;
     }
+    if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
     this.bounds = [ _bp[0], _bp[1], _bp[0]+_w, _bp[1]+_h ];
 }
 Controls.prototype.subscribeEvents = function(canvas) {
@@ -3272,7 +3302,7 @@ Controls.prototype.render = function(state, time, _force) {
     ctx.clearRect(0, 0, _w, _h);
     ctx.save();
     ctx.translate(_m, _m);
-    ctx.fillStyle = Controls.COLOR;
+    ctx.fillStyle = this.canvas.style.color || this.__fgcolor || Controls.DEF_FGCOLOR;
 
     // play/pause/stop button
     if (_s === C.PLAYING) {
@@ -3362,6 +3392,9 @@ Controls.prototype.inBounds = function(point) {
 Controls.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
     return this.inBounds([evt.pageX, evt.pageY]);
+}
+Controls.prototype.changeColor = function(front) {
+    this.__fgcolor = front;
 }
 Controls.__play_btn = function(ctx) {
     var _bh = Controls._BH;
@@ -3453,10 +3486,10 @@ function InfoBlock(player) {
     this._inParent = player.inParent;
 }
 // TODO: move these settings to default css rule?
-InfoBlock.BGCOLOR = '#fff';
+InfoBlock.DEF_BGCOLOR = '#fff';
+InfoBlock.DEF_FGCOLOR = '#000';
 InfoBlock.OPACITY = 0.85;
 InfoBlock.HEIGHT = 60;
-InfoBlock.CLASS = 'InfoBlock';
 InfoBlock.PADDING = 4;
 InfoBlock.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
@@ -3475,14 +3508,12 @@ InfoBlock.prototype.update = function(parent) {
     if (!_div) {
         _div = document.createElement('div');
         if (parent.id) { _div.id = '__'+parent.id+'_info'; }
+        _div.className = 'anm-info';
         _div.style.position = 'absolute';
         _div.style.opacity = InfoBlock.OPACITY;
-        // TODO: move these settings to default css rule?
-        _div.style.backgroundColor = InfoBlock.BGCOLOR;
         _div.style.zIndex = 100;
-        _div.style.fontSize = '10px';
+        if (!_div.style.fontSize) _div.style.fontSize = '10px';
         _div.style.padding = _p+'px';
-        _div.className = InfoBlock.CLASS;
         this.div = _div;
         this.id = _div.id;
         this.hide();
@@ -3500,6 +3531,8 @@ InfoBlock.prototype.update = function(parent) {
         appendTo.appendChild(_div);
         this.ready = true;
     }
+    if (!_div.style.color) _div.style.color = InfoBlock.DEF_FGCOLOR;
+    if (!_div.style.backgroundColor) _div.style.backgroundColor = InfoBlock.DEF_BGCOLOR;
 }
 InfoBlock.prototype.inject = function(meta, anim) {
     // TODO: show speed
@@ -3537,6 +3570,10 @@ InfoBlock.prototype.show = function() {
 }
 InfoBlock.prototype.updateDuration = function(value) {
     this.div.getElementsByClassName('duration')[0].innerHTML = value+'sec';
+}
+InfoBlock.prototype.changeColors = function(front, back) {
+    this.div.style.color = front;
+    this.div.style.backgroundColor = back;
 }
 
 // =============================================================================
