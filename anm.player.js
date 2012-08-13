@@ -650,8 +650,8 @@ Player.prototype.subscribeEvents = function(canvas) {
                             var canvas = player.canvas;
                             var pos = find_pos(canvas);
                             player.changeRect({
-                                'width': canvas.offsetWidth,
-                                'height': canvas.offsetHeight,
+                                'width': canvas.clientWidth,
+                                'height': canvas.clientHeight,
                                 'x': pos[0],
                                 'y': pos[1]
                             });
@@ -662,8 +662,8 @@ Player.prototype.subscribeEvents = function(canvas) {
                             var canvas = player.canvas;
                             var pos = find_pos(canvas);
                             player.changeRect({
-                                'width': canvas.offsetWidth,
-                                'height': canvas.offsetHeight,
+                                'width': canvas.clientWidth,
+                                'height': canvas.clientHeight,
                                 'x': pos[0],
                                 'y': pos[1]
                             });
