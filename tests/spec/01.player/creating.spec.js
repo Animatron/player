@@ -4,6 +4,6 @@ describe("player, when created", function() {
         expect(false).toBeTruthy();
     });
 
-    // allow to create with canvas element passed
+    // test with passed element and id
 
 });

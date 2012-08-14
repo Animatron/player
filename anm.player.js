@@ -332,8 +332,8 @@ M[C.MOD_PLAYER] = global_opts;
               "bgfill": { color: "#fff" },
               "duration": 0 } }
 */
-function Player(id, opts) {
-    this.id = id;
+function Player() {
+    this.id = '';
     this.state = null;
     this.anim = null;
     this.canvas = null;
@@ -342,7 +342,6 @@ function Player(id, opts) {
     this.info = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
-    this._init(opts);
 }
 Player.__instances = 0;
 
@@ -376,6 +375,12 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 // TODO: add load/play/pause/stop events
 
+Player.prototype.init = function(cvs, opts) {
+    this._initHandlers(); // TODO: make automatic
+    this._prepare(cvs);
+    this._loadOpts(opts);
+    this._postInit();
+}
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
 
@@ -552,25 +557,36 @@ Player.prototype._fireError = function(err) {
 // =============================================================================
 
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
-// initial state of the player, called from conctuctor
-Player.prototype._init = function(opts) {
-    var canvas = document.getElementById(this.id);
-    if (!canvas) throw new Error('No canvas found with given id: ' + this.id);
-    var opts = opts || Player._optsFromAttrsOrDefault(canvas)
+Player.prototype._loadOpts = function(opts) {
+    var opts = opts || Player._optsFromAttrsOrDefault(this.canvas)
                     || Player.DEFAULT_CONFIGURATION;
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
-    this._initHandlers(); // TODO: make automatic
-    this.canvas = canvas;
-    this.ctx = canvas.getContext("2d");
-    this.state = Player.createState(this);
+
     this.state.zoom = opts.zoom || 1;
-    this.controls = new Controls(this); // controls enabled by default
-    this.info = new InfoBlock(this); // info enabled by default
     this.configureCnvs(opts.cnvs || Player.DEFAULT_CONFIGURATION.cnvs);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
+}
+Player.prototype._prepare = function(cvs) {
+    if (typeof cvs === 'string') {
+        this.canvas = document.getElementById(cvs);
+        if (!this.canvas) throw new Error('No canvas found with given id: ' + cvs);
+        this.id = cvs;
+    } else {
+        if (!cvs) throw new Error('No canvas was passed');
+        this.id = cvs.id;
+        this.canvas = cvs;
+    }
+    var canvas = this.canvas;
+    this.ctx = canvas.getContext("2d");
+    this.state = Player.createState(this);
+    this.controls = new Controls(this); // controls enabled by default
+    this.info = new InfoBlock(this); // info enabled by default
     this.subscribeEvents(canvas);
+}
+// initial state of the player, called from conctuctor
+Player.prototype._postInit = function() {
     this.stop();
     this._checkMode();
     // TODO: load some default information into player
@@ -3597,7 +3613,8 @@ var exports = {
 
     'obj_clone': obj_clone,
 
-    'createPlayer': function(id, opts) { return new Player(id, opts); }
+    'createPlayer': function(cvs, opts) { var p = new Player();
+                                          p.init(cvs, opts); return p; }
 
 };
 

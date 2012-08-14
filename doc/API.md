@@ -104,8 +104,11 @@ Then, you have a `Player` object.
 
 Now you may easily create a player with either of two ways below, just provide us with correct id of the canvas to attach to, and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample):
 
-    var player = createPlayer('my-canvas')
-    // or: var player = new anm.Player('my-canvas');
+    // first way:
+    var player = createPlayer('my-canvas');
+    // second way:
+    var player = new anm.Player();
+        player.init('my-canvas');
 
 ##### 2c. #####
 
@@ -120,7 +123,7 @@ You may create as many players as you want, just be sure to have enough of canva
 
 ### Player Options
 
-You may pass options object to player, if you want to configure it accurately.
+You may pass options object to player, if you want to configure it accurately. Both `createPlayer` and `player.init` may get options as second, optional, parameter.
 
 #### mode ####
 
