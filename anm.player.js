@@ -555,6 +555,7 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 // initial state of the player, called from conctuctor
 Player.prototype._init = function(opts) {
     var canvas = document.getElementById(this.id);
+    if (!canvas) throw new Error('No canvas found with given id: ' + this.id);
     var opts = opts || Player._optsFromAttrsOrDefault(canvas)
                     || Player.DEFAULT_CONFIGURATION;
     this.inParent = opts.inParent;
@@ -788,7 +789,7 @@ Player.prototype._prepareCanvas = function(opts) {
     canvasOpts(canvas, opts);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
-    this._saveCanvasPos(canvas);
+    Player._saveCanvasPos(canvas);
     this._checkMode();
     this.__canvasPrepared = true;
     return this;
@@ -845,7 +846,7 @@ Player.prototype._ensureAnim = function() {
                         'calling \'play\'');
     }
 }
-Player.prototype._saveCanvasPos = function(cvs) {
+Player._saveCanvasPos = function(cvs) {
     var gcs = (document.defaultView &&
                document.defaultView.getComputedStyle); // last is assigned
 

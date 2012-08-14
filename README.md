@@ -10,15 +10,17 @@ Run `examples/demo.html` to see it in action.
 
 Run `sandbox/sandbox.html` to try it yourself.
 
+Run one of the `tests/*.tests.html` files to see if something broken in your version of player
+
 To use JS player in current state, download or copy from the cloned repository:
 
  * `vendor/matrix.js`
  * `anm.player.js`
- * [Optional] `anm.collisions.js` (if you plan to test collisions / point-contains / intersections with your shapes) 
+ * [Optional] `anm.collisions.js` (if you plan to test collisions / point-contains / intersections with your shapes)
  * [Optional] `anm.builder.js` (allows to build animations in a functional way)
  * [Optional] `animatron_import.js` (allows to load animations from Animatron tool)
- * [Optional] `json2.js` (JSON parser, if target broswer not supports it (currently required only for Animatron Import)) 
-   
+ * [Optional] `json2.js` (JSON parser, if target broswer not supports it (currently required only for Animatron Import))
+
 And add them in the same order to your page header. Don't forget the [`LICENSE`](https://github.com/Animatron/player/blob/master/LICENSE#files) :).
 
 (c) 2011-2012 by Animatron.
