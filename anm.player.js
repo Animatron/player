@@ -347,6 +347,7 @@ Player.__instances = 0;
 
 Player.PREVIEW_POS = 0.33;
 Player.PEFF = 0.07; // seconds to play more when reached end of movie
+Player.NO_TIME = -1;
 
 Player.URL_ATTR = 'data-url';
 
@@ -489,7 +490,7 @@ Player.prototype.stop = function() {
 
     var _state = player.state;
 
-    _state.time = 0;
+    _state.time = Player.NO_TIME;
     _state.from = 0;
 
     if (player.anim) {
@@ -649,6 +650,10 @@ Player.prototype.configureMeta = function(info) {
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
+    if (time == Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
+    if ((time < 0) || (time > this.state.duration)) {
+        throw new Error('Passed time is not in scene range');
+    }
     var ctx = this.ctx,
         state = this.state;
     ctx.clearRect(0, 0, state.width, state.height);
@@ -783,7 +788,7 @@ Player.prototype._reset = function() {
     _state.debug = this.debug;
     _state.happens = C.NOTHING;
     _state.from = 0;
-    _state.time = 0;
+    _state.time = Player.NO_TIME;
     _state.zoom = 1;
     _state.duration = 0;
     if (this.controls) this.controls.reset();
@@ -848,18 +853,20 @@ Player.prototype._checkMode = function() {
     }
 
 }
+Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
+                      'please load something in player before ' +
+                      'calling its playing-related methods';
 Player.prototype._ensureState = function() {
     if (!this.state) {
-        throw new Error('There\'s no player state defined, nowhere to draw, ' +
-                        'please load something in player before ' +
-                        'calling \'play\'');
+        throw new Error(NO_STATE_ERR);
     }
 }
+Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
+                      'please load something in player before ' +
+                      'calling its playing-related methods';
 Player.prototype._ensureAnim = function() {
     if (!this.anim) {
-        throw new Error('There\'s nothing to play at all, ' +
-                        'please load something in player before ' +
-                        'calling \'play\'');
+        throw new Error(NO_SCENE_ERR);
     }
 }
 Player._saveCanvasPos = function(cvs) {
@@ -906,7 +913,7 @@ Player._saveCanvasPos = function(cvs) {
 
 Player.createState = function(player) {
     return {
-        'time': 0, 'from': 0, 'speed': 1,
+        'time': Player.NO_TIME, 'from': 0, 'speed': 1,
         'fps': 30, 'afps': 0, 'duration': 0,
         'debug': false, 'iactive': false,
         // TODO: use iactive to determine if controls/info should be init-zed
