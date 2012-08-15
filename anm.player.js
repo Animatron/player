@@ -382,7 +382,10 @@ Player.prototype.init = function(cvs, opts) {
     this._loadOpts(opts);
     this._postInit();
 }
+Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
 Player.prototype.load = function(object, importer, callback) {
+    if (!object) throw new Error(Player.NO_SCENE_PASSED_ERR);
+
     var player = this;
 
     player._reset();
@@ -857,17 +860,13 @@ Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
                       'please load something in player before ' +
                       'calling its playing-related methods';
 Player.prototype._ensureState = function() {
-    if (!this.state) {
-        throw new Error(Player.NO_STATE_ERR);
-    }
+    if (!this.state) throw new Error(Player.NO_STATE_ERR);
 }
 Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
                       'please load something in player before ' +
                       'calling its playing-related methods';
 Player.prototype._ensureAnim = function() {
-    if (!this.anim) {
-        throw new Error(Player.NO_SCENE_ERR);
-    }
+    if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
 }
 Player._saveCanvasPos = function(cvs) {
     var gcs = (document.defaultView &&

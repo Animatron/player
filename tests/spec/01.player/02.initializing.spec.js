@@ -4,9 +4,11 @@ describe("player, when speaking about initialization,", function() {
     var P = anm.Player;
 
     beforeEach(function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _addPlayerStaticSpies();
         this.addMatchers(_matchers);
+
+        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        _fakeCallsForCanvasRelatedStuff();
+
         player = new anm.Player();
     });
 
@@ -31,7 +33,7 @@ describe("player, when speaking about initialization,", function() {
     it("should show splash screen when initialized", function() {
         var splashSpy = spyOn(player, 'drawSplash');
         player.init('test-id');
-        expect(splashSpy).toHaveBeenCalled();
+        expect(splashSpy).toHaveBeenCalledOnce();
     });
 
     it("should not draw anything except splash when intialized", function() {
@@ -47,36 +49,46 @@ describe("player, when speaking about initialization,", function() {
 
     it("should prevent playing just after initialization", function() {
         player.init('test-id');
+        expect(player.anim).toBe(null);
         try {
             player.play();
         } catch(e) {
-            expect(e.message).toEqual(P.NO_SCENE_ERR);
+            expect(e.message).toBe(P.NO_SCENE_ERR);
         }
     });
 
     it("should prevent pausing just after initialization", function() {
         player.init('test-id');
+        expect(player.anim).toBe(null);
         try {
             player.pause();
         } catch(e) {
-            expect(e.message).toEqual(P.NO_SCENE_ERR);
+            expect(e.message).toBe(P.NO_SCENE_ERR);
         }
     });
 
     it("should prevent double-stopping just after initialization", function() {
         player.init('test-id');
+        expect(player.anim).toBe(null);
         try {
             player.stop();
         } catch(e) {
-            expect(e.message).toEqual(P.NO_SCENE_ERR);
+            expect(e.message).toBe(P.NO_SCENE_ERR);
         }
     });
 
     it("playing time should be not defined when no scene loaded", function() {
         player.init('test-id');
+        expect(player.anim).toBe(null);
         expect(P.NO_TIME).not.toEqual(0);
         expect(P.NO_TIME).not.toBeGreaterThan(0);
-        expect(player.state.time).toEqual(P.NO_TIME);
+        expect(player.state.time).toBe(P.NO_TIME);
+    });
+
+    it("duration should be 0 when no scene loaded", function() {
+        player.init('test-id');
+        expect(player.anim).toBe(null);
+        expect(player.state.duration).toBe(0);
     });
 
 });

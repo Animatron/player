@@ -12,9 +12,11 @@ mocks.context2d = {
     'save': __empty,
     'restore': __empty,
     'fillRect': __empty,
+    'clearRect': __empty,
     'fillText': __empty,
     'strokeRect': __empty,
     'translate': __empty,
+    'transform': __empty,
     'createLinearGradient': function() { return mocks.gradient; },
 };
 
