@@ -152,7 +152,29 @@ describe("player, when speaking about playing,", function() {
         }
     });
 
-    // playing and pausing at correct time
+    it("should pause at a time where pause was called", function() {
+        runs(function() {
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            player.load(scene);
+
+            player.play();
+
+            setTimeout(function() {
+                player.pause();
+            }, 600);
+        });
+
+        waitsFor(function() {
+            return player.state.happens === C.PAUSED;
+        }, 1000);
+
+        runs(function() {
+            expect(player.state.happens).toBe(C.PAUSED);
+            expect(player.state.time).toBeCloseTo(0.6, 0.2);
+        });
+    });
+
     // player should be stopped when finished playing scene
     // playing events to be fired
     // draw loading splash while loading
