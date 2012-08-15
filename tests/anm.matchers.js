@@ -2,21 +2,20 @@ var _matchers = (function() {
 
 var matchers = {};
 
-/* var jPrevReset = jasmine.Spy.prototype.reset;
-var jCreateSpy = jasmine.createSpy;
-function
+matchers.toHaveBeenCalledOnce = function() {
+    this.toHaveBeenCalled();
 
-matchers.toThrowWhenCalled = function(e) {
-  if (arguments.length > 0) {
-    throw new Error('toHaveBeenCalled does not take arguments, use toHaveBeenCalledWith');
-  }
+    this.message = function() {
+        return [
+            "Expected spy " + this.actual.identity + " to have been called " +
+               "only single time, but was called " + this.actual.calls.length + ".",
+            "Expected spy " + this.actual.identity + " not to have been called " +
+               "only single time, but was called " + this.actual.calls.length + "."
+        ];
+    };
 
-  if (!jasmine.isSpy(this.actual)) {
-    throw new Error('Expected a spy, but got ' + jasmine.pp(this.actual) + '.');
-  }
-
-
-} */
+    return (this.actual.calls.length === 1);
+};
 
 return matchers;
 

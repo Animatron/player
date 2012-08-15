@@ -858,7 +858,7 @@ Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
                       'calling its playing-related methods';
 Player.prototype._ensureState = function() {
     if (!this.state) {
-        throw new Error(NO_STATE_ERR);
+        throw new Error(Player.NO_STATE_ERR);
     }
 }
 Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
@@ -866,7 +866,7 @@ Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
                       'calling its playing-related methods';
 Player.prototype._ensureAnim = function() {
     if (!this.anim) {
-        throw new Error(NO_SCENE_ERR);
+        throw new Error(Player.NO_SCENE_ERR);
     }
 }
 Player._saveCanvasPos = function(cvs) {
