@@ -1,6 +1,7 @@
 describe("player, when speaking about playing,", function() {
 
-    var player;
+    var player,
+        C = anm.C;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
@@ -11,16 +12,15 @@ describe("player, when speaking about playing,", function() {
         player = createPlayer('test-id');
     });
 
+    it("should not play anything just after loading a scene", function() {
+        var playSpy = spyOn(player, 'play');
+        player.load(new anm.Scene());
+        expect(playSpy).not.toHaveBeenCalled();
+    });
+
     it("should use no duration for an empty scene", function() {
         player.load(new anm.Scene());
         expect(player.state.duration).toEqual(0);
-    });
-
-    it("should not play empty scene", function() {
-        var scene = new anm.Scene();
-        var renderSpy = spyOn(scene, 'render');
-        player.load(scene);
-        expect(renderSpy).not.toHaveBeenCalled();
     });
 
     it("should use default duration for a scene with element", function() {
@@ -30,18 +30,133 @@ describe("player, when speaking about playing,", function() {
         expect(player.state.duration).toBe(anm.Scene.DEFAULT_VIDEO_DURATION);
     });
 
-    it("should draw stop-frame when scene loaded", function() {
-        var stopSpy = spyOn(player, 'stop');
-        var drawSpy = spyOn(player, 'drawAt');
+    it("should try to draw stop-frame of an empty scene at 0, " +
+       "when it will be loaded into player", function() {
+        var drawSpy = spyOn(player, 'drawAt').andCallThrough();
+
+        var scene = new anm.Scene();
+        var renderSpy = spyOn(scene, 'render').andCallThrough();
+
+        player.load(scene);
+
+        expect(drawSpy).toHaveBeenCalledOnce();
+        expect(drawSpy).toHaveBeenCalledWith(0);
+        expect(renderSpy).toHaveBeenCalled();
+    });
+
+    it("should draw stop-frame at preview position when scene loaded", function() {
+        var stopSpy = spyOn(player, 'stop').andCallThrough();
+        var drawSpy = spyOn(player, 'drawAt').andCallThrough();
+
         var scene = new anm.Scene();
         scene.add(new anm.Element());
         player.load(scene);
+
         expect(stopSpy).toHaveBeenCalledOnce();
         expect(drawSpy).toHaveBeenCalledOnce();
+        // P.S. draws at PREVIEW_POS only in C.M_VIDEO mode
         expect(drawSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_VIDEO_DURATION
                                            * anm.Player.PREVIEW_POS);
     });
 
+    it("should keep player.anim to point to current scene", function() {
+        var scene = new anm.Scene();
+        player.load(scene);
+        expect(player.anim).toBe(scene);
+
+        var anotherScene = new anm.Scene();
+        anotherScene.add(new anm.Element());
+        player.load(anotherScene);
+        expect(player.anim).toBe(anotherScene);
+
+        player.load(scene);
+        expect(player.anim).toBe(scene);
+
+        try { player.load(null); } catch(e) {};
+        expect(player.anim).toBe(null);
+    });
+
+    describe("should keep its state conforming to the situation, so", function() {
+
+        it("should have state.happens equal to nothing, if no scene loaded", function() {
+            expect(player.state.happens).toBe(C.NOTHING);
+        });
+
+        it("should have state.happens equal to stopped, if scene loaded, but not played", function() {
+            expect(player.state.happens).toBe(C.NOTHING);
+            player.load(new anm.Scene());
+            expect(player.state.happens).toBe(C.STOPPED);
+        });
+
+        it("should have state.happens equal to nothing, if no scene passed to load", function() {
+            expect(player.state.happens).toBe(C.NOTHING);
+            player.load(new anm.Scene());
+            expect(player.state.happens).toBe(C.STOPPED);
+            try { player.load(null); } catch(e) {};
+            expect(player.anim).toBe(null);
+            expect(player.state.happens).toBe(C.NOTHING);
+        });
+
+        it("should have state.happens equal to playing, if started playing", function() {
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            player.load(scene);
+            expect(player.anim).not.toBe(null);
+            player.play();
+            expect(player.state.happens).toBe(C.PLAYING);
+            player.stop();
+            player.play(2);
+            expect(player.state.happens).toBe(C.PLAYING);
+        });
+
+        it("should have state.happens equal to stopped, " +
+           "if requested time exceeds scene duration when asking to play", function() {
+            player.load(new anm.Scene());
+            expect(player.anim).not.toBe(null);
+            player.play();
+            expect(player.state.happens).toBe(C.PLAYING);
+            player.stop();
+            player.play(2);
+            expect(player.state.happens).toBe(C.STOPPED);
+        });
+
+        it("should have state.happens equal to stopped, if started playing and then stopped", function() {
+            player.load(new anm.Scene());
+            player.play();
+            player.stop();
+            expect(player.state.happens).toBe(C.STOPPED);
+        });
+
+        it("should have state.happens equal to paused, if started playing and then paused", function() {
+            player.load(new anm.Scene());
+            player.play();
+            player.pause();
+            expect(player.state.happens).toBe(C.PAUSED);
+            player.stop();
+            player.play();
+            player.pause();
+            expect(player.state.happens).toBe(C.PAUSED);
+        });
+
+    });
+
+    it("should not allow to pause when stopped", function() {
+        player.load(new anm.Scene());
+        player.play();
+        player.stop();
+        expect(player.state.happens).toBe(C.STOPPED);
+        try {
+            player.pause();
+        } catch(e) {
+            expect(e.message).toBe(anm.Player.PAUSING_WHEN_STOPPED_ERR);
+        }
+    });
+
+    // playing and pausing at correct time
+    // player should be stopped when finished playing scene
     // playing events to be fired
+    // draw loading splash while loading
+    // state.from
+    // errors
 
 });

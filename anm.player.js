@@ -382,11 +382,15 @@ Player.prototype.init = function(cvs, opts) {
     this._loadOpts(opts);
     this._postInit();
 }
-Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
 Player.prototype.load = function(object, importer, callback) {
-    if (!object) throw new Error(Player.NO_SCENE_PASSED_ERR);
-
     var player = this;
+
+    if (!object) {
+        player.anim = null;
+        player._reset();
+        player.stop();
+        throw new Error(Player.NO_SCENE_PASSED_ERR);
+    }
 
     player._reset();
 
@@ -467,7 +471,7 @@ Player.prototype.play = function(from, speed) {
                    if (time > (state.duration + Player.PEFF)) {
                        state.time = 0;
                        scene.reset();
-                       player.pause();
+                       player.stop();
                        // TODO: support looping?
                        return false;
                    }
@@ -485,6 +489,8 @@ Player.prototype.play = function(from, speed) {
 }
 
 Player.prototype.stop = function() {
+    //if (_state.happens === C.STOPPED) return;
+
     var player = this;
 
     player._ensureState();
@@ -522,6 +528,9 @@ Player.prototype.pause = function() {
     player._ensureAnim();
 
     var _state = player.state;
+    if (_state.happens === C.STOPPED) {
+        throw new Error(Player.PAUSING_WHEN_STOPPED_ERR);
+    }
 
     _state.from = _state.time;
     _state.happens = C.PAUSED;
@@ -797,7 +806,7 @@ Player.prototype._reset = function() {
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, _state.width, _state.height);
-    this.stop();
+    //this.stop();
 }
 // update player's canvas with configuration
 Player.prototype._prepareCanvas = function(opts) {
@@ -856,15 +865,9 @@ Player.prototype._checkMode = function() {
     }
 
 }
-Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
 Player.prototype._ensureState = function() {
     if (!this.state) throw new Error(Player.NO_STATE_ERR);
 }
-Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
 Player.prototype._ensureAnim = function() {
     if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
 }
@@ -3598,6 +3601,17 @@ InfoBlock.prototype.changeColors = function(front, back) {
     this.div.style.color = front;
     this.div.style.backgroundColor = back;
 }
+
+// ==== ERRORS =================================================================
+
+Player.PAUSING_WHEN_STOPPED_ERR = 'Player is stopped, so it is not allowed to pause';
+Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
+Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
+                      'please load something in player before ' +
+                      'calling its playing-related methods';
+Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
+                      'please load something in player before ' +
+                      'calling its playing-related methods';
 
 // =============================================================================
 // === EXPORTS =================================================================

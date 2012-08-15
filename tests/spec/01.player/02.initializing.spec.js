@@ -1,7 +1,6 @@
 describe("player, when speaking about initialization,", function() {
 
     var player;
-    var P = anm.Player;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
@@ -53,7 +52,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.play();
         } catch(e) {
-            expect(e.message).toBe(P.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
         }
     });
 
@@ -63,7 +62,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.pause();
         } catch(e) {
-            expect(e.message).toBe(P.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
         }
     });
 
@@ -73,16 +72,16 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.stop();
         } catch(e) {
-            expect(e.message).toBe(P.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
         }
     });
 
     it("playing time should be not defined when no scene loaded", function() {
         player.init('test-id');
         expect(player.anim).toBe(null);
-        expect(P.NO_TIME).not.toEqual(0);
-        expect(P.NO_TIME).not.toBeGreaterThan(0);
-        expect(player.state.time).toBe(P.NO_TIME);
+        expect(anm.Player.NO_TIME).not.toEqual(0);
+        expect(anm.Player.NO_TIME).not.toBeGreaterThan(0);
+        expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
     it("duration should be 0 when no scene loaded", function() {
