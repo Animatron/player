@@ -17,6 +17,12 @@ mocks.context2d = {
     'strokeRect': __empty,
     'translate': __empty,
     'transform': __empty,
+    'beginPath': __empty,
+    'closePath': __empty,
+    'moveTo': __empty,
+    'lineTo': __empty,
+    'fill': __empty,
+    'stroke': __empty,
     'createLinearGradient': function() { return mocks.gradient; },
 };
 
