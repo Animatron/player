@@ -90,4 +90,13 @@ describe("player, when speaking about initialization,", function() {
         expect(player.state.duration).toBe(0);
     });
 
+    it("zoom should be 1 when no scene loaded", function() {
+        player.init('test-id');
+        expect(player.anim).toBe(null);
+        expect(player.state.zoom).toBe(1);
+    });
+
+    // test if configuration correctly applied
+    // test width and height behaviour
+
 });

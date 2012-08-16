@@ -326,7 +326,7 @@ M[C.MOD_PLAYER] = global_opts;
               "description":
                       "Default project description",
               [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
-    "cnvs": { "fps": 30,
+    "anim": { "fps": 30,
               "width": 400,
               "height": 250,
               "bgfill": { color: "#fff" },
@@ -353,7 +353,7 @@ Player.URL_ATTR = 'data-url';
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'height': DEF_CNVS_HEIGHT,
-                          'bgfill': { 'color': DEF_CNVS_BG } };
+                          'bgfill': null/*{ 'color': DEF_CNVS_BG }*/ };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'mode': C.M_VIDEO,
@@ -364,7 +364,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'version': -1.0,
                                            'description':
                                                 'Default project description' },
-                                 'cnvs': { 'fps': 30,
+                                 'anim': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
                                            'bgfill': null,
@@ -392,6 +392,8 @@ Player.prototype.load = function(object, importer, callback) {
         throw new Error(Player.NO_SCENE_PASSED_ERR);
     }
 
+    if (!this.__canvasPrepared) throw new Error('Canvas is not prepared, don\'t forget to call "init" method');
+
     player._reset();
 
     var whenDone = function() {
@@ -404,22 +406,11 @@ Player.prototype.load = function(object, importer, callback) {
 
     if (object) {
 
-        // FIXME: load canvas parameters from canvas element,
-        //        if they are not specified
         if (__builder(object)) {  // Builder instance
-            if (!player.__canvasPrepared) {
-                player._prepareCanvas(Player.DEFAULT_CANVAS);
-            }
             L.loadBuilder(player, object, whenDone);
         } else if (object instanceof Scene) { // Scene instance
-            if (!player.__canvasPrepared) {
-                player._prepareCanvas(Player.DEFAULT_CANVAS);
-            }
             L.loadScene(player, object, whenDone);
         } else if (__array(object)) { // array of clips
-            if (!player.__canvasPrepared) {
-                player._prepareCanvas(Player.DEFAULT_CANVAS);
-            }
             L.loadClips(player, object, whenDone);
         } else if (typeof object === 'string') { // URL
             L.loadFromUrl(player, object, importer, whenDone);
@@ -428,9 +419,6 @@ Player.prototype.load = function(object, importer, callback) {
         }
 
     } else {
-        if (!player.__canvasPrepared) {
-            player._prepareCanvas(Player.DEFAULT_CANVAS);
-        }
         player.anim = new Scene();
     }
 
@@ -511,8 +499,8 @@ Player.prototype.stop = function() {
         _state.happens = C.NOTHING;
         player.drawSplash();
     }
-    if (player.controls) {
-        player.controls.render(_state, 0);
+    if (player.controls/* && !player.controls.hidden*/) {
+        player.controls.render(_state, 0, true);
     }
 
     player.fire(C.S_STOP);
@@ -578,7 +566,7 @@ Player.prototype._loadOpts = function(opts) {
     this.debug = opts.debug;
 
     this.state.zoom = opts.zoom || 1;
-    this.configureCnvs(opts.cnvs || Player.DEFAULT_CONFIGURATION.cnvs);
+    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
 }
 Player.prototype._prepare = function(cvs) {
@@ -601,22 +589,25 @@ Player.prototype._prepare = function(cvs) {
 // initial state of the player, called from conctuctor
 Player.prototype._postInit = function() {
     this.stop();
-    this._checkMode();
     // TODO: load some default information into player
     if (!Text.__buff) Text.__buff = Text._createBuffer(); // so it will be performed onload
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
-// FIXME: call changeRect on every resize
 Player.prototype.changeRect = function(rect) {
-    this._prepareCanvas({
+    this._applyConfToCanvas({
         width: rect.width,
         height: rect.height,
         x: rect.x,
         y: rect.y,
         bgfill: this.state.bgfill
     });
+    if (this.anim) {
+        if (this.controls) this.controls.forceNextRedraw();
+        if (this.state.happens === C.STOPPED) this.stop();
+        if (this.state.happens === C.PAUSED) this.drawAt(this.state.time);
+    }
 }
 Player.prototype.changeZoom = function(ratio) {
     this.state.zoom = ratio;
@@ -631,15 +622,14 @@ Player.prototype.changeZoom = function(ratio) {
 //   ["bgfill": { color: "#f00" },] // in canvas-friendly format
 //   ["duration": 10.0] // in seconds
 // }
-Player.prototype.configureCnvs = function(conf) {
+Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cnvs = this.canvas;
     if (cnvs.hasAttribute('width') && cnvs.hasAttribute('height')) {
         conf.width = cnvs.getAttribute('width');
         conf.height = cnvs.getAttribute('height');
     }
-    this._prepareCanvas(conf);
-    // inject information to html
+    this._applyConfToCanvas(conf);
 
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
@@ -809,7 +799,7 @@ Player.prototype._reset = function() {
     //this.stop();
 }
 // update player's canvas with configuration
-Player.prototype._prepareCanvas = function(opts) {
+Player.prototype._applyConfToCanvas = function(opts) {
     var canvas = this.canvas;
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
@@ -820,10 +810,10 @@ Player.prototype._prepareCanvas = function(opts) {
     this.state.height = _h;
     if (opts.bgfill) this.state.bgfill = opts.bgfill;
     canvasOpts(canvas, opts);
+    this._checkMode();
+    Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
-    Player._saveCanvasPos(canvas);
-    this._checkMode();
     this.__canvasPrepared = true;
     return this;
 }
@@ -945,13 +935,13 @@ Player._optsFromAttrsOrDefault = function(canvas) {
                         'copyright': _default.meta.copyright,
                         'version': _default.meta.version,
                         'description': _default.meta.description },
-              'cnvs': { 'fps': _default.cnvs.fps,
-                        'width': __attrOr(canvas, 'data-width', _default.cnvs.width),
-                        'height': __attrOr(canvas, 'data-height', _default.cnvs.height),
+              'anim': { 'fps': _default.anim.fps,
+                        'width': __attrOr(canvas, 'data-width', _default.anim.width),
+                        'height': __attrOr(canvas, 'data-height', _default.anim.height),
                         'bgfill': canvas.hasAttribute('data-bgcolor')
                                   ? { 'color': canvas.getAttribute('data-bgcolor') }
-                                  : _default.cnvs.bgfill,
-                        'duration': _default.cnvs.duration }
+                                  : _default.anim.bgfill,
+                        'duration': _default.anim.duration }
                       };
 };
 
@@ -2179,7 +2169,7 @@ L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new Error('Cannot load project without importer. ' +
                                    'Please define it');
     if (importer.configureAnim) {
-        player.configureCnvs(importer.configureAnim(object));
+        player.configureAnim(importer.configureAnim(object));
     }
     if (importer.configureMeta) {
         player.configureMeta(importer.configureMeta(object));
@@ -2194,8 +2184,6 @@ L.loadScene = function(player, scene, callback) {
         scene.visitElems(Element.__addDebugRender);
     // assign
     player.anim = scene;
-    // subscribe events, depending on current mode
-    player._checkMode();
     // update duration
     if (!player.state.duration) {
         if (!(player.mode & C.M_DYNAMIC)
@@ -3257,7 +3245,7 @@ Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var _w = parent.width,
+    var _w = parent.getAttribute('width'),
         _h = Controls.HEIGHT,
         _hdiff = parent.height - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
@@ -3308,19 +3296,21 @@ Controls.prototype.subscribeEvents = function(canvas) {
             };
         })(this), false);
 }
-Controls.prototype.render = function(state, time, _force) {
-    if (this.hidden) return;
+Controls.prototype.render = function(state, time) {
+    if (this.hidden && !this.__force) return;
 
     var _s = state.happens;
-    if ((time === this._time) &&
+    var time = (time > 0) ? time : 0;
+    if (!this.__force &&
+        (time === this._time) &&
         (_s === this._lhappens)) return;
     this._time = time;
     this._lhappens = _s;
 
     var ctx = this.ctx;
     var _bh = Controls._BH, // button height
-        _w = this.canvas.width,
-        _h = this.canvas.height,
+        _w = this.canvas.getAttribute('width'),
+        _h = this.canvas.getAttribute('height'),
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
         _pw = _w - ((_m * 4) + _tw + _bh); // progress width
@@ -3356,6 +3346,8 @@ Controls.prototype.render = function(state, time, _force) {
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
+
+    this.__force = false;
 }
 // TODO: take initial state from imported project
 Controls.prototype.hide = function() {
@@ -3421,6 +3413,9 @@ Controls.prototype.evtInBounds = function(evt) {
 }
 Controls.prototype.changeColor = function(front) {
     this.__fgcolor = front;
+}
+Controls.prototype.forceNextRedraw = function() {
+    this.__force = true;
 }
 Controls.__play_btn = function(ctx) {
     var _bh = Controls._BH;

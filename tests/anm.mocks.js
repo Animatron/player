@@ -30,11 +30,13 @@ mocks.canvasStyle = {
 
 };
 
+var __cvs_attrs = {};
+
 mocks.canvas = {
     'getContext': function() { return mocks.context2d; },
-    'hasAttribute': __empty,
-    'setAttribute': __empty,
-    'getAttribute': __empty,
+    'hasAttribute': function(attr) { return typeof __cvs_attrs[attr] !== 'undefined'; },
+    'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
+    'getAttribute': function(attr) { return __cvs_attrs[attr]; },
     //'style': mocks.canvasStyle,
     'addEventListener': __empty
 };

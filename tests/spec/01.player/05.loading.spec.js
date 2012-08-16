@@ -23,5 +23,6 @@ describe("player, when speaking about loading scenes,", function() {
     // loading different types of objects
     // player.load("some://fake.url"); expect(player.state.happens).toBe(C.NOTHING);
     // duration
+    // test remote loading
 
 });

@@ -178,6 +178,7 @@ describe("player, when speaking about playing,", function() {
     // player should be stopped when finished playing scene
     // playing events to be fired
     // draw loading splash while loading
+    // test if while preview is shown at preview time pos, controls are at 0
     // state.from
     // errors
 
