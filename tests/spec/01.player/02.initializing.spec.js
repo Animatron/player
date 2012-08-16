@@ -98,5 +98,6 @@ describe("player, when speaking about initialization,", function() {
 
     // test if configuration correctly applied
     // test width and height behaviour
+    // ensure checkMode is called once
 
 });

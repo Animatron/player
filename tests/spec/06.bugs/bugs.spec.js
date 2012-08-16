@@ -19,6 +19,9 @@ describe("as for known bugs,", function() {
 
         if (!window) throw new Error('May be tested only in browser environment');
 
+        // TODO: ensure controls are not rendered at time < 0
+        //       ensure controls and scene are rendered after scroll/resize
+
         spyOn(anm.Player, '_saveCanvasPos').andCallFake(function(cvs) {
             cvs.__rOffsetLeft = 40;
             cvs.__rOffsetTop = 40;

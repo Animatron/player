@@ -104,13 +104,15 @@ function obj_clone(what) {
     return dest;
 }
 
+// FIXME: replace with elm.getBoundingClientRect();
+// see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll
 function find_pos(elm) {
     var curleft = 0,
         curtop = 0;
     do {
-        curleft += elm.offsetLeft;
-        curtop += elm.offsetTop;
-    } while (elm && (elm = elm.offsetParent));
+        curleft += elm.offsetLeft/* - elm.scrollLeft*/;
+        curtop += elm.offsetTop/* - elm.scrollTop*/;
+    } while (elm = elm.offsetParent);
     return [ curleft, curtop ];
 }
 
@@ -564,8 +566,10 @@ Player.prototype._loadOpts = function(opts) {
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
-
     this.state.zoom = opts.zoom || 1;
+
+    this._checkMode();
+
     this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
 }
@@ -582,8 +586,6 @@ Player.prototype._prepare = function(cvs) {
     var canvas = this.canvas;
     this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
-    this.controls = new Controls(this); // controls enabled by default
-    this.info = new InfoBlock(this); // info enabled by default
     this.subscribeEvents(canvas);
 }
 // initial state of the player, called from conctuctor
@@ -603,10 +605,19 @@ Player.prototype.changeRect = function(rect) {
         y: rect.y,
         bgfill: this.state.bgfill
     });
-    if (this.anim) {
-        if (this.controls) this.controls.forceNextRedraw();
-        if (this.state.happens === C.STOPPED) this.stop();
-        if (this.state.happens === C.PAUSED) this.drawAt(this.state.time);
+    if (this.anim) this.forceRedraw();
+}
+Player.prototype._rectChanged = function(rect) {
+    var cur = this._canvasConf;
+    return (cur.width != rect.width) || (cur.height != rect.height) ||
+           (cur.x != rect.x) || (cur.y != rect.y);
+}
+Player.prototype.forceRedraw = function() {
+    if (this.controls) this.controls.forceNextRedraw();
+    switch (this.state.happens) {
+        case C.STOPPED: this.stop(); break;
+        case C.PAUSED: this.drawAt(this.state.time); break;
+        case C.PLAYING: this.play(this.state.time); break;
     }
 }
 Player.prototype.changeZoom = function(ratio) {
@@ -670,31 +681,22 @@ Player.prototype.detach = function() {
     if (this.info) this.info.detach(this.canvas);
     this._reset();
 }
+Player.__getPosAndRedraw = function(player) {
+    return function(evt) {
+        var canvas = player.canvas;
+        var pos = find_pos(canvas),
+            rect = {
+                'width': canvas.clientWidth,
+                'height': canvas.clientHeight,
+                'x': pos[0],
+                'y': pos[1]
+            };
+        if (player._rectChanged(rect)) player.changeRect(rect);
+    };
+}
 Player.prototype.subscribeEvents = function(canvas) {
-    window.addEventListener('scroll', (function(player) {
-                        return function(evt) {
-                            var canvas = player.canvas;
-                            var pos = find_pos(canvas);
-                            player.changeRect({
-                                'width': canvas.clientWidth,
-                                'height': canvas.clientHeight,
-                                'x': pos[0],
-                                'y': pos[1]
-                            });
-                        };
-                    })(this), false);
-    window.addEventListener('resize', (function(player) {
-                        return function(evt) {
-                            var canvas = player.canvas;
-                            var pos = find_pos(canvas);
-                            player.changeRect({
-                                'width': canvas.clientWidth,
-                                'height': canvas.clientHeight,
-                                'x': pos[0],
-                                'y': pos[1]
-                            });
-                        };
-                    })(this), false);
+    window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
+    window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -810,7 +812,6 @@ Player.prototype._applyConfToCanvas = function(opts) {
     this.state.height = _h;
     if (opts.bgfill) this.state.bgfill = opts.bgfill;
     canvasOpts(canvas, opts);
-    this._checkMode();
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);

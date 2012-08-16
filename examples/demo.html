@@ -47,19 +47,20 @@
                                             .rotate([0, 5], [0, Math.PI])
                                             .band([0, 5]).loop())
                           .band([0, 20]);
-          pl2.load(scene2).play(1);
-          setTimeout(function() {
+          pl2.load(scene2).play();
+          /*setTimeout(function() {
               pl2.stop().play(0);
-          }, 700);
+          }, 700);*/
 
           // canvas3
           var importer = new AnimatronImporter();
           var p3 = createPlayer('canvas3');
           p3.debug = true;
           p3.load(demo_project, importer);
+          p3.play(6);
 
           // canvas4
-          var p4 = createPlayer('canvas4');
+          /* var p4 = createPlayer('canvas4');
           p4.debug = true;
           p4.load(rectangles_project, importer);
 
@@ -71,7 +72,7 @@
           // canvas6
           var p6 = createPlayer('canvas6');
           p6.debug = true;
-          p6.load(alpha_project, importer);
+          p6.load(alpha_project, importer); */
 
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
@@ -111,7 +112,7 @@ var scene1 = b().rect([100, 70], [70, 70])
                 .stroke('#f00', 3);
 createPlayer('canvas1').load(scene1);
     </code></pre>
-    <canvas id="canvas1"  data-title="Rectangles"></canvas>
+    <canvas id="canvas1" data-title="Rectangles"></canvas>
     <!-- <canvas id="canvas1"  data-title="Rectangles" data-bgcolor="rgba(30, 30, 30, 0.4)"></canvas> -->
 
     <!-- canvas2 -->
