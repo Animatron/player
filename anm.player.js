@@ -163,23 +163,18 @@ var DEF_CNVS_HEIGHT = 250;
 var DEF_CNVS_BG = '#fff';
 
 function canvasOpts(canvas, opts) {
-    var _w, _h;
-    if (!(opts instanceof Array)) { // object, not array
-        //canvas.width = _w;
-        //canvas.height = _h;
-        canvas.setAttribute('width', opts.width);
-        canvas.setAttribute('height', opts.height);
+    var isObj = !(opts instanceof Array),
+        _w = isObj ? opts.width : opts[0],
+        _h = isObj ? opts.height : opts[1];
+    if (isObj) {
         if (opts.bgfill) { // TODO: support other fill types
             canvas.style.backgroundColor = opts.bgfill.color;
         }
-    } else { // array
-        _w = Math.floor(opts[0]);
-        _h = Math.floor(opts[1]);
-        //canvas.width = _w;
-        //canvas.height = _h;
-        canvas.setAttribute('width', _w);
-        canvas.setAttribute('height', _h);
     }
+    canvas.width = _w;
+    canvas.height = _h;
+    canvas.setAttribute('width', _w);
+    canvas.setAttribute('height', _h);
 }
 
 function newCanvas(dimen) {
@@ -502,7 +497,7 @@ Player.prototype.stop = function() {
         player.drawSplash();
     }
     if (player.controls/* && !player.controls.hidden*/) {
-        player.controls.render(_state, 0, true);
+        player.controls.render(_state, 0);
     }
 
     player.fire(C.S_STOP);
@@ -560,19 +555,6 @@ Player.prototype._fireError = function(err) {
 // =============================================================================
 
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
-Player.prototype._loadOpts = function(opts) {
-    var opts = opts || Player._optsFromAttrsOrDefault(this.canvas)
-                    || Player.DEFAULT_CONFIGURATION;
-    this.inParent = opts.inParent;
-    this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
-    this.debug = opts.debug;
-    this.state.zoom = opts.zoom || 1;
-
-    this._checkMode();
-
-    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
-    this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
-}
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
@@ -587,6 +569,21 @@ Player.prototype._prepare = function(cvs) {
     this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
     this.subscribeEvents(canvas);
+}
+Player.prototype._loadOpts = function(opts) {
+    var opts = opts || Player._optsFromAttrsOrDefault(this.canvas)
+                    || Player.DEFAULT_CONFIGURATION;
+    this.inParent = opts.inParent;
+    this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
+    this.debug = opts.debug;
+    this.state.zoom = opts.zoom || 1;
+
+    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
+
+    this._checkMode();
+
+    this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
+
 }
 // initial state of the player, called from conctuctor
 Player.prototype._postInit = function() {
@@ -636,10 +633,10 @@ Player.prototype.changeZoom = function(ratio) {
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cnvs = this.canvas;
-    if (cnvs.hasAttribute('width') && cnvs.hasAttribute('height')) {
-        conf.width = cnvs.getAttribute('width');
-        conf.height = cnvs.getAttribute('height');
-    }
+
+    if (cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
+    if (cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
+
     this._applyConfToCanvas(conf);
 
     if (conf.fps) this.state.fps = conf.fps;
@@ -681,7 +678,7 @@ Player.prototype.detach = function() {
     if (this.info) this.info.detach(this.canvas);
     this._reset();
 }
-Player.__getPosAndRedraw = function(player) {
+/*Player.__getPosAndRedraw = function(player) {
     return function(evt) {
         var canvas = player.canvas;
         var pos = find_pos(canvas),
@@ -693,10 +690,10 @@ Player.__getPosAndRedraw = function(player) {
             };
         if (player._rectChanged(rect)) player.changeRect(rect);
     };
-}
+}*/
 Player.prototype.subscribeEvents = function(canvas) {
-    window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
-    window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
+    //window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
+    //window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -3246,7 +3243,7 @@ Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var _w = parent.getAttribute('width'),
+    var _w = parent.width,
         _h = Controls.HEIGHT,
         _hdiff = parent.height - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
@@ -3310,8 +3307,8 @@ Controls.prototype.render = function(state, time) {
 
     var ctx = this.ctx;
     var _bh = Controls._BH, // button height
-        _w = this.canvas.getAttribute('width'),
-        _h = this.canvas.getAttribute('height'),
+        _w = this.canvas.width,
+        _h = this.canvas.height,
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
         _pw = _w - ((_m * 4) + _tw + _bh); // progress width
