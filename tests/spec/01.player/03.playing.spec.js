@@ -169,6 +169,9 @@ describe("player, when speaking about playing,", function() {
             return player.state.happens === C.PAUSED;
         }, 1000);
 
+        // FIXME: fails if tab is not active, possibly
+        //        because requestAnimationFrame is disabled
+        //        when tab is in background, replace it with fake
         runs(function() {
             expect(player.state.happens).toBe(C.PAUSED);
             expect(player.state.time).toBeCloseTo(0.6, 0.2);

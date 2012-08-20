@@ -37,7 +37,7 @@ mocks.canvas = {
     'hasAttribute': function(attr) { return typeof __cvs_attrs[attr] !== 'undefined'; },
     'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
     'getAttribute': function(attr) { return __cvs_attrs[attr]; },
-    //'style': mocks.canvasStyle,
+    'style': mocks.canvasStyle,
     'addEventListener': __empty
 };
 
