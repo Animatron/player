@@ -171,15 +171,15 @@ function canvasOpts(canvas, opts) {
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
-    canvas.width = _w;
-    canvas.height = _h;
+    canvas.style.width = _w + 'px';
+    canvas.style.height = _h + 'px';
     canvas.setAttribute('width', _w);
     canvas.setAttribute('height', _h);
 }
 
 function newCanvas(dimen) {
     var _canvas = document.createElement('canvas');
-    canvasOpts(_canvas, [ dimen[0], dimen[1] ]);
+    canvasOpts(_canvas, dimen);
     return _canvas;
 }
 
@@ -678,9 +678,9 @@ Player.prototype.detach = function() {
     if (this.info) this.info.detach(this.canvas);
     this._reset();
 }
-/*Player.__getPosAndRedraw = function(player) {
+Player.__getPosAndRedraw = function(player) {
     return function(evt) {
-        var canvas = player.canvas;
+        /*var canvas = player.canvas;
         var pos = find_pos(canvas),
             rect = {
                 'width': canvas.clientWidth,
@@ -688,9 +688,17 @@ Player.prototype.detach = function() {
                 'x': pos[0],
                 'y': pos[1]
             };
-        if (player._rectChanged(rect)) player.changeRect(rect);
+        if (player._rectChanged(rect)) player.changeRect(rect);*/
+        if (player.controls) {
+            player.controls.update(player.canvas);
+            //player.controls.render(player.state, player.state.time);
+        }
+        if (player.info) {
+            player.info.update(player.canvas);
+            //player.info.render(player.state, player.state.time);
+        }
     };
-}*/
+}
 Player.prototype.subscribeEvents = function(canvas) {
     //window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
     //window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
@@ -3281,6 +3289,7 @@ Controls.prototype.update = function(parent) {
     }
     if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
     this.bounds = [ _bp[0], _bp[1], _bp[0]+_w, _bp[1]+_h ];
+    this.render();
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) {
