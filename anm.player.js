@@ -389,7 +389,7 @@ Player.prototype.load = function(object, importer, callback) {
         throw new Error(Player.NO_SCENE_PASSED_ERR);
     }
 
-    if (!this.__canvasPrepared) throw new Error('Canvas is not prepared, don\'t forget to call "init" method');
+    if (!this.__canvasPrepared) throw new Error(Player.CANVAS_NOT_PREPARED_ERR);
 
     player._reset();
 
@@ -429,7 +429,7 @@ Player.prototype.load = function(object, importer, callback) {
 
 Player.prototype.play = function(from, speed) {
 
-    if (this.state.happens === C.PLAYING) return;
+    if (this.state.happens === C.PLAYING) throw new Error(Player.ALREADY_PLAYING_ERR);
 
     var player = this;
 
@@ -483,9 +483,10 @@ Player.prototype.stop = function() {
 
     player._ensureState();
 
-    __stopAnim();
-
     var _state = player.state;
+
+    if ((_state.happens === C.PLAYING) ||
+        (_state.happens === C.PAUSED)) __stopAnim();
 
     _state.time = Player.NO_TIME;
     _state.from = 0;
@@ -561,10 +562,10 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
-        if (!this.canvas) throw new Error('No canvas found with given id: ' + cvs);
+        if (!this.canvas) throw new Error(Player.NO_CANVAS_WITH_ID_ERR + cvs);
         this.id = cvs;
     } else {
-        if (!cvs) throw new Error('No canvas was passed');
+        if (!cvs) throw new Error(Player.NO_CANVAS_PASSED_ERR);
         this.id = cvs.id;
         this.canvas = cvs;
     }
@@ -3290,7 +3291,6 @@ Controls.prototype.update = function(parent) {
     }
     if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
     this.bounds = [ _bp[0], _bp[1], _bp[0]+_w, _bp[1]+_h ];
-    this.render();
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) {
@@ -3607,6 +3607,13 @@ InfoBlock.prototype.changeColors = function(front, back) {
 
 // ==== ERRORS =================================================================
 
+// TODO: Move Scene and Element errors here ?
+
+Player.NO_CANVAS_WITH_ID_ERR = 'No canvas found with given id: ';
+Player.NO_CANVAS_WAS_PASSED_ERR = 'No canvas was passed';
+Player.CANVAS_NOT_PREPARED_ERR = 'Canvas is not prepared, don\'t forget to call \'init\' method';
+Player.ALREADY_PLAYING_ERR = 'Player is already in playing mode, please call ' +
+                             '\'stop\' or \'pause\' before playing again';
 Player.PAUSING_WHEN_STOPPED_ERR = 'Player is stopped, so it is not allowed to pause';
 Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
 Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +

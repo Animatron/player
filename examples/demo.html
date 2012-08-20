@@ -48,9 +48,9 @@
                                             .band([0, 5]).loop())
                           .band([0, 20]);
           pl2.load(scene2).play();
-          setTimeout(function() {
+          /* setTimeout(function() {
               pl2.stop().play(0);
-          }, 1700);
+          }, 1700); */
 
           // canvas3
           var importer = new AnimatronImporter();
@@ -58,6 +58,7 @@
           p3.debug = true;
           p3.load(demo_project, importer);
           p3.play(6);
+          //p3.load(scene2).play(2);
 
           // canvas4
           var p4 = createPlayer('canvas4');

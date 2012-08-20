@@ -6,7 +6,7 @@ describe("as for known bugs,", function() {
         expect(true).toBeTruthy();
     });
 
-    /* var b = Builder._$,
+    var b = Builder._$,
         C = anm.C;
 
     beforeEach(function() {
@@ -14,59 +14,55 @@ describe("as for known bugs,", function() {
         this.addMatchers(_matchers);
     })
 
-    it("#34213789 (problems with rendering players/controls at demo page) shall pass",
+    xit('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
 
-        if (!window) throw new Error('May be tested only in browser environment');
+        // things to test:
 
-        // TODO: ensure controls are not rendered at time < 0
-        //       ensure controls and scene are rendered after scroll/resize
+        // __stopAnim should stop the exact animation __nextFrame started, not the global animation id
 
-        spyOn(anm.Player, '_saveCanvasPos').andCallFake(function(cvs) {
-            cvs.__rOffsetLeft = 40;
-            cvs.__rOffsetTop = 40;
-        });
+    });
 
-        player = new anm.Player();
+    xit('#34641967 should work as expected (controls should allow to jump while playing)', function() {
 
-        var playerCheckModeSpy = spyOn(player, '_checkMode').andCallThrough();
-        var playerDrawAtSpy = spyOn(player, 'drawAt').andCallThrough();
+        // it is not possible to jump in time while playing
+    });
 
-        player.init('test-id');
+    xdescribe("#34213789 should work as expected (controls should be rendered correcly in all use-cases)",
+    function() {
 
-        expect(playerCheckModeSpy).toHaveBeenCalledOnce();
+        xit('foo', function() {});
 
-        //var controlsRenderSpy = spyOn(player.controls, 'render').andCallThrough();
-        //var controlsUpdateSpy = spyOn(player.controls, 'update').andCallThrough();
+        // things to test:
 
-        expect(player.mode).toBe(C.M_VIDEO);
-        expect(player.controls).toBeDefined();
-        expect(player.info).toBeDefined();
+        // test if width and height are _not_ applied through canvas.width / canvas.height
+        // — it erases the content of canvas — but through style and setAttribute
+        // (it includes controls canvas)
 
-        var controls = player.controls;
+        // info-block and controls correctly change their position after scrolling and
+        // resizing, player continues playing scene if it was played (keeps state)
 
-        expect(controls.hidden).toBeTruthy();
+        // _checkMode is called once and when mode was defined (through options or directly,
+        // before load)
 
-        //expect(controlsRenderSpy).toHaveBeenCalledOnce();
-        //expect(controlsUpdateSpy).toHaveBeenCalledOnce();
+        // ensure controls are not rendered at time < 0
 
-        player.load(b().rect([100, 70], [70, 70])
-                       .fill('#009')
-                       .stroke('#f00', 3));
+        // controls are visible when playing stopped or paused
 
-        expect(player.state.happens).toBe(C.STOPPED);
-        //expect(controlsRenderSpy).not.toHaveBeenCalledWith(-1);
-        expect(playerDrawAtSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_VIDEO_DURATION
-                                                   * anm.Player.PREVIEW_POS);
+        // time font is correct
 
-        //expect(controlsRenderSpy).toHaveBeenCalledWith(player.state, 0);
-        //expect(controlsRenderSpy).not.toHaveBeenCalledWith(player.state, Player.NO_TIME);
-        //expect(controlsUpdateSpy).toHaveBeenCalledOnce();
-        expect(controls.hidden).toBeTruthy();
+        // test the order of applying options / preparing canvas / scene / showing controls / info blocks to look logical
 
-        expect(controls.canvas.width).toEqual(anm.Player.DEFAULT_CANVAS.width);
-        expect(controls.canvas.height).toBeGreaterThan(0);
+        // test changeRect to be called only if rect was changed
 
-    }); */
+        // test getPosAndRedraw
+
+        // is _saveCanvasPos required?
+
+        // test controls are rendered/updated exactly once when required
+
+        // ensure controls are not rendered when there's nothing loaded in player
+
+    });
 
 });

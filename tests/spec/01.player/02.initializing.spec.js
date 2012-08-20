@@ -96,8 +96,13 @@ describe("player, when speaking about initialization,", function() {
         expect(player.state.zoom).toBe(1);
     });
 
-    // test if configuration correctly applied
+    // test if configuration (options) correctly applied (including modules?)
+    // test createPlayer itself
     // test width and height behaviour
     // ensure checkMode is called once
+    // test several player are correclty acting at one page
+    // test canvas is always prepared in _init_ method, and calling new Player() is just constructor
+    // test the order of applying options / preparing canvas / scene / showing controls / info blocks to look logical
+    // test configuration through data-attributes
 
 });
