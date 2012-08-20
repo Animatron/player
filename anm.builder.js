@@ -28,22 +28,27 @@ function Builder(obj) {
         this.n = '';
         this.v = new Element();
         this.x = this.v.xdata;
+    } else if (obj instanceof Builder) {
+        this.n = obj.n;
+        this.v = obj.v.dclone();
+        this.x = this.v.xdata;
+        this.f = this._extractFill(obj.f);
+        this.s = this._extractStroke(obj.s);
+        this.v.__b$ = this;
+        return; // all done
     } else if (obj instanceof Element) {
         this.n = obj.name;
         this.v = obj;
         this.x = obj.xdata;
-    } else if (obj instanceof Builder) {
-        this.n = obj.n;
-        this.v = obj.v.clone();
-        this.x = this.v.xdata;
     } else if (typeof obj === 'string') {
         this.n = obj;
         this.v = new Element();
         this.v.name = this.n;
         this.x = this.v.xdata;
     }
-    this.f = this._extractFill();
-    this.s = this._extractStroke();
+    this.v.__b$ = this;
+    this.f = this._extractFill(Builder.DEFAULT_FILL);
+    this.s = this._extractStroke(Builder.DEFAULT_STROKE);
 }
 Builder._$ = function(obj) {
     if (obj && (obj instanceof Element)) {
@@ -57,8 +62,8 @@ Builder._$ = function(obj) {
 
 Builder.__path = function(val, join) {
     return (Array.isArray(val))
-           ? Builder.path(val) 
-           : ((val instanceof Path) ? val 
+           ? Builder.path(val)
+           : ((val instanceof Path) ? val
               : Path.parse(val, join))
 }
 
@@ -74,7 +79,7 @@ Builder.DEFAULT_FSIZE = Text.DEFAULT_FSIZE;
 // > builder.add % (what: Element | Builder) => Builder
 Builder.prototype.add = function(what) {
     if (what instanceof Element) {
-        this.v.add(what);    
+        this.v.add(what);
     } else if (what instanceof Builder) {
         this.v.add(what.v);
     }
@@ -83,20 +88,20 @@ Builder.prototype.add = function(what) {
 // > builder.addS % (what: Element | Builder) => Builder
 Builder.prototype.addS = function(what) {
     if (what instanceof Element) {
-        this.v.addS(what);    
+        this.v.addS(what);
     } else if (what instanceof Builder) {
         this.v.addS(what.v);
     }
-    return this;    
+    return this;
 }
 // > builder.remove % (what: Element | Builder) => Builder
 Builder.prototype.remove = function(what) {
     if (what instanceof Element) {
-        this.v.remove(what);    
+        this.v.remove(what);
     } else if (what instanceof Builder) {
         this.v.remove(what.v);
     }
-    return this;       
+    return this;
 }
 
 // * SHAPES *
@@ -117,29 +122,30 @@ Builder.prototype.path = function(path, pt) {
     else { this.f = path.fill; }
     return this;
 }
-// > builder.rect % (pt: Array[2,Integer], 
+// > builder.rect % (pt: Array[2,Integer],
 //                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var rect = Array.isArray(rect) ? rect 
-                                   : [ rect, rect ]; 
+    var rect = Array.isArray(rect) ? rect
+                                   : [ rect, rect ];
     var w = rect[0], h = rect[1];
     this.path([[0, 0], [w, 0],
                [w, h], [0, h],
                [0, 0]], pt);
     return this;
 }
-// > builder.circle % (pt: Array[2,Integer], 
+// > builder.circle % (pt: Array[2,Integer],
 //                     radius: Float) => Builder
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
-    var b = this;
+    this.x.__bounds = [ 0, 0, radius*2, radius*2];
     this.paint(function(ctx) {
-        DU.qDraw(ctx, b.s, b.f,
-                 function() {
+            var b = this.$.__b$;
+            DU.qDraw(ctx, b.s, b.f,
+                function() {
                     ctx.arc(0, 0, radius, 0, Math.PI*2, true);
-                 });
-    });
+                });
+        });
     if (modCollisions) this.v.reactAs(
             Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
     return this;
@@ -150,7 +156,8 @@ Builder.prototype.image = function(pt, src) {
     this.x.pos = pt;
     if (src) {
         var b = this;
-        this.x.image = 
+        this.x.image =
+           // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src, function(img) {
                 b.__modify(Element.SYS_MOD, function(t) {
                     this.rx = Math.floor(img.width/2);
@@ -169,6 +176,7 @@ Builder.prototype.text = function(pt, lines, size, font) {
     var text = lines instanceof Text ? lines
                      : new Text(lines, Builder.font(font, size));
     this.x.text = text;
+    this.x.reg = [ 0, 0 ];
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
     if (!text.fill) { text.fill = this.f; }
@@ -180,15 +188,15 @@ Builder.prototype.text = function(pt, lines, size, font) {
 
 // > builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(fval) {
-    this.f = ((typeof fval === 'string') 
+    this.f = ((typeof fval === 'string')
               ? { color: fval }
               : (fval.r ? { 'rgrad': fval } : { 'lgrad': fval }));
     if (this.x.path) this.x.path.fill = this.f;
     if (this.x.text) this.x.text.fill = this.f;
     return this;
 }
-// > builder.stroke % (color: String[, width: Float, 
-//                     cap: String, join: String]) // C.PC_* 
+// > builder.stroke % (color: String[, width: Float,
+//                     cap: String, join: String]) // C.PC_*
 //                  => Builder
 Builder.prototype.stroke = function(sval, width, cap, join) {
     this.s = ((typeof sval === 'string') ? {
@@ -203,18 +211,18 @@ Builder.prototype.stroke = function(sval, width, cap, join) {
     return this;
 }
 // > builder.nofill % () => Builder
-Builder.prototype.nofill = function() { 
+Builder.prototype.nofill = function() {
     this.f = null;
     if (this.x.path) this.x.path.fill = null;
     if (this.x.text) this.x.text.fill = null;
-    return this; 
+    return this;
 }
 // > builder.nostroke % () => Builder
-Builder.prototype.nostroke = function() { 
+Builder.prototype.nostroke = function() {
     this.s = null;
     if (this.x.path) this.x.path.stroke = null;
     if (this.x.text) this.x.text.stroke = null;
-    return this; 
+    return this;
 }
 
 // * STATIC MODIFICATION *
@@ -223,6 +231,32 @@ Builder.prototype.nostroke = function() {
 Builder.prototype.reg = function(pt) {
     var x = this.x;
     x.reg = pt;
+    return this;
+}
+C.R_TL = 1; C.R_TC = 5; C.R_TR = 2;
+C.R_ML = 6; C.R_MC = 0; C.R_MR = 7;
+C.R_BL = 3; C.R_BC = 8; C.R_BR = 4;
+// > builder.reg % (side: C.R_*) => Builder
+Builder.prototype.regAt = function(side) {
+    var x = this.x, _new = x.reg;
+    var b = this.v.lbounds();
+    if (!b) return this; // throw error?
+    var w = b[2] - b[0],
+        h = b[3] - b[1];
+    switch (side) {
+        case C.R_TL: _new = [ -w/2, -h/2 ]; break;
+        case C.R_TC: _new = [    0, -h/2 ]; break;
+        case C.R_TR: _new = [  w/2, -h/2 ]; break;
+
+        case C.R_ML: _new = [ -w/2,    0 ]; break;
+        case C.R_MC: _new = [    0,    0 ]; break;
+        case C.R_MR: _new = [  w/2,    0 ]; break;
+
+        case C.R_BL: _new = [ -w/2,  h/2 ]; break;
+        case C.R_BC: _new = [    0,  h/2 ]; break;
+        case C.R_BR: _new = [  w/2,  h/2 ]; break;
+    }
+    x.reg = _new;
     return this;
 }
 // > builder.move % (pt: Array[2,Integer]) => Builder
@@ -240,6 +274,12 @@ Builder.prototype.zoom = function(val) {
     }
     return this;
 }
+// > builder.bounds % (val: Array[4,Float]) => Builder
+Builder.prototype.bounds = function(bounds) {
+    if (!bounds.length === 4) throw new Error('Incorrect bounds');
+    this.x.__bounds = bounds;
+    return this;
+}
 
 // * BANDS *
 
@@ -252,17 +292,17 @@ Builder.prototype.band = function(band) {
 // * TWEENS *
 
 // > builder.tween % (type: String, // (C.T_*)
-//                    band: Array[2,Float], 
+//                    band: Array[2,Float],
 //                    data: Any,
 //                    [easing: String | Object]) => Builder // (Easing.T_*)
 Builder.prototype.tween = function(type, band, data, easing) {
-    var aeasing = (easing && (typeof easing === 'string')) 
+    var aeasing = (easing && (typeof easing === 'string'))
                   ? { type: easing, data: null }
                   : easing,
         aeasing = (easing && (typeof easing === 'function'))
                   ? { f: function() { return easing; }, data: null }
                   : aeasing;
-    this.v.addTween({
+    this.__m_id = this.v.addTween({
         type: type,
         band: band,
         data: data,
@@ -270,32 +310,36 @@ Builder.prototype.tween = function(type, band, data, easing) {
     });
     return this;
 }
-// > builder.rotate % (band: Array[2,Float], 
+// > builder.get_t_id % () => Integer
+Builder.prototype.get_t_id = Builder.prototype.get_m_id;
+// > builder.untween % (id: Integer) => Builder
+Builder.prototype.untween = Builder.prototype.unmodify;
+// > builder.rotate % (band: Array[2,Float],
 //                     angles: Array[2,Float],
 //                     [easing: String]) => Builder
 Builder.prototype.rotate = function(band, angles, easing) {
     return this.tween(C.T_ROTATE, band, angles, easing);
 }
-// > builder.rotateP % (band: Array[2,Float], 
+// > builder.rotateP % (band: Array[2,Float],
 //                      [easing: String]) => Builder
 Builder.prototype.rotateP = function(band, easing) {
     // FIXME: take band from translate tween, if it is not defined
     return this.tween(C.T_ROT_TO_PATH, band, null, easing);
 }
-// > builder.scale % (band: Array[2,Float], 
+// > builder.scale % (band: Array[2,Float],
 //                    values: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.scale = function(band, values, easing) {
     return this.tween(C.T_SCALE, band, values, easing);
 }
-// > builder.xscale % (band: Array[2,Float], 
+// > builder.xscale % (band: Array[2,Float],
 //                     values: Array[2, Float],
 //                     [easing: String]) => Builder
 Builder.prototype.xscale = function(band, values, easing) {
     return this.scale(band, [ [ values[0], values[0] ],
                               [ values[1], values[1] ] ], easing);
 }
-// > builder.trans % (band: Array[2,Float], 
+// > builder.trans % (band: Array[2,Float],
 //                    points: Array[2,Array[2, Float]],
 //                    [easing: String]) => Builder
 Builder.prototype.trans = function(band, points, easing) {
@@ -308,7 +352,7 @@ Builder.prototype.trans = function(band, points, easing) {
 Builder.prototype.transP = function(band, path, easing) {
     return this.tween(C.T_TRANSLATE, band, Builder.__path(path, this.x.path), easing);
 }
-// > builder.alpha % (band: Array[2,Float], 
+// > builder.alpha % (band: Array[2,Float],
 //                    values: Array[2,Float],
 //                    [easing: String]) => Builder
 Builder.prototype.alpha = function(band, values, easing) {
@@ -326,6 +370,10 @@ Builder.prototype.mode = function(mode) {
 Builder.prototype.once = function() {
     return this.mode(C.R_ONCE);
 }
+// > builder.stay % () => Builder
+Builder.prototype.stay = function() {
+    return this.mode(C.R_STAY);
+}
 // > builder.loop % () => Builder
 Builder.prototype.loop = function() {
     return this.mode(C.R_LOOP);
@@ -337,18 +385,38 @@ Builder.prototype.bounce = function() {
 
 // * MODIFIERS & PAINTERS *
 
-// > builder.modify % (modifier: Function(time: Float, 
-//                                        data: Any), 
+// > builder.modify % (modifier: Function(time: Float,
+//                                        data: Any),
 //                     [data: Any, priority: Integer]) => Builder
 Builder.prototype.modify = function(func, data, priority) {
-    this.v.addModifier(func, data, priority);
+    this.__m_id = this.v.addModifier(func, data, priority);
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,
 //                                      data: Any),
 //                    [data: Any, priority: Integer]) => Builder
 Builder.prototype.paint = function(func, data, priority) {
-    this.v.addPainter(func, data, priority);
+    this.__p_id = this.v.addPainter(func, data, priority);
+    return this;
+}
+// > builder.get_m_id % () => Integer
+Builder.prototype.get_m_id = function() {
+    if (typeof this.__m_id === 'undefined') throw new Error('No modifiers were added before');
+    return this.__m_id;
+}
+// > builder.get_p_id % () => Integer
+Builder.prototype.get_p_id = function() {
+    if (typeof this.__p_id === 'undefined') throw new Error('No painters were added before');
+    return this.__p_id;
+}
+// > builder.unmodify % (id: Integer) => Builder
+Builder.prototype.unmodify = function(id) {
+    this.v.removeModifier(id);
+    return this;
+}
+// > builder.unpaint % (id: Integer) => Builder
+Builder.prototype.unpaint = function(id) {
+    this.v.removePainter(id);
     return this;
 }
 
@@ -379,19 +447,39 @@ Builder.prototype.tease = function(ease) {
 
 // > builder.on % (type: String, handler: Function(evt: Event, t: Float)) => Builder
 Builder.prototype.on = function(type, handler) {
-    this.v.m_on(type, handler);
+    this.__m_id = this.v.m_on(type, handler);
     return this;
 }
+// > builder.get_h_id % () => Integer
+Builder.prototype.get_h_id = Builder.prototype.get_m_id;
+// > builder.unhandle % (id: Integer) => Builder
+Builder.prototype.unhandle = Builder.prototype.unmodify;
 
 // * UTILS *
 
+// > builder.take % (b: Builder) => Builder
+Builder.prototype.take = function(b) {
+    this.n = obj.n;
+    // xdata contents points to the same objects
+    // as source's xdata do
+    this.v = obj.v.clone();
+    this.x = this.v.xdata;
+}
+// > builder.copy % (b: Builder) => Builder
+Builder.prototype.use = function(b) {
+    this.n = obj.n;
+    // xdata takes the clones of the objects
+    // source's xdata points do
+    this.v = obj.v.dclone();
+    this.x = this.v.xdata;
+}
 // > builder.disable % () => Builder
-Builder.prototype.disable = function(func) {
+Builder.prototype.disable = function() {
     this.v.disabled = true;
     return this;
 }
 // > builder.enable % () => Builder
-Builder.prototype.enable = function(func) {
+Builder.prototype.enable = function() {
     this.v.disabled = false;
     return this;
 }
@@ -404,7 +492,7 @@ Builder.prototype.each = function(func) {
 Builder.prototype.deach = function(func) {
     this.v.travelChildren(func);
     return this;
-} 
+}
 
 // > builder.data % ([val: value]) => Builder
 Builder.prototype.data = function(value) {
@@ -413,6 +501,10 @@ Builder.prototype.data = function(value) {
         return this;
     }
     return this.v.data();
+}
+Builder.prototype.acomp = function(value) {
+    this.x.acomp = value;
+    return this;
 }
 
 /*if (modCollisions) { // IF Collisions Module enabled
@@ -430,25 +522,25 @@ Builder.prototype.data = function(value) {
     }
     Builder.prototype.bounds = function(t) {
         return this.v.bounds(t);
-    }    
+    }
 
-    // TODO: bounds, dbounds, contains, dcontains, 
+    // TODO: bounds, dbounds, contains, dcontains,
     //       collides, dcollides, intersects, dintersects,
-    //       offset, reactAs  
+    //       offset, reactAs
 
 } // end IF modCollisions*/
 
 // * PRIVATE *
 
-Builder.prototype._extractStroke = function() {
-    if (this.x.path) return this.x.path.stroke || Builder.DEFAULT_STROKE;
-    if (this.x.text) return this.x.text.stroke || Builder.DEFAULT_STROKE;
-    return Builder.DEFAULT_STROKE;
+Builder.prototype._extractStroke = function(def_) {
+    if (this.x.path) return this.x.path.stroke || def_;
+    if (this.x.text) return this.x.text.stroke || def_;
+    return def_;
 }
-Builder.prototype._extractFill = function() {
-    if (this.x.path) return this.x.path.fill || Builder.DEFAULT_FILL;
-    if (this.x.text) return this.x.text.fill || Builder.DEFAULT_FILL;
-    return Builder.DEFAULT_FILL;
+Builder.prototype._extractFill = function(def_) {
+    if (this.x.path) return this.x.path.fill || def_;
+    if (this.x.text) return this.x.text.fill || def_;
+    return def_;
 }
 
 // * HELPERS *
@@ -457,31 +549,31 @@ Builder.rgb = function(r, g, b, a) {
     return "rgba(" + Math.floor(r) + "," +
                      Math.floor(g) + "," +
                      Math.floor(b) + "," +
-                     ((typeof a !== 'undefined') 
-                            ? a : 1) + ")"; 
+                     ((typeof a !== 'undefined')
+                            ? a : 1) + ")";
 }
 Builder.frgb = function(r, g, b, a) {
-    return B.rgb(r*255,g*255,b*255,a); 
+    return B.rgb(r*255,g*255,b*255,a);
 }
 Builder.hsv = function(h, s, v, a) {
     return B.fhsv(h/360,s,v,a);
 }
 Builder.fhsv = function(h, s, v, a) {
-    var c = v * s;  
-    var h1 = h * 6; // h * 360 / 60  
-    var x = c * (1 - Math.abs((h1 % 2) - 1));  
-    var m = v - c;  
-    var rgb;  
-       
-    if (h1 < 1) rgb = [c, x, 0];  
-    else if (h1 < 2) rgb = [x, c, 0];  
-    else if (h1 < 3) rgb = [0, c, x];  
-    else if (h1 < 4) rgb = [0, x, c];  
-    else if (h1 < 5) rgb = [x, 0, c];  
-    else if (h1 <= 6) rgb = [c, 0, x];  
-      
-    return Builder.rgb(255 * (rgb[0] + m), 
-                       255 * (rgb[1] + m), 
+    var c = v * s;
+    var h1 = h * 6; // h * 360 / 60
+    var x = c * (1 - Math.abs((h1 % 2) - 1));
+    var m = v - c;
+    var rgb;
+
+    if (h1 < 1) rgb = [c, x, 0];
+    else if (h1 < 2) rgb = [x, c, 0];
+    else if (h1 < 3) rgb = [0, c, x];
+    else if (h1 < 4) rgb = [0, x, c];
+    else if (h1 < 5) rgb = [x, 0, c];
+    else if (h1 <= 6) rgb = [c, 0, x];
+
+    return Builder.rgb(255 * (rgb[0] + m),
+                       255 * (rgb[1] + m),
                        255 * (rgb[2] + m), a);
 }
 Builder.lgrad = function(dir, stops) {
@@ -524,7 +616,7 @@ Builder.easingP = function(path) {
     return { type: C.E_PATH, data: Builder.__path(path) };
 }
 Builder.easingC = function(seg) {
-    return { type: C.E_CSEG, 
+    return { type: C.E_CSEG,
         data: ((seg instanceof CSeg)
                ? seg : new CSeg(seg)) };
 }
@@ -569,6 +661,13 @@ Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps
         res.push([xx, yy]);
     }
     return Builder.path(res);
+}
+
+var prevClone = Element.prototype.clone;
+Element.prototype.clone = function() {
+    var clone = prevClone.call(this);
+    clone.__b$ = this.__b$;
+    return clone;
 }
 
 window.Builder = Builder;
