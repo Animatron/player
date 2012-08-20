@@ -155,9 +155,9 @@ E.prototype.intersects = function(elm, t) {
             return G.__pointsInRect(this.__pointsAt(t), e_rect) ||
                    G.__pointsInPath(this.__pathAt(t), e_rect);
         } else if (!pathOfC && pathOfE) {
-            var с_rect = this.rect(t);
-            return G.__pointsInRect(elm.__pointsAt(t), с_rect) ||
-                   G.__pointsInPath(elm.__pathAt(t), с_rect);
+            var c_rect = this.rect(t);
+            return G.__pointsInRect(elm.__pointsAt(t), c_rect) ||
+                   G.__pointsInPath(elm.__pathAt(t), c_rect);
         }
         return false;
     }
