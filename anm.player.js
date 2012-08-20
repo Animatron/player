@@ -394,6 +394,9 @@ Player.prototype.load = function(object, importer, callback) {
     player._reset();
 
     var whenDone = function() {
+        if (player.mode & C.M_HANDLE_EVENTS) {
+            player.__subscribeDynamicEvents(player.anim);
+        }
         player.fire(C.S_LOAD);
         player.stop();
         if (callback) callback();
@@ -849,17 +852,15 @@ Player.prototype._checkMode = function() {
             this.info = null;
         }
     }
-    if (this.mode & C.M_HANDLE_EVENTS) {
-        if (global_opts.setTabindex) {
-            canvas.setAttribute('tabindex',this.__instanceNum);
-        }
-        var scene = this.anim;
-        if (scene && !scene.__subscribedEvts) {
-            scene.subscribeEvents(canvas);
-            scene.__subscribedEvts = true;
-        }
+}
+Player.prototype.__subscribeDynamicEvents = function(scene) {
+    if (global_opts.setTabindex) {
+        this.canvas.setAttribute('tabindex',this.__instanceNum);
     }
-
+    if (scene && !scene.__subscribedEvts) {
+        scene.subscribeEvents(this.canvas);
+        scene.__subscribedEvts = true;
+    }
 }
 Player.prototype._ensureState = function() {
     if (!this.state) throw new Error(Player.NO_STATE_ERR);
