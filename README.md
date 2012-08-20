@@ -10,7 +10,7 @@ Run `examples/demo.html` to see it in action.
 
 Run `sandbox/sandbox.html` to try it yourself.
 
-Run one of the `tests/*.tests.html` files to see if something broken in your version of player
+Run one of the `tests/index.html` and run any of the tests to see if something broken in your version of player
 
 To use JS player in current state, download or copy from the cloned repository:
 
