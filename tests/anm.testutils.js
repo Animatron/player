@@ -6,10 +6,7 @@
  */
 
 function _fakeCallsForCanvasRelatedStuff() {
-    if (window) spyOn(window, 'addEventListener').andCallFake(function() { });
+    if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty);
 
-    spyOn(anm.Player, '_saveCanvasPos').andCallFake(function(cvs) {
-        cvs.__rOffsetLeft = 40;
-        cvs.__rOffsetTop = 40;
-    });
+    spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake);
 }

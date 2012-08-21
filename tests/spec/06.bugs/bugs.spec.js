@@ -21,6 +21,74 @@ describe("as for known bugs,", function() {
         this.addMatchers(_matchers);
     })
 
+    it('#34591729 should work as expected (disable modifiers among with removing/disabling elements)', function() {
+        _fakeCallsForCanvasRelatedStuff();
+
+        jasmine.Clock.useMock();
+
+        var player = createPlayer('foo');
+        var rect1 = b().rect([50, 50], 70);
+        var rect2 = b().rect([100, 100], 70);
+        var rect3 = b().rect([150, 150], 70);
+        var scene = b('scene').band([0, 10])
+                              .add(rect1)
+                              .add(rect2)
+                              .add(rect3);
+
+        var rectRemoved = false;
+
+        var m_doNothing1Spy = jasmine.createSpy('do-noth-1');
+        var m_doNothing2Spy = jasmine.createSpy('do-noth-2');
+        var m_doNothing3Spy = jasmine.createSpy('do-noth-3');
+        var m_removeRectSpy = jasmine.createSpy('remove-rect')
+                                     .andCallFake(function(t) {
+                                        if ((t > 1) && !rectRemoved) {
+                                            scene.remove(rect1);
+                                            rectRemoved = true;
+                                        }
+                                     })
+
+        rect1.modify(m_doNothing1Spy);
+        rect2.modify(m_doNothing2Spy);
+        rect2.modify(m_removeRectSpy);
+        rect3.modify(m_doNothing3Spy);
+
+        player.load(scene).play();
+
+        setTimeout(function() {
+            scene.remove(rect3);
+        }, 1000);
+
+        jasmine.Clock.tick(250);
+
+        expect(m_doNothing1Spy).toHaveBeenCalled();
+        expect(m_doNothing2Spy).toHaveBeenCalled();
+        expect(m_doNothing3Spy).toHaveBeenCalled();
+        expect(m_removeRectSpy).toHaveBeenCalled();
+
+        jasmine.Clock.tick(250);
+
+        expect(m_doNothing1Spy).toHaveBeenCalled();
+        expect(m_doNothing2Spy).toHaveBeenCalled();
+        expect(m_doNothing3Spy).toHaveBeenCalled();
+        expect(m_removeRectSpy).toHaveBeenCalled();
+
+        jasmine.Clock.tick(510); // 1010 in sum
+
+        m_doNothing1Spy.reset();
+        m_doNothing2Spy.reset();
+        m_doNothing3Spy.reset();
+        m_removeRectSpy.reset();
+
+        jasmine.Clock.tick(500);
+
+        expect(m_removeRectSpy).toHaveBeenCalled();
+        expect(m_doNothing1Spy).not.toHaveBeenCalled();
+        expect(m_doNothing2Spy).toHaveBeenCalled();
+        expect(m_doNothing3Spy).not.toHaveBeenCalled();
+
+    });
+
     xit('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
 
