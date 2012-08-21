@@ -1418,7 +1418,7 @@ Element.prototype.__safeRemove = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
     var children = this.children;
     if ((pos = children.indexOf(what)) >= 0) {
-        if (this.__modifying) {
+        if (this.rendering || what.rendering) {
             this.__removeQueue.push(what/*pos*/);
         } else {
             children.splice(pos, 1);
