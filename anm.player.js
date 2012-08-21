@@ -1414,24 +1414,27 @@ Element.prototype.addS = function(dimen, draw, onframe, transform) {
     _elm.state.dimen = dimen;
     return _elm;
 }
+Element.prototype.__safeRemove = function(what, _cnt) {
+    var pos = -1, found = _cnt || 0;
+    var children = this.children;
+    if ((pos = children.indexOf(what)) >= 0) {
+        if (this.__modifying) {
+            this.__removeQueue.push(what/*pos*/);
+        } else {
+            children.splice(pos, 1);
+        }
+        what.parent = null;
+        return 1;
+    } else {
+        this.visitChildren(function(ielm) {
+            found += ielm.__safeRemove(what, found);
+        });
+        return found;
+    }
+}
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
-    var remover = function(where, what, cnt) {
-        var pos = -1, found = cnt || 0;
-        var children = where.children;
-        if ((pos = children.indexOf(what)) >= 0) {
-            where.__removeQueue.push(what/*pos*/);
-            //children.splice(pos, 1);
-            what.parent = null;
-            return 1;
-        } else {
-            where.visitChildren(function(ielm) {
-                found += remover(ielm, what, found);
-            });
-            return found;
-        }
-    }
-    if (remover(this, elm) == 0) throw new Error('No such element found');
+    if (this.__safeRemove(elm) == 0) throw new Error('No such element found');
     if (elm.scene) elm.scene._unregister(elm);
 }
 // make element band fit all children bands

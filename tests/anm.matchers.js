@@ -34,7 +34,7 @@ matchers.toHaveBeenCalledHereWrittenAmountOfTimes = function(num) {
         ];
     };
 
-    return (this.actual.calls.length === 1);
+    return (this.actual.calls.length === num);
 };
 
 return matchers;

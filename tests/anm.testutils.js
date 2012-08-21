@@ -8,5 +8,7 @@
 function _fakeCallsForCanvasRelatedStuff() {
     if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty);
 
+    // TODO: substite nextFrame with setTimeout
+
     spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake);
 }

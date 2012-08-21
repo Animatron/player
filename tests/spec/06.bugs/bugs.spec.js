@@ -17,7 +17,7 @@ describe("as for known bugs,", function() {
         this.addMatchers(_matchers);
     })
 
-    it('#34591729 should work as expected (disable modifiers among with removing/disabling elements)', function() {
+    it('#34591729 should work as expected, part 1 (disable modifiers among with removing elements)', function() {
         _fakeCallsForCanvasRelatedStuff();
 
         var player = createPlayer('foo', { mode: C.M_DYNAMIC });
@@ -48,6 +48,7 @@ describe("as for known bugs,", function() {
                                      .andCallFake(function(t) {
                                         if ((t > .5) && !rect1Removed) {
                                             scene.remove(rect1);
+                                            expect(m_doNothing1Spy).toHaveBeenCalled();
                                             m_doNothing1Spy.reset();
                                             rect1Removed = true;
                                         }
@@ -57,11 +58,13 @@ describe("as for known bugs,", function() {
 
             player.load(scene).play();
 
+
             setTimeout(function() {
                 scene.remove(rect3);
+                expect(m_doNothing3Spy).toHaveBeenCalled();
                 m_doNothing3Spy.reset();
                 rect3Removed = true;
-            }, 600);
+            }, 550);
 
 
         });
@@ -73,6 +76,72 @@ describe("as for known bugs,", function() {
             expect(rect3Removed).toBeTruthy();
 
             expect(m_removeRectSpy).toHaveBeenCalled();
+            expect(m_doNothing2Spy).toHaveBeenCalled();
+
+            expect(m_doNothing1Spy).not.toHaveBeenCalled();
+            expect(m_doNothing3Spy).not.toHaveBeenCalled();
+        });
+
+    });
+
+    it('#34591729 should work as expected, part 2 (disable modifiers among with disabling elements)', function() {
+        _fakeCallsForCanvasRelatedStuff();
+
+        var player = createPlayer('foo', { mode: C.M_DYNAMIC });
+        var rect1 = b().rect([50, 50], 70);
+        var rect2 = b().rect([100, 100], 70);
+        var rect3 = b().rect([150, 150], 70);
+        var scene = b('scene').band([0, 10])
+                              .add(rect1)
+                              .add(rect2)
+                              .add(rect3);
+
+        var rect1Disabled = false,
+            rect3Disabled = false;
+
+        var m_doNothing1Spy = jasmine.createSpy('do-noth-1');
+        var m_doNothing2Spy = jasmine.createSpy('do-noth-2');
+        var m_doNothing3Spy = jasmine.createSpy('do-noth-3');
+
+        rect1.modify(m_doNothing1Spy);
+        rect2.modify(m_doNothing2Spy);
+        rect3.modify(m_doNothing3Spy);
+
+        var m_disableRectSpy;
+
+        runs(function() {
+
+            m_disableRectSpy = jasmine.createSpy('disable-rect')
+                                     .andCallFake(function(t) {
+                                        if ((t > .5) && !rect1Disabled) {
+                                            rect1.disable();
+                                            expect(m_doNothing1Spy).toHaveBeenCalled();
+                                            m_doNothing1Spy.reset();
+                                            rect1Disabled = true;
+                                        }
+                                     });
+
+            rect2.modify(m_disableRectSpy);
+
+            player.load(scene).play();
+
+            setTimeout(function() {
+                rect3.disable();
+                expect(m_doNothing3Spy).toHaveBeenCalled();
+                m_doNothing3Spy.reset();
+                rect3Disabled = true;
+            }, 550);
+
+
+        });
+
+        waitsFor(function() { return rect1Disabled && rect3Disabled; }, 700);
+
+        runs(function() {
+            expect(rect1Disabled).toBeTruthy();
+            expect(rect3Disabled).toBeTruthy();
+
+            expect(m_disableRectSpy).toHaveBeenCalled();
             expect(m_doNothing2Spy).toHaveBeenCalled();
 
             expect(m_doNothing1Spy).not.toHaveBeenCalled();
