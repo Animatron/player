@@ -9,10 +9,6 @@ describe("as for known bugs,", function() {
 
     var player;
 
-    it("should be stubby", function() {
-        expect(true).toBeTruthy();
-    });
-
     var b = Builder._$,
         C = anm.C;
 
@@ -24,9 +20,7 @@ describe("as for known bugs,", function() {
     it('#34591729 should work as expected (disable modifiers among with removing/disabling elements)', function() {
         _fakeCallsForCanvasRelatedStuff();
 
-        jasmine.Clock.useMock();
-
-        var player = createPlayer('foo');
+        var player = createPlayer('foo', { mode: C.M_DYNAMIC });
         var rect1 = b().rect([50, 50], 70);
         var rect2 = b().rect([100, 100], 70);
         var rect3 = b().rect([150, 150], 70);
@@ -35,57 +29,55 @@ describe("as for known bugs,", function() {
                               .add(rect2)
                               .add(rect3);
 
-        var rectRemoved = false;
+        var rect1Removed = false,
+            rect3Removed = false;
 
         var m_doNothing1Spy = jasmine.createSpy('do-noth-1');
         var m_doNothing2Spy = jasmine.createSpy('do-noth-2');
         var m_doNothing3Spy = jasmine.createSpy('do-noth-3');
-        var m_removeRectSpy = jasmine.createSpy('remove-rect')
-                                     .andCallFake(function(t) {
-                                        if ((t > 1) && !rectRemoved) {
-                                            scene.remove(rect1);
-                                            rectRemoved = true;
-                                        }
-                                     })
 
         rect1.modify(m_doNothing1Spy);
         rect2.modify(m_doNothing2Spy);
-        rect2.modify(m_removeRectSpy);
         rect3.modify(m_doNothing3Spy);
 
-        player.load(scene).play();
+        var m_removeRectSpy;
 
-        setTimeout(function() {
-            scene.remove(rect3);
-        }, 1000);
+        runs(function() {
 
-        jasmine.Clock.tick(250);
+            m_removeRectSpy = jasmine.createSpy('remove-rect')
+                                     .andCallFake(function(t) {
+                                        if ((t > .5) && !rect1Removed) {
+                                            scene.remove(rect1);
+                                            m_doNothing1Spy.reset();
+                                            rect1Removed = true;
+                                        }
+                                     });
 
-        expect(m_doNothing1Spy).toHaveBeenCalled();
-        expect(m_doNothing2Spy).toHaveBeenCalled();
-        expect(m_doNothing3Spy).toHaveBeenCalled();
-        expect(m_removeRectSpy).toHaveBeenCalled();
+            rect2.modify(m_removeRectSpy);
 
-        jasmine.Clock.tick(250);
+            player.load(scene).play();
 
-        expect(m_doNothing1Spy).toHaveBeenCalled();
-        expect(m_doNothing2Spy).toHaveBeenCalled();
-        expect(m_doNothing3Spy).toHaveBeenCalled();
-        expect(m_removeRectSpy).toHaveBeenCalled();
+            setTimeout(function() {
+                scene.remove(rect3);
+                m_doNothing3Spy.reset();
+                rect3Removed = true;
+            }, 600);
 
-        jasmine.Clock.tick(510); // 1010 in sum
 
-        m_doNothing1Spy.reset();
-        m_doNothing2Spy.reset();
-        m_doNothing3Spy.reset();
-        m_removeRectSpy.reset();
+        });
 
-        jasmine.Clock.tick(500);
+        waitsFor(function() { return rect1Removed && rect3Removed; }, 700);
 
-        expect(m_removeRectSpy).toHaveBeenCalled();
-        expect(m_doNothing1Spy).not.toHaveBeenCalled();
-        expect(m_doNothing2Spy).toHaveBeenCalled();
-        expect(m_doNothing3Spy).not.toHaveBeenCalled();
+        runs(function() {
+            expect(rect1Removed).toBeTruthy();
+            expect(rect3Removed).toBeTruthy();
+
+            expect(m_removeRectSpy).toHaveBeenCalled();
+            expect(m_doNothing2Spy).toHaveBeenCalled();
+
+            expect(m_doNothing1Spy).not.toHaveBeenCalled();
+            expect(m_doNothing3Spy).not.toHaveBeenCalled();
+        });
 
     });
 
