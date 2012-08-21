@@ -1,0 +1,79 @@
+<!--
+ ~ Copyright (c) 2011-2012 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
+  "http://www.w3.org/TR/html4/loose.dtd">
+<html>
+<head>
+  <title>Animatron Player: All Tests</title>
+
+  <link rel="shortcut icon" type="image/png" href="./vendor/jasmine-1.2.0/jasmine_favicon.png">
+
+  <style type="text/css">
+
+    a {
+      font-size: 1.2em;
+      margin-left: 10px;
+      color: #900;
+      padding: 5px;
+      background-color: #eee;
+    }
+
+    a:before {
+      content: "{";
+    }
+
+    a:after {
+      content: "}";
+    }
+
+    a:hover {
+      color: #a00;
+      background-color: #ddd;
+    }
+
+    dt {
+      margin-bottom: 5px;
+      font-size: 1.2em;
+      color: #999;
+    }
+
+    dd {
+      margin-bottom: 20px;
+    }
+
+  </style>
+
+</head>
+
+<body>
+  <h1>Animatron Player Tests</h1>
+
+  <dl>
+
+    <dt>Player Tests</dt>
+    <dd>General Player tests: playing scenarios, different modes, creating and initializaing player. <a href="./01.player.tests.html" title="Run">Run.</a></dd>
+
+    <dt>Animations Tests</dt>
+    <dd>Tests on constructing simple and complex scenes: building a trees of elements, inner/global bands, drawing shapes and more... <a href="./02.animations.tests.html" title="Run">Run.</a></dd>
+
+    <dt>Animatron Importer Tests</dt>
+    <dd>Tests on how correctly projects are imported from Animatron Tool. <a href="./03.anm-import.tests.html" title="Run">Run.</a></dd>
+
+    <dt>Builder Tests</dt>
+    <dd>Tests the Builder class, an optional tool to help users build scene in a chained way. <a href="./04.builder.tests.html" title="Run">Run.</a></dd>
+
+    <dt>Collisions Tests</dt>
+    <dd>Test the Collisions module for player, which allows to test if point is contained inside of the element, intersections, and collisions themselves. <a href="./05.collisions.tests.html" title="Run">Run.</a></dd>
+
+    <dt>Bugs Tests</dt>
+    <dd>Tests for the complex bugs, which were found after the fact when writing of these tests started (and, if possible, several serious bugs from the past will also be included here). <a href="./06.bugs.tests.html" title="Run">Run.</a></dd>
+
+  </dl>
+
+</body>
+</html>

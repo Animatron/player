@@ -1,3 +1,10 @@
+<!--
+ ~ Copyright (c) 2011-2012 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
 PLAYER API
 ==========
 
@@ -104,8 +111,11 @@ Then, you have a `Player` object.
 
 Now you may easily create a player with either of two ways below, just provide us with correct id of the canvas to attach to, and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample):
 
-    var player = createPlayer('my-canvas')
-    // or: var player = new anm.Player('my-canvas');
+    // first way:
+    var player = createPlayer('my-canvas');
+    // second way:
+    var player = new anm.Player();
+        player.init('my-canvas');
 
 ##### 2c. #####
 
@@ -120,7 +130,7 @@ You may create as many players as you want, just be sure to have enough of canva
 
 ### Player Options
 
-You may pass options object to player, if you want to configure it accurately.
+You may pass options object to player, if you want to configure it accurately. Both `createPlayer` and `player.init` may get options as second, optional, parameter.
 
 #### mode ####
 
@@ -157,9 +167,9 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 
 `meta` block provides the information about the animation author, title and copyright. However, if you load the Scene with [Importer](#importers), it will be overriden from there (it also is useful if you associate one separate scene with one separate player).
 
-#### cnvs ####
+#### anim ####
 
-`cnvs` (shorten from 'canvas') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
+`anim` (shorten from 'animation') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
 
 **NB:** If canvas element where player attached to has `width` and `height` attributes set, then they have a higher priority over configuration when loading a scene. So if you want player to update its size dynamically from options or animation configuration, ensure to remove these attributes from element.
 
@@ -177,7 +187,7 @@ The complete options object, filled with default values, looks like this (any op
                 "description":
                         "Default project description",
                 [ "modified": 12272727271871 ] }, // in milliseconds, not used currently
-      "cnvs": { ["fps": 30,] // time coefficient, not used currently
+      "anim": { ["fps": 30,] // time coefficient, not used currently
                 "width": 400, // animation width, player will be resized if required
                 "height": 250, // animation height, player will be resized if required
                 "bgfill": { color: "#fff" }, // canvas background color

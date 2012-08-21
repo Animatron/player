@@ -22,6 +22,12 @@
     <script src="./rel/alpha_project.js" type="text/javascript"></script>
     <!-- <script src="./rel/draw_tiger.js" type="text/javascript"></script> -->
 
+    <style type="text/css">
+      #__canvas1_info {
+        color: #f00;
+      }
+    </style>
+
     <script type="text/javascript">
       function start() {
           var b = Builder._$, C = anm.C;
@@ -41,16 +47,18 @@
                                             .rotate([0, 5], [0, Math.PI])
                                             .band([0, 5]).loop())
                           .band([0, 20]);
-          pl2.load(scene2).play(1);
-          setTimeout(function() {
+          pl2.load(scene2).play();
+          /* setTimeout(function() {
               pl2.stop().play(0);
-          }, 700);
+          }, 1700); */
 
           // canvas3
           var importer = new AnimatronImporter();
           var p3 = createPlayer('canvas3');
           p3.debug = true;
           p3.load(demo_project, importer);
+          p3.play(6);
+          //p3.load(scene2).play(2);
 
           // canvas4
           var p4 = createPlayer('canvas4');
@@ -105,7 +113,8 @@ var scene1 = b().rect([100, 70], [70, 70])
                 .stroke('#f00', 3);
 createPlayer('canvas1').load(scene1);
     </code></pre>
-    <canvas id="canvas1"></canvas>
+    <canvas id="canvas1" data-title="Rectangles" height="400"></canvas>
+    <!-- <canvas id="canvas1"  data-title="Rectangles" data-bgcolor="rgba(30, 30, 30, 0.4)"></canvas> -->
 
     <!-- canvas2 -->
 
@@ -118,7 +127,7 @@ var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                 .rotate([0, 10], [0, Math.PI]);
 createPlayer('canvas2').load(scene2);
     </code></pre>
-    <canvas id="canvas2"></canvas>
+    <canvas id="canvas2" data-title="Rectangles-2"></canvas>
 
     <!-- canvas3 -->
 
@@ -130,7 +139,7 @@ p3.debug = true;
 p3.load(demo_project, importer);
 p3.play(6);
     </code></pre>
-    <canvas id="canvas3"></canvas>
+    <canvas id="canvas3" width="1000" height="500"></canvas>
 
     <!-- canvas4 -->
 
@@ -138,7 +147,7 @@ p3.play(6);
     <pre><code>
 createPlayer('canvas4').load(rectangles_project, new AnimatronImporter());
     </code></pre>
-    <canvas id="canvas4"></canvas>
+    <canvas id="canvas4" data-height="500" data-width="700"></canvas>
 
     <!-- canvas5 -->
 
