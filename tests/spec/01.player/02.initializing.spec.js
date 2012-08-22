@@ -103,6 +103,20 @@ describe("player, when speaking about initialization,", function() {
         expect(player.state.zoom).toBe(1);
     });
 
+    it("player should throw errors by default", function() {
+        player.init('test-id');
+        var scene = new anm.Scene();
+        var elm = new anm.Element();
+        elm.addModifier(function(t) {
+            throw new Error('Boo');
+        })
+        try {
+            player.load(scene).play();
+        } catch(e) {
+            expect(e.message).toEqual('Boo');
+        }
+    })
+
     // test if configuration (options) correctly applied (including modules?)
     // test createPlayer itself
     // test width and height behaviour
