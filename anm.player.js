@@ -314,6 +314,7 @@ M[C.MOD_PLAYER] = global_opts;
  options format:
   { "debug": false,
     "inParent": false,
+    "muteErrors": true,
     "mode": C.M_VIDEO,
     "zoom": 1.0,
     "meta": { "title": "Default",
@@ -353,6 +354,7 @@ Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'bgfill': null/*{ 'color': DEF_CNVS_BG }*/ };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
+                                 'muteErrors': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
                                  'meta': { 'title': 'Default',
@@ -468,7 +470,7 @@ Player.prototype.play = function(from, speed) {
                    }
                    return true;
                }, function(err) {
-                    player._fireError(err);
+                   return player._fireError(err);
                });
 
     player.fire(C.S_PLAY,_state.from);
@@ -550,9 +552,10 @@ Player.prototype._fireError = function(err) {
 
     player.anim = null;
     player.stop();
-    // TODO:
 
-    return player;
+    // TODO: test if handlers not supressed the error
+
+    return false; // do not throw error
 }
 
 // === INITIALIZATION ==========================================================
@@ -587,6 +590,8 @@ Player.prototype._loadOpts = function(opts) {
     this._checkMode();
 
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
+
+    if (!opts.muteErrors) this.on(C.S_ERROR, function(err) { throw err; });
 
 }
 // initial state of the player, called from conctuctor
@@ -936,6 +941,7 @@ Player._optsFromAttrsOrDefault = function(canvas) {
     var _default = Player.DEFAULT_CONFIGURATION;
     return { 'debug': __attrOr(canvas, 'data-debug', _default.debug),
              'inParent': _default.inParent,
+             'muteErrors': __attrOr(canvas, 'data-mute-errors', _default.muteErrors),
              'mode': __attrOr(canvas, 'data-mode', _default.mode),
              'zoom': __attrOr(canvas, 'data-zoom', _default.zoom),
              'meta': { 'title': __attrOr(canvas, 'data-title', _default.meta.title),
@@ -1408,24 +1414,27 @@ Element.prototype.addS = function(dimen, draw, onframe, transform) {
     _elm.state.dimen = dimen;
     return _elm;
 }
+Element.prototype.__safeRemove = function(what, _cnt) {
+    var pos = -1, found = _cnt || 0;
+    var children = this.children;
+    if ((pos = children.indexOf(what)) >= 0) {
+        if (this.rendering || what.rendering) {
+            this.__removeQueue.push(what/*pos*/);
+        } else {
+            children.splice(pos, 1);
+        }
+        what.parent = null;
+        return 1;
+    } else {
+        this.visitChildren(function(ielm) {
+            found += ielm.__safeRemove(what, found);
+        });
+        return found;
+    }
+}
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
-    var remover = function(where, what, cnt) {
-        var pos = -1, found = cnt || 0;
-        var children = where.children;
-        if ((pos = children.indexOf(what)) >= 0) {
-            where.__removeQueue.push(what/*pos*/);
-            //children.splice(pos, 1);
-            what.parent = null;
-            return 1;
-        } else {
-            where.visitChildren(function(ielm) {
-                found += remover(ielm, what, found);
-            });
-            return found;
-        }
-    }
-    if (remover(this, elm) == 0) throw new Error('No such element found');
+    if (this.__safeRemove(elm) == 0) throw new Error('No such element found');
     if (elm.scene) elm.scene._unregister(elm);
 }
 // make element band fit all children bands

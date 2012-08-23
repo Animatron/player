@@ -1,33 +1,45 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 var _mocks = (function() {
 
 var mocks = {};
 
-var __empty = function() {};
+var _empty = function() {};
 
 mocks.gradient = {
-    'addColorStop': __empty
+    'addColorStop': _empty
 };
 
 mocks.context2d = {
-    'save': __empty,
-    'restore': __empty,
-    'fillRect': __empty,
-    'clearRect': __empty,
-    'fillText': __empty,
-    'strokeRect': __empty,
-    'translate': __empty,
-    'transform': __empty,
-    'beginPath': __empty,
-    'closePath': __empty,
-    'moveTo': __empty,
-    'lineTo': __empty,
-    'fill': __empty,
-    'stroke': __empty,
+    'save': _empty,
+    'restore': _empty,
+    'fillRect': _empty,
+    'clearRect': _empty,
+    'fillText': _empty,
+    'strokeRect': _empty,
+    'translate': _empty,
+    'transform': _empty,
+    'beginPath': _empty,
+    'closePath': _empty,
+    'moveTo': _empty,
+    'lineTo': _empty,
+    'fill': _empty,
+    'stroke': _empty,
     'createLinearGradient': function() { return mocks.gradient; },
 };
 
 mocks.canvasStyle = {
 
+};
+
+mocks.saveCanvasFake = function(cvs) {
+    cvs.__rOffsetLeft = 40;
+    cvs.__rOffsetTop = 40;
 };
 
 var __cvs_attrs = {};
@@ -38,7 +50,7 @@ mocks.canvas = {
     'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
     'getAttribute': function(attr) { return __cvs_attrs[attr]; },
     'style': mocks.canvasStyle,
-    'addEventListener': __empty
+    'addEventListener': _empty
 };
 
 return mocks;

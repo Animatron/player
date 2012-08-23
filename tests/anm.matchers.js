@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 var _matchers = (function() {
 
 var matchers = {};
@@ -27,7 +34,7 @@ matchers.toHaveBeenCalledHereWrittenAmountOfTimes = function(num) {
         ];
     };
 
-    return (this.actual.calls.length === 1);
+    return (this.actual.calls.length === num);
 };
 
 return matchers;

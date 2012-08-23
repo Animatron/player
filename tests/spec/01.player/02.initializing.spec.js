@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 describe("player, when speaking about initialization,", function() {
 
     var player;
@@ -95,6 +102,20 @@ describe("player, when speaking about initialization,", function() {
         expect(player.anim).toBe(null);
         expect(player.state.zoom).toBe(1);
     });
+
+    it("player should throw errors by default", function() {
+        player.init('test-id');
+        var scene = new anm.Scene();
+        var elm = new anm.Element();
+        elm.addModifier(function(t) {
+            throw new Error('Boo');
+        })
+        try {
+            player.load(scene).play();
+        } catch(e) {
+            expect(e.message).toEqual('Boo');
+        }
+    })
 
     // test if configuration (options) correctly applied (including modules?)
     // test createPlayer itself
