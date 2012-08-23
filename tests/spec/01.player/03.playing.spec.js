@@ -179,7 +179,40 @@ describe("player, when speaking about playing,", function() {
 
         runs(function() {
             expect(player.state.happens).toBe(C.PAUSED);
-            expect(player.state.time).toBeCloseTo(0.6, 0.2);
+            expect(player.state.time).toBeCloseTo(0.6, 0.15);
+        });
+
+    });
+
+    it("should allow to play from other point after a pause was called", function() {
+
+        runs(function() {
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            scene.duration = 1;
+            player.load(scene);
+
+            player.play();
+
+            setTimeout(function() {
+                player.pause();
+                player.play(.2);
+            }, 600);
+        });
+
+        var wasAtEnd = false;
+
+        waitsFor(function() {
+            var t = player.state.time;
+            if (!wasAtEnd && (t > .51)) wasAtEnd = true;
+            return wasAtEnd && (t > .2)
+                            && (t < .5);
+        }, 800);
+
+        runs(function() {
+            expect(player.state.happens).toBe(C.PLAYING);
+            expect(player.state.time).toBeGreaterThan(0.2);
+            expect(player.state.time).toBeLessThan(0.5);
         });
 
     });

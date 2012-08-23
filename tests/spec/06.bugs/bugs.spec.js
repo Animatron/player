@@ -84,7 +84,6 @@ describe("as for known bugs,", function() {
                     rect3Removed = true;
                 }, 550);
 
-
             });
 
             waitsFor(function() { return rect1Removed && rect3Removed && rect4Removed; }, 700);
@@ -182,11 +181,8 @@ describe("as for known bugs,", function() {
 
     });
 
-
     xit('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
-
-        // things to test:
 
         // __stopAnim should stop the exact animation __nextFrame started, not the global animation id
 

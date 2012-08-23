@@ -526,6 +526,8 @@ Player.prototype.pause = function() {
         throw new Error(Player.PAUSING_WHEN_STOPPED_ERR);
     }
 
+    if (_state.happens === C.PLAYING) __stopAnim();
+
     _state.from = _state.time;
     _state.happens = C.PAUSED;
 
@@ -3412,7 +3414,10 @@ Controls.prototype.handle_mdown = function(event) {
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
-        if (_s === C.PLAYING) this.player.play(_tpos);
+        if (_s === C.PLAYING) {
+            this.player.pause();
+            this.player.play(_tpos);
+        }
         else if ((_s === C.PAUSED) ||
                  (_s === C.STOPPED)) {
             this.player.drawAt(_tpos);
