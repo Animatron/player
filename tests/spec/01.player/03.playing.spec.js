@@ -313,6 +313,74 @@ describe("player, when speaking about playing,", function() {
 
     });
 
+    describe("events handling, concretely", function() {
+
+        it("should fire playing event when started playing", function() {
+            var playCallbackSpy = jasmine.createSpy('play-cb');
+
+            player.on(C.S_PLAY, playCallbackSpy);
+
+            player.load(new anm.Scene());
+            player.play();
+            player.pause();
+            player.stop();
+            player.play();
+            player.stop();
+
+            expect(playCallbackSpy).toHaveBeenCalledThisAmountOfTimes(2);
+        });
+
+        it("should fire pause event when was paused", function() {
+            var pauseCallbackSpy = jasmine.createSpy('pause-cb');
+
+            player.on(C.S_PAUSE, pauseCallbackSpy);
+
+            player.load(new anm.Scene());
+            player.play();
+            player.pause();
+            player.stop();
+            player.play();
+            player.stop();
+
+            expect(pauseCallbackSpy).toHaveBeenCalledOnce();
+        });
+
+        it("should fire stop event when was stopped", function() {
+            var stopCallbackSpy = jasmine.createSpy('stop-cb');
+
+            player.on(C.S_STOP, stopCallbackSpy);
+
+            player.load(new anm.Scene());
+            player.play();
+            player.stop();
+            player.play();
+            player.pause();
+            player.stop();
+            player.play();
+            player.stop();
+
+            expect(stopCallbackSpy).toHaveBeenCalledThisAmountOfTimes(3);
+        });
+
+        it("should fire load event when scene was loaded", function() {
+            var loadCallbackSpy = jasmine.createSpy('load-cb');
+
+            player.on(C.S_LOAD, loadCallbackSpy);
+
+            player.load(new anm.Scene());
+            player.play();
+            player.stop();
+            player.load(new anm.Scene());
+            player.play();
+            player.pause();
+            player.stop();
+            player.load(new anm.Scene());
+
+            expect(loadCallbackSpy).toHaveBeenCalledThisAmountOfTimes(3);
+        });
+
+    });
+
     // playing events to be fired
     // draw loading splash while loading
     // test if while preview is shown at preview time pos, controls are at 0

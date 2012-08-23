@@ -181,8 +181,32 @@ describe("as for known bugs,", function() {
 
     });
 
-    xit('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
+    it('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
+
+        _fakeCallsForCanvasRelatedStuff();
+
+        var player = createPlayer('foo');
+
+        runs(function() {
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            scene.duration = .5;
+            player.load(scene).play();
+        });
+
+        waitsFor(function() {
+            return player.state.happens === C.STOPPED;
+        }, 600);
+
+        var stopSpy = spyOn(player, 'stop').andCallThrough();
+
+        var started = Date.now();
+        waitsFor(function() { return (Date.now() - started) > 600; }, 700);
+
+        runs(function() {
+            expect(stopSpy).not.toHaveBeenCalled();
+        });
 
         // __stopAnim should stop the exact animation __nextFrame started, not the global animation id
 

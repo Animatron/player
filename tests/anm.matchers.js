@@ -11,6 +11,10 @@ var matchers = {};
 
 matchers.toHaveBeenCalledOnce = function() {
 
+    if (!jasmine.isSpy(this.actual)) {
+        throw new Error('Expected a spy, but got ' + jasmine.pp(this.actual) + '.');
+    }
+
     this.message = function() {
         return [
             "Expected spy " + this.actual.identity + " to have been called " +
@@ -23,7 +27,13 @@ matchers.toHaveBeenCalledOnce = function() {
     return (this.actual.calls.length === 1);
 };
 
-matchers.toHaveBeenCalledHereWrittenAmountOfTimes = function(num) {
+matchers.toHaveBeenCalledThisAmountOfTimes = function(num) {
+
+    //if (!num) throw new Error('Use .not.toHaveBeenCalled');
+
+    if (!jasmine.isSpy(this.actual)) {
+        throw new Error('Expected a spy, but got ' + jasmine.pp(this.actual) + '.');
+    }
 
     this.message = function() {
         return [

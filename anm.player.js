@@ -22,7 +22,8 @@ define("anm", function() {
 // http://www.html5canvastutorials.com/advanced/html5-canvas-start-and-stop-an-animation/
 // http://www.w3.org/TR/animation-timing/
 // https://gist.github.com/1579671
-var __frameId = 0;
+
+var __frameId = -1;
 
 var __frameFunc = (function() {
            return window.requestAnimationFrame ||
@@ -45,13 +46,12 @@ var __clearFrameFunc = (function() {
                   } })();
 
 // assigns to call a function on next animation frame
-var __nextFrame = function(callback) {
-    __frameId = __frameFunc(callback);
-};
+var __nextFrame = __frameFunc;
 
 // stops the animation
-var __stopAnim = function() {
-    if (__frameId) __clearFrameFunc(__frameId);
+// FIXME: remove, not used, __supressFrames is used
+var __stopAnim = function(requestId) {
+    __clearFrameFunc(requestId);
 };
 
 // OTHER
@@ -392,7 +392,12 @@ Player.prototype.load = function(object, importer, callback) {
         throw new Error(Player.NO_SCENE_PASSED_ERR);
     }
 
-    if (!this.__canvasPrepared) throw new Error(Player.CANVAS_NOT_PREPARED_ERR);
+    if ((player.state.happens === C.PLAYING) ||
+        (player.state.happens === C.PAUSED)) {
+        throw new Error(Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR);
+    }
+
+    if (!player.__canvasPrepared) throw new Error(Player.CANVAS_NOT_PREPARED_ERR);
 
     player._reset();
 
@@ -439,27 +444,31 @@ Player.prototype.play = function(from, speed) {
     player._ensureAnim();
     player._ensureState();
 
-    var _state = player.state;
+    var state = player.state;
 
-    _state.from = from || _state.from;
-    _state.speed = speed || _state.speed;
+    state.from = from || state.from;
+    state.speed = speed || state.speed;
 
-    _state.__startTime = Date.now();
-    _state.__redraws = 0;
-    _state.__rsec = 0;
+    state.__startTime = Date.now();
+    state.__redraws = 0;
+    state.__rsec = 0;
 
-    /*if (_state.state.__drawInterval !== null) {
+    state.__supressFrames = false;
+
+    /*if (state.__drawInterval !== null) {
         clearInterval(player.state.__drawInterval);
     }*/
 
-    _state.happens = C.PLAYING;
+    state.happens = C.PLAYING;
 
     var scene = player.anim;
     scene.reset();
 
-    D.drawNext(player.ctx, _state, scene,
+    state.__firstReq = D.drawNext(player.ctx,
+                                  state, scene,
                function(state, time) {
                    if (time > (state.duration + Player.PEFF)) {
+                       console.log(time, state.duration, state.duration + Player.PEFF);
                        state.time = 0;
                        scene.reset();
                        player.stop();
@@ -476,41 +485,44 @@ Player.prototype.play = function(from, speed) {
                    return player._fireError(err);
                });
 
-    player.fire(C.S_PLAY,_state.from);
+    player.fire(C.S_PLAY, state.from);
 
     return player;
 }
 
 Player.prototype.stop = function() {
-    //if (_state.happens === C.STOPPED) return;
+    //if (state.happens === C.STOPPED) return;
 
     var player = this;
 
     player._ensureState();
 
-    var _state = player.state;
+    var state = player.state;
 
-    if ((_state.happens === C.PLAYING) ||
-        (_state.happens === C.PAUSED)) __stopAnim();
+    if ((state.happens === C.PLAYING) ||
+        (state.happens === C.PAUSED)) {
+        player.__supressFrames = true;
+        __stopAnim(state.__firstReq);
+    }
 
-    _state.time = Player.NO_TIME;
-    _state.from = 0;
+    state.time = Player.NO_TIME;
+    state.from = 0;
 
     if (player.anim) {
-        _state.happens = C.STOPPED;
+        state.happens = C.STOPPED;
         player.drawAt((player.mode & C.M_VIDEO)
-            ? _state.duration * Player.PREVIEW_POS
+            ? state.duration * Player.PREVIEW_POS
             : 0);
     } else {
-        _state.happens = C.NOTHING;
+        state.happens = C.NOTHING;
         player.drawSplash();
     }
     if (player.controls/* && !player.controls.hidden*/) {
-        player.controls.render(_state, 0);
+        player.controls.render(state, 0);
     }
 
     player.fire(C.S_STOP);
-    //console.log('stop', player.id, _state);
+    //console.log('stop', player.id, state);
 
     return player;
 }
@@ -521,20 +533,23 @@ Player.prototype.pause = function() {
     player._ensureState();
     player._ensureAnim();
 
-    var _state = player.state;
-    if (_state.happens === C.STOPPED) {
+    var state = player.state;
+    if (state.happens === C.STOPPED) {
         throw new Error(Player.PAUSING_WHEN_STOPPED_ERR);
     }
 
-    if (_state.happens === C.PLAYING) __stopAnim();
+    if (state.happens === C.PLAYING) {
+        state.__supressFrames = true;
+        __stopAnim(state.__firstReq);
+    }
 
-    _state.from = _state.time;
-    _state.happens = C.PAUSED;
+    state.from = state.time;
+    state.happens = C.PAUSED;
 
-    player.drawAt(_state.time);
+    player.drawAt(state.time);
 
-    player.fire(C.S_PAUSE,_state.time);
-    //console.log('pause', player.id, _state);
+    player.fire(C.S_PAUSE, state.time);
+    //console.log('pause', player.id, state);
 
     return player;
 }
@@ -808,16 +823,16 @@ Player.prototype.toString = function() {
 }
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
-    var _state = this.state;
-    _state.debug = this.debug;
-    _state.happens = C.NOTHING;
-    _state.from = 0;
-    _state.time = Player.NO_TIME;
-    _state.zoom = 1;
-    _state.duration = 0;
+    var state = this.state;
+    state.debug = this.debug;
+    state.happens = C.NOTHING;
+    state.from = 0;
+    state.time = Player.NO_TIME;
+    state.zoom = 1;
+    state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
-    this.ctx.clearRect(0, 0, _state.width, _state.height);
+    this.ctx.clearRect(0, 0, state.width, state.height);
     //this.stop();
 }
 // update player's canvas with configuration
@@ -2116,7 +2131,9 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
             if (!callback(state, time)) return;
         }
 
-        __nextFrame(function() {
+        if (state.__supressFrames) return;
+
+        return __nextFrame(function() {
            D.drawNext(ctx, state, scene, callback, errback);
         });
 
@@ -3641,6 +3658,8 @@ Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
 Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
                       'please load something in player before ' +
                       'calling its playing-related methods';
+Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR = 'Could not load any scene while playing or paused, ' +
+                      'please stop player before loading';
 
 // =============================================================================
 // === EXPORTS =================================================================
