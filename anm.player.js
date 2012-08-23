@@ -355,6 +355,7 @@ Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'muteErrors': false,
+                                 'repeat': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
                                  'meta': { 'title': 'Default',
@@ -462,7 +463,9 @@ Player.prototype.play = function(from, speed) {
                        state.time = 0;
                        scene.reset();
                        player.stop();
-                       // TODO: support looping?
+                       if (state.repeat) {
+                          player.play();
+                       }
                        return false;
                    }
                    if (player.controls) {
@@ -584,6 +587,7 @@ Player.prototype._loadOpts = function(opts) {
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
     this.state.zoom = opts.zoom || 1;
+    this.state.repeat = opts.repeat;
 
     this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
 
@@ -942,6 +946,7 @@ Player._optsFromAttrsOrDefault = function(canvas) {
     return { 'debug': __attrOr(canvas, 'data-debug', _default.debug),
              'inParent': _default.inParent,
              'muteErrors': __attrOr(canvas, 'data-mute-errors', _default.muteErrors),
+             'repeat': __attrOr(canvas, 'data-repeat', _default.repeat),
              'mode': __attrOr(canvas, 'data-mode', _default.mode),
              'zoom': __attrOr(canvas, 'data-zoom', _default.zoom),
              'meta': { 'title': __attrOr(canvas, 'data-title', _default.meta.title),

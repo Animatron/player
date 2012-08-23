@@ -160,6 +160,7 @@ describe("player, when speaking about playing,", function() {
     });
 
     it("should pause at a time where pause was called", function() {
+
         runs(function() {
             var scene = new anm.Scene();
             scene.add(new anm.Element());
@@ -180,9 +181,105 @@ describe("player, when speaking about playing,", function() {
             expect(player.state.happens).toBe(C.PAUSED);
             expect(player.state.time).toBeCloseTo(0.6, 0.2);
         });
+
     });
 
-    // player should be stopped when finished playing scene (or paused or repeat, if defined in options)
+    it("should stop at no-time when stop was called", function() {
+
+        runs(function() {
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            player.load(scene);
+
+            player.play();
+
+            setTimeout(function() {
+                player.stop();
+            }, 600);
+        });
+
+        waitsFor(function() {
+            return player.state.happens === C.STOPPED;
+        }, 800);
+
+        runs(function() {
+            expect(player.state.happens).toBe(C.STOPPED);
+            expect(player.state.time).toBe(anm.Player.NO_TIME);
+        });
+
+    });
+
+    describe("repeat option", function() {
+
+        it("should stop at end of scene by default", function() {
+
+            var stopSpy;
+
+            runs(function() {
+                stopSpy = spyOn(player, 'stop').andCallThrough();
+
+                var scene = new anm.Scene();
+                scene.add(new anm.Element());
+                scene.duration = 1;
+                player.load(scene);
+
+                player.play();
+                expect(player.state.happens).toBe(C.PLAYING);
+                stopSpy.reset();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1200);
+
+            runs(function() {
+                expect(stopSpy).toHaveBeenCalledOnce();
+            });
+
+        });
+
+        it("should repeat the scene at the end, if it was previously set with repeat option", function() {
+
+            var playSpy,
+                stopSpy;
+
+            runs(function() {
+                playSpy = spyOn(player, 'play').andCallThrough();
+                stopSpy = spyOn(player, 'stop').andCallThrough();
+
+                var scene = new anm.Scene();
+                scene.add(new anm.Element());
+                scene.duration = 1;
+                player.state.repeat = true;
+                player.load(scene);
+
+                player.play();
+                expect(player.state.happens).toBe(C.PLAYING);
+
+                playSpy.reset();
+                stopSpy.reset();
+            });
+
+            var wasAtEnd = false;
+
+            waitsFor(function() {
+                var t = player.state.time;
+                if (!wasAtEnd && (t > .6)) wasAtEnd = true;
+                return wasAtEnd && (t > .1)
+                                && (t < .5);
+            }, 1200);
+
+            runs(function() {
+                expect(stopSpy).toHaveBeenCalledOnce();
+                expect(playSpy).toHaveBeenCalledOnce();
+                expect(player.state.time).toBeGreaterThan(0);
+                expect(player.state.time).toBeLessThan(1);
+            });
+
+        });
+
+    });
+
     // playing events to be fired
     // draw loading splash while loading
     // test if while preview is shown at preview time pos, controls are at 0

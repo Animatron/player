@@ -6,9 +6,14 @@
  */
 
 function _fakeCallsForCanvasRelatedStuff() {
+
     if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty);
 
     spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake);
+
+    if (jasmine.Clock.isInstalled()) {
+        jasmine.Clock.uninstallMock();
+    }
 
     if (window) {
         function stubFrameGen(callback) {
