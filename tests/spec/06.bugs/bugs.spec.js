@@ -100,6 +100,8 @@ describe("as for known bugs,", function() {
                 expect(m_doNothing1Spy).not.toHaveBeenCalled();
                 expect(m_doNothing3Spy).not.toHaveBeenCalled();
                 expect(m_doNothing4Spy).not.toHaveBeenCalled();
+
+                player.stop();
             });
 
         });
@@ -166,6 +168,8 @@ describe("as for known bugs,", function() {
 
                 expect(m_doNothing1Spy).not.toHaveBeenCalled();
                 expect(m_doNothing3Spy).not.toHaveBeenCalled();
+
+                player.stop();
             });
 
         });
@@ -188,6 +192,8 @@ describe("as for known bugs,", function() {
 
         var player = createPlayer('foo');
 
+        var started, stopSpy;
+
         runs(function() {
             var scene = new anm.Scene();
             scene.add(new anm.Element());
@@ -199,10 +205,13 @@ describe("as for known bugs,", function() {
             return player.state.happens === C.STOPPED;
         }, 600);
 
-        var stopSpy = spyOn(player, 'stop').andCallThrough();
+        runs(function() {
+            stopSpy = spyOn(player, 'stop').andCallThrough();
 
-        var started = Date.now();
-        waitsFor(function() { return (Date.now() - started) > 600; }, 700);
+            started = Date.now();
+        });
+
+        waitsFor(function() { return (Date.now() - started) > 600; }, 1000);
 
         runs(function() {
             expect(stopSpy).not.toHaveBeenCalled();

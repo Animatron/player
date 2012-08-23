@@ -468,7 +468,7 @@ Player.prototype.play = function(from, speed) {
                                   state, scene,
                function(state, time) {
                    if (time > (state.duration + Player.PEFF)) {
-                       console.log(time, state.duration, state.duration + Player.PEFF);
+                       //console.log(time, state.duration, state.duration + Player.PEFF);
                        state.time = 0;
                        scene.reset();
                        player.stop();
