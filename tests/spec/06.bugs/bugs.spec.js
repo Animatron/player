@@ -195,23 +195,26 @@ describe("as for known bugs,", function() {
         var started, stopSpy;
 
         runs(function() {
+            stopSpy = spyOn(player, 'stop').andCallThrough();
             var scene = new anm.Scene();
             scene.add(new anm.Element());
-            scene.duration = .5;
+            scene.duration = 1;
             player.load(scene).play();
         });
 
         waitsFor(function() {
-            return player.state.happens === C.STOPPED;
-        }, 600);
+            if (player.state.happens === C.STOPPED) {
+                expect(stopSpy).toHaveBeenCalled();
+                stopSpy.reset();
+                return true;
+            };
+        }, 1100);
 
         runs(function() {
-            stopSpy = spyOn(player, 'stop').andCallThrough();
-
             started = Date.now();
         });
 
-        waitsFor(function() { return (Date.now() - started) > 600; }, 1000);
+        waitsFor(function() { return ((Date.now() - started) > 1500); }, 2000);
 
         runs(function() {
             expect(stopSpy).not.toHaveBeenCalled();

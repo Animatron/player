@@ -466,24 +466,8 @@ Player.prototype.play = function(from, speed) {
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
-               (function(player) { return function(state, time) {
-                   if (state.happens !== C.PLAYING) return false;
-                   if (time > (state.duration + Player.PEFF)) {
-                       state.time = 0;
-                       scene.reset();
-                       player.stop();
-                       if (state.repeat) {
-                          player.play();
-                       }
-                       return false;
-                   }
-                   if (player.controls) {
-                       player.controls.render(state, time);
-                   }
-                   return true;
-               }})(player), (function(player) { return function(err) {
-                   return player._fireError(err);
-               }})(player));
+                                  player.__afterFrame(scene),
+                                  player.__originateErrors());
 
     player.fire(C.S_PLAY, state.from);
 
@@ -513,12 +497,12 @@ Player.prototype.stop = function() {
         player.drawAt((player.mode & C.M_VIDEO)
             ? state.duration * Player.PREVIEW_POS
             : 0);
+        if (player.controls/* && !player.controls.hidden*/) {
+            player._renderControlsAt(0);
+        }
     } else {
         state.happens = C.NOTHING;
         player.drawSplash();
-    }
-    if (player.controls/* && !player.controls.hidden*/) {
-        player.controls.render(state, 0);
     }
 
     player.fire(C.S_STOP);
@@ -704,7 +688,7 @@ Player.prototype.drawAt = function(time) {
     this.anim.reset();
     this.anim.render(ctx, time, state.zoom);
     if (this.controls) {
-        this.controls.render(state, time);
+        this._renderControlsAt(time);
     }
 }
 Player.prototype.detach = function() {
@@ -725,7 +709,7 @@ Player.__getPosAndRedraw = function(player) {
         if (player._rectChanged(rect)) player.changeRect(rect);*/
         if (player.controls) {
             player.controls.update(player.canvas);
-            //player.controls.render(player.state, player.state.time);
+            //player._renderControls();
         }
         if (player.info) {
             player.info.update(player.canvas);
@@ -745,8 +729,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                             }
                             if (player.controls) {
                                 player.controls.show();
-                                player.controls.render(player.state,
-                                                       player.state.time);
+                                player._renderControls();
                             }
                             if (player.info) player.info.show();
                             return true;
@@ -765,7 +748,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                             }
                             if (player.info &&
                                 (!player.info.evtInBounds(evt))) {
-                              player.info.hide();
+                                player.info.hide();
                             }
                             return true;
                         };
@@ -857,31 +840,40 @@ Player.prototype._applyConfToCanvas = function(opts) {
     this.__canvasPrepared = true;
     return this;
 }
+Player.prototype._enableControls = function() {
+    this.controls = new Controls(this);
+    this.controls.update(this.canvas);
+}
+Player.prototype._disableControls = function() {
+    this.controls.detach(this.canvas);
+    this.controls = null;
+}
+Player.prototype._enableInfo = function() {
+    this.info = new InfoBlock(this);
+    this.info.update(this.canvas);
+}
+Player.prototype._disableInfo = function() {
+    this.info.detach(this.canvas);
+    this.info = null;
+}
+Player.prototype._renderControls = function() {
+    this._renderControlsAt(this.state.time);
+}
+Player.prototype._renderControlsAt = function(t) {
+    this.controls.render(this.state, t);
+}
 Player.prototype._checkMode = function() {
     if (!this.canvas) return;
 
-    var canvas = this.canvas;
     if (this.mode & C.M_CONTROLS_ENABLED) {
-        if (!this.controls) {
-            this.controls = new Controls(this);
-            this.controls.update(canvas);
-        }
+        if (!this.controls) this._enableControls();
     } else {
-        if (this.controls) {
-            this.controls.detach(canvas);
-            this.controls = null;
-        }
+        if (this.controls) this._disableControls();
     }
     if (this.mode & C.M_INFO_ENABLED) {
-        if (!this.info) {
-            this.info = new InfoBlock(this);
-            this.info.update(canvas);
-        }
+        if (!this.info) this._enableInfo();
     } else {
-        if (this.info) {
-            this.info.detach(canvas);
-            this.info = null;
-        }
+        if (this.info) this._disableInfo();
     }
 }
 Player.prototype.__subscribeDynamicEvents = function(scene) {
@@ -898,6 +890,30 @@ Player.prototype._ensureState = function() {
 }
 Player.prototype._ensureAnim = function() {
     if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
+}
+Player.prototype.__afterFrame = function(scene) {
+    return (function(player, state, scene) { return function(time) {
+        if (state.happens !== C.PLAYING) return false;
+        if (time > (state.duration + Player.PEFF)) {
+            state.time = 0;
+            scene.reset();
+            player.stop();
+            if (state.repeat) {
+               player.play();
+            }
+            return false;
+        }
+        if (player.controls) {
+            player._renderControls();
+        }
+        return true;
+    }})(this, this.state, scene);
+}
+
+Player.prototype.__originateErrors = function() {
+    return (function(player) { return function(err) {
+        return player._fireError(err);
+    }})(this);
 }
 Player._saveCanvasPos = function(cvs) {
     var gcs = (document.defaultView &&
@@ -2132,7 +2148,7 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         }
 
         if (callback) {
-            if (!callback(state, time)) return;
+            if (!callback(time)) return;
         }
 
         if (state.__supressFrames) return;
@@ -3687,6 +3703,8 @@ var exports = {
 
     'createPlayer': function(cvs, opts) { var p = new Player();
                                           p.init(cvs, opts); return p; }
+
+    //'__dev': { 'Controls': Controls, 'Info': InfoBlock  },
 
 };
 
