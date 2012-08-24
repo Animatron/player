@@ -50,7 +50,8 @@ mocks.canvas = {
     'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
     'getAttribute': function(attr) { return __cvs_attrs[attr]; },
     'style': mocks.canvasStyle,
-    'addEventListener': _empty
+    'addEventListener': _empty,
+    '__resetMock': function() { __cvs_attrs = {}; }
 };
 
 return mocks;

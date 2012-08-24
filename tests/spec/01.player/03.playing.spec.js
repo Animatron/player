@@ -51,6 +51,7 @@ describe("player, when speaking about playing,", function() {
         expect(drawSpy).toHaveBeenCalledOnce();
         expect(drawSpy).toHaveBeenCalledWith(0);
         expect(renderSpy).toHaveBeenCalled();
+        expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
     it("should draw stop-frame at preview position when scene loaded", function() {
@@ -66,6 +67,7 @@ describe("player, when speaking about playing,", function() {
         // P.S. draws at PREVIEW_POS only in C.M_VIDEO mode
         expect(drawSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_VIDEO_DURATION
                                            * anm.Player.PREVIEW_POS);
+        expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
     it("should keep player.anim to point to current scene", function() {
@@ -83,6 +85,7 @@ describe("player, when speaking about playing,", function() {
 
         try { player.load(null); } catch(e) {};
         expect(player.anim).toBe(null);
+        expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
     describe("should keep its state conforming to the situation, so", function() {
@@ -172,6 +175,7 @@ describe("player, when speaking about playing,", function() {
             player.load(scene);
 
             player.play();
+            expect(player.state.from).toBe(0);
 
             setTimeout(function() {
                 player.pause();
@@ -185,6 +189,7 @@ describe("player, when speaking about playing,", function() {
         runs(function() {
             expect(player.state.happens).toBe(C.PAUSED);
             expect(player.state.time).toBeCloseTo(0.6, 0.15);
+            player.stop();
         });
 
     });
@@ -198,10 +203,12 @@ describe("player, when speaking about playing,", function() {
             player.load(scene);
 
             player.play();
+            expect(player.state.from).toBe(0);
 
             setTimeout(function() {
                 player.pause();
                 player.play(.2);
+                expect(player.state.from).toBe(.2);
             }, 600);
         });
 
@@ -218,6 +225,8 @@ describe("player, when speaking about playing,", function() {
             expect(player.state.happens).toBe(C.PLAYING);
             expect(player.state.time).toBeGreaterThan(0.2);
             expect(player.state.time).toBeLessThan(0.5);
+            expect(player.state.from).toBe(0.2);
+            player.stop();
         });
 
     });
@@ -230,6 +239,7 @@ describe("player, when speaking about playing,", function() {
             player.load(scene);
 
             player.play();
+            expect(player.state.from).toBe(0);
 
             setTimeout(function() {
                 player.stop();
@@ -262,6 +272,7 @@ describe("player, when speaking about playing,", function() {
                 player.load(scene);
 
                 player.play();
+                expect(player.state.from).toBe(0);
                 expect(player.state.happens).toBe(C.PLAYING);
                 stopSpy.reset();
             });
@@ -293,6 +304,7 @@ describe("player, when speaking about playing,", function() {
                 player.load(scene);
 
                 player.play();
+                expect(player.state.from).toBe(0);
                 expect(player.state.happens).toBe(C.PLAYING);
 
                 playSpy.reset();
@@ -313,6 +325,7 @@ describe("player, when speaking about playing,", function() {
                 expect(playSpy).toHaveBeenCalledOnce();
                 expect(player.state.time).toBeGreaterThan(0);
                 expect(player.state.time).toBeLessThan(1);
+                expect(player.state.from).toBe(0);
                 player.stop();
             });
 
@@ -398,8 +411,6 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    // playing events to be fired
-    // draw loading splash while loading
     // test if while preview is shown at preview time pos, controls are at 0
     // state.from
     // errors
