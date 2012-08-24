@@ -28,6 +28,7 @@ describe("player, when speaking about loading scenes,", function() {
 
     // load event to be fired
     // loading different types of objects
+    // loading is impossible while playing
     // player.load("some://fake.url"); expect(player.state.happens).toBe(C.NOTHING);
     // duration
     // test remote loading

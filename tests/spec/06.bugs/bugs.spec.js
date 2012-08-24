@@ -84,7 +84,6 @@ describe("as for known bugs,", function() {
                     rect3Removed = true;
                 }, 550);
 
-
             });
 
             waitsFor(function() { return rect1Removed && rect3Removed && rect4Removed; }, 700);
@@ -101,6 +100,8 @@ describe("as for known bugs,", function() {
                 expect(m_doNothing1Spy).not.toHaveBeenCalled();
                 expect(m_doNothing3Spy).not.toHaveBeenCalled();
                 expect(m_doNothing4Spy).not.toHaveBeenCalled();
+
+                player.stop();
             });
 
         });
@@ -167,6 +168,8 @@ describe("as for known bugs,", function() {
 
                 expect(m_doNothing1Spy).not.toHaveBeenCalled();
                 expect(m_doNothing3Spy).not.toHaveBeenCalled();
+
+                player.stop();
             });
 
         });
@@ -182,11 +185,37 @@ describe("as for known bugs,", function() {
 
     });
 
-
-    xit('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
+    it('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
 
-        // things to test:
+        _fakeCallsForCanvasRelatedStuff();
+
+        var player = createPlayer('foo');
+
+        var started, stopSpy;
+
+        runs(function() {
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            scene.duration = .5;
+            player.load(scene).play();
+        });
+
+        waitsFor(function() {
+            return player.state.happens === C.STOPPED;
+        }, 600);
+
+        runs(function() {
+            stopSpy = spyOn(player, 'stop').andCallThrough();
+
+            started = Date.now();
+        });
+
+        waitsFor(function() { return (Date.now() - started) > 600; }, 1000);
+
+        runs(function() {
+            expect(stopSpy).not.toHaveBeenCalled();
+        });
 
         // __stopAnim should stop the exact animation __nextFrame started, not the global animation id
 

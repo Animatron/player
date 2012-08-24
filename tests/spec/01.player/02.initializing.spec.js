@@ -124,6 +124,7 @@ describe("player, when speaking about initialization,", function() {
     // test several player are correclty acting at one page
     // test canvas is always prepared in _init_ method, and calling new Player() is just constructor
     // test the order of applying options / preparing canvas / scene / showing controls / info blocks to look logical
-    // test configuration through data-attributes
+    // test configuration through data-attributes, including loop-mode
+    // test muteErrors
 
 });

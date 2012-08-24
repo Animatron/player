@@ -178,8 +178,10 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you want):
 
     { "debug": false, // in debug mode, FPS, shapes names and moving paths are shown
-      "mode": C.M_VIDEO, // player mode, may be C.M_PREVIEW or C.M_DYNAMIC
-      "zoom": 1.0, // zoom ratio for animation
+      "muteErrors": false, // supress errors while playing or not
+      "mode": C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC
+      "zoom": 1.0, // zoom ratio for animation.
+      "repeat": false, // repeat the scene again when it finished to play or not
       "meta": { "title": "Default", // meta data is injected in info block
                 "author": "Anonymous",
                 "copyright": "© NaN",
@@ -764,7 +766,7 @@ Some of the functions described below (such as tweens, easings, repeat modes and
             * `C.X_KUP` — Key Up event
             * `C.X_KDOWN` — Key Down event
         * `C.X_DRAW` — Draw event
-4. [Repeat mode](#repeat-modes) `C.R_*`
+4. [Element Repeat mode](#repeat-modes) `C.R_*`
     * `C.R_ONCE` — play once
     * `C.R_STAY` — play once and stay
     * `C.R_REPEAT` — repeat playing
