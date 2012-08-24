@@ -29,7 +29,9 @@ describe("player, when speaking about loading scenes,", function() {
     // load event to be fired
     // loading different types of objects
     // loading is impossible while playing
+    // draw loading splash while loading
     // player.load("some://fake.url"); expect(player.state.happens).toBe(C.NOTHING);
+    // test if while preview is shown at preview time pos, controls are at 0
     // duration
     // test remote loading
 
