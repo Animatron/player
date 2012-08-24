@@ -10,13 +10,15 @@ describe("player, when speaking about playing,", function() {
     var player,
         C = anm.C;
 
+    var _instances = 0;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fakeCallsForCanvasRelatedStuff();
 
-        player = createPlayer('test-id');
+        player = createPlayer('test-id-' + _instances++);
     });
 
     it("should not play anything just after loading a scene", function() {
@@ -114,6 +116,7 @@ describe("player, when speaking about playing,", function() {
             player.stop();
             player.play(2);
             expect(player.state.happens).toBe(C.PLAYING);
+            player.stop();
         });
 
         it("should have state.happens equal to stopped, " +
@@ -143,6 +146,7 @@ describe("player, when speaking about playing,", function() {
             player.play();
             player.pause();
             expect(player.state.happens).toBe(C.PAUSED);
+            player.stop();
         });
 
     });
@@ -156,6 +160,7 @@ describe("player, when speaking about playing,", function() {
             player.pause();
         } catch(e) {
             expect(e.message).toBe(anm.Player.PAUSING_WHEN_STOPPED_ERR);
+            player.stop();
         }
     });
 
@@ -267,6 +272,7 @@ describe("player, when speaking about playing,", function() {
 
             runs(function() {
                 expect(stopSpy).toHaveBeenCalledOnce();
+                player.stop();
             });
 
         });
@@ -307,6 +313,7 @@ describe("player, when speaking about playing,", function() {
                 expect(playSpy).toHaveBeenCalledOnce();
                 expect(player.state.time).toBeGreaterThan(0);
                 expect(player.state.time).toBeLessThan(1);
+                player.stop();
             });
 
         });
@@ -336,26 +343,36 @@ describe("player, when speaking about playing,", function() {
             player.on(C.S_PAUSE, pauseCallbackSpy);
 
             player.load(new anm.Scene());
+
             player.play();
             player.pause();
             player.stop();
+
             player.play();
             player.stop();
 
-            expect(pauseCallbackSpy).toHaveBeenCalledOnce();
+            expect(pauseCallbackSpy).toHaveBeenCalledThisAmountOfTimes(1);
         });
 
         it("should fire stop event when was stopped", function() {
+            // one 'stop' was called while initializing a player
+
             var stopCallbackSpy = jasmine.createSpy('stop-cb');
 
             player.on(C.S_STOP, stopCallbackSpy);
 
-            player.load(new anm.Scene());
+            player.load(new anm.Scene()); // one stop call inside,
+                                          // when load performed
+
+            stopCallbackSpy.reset();
+
             player.play();
             player.stop();
+
             player.play();
             player.pause();
             player.stop();
+
             player.play();
             player.stop();
 

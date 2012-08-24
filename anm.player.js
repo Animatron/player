@@ -278,7 +278,7 @@ __reg_event('X_DRAW', 'draw', 2048);
 // playing
 __reg_event('S_PLAY', 'play', 'play');
 __reg_event('S_PAUSE', 'pause', 'pause');
-__reg_event('S_STOP', 'pause', 'pause');
+__reg_event('S_STOP', 'stop', 'stop');
 __reg_event('S_LOAD', 'load', 'load');
 __reg_event('S_ERROR', 'error', 'error');
 
@@ -466,9 +466,9 @@ Player.prototype.play = function(from, speed) {
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
-               function(state, time) {
+               (function(player) { return function(state, time) {
+                   if (state.happens !== C.PLAYING) return false;
                    if (time > (state.duration + Player.PEFF)) {
-                       //console.log(time, state.duration, state.duration + Player.PEFF);
                        state.time = 0;
                        scene.reset();
                        player.stop();
@@ -481,9 +481,9 @@ Player.prototype.play = function(from, speed) {
                        player.controls.render(state, time);
                    }
                    return true;
-               }, function(err) {
+               }})(player), (function(player) { return function(err) {
                    return player._fireError(err);
-               });
+               }})(player));
 
     player.fire(C.S_PLAY, state.from);
 
@@ -541,6 +541,10 @@ Player.prototype.pause = function() {
     if (state.happens === C.PLAYING) {
         state.__supressFrames = true;
         __stopAnim(state.__firstReq);
+    }
+
+    if (state.time > state.duration) {
+        state.time = state.duration;
     }
 
     state.from = state.time;
@@ -690,7 +694,7 @@ Player.prototype.configureMeta = function(info) {
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
-    if (time == Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
+    if (time === Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
     if ((time < 0) || (time > this.state.duration)) {
         throw new Error('Passed time is not in scene range');
     }
