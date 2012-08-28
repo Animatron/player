@@ -20,7 +20,9 @@
     };
 
     TeamcityReporter.prototype = {
-        reportRunnerResults: function(runner) { },
+        reportRunnerResults: function(runner) {
+            this.log('Dixi.');
+        },
 
         reportRunnerStarting: function(runner) { },
 
