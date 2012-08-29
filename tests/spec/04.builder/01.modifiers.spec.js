@@ -22,18 +22,19 @@ describe("builder, regarding modifiers", function() {
         player = createPlayer('test-id');
     });
 
-    // TODO: data and other parameters
-
-    it("should add modifier and call it", function() {
+    it("should pass data to the modifier", function() {
         scene = b('scene').band([0, 1]);
 
-        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-            expect(t).toBeGreaterThanOrEqual(0);
-            expect(t).toBeLessThanOrEqual(1);
+        var expectedData = { 'foo': 42 };
+
+        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, data) {
+            expect(data).toBe(expectedData);
+            expect(data.foo).toBeDefined();
+            expect(data.foo).toBe(42);
         });
 
         runs(function() {
-            scene.modify(modifierSpy);
+            scene.modify(modifierSpy, data);
             player.load(scene).play();
         });
 
@@ -45,38 +46,298 @@ describe("builder, regarding modifiers", function() {
             expect(modifierSpy.callCount).toBeGreaterThan(0);
             player.stop();
         });
+    });
+
+    describe("and especially, adding modifiers,", function() {
+
+        it("should add modifier and call it", function() {
+            scene = b('scene').band([0, 1]);
+
+            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                expect(t).toBeGreaterThanOrEqual(0);
+                expect(t).toBeLessThanOrEqual(1);
+            });
+
+            runs(function() {
+                scene.modify(modifierSpy);
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                expect(modifierSpy).toHaveBeenCalled();
+                player.stop();
+            });
+
+        });
+
+        it("should add modifier to a child and call it", function() {
+            scene = b('scene').band([0, 1]);
+
+            var target = b();
+
+            scene.add(b().add(b().add(target)));
+
+            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                expect(t).toBeGreaterThanOrEqual(0);
+                expect(t).toBeLessThanOrEqual(1);
+            });
+
+            runs(function() {
+                target.modify(modifierSpy);
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                expect(modifierSpy).toHaveBeenCalled();
+                player.stop();
+            });
+
+        });
+
+        it("child modifier local time should be in local band", function() {
+
+            scene = b('scene').band([0, 1]);
+
+            var parent = b().band([.2, .75]);
+
+            var target = b().band([.11, .42]);
+            parent.add(target)
+
+            scene.add(b().add(parent));
+
+            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                expect(t).toBeGreaterThanOrEqual(0);
+                expect(t).toBeLessThanOrEqual(.31);
+            });
+
+            runs(function() {
+                target.modify(modifierSpy);
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                expect(modifierSpy).toHaveBeenCalled();
+                player.stop();
+            });
+
+        });
+
+        it("should add several modifiers and call all of them", function() {
+            scene = b('scene').band([0, 1]);
+
+            var modifierSpies = [];
+            var spiesCount = 10;
+
+            for (var i = 0; i < spiesCount; i++) {
+                modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake(
+                    function(t) {
+                        expect(t).toBeGreaterThanOrEqual(0);
+                        expect(t).toBeLessThanOrEqual(1);
+                    }
+                ));
+            };
+
+            runs(function() {
+                for (var i = 0; i < spiesCount; i++) {
+                    scene.modify(spiesCount[i]);
+                }
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                for (var i = 0; i < spiesCount; i++) {
+                    expect(modifierSpies[i]).toHaveBeenCalled();
+                }
+                player.stop();
+            });
+
+        });
 
     });
 
-    it("should support removing modifiers", function() {
-        scene = b('scene').band([0, 1]);
+    describe("and especially, disabling elements,", function() {
 
-        var modifierId;
+        it("should not paint anything when element disabled", function() {
+            scene = b('scene').band([0, 1]);
 
-        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-            expect(t).toBeGreaterThanOrEqual(0);
-            expect(t).toBeLessThanOrEqual(.5);
-            expect(modifierId).toBeDefined();
-            if (t > .5) {
+            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                return false;
+            });
+
+            var paintSpy = jasmine.createSpy('paint-spy');
+
+            runs(function() {
+                scene.modify(modifierSpy);
+                scene.paint(paintSpy);
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
                 expect(modifierSpy).toHaveBeenCalled();
-                scene.unmodify(modifierId);
-                modifierSpy.reset();
+                expect(paintSpy).not.toHaveBeenCalled();
+                player.stop();
+            });
+
+        });
+
+        it("should not call the modifiers after the disabling one", function() {
+            scene = b('scene').band([0, 1]);
+
+            var modifierSpies = [];
+            var spiesCount = 10;
+            var disablingPos = 4;
+
+            for (var i = 0; i < disablingPos; i++) {
+                modifierSpies.push(jasmine.createSpy('modifier-spy-'+i));
+            };
+
+            // pushes at disablingPos
+            modifierSpies.push(jasmine.createSpy('disabling-modifier-spy').andCallFake(
+                function(t) {
+                    return false;
+                }
+            ));
+
+            for (var i = disablingPos + 1; i < spiesCount; i++) {
+                modifierSpies.push(jasmine.createSpy('modifier-spy-'+i));
+            };
+
+            runs(function() {
+                for (var i = 0; i < spiesCount; i++) {
+                    scene.modify(spiesCount[i]);
+                }
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+
+                for (var i = 0; i < disablingPos; i++) {
+                    expect(modifierSpies[i]).toHaveBeenCalled();
+                }
+
+                expect(modifierSpies[disablingPos]).toHaveBeenCalled();
+
+                for (var i = disablingPos + 1; i < spiesCount; i++) {
+                    expect(modifierSpies[i]).not.toHaveBeenCalled();
+                }
+
+                player.stop();
+            });
+
+        });
+
+        it("disabling should disable child elements", function() {
+            var scene = b('scene').band([0, 1]);
+
+            var childSpies = [];
+            var spiesCount = 4;
+
+            var sceneSpy = jasmine.createSpy('scene-modifier-spy');
+
+            var disablingSpy = jasmine.createSpy('disabling-modifier-spy').andCallFake(
+                function(t) { return false; }
+            );
+
+            for (var i = 0; i < spiesCount; i++) {
+                childSpies.push(jasmine.createSpy('child-spy-'+i));
             }
+
+            runs(function() {
+                scene.modify(sceneSpy);
+
+                var parent = b().modify(disablingSpy);
+
+                for (var i = 0; i < spiesCount; i++) {
+                    var child = b().modify(childSpies[i]);
+                    parent.add(child);
+                    parent = child;
+                }
+
+                player.load(scene).play();
+
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                expect(sceneSpy).toHaveBeenCalled();
+                expect(disablingSpy).toHaveBeenCalled();
+
+                for (var i = 0; i < spiesCount; i++) {
+                    expect(childSpies[i]).not.toHaveBeenCalled();
+                }
+
+                player.stop();
+            });
         });
 
-        runs(function() {
-            modifierId = scene.modify(modifierSpy);
-            player.load(scene).play();
+    });
+
+    describe("and especially, removing modifiers,", function() {
+
+        it("should support removing modifiers", function() {
+            scene = b('scene').band([0, 1]);
+
+            var modifierId;
+
+            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                expect(t).toBeGreaterThanOrEqual(0);
+                expect(t).toBeLessThanOrEqual(.5);
+                expect(modifierId).toBeDefined();
+                if (t > .5) {
+                    expect(modifierSpy).toHaveBeenCalled();
+                    scene.unmodify(modifierId);
+                    modifierSpy.reset();
+                }
+            });
+
+            runs(function() {
+                modifierId = scene.modify(modifierSpy);
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                expect(modifierSpy).not.toHaveBeenCalled();
+                player.stop();
+            });
+
         });
 
-        waitsFor(function() {
-            return player.state.happens === C.STOPPED;
-        }, 1100);
+        // TODO: should remove several modifiers
 
-        runs(function() {
-            expect(modifierSpy).not.toHaveBeenCalled();
-            player.stop();
-        });
+    });
+
+    xdescribe("and especially, modifiers priorities,", function() {
 
     });
 
