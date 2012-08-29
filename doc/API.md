@@ -1041,6 +1041,19 @@ It is ok to have a number of modifiers that check some flag and return `false` (
 
 However, please don't forget about [`data()` method](#elements-interactions). It will better fit you needs (and speed) in most cases.
 
+<!-- TODO: priority -->
+
+If you want to call a modifier once at a single moment (or a bit later), there is a helper function for this case named `at`:
+
+    var scene = b();
+    scene.add(b().rect([10, 10], 5)
+                 .at(1.2, function(t) {
+                     // this will never happen
+                    if (t < 1.2) throw new Error("You've lied to me!");
+                 }));
+
+It will wrap your modifier with another modifier, and every time when the last will be called, it will always check if current time is equal or larger than given time, and when it does, it will execute the function and immediately destroy itself — so you are ensured that your function will be called only a single time, say "at 3 seconds or a bit later". And it will also pass the actual time to a function.
+
 #### Painters
 
 __Painter__ is the function that gets current context and applies shape's `xdata` to draw something. And any shape may have any number of such functions, they will be applied one by one on every frame to draw it. Debug function that draw registration points and moving paths are also painters. In fact, they are prepared when you load your scene into player.
