@@ -233,7 +233,7 @@ describe("as for known bugs,", function() {
         expect(false).toBeTruthy();
     });
 
-    xit('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
+    it('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
         _fakeCallsForCanvasRelatedStuff();
 
         var player = createPlayer('foo', { mode: C.M_DYNAMIC });
@@ -242,16 +242,25 @@ describe("as for known bugs,", function() {
 
         var b1, b2, b3;
 
-        var clickSpy;
+        var b1ClickSpy, b2ClickSpy, b3ClickSpy;
 
         runs(function() {
-            var scene = b('scene').band([0, 2]);
+            var scene = b('scene').band([0, 1.5]);
 
-            var b1 = b('b1').on(C.X_MCLICK, function(evt) { console.log("HIT"); });
+            var b1 = b('b1').on(C.X_MCLICK,
+                b1ClickSpy = jasmine.createSpy('b1-click-spy'));
 
-            var b2 = b("b2").on(C.X_MCLICK, function(evt) { b1.disable(); });
+            var b2 = b("b2").on(C.X_MCLICK,
+                b2ClickSpy = jasmine.createSpy('b2-click-spy')
+                .andCallFake(function(evt) {
+                    b1.disable();
+                }));
 
-            var b3 = b("b3").on(C.X_MCLICK, function(evt) { b1.enable(); });
+            var b3 = b("b3").on(C.X_MCLICK,
+                b3ClickSpy = jasmine.createSpy('b3-click-spy')
+                .andCallFake(function(evt) {
+                    b1.enable();
+                }));
 
             scene.add(b1).add(b2).add(b3);
 
@@ -259,12 +268,29 @@ describe("as for known bugs,", function() {
 
             setTimeout(function() {
                 b2.v.fire(C.X_MCLICK, {});
+
+                setTimeout(function() {
+                    expect(b2ClickSpy).toHaveBeenCalled();
+                    b1.v.fire(C.X_MCLICK, {});
+
+                        setTimeout(function() {
+                            expect(b1ClickSpy).not.toHaveBeenCalled();
+                            b3.v.fire(C.X_MCLICK, {});
+
+                            setTimeout(function() {
+                                expect(b3ClickSpy).toHaveBeenCalled();
+                                enabledB1AndWaitedABit = true;
+                            }, 150);
+                        }, 200);
+                }, 200);
             }, 200);
+
         });
 
         waitsFor(function() { return enabledB1AndWaitedABit; }, 1100);
 
         runs(function() {
+            expect(b1ClickSpy).not.toHaveBeenCalled();
             player.stop();
         });
 

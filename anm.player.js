@@ -2054,6 +2054,7 @@ function provideEvents(subj, events) {
     subj.prototype.fire = function(event, evtobj) {
         if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
                                                    '\' not provided by ' + this);
+        if (this.disabled) return;
         if (this.handle__x && !(this.handle__x(event, evtobj))) return;
         var name = C.__enmap[event];
         if (this['handle_'+name]) this['handle_'+name](evtobj);
