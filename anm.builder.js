@@ -404,9 +404,9 @@ Builder.prototype.paint = function(func, data, priority) {
 //                     [data: Any, priority: Integer]) => Builder
 Builder.prototype.at = function(t, func, data, priority) {
     var me = this;
-    var at_id = me.modify(function(real_t) {
-        if (real_t >= t) { console.log(real_t); func(real_t); console.log('unmodifying'); me.unmodify(at_id); }
-    }).get_m_id();
+    var at_id = me.modify(function(real_t, data) {
+        if (real_t >= t) { func.call(this, real_t, data); me.unmodify(at_id); }
+    }, data, priority).get_m_id();
 }
 // > builder.get_m_id % () => Integer
 Builder.prototype.get_m_id = function() {

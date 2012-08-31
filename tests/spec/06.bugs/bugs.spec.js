@@ -229,6 +229,14 @@ describe("as for known bugs,", function() {
 
     });
 
+    it('#34258001 should work as expected (intersects should not hang)' function() {
+        expect(false).toBeTruthy();
+    });
+
+    it('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)' function() {
+        expect(false).toBeTruthy();
+    });
+
     xit('#34641967 should work as expected (controls should allow to jump while playing)', function() {
 
         // it is not possible to jump in time while playing

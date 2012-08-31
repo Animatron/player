@@ -49,6 +49,27 @@ describe("builder, regarding modifiers", function() {
         });
     });
 
+    it("should set `this` in modifier to element's temporary state", function() {
+        scene = b('scene').band([0, 1]);
+
+        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+            expect(this).toBe(scene.v._state);
+        });
+
+        runs(function() {
+            scene.modify(modifierSpy);
+            player.load(scene).play();
+        });
+
+        waitsFor(function() {
+            return player.state.happens === C.STOPPED;
+        }, 1100);
+
+        runs(function() {
+            player.stop();
+        });
+    });
+
     describe("and especially, adding modifiers,", function() {
 
         it("should add modifier and call it", function() {
@@ -337,6 +358,54 @@ describe("builder, regarding modifiers", function() {
 
         });
 
+        it("should remove several modifiers in proper time", function() {
+            scene = b('scene').band([0, 1]);
+
+            var modifierSpies = [];
+            var modifiersIds = [];
+            var spiesCount = 10;
+
+            for (var i = 0; i < spiesCount; i++) {
+                modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake(
+                    (function(i) { return function(t, removeTime) {
+                        expect(t).toBeGreaterThanOrEqual(0);
+                        if (t > removeTime) {
+                            var modifierId = modifiersIds[i];
+                            expect(removeTime).toEqual(i !== 0 ? ((1 / i) - .1) : 0);
+                            expect(modifierId).toBeDefined();
+                            expect(!isNaN(modifierId)).toBeTruthy(); // ensure modifier id is a number
+                            scene.unmodify(modifierId);
+                            modifierSpies[i].reset();
+                            return;
+                        }
+                        // if modifier wasn't self-removed, time should be less than .5
+                        expect(t).toBeLessThanOrEqual(removeTime);
+                    } })(i)
+                ));
+            };
+
+            runs(function() {
+                for (var i = (spiesCount - 1); i >= 0; i--) {
+                    console.log(1 / i);
+                    modifiersIds[i] = scene.modify(modifierSpies[i],
+                                            i !== 0 ? ((1 / i) - .1) : 0).get_m_id();
+                }
+                player.load(scene).play();
+            });
+
+            waitsFor(function() {
+                return player.state.happens === C.STOPPED;
+            }, 1100);
+
+            runs(function() {
+                for (var i = 0; i < spiesCount; i++) {
+                    expect(modifierSpies[i]).not.toHaveBeenCalled();
+                }
+                player.stop();
+            });
+
+        });
+
         // TODO: should remove several modifiers
 
     });
@@ -401,6 +470,10 @@ describe("builder, regarding modifiers", function() {
                 player.stop();
             });
         });
+
+        // TODO: should pass data
+
+        // TODO: element.state should be `this`
 
     });
 
