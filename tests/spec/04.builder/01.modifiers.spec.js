@@ -406,8 +406,6 @@ describe("builder, regarding modifiers", function() {
 
         });
 
-        // TODO: should remove several modifiers
-
     });
 
     xdescribe("and especially, modifiers priorities,", function() {
