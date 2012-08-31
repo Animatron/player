@@ -399,6 +399,15 @@ Builder.prototype.paint = function(func, data, priority) {
     this.__p_id = this.v.addPainter(func, data, priority);
     return this;
 }
+// > builder.at % (t: time, modifier: Function(time: Float,
+//                                             data: Any),
+//                     [data: Any, priority: Integer]) => Builder
+Builder.prototype.at = function(t, func, data, priority) {
+    var me = this;
+    var at_id = me.modify(function(real_t, data) {
+        if (real_t >= t) { func.call(this, real_t, data); me.unmodify(at_id); }
+    }, data, priority).get_m_id();
+}
 // > builder.get_m_id % () => Integer
 Builder.prototype.get_m_id = function() {
     if (typeof this.__m_id === 'undefined') throw new Error('No modifiers were added before');

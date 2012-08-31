@@ -175,6 +175,11 @@ describe("as for known bugs,", function() {
         });
 
         xit('should fire an error if element removed twice', function() {
+            // TODO!
+        });
+
+        xit('should fire an error if element added twice', function() {
+            // TODO!
         });
 
         xit('should remove safely a lot of elements', function() {
@@ -224,9 +229,49 @@ describe("as for known bugs,", function() {
 
     });
 
-    xit('#34641967 should work as expected (controls should allow to jump while playing)', function() {
+    xit('#34258001 should work as expected (intersects should not hang)', function() {
+        expect(false).toBeTruthy();
+    });
 
-        // it is not possible to jump in time while playing
+    xit('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
+        _fakeCallsForCanvasRelatedStuff();
+
+        var player = createPlayer('foo', { mode: C.M_DYNAMIC });
+
+        var enabledB1AndWaitedABit = false;
+
+        var b1, b2, b3;
+
+        var clickSpy;
+
+        runs(function() {
+            var scene = b('scene').band([0, 2]);
+
+            var b1 = b('b1').on(C.X_MCLICK, function(evt) { console.log("HIT"); });
+
+            var b2 = b("b2").on(C.X_MCLICK, function(evt) { b1.disable(); });
+
+            var b3 = b("b3").on(C.X_MCLICK, function(evt) { b1.enable(); });
+
+            scene.add(b1).add(b2).add(b3);
+
+            player.load(scene).play();
+
+            setTimeout(function() {
+                b2.v.fire(C.X_MCLICK, {});
+            }, 200);
+        });
+
+        waitsFor(function() { return enabledB1AndWaitedABit; }, 1100);
+
+        runs(function() {
+            player.stop();
+        });
+
+    });
+
+    xit('#34641967 should work as expected (controls should allow to jump while playing)', function() {
+        // it was not possible to jump in time while playing
     });
 
     xdescribe("#34213789 should work as expected (controls should be rendered correcly in all use-cases)",

@@ -251,7 +251,6 @@ describe("player, when speaking about playing,", function() {
         }, 800);
 
         runs(function() {
-            expect(player.state.happens).toBe(C.STOPPED);
             expect(player.state.time).toBe(anm.Player.NO_TIME);
         });
 
@@ -323,6 +322,7 @@ describe("player, when speaking about playing,", function() {
             runs(function() {
                 expect(stopSpy).toHaveBeenCalledOnce();
                 expect(playSpy).toHaveBeenCalledOnce();
+                expect(player.state.happens).toBe(C.PLAYING);
                 expect(player.state.time).toBeGreaterThan(0);
                 expect(player.state.time).toBeLessThan(1);
                 expect(player.state.from).toBe(0);

@@ -990,8 +990,6 @@ Every such function returns `null` by default (when you return nothing) and it m
 
 <!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
 
-<!-- TODO: may be it is more convenient to return false (nothing) for modifier to pass and true if it needs to be stopped? because most of modifiers now return true -->
-
     b().modify(function(t) {
         this.x = 10 * t;
         this.sy = t / 15;
@@ -1023,7 +1021,7 @@ In fact, when you change the `state` in any modifier, you change not the current
 
 As you may noticed in example, you may optionally pass `data` object of any type, it will be passed to your modifier as second parameter every time it will be called. Also, you may specify a priority number, the higher this number, the later this modifier will be called in the modifiers sequence. The modifiers with the same priority will be called in the order of addition.
 
-It is ok to have a number of modifiers that check some flag and return `false` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 20 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
+It is ok to have a number of modifiers that check some flag and return `false` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 40 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
 
     var scene = b();
     var ctx = {};
@@ -1040,6 +1038,19 @@ It is ok to have a number of modifiers that check some flag and return `false` (
     };
 
 However, please don't forget about [`data()` method](#elements-interactions). It will better fit you needs (and speed) in most cases.
+
+<!-- TODO: priority -->
+
+If you want to call a modifier once at a single moment (or a bit later), there is a helper function for this case named `at`:
+
+    var scene = b();
+    scene.add(b().rect([10, 10], 5)
+                 .at(1.2, function(t) {
+                     // this will never happen
+                    if (t < 1.2) throw new Error("You've lied to me!");
+                 }));
+
+It will wrap your modifier with another modifier, and every time when the last will be called, it will always check if current time is equal or larger than given time, and when it does, it will execute the function and immediately destroy itself — so you are ensured that your function will be called only a single time, say "at 3 seconds or a bit later". And it will also pass the actual time to a function.
 
 #### Painters
 
