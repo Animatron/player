@@ -175,6 +175,11 @@ describe("as for known bugs,", function() {
         });
 
         xit('should fire an error if element removed twice', function() {
+            // TODO!
+        });
+
+        xit('should fire an error if element added twice', function() {
+            // TODO!
         });
 
         xit('should remove safely a lot of elements', function() {

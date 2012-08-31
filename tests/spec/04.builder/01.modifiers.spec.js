@@ -28,13 +28,14 @@ describe("builder, regarding modifiers", function() {
         var expectedData = { 'foo': 42 };
 
         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, data) {
+            expect(data).toBeDefined();
             expect(data).toBe(expectedData);
             expect(data.foo).toBeDefined();
             expect(data.foo).toBe(42);
         });
 
         runs(function() {
-            scene.modify(modifierSpy, data);
+            scene.modify(modifierSpy, expectedData);
             player.load(scene).play();
         });
 
@@ -151,7 +152,7 @@ describe("builder, regarding modifiers", function() {
 
             runs(function() {
                 for (var i = 0; i < spiesCount; i++) {
-                    scene.modify(spiesCount[i]);
+                    scene.modify(modifierSpies[i]);
                 }
                 player.load(scene).play();
             });
@@ -224,7 +225,7 @@ describe("builder, regarding modifiers", function() {
 
             runs(function() {
                 for (var i = 0; i < spiesCount; i++) {
-                    scene.modify(spiesCount[i]);
+                    scene.modify(modifierSpies[i]);
                 }
                 player.load(scene).play();
             });
@@ -270,6 +271,7 @@ describe("builder, regarding modifiers", function() {
                 scene.modify(sceneSpy);
 
                 var parent = b().modify(disablingSpy);
+                scene.add(parent);
 
                 for (var i = 0; i < spiesCount; i++) {
                     var child = b().modify(childSpies[i]);
@@ -308,17 +310,19 @@ describe("builder, regarding modifiers", function() {
 
             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
                 expect(t).toBeGreaterThanOrEqual(0);
-                expect(t).toBeLessThanOrEqual(.5);
-                expect(modifierId).toBeDefined();
                 if (t > .5) {
-                    expect(modifierSpy).toHaveBeenCalled();
+                    expect(modifierId).toBeDefined();
+                    expect(!isNaN(modifierId)).toBeTruthy(); // ensure modifier id is a number
                     scene.unmodify(modifierId);
                     modifierSpy.reset();
+                    return;
                 }
+                // if modifier wasn't self-removed, time should be less than .5
+                expect(t).toBeLessThanOrEqual(.5);
             });
 
             runs(function() {
-                modifierId = scene.modify(modifierSpy);
+                modifierId = scene.modify(modifierSpy).get_m_id();
                 player.load(scene).play();
             });
 
@@ -340,6 +344,8 @@ describe("builder, regarding modifiers", function() {
     xdescribe("and especially, modifiers priorities,", function() {
 
     });
+
+    // TODO: test events
 
     describe("and especially, exact-time-modifiers,", function() {
 
