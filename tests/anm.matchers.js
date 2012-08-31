@@ -27,6 +27,7 @@ matchers.toHaveBeenCalledOnce = function() {
     return (this.actual.calls.length === 1);
 };
 
+// TODO: remove, just check call count
 matchers.toHaveBeenCalledThisAmountOfTimes = function(num) {
 
     //if (!num) throw new Error('Use .not.toHaveBeenCalled');
@@ -46,6 +47,28 @@ matchers.toHaveBeenCalledThisAmountOfTimes = function(num) {
 
     return (this.actual.calls.length === num);
 };
+
+matchers.toBeLessThanOrEqual = function(expected) {
+    var actual = this.actual;
+    var notText = this.isNot ? " not" : "";
+
+    this.message = function () {
+        return "Expected " + actual + notText + " to be less than " + expected + ", or equal to it";
+    };
+
+    return actual <= expected;
+}
+
+matchers.toBeGreaterThanOrEqual = function(expected) {
+    var actual = this.actual;
+    var notText = this.isNot ? " not" : "";
+
+    this.message = function () {
+        return "Expected " + actual + notText + " to be greater than " + expected + ", or equal to it";
+    };
+
+    return actual >= expected;
+}
 
 return matchers;
 
