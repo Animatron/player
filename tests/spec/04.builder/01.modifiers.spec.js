@@ -386,7 +386,6 @@ describe("builder, regarding modifiers", function() {
 
             runs(function() {
                 for (var i = (spiesCount - 1); i >= 0; i--) {
-                    console.log(1 / i);
                     modifiersIds[i] = scene.modify(modifierSpies[i],
                                             i !== 0 ? ((1 / i) - .1) : 0).get_m_id();
                 }
