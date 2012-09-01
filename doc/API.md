@@ -1271,9 +1271,23 @@ With `each()` method you may loop through all of the children of the element. No
       b(elm).stroke('#f00');
     });
 
+<!-- TODO about removing -->
+
 > ♦ `builder.deach % (visitor: Function(elm: Element)) => Builder`
 
 There is a `deach()` ("deep-each") method with the same definition to iterate deeper through each of the `(`grand-`)*`children.
+
+> ♦ `builder.iter % (visitor: Function(elm: Element)) => Builder`
+
+<!-- TODO -->
+
+> ♦ `builder.diter % (visitor: Function(elm: Element)) => Builder`
+
+<!-- TODO -->
+
+> ♦ `builder.clear % () => Builder`
+
+<!-- TODO -->
 
 > ♦ `builder.data % ([value: Any]) => Builder | Any`
 

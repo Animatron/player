@@ -30,7 +30,7 @@ function Builder(obj) {
         this.x = this.v.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
-        this.v = obj.v.dclone();
+        this.v = obj.v.deepClone();
         this.x = this.v.xdata;
         this.f = this._extractFill(obj.f);
         this.s = this._extractStroke(obj.s);
@@ -479,7 +479,7 @@ Builder.prototype.use = function(b) {
     this.n = obj.n;
     // xdata takes the clones of the objects
     // source's xdata points do
-    this.v = obj.v.dclone();
+    this.v = obj.v.deepClone();
     this.x = this.v.xdata;
 }
 // > builder.disable % () => Builder
@@ -502,7 +502,28 @@ Builder.prototype.deach = function(func) {
     this.v.travelChildren(func);
     return this;
 }
-
+// > builder.iter % (visitor: Function(elm: Element),
+//                   [onremove: Function(elm: Element)]) => Builder
+Builder.prototype.iter = function(func, rfunc) {
+    this.v.iterateChildren(func, rfunc);
+    return this;
+}
+// > builder.diter % (visitor: Function(elm: Element),
+//                    [onremove: Function(elm: Element)]) => Builder
+Builder.prototype.diter = function(func, rfunc) {
+    this.v.deepIterateChildren(func, rfunc);
+    return this;
+}
+// > builder.detach % () => Builder
+Builder.prototype.detach = function() {
+    this.v.detach();
+    return this;
+}
+// > builder.clear % () => Builder
+Builder.prototype.clear = function() {
+    this.v.clear();
+    return this;
+}
 // > builder.data % ([val: value]) => Builder
 Builder.prototype.data = function(value) {
     if (typeof value !== 'undefined') {

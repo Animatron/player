@@ -766,7 +766,7 @@ G.__edgeTest = function(p1, p2, p3, r2) {
     return true;
 }
 G.__isecRects = function(r1, r2) {
-    if (!r1 || !r2) throw new Error('Rects are not accessible');
+    if (!r1 || !r2) throw new Error('One (or both) of rects / bounds is not accessible');
     if (G.__zeroRect(r1) || G.__zeroRect(r2)) return false;
     var edgeTest = G.__edgeTest;
 

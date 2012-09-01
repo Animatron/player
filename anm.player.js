@@ -84,16 +84,39 @@ function guid() {
   return hash;
 }*/
 
-function arr_remove(arr, elms) {
-    var idx;
-    for (var ei = 0, el = elms.length; ei < el; ei++) {
-        // may be improve with equals or smth,
-        // but === checks memory address and it is cool
-        if ((idx = arr.indexOf(elms[ei])) >= 0) {
-            arr.splice(idx, 1);
-        }
+// ARRAYS
+
+function StopIteration() {}
+
+function iter(a) {
+    if (a.__iter) {
+        a.__iter.reset();
+        return a.__iter;
     }
+    var pos = 0,
+        len = a.length;
+    return (a.__iter = {
+        next: function() {
+                  if (pos < len) return a[pos++];
+                  pos = 0;
+                  throw new StopIteration();
+              },
+        hasNext: function() { return (pos < len); },
+        remove: function() { len--; return a.splice(--pos, 1); },
+        reset: function() { pos = 0; len = a.length; },
+        get: function() { return a[pos]; },
+        each: function(f, rf) {
+                  this.reset();
+                  while (this.hasNext()) {
+                    if (f(this.next()) === false) {
+                        if (rf) rf(this.remove()); else this.remove();
+                    }
+                  }
+              }
+    });
 }
+
+// DOM
 
 // for one-level objects, so no hasOwnProperty check
 function obj_clone(what) {
@@ -115,6 +138,8 @@ function find_pos(elm) {
     } while (elm = elm.offsetParent);
     return [ curleft, curtop ];
 }
+
+// AJAX
 
 function ajax(url, callback/*, errback*/) {
     var req = false;
@@ -157,6 +182,8 @@ function ajax(url, callback/*, errback*/) {
     req.open('GET', url, true);
     req.send(null);
 }
+
+// CANVAS-RELATED
 
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
@@ -1074,13 +1101,24 @@ Scene.prototype.remove = function(elm) {
         this._unregister(elm);
     }
 }
+// > Scene.prototype.clear % ()
+/* Scene.prototype.clear = function() {
+    this.hash = {};
+    this.tree = [];
+    this.duration = 0;
+    var hash = this.hash;
+    this.hash = {};
+    for (var elmId in hash) {
+        hash[elm.id]._unbind(); // unsafe, because calls unregistering
+    }
+} */
 // > Scene.visitElems % (visitor: Function(elm: Element))
 Scene.prototype.visitElems = function(visitor, data) {
     for (var elmId in this.hash) {
         visitor(this.hash[elmId], data);
     }
 }
-// > Scene.visitElems % (visitor: Function(elm: Element))
+// > Scene.visitRoots % (visitor: Function(elm: Element))
 Scene.prototype.visitRoots = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
         visitor(this.tree[i], data);
@@ -1119,6 +1157,7 @@ Scene.prototype.reset = function() {
 Scene.prototype.dispose = function() {
     this.disposeHandlers();
     var me = this;
+    // FIXME: unregistering removes from tree, ensure it is safe
     this.visitRoots(function(elm) {
         me._unregister(elm);
         elm.dispose();
@@ -1180,7 +1219,7 @@ Scene.prototype._addElems = function(elems) {
     }
 }
 Scene.prototype._register = function(elm) {
-    if (elm.registered) return;
+    if (this.hash[elm.id]) throw new Error('Element already registered');
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
@@ -1190,7 +1229,7 @@ Scene.prototype._register = function(elm) {
     });
 }
 Scene.prototype._unregister = function(elm) {
-    if (!elm.registered) return;
+    if (!elm.registered) throw new Error('Element not registered');
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
@@ -1302,7 +1341,7 @@ function Element(draw, onframe) {
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if painting
     this.__evtCache = [];
-    this.__removeQueue = [];
+    this.__detachQueue = [];
     this._initHandlers(); // TODO: make automatic
     var _me = this,
         default_on = this.on;
@@ -1456,28 +1495,36 @@ Element.prototype.addS = function(dimen, draw, onframe, transform) {
     _elm.state.dimen = dimen;
     return _elm;
 }
-Element.prototype.__safeRemove = function(what, _cnt) {
+Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
     var children = this.children;
     if ((pos = children.indexOf(what)) >= 0) {
         if (this.rendering || what.rendering) {
-            this.__removeQueue.push(what/*pos*/);
+            this.__detachQueue.push(what/*pos*/);
         } else {
+            what._unbind();
             children.splice(pos, 1);
         }
-        what.parent = null;
         return 1;
     } else {
         this.visitChildren(function(ielm) {
-            found += ielm.__safeRemove(what, found);
+            found += ielm.__safeDetach(what, found);
         });
         return found;
     }
 }
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
-    if (this.__safeRemove(elm) == 0) throw new Error('No such element found');
-    if (elm.scene) elm.scene._unregister(elm);
+    if (this.__safeDetach(elm) == 0) throw new Error('No such element found');
+}
+Element.prototype._unbind = function() {
+    this.parent = null;
+    if (this.scene) this.scene._unregister(this);
+    // this.scene should be null after unregistering
+}
+// > Element.detach % ()
+Element.prototype.detach = function() {
+    if (this.parent.__safeDetach(this) == 0) throw new Error('Not attached');
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
@@ -1606,6 +1653,33 @@ Element.prototype.travelChildren = function(func) {
         elem.travelChildren(func);
     };
 }
+Element.prototype.iterateChildren = function(func, rfunc) {
+    iter(this.children).each(func, rfunc);
+}
+Element.prototype.deepIterateChildren = function(func, rfunc) {
+    iter(this.children).each(function(elm) {
+        elm.iterateChildren(func, rfunc);
+    }, rfunc);
+}
+Element.prototype.__performDetach = function() {
+    var children = this.children;
+    iter(this.__detachQueue).each(function(elm) {
+        if ((idx = children.indexOf(elm)) >= 0) {
+            children.splice(idx, 1);
+            elm._unbind();
+        }
+    });
+    this.__detachQueue = [];
+}
+Element.prototype.clear = function() {
+    if (!this.rendering) {
+        var children = this.children;
+        this.children = [];
+        iter(children).each(function(elm) { elm._unbind(); });
+    } else {
+        this.__detachQueue = this.__detachQueue.concat(this.children);
+    }
+}
 Element.prototype.lock = function() {
     this.__jumpLock = true;
     this.__lstate = obj_clone(this.state);
@@ -1687,14 +1761,14 @@ Element.prototype.clone = function() {
     clone.__data = this.__data;
     return clone;
 }
-Element.prototype.dclone = function() {
+Element.prototype.deepClone = function() {
     var clone = this.clone();
     clone.children = [];
     var src_children = this.children;
     var trg_children = clone.children;
     for (var sci = 0, scl = src_children.length; sci < scl; sci++) {
         var csrc = src_children[sci],
-            cclone = csrc.dclone();
+            cclone = csrc.deepClone();
         cclone.parent = clone;
         trg_children.push(cclone);
     }
@@ -1930,10 +2004,8 @@ Element.prototype.__clearEvts = function(from) {
     from.__evt_st = 0; from.__evts = {};
 }
 Element.prototype.__postRender = function() {
-    // clear remove-queue
-    if (this.__removeQueue.length == 0) return;
-    arr_remove(this.children, this.__removeQueue);
-    this.__removeQueue = [];
+    // clear detach-queue
+    this.__performDetach();
 }
 
 // state of the element
