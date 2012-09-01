@@ -1271,23 +1271,27 @@ With `each()` method you may loop through all of the children of the element. No
       b(elm).stroke('#f00');
     });
 
-<!-- TODO about removing -->
+Be aware that if you plan to remove some child of some element while iterating through this element, it will fail, because children data will be modified in this moment from the inside, without notifying parent element about that fact, and element will keep iterating over non-existing elements. To solve this, use `iter()` method, described below.
 
 > ♦ `builder.deach % (visitor: Function(elm: Element)) => Builder`
 
 There is a `deach()` ("deep-each") method with the same definition to iterate deeper through each of the `(`grand-`)*`children.
 
-> ♦ `builder.iter % (visitor: Function(elm: Element)) => Builder`
+The note about removing applies here in the same way.
 
-<!-- TODO -->
+> ♦ `builder.iter % (visitor: Function(elm: Element) => Boolean) => Builder`
 
-> ♦ `builder.diter % (visitor: Function(elm: Element)) => Builder`
+This is the safe (but may be a bit more slow, because it uses iterator object) iteration over element's children, where you may return false (if return statement is omitted, it is considered as true) to delete the child from the element you are iterating over.
 
-<!-- TODO -->
+<!-- TODO: more info -->
+
+> ♦ `builder.diter % (visitor: Function(elm: Element) => Boolean) => Builder`
+
+The same as `iter()`, but deep to `(`grand-`)*`children.
 
 > ♦ `builder.clear % () => Builder`
 
-<!-- TODO -->
+Detach all children of the element from itself and from the scene.
 
 > ♦ `builder.data % ([value: Any]) => Builder | Any`
 
