@@ -51,3 +51,12 @@ function _fakeCallsForCanvasRelatedStuff() {
     }
 
 }
+
+// TODO: function(prepareCanvasTest)
+
+/*
+       //this.addMatchers(_matchers);
+
+        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        _fakeCallsForCanvasRelatedStuff();
+*/
