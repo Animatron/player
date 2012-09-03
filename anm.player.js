@@ -1502,6 +1502,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
+            if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -1516,7 +1517,6 @@ Element.prototype.__safeDetach = function(what, _cnt) {
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
     if (!elm) throw new Error('Pass an element or use detach() method');
-    if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
     if (this.__safeDetach(elm) == 0) throw new Error('No such element found');
 }
 Element.prototype._unbind = function() {
@@ -1528,8 +1528,6 @@ Element.prototype._unbind = function() {
 }
 // > Element.detach % ()
 Element.prototype.detach = function() {
-    if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
     if (this.parent.__safeDetach(this) == 0) throw new Error('Not attached');
 }
 // make element band fit all children bands
