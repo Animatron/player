@@ -464,7 +464,7 @@ Builder.prototype.get_h_id = Builder.prototype.get_m_id;
 // > builder.unhandle % (id: Integer) => Builder
 Builder.prototype.unhandle = Builder.prototype.unmodify;
 
-// * UTILS *
+// * TAKE & USE *
 
 // > builder.take % (b: Builder) => Builder
 Builder.prototype.take = function(b) {
@@ -482,6 +482,9 @@ Builder.prototype.use = function(b) {
     this.v = obj.v.deepClone();
     this.x = this.v.xdata;
 }
+
+// * ENABLE & DISABLE *
+
 // > builder.disable % () => Builder
 Builder.prototype.disable = function() {
     this.v.disabled = true;
@@ -492,6 +495,9 @@ Builder.prototype.enable = function() {
     this.v.disabled = false;
     return this;
 }
+
+// * ITERATIONS *
+
 // > builder.each % (visitor: Function(elm: Element)) => Builder
 Builder.prototype.each = function(func) {
     this.v.visitChildren(func);
@@ -514,6 +520,9 @@ Builder.prototype.diter = function(func, rfunc) {
     this.v.deepIterateChildren(func, rfunc);
     return this;
 }
+
+// * DETACH & CLEAR *
+
 // > builder.detach % () => Builder
 Builder.prototype.detach = function() {
     this.v.detach();
@@ -524,6 +533,9 @@ Builder.prototype.clear = function() {
     this.v.clear();
     return this;
 }
+
+// * DATA *
+
 // > builder.data % ([val: value]) => Builder
 Builder.prototype.data = function(value) {
     if (typeof value !== 'undefined') {
@@ -532,6 +544,9 @@ Builder.prototype.data = function(value) {
     }
     return this.v.data();
 }
+
+// * COMPOSITING *
+
 Builder.prototype.acomp = function(value) {
     this.x.acomp = value;
     return this;
