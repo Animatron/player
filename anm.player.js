@@ -1687,6 +1687,7 @@ Element.prototype.__performDetach = function() {
     this.__detachQueue = [];
 }
 Element.prototype.clear = function() {
+    if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];

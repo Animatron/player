@@ -1,19 +1,17 @@
 describe("builder, regading iterations, ", function() {
 
-    var player,
-        C = anm.C;
+    /* var player,
+        C = anm.C; */
 
     var b = Builder._$,
         B = Builder;
 
-    var _instances = 0;
-
-    beforeEach(function() {
+    /* beforeEach(function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fakeCallsForCanvasRelatedStuff();
-    });
+    }); */
 
     describe("each/deach methods", function() {
 
@@ -158,6 +156,52 @@ describe("builder, regading iterations, ", function() {
 
         });
 
+        it("should throw an error when iterated element is expected to be cleared during simple iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.each(function(elm) {
+                    root.clear();
+                });
+
+                this.fail('Should throw exception');
+
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+            }
+
+        });
+
+       it("should not throw an error when child element is expected to be cleared during simple iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.each(function(elm) {
+                    elm.clear();
+                });
+
+            } catch(e) {
+                this.fail(e);
+            }
+
+        });
+
         it("should throw an error if removing happens during deep iteration", function() {
             var count = 10;
 
@@ -202,6 +246,52 @@ describe("builder, regading iterations, ", function() {
 
             } catch(e) {
                 expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+            }
+
+        });
+
+        it("should throw an error when iterated element is expected to be cleared during deep iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.deach(function(elm) {
+                    root.clear();
+                });
+
+                this.fail('Should throw exception');
+
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+            }
+
+        });
+
+       it("should not throw an error when child element is expected to be cleared during deep iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.deach(function(elm) {
+                    elm.clear();
+                });
+
+            } catch(e) {
+                this.fail(e);
             }
 
         });
@@ -403,6 +493,98 @@ describe("builder, regading iterations, ", function() {
             } catch(e) {
                 expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
             }
+        });
+
+        it("should disallow clearing iterated element during safe-iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.iter(function(elm) {
+                    root.clear();
+                });
+
+                this.fail('Should throw exception');
+
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+            }
+
+        });
+
+        it("should allow clearing child elements during safe-iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.iter(function(elm) {
+                    elm.clear();
+                });
+
+            } catch(e) {
+                this.fail(e);
+            }
+
+        });
+
+        it("should disallow clearing iterated element during safe-deep-iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.diter(function(elm) {
+                    root.clear();
+                });
+
+                this.fail('Should throw exception');
+
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+            }
+
+        });
+
+        it("should allow clearing child elements during safe-deep-iteration", function() {
+            var count = 10;
+
+            var root = b('root');
+
+            for (var i = 0; i < count; i++) {
+                var elem = b('elem-'+i);
+                root.add(elem);
+            }
+
+            try {
+
+                root.diter(function(elm) {
+                    elm.clear();
+                });
+
+            } catch(e) {
+                this.fail(e);
+            }
+
         });
 
         it("should safely remove elements in case of safe-iteration with returning false", function() {
