@@ -1515,15 +1515,21 @@ Element.prototype.__safeDetach = function(what, _cnt) {
 }
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
+    if (!elm) throw new Error('Pass an element or use detach() method');
+    if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
     if (this.__safeDetach(elm) == 0) throw new Error('No such element found');
 }
 Element.prototype._unbind = function() {
+    if (this.parent.__unsafeToRemove ||
+        this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
     this.parent = null;
     if (this.scene) this.scene._unregister(this);
     // this.scene should be null after unregistering
 }
 // > Element.detach % ()
 Element.prototype.detach = function() {
+    if (this.parent.__unsafeToRemove ||
+        this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
     if (this.parent.__safeDetach(this) == 0) throw new Error('Not attached');
 }
 // make element band fit all children bands
@@ -1641,25 +1647,34 @@ Element.prototype.reset = function() {
 }
 Element.prototype.visitChildren = function(func) {
     var children = this.children;
+    this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         func(children[ei]);
     };
+    this.__unsafeToRemove = false;
 }
 Element.prototype.travelChildren = function(func) {
     var children = this.children;
+    this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         var elem = children[ei];
         func(elem);
         elem.travelChildren(func);
     };
+    this.__unsafeToRemove = false;
 }
 Element.prototype.iterateChildren = function(func, rfunc) {
+    this.__unsafeToRemove = true;
     iter(this.children).each(func, rfunc);
+    this.__unsafeToRemove = false;
 }
 Element.prototype.deepIterateChildren = function(func, rfunc) {
-    iter(this.children).each(function(elm) {
-        elm.iterateChildren(func, rfunc);
+    this.__unsafeToRemove = true;
+    iter(this.children).each(function(elem) {
+        elem.deepIterateChildren(func, rfunc);
+        return func(elem);
     }, rfunc);
+    this.__unsafeToRemove = false;
 }
 Element.prototype.__performDetach = function() {
     var children = this.children;
@@ -3753,6 +3768,7 @@ Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
                       'calling its playing-related methods';
 Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR = 'Could not load any scene while playing or paused, ' +
                       'please stop player before loading';
+Player.UNSAFE_TO_REMOVE_ERR = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
 
 // =============================================================================
 // === EXPORTS =================================================================

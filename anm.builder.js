@@ -100,7 +100,7 @@ Builder.prototype.remove = function(what) {
         this.v.remove(what);
     } else if (what instanceof Builder) {
         this.v.remove(what.v);
-    }
+    } else throw new Error('Don\'t know what to remove');
     return this;
 }
 
