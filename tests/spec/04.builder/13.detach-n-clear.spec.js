@@ -68,6 +68,8 @@ describe("builder, regading clearing elements or detaching them, ", function() {
             expect(subChild.v.scene).toBe(null);
         }
 
+        //  TODO: ensure scene also have no records
+
     });
 
     xit("should clear all child elements even if they are actively used", function() {
@@ -189,6 +191,8 @@ describe("builder, regading clearing elements or detaching them, ", function() {
             expect(subChild.v.parent).toBe(null);
             expect(subChild.v.scene).toBe(null);
         }
+
+        //  TODO: ensure scene also have no records
 
     });
 
