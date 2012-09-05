@@ -222,6 +222,8 @@ function prepareImage(url, callback) {
     return _img;
 }
 
+// HELPERS
+
 function __builder(obj) {
     return (typeof Builder !== 'undefined') &&
            (obj instanceof Builder);
@@ -229,6 +231,13 @@ function __builder(obj) {
 
 function __array(obj) {
     return Array.isArray(obj);
+}
+
+function mrg_obj(src, backup) {
+    var res = {};
+    for (prop in backup) {
+        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop] };
+    return res;
 }
 
 // === CONSTANTS ==================================================================
@@ -404,6 +413,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 // TODO: add load/play/pause/stop events
 
 Player.prototype.init = function(cvs, opts) {
+    if (this.canvas) throw new Error('Initialization was called twice');
+    if (this.anim) throw new Error('Initialization was called after loading a scene');
     this._initHandlers(); // TODO: make automatic
     this._prepare(cvs);
     this._loadOpts(opts);
@@ -613,8 +624,9 @@ Player.prototype._prepare = function(cvs) {
     this.subscribeEvents(canvas);
 }
 Player.prototype._loadOpts = function(opts) {
-    var opts = opts || Player._optsFromAttrsOrDefault(this.canvas)
-                    || Player.DEFAULT_CONFIGURATION;
+    var opts = Player._optsFromAttrsOrFallback(this.canvas,
+                   opts ? Player._injectOpts(opts, Player.DEFAULT_CONFIGURATION)
+                        : Player.DEFAULT_CONFIGURATION);
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
@@ -1005,27 +1017,32 @@ function __attrOr(canvas, attr, _default) {
            ? canvas.getAttribute(attr)
            : _default;
 }
-Player._optsFromAttrsOrDefault = function(canvas) {
-    var _default = Player.DEFAULT_CONFIGURATION;
-    return { 'debug': __attrOr(canvas, 'data-debug', _default.debug),
-             'inParent': _default.inParent,
-             'muteErrors': __attrOr(canvas, 'data-mute-errors', _default.muteErrors),
-             'repeat': __attrOr(canvas, 'data-repeat', _default.repeat),
-             'mode': __attrOr(canvas, 'data-mode', _default.mode),
-             'zoom': __attrOr(canvas, 'data-zoom', _default.zoom),
-             'meta': { 'title': __attrOr(canvas, 'data-title', _default.meta.title),
-                        'author': __attrOr(canvas, 'data-author', _default.meta.author),
-                        'copyright': _default.meta.copyright,
-                        'version': _default.meta.version,
-                        'description': _default.meta.description },
-              'anim': { 'fps': _default.anim.fps,
-                        'width': __attrOr(canvas, 'data-width', _default.anim.width),
-                        'height': __attrOr(canvas, 'data-height', _default.anim.height),
-                        'bgfill': canvas.hasAttribute('data-bgcolor')
-                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
-                                  : _default.anim.bgfill,
-                        'duration': _default.anim.duration }
-                      };
+Player._injectOpts = function(what, where) {
+    var res = mrg_obj(what, where);
+    if (what.meta) res.meta = mrg_obj(what.meta, where.meta);
+    if (what.anim) res.anim = mrg_obj(what.anim, where.anim);
+    return res;
+}
+Player._optsFromAttrsOrFallback = function(canvas, fallback) {
+    return { 'debug': __attrOr(canvas, 'data-debug', fallback.debug),
+             'inParent': fallback.inParent,
+             'muteErrors': __attrOr(canvas, 'data-mute-errors', fallback.muteErrors),
+             'repeat': __attrOr(canvas, 'data-repeat', fallback.repeat),
+             'mode': __attrOr(canvas, 'data-mode', fallback.mode),
+             'zoom': __attrOr(canvas, 'data-zoom', fallback.zoom),
+             'meta': { 'title': __attrOr(canvas, 'data-title', fallback.meta.title),
+                        'author': __attrOr(canvas, 'data-author', fallback.meta.author),
+                        'copyright': fallback.meta.copyright,
+                        'version': fallback.meta.version,
+                        'description': fallback.meta.description },
+             'anim': { 'fps': fallback.anim.fps,
+                       'width': __attrOr(canvas, 'data-width', fallback.anim.width),
+                       'height': __attrOr(canvas, 'data-height', fallback.anim.height),
+                       'bgfill': canvas.hasAttribute('data-bgcolor')
+                                 ? { 'color': canvas.getAttribute('data-bgcolor') }
+                                 : fallback.anim.bgfill,
+                       'duration': fallback.anim.duration }
+           };
 };
 
 // the dynamic method subsribes player itself to
