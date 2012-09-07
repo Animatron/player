@@ -188,7 +188,7 @@ describe("player, when speaking about playing,", function() {
 
         runs(function() {
             expect(player.state.happens).toBe(C.PAUSED);
-            expect(player.state.time).toBeCloseTo(0.6, 0.15);
+            expect(player.state.time).toBeEpsilonyCloseTo(0.6, 0.15);
             player.stop();
         });
 
@@ -252,6 +252,57 @@ describe("player, when speaking about playing,", function() {
 
         runs(function() {
             expect(player.state.time).toBe(anm.Player.NO_TIME);
+        });
+
+    });
+
+    it("should call modifiers and painters through all playing cycle", function() {
+        var modifierSpy = jasmine.createSpy('modifier-spy');
+        var painterSpy = jasmine.createSpy('painter-spy');
+
+        var duration = 1;
+        var mCalls = 0, pCalls = 0;
+
+        var scene = new anm.Scene();
+        var elem = new anm.Element();
+        elem.setBand([0, duration]);
+        elem.addModifier(modifierSpy);
+        elem.addPainter(painterSpy);
+        scene.add(elem);
+
+        expect(modifierSpy).not.toHaveBeenCalled();
+        expect(painterSpy).not.toHaveBeenCalled()
+
+        player.load(scene);
+
+        expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
+        expect(painterSpy).toHaveBeenCalledOnce(); // for preview
+        modifierSpy.reset();
+        painterSpy.reset();
+
+        var onframeCallbackSpy = jasmine.createSpy('onframe-cb').andCallFake(function(t) {
+            expect(t).toBeGreaterThanOrEqual(0);
+            expect(t).toBeLessThanOrEqual(duration + anm.Player.PEFF);
+            if (t <= duration) {
+                expect(modifierSpy).toHaveBeenCalledWith(t, undefined);
+                expect(painterSpy).toHaveBeenCalledWith(_mocks.context2d, undefined);
+                mCalls++; pCalls++;
+                modifierSpy.reset();
+                painterSpy.reset();
+            }
+        });
+
+        player.afterFrame(onframeCallbackSpy);
+
+        runs(function() { player.play(); });
+
+        waitsFor(function() { return player.state.happens === C.STOPPED; }, (duration*1000)+200);
+
+        runs(function() {
+            expect(onframeCallbackSpy).toHaveBeenCalled();
+            expect(mCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
+            expect(pCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
+            player.stop();
         });
 
     });
@@ -411,6 +462,167 @@ describe("player, when speaking about playing,", function() {
 
     });
 
+    describe("calling something after every frame, concretely", function() {
+
+        it("should allow to set callback for it when not playing", function() {
+            try {
+                player.afterFrame(function() {});
+                player.load(new anm.Scene());
+                player.afterFrame(function() {});
+                player.play();
+                player.pause();
+                player.afterFrame(function() {});
+                player.play();
+                player.stop();
+                player.afterFrame(function() {});
+            } catch(e) {
+                this.fail('Should not throw exceptions, but thrown: ' + (e.message || e));
+            }
+        });
+
+        it("should not allow seting callback like this while playing", function() {
+            try {
+                player.load(new anm.Scene());
+                player.play();
+                player.afterFrame(function() {});
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.AFTERFRAME_BEFORE_PLAY_ERR);
+                player.stop();
+            }
+
+            try {
+                player.load(new anm.Scene());
+                player.play(1);
+                player.afterFrame(function() {});
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.AFTERFRAME_BEFORE_PLAY_ERR);
+                player.stop();
+            }
+        });
+
+        it("should actually call the given callback while playing", function() {
+            var modifierSpy = jasmine.createSpy('modifier-spy');
+            var painterSpy = jasmine.createSpy('modifier-spy');
+
+            var scene = new anm.Scene();
+            var elem = new anm.Element();
+            elem.setBand([0, 1]);
+            elem.addModifier(modifierSpy);
+            elem.addPainter(painterSpy);
+            scene.add(elem);
+
+            player.load(scene);
+
+            modifierSpy.reset();
+            painterSpy.reset();
+
+            var onframeCallbackSpy = jasmine.createSpy('onframe-cb').andCallFake(function(t) {
+                expect(t).toBeGreaterThanOrEqual(0);
+                expect(t).toBeLessThanOrEqual(1 + anm.Player.PEFF);
+                if (t <= 1) {
+                    // ensure modifying and painting was performed for this frame
+                    expect(modifierSpy).toHaveBeenCalledWith(t, undefined);
+                    expect(painterSpy).toHaveBeenCalled();
+                    modifierSpy.reset();
+                    painterSpy.reset();
+                }
+            });
+
+            player.afterFrame(onframeCallbackSpy);
+
+            runs(function() { player.play(); });
+
+            waitsFor(function() { return player.state.happens === C.STOPPED; }, 1200);
+
+            runs(function() {
+                expect(onframeCallbackSpy).toHaveBeenCalled();
+                expect(onframeCallbackSpy.callCount).toBeEpsilonyCloseTo(player.state.afps, 5);
+                player.stop();
+            });
+
+        });
+
+    });
+
+    describe("drawAt method, concretely", function() {
+
+        it("should not allow to be called out of scene bounds", function() {
+
+            var duration = 1;
+
+            var scene = new anm.Scene();
+            var elem = new anm.Element();
+            elem.setBand([0, duration]);
+            scene.add(elem);
+
+            player.load(scene);
+
+            try {
+                player.drawAt(duration + 0.05);
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+            }
+
+            try {
+                player.drawAt(duration + 10);
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+            }
+
+            try {
+                player.drawAt(-0.05);
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+            }
+
+            try {
+                player.drawAt(-10);
+            } catch(e) {
+                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+            }
+
+        });
+
+        it("should call it synchronously and call required modifiers/painters", function() {
+            var modifierSpy = jasmine.createSpy('modifier-spy');
+            var painterSpy = jasmine.createSpy('painter-spy');
+
+            var duration = 1;
+
+            var scene = new anm.Scene();
+            var elem = new anm.Element();
+            elem.setBand([0, duration]);
+            elem.addModifier(modifierSpy);
+            elem.addPainter(painterSpy);
+            scene.add(elem);
+
+            expect(modifierSpy).not.toHaveBeenCalled();
+            expect(painterSpy).not.toHaveBeenCalled()
+
+            player.load(scene);
+
+            expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
+            expect(painterSpy).toHaveBeenCalledOnce(); // for preview
+            modifierSpy.reset();
+            painterSpy.reset();
+
+            var testTime = duration - (duration / 4);
+
+            player.drawAt(testTime);
+
+            expect(modifierSpy).toHaveBeenCalledOnce();
+            expect(painterSpy).toHaveBeenCalledOnce();
+            expect(modifierSpy).toHaveBeenCalledWith(testTime, undefined);
+            expect(painterSpy).toHaveBeenCalledWith(_mocks.context2d, undefined);
+
+        });
+
+        // TODO: tests resetting state after drawAt and stuff
+
+    });
+
+    // drawAt should be synchrounous (scene should be fully rendered after drawFrame)
+    // should not call modifiers/painters while stopped/paused
     // test if while preview is shown at preview time pos, controls are at 0
     // state.from
     // errors

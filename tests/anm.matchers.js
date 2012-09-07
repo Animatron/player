@@ -27,7 +27,7 @@ matchers.toHaveBeenCalledOnce = function() {
     return (this.actual.calls.length === 1);
 };
 
-// TODO: remove, just check call count
+// FIXME: replace with expect(spy.callCount).toBe(num)
 matchers.toHaveBeenCalledThisAmountOfTimes = function(num) {
 
     //if (!num) throw new Error('Use .not.toHaveBeenCalled');
@@ -68,6 +68,19 @@ matchers.toBeGreaterThanOrEqual = function(expected) {
     };
 
     return actual >= expected;
+}
+
+matchers.toBeEpsilonyCloseTo = function(expected, epsilon) {
+    var actual = this.actual;
+    var notText = this.isNot ? " not" : "";
+
+    this.message = function () {
+        return "Expected " + actual + notText + " to be greater than or equal to " +
+               (expected - epsilon) + " and less or equal to " + (expected + epsilon);
+    };
+
+    return (actual >= (expected - epsilon)) && (actual <= (expected + epsilon));
+
 }
 
 return matchers;
