@@ -719,7 +719,7 @@ Player.prototype.configureMeta = function(info) {
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
     if ((time < 0) || (time > this.state.duration)) {
-        throw new Error('Passed time is not in scene range');
+        throw new Error(Player.PASSED_TIME_NOT_IN_RANGE_ERR);
     }
     var ctx = this.ctx,
         state = this.state;
@@ -729,6 +729,10 @@ Player.prototype.drawAt = function(time) {
     if (this.controls) {
         this._renderControlsAt(time);
     }
+}
+Player.prototype.afterFrame = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new Error(Player.AFTERFRAME_BEFORE_PLAY_ERR);
+    this.__userAfterFrame = callback;
 }
 Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
@@ -931,22 +935,25 @@ Player.prototype._ensureAnim = function() {
     if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
 }
 Player.prototype.__afterFrame = function(scene) {
-    return (function(player, state, scene) { return function(time) {
-        if (state.happens !== C.PLAYING) return false;
-        if (time > (state.duration + Player.PEFF)) {
-            state.time = 0;
-            scene.reset();
-            player.stop();
-            if (state.repeat) {
-               player.play();
+    return (function(player, state, scene, callback) {
+        return function(time) {
+            if (state.happens !== C.PLAYING) return false;
+            if (time > (state.duration + Player.PEFF)) {
+                state.time = 0;
+                scene.reset();
+                player.stop();
+                if (state.repeat) {
+                   player.play();
+                }
+                return false;
             }
-            return false;
+            if (player.controls) {
+                player._renderControls();
+            }
+            if (callback) callback(time);
+          return true;
         }
-        if (player.controls) {
-            player._renderControls();
-        }
-        return true;
-    }})(this, this.state, scene);
+    })(this, this.state, scene, this.__userAfterFrame);
 }
 
 Player.prototype.__originateErrors = function() {
@@ -3785,6 +3792,8 @@ Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
 Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR = 'Could not load any scene while playing or paused, ' +
                       'please stop player before loading';
 Player.UNSAFE_TO_REMOVE_ERR = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
+Player.AFTERFRAME_BEFORE_PLAY_ERR = 'Please assign afterFrame callback before calling play()';
+Player.PASSED_TIME_NOT_IN_RANGE_ERR = 'Passed time is not in scene range';
 
 // =============================================================================
 // === EXPORTS =================================================================
