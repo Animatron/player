@@ -21,8 +21,6 @@ describe("masks", function() {
         var restoreSpy = spyOn(_mocks.context2d, 'restore');
 
         var maskPaintSpy = jasmine.createSpy('mask-paint').andCallFake(function(ctx) {
-            console.log('mask-paint');
-
             expect(saveSpy).toHaveBeenCalled();
             expect(elemPaintSpy).not.toHaveBeenCalled();
             expect(clipSpy).not.toHaveBeenCalled();
@@ -32,8 +30,6 @@ describe("masks", function() {
         });
 
         var clipSpy = spyOn(_mocks.context2d, 'clip').andCallFake(function() {
-            console.log('ctx-clip');
-
             expect(maskPaintSpy).toHaveBeenCalled();
             expect(elemPaintSpy).not.toHaveBeenCalled();
             expect(transformSpy).not.toHaveBeenCalled();
@@ -42,8 +38,6 @@ describe("masks", function() {
         });
 
         var elemPaintSpy = jasmine.createSpy('elem-paint').andCallFake(function(ctx) {
-            console.log('elem-paint');
-
             expect(maskPaintSpy).not.toHaveBeenCalled();
             expect(clipSpy).toHaveBeenCalled();
             expect(transformSpy).toHaveBeenCalled();
@@ -56,7 +50,7 @@ describe("masks", function() {
             transformSpy.reset();
         });
 
-        var scene = b().band([0, 1]);
+        var scene = b().band([0, .5]);
         var elem = b().paint(elemPaintSpy);
         var mask = b().paint(maskPaintSpy);
 
@@ -72,7 +66,7 @@ describe("masks", function() {
 
         waitsFor(function() {
             return player.state.happens === C.STOPPED;
-        }, 1200);
+        }, 700);
 
         runs(function() {
             expect(saveSpy).not.toHaveBeenCalled();
