@@ -1409,6 +1409,10 @@ Element.prototype.render = function(ctx, gtime) {
     if (wasDrawn = (this.fits(ltime)
                     && this.onframe(ltime)
                     && this.prepare())) {
+        if (this.__mask) {
+            this.__mask.render(ctx, gtime);
+            ctx.clip();
+        }
         this.transform(ctx);
         this.draw(ctx);
         // update gtime, if it was changed by ltime()
@@ -1762,6 +1766,9 @@ Element.prototype.lrect = function() {
     return [ b[0], b[1], b[2], b[1],
           // maxX, maxY, minX, maxY
              b[2], b[3], b[0], b[3] ];
+}
+Element.prototype.setMask = function(elm) {
+    this.__mask = elm;
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);

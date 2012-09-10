@@ -542,6 +542,10 @@ describe("player, when speaking about playing,", function() {
 
         });
 
+        // TODO: ensure that the given callback is used for next playing periods, and if it
+        //       is changed, new version is used.
+
+
     });
 
     describe("drawAt method, concretely", function() {

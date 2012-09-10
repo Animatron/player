@@ -30,6 +30,7 @@ mocks.context2d = {
     'lineTo': _empty,
     'fill': _empty,
     'stroke': _empty,
+    'clip': _empty,
     'createLinearGradient': function() { return mocks.gradient; },
 };
 
