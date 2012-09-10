@@ -74,4 +74,6 @@ describe("masks", function() {
         })
     });
 
+    // TODO: check for child elements, complex elements and stuff
+
 });
