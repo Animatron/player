@@ -11,33 +11,6 @@ var mocks = {};
 
 var _empty = function() {};
 
-mocks.gradient = {
-    'addColorStop': _empty
-};
-
-mocks.context2d = {
-    'save': _empty,
-    'restore': _empty,
-    'fillRect': _empty,
-    'clearRect': _empty,
-    'fillText': _empty,
-    'strokeRect': _empty,
-    'translate': _empty,
-    'transform': _empty,
-    'beginPath': _empty,
-    'closePath': _empty,
-    'moveTo': _empty,
-    'lineTo': _empty,
-    'fill': _empty,
-    'stroke': _empty,
-    'clip': _empty,
-    'createLinearGradient': function() { return mocks.gradient; },
-};
-
-mocks.canvasStyle = {
-
-};
-
 mocks.saveCanvasFake = function(cvs) {
     cvs.__rOffsetLeft = 40;
     cvs.__rOffsetTop = 40;
@@ -45,15 +18,64 @@ mocks.saveCanvasFake = function(cvs) {
 
 var __cvs_attrs = {};
 
-mocks.canvas = {
-    'getContext': function() { return mocks.context2d; },
-    'hasAttribute': function(attr) { return typeof __cvs_attrs[attr] !== 'undefined'; },
-    'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
-    'getAttribute': function(attr) { return __cvs_attrs[attr]; },
-    'style': mocks.canvasStyle,
-    'addEventListener': _empty,
-    '__resetMock': function() { __cvs_attrs = {}; }
+mocks.factory = {};
+
+var canvasMocksCount = 0;
+mocks.factory.canvas = function() {
+    var contextMock = mocks.factory.context2d();
+    return {
+        '__mockId': canvasMocksCount++,
+        'getContext': function() { return contextMock; },
+        'hasAttribute': function(attr) { return typeof __cvs_attrs[attr] !== 'undefined'; },
+        'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
+        'getAttribute': function(attr) { return __cvs_attrs[attr]; },
+        'style': mocks.factory.canvasStyle(),
+        'addEventListener': _empty,
+        '__resetMock': function() { __cvs_attrs = {}; }
+    };
 };
+
+var ctxMocksCount = 0;
+mocks.factory.context2d = function() {
+    return {
+        '__mockId': ctxMocksCount++,
+        'save': _empty,
+        'restore': _empty,
+        'fillRect': _empty,
+        'clearRect': _empty,
+        'fillText': _empty,
+        'strokeRect': _empty,
+        'translate': _empty,
+        'transform': _empty,
+        'beginPath': _empty,
+        'closePath': _empty,
+        'moveTo': _empty,
+        'lineTo': _empty,
+        'fill': _empty,
+        'stroke': _empty,
+        'clip': _empty,
+        'globalCompositeOperation': 'source-over',
+        'createLinearGradient': function() { return mocks.factory.linearGradient(); },
+    };
+};
+
+mocks.factory.canvasStyle = function() {
+    return {};
+};
+
+mocks.factory.linearGradient = function() {
+    return {
+        'addColorStop': _empty
+    };
+};
+
+// TODO: attributes
+
+mocks.canvas = mocks.factory.canvas();
+mocks.context2d = mocks.canvas.getContext('2d');
+mocks.canvasStyle = mocks.canvas.style;
+
+mocks.gradient = mocks.factory.linearGradient();
 
 return mocks;
 
