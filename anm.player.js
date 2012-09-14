@@ -231,6 +231,18 @@ function __array(obj) {
     return Array.isArray(obj);
 }
 
+var trashBin = null;
+function disposeElm(domElm) {
+    if (!trashBin) {
+        trashBin = document.createElement('div');
+        trashBin.id = 'trash-bin';
+        trashBin.style.display = 'none';
+        document.body.appendChild(trashBin);
+    }
+    trashBin.appendChild(domElm);
+    trashBin.innerHTML = '';
+}
+
 // === CONSTANTS ==================================================================
 // ================================================================================
 
@@ -1409,17 +1421,31 @@ Element.prototype.render = function(ctx, gtime) {
     if (wasDrawn = (this.fits(ltime)
                     && this.onframe(ltime)
                     && this.prepare())) {
-        if (this.__mask) {
-            this.__mask.render(ctx, gtime);
-            ctx.clip();
-        }
         this.transform(ctx);
-        this.draw(ctx);
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
-        this.visitChildren(function(elm) {
-            elm.render(ctx, gtime);
-        });
+        if (!this.__mask) {
+            // draw directly to context if has no mask
+            this.draw(ctx);
+            this.visitChildren(function(elm) {
+                elm.render(ctx, gtime);
+            });
+        } else {
+            // draw to mask canvas if has a mask and
+            this.__ensureHasMaskCanvas();
+            var mcvs = this.__maskCvs,
+                mctx = this.__maskCtx;
+            mctx.save();
+            mctx.clearRect(0,0,mcvs.width,mcvs.height);
+            this.__mask.render(mctx, gtime);
+            mctx.globalCompositeOperation = 'source-in';
+            this.draw(mctx);
+            this.visitChildren(function(elm) {
+                elm.render(mctx, gtime);
+            });
+            ctx.drawImage(mcvs, 0, 0);
+            mctx.restore();
+        }
     }
     // immediately when drawn, element becomes visible,
     // it is reasonable
@@ -1768,7 +1794,23 @@ Element.prototype.lrect = function() {
              b[2], b[3], b[0], b[3] ];
 }
 Element.prototype.setMask = function(elm) {
+    if (!elm) throw new Error('No valid masking element was passed');
     this.__mask = elm;
+}
+Element.prototype.__ensureHasMaskCanvas = function() {
+    if (this.__maskCvs) return;
+    var scene = this.scene;
+    if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
+    this.__maskCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__maskCtx = this.__maskCvs.getContext('2d');
+}
+Element.prototype.clearMask = function() {
+    this.__mask = null;
+    if (this.__maskCvs) {
+        disposeElm(this.__maskCvs);
+        this.__maskCvs = null;
+        this.__maskCtx = null;
+    }
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);
@@ -2354,6 +2396,8 @@ L.loadScene = function(player, scene, callback) {
         }
         player.updateDuration(scene.duration);
     }
+    scene.awidth = player.state.width;
+    scene.aheight = player.state.height;
     if (callback) callback.call(player);
 }
 L.loadClips = function(player, clips, callback) {
@@ -3336,6 +3380,7 @@ Text.prototype.accent = function(height) {
     return height; // FIXME
 }
 Text._createBuffer = function() {
+    // FIXME: dispose buffer when text is removed from scene
     var _div = document.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';

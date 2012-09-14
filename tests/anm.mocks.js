@@ -54,6 +54,7 @@ mocks.factory.context2d = function() {
         'fill': _empty,
         'stroke': _empty,
         'clip': _empty,
+        'drawImage': _empty,
         'globalCompositeOperation': 'source-over',
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
     };

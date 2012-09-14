@@ -32,7 +32,7 @@ describe("masks", function() {
             expect(elmType).toEqual('canvas');
             return maskCanvas;
         });
-        var drawImageSpy = spyOn(mainCanvas, 'drawImage').andCallThrough();
+        var drawImageSpy = spyOn(mainCtx, 'drawImage').andCallThrough();
 
         var elemPaintSpy = jasmine.createSpy('elem-paint').andCallFake(function(ctx) {
             expect(ctx).toBe(mainCtx);
@@ -47,8 +47,12 @@ describe("masks", function() {
 
         var maskPaintSpy = jasmine.createSpy('mask-paint').andCallFake(function(ctx) {
             expect(ctx).toBe(maskCtx);
+            expect(maskCanvas.width).toEqual(mainCanvas.width);
+            expect(maskCanvas.height).toEqual(mainCanvas.height);
             expect(mainCtx.globalCompositeOperation).toEqual('source-over');
             expect(maskCtx.globalCompositeOperation).toEqual('source-over');
+            /*expect(maskCtx.fillStyle).toBe('black');
+            expect(maskCtx.strokeStyle).toBe('rgba(0,0,0,1)');*/
 
             expect(createCanvasSpy).toHaveBeenCalled();
             createCanvasSpy.reset();
@@ -122,6 +126,10 @@ describe("masks", function() {
         })
     });
 
+    // TODO: mask canvas created during render process, but once
+
     // TODO: check for child elements, complex elements and stuff
+
+    // TODO: ensure removing mask disposes canvas element
 
 });
