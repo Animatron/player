@@ -21,22 +21,24 @@ describe("masks", function() {
         //var restoreSpy = spyOn(_mocks.context2d, 'restore');
 
         var maskCanvas = _mocks.factory.canvas();
-        var maskCtx = maskCanvas.getContext('2d');
+        var maskContext = maskCanvas.getContext('2d');
 
         var mainCanvas = _mocks.canvas;
-        var mainCtx = mainCanvas.getContext('2d');
+        var mainContext = mainCanvas.getContext('2d');
 
-        expect(maskCtx).not.toBe(mainCtx);
+        expect(maskContext).not.toBe(mainContext);
+
+        var createdMaskCanvas = false;
 
         var createCanvasSpy = spyOn(document, 'createElement').andCallFake(function(elmType) {
             expect(elmType).toEqual('canvas');
             return maskCanvas;
         });
-        var drawImageSpy = spyOn(mainCtx, 'drawImage').andCallThrough();
+        var drawImageSpy = spyOn(mainContext, 'drawImage').andCallThrough();
 
         var elemPaintSpy = jasmine.createSpy('elem-paint').andCallFake(function(ctx) {
-            expect(ctx).toBe(mainCtx);
-            expect(mainCtx.globalCompositeOperation).toEqual('source-over');
+            expect(ctx).toBe(mainContext);
+            expect(mainContext.globalCompositeOperation).toEqual('source-over');
 
             expect(maskPaintSpy).not.toHaveBeenCalled();
             expect(maskedPaintSpy).not.toHaveBeenCalled();
@@ -46,53 +48,59 @@ describe("masks", function() {
         });
 
         var maskPaintSpy = jasmine.createSpy('mask-paint').andCallFake(function(ctx) {
-            expect(ctx).toBe(maskCtx);
+            expect(ctx).toBe(maskContext);
             expect(maskCanvas.width).toEqual(mainCanvas.width);
             expect(maskCanvas.height).toEqual(mainCanvas.height);
-            expect(mainCtx.globalCompositeOperation).toEqual('source-over');
-            expect(maskCtx.globalCompositeOperation).toEqual('source-over');
-            /*expect(maskCtx.fillStyle).toBe('black');
-            expect(maskCtx.strokeStyle).toBe('rgba(0,0,0,1)');*/
+            expect(mainContext.globalCompositeOperation).toEqual('source-over');
+            expect(maskContext.globalCompositeOperation).toEqual('source-over');
+            /*expect(maskContext.fillStyle).toBe('black');
+            expect(maskContext.strokeStyle).toBe('rgba(0,0,0,1)');*/
 
-            expect(createCanvasSpy).toHaveBeenCalled();
-            createCanvasSpy.reset();
+            if (!createdMaskCanvas) {
+                expect(createCanvasSpy).toHaveBeenCalled();
+                createCanvasSpy.reset();
+                createdMaskCanvas = true;
+            } else expect(createCanvasSpy).not.toHaveBeenCalled();
 
             expect(elemPaintSpy).toHaveBeenCalledOnce();
-            expect(elemPaintSpy).toHaveBeenCalledWith(mainCtx, undefined);
+            expect(elemPaintSpy).toHaveBeenCalledWith(mainContext, undefined);
             elemPaintSpy.reset();
+            elem2PaintSpy.reset();
 
             expect(maskedPaintSpy).not.toHaveBeenCalled();
             expect(drawImageSpy).not.toHaveBeenCalled();
         });
 
         var maskedPaintSpy = jasmine.createSpy('masked-paint').andCallFake(function(ctx) {
-            expect(ctx).toBe(maskCtx);
-            expect(mainCtx.globalCompositeOperation).toEqual('source-over');
-            expect(maskCtx.globalCompositeOperation).toEqual('source-in');
+            expect(ctx).toBe(maskContext);
+            // TODO: expect clearRect to be called
+            expect(mainContext.globalCompositeOperation).toEqual('source-over');
+            expect(maskContext.globalCompositeOperation).toEqual('source-in');
 
             expect(createCanvasSpy).not.toHaveBeenCalled();
             expect(elemPaintSpy).not.toHaveBeenCalled();
+            expect(elem2PaintSpy).not.toHaveBeenCalled();
 
             expect(maskPaintSpy).toHaveBeenCalledOnce();
-            expect(maskPaintSpy).toHaveBeenCalledWith(maskCtx, undefined);
+            expect(maskPaintSpy).toHaveBeenCalledWith(maskContext, undefined);
             maskPaintSpy.reset();
 
             expect(drawImageSpy).not.toHaveBeenCalled();
         });
 
         var elem2PaintSpy = jasmine.createSpy('elem2-paint').andCallFake(function(ctx) {
-            expect(ctx).toBe(mainCtx);
-            expect(mainCtx.globalCompositeOperation).toEqual('source-over');
-            expect(maskCtx.globalCompositeOperation).toEqual('source-over');
-            // expect mask-canvas to be removed?
+            expect(ctx).toBe(mainContext);
+            expect(mainContext.globalCompositeOperation).toEqual('source-over');
+            expect(maskContext.globalCompositeOperation).toEqual('source-over');
 
             expect(maskPaintSpy).not.toHaveBeenCalled();
+            expect(elemPaintSpy).not.toHaveBeenCalled();
             expect(maskedPaintSpy).toHaveBeenCalledOnce();
-            expect(maskedPaintSpy).toHaveBeenCalledwith(maskCtx, undefined);
+            expect(maskedPaintSpy).toHaveBeenCalledWith(maskContext, undefined);
             maskedPaintSpy.reset();
 
             expect(drawImageSpy).toHaveBeenCalledOnce();
-            expect(drawImageSpy).toHaveBeenCalledWith(maskCtx, 0, 0, maskCvs.width, maskCvs.height);
+            expect(drawImageSpy).toHaveBeenCalledWith(maskCanvas, 0, 0, maskCanvas.width, maskCanvas.height);
             drawImageSpy.reset();
         });
 

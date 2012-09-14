@@ -31,6 +31,8 @@ mocks.factory.canvas = function() {
         'getAttribute': function(attr) { return __cvs_attrs[attr]; },
         'style': mocks.factory.canvasStyle(),
         'addEventListener': _empty,
+        'width': -1,
+        'height': -1,
         '__resetMock': function() { __cvs_attrs = {}; }
     };
 };
@@ -39,8 +41,20 @@ var ctxMocksCount = 0;
 mocks.factory.context2d = function() {
     return {
         '__mockId': ctxMocksCount++,
-        'save': _empty,
-        'restore': _empty,
+        'save': function() {
+            this.__copy = {
+                'fillStyle': this.fillStyle,
+                'strokeStyle': this.strokeStyle,
+                'globalAlpha': this.globalAlpha,
+                'globalCompositeOperation': this.globalCompositeOperation
+            };
+        },
+        'restore': function() {
+            this.fillStyle = this.__copy.fillStyle;
+            this.strokeStyle = this.__copy.strokeStyle;
+            this.globalAlpha = this.__copy.globalAlpha;
+            this.globalCompositeOperation = this.__copy.globalCompositeOperation;
+        },
         'fillRect': _empty,
         'clearRect': _empty,
         'fillText': _empty,

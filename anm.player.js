@@ -1436,14 +1436,16 @@ Element.prototype.render = function(ctx, gtime) {
             var mcvs = this.__maskCvs,
                 mctx = this.__maskCtx;
             mctx.save();
-            mctx.clearRect(0,0,mcvs.width,mcvs.height);
+            mctx.clearRect(0, 0,
+                           mcvs.width, mcvs.height);
             this.__mask.render(mctx, gtime);
             mctx.globalCompositeOperation = 'source-in';
             this.draw(mctx);
             this.visitChildren(function(elm) {
                 elm.render(mctx, gtime);
             });
-            ctx.drawImage(mcvs, 0, 0);
+            ctx.drawImage(mcvs, 0, 0,
+                          mcvs.width, mcvs.height);
             mctx.restore();
         }
     }
