@@ -1,4 +1,11 @@
-{
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
+var project_with_masks_2 = {
   "meta": {
     "id": "d849ed915680fa4752889963",
     "created": 1347890143460,
