@@ -1421,17 +1421,17 @@ Element.prototype.render = function(ctx, gtime) {
     if (wasDrawn = (this.fits(ltime)
                     && this.onframe(ltime)
                     && this.prepare())) {
-        this.transform(ctx);
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
         if (!this.__mask) {
-            // draw directly to context if has no mask
+            // draw directly to context, if has no mask
+            this.transform(ctx);
             this.draw(ctx);
             this.visitChildren(function(elm) {
                 elm.render(ctx, gtime);
             });
         } else {
-            // draw to mask canvas if has a mask and
+            // draw to mask canvas, if has
             this.__ensureHasMaskCanvas();
             var mcvs = this.__maskCvs,
                 mctx = this.__maskCtx;
@@ -1440,6 +1440,7 @@ Element.prototype.render = function(ctx, gtime) {
                            mcvs.width, mcvs.height);
             this.__mask.render(mctx, gtime);
             mctx.globalCompositeOperation = 'source-in';
+            this.transform(mctx);
             this.draw(mctx);
             this.visitChildren(function(elm) {
                 elm.render(mctx, gtime);
@@ -1677,6 +1678,11 @@ Element.prototype.reset = function() {
     s._applied = false;
     s._appliedAt = null;
     s._matrix.reset();
+    if (this.__mask && this.__maskCvs) {
+        disposeElm(this.__maskCvs);
+        this.__maskCvs = null;
+        this.__maskCtx = null;
+    }
     //this.__clearEvtState();
     this.visitChildren(function(elm) {
         elm.reset();
@@ -1796,6 +1802,26 @@ Element.prototype.lrect = function() {
              b[2], b[3], b[0], b[3] ];
 }
 Element.prototype.setMask = function(elm) {
+    /* var cvs = document.getElementById('my-canvas'),
+        w = cvs.width,
+        h = cvs.height;
+
+    var bg = b('bg').circle([w/2,h/2], 100)
+                    .fill('#009');
+    var foo = b('mask').add(b().rect([0, 0], 100))
+                       .add(b().rect([30, 50], 60))
+                       .trans([0, 3], [[w, h], [0, 0]])
+                       //.alpha([0, 3], [0, 1]);
+    var bar = b('masked').circle([0, 0], 60)
+                         .fill('#ff0')
+                         .trans([0, 3], [[0, 0], [w, h]])
+                         //.alpha([0, 3], [.8, 1])
+                         .mask(foo)
+    return b('scene').add(bg)
+                     .add(foo)
+                     .add(bar)
+                     .trans([0, 3],
+                            [[-w/2, -h/2], [w,h]]); */
     if (!elm) throw new Error('No valid masking element was passed');
     this.__mask = elm;
 }

@@ -15,6 +15,9 @@ describe("masks", function() {
         player = createPlayer('test-id');
     });
 
+    // FIXME: may be this test is too low-level, may be it just might ensure that
+    // elements are drawn in orded and to proper canvas
+    // TODO: or, test also the proper transform call then
     it("mask drawing sequence should be right", function() {
 
         //var saveSpy = spyOn(_mocks.context2d, 'save');
@@ -138,6 +141,6 @@ describe("masks", function() {
 
     // TODO: check for child elements, complex elements and stuff
 
-    // TODO: ensure removing mask disposes canvas element
+    // TODO: ensure removing mask (and loading new scene or playing from start) disposes canvas element
 
 });
