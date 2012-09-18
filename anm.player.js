@@ -397,12 +397,11 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'repeat': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
-                                 'meta': { 'title': 'Default',
+                                 'meta': { 'title': '',
                                            'author': 'Anonymous',
-                                           'copyright': '© NaN',
-                                           'version': -1.0,
-                                           'description':
-                                                'Default project description' },
+                                           'copyright': '',
+                                           'version': null,
+                                           'description': '' },
                                  'anim': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
@@ -3795,12 +3794,13 @@ InfoBlock.prototype.update = function(parent) {
 }
 InfoBlock.prototype.inject = function(meta, anim) {
     // TODO: show speed
-    this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+
+    this.div.innerHTML = '<p><span class="title">'+(meta.title || '[No title]')+'</span>'+
             (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
             (((anim.width!=null) && (anim.height!=null))
              ? '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> ' : '')+
-            '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
+            '<span class="copy">'+(meta.version ? ('v'+meta.version+' ') : '')
+                                 +meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
 }

@@ -19,8 +19,15 @@ var C = anm.C,
 // ** META / PARAMS **
 
 AnimatronImporter.prototype.configureMeta = function(prj) {
-    // ( id, title, author, copyright, version, description, modificationTime )
-    return prj.meta;
+    // ( id, name, author, copyright, version, description, modificationTime, numberOfScenes )
+    var _m = prj.meta;
+    return {
+        'title': _m.name,
+        'author': _m.author,
+        'copyright': _m.copyright,
+        'version': _m.version,
+        'description': _m.description
+    };
 };
 AnimatronImporter.prototype.configureAnim = function(prj) {
     // ( framerate, dimension, background, duration,
@@ -69,7 +76,7 @@ AnimatronImporter.prototype.importScene = function(scene_id, source) {
 AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     var target = new Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?,
-    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
+    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
     this._collectDynamicData(target, clip, in_band);
     if (clip.eid) {
         var inner = this.findElement(clip.eid, source);
@@ -82,8 +89,30 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     } else if (clip.layers) {
         var _layers = clip.layers;
         // in animatron, layers are in reverse order
+        var last = null,
+            masksToGo = 0,
+            maskElm = null;
         for (var li = _layers.length; li--;) {
-            target.add(this.importElement(_layers[li], source, target.xdata.gband));
+            var layer_src = _layers[li],
+                layer_trg = this.importElement(layer_src, source, target.xdata.gband);
+            if (masksToGo == 0) {
+                // just add
+                last = layer_trg;
+                target.add(layer_trg);
+                if (maskElm) maskElm = null;
+                masksToGo = (layer_src.masked || 0);
+            } else {
+                if (!maskElm && (masksToGo == 1)) {
+                    // if there is one mask, just apply it as layer
+                    last.setMask(layer_trg);
+                } else {
+                    // if there are more than one mask, collect them in maskElm and then apply
+                    if (!maskElm) maskElm = new Element();
+                    maskElm.add(layer_trg);
+                    if (masksToGo == 1) last.setMask(maskElm);
+                }
+                masksToGo--;
+            }
         }
     }
     return target;
@@ -124,6 +153,7 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
 
 var Convert = {}
 Convert.tween = function(tween) {
+    // (type, band, path?, easing?)
     var _t = tween,
         _type = Convert.tweenType(_t.type);
 
@@ -155,17 +185,20 @@ Convert.tweenData = function(type, tween) {
     return tween.data;
 }
 Convert.path = function(pathStr, stroke, fill) {
+    // ()
     return new Path(pathStr,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }
 Convert.text = function(lines, font,
                         stroke, fill) {
+    // (lines, font, stroke, fill)
     return new Text(lines, font,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }
 Convert.easing = function(from) {
+    // (name, path?)
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
@@ -181,6 +214,7 @@ Convert.easingType = function(from) {
     if (from === 'Ease In Out') return C.E_INOUT;
 }
 Convert.stroke = function(stroke) {
+    // (width, paint (color | colors | r0, r1), cap, join, limit)
     if (!stroke) return stroke;
     var brush = {};
     brush.width = stroke.width;
@@ -200,6 +234,7 @@ Convert.stroke = function(stroke) {
     return brush;
 }
 Convert.fill = function(fill) {
+    // (color | colors | r0, r1)
     if (!fill) return null;
     var brush = {};
     if (!fill) {
@@ -215,6 +250,7 @@ Convert.fill = function(fill) {
     return brush;
 }
 Convert.gradient = function(src) {
+    // (offsets, colors, x1, y1, r0?, r1?)
     var stops = [],
         offsets = src.offsets;
     for (var i = 0; i < offsets.length; i++) {

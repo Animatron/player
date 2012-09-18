@@ -11,4 +11,6 @@ describe("stub spec", function() {
         expect(true).toBeTruthy();
     });
 
+    // TODO: test importing masks, single-layered or multi-layered
+
 });
