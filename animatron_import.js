@@ -88,42 +88,29 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
         }
     } else if (clip.layers) {
         var _layers = clip.layers,
-            _children = [];
-        var last = null,
-            masksToGo = 0,
-            masks = [];
-        for (var li = 0; li < _layers.length; li++) {
+            _layers_targets = [];
+        // in animatron. layers are in reverse order
+        for (var li = _layers.length; li--;) {
             var layer_src = _layers[li],
                 layer_trg = this.importElement(layer_src, source, target.xdata.gband);
-            if (masksToGo == 0) {
-                // just add
-                last = layer_trg;
-                _children.push(layer_trg);
-                if (masks.length > 0) masks = [];
-                masksToGo = (layer_src.masked || 0);
+            if (!layer_src.masked) {
+                // layer is a normal one
+                target.add(layer_trg);
+                _layers_targets.push(layer_trg);
             } else {
-                if ((masksToGo == 1) && (masks.length == 0)) {
-                    // if there is one mask, just apply it as layer
-                    console.log(layer_trg.name, last.name);
-                    layer_trg.setMask(last);
-                } else {
-                    // if there are more than one mask, collect them in maskElm and then apply
-                    masks.push(layer_trg);
-                    if (masksToGo == 1) { // it is the last mask
-                        var maskElm = new Element();
-                        // in animatron, layers are in reverse order
-                        for (var mi = masks.length; mi--;) {
-                            maskElm.add(masks[mi]);
-                        }
-                        last.setMask(maskElm);
-                    }
+                // layer is a mask, apply it to the required number
+                // of previously collected layers
+                var mask = layer_trg,
+                    maskedToGo = layer_src.masked, // layers below to apply mask
+                    ltl = _layers_targets.length;
+                if (maskedToGo > ltl) throw new Error('No layers colleted to apply mask');
+                while (maskedToGo) {
+                    var masked = _layers_targets[ltl-maskedToGo];
+                    //console.log(mask.name + '->' + masked.name);
+                    masked.setMask(mask);
+                    maskedToGo--;
                 }
-                masksToGo--;
             }
-        }
-        // in animatron, layers are in reverse order
-        for (var ci = _children.length; ci--;) {
-            target.add(_children[ci]);
         }
     }
     return target;
