@@ -690,8 +690,8 @@ Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cnvs = this.canvas;
 
-    if (cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
-    if (cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
+    if (!conf.width && cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
+    if (!conf.height && cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
 
     this._applyConfToCanvas(conf);
 

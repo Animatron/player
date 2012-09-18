@@ -87,32 +87,43 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             target.add(this.importElement(inner, source, target.xdata.gband));
         }
     } else if (clip.layers) {
-        var _layers = clip.layers;
-        // in animatron, layers are in reverse order
+        var _layers = clip.layers,
+            _children = [];
         var last = null,
             masksToGo = 0,
-            maskElm = null;
-        for (var li = _layers.length; li--;) {
+            masks = [];
+        for (var li = 0; li < _layers.length; li++) {
             var layer_src = _layers[li],
                 layer_trg = this.importElement(layer_src, source, target.xdata.gband);
             if (masksToGo == 0) {
                 // just add
                 last = layer_trg;
-                target.add(layer_trg);
-                if (maskElm) maskElm = null;
+                _children.push(layer_trg);
+                if (masks.length > 0) masks = [];
                 masksToGo = (layer_src.masked || 0);
             } else {
-                if (!maskElm && (masksToGo == 1)) {
+                if ((masksToGo == 1) && (masks.length == 0)) {
                     // if there is one mask, just apply it as layer
-                    last.setMask(layer_trg);
+                    console.log(layer_trg.name, last.name);
+                    layer_trg.setMask(last);
                 } else {
                     // if there are more than one mask, collect them in maskElm and then apply
-                    if (!maskElm) maskElm = new Element();
-                    maskElm.add(layer_trg);
-                    if (masksToGo == 1) last.setMask(maskElm);
+                    masks.push(layer_trg);
+                    if (masksToGo == 1) { // it is the last mask
+                        var maskElm = new Element();
+                        // in animatron, layers are in reverse order
+                        for (var mi = masks.length; mi--;) {
+                            maskElm.add(masks[mi]);
+                        }
+                        last.setMask(maskElm);
+                    }
                 }
                 masksToGo--;
             }
+        }
+        // in animatron, layers are in reverse order
+        for (var ci = _children.length; ci--;) {
+            target.add(_children[ci]);
         }
     }
     return target;
