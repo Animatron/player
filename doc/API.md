@@ -1307,7 +1307,7 @@ Internally, this data is saved as `Element`'s `.__data` property, so you may acc
 
 > ♦ `builder.acomp % (comp: C.C_*) => Builder`
 
-Change the global composition operation for alpha blending, see the accepted values in [Constants](#constants) section.
+Change the global composition operation for alpha blending or any composition-trick you want. See the accepted values in [Constants](#constants) section.
 
     // a trick on how to achieve no-looking-through
     // elements on the layer with 0.5 opacity
@@ -1338,6 +1338,8 @@ Change the global composition operation for alpha blending, see the accepted val
                  .modify(function(t) { this.alpha = 0.5; })
 
     );
+
+We've created a [Composition Playground](http://animatron.com/composition-playground/) for you to play with, say it, combinations of compositions. Just click layer to change its corresponding example (there are 10-or-so prepared examples that allow you to play with mostly all possible situations) or click an operation icon to change it to another.
 
 ### Live Changes
 

@@ -1430,23 +1430,34 @@ Element.prototype.render = function(ctx, gtime) {
                 elm.render(ctx, gtime);
             });
         } else {
-            // draw to mask canvas, if has
+            // draw to back canvas, if has
             this.__ensureHasMaskCanvas();
             var mcvs = this.__maskCvs,
-                mctx = this.__maskCtx;
-            mctx.save();
+                mctx = this.__maskCtx,
+                bcvs = this.__backCvs,
+                bctx = this.__backCtx;
+
+            bctx.save();
+            bctx.clearRect(0, 0,
+                           mcvs.width, mcvs.height);
+            bctx.save();
+            this.transform(bctx);
+            this.draw(bctx);
+            this.visitChildren(function(elm) {
+                elm.render(bctx, gtime);
+            });
+            bctx.restore();
+            bctx.globalCompositeOperation = 'destination-in';
+
             mctx.clearRect(0, 0,
                            mcvs.width, mcvs.height);
             this.__mask.render(mctx, gtime);
-            mctx.globalCompositeOperation = 'source-in';
-            this.transform(mctx);
-            this.draw(mctx);
-            this.visitChildren(function(elm) {
-                elm.render(mctx, gtime);
-            });
-            ctx.drawImage(mcvs, 0, 0,
+            bctx.drawImage(mcvs, 0, 0,
+                           mcvs.width, mcvs.height);
+            bctx.restore();
+
+            ctx.drawImage(bcvs, 0, 0,
                           mcvs.width, mcvs.height);
-            mctx.restore();
         }
     }
     // immediately when drawn, element becomes visible,
@@ -1677,11 +1688,7 @@ Element.prototype.reset = function() {
     s._applied = false;
     s._appliedAt = null;
     s._matrix.reset();
-    if (this.__mask && this.__maskCvs) {
-        disposeElm(this.__maskCvs);
-        this.__maskCvs = null;
-        this.__maskCtx = null;
-    }
+    if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
     this.visitChildren(function(elm) {
         elm.reset();
@@ -1822,29 +1829,55 @@ Element.prototype.setMask = function(elm) {
                      .trans([0, 3],
                             [[-w/2, -h/2], [w,h]]); */
     if (!elm) throw new Error('No valid masking element was passed');
+    if (this.scene) this.__ensureHasMaskCanvas();
     this.__mask = elm;
 }
 Element.prototype.__ensureHasMaskCanvas = function() {
-    if (this.__maskCvs) return;
+    if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
     this.__maskCvs = newCanvas([scene.awidth, scene.aheight]);
     this.__maskCtx = this.__maskCvs.getContext('2d');
+    this.__backCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__backCtx = this.__backCvs.getContext('2d');
+    // document.body.appendChild(this.__maskCvs);
+    // document.body.appendChild(this.__backCvs);
 }
-Element.prototype.clearMask = function() {
-    this.__mask = null;
+Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
         disposeElm(this.__maskCvs);
         this.__maskCvs = null;
         this.__maskCtx = null;
     }
+    if (this.__backCvs) {
+        disposeElm(this.__backCvs);
+        this.__backCvs = null;
+        this.__backCtx = null;
+    }
+}
+Element.prototype.clearMask = function() {
+    this.__mask = null;
+    this.__removeMaskCanvases();
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);
   return this.__data;
 }
 Element.prototype.toString = function() {
-    return "[ Element '" + (this.name || this.id) + "' ]";
+    var buf = [ '[ Element ' ];
+    buf.push('\'' + (this.name || this.id) + '\' ');
+    /*if (this.children.length > 0) {
+        buf.push('( ');
+        this.visitChildren(function(child) {
+            buf.push(child.toString() + ', ');
+        });
+        buf.push(') ');
+    }
+    if (this.parent) {
+        buf.push('< \'' + (this.parent.name || this.parent.id) + '\' > ');
+    }*/
+    buf.push(']');
+    return buf.join("");
 }
 Element.prototype.clone = function() {
     var clone = new Element();
