@@ -61,6 +61,45 @@ describe("importing masks", function() {
         expect(notMaskedElm.__mask).not.toBeDefined();
     });
 
+    it("should fire an error if number of masked elements not matches the elements count below the mask", function() {
+        function expectAnErrorForProject(structure) {
+            var project = createAnmProject();
+            injectAnmScene(project, structure);
+            try {
+                importer.load(project);
+            } catch(e) {
+                expect(e.message).toBe('No layers colleted to apply mask');
+            }
+        }
+
+        expectAnErrorForProject(
+            [ { name: "bg" },
+              { name: "mask",
+                masked: 2,
+                layers: [ { name: "mask-part-1" },
+                          { name: "mask-part-2" } ] } ]);
+
+        expectAnErrorForProject(
+            [ { name: "mask",
+                masked: 8,
+                layers: [ ]
+              } ] );
+
+        expectAnErrorForProject(
+            [ { name: "mask",
+                masked: 1,
+                layers: [ ]
+              } ] );
+
+        expectAnErrorForProject(
+            [ { name: "mask",
+                masked: 2,
+                layers: [ ]
+              },
+              { name: "not-enough" } ] );
+
+    });
+
     // TODO: test importing masks, single-layered or multi-layered, also if masked is 0
 
 });
