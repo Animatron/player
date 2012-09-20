@@ -532,6 +532,7 @@ Player.prototype.stop = function() {
 
     if (player.anim) {
         state.happens = C.STOPPED;
+        // TODO: do not draw preview for games?
         player.drawAt((player.mode & C.M_VIDEO)
             ? state.duration * Player.PREVIEW_POS
             : 0);

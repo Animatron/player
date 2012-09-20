@@ -15,11 +15,7 @@ describe("masks", function() {
         player = createPlayer('test-id');
     });
 
-    // FIXME: may be this test is too low-level, may be it just might ensure that
-    // elements are drawn in orded and to proper canvas
-    // TODO: or, test also the proper transform call then
-    // FIXME: ENABLE, DISABLED TEMPORARY
-    xit("mask drawing sequence should be right", function() {
+    it("mask drawing sequence should be right", function() {
 
         //var saveSpy = spyOn(_mocks.context2d, 'save');
         //var restoreSpy = spyOn(_mocks.context2d, 'restore');
@@ -27,18 +23,43 @@ describe("masks", function() {
         var maskCanvas = _mocks.factory.canvas();
         var maskContext = maskCanvas.getContext('2d');
 
+        var backCanvas = _mocks.factory.canvas();
+        var backContext = backCanvas.getContext('2d');
+
         var mainCanvas = _mocks.canvas;
         var mainContext = mainCanvas.getContext('2d');
 
         expect(maskContext).not.toBe(mainContext);
+        expect(maskContext).not.toBe(backContext);
+        expect(backContext).not.toBe(mainContext);
 
-        var createdMaskCanvas = false;
+        var maskCanvasWasCreated = false;
+        var backCanvasWasCreated = false;
 
-        var createCanvasSpy = spyOn(document, 'createElement').andCallFake(function(elmType) {
+        var maskCanvasWasRemoved = false;
+        var backCanvasWasRemoved = false;
+
+        var creatingCanvasesWasCalledBefore = false;
+
+        var firstPass = true;
+
+        var prevCreateElement = document.createElement;
+        var createElementSpy = spyOn(document, 'createElement').andCallFake(function(elmType) {
             expect(elmType).toEqual('canvas');
-            return maskCanvas;
+            if (!maskCanvasWasCreated || maskCanvasWasRemoved) {
+                maskCanvasWasCreated = true;
+                maskCanvasWasRemoved = false;
+                return maskCanvas; }
+            if (!backCanvasWasCreated || backCanvasWasRemoved) {
+                backCanvasWasCreated = true;
+                backCanvasWasRemoved = false;
+                return backCanvas; }
+            //return _mocks.factory.element();
         });
-        var drawImageSpy = spyOn(mainContext, 'drawImage').andCallThrough();
+        spyOn(player, 'drawAt').andCallFake(_mocks.nop); // it messes with tests while not required for them
+
+        var mainCtxDrawImageSpy = spyOn(mainContext, 'drawImage').andCallThrough();
+        var backCtxDrawImageSpy = spyOn(backContext, 'drawImage').andCallThrough();
 
         var elemPaintSpy = jasmine.createSpy('elem-paint').andCallFake(function(ctx) {
             expect(ctx).toBe(mainContext);
@@ -46,66 +67,108 @@ describe("masks", function() {
 
             expect(maskPaintSpy).not.toHaveBeenCalled();
             expect(maskedPaintSpy).not.toHaveBeenCalled();
+            if (!firstPass) expect(elem2PaintSpy).toHaveBeenCalled();
+            elem2PaintSpy.reset();
 
-            expect(createCanvasSpy).not.toHaveBeenCalled();
-            expect(drawImageSpy).not.toHaveBeenCalled();
+            expect(createElementSpy).not.toHaveBeenCalled();
+            expect(mainCtxDrawImageSpy).not.toHaveBeenCalled();
+            expect(backCtxDrawImageSpy).not.toHaveBeenCalled();
+        });
+
+        var maskedPaintSpy = jasmine.createSpy('masked-paint').andCallFake(function(ctx) {
+            expect(ctx).toBe(backContext);
+
+            expect(maskedTransformSpy).toHaveBeenCalled();
+            expect(maskedTransformSpy).toHaveBeenCalledWith(backContext);
+
+            /*expect(maskedDrawSpy).toHaveBeenCalled();
+            expect(maskedDrawSpy).toHaveBeenCalledWith(backContext);*/
+
+            // TODO: expect backCtx.clearRect to be called
+
+            expect(maskCanvasWasCreated).toBeTruthy();
+            expect(backCanvasWasCreated).toBeTruthy();
+
+            if (!creatingCanvasesWasCalledBefore) {
+                expect(createElementSpy).toHaveBeenCalled();
+                expect(createElementSpy.callCount).toBe(2);
+                createElementSpy.reset();
+                creatingCanvasesWasCalledBefore = true;
+            } else expect(createElementSpy).not.toHaveBeenCalled();
+
+            expect(masked.v.__mask).toBe(mask.v);
+            expect(masked.v.__backCvs).toBe(backCanvas);
+            expect(masked.v.__backCtx).toBe(backContext);
+            expect(masked.v.__maskCvs).toBe(maskCanvas);
+            expect(masked.v.__maskCtx).toBe(maskContext);
+
+            expect(maskCanvas.width).toEqual(mainCanvas.width);
+            expect(maskCanvas.height).toEqual(mainCanvas.height);
+            expect(backCanvas.width).toEqual(mainCanvas.width);
+            expect(backCanvas.height).toEqual(mainCanvas.height);
+
+            expect(mainContext.globalCompositeOperation).toEqual('source-over');
+            expect(maskContext.globalCompositeOperation).toEqual('source-over');
+            expect(backContext.globalCompositeOperation).toEqual('source-over');
+
+            // TODO: ensure masked children were rendered
+
+            expect(maskPaintSpy).not.toHaveBeenCalled();
+            expect(elemPaintSpy).toHaveBeenCalledOnce();
+            expect(elemPaintSpy).toHaveBeenCalledWith(mainContext, undefined);
+            elemPaintSpy.reset();
+            expect(elem2PaintSpy).not.toHaveBeenCalled();
+
+            expect(mainCtxDrawImageSpy).not.toHaveBeenCalled();
+            expect(backCtxDrawImageSpy).not.toHaveBeenCalled();
         });
 
         var maskPaintSpy = jasmine.createSpy('mask-paint').andCallFake(function(ctx) {
             expect(ctx).toBe(maskContext);
-            expect(maskCanvas.width).toEqual(mainCanvas.width);
-            expect(maskCanvas.height).toEqual(mainCanvas.height);
+
             expect(mainContext.globalCompositeOperation).toEqual('source-over');
             expect(maskContext.globalCompositeOperation).toEqual('source-over');
-            /*expect(maskContext.fillStyle).toBe('black');
-            expect(maskContext.strokeStyle).toBe('rgba(0,0,0,1)');*/
+            expect(backContext.globalCompositeOperation).toEqual('destination-in');
 
-            if (!createdMaskCanvas) {
-                expect(createCanvasSpy).toHaveBeenCalled();
-                createCanvasSpy.reset();
-                createdMaskCanvas = true;
-            } else expect(createCanvasSpy).not.toHaveBeenCalled();
+            expect(maskedPaintSpy).toHaveBeenCalledOnce();
+            expect(maskedPaintSpy).toHaveBeenCalledWith(backContext, undefined);
+            maskedPaintSpy.reset();
 
-            expect(elemPaintSpy).toHaveBeenCalledOnce();
-            expect(elemPaintSpy).toHaveBeenCalledWith(mainContext, undefined);
-            elemPaintSpy.reset();
-            elem2PaintSpy.reset();
-
-            expect(maskedPaintSpy).not.toHaveBeenCalled();
-            expect(drawImageSpy).not.toHaveBeenCalled();
-        });
-
-        var maskedPaintSpy = jasmine.createSpy('masked-paint').andCallFake(function(ctx) {
-            expect(ctx).toBe(maskContext);
-            // TODO: expect clearRect to be called
-            expect(mainContext.globalCompositeOperation).toEqual('source-over');
-            expect(maskContext.globalCompositeOperation).toEqual('source-in');
-
-            expect(createCanvasSpy).not.toHaveBeenCalled();
+            expect(createElementSpy).not.toHaveBeenCalled();
             expect(elemPaintSpy).not.toHaveBeenCalled();
             expect(elem2PaintSpy).not.toHaveBeenCalled();
+            elem2PaintSpy.reset();
 
-            expect(maskPaintSpy).toHaveBeenCalledOnce();
-            expect(maskPaintSpy).toHaveBeenCalledWith(maskContext, undefined);
-            maskPaintSpy.reset();
-
-            expect(drawImageSpy).not.toHaveBeenCalled();
+            expect(mainCtxDrawImageSpy).not.toHaveBeenCalled();
+            expect(backCtxDrawImageSpy).not.toHaveBeenCalled();
         });
 
         var elem2PaintSpy = jasmine.createSpy('elem2-paint').andCallFake(function(ctx) {
             expect(ctx).toBe(mainContext);
             expect(mainContext.globalCompositeOperation).toEqual('source-over');
             expect(maskContext.globalCompositeOperation).toEqual('source-over');
+            expect(backContext.globalCompositeOperation).toEqual('source-over');
 
-            expect(maskPaintSpy).not.toHaveBeenCalled();
+            expect(createElementSpy).not.toHaveBeenCalled();
             expect(elemPaintSpy).not.toHaveBeenCalled();
-            expect(maskedPaintSpy).toHaveBeenCalledOnce();
-            expect(maskedPaintSpy).toHaveBeenCalledWith(maskContext, undefined);
-            maskedPaintSpy.reset();
+            expect(maskedPaintSpy).not.toHaveBeenCalled();
+            expect(maskPaintSpy).toHaveBeenCalledOnce();
+            expect(maskPaintSpy).toHaveBeenCalledWith(maskContext, undefined);
+            maskPaintSpy.reset();
 
-            expect(drawImageSpy).toHaveBeenCalledOnce();
-            expect(drawImageSpy).toHaveBeenCalledWith(maskCanvas, 0, 0, maskCanvas.width, maskCanvas.height);
-            drawImageSpy.reset();
+            expect(mainCtxDrawImageSpy).toHaveBeenCalledOnce();
+            expect(backCtxDrawImageSpy).toHaveBeenCalledOnce();
+            // TODO: ensure backCtxDrawImageSpy was called before mainCtxDrawImageSpy
+            expect(backCtxDrawImageSpy).toHaveBeenCalledWith(maskCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+            expect(mainCtxDrawImageSpy).toHaveBeenCalledWith(backCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+
+            mainCtxDrawImageSpy.reset();
+            backCtxDrawImageSpy.reset();
+
+            expect(backCanvasWasRemoved).toBeFalsy();
+            expect(maskCanvasWasRemoved).toBeFalsy();
+
+            if (firstPass) firstPass = false;
         });
 
         var scene = b().band([0, .5]);
@@ -113,6 +176,19 @@ describe("masks", function() {
         var masked = b().paint(maskedPaintSpy);
         var mask = b().paint(maskPaintSpy);
         var elem2 = b().paint(elem2PaintSpy);
+
+        var maskedTransformSpy = spyOn(masked.v, 'transform').andCallThrough();
+        var maskedDrawSpy = spyOn(masked.v, 'draw').andCallThrough();
+        var removeCanvasesSpy = spyOn(masked.v, '__removeMaskCanvases').andCallFake(function() {
+            expect(this).toBe(masked.v);
+            if (this.__maskCvs) { this.__maskCvs = null;
+                                  creatingCanvasesWasCalledBefore = false;
+                                  maskCanvasWasRemoved = true; }
+            if (this.__backCvs) { this.__backCvs = null;
+                                  creatingCanvasesWasCalledBefore = false;
+                                  backCanvasWasRemoved = true; }
+        });
+        //.andCallFake(_mocks.nop);
 
         scene.add(elem);
         scene.add(masked);
@@ -132,13 +208,20 @@ describe("masks", function() {
             //expect(saveSpy).not.toHaveBeenCalled();
             //expect(restoreSpy).toHaveBeenCalled();
 
+            expect(maskCanvasWasRemoved).toBeTruthy();
+            expect(backCanvasWasRemoved).toBeTruthy();
+
+            expect(elemPaintSpy).not.toHaveBeenCalled();
+            expect(maskPaintSpy).not.toHaveBeenCalled();
             expect(maskedPaintSpy).not.toHaveBeenCalled();
-            expect(elem2PaintSpy).toHaveBeenCalledOnce();
-            expect(drawImageSpy).not.toHaveBeenCalled();
+            expect(elem2PaintSpy).toHaveBeenCalled();
+            elem2PaintSpy.reset();
+            expect(mainCtxDrawImageSpy).not.toHaveBeenCalled();
+            expect(backCtxDrawImageSpy).not.toHaveBeenCalled();
         })
     });
 
-    // TODO: mask canvas created during render process, but once
+    // TODO: check alpha applied ok both for mask and for masked element
 
     // TODO: check for child elements, complex elements and stuff
 

@@ -29,7 +29,7 @@ mocks.factory.canvas = function() {
         'hasAttribute': function(attr) { return typeof __cvs_attrs[attr] !== 'undefined'; },
         'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
         'getAttribute': function(attr) { return __cvs_attrs[attr]; },
-        'style': mocks.factory.canvasStyle(),
+        'style': mocks.factory.cssStyle(),
         'addEventListener': _empty,
         'width': -1,
         'height': -1,
@@ -74,14 +74,21 @@ mocks.factory.context2d = function() {
     };
 };
 
-mocks.factory.canvasStyle = function() {
-    return {};
-};
-
 mocks.factory.linearGradient = function() {
     return {
         'addColorStop': _empty
     };
+};
+
+mocks.factory.element = function() {
+    return {
+        'id': 'some-id',
+        'style': mocks.factory.cssStyle()
+    }
+}
+
+mocks.factory.cssStyle = function() {
+    return { };
 };
 
 // TODO: attributes
@@ -91,6 +98,8 @@ mocks.context2d = mocks.canvas.getContext('2d');
 mocks.canvasStyle = mocks.canvas.style;
 
 mocks.gradient = mocks.factory.linearGradient();
+
+mocks.nop = _empty;
 
 return mocks;
 
