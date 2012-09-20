@@ -62,6 +62,7 @@ AnimatronImporter.prototype.computeDuration = function(elms) {
 AnimatronImporter.prototype.load = function(prj) {
     // ( framerate, dimension, background, duration,
     //   elements, scenes )
+    // FIXME: allow importing several scenes
     return this.importScene(prj.anim.scenes[0],
                             prj.anim.elements);
 };
@@ -103,7 +104,9 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
                 var mask = layer_trg,
                     maskedToGo = layer_src.masked, // layers below to apply mask
                     ltl = _layers_targets.length;
-                if (maskedToGo > ltl) throw new Error('No layers colleted to apply mask');
+                if (maskedToGo > ltl) {
+                    throw new Error('No layers colleted to apply mask')
+                };
                 while (maskedToGo) {
                     var masked = _layers_targets[ltl-maskedToGo];
                     //console.log(mask.name + '->' + masked.name);
@@ -119,11 +122,12 @@ AnimatronImporter.prototype.findElement = function(id, source) {
     for (var i = 0; i < source.length; i++) {
         if (source[i].id === id) return source[i];
     }
+    throw new Error("Element with id " + id + " was not found in passed source");
 }
 
 // collect required data from source layer
 AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
-    if (!to.name) to.name = clip.name;
+    if (!to.name && clip.name) to.name = clip.name;
     var x = to.xdata;
     x.lband = clip.band || [0, 10]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband)

@@ -52,6 +52,13 @@ function _fakeCallsForCanvasRelatedStuff() {
 
 }
 
+function _s4() {
+   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+}
+function guid() {
+   return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
+}
+
 /* function fillMockWithSpies(mock) {
     for (prop in mock) {
         if (typeof mock[prop] == 'function') {
