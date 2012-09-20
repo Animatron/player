@@ -52,6 +52,56 @@ function _fakeCallsForCanvasRelatedStuff() {
 
 }
 
+function _s4() {
+   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
+}
+function guid() {
+   return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
+}
+
+/* function fillMockWithSpies(mock) {
+    for (prop in mock) {
+        if (typeof mock[prop] == 'function') {
+            mock[prop] = spyOn(mock, prop).andCallThrough();
+        }
+    }
+} */
+
+// TODO: integrate everywhere
+/* function withPlayer(player) {
+    var toCall = [];
+    var stateToWaitFor,
+        waitingTime,
+        expectations;
+    function postponeCall(func) {
+        return function() { toCall.push([this, func, arguments]); }
+    }
+    return {
+        play: postponeCall('play'),
+        load: postponeCall('load'),
+        stop: postponeCall('stop')
+        waitToBe: function(state, time) {
+            stateToWaitFor = state;
+            waitingTime = time;
+        },
+        andCheck: function(f) { expectations = f; }
+        run: function() {
+            runs(function() {
+                for (var ci = 0, cl = toCall.length; ci < cl; ci++) {
+                    var f = toCall[ci];
+                    f[0][f[1]].call(f[0], f[2]);
+                }
+            });
+
+            waitsFor(function() {
+                return player.state.happens === stateToWaitFor;
+            }, waitingTime * 1000);
+
+            runs(expectations);
+        }
+    }
+} */
+
 // TODO: function(prepareCanvasTest)
 
 /*

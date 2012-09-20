@@ -231,6 +231,18 @@ function __array(obj) {
     return Array.isArray(obj);
 }
 
+var trashBin = null;
+function disposeElm(domElm) {
+    if (!trashBin) {
+        trashBin = document.createElement('div');
+        trashBin.id = 'trash-bin';
+        trashBin.style.display = 'none';
+        document.body.appendChild(trashBin);
+    }
+    trashBin.appendChild(domElm);
+    trashBin.innerHTML = '';
+}
+
 // === CONSTANTS ==================================================================
 // ================================================================================
 
@@ -385,12 +397,11 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'repeat': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
-                                 'meta': { 'title': 'Default',
+                                 'meta': { 'title': '',
                                            'author': 'Anonymous',
-                                           'copyright': '© NaN',
-                                           'version': -1.0,
-                                           'description':
-                                                'Default project description' },
+                                           'copyright': '',
+                                           'version': null,
+                                           'description': '' },
                                  'anim': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
@@ -521,6 +532,7 @@ Player.prototype.stop = function() {
 
     if (player.anim) {
         state.happens = C.STOPPED;
+        // TODO: do not draw preview for games?
         player.drawAt((player.mode & C.M_VIDEO)
             ? state.duration * Player.PREVIEW_POS
             : 0);
@@ -679,8 +691,8 @@ Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cnvs = this.canvas;
 
-    if (cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
-    if (cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
+    if (!conf.width && cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
+    if (!conf.height && cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
 
     this._applyConfToCanvas(conf);
 
@@ -1409,13 +1421,45 @@ Element.prototype.render = function(ctx, gtime) {
     if (wasDrawn = (this.fits(ltime)
                     && this.onframe(ltime)
                     && this.prepare())) {
-        this.transform(ctx);
-        this.draw(ctx);
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
-        this.visitChildren(function(elm) {
-            elm.render(ctx, gtime);
-        });
+        if (!this.__mask) {
+            // draw directly to context, if has no mask
+            this.transform(ctx);
+            this.draw(ctx);
+            this.visitChildren(function(elm) {
+                elm.render(ctx, gtime);
+            });
+        } else {
+            // draw to back canvas, if has
+            this.__ensureHasMaskCanvas();
+            var mcvs = this.__maskCvs,
+                mctx = this.__maskCtx,
+                bcvs = this.__backCvs,
+                bctx = this.__backCtx;
+
+            bctx.save();
+            bctx.clearRect(0, 0,
+                           mcvs.width, mcvs.height);
+            bctx.save();
+            this.transform(bctx);
+            this.draw(bctx);
+            this.visitChildren(function(elm) {
+                elm.render(bctx, gtime);
+            });
+            bctx.restore();
+            bctx.globalCompositeOperation = 'destination-in';
+
+            mctx.clearRect(0, 0,
+                           mcvs.width, mcvs.height);
+            this.__mask.render(mctx, gtime);
+            bctx.drawImage(mcvs, 0, 0,
+                           mcvs.width, mcvs.height);
+            bctx.restore();
+
+            ctx.drawImage(bcvs, 0, 0,
+                          mcvs.width, mcvs.height);
+        }
     }
     // immediately when drawn, element becomes visible,
     // it is reasonable
@@ -1645,6 +1689,7 @@ Element.prototype.reset = function() {
     s._applied = false;
     s._appliedAt = null;
     s._matrix.reset();
+    if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
     this.visitChildren(function(elm) {
         elm.reset();
@@ -1763,12 +1808,57 @@ Element.prototype.lrect = function() {
           // maxX, maxY, minX, maxY
              b[2], b[3], b[0], b[3] ];
 }
+Element.prototype.setMask = function(elm) {
+    if (!elm) throw new Error('No valid masking element was passed');
+    if (this.scene) this.__ensureHasMaskCanvas();
+    this.__mask = elm;
+}
+Element.prototype.__ensureHasMaskCanvas = function() {
+    if (this.__maskCvs || this.__backCvs) return;
+    var scene = this.scene;
+    if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
+    this.__maskCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__maskCtx = this.__maskCvs.getContext('2d');
+    this.__backCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__backCtx = this.__backCvs.getContext('2d');
+    // document.body.appendChild(this.__maskCvs);
+    // document.body.appendChild(this.__backCvs);
+}
+Element.prototype.__removeMaskCanvases = function() {
+    if (this.__maskCvs) {
+        disposeElm(this.__maskCvs);
+        this.__maskCvs = null;
+        this.__maskCtx = null;
+    }
+    if (this.__backCvs) {
+        disposeElm(this.__backCvs);
+        this.__backCvs = null;
+        this.__backCtx = null;
+    }
+}
+Element.prototype.clearMask = function() {
+    this.__mask = null;
+    this.__removeMaskCanvases();
+}
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);
   return this.__data;
 }
 Element.prototype.toString = function() {
-    return "[ Element '" + (this.name || this.id) + "' ]";
+    var buf = [ '[ Element ' ];
+    buf.push('\'' + (this.name || this.id) + '\' ');
+    /*if (this.children.length > 0) {
+        buf.push('( ');
+        this.visitChildren(function(child) {
+            buf.push(child.toString() + ', ');
+        });
+        buf.push(') ');
+    }
+    if (this.parent) {
+        buf.push('< \'' + (this.parent.name || this.parent.id) + '\' > ');
+    }*/
+    buf.push(']');
+    return buf.join("");
 }
 Element.prototype.clone = function() {
     var clone = new Element();
@@ -2347,6 +2437,8 @@ L.loadScene = function(player, scene, callback) {
         }
         player.updateDuration(scene.duration);
     }
+    scene.awidth = player.state.width;
+    scene.aheight = player.state.height;
     if (callback) callback.call(player);
 }
 L.loadClips = function(player, clips, callback) {
@@ -3329,6 +3421,7 @@ Text.prototype.accent = function(height) {
     return height; // FIXME
 }
 Text._createBuffer = function() {
+    // FIXME: dispose buffer when text is removed from scene
     var _div = document.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';
@@ -3715,12 +3808,13 @@ InfoBlock.prototype.update = function(parent) {
 }
 InfoBlock.prototype.inject = function(meta, anim) {
     // TODO: show speed
-    this.div.innerHTML = '<p><span class="title">'+meta.title+'</span>'+
+    this.div.innerHTML = '<p><span class="title">'+(meta.title || '[No title]')+'</span>'+
             (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
             (((anim.width!=null) && (anim.height!=null))
              ? '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> ' : '')+
-            '<span class="copy">v'+meta.version+' '+meta.copyright+'</span>'+' '+
+            '<span class="copy">'+(meta.version ? ('v'+meta.version+' ') : '')
+                                 +meta.copyright+'</span>'+' '+
             (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
             '</p>';
 }
