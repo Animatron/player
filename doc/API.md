@@ -1307,7 +1307,7 @@ Internally, this data is saved as `Element`'s `.__data` property, so you may acc
 
 > ♦ `builder.acomp % (comp: C.C_*) => Builder`
 
-Change the global composition operation for alpha blending, see the accepted values in [Constants](#constants) section.
+Change the global composition operation for alpha blending or any composition-trick you want. See the accepted values in [Constants](#constants) section.
 
     // a trick on how to achieve no-looking-through
     // elements on the layer with 0.5 opacity
@@ -1338,6 +1338,33 @@ Change the global composition operation for alpha blending, see the accepted val
                  .modify(function(t) { this.alpha = 0.5; })
 
     );
+
+We've created a [Composition Playground](http://animatron.com/composition-playground/) for you to play with, say it, combinations of compositions. Just click layer to change its corresponding example (there are 10-or-so prepared examples that allow you to play with mostly all possible situations) or click an operation icon to change it to another.
+
+> ♦ `builder.mask % (mask: Element | Builder) => Builder`
+
+Make one element to be a mask of another (so you call `mask` method of masked element and ). You don't need to add mask-element to the scene, except the case when you need it also to be drawn. Mask may be only one, but for sure it may contain any number of children elements inside. One mask may be used for several elements. It's transformation state corresponds to the state of masked parent.
+
+    var cvs = document.getElementById('my-canvas'),
+        w = cvs.width,
+        h = cvs.height;
+
+    var bg = b('bg').circle([w/2,h/2], 100)
+                    .fill('#009');
+    var foo = b('mask').add(b().rect([0, 0], 100))
+                       .add(b().rect([30, 50], 60))
+                       .trans([0, 3], [[w, h], [0, 0]])
+                       //.alpha([0, 3], [0, 1]);
+    var bar = b('masked').circle([0, 0], 60)
+                         .fill('#ff0')
+                         .trans([0, 3], [[0, 0], [w, h]])
+                         //.alpha([0, 3], [.8, 1])
+                         .mask(foo)
+    return b('scene').add(bg)
+                     .add(foo)
+                     .add(bar)
+                     .trans([0, 3],
+                            [[-w/2, -h/2], [w,h]]);
 
 ### Live Changes
 

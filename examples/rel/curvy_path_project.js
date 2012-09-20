@@ -5,11 +5,11 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
-var curvy_path_project = 
+var curvy_path_project =
 {
   "meta": {
     "id": "4f7f3fb403642d2a7453bbcd",
-    "title": "hhhh",
+    "name": "hhhh",
     "author": "",
     "copyright": "",
     "version": 0.1,
