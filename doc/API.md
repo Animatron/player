@@ -1341,6 +1341,31 @@ Change the global composition operation for alpha blending or any composition-tr
 
 We've created a [Composition Playground](http://animatron.com/composition-playground/) for you to play with, say it, combinations of compositions. Just click layer to change its corresponding example (there are 10-or-so prepared examples that allow you to play with mostly all possible situations) or click an operation icon to change it to another.
 
+> ♦ `builder.mask % (mask: Element | Builder) => Builder`
+
+Make one element to be a mask of another (so you call `mask` method of masked element and ). You don't need to add mask-element to the scene, except the case when you need it also to be drawn. Mask may be only one, but for sure it may contain any number of children elements inside. One mask may be used for several elements. It's transformation state corresponds to the state of masked parent.
+
+    var cvs = document.getElementById('my-canvas'),
+        w = cvs.width,
+        h = cvs.height;
+
+    var bg = b('bg').circle([w/2,h/2], 100)
+                    .fill('#009');
+    var foo = b('mask').add(b().rect([0, 0], 100))
+                       .add(b().rect([30, 50], 60))
+                       .trans([0, 3], [[w, h], [0, 0]])
+                       //.alpha([0, 3], [0, 1]);
+    var bar = b('masked').circle([0, 0], 60)
+                         .fill('#ff0')
+                         .trans([0, 3], [[0, 0], [w, h]])
+                         //.alpha([0, 3], [.8, 1])
+                         .mask(foo)
+    return b('scene').add(bg)
+                     .add(foo)
+                     .add(bar)
+                     .trans([0, 3],
+                            [[-w/2, -h/2], [w,h]]);
+
 ### Live Changes
 
 A very delicious feature is that you may change almost everything that happens on the scene in real time ("almost" — because we haven't tested all the variant of doing it, please file issues if you'll find something that don't works when it looks like it should).
