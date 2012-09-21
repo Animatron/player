@@ -91,6 +91,10 @@ mocks.factory.cssStyle = function() {
     return { };
 };
 
+mocks.factory.nop = function() {
+    return function() {};
+}
+
 // TODO: attributes
 
 mocks.canvas = mocks.factory.canvas();
@@ -99,7 +103,7 @@ mocks.canvasStyle = mocks.canvas.style;
 
 mocks.gradient = mocks.factory.linearGradient();
 
-mocks.nop = _empty;
+mocks.nop = mocks.factory.nop();
 
 return mocks;
 

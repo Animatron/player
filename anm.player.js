@@ -1863,10 +1863,10 @@ Element.prototype.toString = function() {
 Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
-    clone.children = this.children.slice(0);
+    clone.children = [].concat(this.children);
     clone.sprite = this.sprite;
-    clone._modifiers = this._modifiers.slice(0);
-    clone._painters = this._painters.slice(0);
+    clone._modifiers = [].concat(this._modifiers);
+    clone._painters = [].concat(this._painters);
     clone.xdata = obj_clone(this.xdata);
     clone.xdata.$ = clone;
     clone.__data = this.__data;
@@ -1882,6 +1882,32 @@ Element.prototype.deepClone = function() {
             cclone = csrc.deepClone();
         cclone.parent = clone;
         trg_children.push(cclone);
+    }
+    clone._modifiers = [];
+    // loop through type
+    for (var mti = 0, mtl = this._modifiers.length; mti < mtl; mti++) {
+        var type_group = this._modifiers[mti];
+        if (!type_group) continue;
+        clone._modifiers[mti] = [];
+        // loop through priority
+        for (var mpi = 0, mpl = type_group.length; mpi < mpl; mpi++) {
+            var priority_group = type_group[mpi];
+            if (!priority_group) continue;
+            clone._modifiers[mti][mpi] = [].concat(priority_group);
+        }
+    }
+    clone._painters = [];
+    // loop through type
+    for (var pti = 0, ptl = this._painters.length; pti < ptl; pti++) {
+        var type_group = this._painters[pti];
+        if (!type_group) continue;
+        clone._painters[pti] = [];
+        // loop through priority
+        for (var ppi = 0, ppl = type_group.length; ppi < ppl; ppi++) {
+            var priority_group = type_group[ppi];
+            if (!priority_group) continue;
+            clone._painters[pti][ppi] = [].concat(priority_group);
+        }
     }
     clone.__data = obj_clone(this.__data);
     var src_x = this.xdata,
