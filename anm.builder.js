@@ -575,6 +575,17 @@ Builder.prototype.acomp = function(value) {
 
 } // end IF modCollisions*/
 
+// * MASKS *
+
+Builder.prototype.mask = function(mask) {
+    if (mask instanceof Element) {
+        this.v.setMask(mask);
+    } else if (mask instanceof Builder) {
+        this.v.setMask(mask.v);
+    }
+    return this;
+}
+
 // * PRIVATE *
 
 Builder.prototype._extractStroke = function(def_) {

@@ -8,7 +8,7 @@
 var alpha_project = {
   "meta": {
 	"id": "4fc76da2da0605201971d875",
-	"title": "New Project",
+	"name": "New Project",
 	"author": "",
 	"copyright": "",
 	"version": 0.1,
