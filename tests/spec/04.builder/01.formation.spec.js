@@ -215,7 +215,41 @@ describe("builder, regarding its formation techniques,", function() {
             expect(instance.v.__b$).toBe(instance);
         });
 
-        describe("cloning, especially", function() {
+        it("should also set default fill to new builder if fill in cloned builder is not defined", function() {
+            to_clone = b();
+            instance = b(to_clone);
+
+            expect(to_clone.f).toBe(B.DEFAULT_FILL);
+            expect(instance.f).toBe(B.DEFAULT_FILL);
+        });
+
+        it("should also set default stroke to new builder if fill in cloned builder is not defined", function() {
+            to_clone = b();
+            instance = b(to_clone);
+
+            expect(to_clone.s).toBe(B.DEFAULT_STROKE);
+            expect(instance.s).toBe(B.DEFAULT_STROKE);
+        });
+
+        describe("cloning data, especially", function() {
+
+            it("should clone inner element, not to copy", function() {
+                to_clone = b('Foo');
+                instance = b(to_clone);
+
+                expect(instance.v).not.toBe(to_clone.v);
+                expect(instance.v.name).toBe('Foo');
+            });
+
+            it("should clone inner element's xdata, not to copy", function() {
+                to_clone = b('Foo');
+                instance = b(to_clone);
+
+                expect(instance.v).not.toBe(to_clone.v);
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(instance.x).not.toBe(to_clone.v.xdata);
+            });
 
             it("should clone children array of given builder's element, not to copy", function() {
                 var child_one = b(),
@@ -231,6 +265,30 @@ describe("builder, regarding its formation techniques,", function() {
                 expect(to_clone.v.children[1]).toBe(child_two.v);
                 expect(instance.v.children[2]).toBe(child_three.v);
             });
+
+            it("should clone fill and stroke, not to copy", function() {
+                to_clone = b().fill('#456789');
+                instance = b(to_clone);
+
+                expect(to_clone.f.color).toBe('#456789');
+                expect(instance.f.color).toBe('#456789');
+
+                to_clone.fill('#986754');
+                expect(to_clone.f.color).toBe('#986754');
+                expect(instance.f.color).toBe('#456789');
+
+                to_clone = b().stroke('#456789', 5);
+                instance = b(to_clone);
+
+                expect(to_clone.s.color).toBe('#456789');
+                expect(instance.s.color).toBe('#456789');
+
+                to_clone.stroke('#986754', 10);
+                expect(to_clone.s.color).toBe('#986754');
+                expect(to_clone.s.width).toBe(10);
+                expect(instance.s.color).toBe('#456789');
+                expect(instance.s.width).toBe(5);
+            })
 
             it("should deeply clone children array of given builder's element, not to copy", function() {
                 var child_one = b(),
@@ -266,11 +324,78 @@ describe("builder, regarding its formation techniques,", function() {
             });
 
             it("should clone path object of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+                var path = B.path([[0, 0], [10, 10]]);
+                to_clone = b().path(path);
+                instance = b(to_clone);
+                var fill_color = '#456789';
+                to_clone.fill(fill_color);
+
+                expect(to_clone.x.path).toBe(path);
+                expect(instance.x.path).toBeDefined();
+                expect(instance.x.path).not.toBe(path);
+                expect(to_clone.x.path.fill.color).toBe(fill_color);
+                expect(instance.x.path.fill.color).not.toBe(fill_color);
+
+                path = B.path([[0, 0], [10, 10]]);
+                to_clone = b().path(path).fill(fill_color);
+                instance = b(to_clone);
+
+                expect(instance.x.path).toBeDefined();
+                expect(instance.x.path).not.toBe(path);
+                expect(to_clone.x.path.fill.color).toBe(fill_color);
+                expect(instance.x.path.fill.color).toBe(fill_color);
+
+                var another_fill_color = '#986754';
+                instance.x.path.cfill(another_fill_color);
+                expect(to_clone.x.path.fill.color).toBe(fill_color);
+                expect(instance.x.path.fill.color).not.toBe(fill_color);
+                expect(instance.x.path.fill.color).toBe(another_fill_color);
             });
 
             it("should clone text object of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+                var text = new anm.Text(['Hello', 'World'], 'sans-serif');
+                to_clone = b().text([20, 20], text);
+                instance = b(to_clone);
+                var fill_color = '#456789';
+                to_clone.fill(fill_color);
+
+                expect(instance.x.text).toBeDefined();
+                expect(instance.x.text).not.toBe(text);
+                expect(to_clone.x.text.fill.color).toBe(fill_color);
+                expect(instance.x.text.fill.color).not.toBe(fill_color);
+
+                text = new anm.Text(['World', 'Hello'], 'sans-serif');
+                to_clone = b().text([40, 40], text).fill(fill_color);
+                instance = b(to_clone);
+
+                expect(to_clone.x.text).toBe(text);
+                expect(instance.x.text).toBeDefined();
+                expect(instance.x.text).not.toBe(text);
+                expect(to_clone.x.text.fill.color).toBe(fill_color);
+                expect(instance.x.text.fill.color).toBe(fill_color);
+
+                var another_fill_color = '#986754';
+                instance.x.text.cfill(another_fill_color);
+                expect(to_clone.x.text.fill.color).toBe(fill_color);
+                expect(instance.x.text.fill.color).not.toBe(fill_color);
+                expect(instance.x.text.fill.color).toBe(another_fill_color);
+
+                text.lines[0] = 'Foo';
+                expect(to_clone.x.text.lines[0]).toBe('Foo');
+                expect(instance.x.text.lines[0]).toBe('World');
+                expect(instance.x.text.lines[1]).toBe('Hello');
+                expect(instance.x.text.lines.length).toBe(2);
+
+                instance.x.text.lines[1] = 'Bar';
+                expect(to_clone.x.text.lines[0]).toBe('Foo');
+                expect(instance.x.text.lines[0]).toBe('World');
+                expect(instance.x.text.lines[1]).toBe('Bar');
+                expect(instance.x.text.lines.length).toBe(2);
+
+                instance.x.text.lines.push('Doodle');
+                expect(to_clone.x.text.lines.length).toBe(2);
+                expect(instance.x.text.lines.length).toBe(3);
+                expect(instance.x.text.lines[2]).toBe('Doodle');
             });
 
             it("should clone modifiers array of given builder's element, not to copy", function() {
@@ -370,56 +495,130 @@ describe("builder, regarding its formation techniques,", function() {
             });
 
             it("should clone data object of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+                var data = { 'foo': 42 };
+                to_clone = b().data(data);
+                instance = b(to_clone);
+
+                expect(to_clone.v.__data).toBe(data);
+                expect(instance.v.__data).not.toBe(data);
+
+                data.bar = 5;
+                expect(to_clone.v.__data.bar).toBe(5);
+                expect(instance.v.__data['bar']).not.toBeDefined();
+
+                data.foo = 21;
+                expect(to_clone.v.__data.foo).toBe(21);
+                expect(instance.v.__data.foo).toBe(42);
             });
 
             it("should clone position and registration point of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+                var pos = [ 1024, 768 ];
+                to_clone = b();
+                to_clone.x.pos = pos;
+                instance = b(to_clone);
+
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(to_clone.x.pos).toBe(pos);
+                expect(instance.x.pos).not.toBe(pos);
+
+                pos[0] = 5;
+                expect(to_clone.x.pos[0]).toBe(5);
+                expect(instance.x.pos[0]).toBe(1024);
+
+                pos[1] = 7;
+                expect(to_clone.x.pos[1]).toBe(7);
+                expect(instance.x.pos[1]).toBe(768);
+
+                var reg = [ 1024, 768 ];
+                to_clone = b();
+                to_clone.x.reg = reg;
+                instance = b(to_clone);
+
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(to_clone.x.reg).toBe(reg);
+                expect(instance.x.reg).not.toBe(reg);
+
+                reg[0] = 5;
+                expect(to_clone.x.reg[0]).toBe(5);
+                expect(instance.x.reg[0]).toBe(1024);
+
+                reg[1] = 7;
+                expect(to_clone.x.reg[1]).toBe(7);
+                expect(instance.x.reg[1]).toBe(768);
             });
 
             it("should clone bands of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+                var band = [20, 16];
+                to_clone = b().band(band);
+                instance = b(to_clone);
+
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(to_clone.x.lband).toBe(band);
+                expect(instance.x.lband).not.toBe(band);
+
+                band[0] = 5;
+                expect(to_clone.x.lband[0]).toBe(5);
+                expect(instance.x.lband[0]).toBe(20);
+
+                band[1] = 7;
+                expect(to_clone.x.lband[1]).toBe(7);
+                expect(instance.x.lband[1]).toBe(16);
+
+                var gband = [20, 16];
+                to_clone.x.gband = gband;
+                instance = b(to_clone);
+
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(to_clone.x.gband).toBe(gband);
+                expect(instance.x.gband).not.toBe(gband);
+
+                gband[0] = 5;
+                expect(to_clone.x.gband[0]).toBe(5);
+                expect(instance.x.gband[0]).toBe(20);
+
+                gband[1] = 7;
+                expect(to_clone.x.gband[1]).toBe(7);
+                expect(instance.x.gband[1]).toBe(16);
             });
 
             it("should clone keys object of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+                var keys = { 'foo': 42 };
+                to_clone = b();
+                to_clone.x.keys = keys;
+                instance = b(to_clone);
+
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(to_clone.x.keys).toBe(keys);
+                expect(instance.x.keys).not.toBe(keys);
+
+                keys.bar = 5;
+                expect(to_clone.x.keys.bar).toBe(5);
+                expect(instance.x.keys['bar']).not.toBeDefined();
+
+                keys.foo = 21;
+                expect(to_clone.x.keys.foo).toBe(21);
+                expect(instance.x.keys.foo).toBe(42);
             });
 
             it("should not clone image object in given builder's element, just copy", function() {
-                this.fail('Not Implemented');
+                var fake_src = 'http://fake.img';
+                to_clone = b().image([50, 50], fake_src);
+                var image = to_clone.x.image;
+                instance = b(to_clone);
+
+                expect(to_clone.x).toBe(to_clone.v.xdata);
+                expect(instance.x).toBe(instance.v.xdata);
+                expect(to_clone.x.image).toBe(image);
+                expect(instance.x.image).toBe(image);
+                expect(instance.x.image.src).toMatch(fake_src);
             });
 
-/*     var clone = this.clone();
-    clone.children = [];
-    var src_children = this.children;
-    var trg_children = clone.children;
-    for (var sci = 0, scl = src_children.length; sci < scl; sci++) {
-        var csrc = src_children[sci],
-            cclone = csrc.deepClone();
-        cclone.parent = clone;
-        trg_children.push(cclone);
-    }
-    clone.__data = obj_clone(this.__data);
-    var src_x = this.xdata,
-        trg_x = clone.xdata;
-    if (src_x.path) trg_x.path = src_x.path.clone();
-    //if (src_x.image) trg_x.image = src_x.image.clone();
-    if (src_x.text) trg_x.text = src_x.text.clone();
-    trg_x.pos = [].concat(src_x.pos);
-    trg_x.reg = [].concat(src_x.reg);
-    trg_x.lband = [].concat(src_x.lband);
-    trg_x.gband = [].concat(src_x.gband);
-    trg_x.keys = obj_clone(src_x.keys);
-    return clone; */
-
         });
-
-/*      this.v = obj.v.deepClone();
-        this.x = this.v.xdata;
-        this.f = this._extractFill(obj.f);
-        this.s = this._extractStroke(obj.s);
-        this.v.__b$ = this;
-        return; */
 
     });
 
