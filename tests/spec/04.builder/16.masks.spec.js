@@ -1,4 +1,4 @@
-describe("masks", function() {
+describe("builder, regarding masks", function() {
 
     var player,
         C = anm.C;
