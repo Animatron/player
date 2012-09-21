@@ -196,8 +196,8 @@ describe("builder, regarding its formation techniques,", function() {
 
     describe("when creating with builder as parameter (name it \'cloning\'),", function() {
 
-        var instance,
-            to_clone;
+        var to_clone,
+            instance;
 
         it("should initialize with the name of the given builder", function() {
             to_clone = b('foo');
@@ -217,33 +217,159 @@ describe("builder, regarding its formation techniques,", function() {
 
         describe("cloning, especially", function() {
 
-            it("should clone children of given builder's element, not to copy", function() {
+            it("should clone children array of given builder's element, not to copy", function() {
+                var child_one = b(),
+                    child_two = b(),
+                    child_three = b();
+                to_clone = b().add(child_one).add(child_two);
+                instance = b(to_clone);
+
+                instance.add(child_three);
+                expect(to_clone.v.children.length).toBe(2);
+                expect(instance.v.children.length).toBe(3);
+                expect(to_clone.v.children[0]).toBe(child_one.v);
+                expect(to_clone.v.children[1]).toBe(child_two.v);
+                expect(instance.v.children[2]).toBe(child_three.v);
+            });
+
+            it("should deeply clone children array of given builder's element, not to copy", function() {
+                var child_one = b(),
+                    child_two = b(),
+                    child_three = b();
+                to_clone = b().add(child_one).add(child_two);
+                instance = b(to_clone);
+
+                instance.add(child_three);
+
+                child_one.v.name = 'one';
+                child_two.v.name = 'two';
+                child_three.v.name = 'three';
+                expect(to_clone.v.children.length).toBe(2);
+                expect(instance.v.children.length).toBe(3);
+
+                expect(to_clone.v.children[0]).toBe(child_one.v);
+                expect(to_clone.v.children[0].parent).toBe(to_clone.v);
+                expect(to_clone.v.children[0].name).toBe('one');
+                expect(to_clone.v.children[1]).toBe(child_two.v);
+                expect(to_clone.v.children[1].parent).toBe(to_clone.v);
+                expect(to_clone.v.children[1].name).toBe('two');
+
+                expect(instance.v.children[0]).not.toBe(child_one.v);
+                expect(instance.v.children[0].parent).toBe(instance.v);
+                expect(instance.v.children[0].name).not.toBe('one');
+                expect(instance.v.children[1]).not.toBe(child_two.v);
+                expect(instance.v.children[1].parent).toBe(instance.v);
+                expect(instance.v.children[1].name).not.toBe('two');
+                expect(instance.v.children[2]).toBe(child_three.v);
+                expect(instance.v.children[2].parent).toBe(instance.v);
+                expect(instance.v.children[2].name).toBe('three');
+            });
+
+            it("should clone path object of given builder's element, not to copy", function() {
                 this.fail('Not Implemented');
             });
 
-            it("should deeply clone children of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
-
-                // test parent pointer also
-            });
-
-            it("should clone path of given builder's element, not to copy", function() {
+            it("should clone text object of given builder's element, not to copy", function() {
                 this.fail('Not Implemented');
             });
 
-            it("should clone text of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+            it("should clone modifiers array of given builder's element, not to copy", function() {
+                var mod_one = _mocks.factory.nop(),
+                    mod_two = _mocks.factory.nop(),
+                    mod_three = _mocks.factory.nop();
+                to_clone = b().modify(mod_one).modify(mod_two);
+                instance = b(to_clone);
+
+                // inside elements, modifiers are stored in four-dimentional arrays, nested like this:
+                // modifiers
+                //   [group]
+                //      [priority]
+                //         [modifier, data]
+                // any array may be null if there are no elements of this sub-group
+
+                instance.modify(mod_three);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(2);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][0][0]).toBe(mod_one);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][1][0]).toBe(mod_two);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][0][0]).toBe(mod_one);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][1][0]).toBe(mod_two);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+
+                var mod_four = _mocks.factory.nop(),
+                    mod_five = _mocks.factory.nop();
+                var m_four_id = to_clone.modify(mod_four).get_m_id(),
+                    m_five_id = to_clone.modify(mod_five).get_m_id();
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(4);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_four);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3][0]).toBe(mod_five);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+                to_clone.unmodify(m_four_id);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(4);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2]).toBe(null);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3][0]).toBe(mod_five);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2]).not.toBe(null);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+                to_clone.unmodify(m_five_id);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(4);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2]).toBe(null);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3]).toBe(null);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2]).not.toBe(null);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
             });
 
-            it("should clone modifiers of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
+            it("should clone painters array of given builder's element, not to copy", function() {
+                var pnt_one = _mocks.factory.nop(),
+                    pnt_two = _mocks.factory.nop(),
+                    pnt_three = _mocks.factory.nop();
+                to_clone = b().paint(pnt_one).paint(pnt_two);
+                instance = b(to_clone);
+
+                // inside elements, painters are stored in four-dimentional arrays, nested like this:
+                // painters
+                //   [group]
+                //      [priority]
+                //         [painter, data]
+                // any array may be null if there are no elements of this sub-group
+
+                instance.paint(pnt_three);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0].length).toBe(2);
+                expect(instance.v._painters[anm.Element.USER_PNT][0].length).toBe(3);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][0][0]).toBe(pnt_one);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][1][0]).toBe(pnt_two);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][0][0]).toBe(pnt_one);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][1][0]).toBe(pnt_two);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][2][0]).toBe(pnt_three);
+
+                var pnt_four = _mocks.factory.nop(),
+                    pnt_five = _mocks.factory.nop();
+                var p_four_id = to_clone.paint(pnt_four).get_p_id(),
+                    p_five_id = to_clone.paint(pnt_five).get_p_id();
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0].length).toBe(4);
+                expect(instance.v._painters[anm.Element.USER_PNT][0].length).toBe(3);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][2][0]).toBe(pnt_four);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][3][0]).toBe(pnt_five);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][2][0]).toBe(pnt_three);
+                to_clone.unpaint(p_four_id);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0].length).toBe(4);
+                expect(instance.v._painters[anm.Element.USER_PNT][0].length).toBe(3);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][2]).toBe(null);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][3][0]).toBe(pnt_five);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][2]).not.toBe(null);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][2][0]).toBe(pnt_three);
+                to_clone.unpaint(p_five_id);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0].length).toBe(4);
+                expect(instance.v._painters[anm.Element.USER_PNT][0].length).toBe(3);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][2]).toBe(null);
+                expect(to_clone.v._painters[anm.Element.USER_PNT][0][3]).toBe(null);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][2]).not.toBe(null);
+                expect(instance.v._painters[anm.Element.USER_PNT][0][2][0]).toBe(pnt_three);
             });
 
-            it("should clone painters of given builder's element, not to copy", function() {
-                this.fail('Not Implemented');
-            });
-
-            it("should clone data of given builder's element, not to copy", function() {
+            it("should clone data object of given builder's element, not to copy", function() {
                 this.fail('Not Implemented');
             });
 
@@ -255,11 +381,11 @@ describe("builder, regarding its formation techniques,", function() {
                 this.fail('Not Implemented');
             });
 
-            it("should clone keys of given builder's element, not to copy", function() {
+            it("should clone keys object of given builder's element, not to copy", function() {
                 this.fail('Not Implemented');
             });
 
-            it("should not clone image in given builder's element, just copy", function() {
+            it("should not clone image object in given builder's element, just copy", function() {
                 this.fail('Not Implemented');
             });
 
