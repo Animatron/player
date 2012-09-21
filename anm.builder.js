@@ -488,11 +488,13 @@ Builder.prototype.use = function(b) {
 // > builder.disable % () => Builder
 Builder.prototype.disable = function() {
     this.v.disabled = true;
+    this.v.travelChildren(function(elm) { elm.disabled = true; });
     return this;
 }
 // > builder.enable % () => Builder
 Builder.prototype.enable = function() {
     this.v.disabled = false;
+    this.v.travelChildren(function(elm) { elm.disabled = false; });
     return this;
 }
 
