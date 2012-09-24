@@ -124,6 +124,7 @@ describe("player, when speaking about initialization,", function() {
 
     // test if configuration (options) correctly applied (including modules?)
     // test configuration through data-attributes, including loop-mode
+    // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
     // test createPlayer itself
     // test width and height behaviour
     // ensure checkMode is called once
