@@ -236,7 +236,7 @@ function __array(obj) {
 function mrg_obj(src, backup) {
     var res = {};
     for (prop in backup) {
-        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop] };
+        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
     return res;
 }
 
@@ -636,9 +636,9 @@ Player.prototype._prepare = function(cvs) {
     this.subscribeEvents(canvas);
 }
 Player.prototype._loadOpts = function(opts) {
-    var opts = Player._optsFromAttrsOrFallback(this.canvas,
-                   opts ? Player._injectOpts(opts, Player.DEFAULT_CONFIGURATION)
-                        : Player.DEFAULT_CONFIGURATION);
+    var cvs_opts = Player._mergeOpts(Player._optsFromAttrs(this.canvas),
+                                     Player.DEFAULT_CONFIGURATION);
+    var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
@@ -1036,31 +1036,33 @@ function __attrOr(canvas, attr, _default) {
            ? canvas.getAttribute(attr)
            : _default;
 }
-Player._injectOpts = function(what, where) {
+Player._mergeOpts = function(what, where) {
     var res = mrg_obj(what, where);
-    if (what.meta) res.meta = mrg_obj(what.meta, where.meta);
-    if (what.anim) res.anim = mrg_obj(what.anim, where.anim);
+    res.meta = what.meta ? mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
+    res.anim = what.anim ? mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
     return res;
 }
-Player._optsFromAttrsOrFallback = function(canvas, fallback) {
-    return { 'debug': __attrOr(canvas, 'data-debug', fallback.debug),
-             'inParent': fallback.inParent,
-             'muteErrors': __attrOr(canvas, 'data-mute-errors', fallback.muteErrors),
-             'repeat': __attrOr(canvas, 'data-repeat', fallback.repeat),
-             'mode': __attrOr(canvas, 'data-mode', fallback.mode),
-             'zoom': __attrOr(canvas, 'data-zoom', fallback.zoom),
-             'meta': { 'title': __attrOr(canvas, 'data-title', fallback.meta.title),
-                        'author': __attrOr(canvas, 'data-author', fallback.meta.author),
-                        'copyright': fallback.meta.copyright,
-                        'version': fallback.meta.version,
-                        'description': fallback.meta.description },
-             'anim': { 'fps': fallback.anim.fps,
-                       'width': __attrOr(canvas, 'data-width', fallback.anim.width),
-                       'height': __attrOr(canvas, 'data-height', fallback.anim.height),
+Player._optsFromAttrs = function(canvas) {
+    return { 'debug': __attrOr(canvas, 'data-debug', undefined),
+             'inParent': undefined,
+             'muteErrors': __attrOr(canvas, 'data-mute-errors', undefined),
+             'repeat': __attrOr(canvas, 'data-repeat', undefined),
+             'mode': __attrOr(canvas, 'data-mode', undefined),
+             'zoom': __attrOr(canvas, 'data-zoom', undefined),
+             'meta': { 'title': __attrOr(canvas, 'data-title', undefined),
+                        'author': __attrOr(canvas, 'data-author', undefined),
+                        'copyright': undefined,
+                        'version': undefined,
+                        'description': undefined },
+             'anim': { 'fps': undefined,
+                       'width': __attrOr(canvas, 'data-width',
+                                __attrOr(canvas, 'width', undefined)),
+                       'height': __attrOr(canvas, 'data-height',
+                                 __attrOr(canvas, 'height', undefined)),
                        'bgfill': canvas.hasAttribute('data-bgcolor')
                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
-                                 : fallback.anim.bgfill,
-                       'duration': fallback.anim.duration }
+                                 : undefined,
+                       'duration': undefined }
            };
 };
 
