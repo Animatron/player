@@ -16,24 +16,29 @@ mocks.saveCanvasFake = function(cvs) {
     cvs.__rOffsetTop = 40;
 };
 
-var __cvs_attrs = {};
-
 mocks.factory = {};
 
 var canvasMocksCount = 0;
-mocks.factory.canvas = function() {
+mocks.factory.canvas = function(id) {
     var contextMock = mocks.factory.context2d();
+    var mockId = canvasMocksCount;
+    canvasMocksCount++;
     return {
-        '__mockId': canvasMocksCount++,
+        '__mockId': mockId,
+        '__attrs': {},
+        'id': id || ('canvas-mock-'+mockId),
         'getContext': function() { return contextMock; },
-        'hasAttribute': function(attr) { return typeof __cvs_attrs[attr] !== 'undefined'; },
-        'setAttribute': function(attr, val) { __cvs_attrs[attr] = val; },
-        'getAttribute': function(attr) { return __cvs_attrs[attr]; },
+        'hasAttribute': function(attr) { return typeof this.__attrs[attr] !== 'undefined'; },
+        'setAttribute': function(attr, val) { this.__attrs[attr] = val; },
+        'getAttribute': function(attr) { return this.__attrs[attr]; },
         'style': mocks.factory.cssStyle(),
         'addEventListener': _empty,
-        'width': -1,
-        'height': -1,
-        '__resetMock': function() { __cvs_attrs = {}; }
+        'width': null,
+        'height': null,
+        '__resetMock': function() { this.__attrs = {};
+                                    this.style = mocks.factory.style();
+                                    this.width = null;
+                                    this.height = null; }
     };
 };
 
@@ -80,9 +85,9 @@ mocks.factory.linearGradient = function() {
     };
 };
 
-mocks.factory.element = function() {
+mocks.factory.element = function(id) {
     return {
-        'id': 'some-id',
+        'id': id || 'some-id',
         'style': mocks.factory.cssStyle()
     }
 }
