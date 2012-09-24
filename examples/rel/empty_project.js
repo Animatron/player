@@ -9,7 +9,7 @@ var empty_project =
 {
   "meta": {
     "id": "4ef3491603640fa60d0a526c",
-    "title": "Empty Project",
+    "name": "Empty Project",
     "author": "",
     "copyright": "",
     "version": 0.1,

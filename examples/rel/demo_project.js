@@ -5,12 +5,12 @@
  * Animatron Player is licensed under the MIT License, see LICENSE.
  */
 
-var demo_project = 
+var demo_project =
 
 {
   "meta": {
     "id": "4f8858d7e4b04a1e87bc594f",
-    "title": "Demo Project",
+    "name": "Demo Project",
     "author": "",
     "copyright": "",
     "version": 0.1,
@@ -263,7 +263,7 @@ var demo_project =
             ],
             "eid": "4c8228d3d14989df372de908", // bender image
             "tweens": [
-              
+
             ],
             "visible": true,
             "outline": false,
