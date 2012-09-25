@@ -198,8 +198,9 @@ function canvasOpts(canvas, opts) {
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
-    canvas.style.width = _w + 'px';
-    canvas.style.height = _h + 'px';
+    var pxRatio = window.devicePixelRatio || 1;
+    canvas.style.width = (_w / pxRatio) + 'px';
+    canvas.style.height = (_h / pxRatio) + 'px';
     canvas.setAttribute('width', _w);
     canvas.setAttribute('height', _h);
 }

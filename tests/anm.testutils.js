@@ -59,6 +59,17 @@ function guid() {
    return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
 }
 
+function varyAll(conditions, tests) {
+    for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
+        var condition = conditions[ci];
+        describe(condition.description, function() {
+            beforeEach(condition.prepare);
+
+            tests();
+        });
+    }
+}
+
 /* function fillMockWithSpies(mock) {
     for (prop in mock) {
         if (typeof mock[prop] == 'function') {

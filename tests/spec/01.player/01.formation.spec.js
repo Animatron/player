@@ -13,10 +13,11 @@ describe("player, when created,", function() {
             canvasId = 'my-canvas';
 
         function setCanvasSize(canvas, size) {
-            canvas.setAttribute('width', size[0]);
+            var pxRatio = window.devicePixelRatio;
+            canvas.setAttribute('width',  size[0]);
             canvas.setAttribute('height', size[1]);
-            canvas.style.width = size[0] + 'px';
-            canvas.style.height = size[1] + 'px';
+            canvas.style.width  = (size[0] / (pxRatio || 1)) + 'px';
+            canvas.style.height = (size[1] / (pxRatio || 1)) + 'px';
         }
 
         beforeEach(function() {
@@ -31,6 +32,8 @@ describe("player, when created,", function() {
                 toHaveSizeDefined: function() {
                     var actual = this.actual;
                     var notText = this.isNot ? " not" : "";
+
+                    var pxRatio = window.devicePixelRatio;
 
                     this.message = function () {
                         return "Expected " + actual + notText + " to have size defined";
@@ -47,128 +50,137 @@ describe("player, when created,", function() {
                     var actual = this.actual;
                     var notText = this.isNot ? " not" : "";
 
+                    var pxRatio = window.devicePixelRatio || 1;
+
                     this.message = function () {
                         return "Expected " + actual + notText + " to have size equal to " + expected;
                     }
 
-                    return (actual.getAttribute('width') == expected[0]) &&
+                    return (actual.getAttribute('width')  == expected[0]) &&
                            (actual.getAttribute('height') == expected[1]) &&
-                           (actual.style.width == (expected[0] + 'px')) &&
-                           (actual.style.height == (expected[1] + 'px'));
+                           (actual.style.width  == ((expected[0] / pxRatio) + 'px')) &&
+                           (actual.style.height == ((expected[1] / pxRatio) + 'px'));
                 }
             })
         });
 
-        it("should use default canvas size, if there is no size specified neither in element nor in options", function() {
-            expect(canvas).not.toHaveSizeDefined();
+        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; } },
+                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; } },
+                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; } }],
+                 function() {
 
-            createPlayer(canvasId);
-            expect(canvas).toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                        anm.Player.DEFAULT_CANVAS.height ]);
+            it("should use default canvas size, if there is no size specified either in element or in options", function() {
+                expect(canvas).not.toHaveSizeDefined();
 
-            canvas.__resetMock();
-            expect(canvas).not.toHaveSizeDefined();
+                createPlayer(canvasId);
+                expect(canvas).toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                            anm.Player.DEFAULT_CANVAS.height ]);
 
-            createPlayer(canvasId, { 'anim': { 'bgfill': { color: '#fa07a7' } } });
-            expect(canvas).toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                        anm.Player.DEFAULT_CANVAS.height ]);
+                canvas.__resetMock();
+                expect(canvas).not.toHaveSizeDefined();
+
+                createPlayer(canvasId, { 'anim': { 'bgfill': { color: '#fa07a7' } } });
+                expect(canvas).toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                            anm.Player.DEFAULT_CANVAS.height ]);
+            });
+
+            it("should use canvas size, given in options, if there is no size specified in element", function() {
+                expect(canvas).not.toHaveSizeDefined();
+
+                var test_w = 521,
+                    test_h = 741;
+                expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+
+                canvas.__resetMock();
+                expect(canvas).not.toHaveSizeDefined();
+
+                test_w = 1018,
+                test_h = 254;
+                expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+
+            });
+
+            it("should use canvas size, given in element, if there is no size specified in options", function() {
+                expect(canvas).not.toHaveSizeDefined();
+
+                var test_w = 521,
+                    test_h = 741;
+                expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                setCanvasSize(canvas, [ test_w, test_h ]);
+                createPlayer(canvasId);
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+
+                canvas.__resetMock();
+                expect(canvas).not.toHaveSizeDefined();
+
+                test_w = 1018,
+                test_h = 254;
+                expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                setCanvasSize(canvas, [ test_w, test_h ]);
+                createPlayer(canvasId, { 'anim': { 'bgfill': { color: '#fa07a7' } } });
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+
+            });
+
+            it("should use canvas size, given in option, even if there is size specified in element", function() {
+                expect(canvas).not.toHaveSizeDefined();
+
+                var test_w = 521,
+                    test_h = 741;
+                var atest_w = 1018,
+                    atest_h = 257;
+                expect(atest_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(atest_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                setCanvasSize(canvas, [ atest_w, atest_h ]);
+                expect(canvas).toHaveSize([ atest_w, atest_h ]);
+                createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+
+                canvas.__resetMock();
+                expect(canvas).not.toHaveSizeDefined();
+
+                var test_w = 357,
+                    test_h = 642;
+                var atest_w = 219,
+                    atest_h = 2350;
+                expect(atest_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(atest_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                setCanvasSize(canvas, [ atest_w, atest_h ]);
+                expect(canvas).toHaveSize([ atest_w, atest_h ]);
+                createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+
+            });
+
         });
-
-        it("should use canvas size, given in options, if there is no size specified in element", function() {
-            expect(canvas).not.toHaveSizeDefined();
-
-            var test_w = 521,
-                test_h = 741;
-            expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
-            expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                            anm.Player.DEFAULT_CANVAS.height ]);
-            expect(canvas).toHaveSize([ test_w, test_h ]);
-
-            canvas.__resetMock();
-            expect(canvas).not.toHaveSizeDefined();
-
-            test_w = 1018,
-            test_h = 254;
-            expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
-            expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                            anm.Player.DEFAULT_CANVAS.height ]);
-            expect(canvas).toHaveSize([ test_w, test_h ]);
-
-        });
-
-        it("should use canvas size, given in element, if there is no size specified in options", function() {
-            expect(canvas).not.toHaveSizeDefined();
-
-            var test_w = 521,
-                test_h = 741;
-            expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            setCanvasSize(canvas, [ test_w, test_h ]);
-            createPlayer(canvasId);
-            expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                            anm.Player.DEFAULT_CANVAS.height ]);
-            expect(canvas).toHaveSize([ test_w, test_h ]);
-
-            canvas.__resetMock();
-            expect(canvas).not.toHaveSizeDefined();
-
-            test_w = 1018,
-            test_h = 254;
-            expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            setCanvasSize(canvas, [ test_w, test_h ]);
-            createPlayer(canvasId, { 'anim': { 'bgfill': { color: '#fa07a7' } } });
-            expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                            anm.Player.DEFAULT_CANVAS.height ]);
-            expect(canvas).toHaveSize([ test_w, test_h ]);
-
-        });
-
-        it("should use canvas size, given in option, even if there is size specified in element", function() {
-            expect(canvas).not.toHaveSizeDefined();
-
-            var test_w = 521,
-                test_h = 741;
-            var atest_w = 1018,
-                atest_h = 257;
-            expect(atest_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(atest_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            setCanvasSize(canvas, [ atest_w, atest_h ]);
-            expect(canvas).toHaveSize([ atest_w, atest_h ]);
-            createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
-            expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                            anm.Player.DEFAULT_CANVAS.height ]);
-            expect(canvas).toHaveSize([ test_w, test_h ]);
-
-            canvas.__resetMock();
-            expect(canvas).not.toHaveSizeDefined();
-
-            var test_w = 357,
-                test_h = 642;
-            var atest_w = 219,
-                atest_h = 2350;
-            expect(atest_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(atest_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
-            expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
-            setCanvasSize(canvas, [ atest_w, atest_h ]);
-            expect(canvas).toHaveSize([ atest_w, atest_h ]);
-            createPlayer(canvasId, { 'anim': { 'width': test_w, 'height': test_h } });
-            expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
-                                            anm.Player.DEFAULT_CANVAS.height ]);
-            expect(canvas).toHaveSize([ test_w, test_h ]);
-
-        });
-
-        // TODO: test Retina and stuff
 
     });
+
+    // TODO: data- attributes
 
     xit("not passes", function() {
         this.fail();
