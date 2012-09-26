@@ -1088,14 +1088,20 @@ Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, import
     var options = Player._optsFromURLParams(params);
     var player = new Player();
     player.init(canvasId, options);
-    var callback = params.t
-                   ? function() { player.play(params.t / 100); }
-                   : (params.p
-                      ? function() { player.play(params.p / 100).pause(); }
-                        : undefined);
+    function updateWithParams() {
+        if (typeof params.t !== 'undefined') {
+            player.play(params.t / 100);
+        } else if (typeof params.p !== 'undefined') {
+            player.play(params.p / 100).pause();
+        }
+        if (params.w && params.h) {
+            player.changeRect({ width: params.w, height: params.h });
+        }
+        if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
+    }
 
-    player.load(snapshotURL, importer, callback);
-    if (params.w || params.h) player.changeRect({ width: params.w, height: params.h });
+    player.load(snapshotURL, importer, updateWithParams);
+
     return player;
 }
 
