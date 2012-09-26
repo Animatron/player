@@ -13,11 +13,11 @@ describe("player, when created,", function() {
             canvasId = 'my-canvas';
 
         function setCanvasSize(canvas, size) {
-            var pxRatio = window.devicePixelRatio;
-            canvas.setAttribute('width',  size[0]);
-            canvas.setAttribute('height', size[1]);
-            canvas.style.width  = (size[0] / (pxRatio || 1)) + 'px';
-            canvas.style.height = (size[1] / (pxRatio || 1)) + 'px';
+            var pxRatio = window.devicePixelRatio || 1;
+            canvas.setAttribute('width',  size[0] * pxRatio);
+            canvas.setAttribute('height', size[1] * pxRatio);
+            canvas.style.width  = size[0] + 'px';
+            canvas.style.height = size[1] + 'px';
         }
 
         beforeEach(function() {
@@ -53,13 +53,15 @@ describe("player, when created,", function() {
                     var pxRatio = window.devicePixelRatio || 1;
 
                     this.message = function () {
-                        return "Expected " + actual + notText + " to have size equal to " + expected;
+                        return "Expected " + actual + notText + " to have size equal to " + expected + ", " +
+                               "but it has " + actual.getAttribute('width') + "x" + actual.getAttribute('height') + " " +
+                               "and " + actual.style.width + ":" + actual.style.height + " in CSS";
                     }
 
-                    return (actual.getAttribute('width')  == expected[0]) &&
-                           (actual.getAttribute('height') == expected[1]) &&
-                           (actual.style.width  == ((expected[0] / pxRatio) + 'px')) &&
-                           (actual.style.height == ((expected[1] / pxRatio) + 'px'));
+                    return (actual.getAttribute('width')  == (expected[0] * pxRatio)) &&
+                           (actual.getAttribute('height') == (expected[1] * pxRatio)) &&
+                           (actual.style.width  == (expected[0] + 'px')) &&
+                           (actual.style.height == (expected[1] + 'px'));
                 }
             })
         });

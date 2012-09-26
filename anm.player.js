@@ -185,6 +185,8 @@ function ajax(url, callback/*, errback*/) {
 
 // CANVAS-RELATED
 
+function getPxRatio() { return window.devicePixelRatio || 1; }
+
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
 var DEF_CNVS_BG = '#fff';
@@ -198,11 +200,11 @@ function canvasOpts(canvas, opts) {
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
-    var pxRatio = window.devicePixelRatio || 1;
-    canvas.style.width = (_w / pxRatio) + 'px';
-    canvas.style.height = (_h / pxRatio) + 'px';
-    canvas.setAttribute('width', _w);
-    canvas.setAttribute('height', _h);
+    var pxRatio = getPxRatio();
+    canvas.style.width = _w + 'px';
+    canvas.style.height = _h + 'px';
+    canvas.setAttribute('width', _w * pxRatio);
+    canvas.setAttribute('height', _h * pxRatio);
 }
 
 function newCanvas(dimen) {
@@ -1044,6 +1046,8 @@ Player._mergeOpts = function(what, where) {
     return res;
 }
 Player._optsFromAttrs = function(canvas) {
+    var width, height,
+        pxRatio = getPxRatio();
     return { 'debug': __attrOr(canvas, 'data-debug', undefined),
              'inParent': undefined,
              'muteErrors': __attrOr(canvas, 'data-mute-errors', undefined),
@@ -1056,10 +1060,12 @@ Player._optsFromAttrs = function(canvas) {
                         'version': undefined,
                         'description': undefined },
              'anim': { 'fps': undefined,
-                       'width': __attrOr(canvas, 'data-width',
-                                __attrOr(canvas, 'width', undefined)),
-                       'height': __attrOr(canvas, 'data-height',
-                                 __attrOr(canvas, 'height', undefined)),
+                       'width': (__attrOr(canvas, 'data-width',
+                                (width = __attrOr(canvas, 'width', undefined),
+                                 width ? (width / pxRatio) : undefined))),
+                       'height': (__attrOr(canvas, 'data-height',
+                                 (height = __attrOr(canvas, 'height', undefined),
+                                  height ? (height / pxRatio) : undefined))),
                        'bgfill': canvas.hasAttribute('data-bgcolor')
                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
                                  : undefined,
