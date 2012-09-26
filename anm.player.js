@@ -1095,7 +1095,7 @@ Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, import
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
-            player.changeRect({ width: params.w, height: params.h });
+            player._applyConfToCanvas({ width: params.w, height: params.h });
         }
         if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
     }
