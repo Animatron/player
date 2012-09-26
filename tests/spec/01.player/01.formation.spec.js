@@ -183,6 +183,7 @@ describe("player, when created,", function() {
     });
 
     // TODO: data- attributes
+    // TODO: player.forSnapshot
 
     xit("not passes", function() {
         this.fail();

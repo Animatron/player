@@ -639,7 +639,7 @@ Player.prototype._prepare = function(cvs) {
     this.subscribeEvents(canvas);
 }
 Player.prototype._loadOpts = function(opts) {
-    var cvs_opts = Player._mergeOpts(Player._optsFromAttrs(this.canvas),
+    var cvs_opts = Player._mergeOpts(Player._optsFromCvsAttrs(this.canvas),
                                      Player.DEFAULT_CONFIGURATION);
     var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
     this.inParent = opts.inParent;
@@ -1045,7 +1045,7 @@ Player._mergeOpts = function(what, where) {
     res.anim = what.anim ? mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
     return res;
 }
-Player._optsFromAttrs = function(canvas) {
+Player._optsFromCvsAttrs = function(canvas) {
     var width, height,
         pxRatio = getPxRatio();
     return { 'debug': __attrOr(canvas, 'data-debug', undefined),
@@ -1055,10 +1055,10 @@ Player._optsFromAttrs = function(canvas) {
              'mode': __attrOr(canvas, 'data-mode', undefined),
              'zoom': __attrOr(canvas, 'data-zoom', undefined),
              'meta': { 'title': __attrOr(canvas, 'data-title', undefined),
-                        'author': __attrOr(canvas, 'data-author', undefined),
-                        'copyright': undefined,
-                        'version': undefined,
-                        'description': undefined },
+                       'author': __attrOr(canvas, 'data-author', undefined),
+                       'copyright': undefined,
+                       'version': undefined,
+                       'description': undefined },
              'anim': { 'fps': undefined,
                        'width': (__attrOr(canvas, 'data-width',
                                 (width = __attrOr(canvas, 'width', undefined),
@@ -1069,9 +1069,35 @@ Player._optsFromAttrs = function(canvas) {
                        'bgfill': canvas.hasAttribute('data-bgcolor')
                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
                                  : undefined,
-                       'duration': undefined }
-           };
+                       'duration': undefined } };
 };
+Player._optsFromURLParams = function(attrs/* as json */) {
+    return { 'debug': attrs.debug,
+             'inParent': undefined,
+             'muteErrors': undefined,
+             'repeat': attrs.r,
+             'mode': attrs.m,
+             'zoom': attrs.z,
+             'anim': { 'fps': undefined,
+                       'width': attrs.w,
+                       'height': attrs.h,
+                       'bgfill': { color: "#" + attrs.bg },
+                       'duration': undefined } };
+}
+Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, importer) {
+    var options = Player._optsFromURLParams(params);
+    var player = new Player();
+    player.init(canvasId, options);
+    var callback = params.t
+                   ? function() { player.play(params.t / 100); }
+                   : (params.p
+                      ? function() { player.play(params.p / 100).pause(); }
+                        : undefined);
+
+    player.load(snapshotURL, importer, callback);
+    if (params.w || params.h) player.changeRect({ width: params.w, height: params.h });
+    return player;
+}
 
 // the dynamic method subsribes player itself to
 /* Player.subscribeEvents = function(canvas, anim) {
