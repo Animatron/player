@@ -873,7 +873,7 @@ Player.prototype._reset = function() {
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
-    state.zoom = 1;
+    //state.zoom = 1; // do not override the zoom
     state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
@@ -1170,7 +1170,7 @@ Scene.prototype.visitRoots = function(visitor, data) {
     }
 }
 Scene.prototype.render = function(ctx, time, zoom) {
-    var zoom = zoom || 1;
+    var zoom = (zoom || 1) * getPxRatio();
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
