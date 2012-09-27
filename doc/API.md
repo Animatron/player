@@ -1092,7 +1092,29 @@ To add painter function to a shape, use `paint()` method. This function gets can
 
 As for modifiers, you may optionally pass `data` object of any type, and it will be passed to your painter as second parameter every time it will be called. And again, you may specify a priority number — the higher this number, the later this painter will be called in the painters sequence. The painters with the same priority will be called in the order of addition. Also, there is a link to current element (painter owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases.
 
-> We strongly recommend to use prefixes in the names of your Modifiers/Painters/Handlers if they are prepared before, so you'd easy distinguish what is what even if you have a lot of code. We use `m_`, `p_` and `h_` correspondingly.
+> We strongly encourage you to use prefixes in the names of your Modifiers/Painters/Handlers if they are prepared before, so you'd easy distinguish what is what even if you have a lot of code. We use `m_`, `p_` and `h_` correspondingly.
+
+#### Removing modifiers or painters
+
+> ♦ `builder.unmodify % (modifier: Function) => Builder`
+
+This method will remove previously added modifier from the element, in the way like:
+
+    var m_temp = function(t) {...};
+    var my_elm = b();
+    my_elm.modify(m_temp);
+    ...
+    my_elm.unmodify(m_temp);
+
+> ♦ `builder.unpaint % (painter: Function) => Builder`
+
+This method will remove previously added painter from the element, in the way like:
+
+    var p_temp = function(ctx) {...};
+    var my_elm = b();
+    my_elm.paint(p_temp);
+    ...
+    my_elm.unpaint(p_temp);
 
 ### Events
 
