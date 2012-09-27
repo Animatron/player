@@ -433,6 +433,7 @@ Player.prototype.init = function(cvs, opts) {
     this._prepare(cvs);
     this._loadOpts(opts);
     this._postInit();
+    // TODO: if (this.canvas.hasAttribute('data-url'))
 }
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
@@ -1533,9 +1534,12 @@ Element.prototype.render = function(ctx, gtime) {
 Element.prototype.addModifier = function(modifier, data, priority) {
     return this.__modify(Element.USER_MOD, priority || 0, modifier, data);
 }
-// > Element.removeModifier % (id: Integer)
-Element.prototype.removeModifier = function(id) {
+// > Element.removeModifier % (modifier: Function)
+Element.prototype.removeModifier = function(modifier) {
+    if (!modifier.__m_ids) throw new Error('Modifier wasn\'t applied to anything');
     //if (this.__modifying) throw new Error("Can't remove modifiers while modifying");
+    var id = modifier.__m_ids[this.id];
+    if (!id) throw new Error('Modifier wasn\'t applied to this element');
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
@@ -1548,9 +1552,11 @@ Element.prototype.removeModifier = function(id) {
 Element.prototype.addPainter = function(painter, data, priority) {
     return this.__paint(Element.USER_PNT, priority || 0, painter, data);
 }
-// > Element.removePainter % (id: Integer)
-Element.prototype.removePainter = function(id) {
+// > Element.removePainter % (painter: Function)
+Element.prototype.removePainter = function(painter) {
+    if (!painter.__p_ids) throw new Error('Painter wasn\'t applied to anything');
     //if (this.__painting) throw new Error("Can't remove painters while painting");
+    var id = painter.__p_ids[this.id];
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
@@ -1952,6 +1958,12 @@ Element.prototype.deepClone = function() {
             var priority_group = type_group[mpi];
             if (!priority_group) continue;
             clone._modifiers[mti][mpi] = [].concat(priority_group);
+            for (mi = 0, ml = priority_group.length; mi < ml; mi++) {
+                var modifier = priority_group[mi];
+                if (modifier && modifier.__m_ids) {
+                    modifier.__m_ids[clone.id] = modifier.__m_ids[this.id];
+                }
+            }
         }
     }
     clone._painters = [];
@@ -1965,6 +1977,12 @@ Element.prototype.deepClone = function() {
             var priority_group = type_group[ppi];
             if (!priority_group) continue;
             clone._painters[pti][ppi] = [].concat(priority_group);
+            for (pi = 0, pl = priority_group.length; pi < pl; pi++) {
+                var painter = priority_group[pi];
+                if (painter && painter.__p_ids) {
+                    painter.__p_ids[clone.id] = painter.__p_ids[this.id];
+                }
+            }
         }
     }
     clone.__data = obj_clone(this.__data);
@@ -2087,22 +2105,28 @@ Element.prototype.__addTypedModifier = function(type, priority, modifier, data) 
     if (!modifier) return; // FIXME: throw some error?
     var modifiers = this._modifiers;
     var priority = priority || 0;
+    if (!modifier.__m_ids) modifier.__m_ids = {};
+    else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
     modifiers[type][priority].push([modifier, data]);
-    return (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-           (modifiers[type][priority].length - 1);
+    modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                                (modifiers[type][priority].length - 1);
+    return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
 Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     if (!painter) return; // FIXME: throw some error?
     var painters = this._painters;
     var priority = priority || 0;
+    if (!painter.__p_ids) painter.__p_ids = {};
+    else if (painter.__p_ids[this.id]) throw new Error('Painter was already added to this element');
     if (!painters[type]) painters[type] = [];
     if (!painters[type][priority]) painters[type][priority] = [];
     painters[type][priority].push([painter, data]);
-    return (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-           (painters[type][priority].length - 1);
+    painter.__p_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                               (painters[type][priority].length - 1);
+    return painter;
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
 Element.prototype.__mbefore = function(t, type) {
