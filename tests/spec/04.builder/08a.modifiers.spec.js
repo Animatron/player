@@ -327,14 +327,11 @@ describe("builder, regarding modifiers", function() {
         it("should support removing modifiers", function() {
             scene = b('scene').band([0, 1]);
 
-            var modifierId;
-
             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
                 expect(t).toBeGreaterThanOrEqual(0);
                 if (t > .5) {
-                    expect(modifierId).toBeDefined();
-                    expect(!isNaN(modifierId)).toBeTruthy(); // ensure modifier id is a number
-                    scene.unmodify(modifierId);
+                    expect(modifierSpy).toHaveBeenCalled();
+                    scene.unmodify(modifierSpy);
                     modifierSpy.reset();
                     return;
                 }
@@ -343,7 +340,7 @@ describe("builder, regarding modifiers", function() {
             });
 
             runs(function() {
-                modifierId = scene.modify(modifierSpy).get_m_id();
+                scene.modify(modifierSpy);
                 player.load(scene).play();
             });
 
@@ -362,32 +359,29 @@ describe("builder, regarding modifiers", function() {
             scene = b('scene').band([0, 1]);
 
             var modifierSpies = [];
-            var modifiersIds = [];
             var spiesCount = 10;
 
             for (var i = 0; i < spiesCount; i++) {
-                modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake(
-                    (function(i) { return function(t, removeTime) {
+                modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
+                    return function(t, removeTime) {
                         expect(t).toBeGreaterThanOrEqual(0);
                         if (t > removeTime) {
-                            var modifierId = modifiersIds[i];
+                            var modifier = modifierSpies[i];
                             expect(removeTime).toEqual(i !== 0 ? ((1 / i) - .1) : 0);
-                            expect(modifierId).toBeDefined();
-                            expect(!isNaN(modifierId)).toBeTruthy(); // ensure modifier id is a number
-                            scene.unmodify(modifierId);
+                            expect(modifier).toHaveBeenCalled();
+                            scene.unmodify(modifier);
                             modifierSpies[i].reset();
                             return;
                         }
                         // if modifier wasn't self-removed, time should be less than .5
                         expect(t).toBeLessThanOrEqual(removeTime);
-                    } })(i)
-                ));
+                    } })(i)));
             };
 
             runs(function() {
                 for (var i = (spiesCount - 1); i >= 0; i--) {
-                    modifiersIds[i] = scene.modify(modifierSpies[i],
-                                            i !== 0 ? ((1 / i) - .1) : 0).get_m_id();
+                    scene.modify(modifierSpies[i],
+                                 i !== 0 ? ((1 / i) - .1) : 0);
                 }
                 player.load(scene).play();
             });
@@ -404,6 +398,11 @@ describe("builder, regarding modifiers", function() {
             });
 
         });
+
+        // TODO: ensure removing fails if modifier wasn't added to element
+        // TODO: test that modifier added to some element, which then was cloned, may be easily removed from the last
+        // TODO: test that error is fired if modifier was already added to this element
+        // TODO: test adding one modifier to several elements and removing it then
 
     });
 
