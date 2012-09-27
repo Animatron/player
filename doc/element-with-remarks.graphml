@@ -393,7 +393,7 @@
           <y:Geometry height="41.0" width="188.0" x="419.0" y="-18.75"/>
           <y:Fill color="#FFFFCC" transparent="false"/>
           <y:BorderStyle color="#808080" type="dashed" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="180.87109375" x="4.0" y="4.0">position in parent space (pos) 
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="180.87109375" x="4.0" y="4.0">position in parent space (pos)
 and registration point (reg)</y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>
@@ -405,7 +405,7 @@ and registration point (reg)</y:NodeLabel>
           <y:Geometry height="41.0" width="256.0" x="397.75" y="35.25"/>
           <y:Fill color="#FFFFCC" transparent="false"/>
           <y:BorderStyle color="#808080" type="dashed" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="247.73828125" x="4.0" y="4.0">band in local /parent/ time space (lband) 
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="247.73828125" x="4.0" y="4.0">band in local /parent/ time space (lband)
 and band in global /scene/ space (gband)</y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>
@@ -431,7 +431,7 @@ and band in global /scene/ space (gband)</y:NodeLabel>
           <y:Geometry height="43.0" width="183.0" x="438.5" y="190.75"/>
           <y:Fill color="#FFFFCC" transparent="false"/>
           <y:BorderStyle color="#808080" type="dashed" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="173.6171875" x="4.0" y="4.0">repetition mode, one of: 
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="173.6171875" x="4.0" y="4.0">repetition mode, one of:
 PLAYONCE | LOOP | BOUNCE </y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>
@@ -444,7 +444,7 @@ PLAYONCE | LOOP | BOUNCE </y:NodeLabel>
           <y:Fill color="#FFFFCC" transparent="false"/>
           <y:BorderStyle color="#808080" type="dashed" width="1.0"/>
           <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="60.53125" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="215.787109375" x="4.0" y="4.0">(lx, ly) are often equal to 'pos' value,
-they represent the element offset 
+they represent the element offset
 in local /parent/ space
 (rx, ry) — registration /origin/ point</y:NodeLabel>
           <y:Shape type="rectangle"/>
@@ -474,10 +474,10 @@ in local /parent/ space
           <y:Geometry height="116.0" width="222.0" x="419.0" y="537.0"/>
           <y:Fill color="#FFFFCC" transparent="false"/>
           <y:BorderStyle color="#808080" type="dashed" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="102.9296875" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="203.08984375" x="4.0" y="4.0">current animation time-value, 
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="102.9296875" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="203.08984375" x="4.0" y="4.0">current animation time-value,
 autocalculated if all three are null,
-if not, (p) is preferred over (t), 
-and (t) over (key): 
+if not, (p) is preferred over (t),
+and (t) over (key):
 (p) is in local band coordinates
 (t) is in relative coordinates /0..1/
 (key) is one key from keys map</y:NodeLabel>
@@ -491,7 +491,7 @@ and (t) over (key):
           <y:Geometry height="43.0" width="183.0" x="427.75000000000006" y="263.75"/>
           <y:Fill color="#FFFFCC" transparent="false"/>
           <y:BorderStyle color="#808080" type="dashed" width="1.0"/>
-          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="175.84375" x="4.0" y="4.0">time function for a shape (tf) 
+          <y:NodeLabel alignment="center" autoSizePolicy="content" fontFamily="Dialog" fontSize="12" fontStyle="plain" hasBackgroundColor="false" hasLineColor="false" height="32.265625" modelName="internal" modelPosition="tl" textColor="#000000" visible="true" width="175.84375" x="4.0" y="4.0">time function for a shape (tf)
 and key-to-frame map (keys)</y:NodeLabel>
           <y:Shape type="rectangle"/>
         </y:ShapeNode>

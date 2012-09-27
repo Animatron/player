@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron Player is licensed under the MIT License, see LICENSE.
+ */
+
 (function() { // anonymous wrapper to exclude global context clash
 
 var C = anm.C;
@@ -155,9 +162,9 @@ E.prototype.intersects = function(elm, t) {
             return G.__pointsInRect(this.__pointsAt(t), e_rect) ||
                    G.__pointsInPath(this.__pathAt(t), e_rect);
         } else if (!pathOfC && pathOfE) {
-            var с_rect = this.rect(t);
-            return G.__pointsInRect(elm.__pointsAt(t), с_rect) ||
-                   G.__pointsInPath(elm.__pathAt(t), с_rect);
+            var c_rect = this.rect(t);
+            return G.__pointsInRect(elm.__pointsAt(t), c_rect) ||
+                   G.__pointsInPath(elm.__pathAt(t), c_rect);
         }
         return false;
     }
@@ -759,7 +766,7 @@ G.__edgeTest = function(p1, p2, p3, r2) {
     return true;
 }
 G.__isecRects = function(r1, r2) {
-    if (!r1 || !r2) throw new Error('Rects are not accessible');
+    if (!r1 || !r2) throw new Error('One (or both) of rects / bounds is not accessible');
     if (G.__zeroRect(r1) || G.__zeroRect(r2)) return false;
     var edgeTest = G.__edgeTest;
 

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8" />
+    <title>Console Reporter Spec</title>
+
+    <link rel="stylesheet" href="vendor/jasmine-1.2.0/jasmine.css" type="text/css" />
+
+    <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine.js"></script>
+    <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine-html.js"></script>
+
+    <!-- include source files here... -->
+    <script type="text/javascript" src="../vendor/matrix.js"></script>
+    <script type="text/javascript" src="../anm.player.js"></script>
+    <script type="text/javascript" src="../anm.collisions.js"></script>
+    <script type="text/javascript" src="../anm.builder.js"></script>
+    <script type="text/javascript" src="../animatron_import.js"></script>
+    <!-- include json2 if it is not accessible in browser -->
+
+    <!-- include test utils here... -->
+    <script type="text/javascript" src="./anm.matchers.js"></script>
+    <script type="text/javascript" src="./anm.mocks.js"></script>
+    <script type="text/javascript" src="./anm.testutils.js"></script>
+
+    <!-- include spec files here... -->
+    <script type="text/javascript" src="./spec/01.player/01.formation.spec.js"></script>
+    <script type="text/javascript" src="./spec/01.player/02.initializing.spec.js"></script>
+    <script type="text/javascript" src="./spec/01.player/03.playing.spec.js"></script>
+    <script type="text/javascript" src="./spec/01.player/04.modes.spec.js"></script>
+    <script type="text/javascript" src="./spec/01.player/05.loading.spec.js"></script>
+
+    <script type="text/javascript" src="./spec/03.anm-import/_utils.and.their.spec.js"></script>
+    <script type="text/javascript" src="./spec/03.anm-import/04.masks.spec.js"></script>
+
+    <script type="text/javascript" src="./spec/04.builder/01.formation.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/02.shapes.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/03.fill-n-stroke.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/04.statics.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/05.bands.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/06.tweens.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/07.repeat-modes.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/08a.modifiers.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/08b.painters.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/09.events.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/10.take-n-use.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/11.enable-disable.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/12.iterations.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/13.detach-n-clear.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/14.data.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/15.compositing.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/16.masks.spec.js"></script>
+    <script type="text/javascript" src="./spec/04.builder/17.helpers.spec.js"></script>
+
+    <script type="text/javascript" src="./spec/06.bugs/bugs.spec.js"></script>
+
+    <script type="text/javascript" src="vendor/jasmine.teamcity_reporter.js"></script>
+</head>
+<body>
+    <script type="text/javascript">
+        jasmine.getEnv().addReporter(new jasmine.TeamcityReporter());
+        jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
+        jasmine.getEnv().execute();
+    </script>
+</body>
+</html>

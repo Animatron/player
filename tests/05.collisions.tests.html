@@ -1,0 +1,60 @@
+<!--
+ ~ Copyright (c) 2011-2012 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+<head>
+  <title>Jasmine Spec Runner</title>
+
+  <link rel="shortcut icon" type="image/png" href="vendor/jasmine-1.2.0/jasmine_favicon.png">
+  <link rel="stylesheet" type="text/css" href="vendor/jasmine-1.2.0/jasmine.css">
+  <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine.js"></script>
+  <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine-html.js"></script>
+
+  <!-- include source files here... -->
+  <script type="text/javascript" src="../vendor/matrix.js"></script>
+  <script type="text/javascript" src="../anm.player.js"></script>
+  <script type="text/javascript" src="../anm.collisions.js"></script>
+  <!-- include json2 if it is not accessible in browser -->
+
+  <!-- include spec files here... -->
+  <script type="text/javascript" src="./spec/05.collisions/stub.spec.js"></script>
+
+  <script type="text/javascript">
+    (function() {
+      var jasmineEnv = jasmine.getEnv();
+      jasmineEnv.updateInterval = 1000;
+
+      var htmlReporter = new jasmine.HtmlReporter();
+
+      jasmineEnv.addReporter(htmlReporter);
+
+      jasmineEnv.specFilter = function(spec) {
+        return htmlReporter.specFilter(spec);
+      };
+
+      var currentWindowOnload = window.onload;
+
+      window.onload = function() {
+        if (currentWindowOnload) {
+          currentWindowOnload();
+        }
+        execJasmine();
+      };
+
+      function execJasmine() {
+        jasmineEnv.execute();
+      }
+
+    })();
+  </script>
+
+</head>
+
+<body>
+</body>
+</html>

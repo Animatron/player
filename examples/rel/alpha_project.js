@@ -1,7 +1,14 @@
+/*
+ * Copyright (c) 2011-2012 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron Player is licensed under the MIT License, see LICENSE.
+ */
+
 var alpha_project = {
   "meta": {
 	"id": "4fc76da2da0605201971d875",
-	"title": "New Project",
+	"name": "New Project",
 	"author": "",
 	"copyright": "",
 	"version": 0.1,

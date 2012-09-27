@@ -19,8 +19,15 @@ var C = anm.C,
 // ** META / PARAMS **
 
 AnimatronImporter.prototype.configureMeta = function(prj) {
-    // ( id, title, author, copyright, version, description, modificationTime )
-    return prj.meta;
+    // ( id, name, author, copyright, version, description, modificationTime, numberOfScenes )
+    var _m = prj.meta;
+    return {
+        'title': _m.name,
+        'author': _m.author,
+        'copyright': _m.copyright,
+        'version': _m.version,
+        'description': _m.description
+    };
 };
 AnimatronImporter.prototype.configureAnim = function(prj) {
     // ( framerate, dimension, background, duration,
@@ -55,6 +62,7 @@ AnimatronImporter.prototype.computeDuration = function(elms) {
 AnimatronImporter.prototype.load = function(prj) {
     // ( framerate, dimension, background, duration,
     //   elements, scenes )
+    // FIXME: allow importing several scenes
     return this.importScene(prj.anim.scenes[0],
                             prj.anim.elements);
 };
@@ -69,7 +77,7 @@ AnimatronImporter.prototype.importScene = function(scene_id, source) {
 AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     var target = new Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?,
-    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, on-end? )
+    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
     this._collectDynamicData(target, clip, in_band);
     if (clip.eid) {
         var inner = this.findElement(clip.eid, source);
@@ -80,10 +88,32 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             target.add(this.importElement(inner, source, target.xdata.gband));
         }
     } else if (clip.layers) {
-        var _layers = clip.layers;
-        // in animatron, layers are in reverse order
+        var _layers = clip.layers,
+            _layers_targets = [];
+        // in animatron. layers are in reverse order
         for (var li = _layers.length; li--;) {
-            target.add(this.importElement(_layers[li], source, target.xdata.gband));
+            var layer_src = _layers[li],
+                layer_trg = this.importElement(layer_src, source, target.xdata.gband);
+            if (!layer_src.masked) {
+                // layer is a normal one
+                target.add(layer_trg);
+                _layers_targets.push(layer_trg);
+            } else {
+                // layer is a mask, apply it to the required number
+                // of previously collected layers
+                var mask = layer_trg,
+                    maskedToGo = layer_src.masked, // layers below to apply mask
+                    ltl = _layers_targets.length;
+                if (maskedToGo > ltl) {
+                    throw new Error('No layers colleted to apply mask')
+                };
+                while (maskedToGo) {
+                    var masked = _layers_targets[ltl-maskedToGo];
+                    //console.log(mask.name + '->' + masked.name);
+                    masked.setMask(mask);
+                    maskedToGo--;
+                }
+            }
         }
     }
     return target;
@@ -92,11 +122,12 @@ AnimatronImporter.prototype.findElement = function(id, source) {
     for (var i = 0; i < source.length; i++) {
         if (source[i].id === id) return source[i];
     }
+    throw new Error("Element with id " + id + " was not found in passed source");
 }
 
 // collect required data from source layer
 AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
-    if (!to.name) to.name = clip.name;
+    if (!to.name && clip.name) to.name = clip.name;
     var x = to.xdata;
     x.lband = clip.band || [0, 10]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband)
@@ -124,6 +155,7 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
 
 var Convert = {}
 Convert.tween = function(tween) {
+    // (type, band, path?, easing?)
     var _t = tween,
         _type = Convert.tweenType(_t.type);
 
@@ -155,17 +187,20 @@ Convert.tweenData = function(type, tween) {
     return tween.data;
 }
 Convert.path = function(pathStr, stroke, fill) {
+    // ()
     return new Path(pathStr,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }
 Convert.text = function(lines, font,
                         stroke, fill) {
+    // (lines, font, stroke, fill)
     return new Text(lines, font,
                     Convert.stroke(stroke),
                     Convert.fill(fill));
 }
 Convert.easing = function(from) {
+    // (name, path?)
     if (!from) return null;
     return {
           type: Convert.easingType(from.name),
@@ -181,6 +216,7 @@ Convert.easingType = function(from) {
     if (from === 'Ease In Out') return C.E_INOUT;
 }
 Convert.stroke = function(stroke) {
+    // (width, paint (color | colors | r0, r1), cap, join, limit)
     if (!stroke) return stroke;
     var brush = {};
     brush.width = stroke.width;
@@ -200,6 +236,7 @@ Convert.stroke = function(stroke) {
     return brush;
 }
 Convert.fill = function(fill) {
+    // (color | colors | r0, r1)
     if (!fill) return null;
     var brush = {};
     if (!fill) {
@@ -215,6 +252,7 @@ Convert.fill = function(fill) {
     return brush;
 }
 Convert.gradient = function(src) {
+    // (offsets, colors, x1, y1, r0?, r1?)
     var stops = [],
         offsets = src.offsets;
     for (var i = 0; i < offsets.length; i++) {

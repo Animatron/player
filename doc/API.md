@@ -1,3 +1,10 @@
+<!--
+ ~ Copyright (c) 2011-2012 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
 PLAYER API
 ==========
 
@@ -104,8 +111,11 @@ Then, you have a `Player` object.
 
 Now you may easily create a player with either of two ways below, just provide us with correct id of the canvas to attach to, and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample):
 
-    var player = createPlayer('my-canvas')
-    // or: var player = new anm.Player('my-canvas');
+    // first way:
+    var player = createPlayer('my-canvas');
+    // second way:
+    var player = new anm.Player();
+        player.init('my-canvas');
 
 ##### 2c. #####
 
@@ -120,7 +130,7 @@ You may create as many players as you want, just be sure to have enough of canva
 
 ### Player Options
 
-You may pass options object to player, if you want to configure it accurately.
+You may pass options object to player, if you want to configure it accurately. Both `createPlayer` and `player.init` may get options as second, optional, parameter.
 
 #### mode ####
 
@@ -157,9 +167,9 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 
 `meta` block provides the information about the animation author, title and copyright. However, if you load the Scene with [Importer](#importers), it will be overriden from there (it also is useful if you associate one separate scene with one separate player).
 
-#### cnvs ####
+#### anim ####
 
-`cnvs` (shorten from 'canvas') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
+`anim` (shorten from 'animation') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
 
 **NB:** If canvas element where player attached to has `width` and `height` attributes set, then they have a higher priority over configuration when loading a scene. So if you want player to update its size dynamically from options or animation configuration, ensure to remove these attributes from element.
 
@@ -168,8 +178,10 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you want):
 
     { "debug": false, // in debug mode, FPS, shapes names and moving paths are shown
-      "mode": C.M_VIDEO, // player mode, may be C.M_PREVIEW or C.M_DYNAMIC
-      "zoom": 1.0, // zoom ratio for animation
+      "muteErrors": false, // supress errors while playing or not
+      "mode": C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC
+      "zoom": 1.0, // zoom ratio for animation.
+      "repeat": false, // repeat the scene again when it finished to play or not
       "meta": { "title": "Default", // meta data is injected in info block
                 "author": "Anonymous",
                 "copyright": "© NaN",
@@ -177,7 +189,7 @@ The complete options object, filled with default values, looks like this (any op
                 "description":
                         "Default project description",
                 [ "modified": 12272727271871 ] }, // in milliseconds, not used currently
-      "cnvs": { ["fps": 30,] // time coefficient, not used currently
+      "anim": { ["fps": 30,] // time coefficient, not used currently
                 "width": 400, // animation width, player will be resized if required
                 "height": 250, // animation height, player will be resized if required
                 "bgfill": { color: "#fff" }, // canvas background color
@@ -754,7 +766,7 @@ Some of the functions described below (such as tweens, easings, repeat modes and
             * `C.X_KUP` — Key Up event
             * `C.X_KDOWN` — Key Down event
         * `C.X_DRAW` — Draw event
-4. [Repeat mode](#repeat-modes) `C.R_*`
+4. [Element Repeat mode](#repeat-modes) `C.R_*`
     * `C.R_ONCE` — play once
     * `C.R_STAY` — play once and stay
     * `C.R_REPEAT` — repeat playing
@@ -978,8 +990,6 @@ Every such function returns `null` by default (when you return nothing) and it m
 
 <!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
 
-<!-- TODO: may be it is more convenient to return false (nothing) for modifier to pass and true if it needs to be stopped? because most of modifiers now return true -->
-
     b().modify(function(t) {
         this.x = 10 * t;
         this.sy = t / 15;
@@ -1011,7 +1021,7 @@ In fact, when you change the `state` in any modifier, you change not the current
 
 As you may noticed in example, you may optionally pass `data` object of any type, it will be passed to your modifier as second parameter every time it will be called. Also, you may specify a priority number, the higher this number, the later this modifier will be called in the modifiers sequence. The modifiers with the same priority will be called in the order of addition.
 
-It is ok to have a number of modifiers that check some flag and return `false` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 20 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
+It is ok to have a number of modifiers that check some flag and return `false` ("do not render element") if it is (not) set, please don't hesitate to use it — if it work slowly, it will be our fault :) (but, of course, it is your fault, if you have no more than 40 of such modifiers for each element ;) ). More of that, it is the intended practice to pass some "context" object to modifiers, so you may check global stuff, like this:
 
     var scene = b();
     var ctx = {};
@@ -1028,6 +1038,19 @@ It is ok to have a number of modifiers that check some flag and return `false` (
     };
 
 However, please don't forget about [`data()` method](#elements-interactions). It will better fit you needs (and speed) in most cases.
+
+<!-- TODO: priority -->
+
+If you want to call a modifier once at a single moment (or a bit later), there is a helper function for this case named `at`:
+
+    var scene = b();
+    scene.add(b().rect([10, 10], 5)
+                 .at(1.2, function(t) {
+                     // this will never happen
+                    if (t < 1.2) throw new Error("You've lied to me!");
+                 }));
+
+It will wrap your modifier with another modifier, and every time when the last will be called, it will always check if current time is equal or larger than given time, and when it does, it will execute the function and immediately destroy itself — so you are ensured that your function will be called only a single time, say "at 3 seconds or a bit later". And it will also pass the actual time to a function.
 
 #### Painters
 
@@ -1248,9 +1271,27 @@ With `each()` method you may loop through all of the children of the element. No
       b(elm).stroke('#f00');
     });
 
+Be aware that if you plan to remove some child of some element while iterating through this element, it will fail, because children data will be modified in this moment from the inside, without notifying parent element about that fact, and element will keep iterating over non-existing elements. To solve this, use `iter()` method, described below.
+
 > ♦ `builder.deach % (visitor: Function(elm: Element)) => Builder`
 
 There is a `deach()` ("deep-each") method with the same definition to iterate deeper through each of the `(`grand-`)*`children.
+
+The note about removing applies here in the same way.
+
+> ♦ `builder.iter % (visitor: Function(elm: Element) => Boolean) => Builder`
+
+This is the safe (but may be a bit more slow, because it uses iterator object) iteration over element's children, where you may return false (if return statement is omitted, it is considered as true) to delete the child from the element you are iterating over.
+
+<!-- TODO: more info -->
+
+> ♦ `builder.diter % (visitor: Function(elm: Element) => Boolean) => Builder`
+
+The same as `iter()`, but deep to `(`grand-`)*`children.
+
+> ♦ `builder.clear % () => Builder`
+
+Detach all children of the element from itself and from the scene.
 
 > ♦ `builder.data % ([value: Any]) => Builder | Any`
 
@@ -1266,7 +1307,7 @@ Internally, this data is saved as `Element`'s `.__data` property, so you may acc
 
 > ♦ `builder.acomp % (comp: C.C_*) => Builder`
 
-Change the global composition operation for alpha blending, see the accepted values in [Constants](#constants) section.
+Change the global composition operation for alpha blending or any composition-trick you want. See the accepted values in [Constants](#constants) section.
 
     // a trick on how to achieve no-looking-through
     // elements on the layer with 0.5 opacity
@@ -1297,6 +1338,33 @@ Change the global composition operation for alpha blending, see the accepted val
                  .modify(function(t) { this.alpha = 0.5; })
 
     );
+
+We've created a [Composition Playground](http://animatron.com/composition-playground/) for you to play with, say it, combinations of compositions. Just click layer to change its corresponding example (there are 10-or-so prepared examples that allow you to play with mostly all possible situations) or click an operation icon to change it to another.
+
+> ♦ `builder.mask % (mask: Element | Builder) => Builder`
+
+Make one element to be a mask of another (so you call `mask` method of masked element and ). You don't need to add mask-element to the scene, except the case when you need it also to be drawn. Mask may be only one, but for sure it may contain any number of children elements inside. One mask may be used for several elements. It's transformation state corresponds to the state of masked parent.
+
+    var cvs = document.getElementById('my-canvas'),
+        w = cvs.width,
+        h = cvs.height;
+
+    var bg = b('bg').circle([w/2,h/2], 100)
+                    .fill('#009');
+    var foo = b('mask').add(b().rect([0, 0], 100))
+                       .add(b().rect([30, 50], 60))
+                       .trans([0, 3], [[w, h], [0, 0]])
+                       //.alpha([0, 3], [0, 1]);
+    var bar = b('masked').circle([0, 0], 60)
+                         .fill('#ff0')
+                         .trans([0, 3], [[0, 0], [w, h]])
+                         //.alpha([0, 3], [.8, 1])
+                         .mask(foo)
+    return b('scene').add(bg)
+                     .add(foo)
+                     .add(bar)
+                     .trans([0, 3],
+                            [[-w/2, -h/2], [w,h]]);
 
 ### Live Changes
 

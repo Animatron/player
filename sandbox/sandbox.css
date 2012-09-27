@@ -29,7 +29,7 @@ pre {
 	margin-top: 10px;
 	margin-bottom: 20px;
 	border: 1px solid #999;
-	background-color: #ccc;
+	/* background-color: #ccc; */
 }
 
 textarea, .CodeMirror {
@@ -46,7 +46,7 @@ textarea, .CodeMirror {
 
 #left-pane {
 	float: left;
-	min-width: 42%;	
+	min-width: 42%;
 	margin-bottom: 5em;
 }
 
@@ -61,7 +61,7 @@ textarea, .CodeMirror {
 	margin-left: 30px;
 	border-left: 1px solid #ccc;
 	padding-left: 30px;
-	margin-bottom: 5em;	
+	margin-bottom: 5em;
 }
 
 #left-pane pre.locked {
@@ -73,7 +73,7 @@ textarea, .CodeMirror {
 #right-pane pre.locked {
 	font-weight: bold;
 	color: #006;
-	background-color: #ececff;	
+	background-color: #ececff;
 	margin-bottom: 5px;
 }
 
