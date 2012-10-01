@@ -3621,8 +3621,8 @@ Controls.prototype.update = function(parent) {
         this.ready = true;
     }
     if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
-    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*this._ratio),
-                                    _bp[1]+(_h*this._ratio) ];
+    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
+                                    _bp[1]+(_h*_ratio) ];
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) {
@@ -3650,13 +3650,13 @@ Controls.prototype.render = function(state, time) {
     var ctx = this.ctx,
         _ratio = this._ratio; // pixelRatio (or use this.canvas.__pxRatio?)
     var _bh = Controls._BH, // button height
-        _w = this.canvas.width,
-        _h = this.canvas.height,
+        _w = this.bounds[2] - this.bounds[0],
+        _h = this.bounds[3] - this.bounds[1],
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
         _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
     // TODO: update only progress if state not changed?
-    ctx.clearRect(0, 0, _w * _ratio, _h * _ratio);
+    ctx.clearRect(0, 0, _w, _h);
     ctx.save();
     if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
