@@ -191,7 +191,7 @@ var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
 var DEF_CNVS_BG = '#fff';
 
-function canvasOpts(canvas, opts) {
+function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
@@ -200,16 +200,16 @@ function canvasOpts(canvas, opts) {
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
-    var pxRatio = getPxRatio();
+    canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
     canvas.style.height = _h + 'px';
-    canvas.setAttribute('width', _w * pxRatio);
-    canvas.setAttribute('height', _h * pxRatio);
+    canvas.setAttribute('width', _w * (ratio || 1));
+    canvas.setAttribute('height', _h * (ratio || 1));
 }
 
-function newCanvas(dimen) {
+function newCanvas(dimen, ratio) {
     var _canvas = document.createElement('canvas');
-    canvasOpts(_canvas, dimen);
+    canvasOpts(_canvas, dimen, ratio);
     return _canvas;
 }
 
@@ -739,9 +739,10 @@ Player.prototype.drawAt = function(time) {
     }
     var ctx = this.ctx,
         state = this.state;
-    ctx.clearRect(0, 0, state.width, state.height);
+    ctx.clearRect(0, 0, state.width * state.ratio,
+                        state.height * state.ratio);
     this.anim.reset();
-    this.anim.render(ctx, time, state.zoom);
+    this.anim.render(ctx, time, state.zoom * state.ratio);
     if (this.controls) {
         this._renderControlsAt(time);
     }
@@ -878,12 +879,14 @@ Player.prototype._reset = function() {
     state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
-    this.ctx.clearRect(0, 0, state.width, state.height);
+    this.ctx.clearRect(0, 0, state.width * state.ratio,
+                             state.height * state.ratio);
     //this.stop();
 }
 // update player's canvas with configuration
 Player.prototype._applyConfToCanvas = function(opts) {
     var canvas = this.canvas;
+    var pxRatio = getPxRatio();
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -891,8 +894,9 @@ Player.prototype._applyConfToCanvas = function(opts) {
     opts.height = _h;
     this.state.width = _w;
     this.state.height = _h;
+    this.state.ratio = pxRatio;
     if (opts.bgfill) this.state.bgfill = opts.bgfill;
-    canvasOpts(canvas, opts);
+    canvasOpts(canvas, opts, pxRatio);
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
@@ -1203,7 +1207,6 @@ Scene.prototype.visitRoots = function(visitor, data) {
     }
 }
 Scene.prototype.render = function(ctx, time, zoom) {
-    var zoom = (zoom || 1) * getPxRatio();
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -1881,9 +1884,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__maskCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     // document.body.appendChild(this.__maskCvs);
     // document.body.appendChild(this.__backCvs);
@@ -2010,7 +2013,7 @@ Element.prototype._addChildren = function(elms) {
     }
 }
 Element.prototype._drawToCache = function() {
-    var _canvas = newCanvas(this.state.dimen);
+    var _canvas = newCanvas(this.state.dimen, this.state.ratio);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
@@ -2430,9 +2433,10 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         }
         state.__redraws++;
 
-        ctx.clearRect(0, 0, state.width, state.height);
+        ctx.clearRect(0, 0, state.width * state.ratio,
+                            state.height * state.ratio);
 
-        scene.render(ctx, time, state.zoom);
+        scene.render(ctx, time, state.zoom * state.ratio);
 
         // show fps
         if (state.debug) { // TODO: move to player.onrender
@@ -3586,6 +3590,7 @@ function Controls(player) {
     this.hidden = false;
     this.elapsed = false;
     this._time = -1000;
+    this._ratio = 1;
     this._lhappens = C.NOTHING;
     this._initHandlers(); // TODO: make automatic
     this._inParent = player.inParent;
@@ -3601,9 +3606,10 @@ Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var _w = parent.width,
+    var _ratio = parent.__pxRatio,
+        _w = parent.width / _ratio,
         _h = Controls.HEIGHT,
-        _hdiff = parent.height - Controls.HEIGHT,
+        _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
         _bp = [ _pp[0], _pp[1] + _hdiff ], // bounds position
         _cp = this._inParent ? [ parent.parentNode.offsetLeft,
@@ -3611,7 +3617,7 @@ Controls.prototype.update = function(parent) {
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
-        _canvas = newCanvas([ _w, _h ]);
+        _canvas = newCanvas([ _w, _h ], _ratio);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
         _canvas.className = 'anm-controls';
         _canvas.style.position = 'absolute';
@@ -3624,10 +3630,11 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeColor(Controls.DEF_FGCOLOR);
     } else {
-        canvasOpts(_canvas, [ _w, _h ]);
+        canvasOpts(_canvas, [ _w, _h ], _ratio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
+    this._ratio = _ratio;
     this.ctx.font = Math.floor(Controls._TS) + 'px sans-serif';
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
@@ -3638,7 +3645,8 @@ Controls.prototype.update = function(parent) {
         this.ready = true;
     }
     if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
-    this.bounds = [ _bp[0], _bp[1], _bp[0]+_w, _bp[1]+_h ];
+    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
+                                    _bp[1]+(_h*_ratio) ];
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) {
@@ -3663,16 +3671,18 @@ Controls.prototype.render = function(state, time) {
     this._time = time;
     this._lhappens = _s;
 
-    var ctx = this.ctx;
+    var ctx = this.ctx,
+        _ratio = this._ratio; // pixelRatio (or use this.canvas.__pxRatio?)
     var _bh = Controls._BH, // button height
-        _w = this.canvas.width,
-        _h = this.canvas.height,
+        _w = this.bounds[2] - this.bounds[0],
+        _h = this.bounds[3] - this.bounds[1],
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
-        _pw = _w - ((_m * 4) + _tw + _bh); // progress width
+        _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
     // TODO: update only progress if state not changed?
     ctx.clearRect(0, 0, _w, _h);
     ctx.save();
+    if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
     ctx.fillStyle = this.canvas.style.color || this.__fgcolor || Controls.DEF_FGCOLOR;
 
@@ -3729,7 +3739,8 @@ Controls.prototype.handle_mdown = function(event) {
         _bh = Controls._BH,
         _m = Controls.MARGIN,
         _tw = Controls._TW,
-        _w = this.bounds[2] - this.bounds[0];
+        _w = this.bounds[2] - this.bounds[0],
+        _ratio = this._ratio;
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
         var _s = this.player.state.happens;
         if (_s === C.STOPPED) {
@@ -3742,7 +3753,7 @@ Controls.prototype.handle_mdown = function(event) {
     } else if (_lx < (_w - (_tw + _m))) { // progress area
         var _s = this.player.state.happens;
         if (_s === C.NOTHING) return;
-        var _pw = _w - ((_m * 4) + _tw + _bh), // progress width
+        var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
