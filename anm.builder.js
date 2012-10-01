@@ -405,7 +405,7 @@ Builder.prototype.at = function(t, func, data, priority) {
     var m_at = function(real_t, data) {
         if (real_t >= t) { func.call(this, real_t, data); me.unmodify(m_at); }
     };
-    me.modify(m_at, data, priority);
+    return me.modify(m_at, data, priority);
 }
 // > builder.unmodify % (modifier: Function) => Builder
 Builder.prototype.unmodify = function(modifier) {
