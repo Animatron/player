@@ -184,6 +184,7 @@ describe("player, when created,", function() {
 
     // also check that zoom was changed for scene.render when pixelRatio was changed
     // TODO: data- attributes
+    // TODO: player.forSnapshot
 
     xit("not passes", function() {
         this.fail();
