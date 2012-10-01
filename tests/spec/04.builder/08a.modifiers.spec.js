@@ -402,6 +402,7 @@ describe("builder, regarding modifiers", function() {
         // TODO: ensure removing fails if modifier wasn't added to element
         // TODO: test that modifier added to some element, which then was cloned, may be easily removed from the last
         // TODO: test that error is fired if modifier was already added to this element
+        // TODO: test that modify/paint/unmodify/unpaint/at do not break chaining
         // TODO: test adding one modifier to several elements and removing it then
 
     });
