@@ -70,54 +70,31 @@ function varyAll(conditions, tests) {
     }
 }
 
-/* function fillMockWithSpies(mock) {
-    for (prop in mock) {
-        if (typeof mock[prop] == 'function') {
-            mock[prop] = spyOn(mock, prop).andCallThrough();
-        }
+/* conf = {
+    [ prepare: function() {...}, ]
+    run: function() {},
+    [ beforeEnd: function() {...}, ]
+    ( until: <state>[, timeout: 2],
+      | waitFor: function() {}, )
+    then: function() {}
+}; */
+function withPlayer(player, conf) {
+    runs(function() {
+        if (conf.prepare) conf.prepare();
+        conf.run();
+    });
+
+    if (conf.waitFor) {
+        waitsFor(conf.waitFor);
+    } else {
+        if (typeof conf.until === 'undefined') throw new Error('conf.until (value) or conf.waitFor (function) is required');
+        waitsFor(function() {
+            if (conf.beforeEnd) conf.beforeEnd();
+            return player.happens.state === conf.until;
+        }, conf.timeout ? conf.timeout*1000 : 2000);
     }
-} */
 
-// TODO: integrate everywhere
-/* function withPlayer(player) {
-    var toCall = [];
-    var stateToWaitFor,
-        waitingTime,
-        expectations;
-    function postponeCall(func) {
-        return function() { toCall.push([this, func, arguments]); }
-    }
-    return {
-        play: postponeCall('play'),
-        load: postponeCall('load'),
-        stop: postponeCall('stop')
-        waitToBe: function(state, time) {
-            stateToWaitFor = state;
-            waitingTime = time;
-        },
-        andCheck: function(f) { expectations = f; }
-        run: function() {
-            runs(function() {
-                for (var ci = 0, cl = toCall.length; ci < cl; ci++) {
-                    var f = toCall[ci];
-                    f[0][f[1]].call(f[0], f[2]);
-                }
-            });
-
-            waitsFor(function() {
-                return player.state.happens === stateToWaitFor;
-            }, waitingTime * 1000);
-
-            runs(expectations);
-        }
-    }
-} */
-
-// TODO: function(prepareCanvasTest)
-
-/*
-       //this.addMatchers(_matchers);
-
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
-*/
+    runs(function() {
+        if (conf.then) conf.then();
+    });
+}
