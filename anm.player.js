@@ -3566,6 +3566,7 @@ function Controls(player) {
     this.hidden = false;
     this.elapsed = false;
     this._time = -1000;
+    this._ratio = 1;
     this._lhappens = C.NOTHING;
     this._initHandlers(); // TODO: make automatic
     this._inParent = player.inParent;
@@ -3581,9 +3582,10 @@ Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var _w = parent.width,
+    var _ratio = parent.__pxRatio,
+        _w = parent.width / _ratio,
         _h = Controls.HEIGHT,
-        _hdiff = parent.height - Controls.HEIGHT,
+        _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
         _bp = [ _pp[0], _pp[1] + _hdiff ], // bounds position
         _cp = this._inParent ? [ parent.parentNode.offsetLeft,
@@ -3591,7 +3593,7 @@ Controls.prototype.update = function(parent) {
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
-        _canvas = newCanvas([ _w, _h ], parent.__pxRatio);
+        _canvas = newCanvas([ _w, _h ], _ratio);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
         _canvas.className = 'anm-controls';
         _canvas.style.position = 'absolute';
@@ -3604,10 +3606,11 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeColor(Controls.DEF_FGCOLOR);
     } else {
-        canvasOpts(_canvas, [ _w, _h ], parent.__pxRatio);
+        canvasOpts(_canvas, [ _w, _h ], _ratio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
+    this._ratio = _ratio;
     this.ctx.font = Math.floor(Controls._TS) + 'px sans-serif';
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
@@ -3618,7 +3621,8 @@ Controls.prototype.update = function(parent) {
         this.ready = true;
     }
     if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
-    this.bounds = [ _bp[0], _bp[1], _bp[0]+_w, _bp[1]+_h ];
+    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*this._ratio),
+                                    _bp[1]+(_h*this._ratio) ];
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) {
@@ -3643,16 +3647,18 @@ Controls.prototype.render = function(state, time) {
     this._time = time;
     this._lhappens = _s;
 
-    var ctx = this.ctx;
+    var ctx = this.ctx,
+        _ratio = this._ratio; // pixelRatio (or use this.canvas.__pxRatio?)
     var _bh = Controls._BH, // button height
         _w = this.canvas.width,
         _h = this.canvas.height,
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
-        _pw = _w - ((_m * 4) + _tw + _bh); // progress width
+        _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
     // TODO: update only progress if state not changed?
-    ctx.clearRect(0, 0, _w, _h);
+    ctx.clearRect(0, 0, _w * _ratio, _h * _ratio);
     ctx.save();
+    if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
     ctx.fillStyle = this.canvas.style.color || this.__fgcolor || Controls.DEF_FGCOLOR;
 
@@ -3709,7 +3715,8 @@ Controls.prototype.handle_mdown = function(event) {
         _bh = Controls._BH,
         _m = Controls.MARGIN,
         _tw = Controls._TW,
-        _w = this.bounds[2] - this.bounds[0];
+        _w = this.bounds[2] - this.bounds[0],
+        _ratio = this._ratio;
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
         var _s = this.player.state.happens;
         if (_s === C.STOPPED) {
@@ -3722,7 +3729,7 @@ Controls.prototype.handle_mdown = function(event) {
     } else if (_lx < (_w - (_tw + _m))) { // progress area
         var _s = this.player.state.happens;
         if (_s === C.NOTHING) return;
-        var _pw = _w - ((_m * 4) + _tw + _bh), // progress width
+        var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
