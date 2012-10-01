@@ -183,6 +183,11 @@ describe("player, when created,", function() {
     });
 
     // also check that zoom was changed for scene.render when pixelRatio was changed
+    // check new canvas __pxRatio attr was set
+    // ensure that state.zoom wasn't changed, but state.ratio is used to render scene
+    // ensure drawAt draws with correct zoom
+    // also check if clearRect was called with correct parameters
+    // + images support
     // TODO: data- attributes
     // TODO: player.forSnapshot
 

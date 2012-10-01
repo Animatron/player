@@ -191,7 +191,7 @@ var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
 var DEF_CNVS_BG = '#fff';
 
-function canvasOpts(canvas, opts) {
+function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
@@ -200,16 +200,16 @@ function canvasOpts(canvas, opts) {
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
-    var pxRatio = getPxRatio();
+    canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
     canvas.style.height = _h + 'px';
-    canvas.setAttribute('width', _w * pxRatio);
-    canvas.setAttribute('height', _h * pxRatio);
+    canvas.setAttribute('width', _w * (ratio || 1));
+    canvas.setAttribute('height', _h * (ratio || 1));
 }
 
-function newCanvas(dimen) {
+function newCanvas(dimen, ratio) {
     var _canvas = document.createElement('canvas');
-    canvasOpts(_canvas, dimen);
+    canvasOpts(_canvas, dimen, ratio);
     return _canvas;
 }
 
@@ -738,9 +738,10 @@ Player.prototype.drawAt = function(time) {
     }
     var ctx = this.ctx,
         state = this.state;
-    ctx.clearRect(0, 0, state.width, state.height);
+    ctx.clearRect(0, 0, state.width * state.ratio,
+                        state.height * state.ratio);
     this.anim.reset();
-    this.anim.render(ctx, time, state.zoom);
+    this.anim.render(ctx, time, state.zoom * state.ratio);
     if (this.controls) {
         this._renderControlsAt(time);
     }
@@ -877,12 +878,14 @@ Player.prototype._reset = function() {
     state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
-    this.ctx.clearRect(0, 0, state.width, state.height);
+    this.ctx.clearRect(0, 0, state.width * state.ratio,
+                             state.height * state.ratio);
     //this.stop();
 }
 // update player's canvas with configuration
 Player.prototype._applyConfToCanvas = function(opts) {
     var canvas = this.canvas;
+    var pxRatio = getPxRatio();
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -890,8 +893,9 @@ Player.prototype._applyConfToCanvas = function(opts) {
     opts.height = _h;
     this.state.width = _w;
     this.state.height = _h;
+    this.state.ratio = pxRatio;
     if (opts.bgfill) this.state.bgfill = opts.bgfill;
-    canvasOpts(canvas, opts);
+    canvasOpts(canvas, opts, pxRatio);
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
@@ -1202,7 +1206,6 @@ Scene.prototype.visitRoots = function(visitor, data) {
     }
 }
 Scene.prototype.render = function(ctx, time, zoom) {
-    var zoom = (zoom || 1) * getPxRatio();
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -1875,9 +1878,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__maskCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     // document.body.appendChild(this.__maskCvs);
     // document.body.appendChild(this.__backCvs);
@@ -1992,7 +1995,7 @@ Element.prototype._addChildren = function(elms) {
     }
 }
 Element.prototype._drawToCache = function() {
-    var _canvas = newCanvas(this.state.dimen);
+    var _canvas = newCanvas(this.state.dimen, this.state.ratio);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
@@ -2406,9 +2409,10 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         }
         state.__redraws++;
 
-        ctx.clearRect(0, 0, state.width, state.height);
+        ctx.clearRect(0, 0, state.width * state.ratio,
+                            state.height * state.ratio);
 
-        scene.render(ctx, time, state.zoom);
+        scene.render(ctx, time, state.zoom * state.ratio);
 
         // show fps
         if (state.debug) { // TODO: move to player.onrender
@@ -3587,7 +3591,7 @@ Controls.prototype.update = function(parent) {
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
-        _canvas = newCanvas([ _w, _h ]);
+        _canvas = newCanvas([ _w, _h ], parent.__pxRatio);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
         _canvas.className = 'anm-controls';
         _canvas.style.position = 'absolute';
@@ -3600,7 +3604,7 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeColor(Controls.DEF_FGCOLOR);
     } else {
-        canvasOpts(_canvas, [ _w, _h ]);
+        canvasOpts(_canvas, [ _w, _h ], parent.__pxRatio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
