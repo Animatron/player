@@ -196,29 +196,22 @@ describe("builder, regarding masks", function() {
 
         masked.mask(mask);
 
-        runs(function() {
-            player.load(scene).play();
+        doAsync(player, scene, {
+            do: 'play', until: C.STOPPED, timeout: 0.7,
+            then: function() {
+                expect(maskCanvasWasRemoved).toBeTruthy();
+                expect(backCanvasWasRemoved).toBeTruthy();
+
+                expect(elemPaintSpy).not.toHaveBeenCalled();
+                expect(maskPaintSpy).not.toHaveBeenCalled();
+                expect(maskedPaintSpy).not.toHaveBeenCalled();
+                expect(elem2PaintSpy).toHaveBeenCalled();
+                elem2PaintSpy.reset();
+                expect(mainCtxDrawImageSpy).not.toHaveBeenCalled();
+                expect(backCtxDrawImageSpy).not.toHaveBeenCalled();
+            }
         });
 
-        waitsFor(function() {
-            return player.state.happens === C.STOPPED;
-        }, 700);
-
-        runs(function() {
-            //expect(saveSpy).not.toHaveBeenCalled();
-            //expect(restoreSpy).toHaveBeenCalled();
-
-            expect(maskCanvasWasRemoved).toBeTruthy();
-            expect(backCanvasWasRemoved).toBeTruthy();
-
-            expect(elemPaintSpy).not.toHaveBeenCalled();
-            expect(maskPaintSpy).not.toHaveBeenCalled();
-            expect(maskedPaintSpy).not.toHaveBeenCalled();
-            expect(elem2PaintSpy).toHaveBeenCalled();
-            elem2PaintSpy.reset();
-            expect(mainCtxDrawImageSpy).not.toHaveBeenCalled();
-            expect(backCtxDrawImageSpy).not.toHaveBeenCalled();
-        })
     });
 
     // TODO: check alpha applied ok both for mask and for masked element

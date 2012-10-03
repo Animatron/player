@@ -34,19 +34,13 @@ describe("builder, regarding modifiers", function() {
             expect(data.foo).toBe(42);
         });
 
-        runs(function() {
-            scene.modify(modifierSpy, expectedData);
-            player.load(scene).play();
+        doAsync(player, {
+            prepare: function() { scene.modify(modifierSpy, expectedData);
+                                  return scene; },
+            do: 'play', until: C.STOPPED, timeout: 1.2,
+            then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
         });
 
-        waitsFor(function() {
-            return player.state.happens === C.STOPPED;
-        }, 1100);
-
-        runs(function() {
-            expect(modifierSpy.callCount).toBeGreaterThan(0);
-            player.stop();
-        });
     });
 
     it("should set `this` in modifier to element's temporary state", function() {
@@ -56,18 +50,12 @@ describe("builder, regarding modifiers", function() {
             expect(this).toBe(scene.v._state);
         });
 
-        runs(function() {
-            scene.modify(modifierSpy);
-            player.load(scene).play();
+        doAsync(player, {
+            prepare: function() { scene.modify(modifierSpy);
+                                  return scene; },
+            do: 'play', until: C.STOPPED, timeout: 1.2
         });
 
-        waitsFor(function() {
-            return player.state.happens === C.STOPPED;
-        }, 1100);
-
-        runs(function() {
-            player.stop();
-        });
     });
 
     describe("and especially, adding modifiers,", function() {
@@ -80,18 +68,11 @@ describe("builder, regarding modifiers", function() {
                 expect(t).toBeLessThanOrEqual(1);
             });
 
-            runs(function() {
-                scene.modify(modifierSpy);
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                expect(modifierSpy).toHaveBeenCalled();
-                player.stop();
+            doAsync(player, {
+                prepare: function() { scene.modify(modifierSpy);
+                                      return scene; },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() { expect(modifierSpy).toHaveBeenCalled(); }
             });
 
         });
@@ -108,18 +89,11 @@ describe("builder, regarding modifiers", function() {
                 expect(t).toBeLessThanOrEqual(1);
             });
 
-            runs(function() {
-                target.modify(modifierSpy);
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                expect(modifierSpy).toHaveBeenCalled();
-                player.stop();
+            doAsync(player, {
+                prepare: function() { target.modify(modifierSpy);
+                                      return scene; },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() { expect(modifierSpy).toHaveBeenCalled(); }
             });
 
         });
@@ -140,18 +114,11 @@ describe("builder, regarding modifiers", function() {
                 expect(t).toBeLessThanOrEqual(.31);
             });
 
-            runs(function() {
-                target.modify(modifierSpy);
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                expect(modifierSpy).toHaveBeenCalled();
-                player.stop();
+            doAsync(player, {
+                prepare: function() { target.modify(modifierSpy);
+                                      return scene; },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() { expect(modifierSpy).toHaveBeenCalled(); }
             });
 
         });
@@ -171,22 +138,15 @@ describe("builder, regarding modifiers", function() {
                 ));
             };
 
-            runs(function() {
-                for (var i = 0; i < spiesCount; i++) {
-                    scene.modify(modifierSpies[i]);
-                }
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                for (var i = 0; i < spiesCount; i++) {
-                    expect(modifierSpies[i]).toHaveBeenCalled();
-                }
-                player.stop();
+            doAsync(player, {
+                prepare: function() { for (var i = 0; i < spiesCount; i++) {
+                                          scene.modify(modifierSpies[i]);
+                                      }
+                                      return scene; },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() { for (var i = 0; i < spiesCount; i++) {
+                                       expect(modifierSpies[i]).toHaveBeenCalled();
+                                   } }
             });
 
         });
@@ -204,20 +164,15 @@ describe("builder, regarding modifiers", function() {
 
             var paintSpy = jasmine.createSpy('paint-spy');
 
-            runs(function() {
-                scene.modify(modifierSpy);
-                scene.paint(paintSpy);
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                expect(modifierSpy).toHaveBeenCalled();
-                expect(paintSpy).not.toHaveBeenCalled();
-                player.stop();
+            doAsync(player, {
+                prepare: function() {
+                    scene.modify(modifierSpy);
+                    scene.paint(paintSpy);
+                    return scene;
+                },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() { expect(modifierSpy).toHaveBeenCalled();
+                                   expect(paintSpy).not.toHaveBeenCalled(); }
             });
 
         });
@@ -244,30 +199,23 @@ describe("builder, regarding modifiers", function() {
                 modifierSpies.push(jasmine.createSpy('modifier-spy-'+i));
             };
 
-            runs(function() {
-                for (var i = 0; i < spiesCount; i++) {
-                    scene.modify(modifierSpies[i]);
+            doAsync(player, {
+                prepare: function() { for (var i = 0; i < spiesCount; i++) {
+                                          scene.modify(modifierSpies[i]);
+                                      }
+                                      return scene; },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() {
+                    for (var i = 0; i < disablingPos; i++) {
+                        expect(modifierSpies[i]).toHaveBeenCalled();
+                    }
+
+                    expect(modifierSpies[disablingPos]).toHaveBeenCalled();
+
+                    for (var i = disablingPos + 1; i < spiesCount; i++) {
+                        expect(modifierSpies[i]).not.toHaveBeenCalled();
+                    }
                 }
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-
-                for (var i = 0; i < disablingPos; i++) {
-                    expect(modifierSpies[i]).toHaveBeenCalled();
-                }
-
-                expect(modifierSpies[disablingPos]).toHaveBeenCalled();
-
-                for (var i = disablingPos + 1; i < spiesCount; i++) {
-                    expect(modifierSpies[i]).not.toHaveBeenCalled();
-                }
-
-                player.stop();
             });
 
         });
@@ -288,36 +236,33 @@ describe("builder, regarding modifiers", function() {
                 childSpies.push(jasmine.createSpy('child-spy-'+i));
             }
 
-            runs(function() {
-                scene.modify(sceneSpy);
+            doAsync(player, {
+                prepare: function() {
 
-                var parent = b().modify(disablingSpy);
-                scene.add(parent);
+                    scene.modify(sceneSpy);
 
-                for (var i = 0; i < spiesCount; i++) {
-                    var child = b().modify(childSpies[i]);
-                    parent.add(child);
-                    parent = child;
+                    var parent = b().modify(disablingSpy);
+                    scene.add(parent);
+
+                    for (var i = 0; i < spiesCount; i++) {
+                        var child = b().modify(childSpies[i]);
+                        parent.add(child);
+                        parent = child;
+                    }
+
+                    return scene;
+                },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() {
+                    expect(sceneSpy).toHaveBeenCalled();
+                    expect(disablingSpy).toHaveBeenCalled();
+
+                    for (var i = 0; i < spiesCount; i++) {
+                        expect(childSpies[i]).not.toHaveBeenCalled();
+                    }
                 }
-
-                player.load(scene).play();
-
             });
 
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                expect(sceneSpy).toHaveBeenCalled();
-                expect(disablingSpy).toHaveBeenCalled();
-
-                for (var i = 0; i < spiesCount; i++) {
-                    expect(childSpies[i]).not.toHaveBeenCalled();
-                }
-
-                player.stop();
-            });
         });
 
     });
@@ -339,18 +284,13 @@ describe("builder, regarding modifiers", function() {
                 expect(t).toBeLessThanOrEqual(.5);
             });
 
-            runs(function() {
-                scene.modify(modifierSpy);
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                expect(modifierSpy).not.toHaveBeenCalled();
-                player.stop();
+            doAsync(player, {
+                prepare: function() {
+                    scene.modify(modifierSpy);
+                    return scene;
+                },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() { expect(modifierSpy).not.toHaveBeenCalled(); }
             });
 
         });
@@ -378,23 +318,20 @@ describe("builder, regarding modifiers", function() {
                     } })(i)));
             };
 
-            runs(function() {
-                for (var i = (spiesCount - 1); i >= 0; i--) {
-                    scene.modify(modifierSpies[i],
-                                 i !== 0 ? ((1 / i) - .1) : 0);
+            doAsync(player, {
+                prepare: function() {
+                    for (var i = (spiesCount - 1); i >= 0; i--) {
+                        scene.modify(modifierSpies[i],
+                                     i !== 0 ? ((1 / i) - .1) : 0);
+                    }
+                    return scene;
+                },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() {
+                    for (var i = 0; i < spiesCount; i++) {
+                        expect(modifierSpies[i]).not.toHaveBeenCalled();
+                    }
                 }
-                player.load(scene).play();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1100);
-
-            runs(function() {
-                for (var i = 0; i < spiesCount; i++) {
-                    expect(modifierSpies[i]).not.toHaveBeenCalled();
-                }
-                player.stop();
             });
 
         });
@@ -425,19 +362,12 @@ describe("builder, regarding modifiers", function() {
         it("should call a modifier exactly once", function() {
             var modifierSpy = jasmine.createSpy('modifier-spy');
 
-            runs(function() {
-                scene.at(1.1, modifierSpy);
-                player.play();
+            doAsync(player, {
+                prepare: function() { scene.at(1.1, modifierSpy); },
+                do: 'play', until: C.STOPPED, timeout: 1.7,
+                then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
             });
 
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1700);
-
-            runs(function() {
-                expect(modifierSpy).toHaveBeenCalledOnce();
-                player.stop();
-            });
         });
 
         it("should call a modifier at given time or a bit later", function() {
@@ -450,22 +380,15 @@ describe("builder, regarding modifiers", function() {
                 calledAt = t;
             });
 
-            runs(function() {
-                scene.at(expectedT, modifierSpy);
-                player.play();
+            doAsync(player, {
+                prepare: function() { scene.at(expectedT, modifierSpy); },
+                do: 'play', until: C.STOPPED, timeout: 1.7,
+                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                   expect(calledAt).toBeGreaterThan(0);
+                                   expect(calledAt).toBeGreaterThanOrEqual(0.7);
+                                   expect(calledAt).toBeLessThan(0.9); }
             });
 
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1700);
-
-            runs(function() {
-                expect(modifierSpy).toHaveBeenCalledOnce();
-                expect(calledAt).toBeGreaterThan(0);
-                expect(calledAt).toBeGreaterThanOrEqual(0.7);
-                expect(calledAt).toBeLessThan(0.9);
-                player.stop();
-            });
         });
 
         // TODO: should pass data

@@ -70,31 +70,73 @@ function varyAll(conditions, tests) {
     }
 }
 
+/* function isBuilder(obj) {
+    return (typeof Builder !== 'undefined') &&
+           (obj instanceof Builder);
+}
+
+function isArray(obj) {
+    return Array.isArray(obj);
+} */
+
 /* conf = {
-    [ prepare: function() {...}, ]
-    run: function() {},
+    prepare: function() {...} | scene: Object
+    do: action | run: function() {},
     [ beforeEnd: function() {...}, ]
     ( until: <state>[, timeout: 2],
-      | waitFor: function() {}, )
-    then: function() {}
+      | waitFor: function() {}[, timeout: 2], )
+    [ then: function() {} ]
 }; */
-function withPlayer(player, conf) {
+function doAsync(player, conf) {
+    var conf,
+        _scene,
+        _timeout;
+
+    if (arguments.length === 3) {
+        _scene = arguments[1];
+        conf = arguments[2];
+    } else if (arguments.length === 2) {
+        conf = arguments[1];
+    } else throw new Error('Not enough arguments');
+
+    if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
+
+    if (_scene) player.load(_scene);
+    _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
+    _timeout *= 1000;
+
     runs(function() {
-        if (conf.prepare) conf.prepare();
-        conf.run();
+        if (conf.do) player[conf.do]();
+        else if (conf.run) conf.run.call(player);
+        else player.play();
     });
 
     if (conf.waitFor) {
-        waitsFor(conf.waitFor);
-    } else {
-        if (typeof conf.until === 'undefined') throw new Error('conf.until (value) or conf.waitFor (function) is required');
         waitsFor(function() {
-            if (conf.beforeEnd) conf.beforeEnd();
-            return player.happens.state === conf.until;
-        }, conf.timeout ? conf.timeout*1000 : 2000);
+            return conf.waitFor.call(player);
+        }, _timeout);
+    } else {
+        var expectedState = (typeof conf.until !== 'undefined') ? conf.until : anm.C.STOPPED;
+        waitsFor(function() {
+            var finished = (player.state.happens === expectedState);
+            if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
+            return finished;
+        }, _timeout);
     }
 
+    if (conf.afterThat) conf.afterThat.call(player);
+
     runs(function() {
-        if (conf.then) conf.then();
+        if (conf.then) conf.then.call(player);
+        player.stop();
     });
 }
+
+function travel(f, elms) {
+    for (var i = 0; i < elms.length; i++) {
+        f(elms[i]);
+        travel(f, elms[i].children);
+    }
+}
+
+// TODO: tests for utils
