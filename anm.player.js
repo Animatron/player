@@ -221,7 +221,8 @@ function prepareImage(url, callback) {
                              // 'complete' fails on Firefox
         if (callback) callback(this);
     };
-    _img.src = url;
+    try { _img.src = url; }
+    catch(e) { throw new Error('Image at ' + url + ' is not accessible'); }
     return _img;
 }
 

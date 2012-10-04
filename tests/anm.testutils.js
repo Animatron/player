@@ -59,6 +59,18 @@ function guid() {
    return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
 }
 
+function _each(arr, func) {
+    for (var i = 0, il = arr.length; i < il; i++) {
+        func(arr[i]);
+    }
+}
+
+function _arrayFrom(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return [ val ];
+}
+
 function varyAll(conditions, tests) {
     for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
         var condition = conditions[ci];
