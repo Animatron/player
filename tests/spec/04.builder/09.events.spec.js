@@ -1,7 +1,11 @@
-xdescribe("", function() {
+describe("events", function() {
 
-    xit("", function() {
-        // TODO: test untweening
+    describe("different types of events", function() {
+
+        it("not implemented", function() {
+            this.fail('NI');
+        });
+
     });
 
 });
