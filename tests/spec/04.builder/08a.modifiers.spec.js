@@ -269,7 +269,7 @@ describe("builder, regarding modifiers", function() {
 
         describe("default modifiers", function() {
 
-            // FIXME: use varyAll to also in drawAt and after a time-jump
+            // FIXME: use varyAll to test also in drawAt and after a time-jump
             // TODO: move doAsync similar calls to some function
 
             describe("adding them and the way it affects their bands", function() {
@@ -371,7 +371,7 @@ describe("builder, regarding modifiers", function() {
                                 expect(t).toBeLessThanOrEqual(1);
                             }
                         ));
-                    };
+                    }
 
                     doAsync(player, {
                         prepare: function() { for (var i = 0; i < spiesCount; i++) {
@@ -497,15 +497,15 @@ describe("builder, regarding modifiers", function() {
                     bands = _arrayFrom(bands);
                     expectations = _arrayFrom(expectations);
                     spies = [];
-                    _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)) });
+                    _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                     doAsync(player, {
                         prepare: function() { _each(spies, function(spy, idx) { target.modify(bands[idx], spy); });
-                                              return scene; }
+                                              return scene; },
                         run: _whatToRun, waitFor: _waitFor, timeout: _timeout,
                         then: function() { _each(expectations, function(expectation) { expectation(); });
                                            _each(spies, function(spy) { expect(spy).toHaveBeenCalled(); }); }
                     });
-                });
+                }
 
                 varyAll([ { description: "while just playing,", prepare: function() {
                                 _whatToRun = function(t) { player.play(t); setTimeout(function() { player.stop() }, 100);};
@@ -549,7 +549,7 @@ describe("builder, regarding modifiers", function() {
                                     },
                                     mod_band,
                                     (mod_band[1] < trg_duration)
-                                        ? trg_band[0] + trg_duration - ((trg_duration - mod_band[1]) / 2);
+                                        ? trg_band[0] + trg_duration - ((trg_duration - mod_band[1]) / 2)
                                         : trg_band[1]);
                             });
 
@@ -622,6 +622,20 @@ describe("builder, regarding modifiers", function() {
                     });
 
                 });
+
+                describe("during playing process,", function() {
+
+                    it("same rules should work with a single modifier", function() {
+                        this.fail('NI');
+                    });
+
+                    it("and a sequence of them", function() {
+                        this.fail('NI');
+                    });
+
+                });
+
+                // TODO: test the cases when modifier band exceeds wrapping element band
 
             });
         });
@@ -701,11 +715,35 @@ describe("builder, regarding modifiers", function() {
                             prepare: function() {} }
                         ], function() {
 
-                        it("should call a modifier if current frame is a bit after its time", function() {
+                        it("previous frame position should be cleared", function() {
                             this.fail("NI");
                         });
 
-                        it("should not call a modifier if current frame is long after its time (or if framerate is too low)", function() {
+                        it("should call a modifier if current frame matches its time", function() {
+                            this.fail("NI");
+                        });
+
+                        it("should not call a modifier if current frame is after (even a little bit) its time", function() {
+                            this.fail("NI");
+                        });
+
+                        it("should call a modifier again and again if current frame matches its time", function() {
+                            this.fail("NI");
+                        });
+
+                    });
+
+                    describe("during playing process,", function() {
+
+                        it("should call a modifier if current frame is a bit after its time and previous frame happened before its time", function() {
+                            this.fail("NI");
+                        });
+
+                        it("should not call a modifier if current frame is a bit after its time, but modifier was already called", function() {
+                            this.fail("NI");
+                        });
+
+                        it("should not call a modifier if current frame is long after its time", function() {
                             this.fail("NI");
                         });
 
@@ -719,6 +757,7 @@ describe("builder, regarding modifiers", function() {
 
                     });
 
+                    // TODO: test enabling/disabling elements
                 });
 
             });

@@ -383,11 +383,12 @@ Builder.prototype.bounce = function() {
 
 // * MODIFIERS & PAINTERS *
 
-// > builder.modify % (modifier: Function(time: Float,
+// > builder.modify % ([band: Array[2, Float],]
+//                     modifier: Function(time: Float,
 //                                        data: Any),
 //                     [data: Any, priority: Integer]) => Builder
-Builder.prototype.modify = function(func, data, priority) {
-    this.v.addModifier(func, data, priority);
+Builder.prototype.modify = function(band, func, data, priority) {
+    this.v.addModifier(band, func, data, priority);
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,

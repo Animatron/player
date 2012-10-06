@@ -237,6 +237,10 @@ function __array(obj) {
     return Array.isArray(obj);
 }
 
+function __num(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
 function mrg_obj(src, backup) {
     var res = {};
     for (prop in backup) {
@@ -1416,7 +1420,7 @@ function Element(draw, onframe) {
     this.__data = null;
     this._modifiers = [];
     this._painters = [];
-    if (onframe) this.__modify(Element.USER_MOD, 0, onframe);
+    if (onframe) this.__modify(Element.USER_MOD, 0, null, onframe);
     if (draw) this.__paint(Element.USER_PNT, 0, draw);
     this.__lastJump = null;
     this.__jumpLock = false;
@@ -1532,11 +1536,20 @@ Element.prototype.render = function(ctx, gtime) {
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-// > Element.addModifier % (modifier: Function(time: Float,
+// > Element.addModifier % ([restriction: Array[Float, 2] | Float],
+//                          modifier: Function(time: Float,
 //                                              data: Any) => Boolean,
-//                           data: Any) => Integer
-Element.prototype.addModifier = function(modifier, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, modifier, data);
+//                          [data: Any],
+//                          [priority: Int]
+//                         ) => Integer
+Element.prototype.addModifier = function(band, modifier, data, priority) {
+    var with_band = __array(band) || __num(band);
+    // match actual arguments, if band was omitted
+    priority = with_band ? priority : data;
+    data = with_band ? data : modifier;
+    modifier = with_band ? modifier : band;
+    band = with_band ? band : null;
+    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, data);
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -1603,11 +1616,11 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     }
 }
 // > Element.addS % (dimen: Array[Int, 2],
-//                    draw: Function(ctx: Context),
-//                    onframe: Function(time: Float),
-//                    [ transform: Function(ctx: Context,
-//                                          prev: Function(Context)) ])
-//                    => Element
+//                   draw: Function(ctx: Context),
+//                   onframe: Function(time: Float),
+//                   [ transform: Function(ctx: Context,
+//                                         prev: Function(Context)) ])
+//                   => Element
 Element.prototype.addS = function(dimen, draw, onframe, transform) {
     var _elm = this.add(draw, onframe, transform);
     _elm.sprite = true;
@@ -1713,7 +1726,7 @@ Element.prototype.ltime = function(gtime) {
     }
 }
 Element.prototype.m_on = function(type, handler) {
-    return this.__modify(Element.EVENT_MOD, 0, function(t) { // FIXME: handlers must have priority?
+    return this.__modify(Element.EVENT_MOD, 0, null, function(t) { // FIXME: handlers must have priority?
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
@@ -2028,6 +2041,16 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
+Element.prototype.__adaptModTime = function(state, band, ltime) {
+  if (!band) return ltime;
+  if (__array(band)) { // modifier is band-restricted
+      if (ltime < band[0]) return 0;
+      else if (ltime > band[1]) return (band[1] - band[0]);
+      else if (band[1] > ltime) return ltime - band[0];
+      else if (band[0] < 0) return ltime + band[0];
+      else return ltime - band[0];
+  } else return false; // NI
+}
 Element.prototype.__callModifiers = function(order, ltime) {
     // save the previous state
     this.state._ = null; // clear the pointer, so it will not be cloned
@@ -2055,18 +2078,25 @@ Element.prototype.__callModifiers = function(order, ltime) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci] && (cur[ci][0].call(this._state, ltime, cur[ci][1]) === false)) {
-                  this.__mafter(ltime, type, false);
-                  this.__modifying = null;
-                  this.__clearEvts(this._state);
-                  // NB: nothing happens to the state or element here,
-                  //     the modified things are not applied
-                  return false;
-                }
-              }
-            }
-          }
-        }
+                var modifier;
+                if (modifier = cur[ci]) {
+                  var ltime = this.__adaptModTime(this._state, modifier[0], ltime);
+                  if ((ltime === false) || // false will be returned from __adaptModTime
+                                           // for trigger-like modifier if
+                                           // it is required to skip it
+                      (modifier[1].call(this._state, ltime, modifier[2]) === false)) {
+                    this.__mafter(ltime, type, false);
+                    this.__modifying = null;
+                    this.__clearEvts(this._state);
+                    // NB: nothing happens to the state or element here,
+                    //     the modified things are not applied
+                    return false;
+                  }
+                } // if cur[ci]
+              } // for var ci
+            } // if cur = seq[pi]
+          } // for var pi
+        } // if seq
         this.__mafter(ltime, type, true);
     }
     this.__modifying = null;
@@ -2105,7 +2135,7 @@ Element.prototype.__callPainters = function(order, ctx) {
     }
     this.__painting = null;
 }
-Element.prototype.__addTypedModifier = function(type, priority, modifier, data) {
+Element.prototype.__addTypedModifier = function(type, priority, band, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
     var modifiers = this._modifiers;
     var priority = priority || 0;
@@ -2113,7 +2143,7 @@ Element.prototype.__addTypedModifier = function(type, priority, modifier, data) 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([modifier, data]);
+    modifiers[type][priority].push([band, modifier, data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
@@ -2267,9 +2297,9 @@ Element.createXData = function(owner) {
 }
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
-    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, Render.m_checkBand, xdata.gband);
-    elm.__modify(Element.SYS_MOD, 0, Render.m_saveReg);
-    elm.__modify(Element.SYS_MOD, 0, Render.m_applyPos);
+    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband);
+    elm.__modify(Element.SYS_MOD, 0, null, Render.m_saveReg);
+    elm.__modify(Element.SYS_MOD, 0, null, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
     elm.__paint(Element.SYS_PNT, 0, Render.p_applyAComp);
@@ -2293,8 +2323,9 @@ Element.__addTweenModifier = function(elm, tween) {
                                                : easing.f(easing.data),
                                    Tweens[tween.type],
                                    tween.band);
+    // FIXME FIXME now it is possible to pass bands inside
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        modifier, tween.data);
+                        null, modifier, tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
