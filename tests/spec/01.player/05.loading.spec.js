@@ -32,7 +32,7 @@ describe("player, when speaking about loading scenes,", function() {
     // draw loading splash while loading
     // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
     // player.load("some://fake.url"); expect(player.state.happens).toBe(C.NOTHING);
-    // test if while preview is shown at preview time pos, controls are at 0
+    // test if while preview is shown at preview time pos, only for video mode, controls are at 0
     // scene width and height should be equal to canvas width/height
     // duration
     // test remote loading

@@ -61,7 +61,7 @@ function guid() {
 
 function _each(arr, func) {
     for (var i = 0, il = arr.length; i < il; i++) {
-        func(arr[i]);
+        func(arr[i], i);
     }
 }
 
@@ -82,14 +82,20 @@ function varyAll(conditions, tests) {
     }
 }
 
-/* function isBuilder(obj) {
+// type-check
+
+function __builder(obj) {
     return (typeof Builder !== 'undefined') &&
            (obj instanceof Builder);
 }
 
-function isArray(obj) {
+function __array(obj) {
     return Array.isArray(obj);
-} */
+}
+
+function __num(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
 
 /* conf = {
     prepare: function() {...} | scene: Object

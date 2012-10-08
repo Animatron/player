@@ -19,7 +19,9 @@ describe("builder, regarding modifiers", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fakeCallsForCanvasRelatedStuff();
 
-        player = createPlayer('test-id');
+        // preview mode is enabled not to mess with still-preview used for video-mode
+        // (it calls drawAt and causes modifiers to be called once more before starting playing)
+        player = createPlayer('test-id', { mode: C.M_PREVIEW });
     });
 
     describe("independently of modifier class,", function() {
@@ -36,13 +38,13 @@ describe("builder, regarding modifiers", function() {
                     prepare: function() { curClass = function(spy) { return [ spy ] } }
                   }, {
                     description: "either it is a band-restricted modifier,",
-                    prepare: function() { curClass = function(spy) { return [ [ 0, duration ], spy ] } }
+                    prepare: function() { curClass = function(spy) { return [ [ 0, _duration ], spy ] } }
                   }, {
                     description: "or it is a trigger-like modifier,",
                     prepare: function() { curClass = function(spy) { return [ 0, spy ] };
                                           _duration = anm.Player.TRIG_TIMEOUT; /* to ensure that it will be called */
                                           _timeout = _duration + .2;
-                                          _run = function() { player.drawAt(duration / 4); }; }
+                                          _run = function() { player.drawAt(_duration / 4); }; }
                   } ],  function() {
 
             it("should call given modifier", function() {
@@ -202,7 +204,7 @@ describe("builder, regarding modifiers", function() {
                             scene.paint(paintSpy);
                             return scene;
                         },
-                        run: _run, until: C.STOPPED, timeout: _duration,
+                        run: _run, until: C.STOPPED, timeout: _duration + .2,
                         then: function() { expect(modifierSpy).toHaveBeenCalled();
                                            expect(paintSpy).not.toHaveBeenCalled(); }
                     });
@@ -492,28 +494,37 @@ describe("builder, regarding modifiers", function() {
                 var _whatToRun,
                     _waitFor;
 
-                function expectAtTime(modifiers, bands, t, expectations) {
-                    modifiers = _arrayFrom(modifiers);
-                    bands = _arrayFrom(bands);
-                    expectations = _arrayFrom(expectations);
-                    spies = [];
+                function expectAtTime(conf) {
+                    var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
+                        modifiers = _arrayFrom(conf.modifiers),
+                        expectations = _arrayFrom(conf.expectations),
+                        spies = [];
                     _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                     doAsync(player, {
                         prepare: function() { _each(spies, function(spy, idx) { target.modify(bands[idx], spy); });
                                               return scene; },
-                        run: _whatToRun, waitFor: _waitFor, timeout: _timeout,
+                        run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                         then: function() { _each(expectations, function(expectation) { expectation(); });
                                            _each(spies, function(spy) { expect(spy).toHaveBeenCalled(); }); }
                     });
                 }
 
-                varyAll([ { description: "while just playing,", prepare: function() {
-                                _whatToRun = function(t) { player.play(t); setTimeout(function() { player.stop() }, 100);};
-                                _waitFor = function() { return player.state.happens == C.STOPPED; }
+                varyAll([ { description: "while just momentary playing,", prepare: function() {
+                                _whatToRun = function(t) {
+                                    return function() {
+                                        player.play(t);
+                                        setTimeout(function() { player.stop() }, 100);
+                                    }
+                                };
+                                _waitFor = function() { return player.state.happens === C.STOPPED; }
                             } },
                           { description: "when particular frame was requested,", prepare: function() {
                                 var drawAtSpy = spyOn(player, 'drawAt').andCallThrough();
-                                _whatToRun = function(t) { setTimeout(function() { player.drawAt(t) }, 50); };
+                                _whatToRun = function(t) {
+                                    return function() {
+                                        setTimeout(function() { player.drawAt(t) }, 50);
+                                    };
+                                };
                                 _waitFor = function() { return (drawAtSpy.callCount > 0); }
                             } },
                           /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
@@ -533,88 +544,96 @@ describe("builder, regarding modifiers", function() {
                         describe("in favor of alignment,", function() {
 
                             it("should call modifier before the fact when its band has started and pass the starting time inside", function() {
-                                expectAtTime(function(t) {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
                                         expect(t).toBe(0);
                                     },
-                                    mod_band,
-                                    (mod_band[0] > 0)
-                                        ? trg_band[0] + (mod_band[0] / 2)
-                                        : trg_band[0] );
+                                    time: ( (mod_band[0] > 0)
+                                           ? trg_band[0] + (mod_band[0] / 2)
+                                           : trg_band[0] ) });
                             });
 
                             it("should call modifier after the fact when its band has finished and pass the ending time inside", function() {
                                 var mod_duration = mod_band[1] - mod_band[0];
-                                expectAtTime(function(t) {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
                                         expect(t).toBe(mod_duration);
                                     },
-                                    mod_band,
-                                    (mod_band[1] < trg_duration)
-                                        ? trg_band[0] + trg_duration - ((trg_duration - mod_band[1]) / 2)
-                                        : trg_band[1]);
+                                    time: ( (mod_band[1] < trg_duration)
+                                           ? trg_band[0] + trg_duration - ((trg_duration - mod_band[1]) / 2)
+                                           : trg_band[1] ) });
                             });
 
                             it("should just pass the local time to modifier (and, for sure, call it), if its band is within current time", function() {
                                 var mod_duration = mod_band[1] - mod_band[0];
-                                expectAtTime(function(t) {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
                                         expect(t).toBeGreaterThanOrEqual(mod_band[0]);
                                         expect(t).toBeLessThanOrEqual(mod_band[1]);
                                     },
-                                    mod_band,
-                                    trg_band[0] + mod_band[0] + (mod_duration / 3));
+                                    time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+                            });
+
+                            // TODO: test negative bands
+
+                        });
+
+                    });
+
+                    describe("in favor of sequences,", function() {
+
+                        var one_fifth = duration / 5;
+
+                        describe("if other modifier goes a bit after the current one,", function() {
+
+                            var band1 = [ one_fifth * 3, one_fifth * 4 ],
+                                band2 = [ one_fifth, one_fifth * 2 ];
+
+                            it("in period before first, should call first one with start value and next one also with start value", function() {
+                                this.fail('NI');
+                            });
+
+                            it("during the first one, should call first one with actual value and next one with start value", function() {
+                                this.fail('NI');
+                            });
+
+                            it("during the period between them, should call first one with end value and next one with start value", function() {
+                                this.fail('NI');
+                            });
+
+                            it("during the second one, should call first one with end value and next one with actual value", function() {
+                                this.fail('NI');
+                            });
+
+                            it("after the second one, should call first one with end value and next one with end value", function() {
+                                this.fail('NI');
                             });
 
                         });
 
-                        describe("in favor of sequences,", function() {
+                        describe("if next modifier overlaps the end of the current one,", function() {
 
-                            // TODO: add them in backwards order to ensure that timing is the rule, not the order
-
-                            describe("if other modifier goes a bit after the current one,", function() {
-
-                                it("in period before first, should call first one with start value and next one also with start value", function() {
-                                    this.fail('NI');
-                                });
-
-                                it("during the first one, should call first one with actual value and next one with start value", function() {
-                                    this.fail('NI');
-                                });
-
-                                it("during the period between them, should call first one with end value and next one with start value", function() {
-                                    this.fail('NI');
-                                });
-
-                                it("during the second one, should call first one with end value and next one with actual value", function() {
-                                    this.fail('NI');
-                                });
-
-                                it("after the second one, should call first one with end value and next one with end value", function() {
-                                    this.fail('NI');
-                                });
-
+                            it("in period before first, should call first one with start value and next one also with start value", function() {
+                                this.fail('NI');
                             });
 
-                            describe("if next modifier overlaps the end of the current one,", function() {
+                            it("during the first one, but not the overlapping period, should call first one with actual value and next one with start value", function() {
+                                this.fail('NI');
+                            });
 
-                                it("in period before first, should call first one with start value and next one also with start value", function() {
-                                    this.fail('NI');
-                                });
+                            it("during the overlapping period, should call first one with actual value and next one with actual value", function() {
+                                this.fail('NI');
+                            });
 
-                                it("during the first one, but not the overlapping period, should call first one with actual value and next one with start value", function() {
-                                    this.fail('NI');
-                                });
+                            it("during the second one, but not the overlapping period, should call first one with end value and next one with actual value", function() {
+                                this.fail('NI');
+                            });
 
-                                it("during the overlapping period, should call first one with actual value and next one with actual value", function() {
-                                    this.fail('NI');
-                                });
-
-                                it("during the second one, but not the overlapping period, should call first one with end value and next one with actual value", function() {
-                                    this.fail('NI');
-                                });
-
-                                it("after the second one, should call first one with end value and next one with end value", function() {
-                                    this.fail('NI');
-                                });
-
+                            it("after the second one, should call first one with end value and next one with end value", function() {
+                                this.fail('NI');
                             });
 
                         });
@@ -766,6 +785,7 @@ describe("builder, regarding modifiers", function() {
 
     });
 
+    // TODO: test different types of modifiers working simultaneously in one test
     // TODO: ensure removing fails if modifier wasn't added to element
     // TODO: test jumping in time
     // TODO: test that modifier added to some element, which then was cloned, may be easily removed from the last

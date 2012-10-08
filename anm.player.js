@@ -283,15 +283,20 @@ C.M_INFO_DISABLED = 0;
 C.M_INFO_ENABLED = 2;
 C.M_DO_NOT_HANDLE_EVENTS = 0;
 C.M_HANDLE_EVENTS = 4;
+C.M_DO_NOT_DRAW_STILL = 0;
+C.M_DRAW_STILL = 8;
 C.M_PREVIEW = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
-              | C.M_DO_NOT_HANDLE_EVENTS;
+              | C.M_DO_NOT_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL;
 C.M_DYNAMIC = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
-              | C.M_HANDLE_EVENTS;
+              | C.M_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL;
 C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_INFO_ENABLED
-            | C.M_DO_NOT_HANDLE_EVENTS;
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DRAW_STILL;
 
 
 // EVENTS
@@ -439,6 +444,7 @@ Player.prototype.init = function(cvs, opts) {
     this._loadOpts(opts);
     this._postInit();
     // TODO: if (this.canvas.hasAttribute('data-url'))
+    return this;
 }
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
@@ -552,10 +558,9 @@ Player.prototype.stop = function() {
 
     if (player.anim) {
         state.happens = C.STOPPED;
-        // TODO: do not draw preview for games?
-        player.drawAt((player.mode & C.M_VIDEO)
-            ? state.duration * Player.PREVIEW_POS
-            : 0);
+        if (player.mode & C.M_DRAW_STILL) {
+            player.drawAt(state.duration * Player.PREVIEW_POS);
+        }
         if (player.controls/* && !player.controls.hidden*/) {
             player._renderControlsAt(0);
         }
@@ -2042,14 +2047,14 @@ Element.prototype._stateStr = function() {
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__adaptModTime = function(state, band, ltime) {
-  if (!band) return ltime;
+  if (band == null) return ltime;
   if (__array(band)) { // modifier is band-restricted
       if (ltime < band[0]) return 0;
       else if (ltime > band[1]) return (band[1] - band[0]);
-      else if (band[1] > ltime) return ltime - band[0];
-      else if (band[0] < 0) return ltime + band[0];
       else return ltime - band[0];
-  } else return false; // NI
+  } else if (__num(band)) {
+      return false; // NI
+  } else return ltime;
 }
 Element.prototype.__callModifiers = function(order, ltime) {
     // save the previous state
