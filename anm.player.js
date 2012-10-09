@@ -499,7 +499,7 @@ Player.prototype.load = function(object, importer, callback) {
     return player;
 }
 
-Player.prototype.play = function(from, speed) {
+Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) throw new Error(Player.ALREADY_PLAYING_ERR);
 
@@ -512,6 +512,7 @@ Player.prototype.play = function(from, speed) {
 
     state.from = from || state.from;
     state.speed = speed || state.speed;
+    state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -555,6 +556,7 @@ Player.prototype.stop = function() {
 
     state.time = Player.NO_TIME;
     state.from = 0;
+    state.stop = Player.NO_TIME;
 
     if (player.anim) {
         state.happens = C.STOPPED;
@@ -968,7 +970,9 @@ Player.prototype.__afterFrame = function(scene) {
     return (function(player, state, scene, callback) {
         return function(time) {
             if (state.happens !== C.PLAYING) return false;
-            if (time > (state.duration + Player.PEFF)) {
+            if (((state.stop !== Player.NO_TIME) &&
+                 (time >= (state.from + state.stop))) ||
+                (time > (state.duration + Player.PEFF))) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
@@ -1035,8 +1039,8 @@ Player._saveCanvasPos = function(cvs) {
 
 Player.createState = function(player) {
     return {
-        'time': Player.NO_TIME, 'from': 0, 'speed': 1,
-        'fps': 30, 'afps': 0, 'duration': 0,
+        'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
+        'speed': 1, 'fps': 30, 'afps': 0, 'duration': 0,
         'debug': false, 'iactive': false,
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,

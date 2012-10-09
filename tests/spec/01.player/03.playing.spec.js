@@ -600,14 +600,19 @@ describe("player, when speaking about playing,", function() {
 
         });
 
-        // TODO: tests resetting state after drawAt and stuff
+        // TODO: test resetting state after drawAt and stuff
 
     });
 
-    // drawAt should be synchrounous (scene should be fully rendered after drawFrame)
-    // should not call modifiers/painters while stopped/paused
-    // test if while preview is shown at preview time pos, controls are at 0
+    // ensure drawAt and playing are the similar calls and produce the same results
+    // test passing stopAt value to play() method (state.stop)
     // state.from
+    // state.time
+    // drawAt should be synchrounous (scene should be fully rendered after drawFrame)
+    // test all the inner sequence of playing
+    // test callback passed to be called after playing
+    // should not call modifiers/painters while stopped/paused
+    /// test if while preview is shown at preview time pos, only for video mode, controls are at 0
     // errors
 
 });

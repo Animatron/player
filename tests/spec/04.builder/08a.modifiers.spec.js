@@ -465,9 +465,13 @@ describe("builder, regarding modifiers", function() {
 
         describe("band-restricted modifiers,", function() {
 
+            var duration = 1;
+
             var target,
                 trg_band, // band of the target element
-                mod_band; // band of the modifier itself
+                trg_duration; // duration of the target band
+
+            var target;
 
             var _duration = 1,
                 _timeout = _duration + .2;
@@ -478,15 +482,18 @@ describe("builder, regarding modifiers", function() {
                     description: "when assigned to the scene",
                     prepare: function() { target = scene;
                                           trg_band = [ 0, _duration ];
+                                          trg_duration = _duration;
                                           target.band(trg_band); }
                 }, {
                     description: "when assigned to the child whose band is narrower than scene band",
                     prepare: function() { trg_band = [ _duration / 6, (_duration / 6) * 5 ];
+                                          trg_duration = trg_band[1] - trg_band[0];
                                           target = b().band(trg_band);
                                           scene.add(b().add(b().add(target))); }
                 }, {
                     description: "when assigned to the grand-child whose parent band is narrower than scene band",
                     prepare: function() { trg_band = [ _duration / 7, (_duration / 7) * 4 ];
+                                          trg_duration = trg_band[1] - trg_band[0];
                                           target = b();
                                           scene.add(b().add(b().add(target)).band(trg_band)); }
                 } ], function() {
@@ -512,8 +519,7 @@ describe("builder, regarding modifiers", function() {
                 varyAll([ { description: "while just momentary playing,", prepare: function() {
                                 _whatToRun = function(t) {
                                     return function() {
-                                        player.play(t);
-                                        setTimeout(function() { player.stop() }, 100);
+                                        player.play(t, 1, 0);
                                     }
                                 };
                                 _waitFor = function() { return player.state.happens === C.STOPPED; }
@@ -529,17 +535,21 @@ describe("builder, regarding modifiers", function() {
                             } },
                           /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
 
+                    var mod_band, // band of the modifier itself
+                        mod_duration; // duration of the modifier band
+
                     varyAll([ { description: "and modifier band is equal to parent band",
-                                prepare: function() { mod_band = trg_band; } },
+                                prepare: function() { mod_band = trg_band;
+                                                      mod_duration = trg_duration; } },
                               { description: "and modifier band is at the start of parent band",
-                                prepare: function() { var trg_duration = trg_band[1] - trg_band[0];
-                                                      mod_band = [ 0, trg_duration / 3 ]; } },
+                                prepare: function() { mod_band = [ 0, trg_duration / 3 ];
+                                                      mod_duration = mod_band[1] - mod_band[0]; } },
                               { description: "and modifier band is at the end of parent band",
-                                prepare: function() { var trg_duration = trg_band[1] - trg_band[0];
-                                                      mod_band = [ (trg_duration / 3) * 2, trg_duration ]; } },
+                                prepare: function() { mod_band = [ (trg_duration / 3) * 2, trg_duration ];
+                                                      mod_duration = mod_band[1] - mod_band[0]; } },
                               { description: "and modifier band is somewhere in the middle of parent band",
-                                prepare: function() { var trg_duration = trg_band[1] - trg_band[0];
-                                                      mod_band = [ trg_duration / 4, trg_duration / 3 ]; } } ], function() {
+                                prepare: function() { mod_band = [ trg_duration / 4, trg_duration / 3 ];
+                                                      mod_duration = mod_band[1] - mod_band[0]; } } ], function() {
 
                         describe("in favor of alignment,", function() {
 
