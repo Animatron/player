@@ -13,7 +13,7 @@ describe("player, when speaking about initialization,", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = new anm.Player();
     });

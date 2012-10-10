@@ -13,7 +13,7 @@ describe("player, when speaking about loading scenes,", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id');
     });
@@ -32,7 +32,7 @@ describe("player, when speaking about loading scenes,", function() {
     // draw loading splash while loading
     // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
     // player.load("some://fake.url"); expect(player.state.happens).toBe(C.NOTHING);
-    // test if while preview is shown at preview time pos, only for video mode, controls are at 0
+    // test async callback to be called
     // scene width and height should be equal to canvas width/height
     // duration
     // test remote loading

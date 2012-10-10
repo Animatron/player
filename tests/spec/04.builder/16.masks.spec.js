@@ -10,7 +10,7 @@ describe("builder, regarding masks", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id');
     });

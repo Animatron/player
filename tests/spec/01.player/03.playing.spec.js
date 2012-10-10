@@ -16,7 +16,7 @@ describe("player, when speaking about playing,", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id-' + _instances++);
     });

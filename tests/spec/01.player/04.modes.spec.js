@@ -15,7 +15,7 @@ describe("player, when speaking about modes,", function() {
 
         _mocks.canvas.__resetMock();
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = new anm.Player();
     });
@@ -193,12 +193,9 @@ describe("player, when speaking about modes,", function() {
                       { description: "for scene with duration 5.2",
                         prepare: function() { _duration = 5.2; } } ], function() {
 
-                console.log((function() { console.log(_duration); })(_duration));
-
                 it("should be at correct position", function() {
                     var scene = new anm.Scene();
                     scene.duration = _duration;
-                    console.log(_duration);
 
                     player.init('fake').load(scene);
                     expect(drawAtSpy).toHaveBeenCalledWith(_duration * anm.Player.PREVIEW_POS);
@@ -242,7 +239,6 @@ describe("player, when speaking about modes,", function() {
     });
 
     // TODO: test the same for remote scenes?
-
     // test modes where controls or info are separately switched
     // controls and info must be rendered and visible when required, check for scroll also
     // test several players to catch events simultaneously

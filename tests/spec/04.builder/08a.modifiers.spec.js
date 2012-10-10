@@ -17,7 +17,7 @@ describe("builder, regarding modifiers", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)

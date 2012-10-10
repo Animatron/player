@@ -5,19 +5,33 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-function _fakeCallsForCanvasRelatedStuff() {
+var _Fake = {};
+_Fake.SKIP_EVENTS = 0, // do not listen events
+_Fake.CVS_POS = 1, // canvas position
+_Fake.JSM_CLOCK = 2, // disable jasmine clock
+_Fake.FRAME_GEN = 3; // frame calls
 
-    if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty);
+function _fake(what) {
+    if (!what) throw new Error('Please specify what to fake');
+    what = _arrayFrom(what);
+    _each(what, function(option) {
+        switch (option) {
+            case _Fake.SKIP_EVENTS: __skipEvents(); break;
+            case _Fake.CVS_POS: __stubSavePos(); break;
+            case _Fake.JSM_CLOCK: __disableJsmClock(); break;
+            case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
+        }
+    });
+}
 
-    spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake);
-
-    if (jasmine.Clock.isInstalled()) {
-        jasmine.Clock.uninstallMock();
-    }
-
+function __skipEvents() { if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty); }
+function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake); }
+function _mockFrameGen(fps) {
     if (window) {
+        var period = 1000 / (fps || 60);
+
         function stubFrameGen(callback) {
-            return window.setTimeout(callback, 1000 / 60);
+            return window.setTimeout(callback, period);
         };
 
         if (window.requestAnimationFrame) {
@@ -49,7 +63,11 @@ function _fakeCallsForCanvasRelatedStuff() {
         }
 
     }
-
+}
+function __disableJsmClock() {
+    if (jasmine.Clock.isInstalled()) {
+        jasmine.Clock.uninstallMock();
+    }
 }
 
 function _s4() {

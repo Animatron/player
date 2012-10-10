@@ -26,7 +26,7 @@ describe("player, when created,", function() {
                 expect(id).toEqual(canvasId);
                 return canvas;
             });
-            _fakeCallsForCanvasRelatedStuff();
+            _fake(_Fake.CVS_POS);
 
             this.addMatchers({
                 toHaveSizeDefined: function() {

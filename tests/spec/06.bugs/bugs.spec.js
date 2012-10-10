@@ -21,7 +21,7 @@ describe("as for known bugs,", function() {
 
         it('should not call modifiers of the elements immediately after the fact they were removed', function() {
 
-            _fakeCallsForCanvasRelatedStuff();
+            _fake(_Fake.CVS_POS);
 
             var player = createPlayer('foo', { mode: C.M_DYNAMIC });
             var rect1 = b().rect([50, 50], 70);
@@ -108,7 +108,7 @@ describe("as for known bugs,", function() {
         });
 
         it('should not call modifiers of the elements immediately after the fact they were disabled', function() {
-            _fakeCallsForCanvasRelatedStuff();
+            _fake(_Fake.CVS_POS);
 
             var player = createPlayer('foo', { mode: C.M_DYNAMIC });
             var rect1 = b().rect([10, 10], 70);
@@ -194,7 +194,7 @@ describe("as for known bugs,", function() {
     it('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
 
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         var player = createPlayer('foo');
 
@@ -235,7 +235,7 @@ describe("as for known bugs,", function() {
     });
 
     it('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         var player = createPlayer('foo', { mode: C.M_DYNAMIC });
 
