@@ -27,13 +27,34 @@ function _fake(what) {
 function __skipEvents() { if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty); }
 function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake); }
 function _mockFrameGen(fps) {
-    console.log('mocking frame-generator with fps ' + fps);
     if (window) {
         var period = 1000 / (fps || 60);
+        var clock = jasmine.Clock;
+        var clockTimer = clock.defaultFakeTimer;
+
+        var prevDateNow;
+
+        function mockDate() {
+            if (prevDateNow) return;
+            prevDateNow = Date.now;
+            Date.now = function() { return clockTimer.nowMillis; }
+        }
+
+        function unmockDate() {
+            if (!prevDateNow) return;
+            Date.now = prevDateNow;
+            prevDateNow = null;
+        }
+
+        clock.useMock();
+        mockDate();
 
         function stubFrameGen(callback) {
-            console.log('framegen');
-            return window.setTimeout(callback, period);
+            clock.useMock();
+            mockDate();
+            clock.tick(period);
+            callback();
+            // return window.setTimeout(callback, period);
         };
 
         if (window.requestAnimationFrame) {
@@ -49,8 +70,9 @@ function _mockFrameGen(fps) {
         }
 
         function stubFrameRem(id) {
-            console.log('framerem');
-            return window.clearTimeout(id);
+            unmockDate();
+            //if (clock.isInstalled()) clock.uninstallMock();
+            //return window.clearTimeout(id);
         };
 
         if (window.cancelAnimationFrame) {
