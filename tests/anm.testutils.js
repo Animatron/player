@@ -27,10 +27,12 @@ function _fake(what) {
 function __skipEvents() { if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty); }
 function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake); }
 function _mockFrameGen(fps) {
+    console.log('mocking frame-generator with fps ' + fps);
     if (window) {
         var period = 1000 / (fps || 60);
 
         function stubFrameGen(callback) {
+            console.log('framegen');
             return window.setTimeout(callback, period);
         };
 
@@ -47,6 +49,7 @@ function _mockFrameGen(fps) {
         }
 
         function stubFrameRem(id) {
+            console.log('framerem');
             return window.clearTimeout(id);
         };
 

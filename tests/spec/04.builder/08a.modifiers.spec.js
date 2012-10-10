@@ -18,6 +18,7 @@ describe("builder, regarding modifiers", function() {
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
+        _mockFrameGen(5);
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
@@ -519,7 +520,7 @@ describe("builder, regarding modifiers", function() {
                 varyAll([ { description: "while just momentary playing,", prepare: function() {
                                 _whatToRun = function(t) {
                                     return function() {
-                                        player.play(t, 1, 0);
+                                        player.play(t, 1, 0.1);
                                     }
                                 };
                                 _waitFor = function() { return player.state.happens === C.STOPPED; }

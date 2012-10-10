@@ -23,9 +23,7 @@ define("anm", function() {
 // http://www.w3.org/TR/animation-timing/
 // https://gist.github.com/1579671
 
-var __frameId = -1;
-
-var __frameFunc = (function() {
+var __frameFunc = function() {
            return window.requestAnimationFrame ||
                   window.webkitRequestAnimationFrame ||
                   window.mozRequestAnimationFrame ||
@@ -33,9 +31,9 @@ var __frameFunc = (function() {
                   window.msRequestAnimationFrame ||
                   function(callback){
                     return window.setTimeout(callback, 1000 / 60);
-                  } })();
+                  } };
 
-var __clearFrameFunc = (function() {
+var __clearFrameFunc = function() {
            return window.cancelAnimationFrame ||
                   window.webkitCancelAnimationFrame ||
                   window.mozCancelAnimationFrame ||
@@ -43,15 +41,15 @@ var __clearFrameFunc = (function() {
                   window.msCancelAnimationFrame ||
                   function(id){
                     return window.clearTimeout(id);
-                  } })();
+                  } };
 
 // assigns to call a function on next animation frame
-var __nextFrame = __frameFunc;
+var __nextFrame;
 
 // stops the animation
 // FIXME: remove, not used, __supressFrames is used
 var __stopAnim = function(requestId) {
-    __clearFrameFunc(requestId);
+    __clearFrameFunc()(requestId);
 };
 
 // OTHER
@@ -505,6 +503,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var player = this;
 
+    __nextFrame = __frameFunc();
+
     player._ensureAnim();
     player._ensureState();
 
@@ -531,6 +531,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
+                                  player.__beforeFrame(scene),
                                   player.__afterFrame(scene),
                                   player.__originateErrors());
 
@@ -966,13 +967,13 @@ Player.prototype._ensureState = function() {
 Player.prototype._ensureAnim = function() {
     if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
 }
-Player.prototype.__afterFrame = function(scene) {
-    return (function(player, state, scene, callback) {
+Player.prototype.__beforeFrame = function(scene) {
+    return (function(player, state, scene) {
         return function(time) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
-                (time > (state.duration + Player.PEFF))) {
+                 (time > (state.duration + Player.PEFF))) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
@@ -981,11 +982,18 @@ Player.prototype.__afterFrame = function(scene) {
                 }
                 return false;
             }
+            return true;
+        }
+    })(this, this.state, scene);
+}
+Player.prototype.__afterFrame = function(scene) {
+    return (function(player, state, scene, callback) {
+        return function(time) {
             if (player.controls) {
                 player._renderControls();
             }
             if (callback) callback(time);
-          return true;
+            return true;
         }
     })(this, this.state, scene, this.__userAfterFrame);
 }
@@ -2453,7 +2461,7 @@ var D = {}; // means "Drawing"
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, callback, errback) {
+D.drawNext = function(ctx, state, scene, before, after, errback) {
     // NB: state here is a player state, not an element state
 
     try {
@@ -2465,6 +2473,10 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
 
         var time = (sec * state.speed) + state.from;
         state.time = time;
+
+        if (before) {
+            if (!before(time)) return;
+        }
 
         if (state.__rsec === 0) state.__rsec = msec;
         if ((msec - state.__rsec) >= 1000) {
@@ -2484,14 +2496,14 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
             D.drawFPS(ctx, state.afps);
         }
 
-        if (callback) {
-            if (!callback(time)) return;
+        if (after) {
+            if (!after(time)) return;
         }
 
         if (state.__supressFrames) return;
 
         return __nextFrame(function() {
-           D.drawNext(ctx, state, scene, callback, errback);
+           D.drawNext(ctx, state, scene, before, after, errback);
         });
 
     } catch(e) {
