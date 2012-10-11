@@ -2060,7 +2060,10 @@ Element.prototype._stateStr = function() {
 }
 Element.prototype.__adaptModTime = function(state, band, ltime) {
   if (band == null) return ltime;
+  var elm_band = this.xdata.lband,
+      elm_duration = elm_band[1] - elm_band[0];
   if (__array(band)) { // modifier is band-restricted
+      //if ((ltime + band[0]) >= elm_duration) return ltime;
       if (ltime < band[0]) return 0;
       else if (ltime > band[1]) return (band[1] - band[0]);
       else return ltime - band[0];

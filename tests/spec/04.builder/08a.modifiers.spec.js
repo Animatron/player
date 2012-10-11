@@ -5,7 +5,7 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-describe("builder, regarding modifiers", function() {
+describe("builder, regarding modifiers,", function() {
 
     var player,
         C = anm.C;
@@ -268,11 +268,12 @@ describe("builder, regarding modifiers", function() {
 
     });
 
-    describe("class-dependent stuff", function() {
+    describe("their class-dependent stuff:", function() {
 
-        describe("default modifiers", function() {
+        describe("default modifiers,", function() {
 
             // FIXME: use varyAll to test also in drawAt and after a time-jump
+            // FIXME: test timing more precicely (with varyAll)
             // TODO: move doAsync similar calls to some function
 
             describe("adding them and the way it affects their bands", function() {
@@ -573,8 +574,9 @@ describe("builder, regarding modifiers", function() {
                                     modifiers: function(t) {
                                         expect(t).toBe(mod_duration);
                                     },
-                                    time: ( (mod_band[1] < trg_duration)
-                                           ? trg_band[0] + trg_duration - ((trg_duration - mod_band[1]) / 2)
+                                    time: ( (mod_duration < trg_duration)
+                                           ? trg_band[0] + mod_band[1] +
+                                             ((trg_duration - mod_band[1]) / 2)
                                            : trg_band[1] ) });
                             });
 
@@ -590,6 +592,7 @@ describe("builder, regarding modifiers", function() {
                             });
 
                             // TODO: test negative bands
+                            // TODO: test exceeding bands
 
                         });
 
