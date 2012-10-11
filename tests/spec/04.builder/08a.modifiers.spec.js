@@ -273,7 +273,7 @@ describe("builder, regarding modifiers,", function() {
         describe("default modifiers,", function() {
 
             // FIXME: use varyAll to test also in drawAt and after a time-jump
-            // FIXME: test timing more precicely (with varyAll)
+            // TODO: test timing (localTime) in more cases (with varyAll)
             // TODO: move doAsync similar calls to some function
 
             describe("adding them and the way it affects their bands", function() {
@@ -542,7 +542,7 @@ describe("builder, regarding modifiers,", function() {
                         mod_duration; // duration of the modifier band
 
                     varyAll([ { description: "and modifier band is equal to parent band",
-                                prepare: function() { mod_band = trg_band;
+                                prepare: function() { mod_band = [ 0, trg_duration ];
                                                       mod_duration = trg_duration; } },
                               { description: "and modifier band is at the start of parent band",
                                 prepare: function() { mod_band = [ 0, trg_duration / 3 ];
@@ -591,9 +591,128 @@ describe("builder, regarding modifiers,", function() {
                                     time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                             });
 
-                            // TODO: test negative bands
-                            // TODO: test exceeding bands
+                        });
 
+                    });
+
+                    describe("if band exceeds the wrapper after the end,", function() {
+
+                        var diff;
+
+                        beforeEach(function() {
+                            mod_band = [ trg_duration / 4, trg_duration + 1 ];
+                            mod_duration = mod_band[1] - mod_band[0];
+                            diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
+                        });
+
+                        it("should keep passing a starting time if when its band hasn't started", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBe(0);
+                                },
+                                time: trg_band[0] + (trg_duration / 5) });
+                        });
+
+                        it("should pass actual local time value when intersection was not reached", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBeGreaterThan(0);
+                                    expect(t).toBeLessThan(mod_duration - diff);
+                                },
+                                time: trg_band[0] + (trg_duration / 3) });
+                        });
+
+                        it("should pass the intersection time in the end of wrapper band", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBe(mod_duration - diff);
+                                },
+                                time: trg_band[1] });
+                        });
+
+                    });
+
+                    describe("if band exceeds the wrapper before the start,", function() {
+
+                        var diff;
+
+                        beforeEach(function() {
+                            mod_band = [ -1, trg_duration / 4 ];
+                            mod_duration = mod_band[1] - mod_band[0];
+                            diff = 1;
+                        });
+
+                        it("should pass intersection time when position is at start of the wrapper", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBe(diff);
+                                },
+                                time: trg_band[0] });
+                        });
+
+                        it("should pass actual local time value when intersection was not reached", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBeGreaterThan(diff);
+                                    expect(t).toBeLessThan(mod_duration);
+                                },
+                                time: trg_band[0] + (trg_duration / 5) });
+                        });
+
+                        it("should pass the end time when its band was finished", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBe(mod_duration);
+                                },
+                                time: trg_band[0] + (trg_duration / 3) });
+                        });
+
+                    });
+
+                    describe("if band exceeds the wrapper from both ends,", function() {
+
+                        var start_diff,
+                            end_diff;
+
+                        beforeEach(function() {
+                            mod_band = [ -1.2, trg_duration + 1 ];
+                            mod_duration = mod_band[1] - mod_band[0];
+                            start_diff = 1.2;
+                            end_diff = 1;
+                        });
+
+                        it("should pass intersection time when position is at start of the wrapper", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBe(start_diff);
+                                },
+                                time: trg_band[0] });
+                        });
+
+                        it("should pass actual local time value when intersection was not reached", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBeGreaterThan(start_diff);
+                                    expect(t).toBeLessThan(mod_duration - end_diff);
+                                },
+                                time: trg_band[0] + (trg_duration / 3) });
+                        });
+
+                        it("should pass the end-intersection time when position is at the end of the wrapper", function() {
+                            expectAtTime({
+                                bands: mod_band,
+                                modifiers: function(t) {
+                                    expect(t).toBe(mod_duration - end_diff);
+                                },
+                                time: trg_band[1] });
                         });
 
                     });
