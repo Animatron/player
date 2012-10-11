@@ -513,7 +513,8 @@ describe("builder, regarding modifiers", function() {
                                               return scene; },
                         run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                         then: function() { _each(expectations, function(expectation) { expectation(); });
-                                           _each(spies, function(spy) { expect(spy).toHaveBeenCalled(); }); }
+                                           _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
+                                                                        target.unmodify(spy); }); }
                     });
                 }
 
@@ -529,10 +530,10 @@ describe("builder, regarding modifiers", function() {
                                 var drawAtSpy = spyOn(player, 'drawAt').andCallThrough();
                                 _whatToRun = function(t) {
                                     return function() {
-                                        setTimeout(function() { player.drawAt(t) }, 50);
+                                        player.drawAt(t);
                                     };
                                 };
-                                _waitFor = function() { return (drawAtSpy.callCount > 0); }
+                                _waitFor = function() { return true; }
                             } },
                           /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
 
@@ -582,8 +583,8 @@ describe("builder, regarding modifiers", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBeGreaterThanOrEqual(mod_band[0]);
-                                        expect(t).toBeLessThanOrEqual(mod_band[1]);
+                                        expect(t).toBeGreaterThan(0);
+                                        expect(t).toBeLessThan(mod_duration);
                                     },
                                     time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                             });
