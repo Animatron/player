@@ -18,12 +18,15 @@ describe("builder, regarding modifiers,", function() {
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
-        _mockFrameGen(5);
+
+        _FrameGen.enable(5);
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
         player = createPlayer('test-id', { mode: C.M_PREVIEW });
     });
+
+    afterEach(function() { _FrameGen.disable(); });
 
     describe("independently of modifier class,", function() {
 
@@ -918,6 +921,8 @@ describe("builder, regarding modifiers,", function() {
         });
 
     });
+
+    _FrameGen.disable();
 
     // TODO: test different types of modifiers working simultaneously in one test
     // TODO: ensure removing fails if modifier wasn't added to element

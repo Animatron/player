@@ -6,10 +6,10 @@
  */
 
 var _Fake = {};
-_Fake.SKIP_EVENTS = 0, // do not listen events
-_Fake.CVS_POS = 1, // canvas position
-_Fake.JSM_CLOCK = 2, // disable jasmine clock
-_Fake.FRAME_GEN = 3; // frame calls
+_Fake.SKIP_EVENTS = 0; // do not listen events
+_Fake.CVS_POS = 1; // canvas position
+//_Fake.JSM_CLOCK = 2; // disable jasmine clock
+//_Fake.FRAME_GEN = 3; // frame calls
 
 function _fake(what) {
     if (!what) throw new Error('Please specify what to fake');
@@ -18,82 +18,86 @@ function _fake(what) {
         switch (option) {
             case _Fake.SKIP_EVENTS: __skipEvents(); break;
             case _Fake.CVS_POS: __stubSavePos(); break;
-            case _Fake.JSM_CLOCK: __disableJsmClock(); break;
-            case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
+            //case _Fake.JSM_CLOCK: __disableJsmClock(); break;
+            //case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
+            default: throw new Error('Unknown option ' + option);
         }
     });
 }
 
 function __skipEvents() { if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty); }
 function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake); }
-function _mockFrameGen(fps) {
-    if (window) {
-        var period = 1000 / (fps || 60);
-        var clock = jasmine.Clock;
-        var clockTimer = clock.defaultFakeTimer;
 
-        var prevDateNow;
+var _FrameGen = (function() {
 
-        function mockDate() {
-            if (prevDateNow) return;
-            prevDateNow = Date.now;
-            Date.now = function() { return clockTimer.nowMillis; }
-        }
+    var realDateNow = Date.now;
 
-        function unmockDate() {
-            if (!prevDateNow) return;
-            Date.now = prevDateNow;
-            prevDateNow = null;
-        }
+    var requestSpy, cancelSpy;
 
-        clock.useMock();
-        mockDate();
+    var clock = jasmine.Clock;
 
-        function stubFrameGen(callback) {
+    function _enable(fps) {
+        if (window) {
+            var period = 1000 / (fps || 60);
+
             clock.useMock();
-            mockDate();
-            clock.tick(period);
-            callback();
-            // return window.setTimeout(callback, period);
-        };
+            var timer = clock.defaultFakeTimer;
+            Date.now = function() { return timer.nowMillis; }
 
-        if (window.requestAnimationFrame) {
-            spyOn(window, 'requestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.webkitRequestAnimationFrame) {
-            spyOn(window, 'webkitRequestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.mozRequestAnimationFrame) {
-            spyOn(window, 'mozRequestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.oRequestAnimationFrame) {
-            spyOn(window, 'oRequestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.msRequestAnimationFrame) {
-            spyOn(window, 'msRequestAnimationFrame').andCallFake(stubFrameGen);
-        }
+            function stubFrameGen(callback) {
+                clock.tick(period);
+                callback();
+                // return window.setTimeout(callback, period);
+            };
 
-        function stubFrameRem(id) {
-            unmockDate();
-            //if (clock.isInstalled()) clock.uninstallMock();
-            //return window.clearTimeout(id);
-        };
+            if (window.requestAnimationFrame) {
+                requestSpy = spyOn(window, 'requestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (window.webkitRequestAnimationFrame) {
+                requestSpy = spyOn(window, 'webkitRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (window.mozRequestAnimationFrame) {
+                requestSpy = spyOn(window, 'mozRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (window.oRequestAnimationFrame) {
+                requestSpy = spyOn(window, 'oRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (window.msRequestAnimationFrame) {
+                requestSpy = spyOn(window, 'msRequestAnimationFrame').andCallFake(stubFrameGen);
+            }
 
-        if (window.cancelAnimationFrame) {
-            spyOn(window, 'cancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.webkitCancelAnimationFrame) {
-            spyOn(window, 'webkitCancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.mozCancelAnimationFrame) {
-            spyOn(window, 'mozCancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.oCancelAnimationFrame) {
-            spyOn(window, 'oCancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.msCancelAnimationFrame) {
-            spyOn(window, 'msCancelAnimationFrame').andCallFake(stubFrameRem);
-        }
+            function stubFrameRem(id) {
+                //if (clock.isInstalled()) clock.uninstallMock();
+                //return window.clearTimeout(id);
+            };
 
+            if (window.cancelAnimationFrame) {
+                cancelSpy = spyOn(window, 'cancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (window.webkitCancelAnimationFrame) {
+                cancelSpy = spyOn(window, 'webkitCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (window.mozCancelAnimationFrame) {
+                cancelSpy = spyOn(window, 'mozCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (window.oCancelAnimationFrame) {
+                cancelSpy = spyOn(window, 'oCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (window.msCancelAnimationFrame) {
+                cancelSpy = spyOn(window, 'msCancelAnimationFrame').andCallFake(stubFrameRem);
+            }
+
+        } else throw new Error('No window object');
     }
-}
-function __disableJsmClock() {
-    if (jasmine.Clock.isInstalled()) {
-        jasmine.Clock.uninstallMock();
+
+    function _disable() {
+        //if (clock && clock.isInstalled()) clock.uninstallMock();
+        Date.now = realDateNow;
+        //requestSpy.andCallThrough();
+        //cancelSpy.andCallThrough();
     }
-}
+
+    return {
+        enabled: false,
+        enable: function(fps) { if (this.enabled) throw new Error('Already enabled');
+                                _enable(fps); this.enabled = true; },
+        disable: function() { if (!this.enabled) throw new Error('Not enabled');
+                              _disable(); this.enabled = false; }
+    }
+
+})();
 
 function _s4() {
    return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
