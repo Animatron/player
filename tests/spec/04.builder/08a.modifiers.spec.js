@@ -19,7 +19,7 @@ describe("builder, regarding modifiers,", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        _FrameGen.enable(5);
+        _FrameGen.enable(10);
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
@@ -470,8 +470,6 @@ describe("builder, regarding modifiers,", function() {
 
         describe("band-restricted modifiers,", function() {
 
-            var duration = 1;
-
             var target,
                 trg_band, // band of the target element
                 trg_duration; // duration of the target band
@@ -519,7 +517,7 @@ describe("builder, regarding modifiers,", function() {
                                                   return scene; },
                             run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                             then: function() { _each(expectations, function(expectation) { expectation(); });
-                                               _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
+                                               _each(spies, function(spy) { expect(spy).toHaveBeenCalledOnce();
                                                                             target.unmodify(spy); }); }
                         });
                     }                    
@@ -862,12 +860,84 @@ describe("builder, regarding modifiers,", function() {
 
                 describe("during playing process,", function() {
 
-                    it("same rules should work with a single modifier", function() {
-                        this.fail('NI');
+                    var one_fifth;
+
+                    beforeEach(function() { one_fifth = trg_duration / 5; });
+
+                    function whilePlaying(bands, modifiers) {
+                        var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands),
+                            modifiers = _arrayFrom(modifiers),
+                            spies = [];
+                        _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
+                        doAsync(player, {
+                            prepare: function() { _each(spies, function(spy, idx) { target.modify(bands[idx], spy); });
+                                                  return scene; },
+                            do: 'play', until: C.STOPPED, timeout: _timeout,
+                            then: function() { /*_each(expectations, function(expectation) { expectation(); });*/
+                                               _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
+                                                                            target.unmodify(spy); }); }
+                        });
+                    }
+
+                    function timeBetween(inner_band, low, high) {
+                        var inner_time = player.state.time - inner_band[0];
+                        return (inner_time >= low) &&
+                               (inner_time < high);  
+                    }
+
+                    describe("same rules should apply with a single modifier, independently of position, it", function() {
+
+                        function checkWithBand(band) {
+                            var _start = band[0],
+                                _end = band[1],
+                                _band_duration = _end - _start;
+                            whilePlaying(
+                                band, function(t) {
+                                    if (timeBetween(trg_band, 0, _start)) {
+                                        expect(t).toBe(0);
+                                    }
+                                    if (timeBetween(trg_band, _start, _end)) {
+                                        expect(t).toBeGreaterThanOrEqual(0);
+                                        expect(t).toBeLessThan(_band_duration);
+                                    }
+                                    if (timeBetween(trg_band, _end, trg_duration)) {
+                                        expect(t).toBe(_band_duration);
+                                    }
+                                });                            
+                        };
+
+                        it("may be just somewhere inside of the wrapper band", function() {
+                            checkWithBand([ one_fifth * 1.5, one_fifth * 4 ]);
+                        });
+
+                        it("may be aligned to start of the wrapper band", function() {
+                            checkWithBand([ 0, one_fifth * 3 ]);
+                        });
+
+                        it("may be aligned to end of the wrapper band", function() {
+                           checkWithBand([ one_fifth * 2, trg_duration ]);
+                        });
+
+                        it("may be equal to wrapper band", function() {
+                            checkWithBand([ 0, trg_duration ]);
+                        });
+
+                        it("may exceed the wrapper band", function() {
+                            this.fail('NI');
+                        }); 
+
                     });
 
-                    it("and a sequence of them", function() {
-                        this.fail('NI');
+                    describe("and a sequence of them", function() {
+
+                        it("if they follow one another", function() {
+
+                        });
+
+                        it("or if they overlap", function() {
+
+                        });                        
+
                     });
 
                 });
