@@ -2100,18 +2100,20 @@ Element.prototype.__callModifiers = function(order, ltime) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 var modifier;
                 if (modifier = cur[ci]) {
-                  var ltime = this.__adaptModTime(this._state, modifier[0], ltime);
-                  if ((ltime === false) || // false will be returned from __adaptModTime
-                                           // for trigger-like modifier if
-                                           // it is required to skip it
-                      (modifier[1].call(this._state, ltime, modifier[2]) === false)) {
-                    this.__mafter(ltime, type, false);
-                    this.__modifying = null;
-                    this.__clearEvts(this._state);
-                    // NB: nothing happens to the state or element here,
-                    //     the modified things are not applied
-                    return false;
-                  }
+                  if (!(function(lbtime) { // lbtime is band-apadted time, if modifier has its band
+                    if ((lbtime === false) || // false will be returned from __adaptModTime
+                                              // for trigger-like modifier if
+                                              // it is required to skip it
+                        (modifier[1].call(this._state, lbtime, modifier[2]) === false)) {
+                      this.__mafter(lbtime, type, false);
+                      this.__modifying = null;
+                      this.__clearEvts(this._state);
+                      // NB: nothing happens to the state or element here,
+                      //     the modified things are not applied
+                      return false;
+                    }
+                    return true;
+                  }).call(this, this.__adaptModTime(this._state, modifier[0], ltime))) { return false; };
                 } // if cur[ci]
               } // for var ci
             } // if cur = seq[pi]

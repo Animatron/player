@@ -503,275 +503,320 @@ describe("builder, regarding modifiers,", function() {
                                           scene.add(b().add(b().add(target)).band(trg_band)); }
                 } ], function() {
 
-                var _whatToRun,
-                    _waitFor;
+                describe("and when a frame requested", function() {
 
-                function expectAtTime(conf) {
-                    var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
-                        modifiers = _arrayFrom(conf.modifiers),
-                        expectations = _arrayFrom(conf.expectations),
-                        spies = [];
-                    _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
-                    doAsync(player, {
-                        prepare: function() { _each(spies, function(spy, idx) { target.modify(bands[idx], spy); });
-                                              return scene; },
-                        run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
-                        then: function() { _each(expectations, function(expectation) { expectation(); });
-                                           _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
-                                                                        target.unmodify(spy); }); }
-                    });
-                }
+                    var _whatToRun,
+                        _waitFor;
 
-                varyAll([ { description: "while just momentary playing,", prepare: function() {
-                                _whatToRun = function(t) {
-                                    return function() {
-                                        player.play(t, 1, 0.1);
-                                    }
-                                };
-                                _waitFor = function() { return player.state.happens === C.STOPPED; }
-                            } },
-                          { description: "when particular frame was requested,", prepare: function() {
-                                var drawAtSpy = spyOn(player, 'drawAt').andCallThrough();
-                                _whatToRun = function(t) {
-                                    return function() {
-                                        player.drawAt(t);
+                    function expectAtTime(conf) {
+                        var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
+                            modifiers = _arrayFrom(conf.modifiers),
+                            expectations = _arrayFrom(conf.expectations),
+                            spies = [];
+                        _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
+                        doAsync(player, {
+                            prepare: function() { _each(spies, function(spy, idx) { target.modify(bands[idx], spy); });
+                                                  return scene; },
+                            run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
+                            then: function() { _each(expectations, function(expectation) { expectation(); });
+                                               _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
+                                                                            target.unmodify(spy); }); }
+                        });
+                    }                    
+
+                    varyAll([ { description: "while just momentary playing,", prepare: function() {
+                                    _whatToRun = function(t) {
+                                        return function() {
+                                            player.play(t, 1, 0.1);
+                                        }
                                     };
-                                };
-                                _waitFor = function() { return true; }
-                            } },
-                          /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
+                                    _waitFor = function() { return player.state.happens === C.STOPPED; }
+                                } },
+                              { description: "when particular frame was requested,", prepare: function() {
+                                    var drawAtSpy = spyOn(player, 'drawAt').andCallThrough();
+                                    _whatToRun = function(t) {
+                                        return function() {
+                                            player.drawAt(t);
+                                        };
+                                    };
+                                    _waitFor = function() { return true; }
+                                } },
+                              /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
 
-                    var mod_band, // band of the modifier itself
-                        mod_duration; // duration of the modifier band
+                        var mod_band, // band of the modifier itself
+                            mod_duration; // duration of the modifier band
 
-                    varyAll([ { description: "and modifier band is equal to parent band",
-                                prepare: function() { mod_band = [ 0, trg_duration ];
-                                                      mod_duration = trg_duration; } },
-                              { description: "and modifier band is at the start of parent band",
-                                prepare: function() { mod_band = [ 0, trg_duration / 3 ];
-                                                      mod_duration = mod_band[1] - mod_band[0]; } },
-                              { description: "and modifier band is at the end of parent band",
-                                prepare: function() { mod_band = [ (trg_duration / 3) * 2, trg_duration ];
-                                                      mod_duration = mod_band[1] - mod_band[0]; } },
-                              { description: "and modifier band is somewhere in the middle of parent band",
-                                prepare: function() { mod_band = [ trg_duration / 4, trg_duration / 3 ];
-                                                      mod_duration = mod_band[1] - mod_band[0]; } } ], function() {
+                        varyAll([ { description: "and modifier band is equal to parent band",
+                                    prepare: function() { mod_band = [ 0, trg_duration ];
+                                                          mod_duration = trg_duration; } },
+                                  { description: "and modifier band is at the start of parent band",
+                                    prepare: function() { mod_band = [ 0, trg_duration / 3 ];
+                                                          mod_duration = mod_band[1] - mod_band[0]; } },
+                                  { description: "and modifier band is at the end of parent band",
+                                    prepare: function() { mod_band = [ (trg_duration / 3) * 2, trg_duration ];
+                                                          mod_duration = mod_band[1] - mod_band[0]; } },
+                                  { description: "and modifier band is somewhere in the middle of parent band",
+                                    prepare: function() { mod_band = [ trg_duration / 4, trg_duration / 3 ];
+                                                          mod_duration = mod_band[1] - mod_band[0]; } } ], function() {
 
-                        describe("in favor of alignment,", function() {
+                            describe("in favor of alignment,", function() {
 
-                            it("should call modifier before the fact when its band has started and pass the starting time inside", function() {
+                                it("should call modifier before the fact when its band has started and pass the starting time inside", function() {
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBe(0);
+                                        },
+                                        time: ( (mod_band[0] > 0)
+                                               ? trg_band[0] + (mod_band[0] / 2)
+                                               : trg_band[0] ) });
+                                });
+
+                                it("should call modifier after the fact when its band has finished and pass the ending time inside", function() {
+                                    var mod_duration = mod_band[1] - mod_band[0];
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBe(mod_duration);
+                                        },
+                                        time: ( (mod_duration < trg_duration)
+                                               ? trg_band[0] + mod_band[1] +
+                                                 ((trg_duration - mod_band[1]) / 2)
+                                               : trg_band[1] ) });
+                                });
+
+                                it("should just pass the local time to modifier (and, for sure, call it), if its band is within current time", function() {
+                                    var mod_duration = mod_band[1] - mod_band[0];
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBeGreaterThan(0);
+                                            expect(t).toBeLessThan(mod_duration);
+                                        },
+                                        time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+                                });
+
+                            });
+
+                        });
+
+                        describe("if band exceeds the wrapper after the end,", function() {
+
+                            var diff;
+
+                            beforeEach(function() {
+                                mod_band = [ trg_duration / 4, trg_duration + 1 ];
+                                mod_duration = mod_band[1] - mod_band[0];
+                                diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
+                            });
+
+                            it("should keep passing a starting time if when its band hasn't started", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
                                         expect(t).toBe(0);
                                     },
-                                    time: ( (mod_band[0] > 0)
-                                           ? trg_band[0] + (mod_band[0] / 2)
-                                           : trg_band[0] ) });
+                                    time: trg_band[0] + (trg_duration / 5) });
                             });
 
-                            it("should call modifier after the fact when its band has finished and pass the ending time inside", function() {
-                                var mod_duration = mod_band[1] - mod_band[0];
+                            it("should pass actual local time value when intersection was not reached", function() {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
+                                        expect(t).toBeGreaterThan(0);
+                                        expect(t).toBeLessThan(mod_duration - diff);
+                                    },
+                                    time: trg_band[0] + (trg_duration / 3) });
+                            });
+
+                            it("should pass the intersection time in the end of wrapper band", function() {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
+                                        expect(t).toBe(mod_duration - diff);
+                                    },
+                                    time: trg_band[1] });
+                            });
+
+                        });
+
+                        describe("if band exceeds the wrapper before the start,", function() {
+
+                            var diff;
+
+                            beforeEach(function() {
+                                mod_band = [ -1, trg_duration / 4 ];
+                                mod_duration = mod_band[1] - mod_band[0];
+                                diff = 1;
+                            });
+
+                            it("should pass intersection time when position is at start of the wrapper", function() {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
+                                        expect(t).toBe(diff);
+                                    },
+                                    time: trg_band[0] });
+                            });
+
+                            it("should pass actual local time value when intersection was not reached", function() {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
+                                        expect(t).toBeGreaterThan(diff);
+                                        expect(t).toBeLessThan(mod_duration);
+                                    },
+                                    time: trg_band[0] + (trg_duration / 5) });
+                            });
+
+                            it("should pass the end time when its band was finished", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
                                         expect(t).toBe(mod_duration);
                                     },
-                                    time: ( (mod_duration < trg_duration)
-                                           ? trg_band[0] + mod_band[1] +
-                                             ((trg_duration - mod_band[1]) / 2)
-                                           : trg_band[1] ) });
+                                    time: trg_band[0] + (trg_duration / 3) });
                             });
 
-                            it("should just pass the local time to modifier (and, for sure, call it), if its band is within current time", function() {
-                                var mod_duration = mod_band[1] - mod_band[0];
+                        });
+
+                        describe("if band exceeds the wrapper from both ends,", function() {
+
+                            var start_diff = 1.2,
+                                end_diff = 1;
+
+                            beforeEach(function() {
+                                mod_band = [ -start_diff, trg_duration + end_diff ];
+                                mod_duration = mod_band[1] - mod_band[0];
+                            });
+
+                            it("should pass intersection time when position is at start of the wrapper", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(0);
-                                        expect(t).toBeLessThan(mod_duration);
+                                        expect(t).toBe(start_diff);
                                     },
-                                    time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+                                    time: trg_band[0] });
+                            });
+
+                            it("should pass actual local time value when intersection was not reached", function() {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
+                                        expect(t).toBeGreaterThan(start_diff);
+                                        // FIXME: (mod_duration - end_diff) fails here due to rounding problem
+                                        expect(t).toBeLessThan(start_diff + trg_duration);
+                                    },
+                                    time: trg_band[0] + (trg_duration / 3) });
+                            });
+
+                            it("should pass the end-intersection time when position is at the end of the wrapper", function() {
+                                expectAtTime({
+                                    bands: mod_band,
+                                    modifiers: function(t) {
+                                        // FIXME: (mod_duration - end_diff) fails here due to rounding problem
+                                        expect(t).toBe(start_diff + trg_duration);
+                                    },
+                                    time: trg_band[1] });
                             });
 
                         });
 
-                    });
+                        describe("in favor of sequences,", function() {
 
-                    describe("if band exceeds the wrapper after the end,", function() {
+                            var one_fifth;
 
-                        var diff;
+                            beforeEach(function() { one_fifth = trg_duration / 5; });
 
-                        beforeEach(function() {
-                            mod_band = [ trg_duration / 4, trg_duration + 1 ];
-                            mod_duration = mod_band[1] - mod_band[0];
-                            diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
-                        });
+                            // NB: modifiers added in reverse order to ensure order do not affects sequencing,
+                            //     so band2 goes before band1 and so the expectations are also swapped
 
-                        it("should keep passing a starting time if when its band hasn't started", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBe(0);
-                                },
-                                time: trg_band[0] + (trg_duration / 5) });
-                        });
+                            describe("if other modifier goes a bit after the current one,", function() {
 
-                        it("should pass actual local time value when intersection was not reached", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBeGreaterThan(0);
-                                    expect(t).toBeLessThan(mod_duration - diff);
-                                },
-                                time: trg_band[0] + (trg_duration / 3) });
-                        });
+                                var band1, band2,
+                                    band1_duration, band2_duration;
 
-                        it("should pass the intersection time in the end of wrapper band", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBe(mod_duration - diff);
-                                },
-                                time: trg_band[1] });
-                        });
+                                beforeEach(function() {
+                                    band1 = [ one_fifth * 3, one_fifth * 4 ],
+                                    band2 = [ one_fifth, one_fifth * 2 ],
+                                    band1_duration = band1[1] - band1[0],
+                                    band2_duration = band2[1] - band2[0];
+                                });
 
-                    });
+                                it("in period before first, should call first one with start value and next one also with start value", function() {
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { expect(t).toBe(0); } 
+                                        ], time: trg_band[0] + (one_fifth / 2) });
+                                });
 
-                    describe("if band exceeds the wrapper before the start,", function() {
+                                it("during the first one, should call first one with actual value and next one with start value", function() {
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { expect(t).toBeGreaterThan(0);
+                                                          expect(t).toBeLessThan(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 1.5) });
+                                });
 
-                        var diff;
+                                it("during the period between them, should call first one with end value and next one with start value", function() {
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { expect(t).toBe(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 2.5) });
+                                });
 
-                        beforeEach(function() {
-                            mod_band = [ -1, trg_duration / 4 ];
-                            mod_duration = mod_band[1] - mod_band[0];
-                            diff = 1;
-                        });
+                                it("during the second one, should call first one with end value and next one with actual value", function() {
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBeGreaterThan(0);
+                                                          expect(t).toBeLessThan(band1_duration); },
+                                            function(t) { expect(t).toBe(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 3.5) });
+                                });
 
-                        it("should pass intersection time when position is at start of the wrapper", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBe(diff);
-                                },
-                                time: trg_band[0] });
-                        });
+                                it("after the second one, should call first one with end value and next one with end value", function() {
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(band1_duration); },
+                                            function(t) { expect(t).toBe(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 4.5) });
+                                });
 
-                        it("should pass actual local time value when intersection was not reached", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBeGreaterThan(diff);
-                                    expect(t).toBeLessThan(mod_duration);
-                                },
-                                time: trg_band[0] + (trg_duration / 5) });
-                        });
-
-                        it("should pass the end time when its band was finished", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBe(mod_duration);
-                                },
-                                time: trg_band[0] + (trg_duration / 3) });
-                        });
-
-                    });
-
-                    describe("if band exceeds the wrapper from both ends,", function() {
-
-                        var start_diff,
-                            end_diff;
-
-                        beforeEach(function() {
-                            mod_band = [ -1.2, trg_duration + 1 ];
-                            mod_duration = mod_band[1] - mod_band[0];
-                            start_diff = 1.2;
-                            end_diff = 1;
-                        });
-
-                        it("should pass intersection time when position is at start of the wrapper", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBe(start_diff);
-                                },
-                                time: trg_band[0] });
-                        });
-
-                        it("should pass actual local time value when intersection was not reached", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBeGreaterThan(start_diff);
-                                    expect(t).toBeLessThan(mod_duration - end_diff);
-                                },
-                                time: trg_band[0] + (trg_duration / 3) });
-                        });
-
-                        it("should pass the end-intersection time when position is at the end of the wrapper", function() {
-                            expectAtTime({
-                                bands: mod_band,
-                                modifiers: function(t) {
-                                    expect(t).toBe(mod_duration - end_diff);
-                                },
-                                time: trg_band[1] });
-                        });
-
-                    });
-
-                    describe("in favor of sequences,", function() {
-
-                        var one_fifth = duration / 5;
-
-                        describe("if other modifier goes a bit after the current one,", function() {
-
-                            var band1 = [ one_fifth * 3, one_fifth * 4 ],
-                                band2 = [ one_fifth, one_fifth * 2 ];
-
-                            it("in period before first, should call first one with start value and next one also with start value", function() {
-                                this.fail('NI');
                             });
 
-                            it("during the first one, should call first one with actual value and next one with start value", function() {
-                                this.fail('NI');
+                            describe("if next modifier overlaps the end of the current one,", function() {
+
+                                it("in period before first, should call first one with start value and next one also with start value", function() {
+                                    this.fail('NI');
+                                });
+
+                                it("during the first one, but not the overlapping period, should call first one with actual value and next one with start value", function() {
+                                    this.fail('NI');
+                                });
+
+                                it("during the overlapping period, should call first one with actual value and next one with actual value", function() {
+                                    this.fail('NI');
+                                });
+
+                                it("during the second one, but not the overlapping period, should call first one with end value and next one with actual value", function() {
+                                    this.fail('NI');
+                                });
+
+                                it("after the second one, should call first one with end value and next one with end value", function() {
+                                    this.fail('NI');
+                                });
+
                             });
 
-                            it("during the period between them, should call first one with end value and next one with start value", function() {
-                                this.fail('NI');
-                            });
-
-                            it("during the second one, should call first one with end value and next one with actual value", function() {
-                                this.fail('NI');
-                            });
-
-                            it("after the second one, should call first one with end value and next one with end value", function() {
-                                this.fail('NI');
-                            });
-
-                        });
-
-                        describe("if next modifier overlaps the end of the current one,", function() {
-
-                            it("in period before first, should call first one with start value and next one also with start value", function() {
-                                this.fail('NI');
-                            });
-
-                            it("during the first one, but not the overlapping period, should call first one with actual value and next one with start value", function() {
-                                this.fail('NI');
-                            });
-
-                            it("during the overlapping period, should call first one with actual value and next one with actual value", function() {
-                                this.fail('NI');
-                            });
-
-                            it("during the second one, but not the overlapping period, should call first one with end value and next one with actual value", function() {
-                                this.fail('NI');
-                            });
-
-                            it("after the second one, should call first one with end value and next one with end value", function() {
-                                this.fail('NI');
-                            });
+                            // TODO: test exceeding bands
 
                         });
 
