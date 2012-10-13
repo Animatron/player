@@ -728,13 +728,13 @@ describe("builder, regarding modifiers,", function() {
 
                             beforeEach(function() { one_fifth = trg_duration / 5; });
 
+                            var band1, band2,
+                                band1_duration, band2_duration;                            
+
                             // NB: modifiers added in reverse order to ensure order do not affects sequencing,
                             //     so band2 goes before band1 and so the expectations are also swapped
 
                             describe("if other modifier goes a bit after the current one,", function() {
-
-                                var band1, band2,
-                                    band1_duration, band2_duration;
 
                                 beforeEach(function() {
                                     band1 = [ one_fifth * 3, one_fifth * 4 ],
@@ -794,24 +794,60 @@ describe("builder, regarding modifiers,", function() {
 
                             describe("if next modifier overlaps the end of the current one,", function() {
 
+                                beforeEach(function() {
+                                    band1 = [ one_fifth * 2.3, one_fifth * 4 ],
+                                    band2 = [ one_fifth, one_fifth * 2.7 ],
+                                    band1_duration = band1[1] - band1[0],
+                                    band2_duration = band2[1] - band2[0];
+                                });                                
+
                                 it("in period before first, should call first one with start value and next one also with start value", function() {
-                                    this.fail('NI');
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { expect(t).toBe(0); } 
+                                        ], time: trg_band[0] + (one_fifth / 2) });
                                 });
 
                                 it("during the first one, but not the overlapping period, should call first one with actual value and next one with start value", function() {
-                                    this.fail('NI');
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { expect(t).toBeGreaterThan(0);
+                                                          expect(t).toBeLessThan(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 2) });
                                 });
 
-                                it("during the overlapping period, should call first one with actual value and next one with actual value", function() {
-                                    this.fail('NI');
+                                it("during the overlapping period, should call first one with actual value and next one also with actual value", function() {
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBeGreaterThan(0);
+                                                          expect(t).toBeLessThan(band1_duration); },
+                                            function(t) { expect(t).toBeGreaterThan(0);
+                                                          expect(t).toBeLessThan(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 2.5) });
                                 });
 
                                 it("during the second one, but not the overlapping period, should call first one with end value and next one with actual value", function() {
-                                    this.fail('NI');
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBeGreaterThan(0);
+                                                          expect(t).toBeLessThan(band1_duration); },
+                                            function(t) { expect(t).toBe(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 3) });
                                 });
 
                                 it("after the second one, should call first one with end value and next one with end value", function() {
-                                    this.fail('NI');
+                                    expectAtTime({
+                                        bands: [ band1, band2 ],
+                                        modifiers: [ 
+                                            function(t) { expect(t).toBe(band1_duration); },
+                                            function(t) { expect(t).toBe(band2_duration); } 
+                                        ], time: trg_band[0] + (one_fifth * 4.5) });
                                 });
 
                             });
