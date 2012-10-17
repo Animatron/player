@@ -13,13 +13,15 @@ describe("builder, regarding modifiers,", function() {
     var b = Builder._$,
         B = Builder;
 
+    var FPS = 10;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        _FrameGen.enable(10);
+        _FrameGen.enable(FPS);
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
@@ -45,10 +47,8 @@ describe("builder, regarding modifiers,", function() {
                     prepare: function() { curClass = function(spy) { return [ [ 0, _duration ], spy ] } }
                   }, {
                     description: "or it is a trigger-like modifier,",
-                    prepare: function() { curClass = function(spy) { return [ 0, spy ] };
-                                          _duration = anm.Player.TRIG_TIMEOUT; /* to ensure that it will be called */
-                                          _timeout = _duration + .2;
-                                          _run = function() { player.drawAt(_duration / 4); }; }
+                    prepare: function() { curClass = function(spy) { return [ _duration / 4, spy ] };
+                                          _run = function() { player.play(_duration / 4, 1, 0.2); }; }
                   } ],  function() {
 
             it("should call given modifier", function() {
@@ -590,6 +590,7 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: function(t) {
                                             expect(t).toBeGreaterThan(0);
                                             expect(t).toBeLessThan(mod_duration);
+                                            expect(t).toBeCloseTo(mod_duration / 3, 0.02);
                                         },
                                         time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                                 });
@@ -623,6 +624,7 @@ describe("builder, regarding modifiers,", function() {
                                     modifiers: function(t) {
                                         expect(t).toBeGreaterThan(0);
                                         expect(t).toBeLessThan(mod_duration - diff);
+                                        expect(t).toBeCloseTo((trg_duration / 3) - mod_band[0], 0.02);
                                     },
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
@@ -640,19 +642,18 @@ describe("builder, regarding modifiers,", function() {
 
                         describe("if band exceeds the wrapper before the start,", function() {
 
-                            var diff;
+                            var start_diff = 1;
 
                             beforeEach(function() {
-                                mod_band = [ -1, trg_duration / 4 ];
+                                mod_band = [ -start_diff, trg_duration / 4 ];
                                 mod_duration = mod_band[1] - mod_band[0];
-                                diff = 1;
                             });
 
                             it("should pass intersection time when position is at start of the wrapper", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(diff);
+                                        expect(t).toBe(start_diff);
                                     },
                                     time: trg_band[0] });
                             });
@@ -661,8 +662,9 @@ describe("builder, regarding modifiers,", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(diff);
+                                        expect(t).toBeGreaterThan(start_diff);
                                         expect(t).toBeLessThan(mod_duration);
+                                        expect(t).toBeCloseTo((trg_duration / 5) - mod_band[0], 0.02);
                                     },
                                     time: trg_band[0] + (trg_duration / 5) });
                             });
@@ -704,6 +706,7 @@ describe("builder, regarding modifiers,", function() {
                                         expect(t).toBeGreaterThan(start_diff);
                                         // FIXME: (mod_duration - end_diff) fails here due to rounding problem
                                         expect(t).toBeLessThan(start_diff + trg_duration);
+                                        expect(t).toBeCloseTo((trg_duration / 3) - mod_band[0], 0.02);
                                     },
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
@@ -756,7 +759,8 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: [
                                             function(t) { expect(t).toBe(0); },
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band2_duration); }
+                                                          expect(t).toBeLessThan(band2_duration);
+                                                          expect(t).toBeCloseTo(one_fifth * 0.5, 0.2); }
                                         ], time: trg_band[0] + (one_fifth * 1.5) });
                                 });
 
@@ -774,7 +778,8 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band1_duration); },
+                                                          expect(t).toBeLessThan(band1_duration);
+                                                          expect(t).toBeCloseTo(one_fifth * 0.5, 0.2); },
                                             function(t) { expect(t).toBe(band2_duration); }
                                         ], time: trg_band[0] + (one_fifth * 3.5) });
                                 });
@@ -814,7 +819,8 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: [
                                             function(t) { expect(t).toBe(0); },
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band2_duration); }
+                                                          expect(t).toBeLessThan(band2_duration);
+                                                          expect(t).toBeCloseTo(one_fifth, 0.2); }
                                         ], time: trg_band[0] + (one_fifth * 2) });
                                 });
 
@@ -823,9 +829,11 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band1_duration); },
+                                                          expect(t).toBeLessThan(band1_duration);
+                                                          expect(t).toBeCloseTo(one_fifth * 0.2, 0.02); },
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band2_duration); }
+                                                          expect(t).toBeLessThan(band2_duration);
+                                                          expect(t).toBeCloseTo(one_fifth * 1.5, 0.02); }
                                         ], time: trg_band[0] + (one_fifth * 2.5) });
                                 });
 
@@ -834,7 +842,8 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band1_duration); },
+                                                          expect(t).toBeLessThan(band1_duration);
+                                                          expect(t).toBeCloseTo(one_fifth * 0.7, 0.02); },
                                             function(t) { expect(t).toBe(band2_duration); }
                                         ], time: trg_band[0] + (one_fifth * 3) });
                                 });
@@ -882,10 +891,14 @@ describe("builder, regarding modifiers,", function() {
                         });
                     }
 
-                    function timeBetween(inner_band, low, high) {
-                        var inner_time = player.state.time - inner_band[0];
-                        return (inner_time >= low) &&
-                               (inner_time < high);
+                    function localTime(parent_band, band) {
+                        return player.state.time - parent_band[0] - band[0];
+                    }
+
+                    function timeBetween(parent_band, low, high) {
+                        var parent_time = player.state.time - parent_band[0];
+                        return (parent_time >= low) &&
+                               (parent_time < high);
                     }
 
                     function checkWithBands(bands) {
@@ -902,8 +915,7 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _start, _end)) {
                                     expect(t).toBeGreaterThanOrEqual(0);
                                     expect(t).toBeLessThan(_band_duration);
-                                    // FIXME: check actual value, here and above
-                                    // expect(t).toBe(...)
+                                    expect(t).toEqual(localTime(trg_band, band));
                                 }
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     expect(t).toBe(_band_duration);

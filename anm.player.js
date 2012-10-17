@@ -2068,6 +2068,9 @@ Element.prototype.__adaptModTime = function(state, band, ltime) {
       else if (ltime > band[1]) return (band[1] - band[0]);
       else return ltime - band[0];
   } else if (__num(band)) {
+      if (typeof state._.appliedAt !== 'undefined') {
+        return (ltime >= band) && (ltime <= band + (ltime - state._.appliedAt));
+      } else return ltime == band;
       return false; // NI
   } else return ltime;
 }
