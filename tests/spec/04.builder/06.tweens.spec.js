@@ -1,4 +1,4 @@
-describe("tweens", function() {
+xdescribe("tweens", function() {
 
     describe("different types of tweens", function() {
 
@@ -9,6 +9,8 @@ describe("tweens", function() {
     });
 
 });
+
+// Tweens are called with values from 0 to 1, but modifiers with actual time, should it be changed?
 
 // TODO: test working with bands
 // TODO: test untweening
