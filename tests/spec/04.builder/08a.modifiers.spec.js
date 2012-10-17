@@ -1054,10 +1054,10 @@ describe("builder, regarding modifiers,", function() {
                     var _whatToRun;
 
                     function expectToCall(modifier, time) {
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake()
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake();
                         doAsync(player, {
                             prepare: function() { target.modify(time, modifierSpy); },
-                            run: _whatToRun, until: C.STOPPED, timeout: 1.7,
+                            run: _whatToRun(time), until: C.STOPPED, timeout: 1.7,
                             then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
                         });
                     };
@@ -1066,7 +1066,7 @@ describe("builder, regarding modifiers,", function() {
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake()
                         doAsync(player, {
                             prepare: function() { target.modify(time, modifierSpy); },
-                            run: _whatToRun, until: C.STOPPED, timeout: 1.7,
+                            run: _whatToRun(time), until: C.STOPPED, timeout: 1.7,
                             then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce(); }
                         });
                     };
