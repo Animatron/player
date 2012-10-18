@@ -264,7 +264,7 @@ describe("builder, regarding modifiers,", function() {
             });
 
             xdescribe("in reference to modifiers priorities,", function() {
-
+                this.fail('NI');
             });
 
         });
@@ -479,6 +479,11 @@ describe("builder, regarding modifiers,", function() {
 
             var scene = b();
 
+            var CLOSE_FACTOR = 14; // digits following floating point
+
+            // FIXME: test duration is accessible inside of the band-restricted modifier
+            // FIXME: test that 0-duration throws error
+
             varyAll([ {
                     description: "when assigned to the scene",
                     prepare: function() { target = scene;
@@ -573,7 +578,7 @@ describe("builder, regarding modifiers,", function() {
                                     expectAtTime({
                                         bands: mod_band,
                                         modifiers: function(t) {
-                                            expect(t).toBe(mod_duration);
+                                            expect(t).toBe(1);
                                         },
                                         time: ( (mod_duration < trg_duration)
                                                ? trg_band[0] + mod_band[1] +
@@ -587,8 +592,8 @@ describe("builder, regarding modifiers,", function() {
                                         bands: mod_band,
                                         modifiers: function(t) {
                                             expect(t).toBeGreaterThan(0);
-                                            expect(t).toBeLessThan(mod_duration);
-                                            expect(t).toBeCloseTo(mod_duration / 3, 0.02);
+                                            expect(t).toBeLessThan(1);
+                                            expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
                                         },
                                         time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                                 });
@@ -621,8 +626,8 @@ describe("builder, regarding modifiers,", function() {
                                     bands: mod_band,
                                     modifiers: function(t) {
                                         expect(t).toBeGreaterThan(0);
-                                        expect(t).toBeLessThan(mod_duration - diff);
-                                        expect(t).toBeCloseTo((trg_duration / 3) - mod_band[0], 0.02);
+                                        expect(t).toBeLessThan(1 - (diff / mod_duration));
+                                        expect(t).toBeCloseTo(((trg_duration / 3) - mod_band[0]) / mod_duration, CLOSE_FACTOR);
                                     },
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
@@ -631,7 +636,7 @@ describe("builder, regarding modifiers,", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(mod_duration - diff);
+                                        expect(t).toBeCloseTo(1 - (diff / mod_duration), CLOSE_FACTOR);
                                     },
                                     time: trg_band[1] });
                             });
@@ -651,18 +656,18 @@ describe("builder, regarding modifiers,", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(start_diff);
+                                        expect(t).toBe(start_diff / mod_duration);
                                     },
                                     time: trg_band[0] });
                             });
 
-                            it("should pass actual local time value when intersection was not reached", function() {
+                            it("should pass actual local time value when intersection was passed", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(start_diff);
-                                        expect(t).toBeLessThan(mod_duration);
-                                        expect(t).toBeCloseTo((trg_duration / 5) - mod_band[0], 0.02);
+                                        expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                        expect(t).toBeLessThan(1);
+                                        expect(t).toBeCloseTo(((trg_duration / 5) + start_diff) / mod_duration, CLOSE_FACTOR);
                                     },
                                     time: trg_band[0] + (trg_duration / 5) });
                             });
@@ -671,7 +676,7 @@ describe("builder, regarding modifiers,", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(mod_duration);
+                                        expect(t).toBe(1);
                                     },
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
@@ -692,7 +697,7 @@ describe("builder, regarding modifiers,", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(start_diff);
+                                        expect(t).toBe(start_diff / mod_duration);
                                     },
                                     time: trg_band[0] });
                             });
@@ -701,10 +706,9 @@ describe("builder, regarding modifiers,", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(start_diff);
-                                        // FIXME: (mod_duration - end_diff) fails here due to rounding problem
-                                        expect(t).toBeLessThan(start_diff + trg_duration);
-                                        expect(t).toBeCloseTo((trg_duration / 3) - mod_band[0], 0.02);
+                                        expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                        expect(t).toBeLessThan(1 - (end_diff / mod_duration));
+                                        expect(t).toBeCloseTo(((trg_duration / 3) + start_diff) / mod_duration, CLOSE_FACTOR);
                                     },
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
@@ -714,7 +718,7 @@ describe("builder, regarding modifiers,", function() {
                                     bands: mod_band,
                                     modifiers: function(t) {
                                         // FIXME: (mod_duration - end_diff) fails here due to rounding problem
-                                        expect(t).toBe(start_diff + trg_duration);
+                                        expect(t).toBe((start_diff + trg_duration) / mod_duration);
                                     },
                                     time: trg_band[1] });
                             });
@@ -757,8 +761,8 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: [
                                             function(t) { expect(t).toBe(0); },
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band2_duration);
-                                                          expect(t).toBeCloseTo(one_fifth * 0.5, 0.2); }
+                                                          expect(t).toBeLessThan(1);
+                                                          expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR); }
                                         ], time: trg_band[0] + (one_fifth * 1.5) });
                                 });
 
@@ -767,7 +771,7 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBe(0); },
-                                            function(t) { expect(t).toBe(band2_duration); }
+                                            function(t) { expect(t).toBe(1); }
                                         ], time: trg_band[0] + (one_fifth * 2.5) });
                                 });
 
@@ -776,9 +780,9 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band1_duration);
-                                                          expect(t).toBeCloseTo(one_fifth * 0.5, 0.2); },
-                                            function(t) { expect(t).toBe(band2_duration); }
+                                                          expect(t).toBeLessThan(1);
+                                                          expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR); },
+                                            function(t) { expect(t).toBe(1); }
                                         ], time: trg_band[0] + (one_fifth * 3.5) });
                                 });
 
@@ -786,8 +790,8 @@ describe("builder, regarding modifiers,", function() {
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(band1_duration); },
-                                            function(t) { expect(t).toBe(band2_duration); }
+                                            function(t) { expect(t).toBe(1); },
+                                            function(t) { expect(t).toBe(1); }
                                         ], time: trg_band[0] + (one_fifth * 4.5) });
                                 });
 
@@ -817,8 +821,8 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: [
                                             function(t) { expect(t).toBe(0); },
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band2_duration);
-                                                          expect(t).toBeCloseTo(one_fifth, 0.2); }
+                                                          expect(t).toBeLessThan(1);
+                                                          expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR); }
                                         ], time: trg_band[0] + (one_fifth * 2) });
                                 });
 
@@ -827,11 +831,11 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band1_duration);
-                                                          expect(t).toBeCloseTo(one_fifth * 0.2, 0.02); },
+                                                          expect(t).toBeLessThan(1);
+                                                          expect(t).toBeCloseTo((one_fifth * 0.2) / band1_duration, CLOSE_FACTOR); },
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band2_duration);
-                                                          expect(t).toBeCloseTo(one_fifth * 1.5, 0.02); }
+                                                          expect(t).toBeLessThan(1);
+                                                          expect(t).toBeCloseTo((one_fifth * 1.5) / band2_duration, CLOSE_FACTOR); }
                                         ], time: trg_band[0] + (one_fifth * 2.5) });
                                 });
 
@@ -840,9 +844,9 @@ describe("builder, regarding modifiers,", function() {
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(band1_duration);
-                                                          expect(t).toBeCloseTo(one_fifth * 0.7, 0.02); },
-                                            function(t) { expect(t).toBe(band2_duration); }
+                                                          expect(t).toBeLessThan(1);
+                                                          expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR); },
+                                            function(t) { expect(t).toBe(1); }
                                         ], time: trg_band[0] + (one_fifth * 3) });
                                 });
 
@@ -850,8 +854,8 @@ describe("builder, regarding modifiers,", function() {
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(band1_duration); },
-                                            function(t) { expect(t).toBe(band2_duration); }
+                                            function(t) { expect(t).toBe(1); },
+                                            function(t) { expect(t).toBe(1); }
                                         ], time: trg_band[0] + (one_fifth * 4.5) });
                                 });
 
@@ -912,11 +916,11 @@ describe("builder, regarding modifiers,", function() {
                                 }
                                 if (timeBetween(trg_band, _start, _end)) {
                                     expect(t).toBeGreaterThanOrEqual(0);
-                                    expect(t).toBeLessThan(_band_duration);
-                                    expect(t).toEqual(localTime(trg_band, band));
+                                    expect(t).toBeLessThan(1);
+                                    expect(t).toEqual(localTime(trg_band, band) / _band_duration);
                                 }
                                 if (timeBetween(trg_band, _end, trg_duration)) {
-                                    expect(t).toBe(_band_duration);
+                                    expect(t).toBe(1);
                                 }
                             });
                         });

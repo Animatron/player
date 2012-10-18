@@ -1982,6 +1982,7 @@ Element.prototype.deepClone = function() {
         trg_children.push(cclone);
     }
     clone._modifiers = [];
+    // FIXME: use __forAllModifiers & __forAllPainters
     // loop through type
     for (var mti = 0, mtl = this._modifiers.length; mti < mtl; mti++) {
         var type_group = this._modifiers[mti];
@@ -2060,13 +2061,11 @@ Element.prototype._stateStr = function() {
 }
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier) {
   if (band == null) return ltime;
-  var elm_band = this.xdata.lband,
-      elm_duration = elm_band[1] - elm_band[0];
   if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
       if (ltime < band[0]) return 0;
-      else if (ltime > band[1]) return (band[1] - band[0]);
-      else return ltime - band[0];
+      else if (ltime > band[1]) return 1;
+      else return (ltime - band[0]) / (band[1] - band[0]);
   } else if (__num(band)) {
       if (typeof state._.appliedAt !== 'undefined') {
         return (ltime >= band) && (ltime <= band + (ltime - state._.appliedAt));
@@ -2091,7 +2090,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
         elm.__loadEvts(elm._state);
 
         if (!elm.__forAllModifiers(order,
-            function(type, band, modifier, data) { /* each modifier */
+            function(band, modifier, data) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
                 var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier);
                 // false will be returned from __adaptModTime
@@ -2133,7 +2132,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
 Element.prototype.__callPainters = function(order, ctx) {
     (function(elm) {
         elm.__forAllPainters(order,
-            function(type, painter, data) { /* each painter */
+            function(painter, data) { /* each painter */
                 painter.call(elm.xdata, ctx, data);
             }, function(type) { /* before each new type */
                 elm.__painting = type;
@@ -2172,7 +2171,7 @@ Element.prototype.__forAllModifiers = function(order, f, on_type, after_type) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 var modifier;
                 if (modifier = cur[ci]) {
-                  if (f(type, modifier[0], modifier[1], modifier[2]) === false) return false;
+                  if (f(modifier[0], modifier[1], modifier[2]) === false) return false;
                 } // if cur[ci]
               } // for var ci
             } // if cur = seq[pi]
@@ -2208,7 +2207,7 @@ Element.prototype.__forAllPainters = function(order, f, on_type, after_type) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci]) f(type, cur[ci][0], cur[ci][1]);
+                if (cur[ci]) f(cur[ci][0], cur[ci][1]);
               }
             }
           }
