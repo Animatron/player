@@ -2058,7 +2058,7 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element.prototype.__adaptModTime = function(state, band, ltime) {
+Element.prototype.__adaptModTime = function(ltime, band, state, modifier) {
   if (band == null) return ltime;
   var elm_band = this.xdata.lband,
       elm_duration = elm_band[1] - elm_band[0];
@@ -2075,90 +2075,74 @@ Element.prototype.__adaptModTime = function(state, band, ltime) {
   } else return ltime;
 }
 Element.prototype.__callModifiers = function(order, ltime) {
-    // save the previous state
-    this.state._ = null; // clear the pointer, so it will not be cloned
-    this._state = obj_clone(this.state);
-    this._state._ = this.state;
+    return (function(elm) {
+        // save the previous state
+        elm.state._ = null; // clear the pointer, so it will not be cloned
+        elm._state = obj_clone(elm.state);
+        elm._state._ = elm.state;
 
-    // now it looks like:
-    // this.
-    //     .state -> state from the last modifiers call
-    //     ._state -> clone of the last state, it is passed to modifiers as `this`
-    //     ._state._ -> a pointer to the last state, so it will be accessible in
-    //                  modifiers as `this._`
+        // now it looks like:
+        // this.
+        //     .state -> state from the last modifiers call
+        //     ._state -> clone of the last state, it is passed to modifiers as `this`
+        //     ._state._ -> a pointer to the last state, so it will be accessible in
+        //                  modifiers as `this._`
 
-    this.__loadEvts(this._state);
+        elm.__loadEvts(elm._state);
 
-    var modifiers = this._modifiers;
-    var type, seq, cur;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = modifiers[type];
-        this.__modifying = type;
-        this.__mbefore(type);
-        if (seq) {
-          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
-            if (cur = seq[pi]) {
-              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                var modifier;
-                if (modifier = cur[ci]) {
-                  if (!(function(lbtime) { // lbtime is band-apadted time, if modifier has its band
-                    if ((lbtime === false) || // false will be returned from __adaptModTime
-                                              // for trigger-like modifier if
-                                              // it is required to skip it
-                        (modifier[1].call(this._state, lbtime, modifier[2]) === false)) {
-                      this.__mafter(lbtime, type, false);
-                      this.__modifying = null;
-                      this.__clearEvts(this._state);
-                      // NB: nothing happens to the state or element here,
-                      //     the modified things are not applied
-                      return false;
-                    }
-                    return true;
-                  }).call(this, this.__adaptModTime(this._state, modifier[0], ltime))) { return false; };
-                } // if cur[ci]
-              } // for var ci
-            } // if cur = seq[pi]
-          } // for var pi
-        } // if seq
-        this.__mafter(ltime, type, true);
-    }
-    this.__modifying = null;
-    this._state._applied = true;
-    this._state._appliedAt = ltime;
+        if (!elm.__forAllModifiers(order,
+            function(type, band, modifier, data) { /* each modifier */
+                // lbtime is band-apadted time, if modifier has its own band
+                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier);
+                // false will be returned from __adaptModTime
+                // for trigger-like modifier if it is required to skip current one
+                if (lbtime === false) return true;
+                // modifier will return false if it is required to skip all next modifiers,
+                // returning false from our function means the same
+                return modifier.call(elm._state, lbtime, data);
+            }, function(type) { /* before each new type */
+                elm.__modifying = type;
+                elm.__mbefore(type);
+            }, function(type) { /* after each new type */
+                elm.__mafter(ltime, type, true);
+            })) { // one of modifiers returned false
+                // forget things...
+                elm.__mafter(ltime, elm.__modifying, false);
+                elm.__modifying = null;
+                elm.__clearEvts(elm._state);
+                // NB: nothing happens to the state or element here,
+                //     the modified things are not applied
+                return false; // ...and get out of the function
+            };
 
-    this.__clearEvts(this._state);
+        elm.__modifying = null;
+        elm._state._applied = true;
+        elm._state._appliedAt = ltime;
 
-    // save modified state as last
-    this.state = this._state;
-    this._state = null;
-    // state._ keeps pointing to prev state
+        elm.__clearEvts(elm._state);
 
-    // apply last state
-    return true;
+        // save modified state as last
+        elm.state = elm._state;
+        elm._state = null;
+        // state._ keeps pointing to prev state
+
+        // apply last state
+        return true;
+    })(this);
 }
 Element.prototype.__callPainters = function(order, ctx) {
-    var painters = this._painters;
-    var type, seq, cur;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = painters[type];
-        this.__painting = type;
-        this.__pbefore(ctx, type);
-        if (seq) {
-          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
-            if (cur = seq[pi]) {
-              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci]) cur[ci][0].call(this.xdata, ctx, cur[ci][1]);
-              }
-            }
-          }
-        }
-        this.__pafter(ctx, type);
-    }
-    this.__painting = null;
+    (function(elm) {
+        elm.__forAllPainters(order,
+            function(type, painter, data) { /* each painter */
+                painter.call(elm.xdata, ctx, data);
+            }, function(type) { /* before each new type */
+                elm.__painting = type;
+                elm.__pbefore(ctx, type);
+            }, function(type) { /* after each new type */
+                elm.__pafter(ctx, type);
+            });
+        elm.__painting = null;
+    })(this);
 }
 Element.prototype.__addTypedModifier = function(type, priority, band, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
@@ -2174,6 +2158,30 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
+Element.prototype.__forAllModifiers = function(order, f, on_type, after_type) {
+    var modifiers = this._modifiers;
+    var type, seq, cur;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = modifiers[type];
+        if (on_type) on_type(type);
+        if (seq) {
+          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
+            if (cur = seq[pi]) {
+              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
+                var modifier;
+                if (modifier = cur[ci]) {
+                  if (f(type, modifier[0], modifier[1], modifier[2]) === false) return false;
+                } // if cur[ci]
+              } // for var ci
+            } // if cur = seq[pi]
+          } // for var pi
+        } // if seq
+        if (after_type) after_type(type);
+    }
+    return true;
+}
 Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     if (!painter) return; // FIXME: throw some error?
     var painters = this._painters;
@@ -2188,6 +2196,27 @@ Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     return painter;
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
+Element.prototype.__forAllPainters = function(order, f, on_type, after_type) {
+    var painters = this._painters;
+    var type, seq, cur;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = painters[type];
+        if (on_type) on_type(type);
+        if (seq) {
+          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
+            if (cur = seq[pi]) {
+              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
+                if (cur[ci]) f(type, cur[ci][0], cur[ci][1]);
+              }
+            }
+          }
+        }
+        if (after_type) after_type(type);
+    }
+    return true;
+}
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === Element.EVENT_MOD) {
         this.__loadEvtsFromCache();

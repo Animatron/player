@@ -1152,6 +1152,7 @@ describe("builder, regarding modifiers,", function() {
     // TODO: test that error is fired if modifier was already added to this element
     // TODO: test that modify/paint/unmodify/unpaint/at do not break chaining
     // TODO: test adding one modifier to several elements and removing it then
+    // TODO: ensure that if time-triggered modifier fails time-check all next modifiers are called
 
     // TODO: test events
 
