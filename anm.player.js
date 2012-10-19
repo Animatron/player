@@ -2157,14 +2157,14 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
-Element.prototype.__forAllModifiers = function(order, f, on_type, after_type) {
+Element.prototype.__forAllModifiers = function(order, f, before_type, after_type) {
     var modifiers = this._modifiers;
     var type, seq, cur;
     for (var typenum = 0, last = order.length;
          typenum < last; typenum++) {
         type = order[typenum];
         seq = modifiers[type];
-        if (on_type) on_type(type);
+        if (before_type) before_type(type);
         if (seq) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
@@ -2195,14 +2195,14 @@ Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     return painter;
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
-Element.prototype.__forAllPainters = function(order, f, on_type, after_type) {
+Element.prototype.__forAllPainters = function(order, f, before_type, after_type) {
     var painters = this._painters;
     var type, seq, cur;
     for (var typenum = 0, last = order.length;
          typenum < last; typenum++) {
         type = order[typenum];
         seq = painters[type];
-        if (on_type) on_type(type);
+        if (before_type) before_type(type);
         if (seq) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {

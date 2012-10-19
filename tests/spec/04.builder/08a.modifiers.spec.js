@@ -48,7 +48,7 @@ describe("builder, regarding modifiers,", function() {
                   }, {
                     description: "or it is a trigger-like modifier,",
                     prepare: function() { curClass = function(spy) { return [ _duration / 4, spy ] };
-                                          _run = function() { player.play(_duration / 4, 1, 0.2); }; }
+                                          _run = function() { player.play(_duration / 4, 1, 1 / (FPS * 2)); }; }
                   } ],  function() {
 
             it("should call given modifier", function() {
@@ -208,7 +208,7 @@ describe("builder, regarding modifiers,", function() {
                             scene.paint(paintSpy);
                             return scene;
                         },
-                        run: _run, until: C.STOPPED, timeout: _duration + .2,
+                        run: _run, until: C.STOPPED, timeout: _timeout,
                         then: function() { expect(modifierSpy).toHaveBeenCalled();
                                            expect(paintSpy).not.toHaveBeenCalled(); }
                     });
@@ -999,6 +999,8 @@ describe("builder, regarding modifiers,", function() {
 
             var modifier_time;
 
+            var CLOSE_FACTOR = 14; // digits following floating point
+
             varyAll([ { description: "when target is a scene,",
                         prepare: function() { target = scene;
                                               trg_band = [ 0, _duration ];
@@ -1040,7 +1042,7 @@ describe("builder, regarding modifiers,", function() {
 
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
                             expect(t).toBeGreaterThanOrEqual(expectedT);
-                            expect(t).toBeCloseTo(expectedT, 0.2);
+                            expect(t).toBeCloseTo(expectedT, CLOSE_FACTOR);
                             expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
                             calledAt = t;
                         });
@@ -1050,7 +1052,7 @@ describe("builder, regarding modifiers,", function() {
                             do: 'play', until: C.STOPPED, timeout: 1.7,
                             then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
                                                expect(calledAt).toBeGreaterThanOrEqual(expectedT);
-                                               expect(calledAt).toBeCloseTo(expectedT, 0.2); }
+                                               expect(calledAt).toBeCloseTo(expectedT, CLOSE_FACTOR); }
                         });
 
                     });
@@ -1090,25 +1092,25 @@ describe("builder, regarding modifiers,", function() {
 
                         it("should call a modifier if current frame matches its time", function() {
                             expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time);
+                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
                             }, modifier_time);
                         });
 
                         it("should not call a modifier if current frame is after (even a little bit) its time", function() {
                             expectNotToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time);
+                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
                             }, modifier_time + FPS * 1.2);
                         });
 
                         it("should call a modifier again and again if current frame matches its time", function() {
                             expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time);
+                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
                             }, modifier_time);
                             expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time);
+                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
                             }, modifier_time + FPS * 0.9);
                             expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time);
+                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
                             }, modifier_time + FPS * 0.5);
                         });
 
@@ -1157,6 +1159,7 @@ describe("builder, regarding modifiers,", function() {
     // TODO: test that modify/paint/unmodify/unpaint/at do not break chaining
     // TODO: test adding one modifier to several elements and removing it then
     // TODO: ensure that if time-triggered modifier fails time-check all next modifiers are called
+    // TODO: change time-value for all of modifiers to 0..1 value?
 
     // TODO: test events
 
