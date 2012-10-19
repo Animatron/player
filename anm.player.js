@@ -236,7 +236,16 @@ function __array(obj) {
 }
 
 function __num(n) {
-  return !isNaN(parseFloat(n)) && isFinite(n);
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function __close(n1, n2, precision) {
+    if (!(precision === 0)) {
+        precision = precision || 2;
+    }
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n1 * multiplier) ==
+           Math.round(n2 * multiplier);
 }
 
 function mrg_obj(src, backup) {
@@ -1228,13 +1237,13 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.render = function(ctx, time, zoom) {
+Scene.prototype.render = function(ctx, time, zoom, afps) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
     this.visitRoots(function(elm) {
-        elm.render(ctx, time);
+        elm.render(ctx, time, afps);
     });
     ctx.restore();
     this.fire(C.X_DRAW,ctx);
@@ -1471,8 +1480,8 @@ Element.prototype.prepare = function() {
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
-Element.prototype.onframe = function(ltime) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
+Element.prototype.onframe = function(ltime, afps) {
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, afps);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
@@ -1493,8 +1502,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= s.alpha;
     s._matrix.apply(ctx);
 }
-// > Element.render % (ctx: Context, gtime: Float)
-Element.prototype.render = function(ctx, gtime) {
+// > Element.render % (ctx: Context, gtime: Float[, afps: Float])
+Element.prototype.render = function(ctx, gtime, afps) {
     if (this.disabled) return;
     this.rendering = true;
     ctx.save();
@@ -1503,7 +1512,7 @@ Element.prototype.render = function(ctx, gtime) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     if (wasDrawn = (this.fits(ltime)
-                    && this.onframe(ltime)
+                    && this.onframe(ltime, afps)
                     && this.prepare())) {
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
@@ -1789,6 +1798,12 @@ Element.prototype.reset = function() {
     s._matrix.reset();
     if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
+    (function(elm) {
+        elm.__forAllModifiers(function(band, modifier) {
+            if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
+            if (modifier.__wasCalledAt) modifier.__wasCalledAt[elm.id] = -1;
+        });
+    })(this);
     this.visitChildren(function(elm) {
         elm.reset();
     });
@@ -2059,7 +2074,7 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element.prototype.__adaptModTime = function(ltime, band, state, modifier) {
+Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
   if (band == null) return ltime;
   if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
@@ -2067,13 +2082,24 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier) {
       else if (ltime > band[1]) return 1;
       else return (ltime - band[0]) / (band[1] - band[0]);
   } else if (__num(band)) {
-      if (typeof state._.appliedAt !== 'undefined') {
-        return (ltime >= band) && (ltime <= band + (ltime - state._.appliedAt));
-      } else return ltime == band;
-      return false; // NI
+      afps = afps || (state._._appliedAt
+                      ? ((ltime - state._._appliedAt) * 1000)
+                      : 0) || 0;
+      // FIXME: test if afps is not too big
+      var tpos = band;
+      var doCall = (!modifier.__wasCalled || !modifier.__wasCalled[this.id]) &&
+                   (afps > 0) ? (ltime >= tpos) && (ltime <= tpos + ((afps / 1000) * 1.5))
+                              : __close(ltime, tpos, 10);
+      if (doCall) {
+          if (!modifier.__wasCalled) modifier.__wasCalled = {};
+          if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
+          modifier.__wasCalled[this.id] = true;
+          modifier.__wasCalledAt[this.id] = ltime;
+      }
+      return doCall ? ltime : false;
   } else return ltime;
 }
-Element.prototype.__callModifiers = function(order, ltime) {
+Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
         // save the previous state
         elm.state._ = null; // clear the pointer, so it will not be cloned
@@ -2092,7 +2118,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
         if (!elm.__forAllModifiers(order,
             function(band, modifier, data) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier);
+                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, afps);
                 // false will be returned from __adaptModTime
                 // for trigger-like modifier if it is required to skip current one
                 if (lbtime === false) return true;
@@ -2525,7 +2551,7 @@ D.drawNext = function(ctx, state, scene, before, after, errback) {
         ctx.clearRect(0, 0, state.width * state.ratio,
                             state.height * state.ratio);
 
-        scene.render(ctx, time, state.zoom * state.ratio);
+        scene.render(ctx, time, state.zoom * state.ratio, state.afps);
 
         // show fps
         if (state.debug) { // TODO: move to player.onrender

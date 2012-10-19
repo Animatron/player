@@ -11,4 +11,6 @@ xdescribe("stub spec", function() {
         expect(true).toBeTruthy();
     });
 
+    // TODO: ensure that elements id's using guid does not affect any logic
+
 });

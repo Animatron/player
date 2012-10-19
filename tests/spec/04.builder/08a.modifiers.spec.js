@@ -39,6 +39,9 @@ describe("builder, regarding modifiers,", function() {
             _timeout = _duration + .2,
             _run = function() { player.play(); };
 
+        // FIXME: test duration is accessible inside of the modifier
+        // FIXME: test easings
+
         varyAll([ {
                     description: "either it is a default modifier (band is equal to element's band),",
                     prepare: function() { curClass = function(spy) { return [ spy ] } }
@@ -481,7 +484,6 @@ describe("builder, regarding modifiers,", function() {
 
             var CLOSE_FACTOR = 14; // digits following floating point
 
-            // FIXME: test duration is accessible inside of the band-restricted modifier
             // FIXME: test that 0-duration throws error
 
             varyAll([ {
@@ -1013,16 +1015,16 @@ describe("builder, regarding modifiers,", function() {
                                               scene.add(b().add(target)); } } ],
                     function() {
 
-                varyAll([ { prepare: function() { modifier_time = _duration / 4; },
-                            description: "and modifier time is near to the start of the target (duration: " + _duration + ", t: " + _duration / 4 + ")" },
-                          { prepare: function() { modifier_time = _duration / 2; },
-                            description: "and modifier time is near to the middle of the target (duration: " + _duration + ", t: " + _duration / 2 + ")" },
-                          { prepare: function() { modifier_time = (_duration / 4) * 3; },
-                            description: "and modifier time is near to the end of the target (duration: " + _duration + ", t: " + (_duration / 4) * 3 + ")" },
+                varyAll([ { prepare: function() { modifier_time = trg_duration / 4; },
+                            description: "and modifier time is near to the start of the target (duration: " + trg_duration + ", t: " + trg_duration / 4 + ")" },
+                          { prepare: function() { modifier_time = trg_duration / 2; },
+                            description: "and modifier time is near to the middle of the target (duration: " + trg_duration + ", t: " + trg_duration / 2 + ")" },
+                          { prepare: function() { modifier_time = (trg_duration / 4) * 3; },
+                            description: "and modifier time is near to the end of the target (duration: " + trg_duration + ", t: " + (trg_duration / 4) * 3 + ")" },
                           { prepare: function() { modifier_time = 0; },
-                            description: "and modifier time is at the exact start of the target (duration: " + _duration + ", t: " + 0 + ")" },
-                          { prepare: function() { modifier_time = _duration; },
-                            description: "and modifier time is at the exact end of the target (duration: " + _duration + ", t: " + _duration + ")" }
+                            description: "and modifier time is at the exact start of the target (duration: " + trg_duration + ", t: " + 0 + ")" },
+                          { prepare: function() { modifier_time = trg_duration; },
+                            description: "and modifier time is at the exact end of the target (duration: " + trg_duration + ", t: " + trg_duration + ")" }
                         ], function() {
 
                     it("should call a modifier exactly once", function() {
@@ -1057,10 +1059,11 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    var _whatToRun;
+                    var _whatToRun,
+                        _valueTest;
 
                     function expectToCall(modifier, time) {
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake();
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
                         doAsync(player, {
                             prepare: function() { target.modify(time, modifierSpy); },
                             run: _whatToRun(time), until: C.STOPPED, timeout: 1.7,
@@ -1069,7 +1072,7 @@ describe("builder, regarding modifiers,", function() {
                     };
 
                     function expectNotToCall(modifier, time) {
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake()
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
                         doAsync(player, {
                             prepare: function() { target.modify(time, modifierSpy); },
                             run: _whatToRun(time), until: C.STOPPED, timeout: 1.7,
@@ -1077,41 +1080,48 @@ describe("builder, regarding modifiers,", function() {
                         });
                     };
 
+                    var µFPS = FPS / 1000,
+                        FPS_ERR = 1.3;
+
                     varyAll( [
                           { description: "short-playing-period",
-                            prepare: function(t) { _whatToRun = function(t) {
-                                player.play(trg_band[0] + (t - (FPS * 2)), 1, FPS * 3);
-                            } } },
+                            prepare: function() {
+                                _whatToRun = function(time) {
+                                    player.play(trg_band[0] + (time - (µFPS * 2)), 1, µFPS * 3);
+                                };
+                                _valueTest = function(t, time) { return (t >= time) && (t <= time + (µFPS * FPS_ERR)); }
+                            } },
                           { description: "if rendering was requested",
-                            prepare: function(t) { _whatToRun = function(t) {
-                                player.drawAt(trg_band[0] + (t - (FPS * 2)));
-                            } } }
+                            prepare: function() {
+                                _whatToRun = function(time) {
+                                    player.drawAt(trg_band[0] + time);
+                                };
+                                _valueTest = function(t, time) { return Math.round(t    * Math.pow(10, CLOSE_FACTOR)) ==
+                                                                        Math.round(time * Math.pow(10, CLOSE_FACTOR)); }
+                            } }
                           /* TODO: { description: "if time-jump was performed",
                             prepare: function() {} } */
                         ], function() {
 
                         it("should call a modifier if current frame matches its time", function() {
                             expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
+                                expect(_valueTest(t, modifier_time)).toBeTruthy();
                             }, modifier_time);
                         });
 
                         it("should not call a modifier if current frame is after (even a little bit) its time", function() {
                             expectNotToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
-                            }, modifier_time + FPS * 1.2);
+                                expect(_valueTest(t, modifier_time)).toBeTruthy();
+                            }, modifier_time + µFPS * FPS_ERR);
                         });
 
                         it("should call a modifier again and again if current frame matches its time", function() {
-                            expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
-                            }, modifier_time);
-                            expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
-                            }, modifier_time + FPS * 0.9);
-                            expectToCall(function(t) {
-                                expect(t).toBeCloseTo(modifier_time, CLOSE_FACTOR);
-                            }, modifier_time + FPS * 0.5);
+                            var MAX_ERR = MFPS * FPS_ERR;
+                            for (var delta = MAX_ERR - (MAX_ERR / 10); delta >= 0; delta -= (MAX_ERR / 10)) {
+                                expectToCall(function(t) {
+                                    expect(_valueTest(t, modifier_time)).toBeTruthy();
+                                }, modifier_time + delta);
+                            }
                         });
 
                     });
@@ -1141,6 +1151,8 @@ describe("builder, regarding modifiers,", function() {
                     }); */
 
                     // TODO: test enabling/disabling elements
+                    // TODO: test adding same trigger-modifier to different elements and calling it from one,
+                    //       does not affects its playing at other elements
                 });
 
             });
