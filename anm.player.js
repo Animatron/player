@@ -2074,6 +2074,7 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
+Element.FPS_ERR = 1.3;
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
   if (band == null) return ltime;
   if (__array(band)) { // modifier is band-restricted
@@ -2083,12 +2084,12 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
       else return (ltime - band[0]) / (band[1] - band[0]);
   } else if (__num(band)) {
       afps = afps || (state._._appliedAt
-                      ? ((ltime - state._._appliedAt) * 1000)
+                      ? (1 / (ltime - state._._appliedAt))
                       : 0) || 0;
       // FIXME: test if afps is not too big
       var tpos = band;
       var doCall = (!modifier.__wasCalled || !modifier.__wasCalled[this.id]) &&
-                   (afps > 0) ? (ltime >= tpos) && (ltime <= tpos + ((afps / 1000) * 1.5))
+                   (afps > 0) ? (ltime >= tpos) && (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))
                               : __close(ltime, tpos, 10);
       if (doCall) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
