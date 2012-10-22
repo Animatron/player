@@ -1011,7 +1011,7 @@ describe("builder, regarding modifiers,", function() {
                                               trg_band = [ 0, _duration ];
                                               trg_duration = _duration; } },
                       { description: "if target is an inner element,",
-                        prepare: function() { var target = b();
+                        prepare: function() { target = b();
                                               trg_band = [ _duration / 4, (_duration / 4) * 3 ];
                                               trg_duration = trg_band[1] - trg_band[0];
                                               target.band(trg_band);
@@ -1072,7 +1072,8 @@ describe("builder, regarding modifiers,", function() {
                             prepare: function() { target.modify(modTime, modifierSpy); },
                             run: _whatToRun(playTime), until: C.STOPPED, timeout: 1.7,
                             then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                               target.unmodify(modifierSpy); }
+                                               target.unmodify(modifierSpy);
+                                               if (callback) callback(); }
                         });
                     };
 
@@ -1082,7 +1083,8 @@ describe("builder, regarding modifiers,", function() {
                             prepare: function() { target.modify(modTime, modifierSpy); },
                             run: _whatToRun(playTime), until: C.STOPPED, timeout: 1.7,
                             then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce();
-                                               target.unmodify(modifierSpy); }
+                                               target.unmodify(modifierSpy);
+                                               if (callback) callback(); }
                         });
                     };
 
