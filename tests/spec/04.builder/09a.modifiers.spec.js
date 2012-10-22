@@ -190,6 +190,7 @@ describe("builder, regarding modifiers,", function() {
                             for (var i = disablingPos + 1; i < spiesCount; i++) {
                                 expect(modifierSpies[i]).not.toHaveBeenCalled();
                             }
+
                         }
                     });
 
@@ -259,6 +260,7 @@ describe("builder, regarding modifiers,", function() {
                             for (var i = 0; i < spiesCount; i++) {
                                 expect(childSpies[i]).not.toHaveBeenCalled();
                             }
+
                         }
                     });
 
@@ -1034,7 +1036,8 @@ describe("builder, regarding modifiers,", function() {
                         doAsync(player, {
                             prepare: function() { target.modify(0.3, modifierSpy); },
                             do: 'play', until: C.STOPPED, timeout: 1.7,
-                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                               target.unmodify(modifierSpy); }
                         });
 
                     });
@@ -1063,21 +1066,23 @@ describe("builder, regarding modifiers,", function() {
                     var _whatToRun,
                         _valueTest;
 
-                    function expectToCall(modifier, modTime, playTime) {
+                    function expectToCall(modifier, modTime, playTime, callback) {
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
                         doAsync(player, {
                             prepare: function() { target.modify(modTime, modifierSpy); },
                             run: _whatToRun(playTime), until: C.STOPPED, timeout: 1.7,
-                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                               target.unmodify(modifierSpy); }
                         });
                     };
 
-                    function expectNotToCall(modifier, modTime, playTime) {
+                    function expectNotToCall(modifier, modTime, playTime, callback) {
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
                         doAsync(player, {
                             prepare: function() { target.modify(modTime, modifierSpy); },
                             run: _whatToRun(playTime), until: C.STOPPED, timeout: 1.7,
-                            then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce(); }
+                            then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce();
+                                               target.unmodify(modifierSpy); }
                         });
                     };
 
@@ -1111,17 +1116,28 @@ describe("builder, regarding modifiers,", function() {
                         });
 
                         it("should not call a modifier if current frame is after (even a little bit) its time", function() {
-                            expectNotToCall(_mocks.nop, modifier_time,
-                                                        modifier_time + (mFPS * FPS_ERR) + .01);
+                            for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
+                                expectNotToCall(_mocks.nop, modifier_time,
+                                                            modifier_time + (mFPS * FPS_ERR) + delta);
+                            }
                         });
 
                         it("should call a modifier again and again if current frame matches its time", function() {
-                            var MAX_ERR = mFPS * FPS_ERR;
-                            for (var delta = MAX_ERR - (MAX_ERR / 10); delta >= 0; delta -= (MAX_ERR / 10)) {
-                                expectToCall(function(t) {
-                                    expect(_valueTest(t, modifier_time)).toBeTruthy();
-                                }, modifier_time, modifier_time + delta);
+                            var calls = [];
+                            for (var i = 0; i < 10; i++) {
+                                calls.push(function(next) {
+                                    return function() {
+                                        expectToCall(function(t) {
+                                            console.log('called at ', t);
+                                            expect(_valueTest(t, modifier_time)).toBeTruthy();
+                                        }, modifier_time, modifier_time, next);
+                                    };
+                                });
+                            };
+                            for (var i = 9; i >= 0; i--) {
+                                calls[i] = calls[i](calls[i+1] || null);
                             }
+                            calls[0]();
                         });
 
                     });
