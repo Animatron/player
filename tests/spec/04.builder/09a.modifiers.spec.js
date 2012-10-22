@@ -972,7 +972,8 @@ describe("builder, regarding modifiers,", function() {
 
                         it("or if they overlap with exceeding", function() {
                             checkWithBands([ [ one_fifth * 2, one_fifth * 6 ],
-                                             [ -one_fifth, one_fifth * 3 ] ]);
+                                             [ -one_fifth, one_fifth * 2.999 ] ]); // failed with one_fifth * 3 due to
+                                                                                   // float point arithmetics in timeBetween
                         });
 
                     });
