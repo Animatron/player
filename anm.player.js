@@ -2094,7 +2094,8 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))) ||
         ((afps <= 0) && __close(ltime, tpos, 10)) ||
-        ((afps > 0) && (tpos <= lband[1]) && ((ltime + (1 / afps)) > lband[1]));
+        ((afps > 0) && (tpos <= lband[1]) && (tpos > (lband[1] - (1 / afps)))
+                    && ((ltime + (1 / afps)) > lband[1]));
       if (doCall) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};

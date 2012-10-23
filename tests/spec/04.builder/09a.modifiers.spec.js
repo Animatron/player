@@ -1129,18 +1129,24 @@ describe("builder, regarding modifiers,", function() {
                             }, modifier_time, modifier_time);
                         });
 
-                        it("should not call a modifier if current frame requested is after (even a little bit) its time", function() {
+                        it("should not call a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
                             var calls = [];
                             for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
-                                (function(delta) {
-                                    var later_time = modifier_time + (mFPS * FPS_ERR) + delta;
-                                    if (later_time < trg_duration) {
+                                var later_time = trg_band[0] + modifier_time + (mFPS * FPS_ERR) + delta;
+                                (function(later_time) {
+                                    if ((modifier_time <= (trg_duration - mFPS)) ||
+                                        (later_time <= (trg_band[0] + trg_duration - mFPS))) {
                                         calls.push(function() {
                                             expectNotToCall(_mocks.nop, modifier_time,
                                                                         later_time, this.next);
                                         });
+                                    } else {
+                                        calls.push(function() {
+                                            expectToCall(_mocks.nop, modifier_time,
+                                                                     later_time, this.next);
+                                        });
                                     }
-                                }(delta));
+                                }(later_time));
                             }
                             if (calls.length > 0) queue(calls);
                         });
