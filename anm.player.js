@@ -2083,14 +2083,18 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
       else if (ltime > band[1]) return 1;
       else return (ltime - band[0]) / (band[1] - band[0]);
   } else if (__num(band)) {
+      if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
                       ? (1 / (ltime - state._._appliedAt))
                       : 0) || 0;
       // FIXME: test if afps is not too big
       var tpos = band;
-      var doCall = (!modifier.__wasCalled || !modifier.__wasCalled[this.id]) &&
-                   (afps > 0) ? (ltime >= tpos) && (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))
-                              : __close(ltime, tpos, 10);
+      var lband = this.xdata.lband;
+      var doCall = ((afps > 0) &&
+                    (ltime >= tpos) &&
+                    (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))) ||
+        ((afps <= 0) && __close(ltime, tpos, 10)) ||
+        ((afps > 0) && (tpos <= lband[1]) && ((ltime + (1 / afps)) > lband[1]));
       if (doCall) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};

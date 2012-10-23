@@ -204,4 +204,22 @@ function travel(f, elms) {
     }
 }
 
+function queue(fs) {
+    var q = [];
+        count = fs.length;
+    for (var i = 0; i < count; i++) {
+        q.push((function(i) {
+            return function(next) {
+                return function() {
+                    fs[i].call({ next: next });
+                };
+            }
+        })(i));
+    }
+    while (count--) {
+        q[count] = q[count](q[count+1] || null);
+    };
+    q[0]();
+}
+
 // TODO: tests for utils
