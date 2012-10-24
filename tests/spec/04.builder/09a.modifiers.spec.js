@@ -1115,19 +1115,22 @@ describe("builder, regarding modifiers,", function() {
                     function playValueTest(t, time) { return (t >= time) && (t <= time + (mFPS * FPS_ERR)); }
                     function drawValueTest(t, time) { return Math.round(t    * Math.pow(10, CLOSE_FACTOR)) ==
                                                              Math.round(time * Math.pow(10, CLOSE_FACTOR)); }
+                    function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
 
                     varyAll( [
                           { description: "short-playing-period",
                             prepare: function() {
                                 _whatToRun = function(time) {
-                                    return function() { player.play(trg_band[0] + time, 1, mFPS * 3); }
+                                    return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
+                                                        player.play(trg_band[0] + time, 1, mFPS * 3); }
                                 };
                                 _valueTest = playValueTest;
                             } },
                           { description: "if rendering was requested",
                             prepare: function() {
                                 _whatToRun = function(time) {
-                                    return function() { player.drawAt(trg_band[0] + time); }
+                                    return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
+                                                        player.drawAt(trg_band[0] + time); }
                                 };
                                 _valueTest = drawValueTest;
                             } }
@@ -1144,18 +1147,17 @@ describe("builder, regarding modifiers,", function() {
                         it("should not call a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
                             var calls = [];
                             for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
-                                var later_time = trg_band[0] + modifier_time + (mFPS * FPS_ERR) + delta;
-                                if (later_time <= _duration) {
+                                var later_time = modifier_time + (mFPS * FPS_ERR) + delta;
+                                if (fitsScene(later_time)) {
                                     (function(later_time) {
                                         if ((modifier_time <= (trg_duration - mFPS)) ||
                                             (later_time <= (trg_band[0] + trg_duration - mFPS)) ||
-                                            (later_time >= (trg_band[0] + trg_duration + mFPS))) {
+                                            ((later_time >= (trg_band[0] + trg_duration + mFPS)) && fitsScene(later_time))) {
                                             calls.push(function() {
                                                 expectNotToCall(_mocks.nop, modifier_time,
                                                                         later_time, this.next);
                                             });
-                                        } else {
-                                            console.log('was here!');
+                                        } else if (fitsScene(later_time)) {
                                             calls.push(function() {
                                                 expectToCall(_mocks.nop, modifier_time,
                                                                      later_time, this.next);
@@ -1163,6 +1165,9 @@ describe("builder, regarding modifiers,", function() {
                                         }
                                     }(later_time));
                                 }
+                            }
+                            if ((trg_band[0] + modifier_time + (mFPS * FPS_ERR) + 0.01) <= _duration) {
+                                expect(calls.length).toBeGreaterThan(0);
                             }
                             if (calls.length > 0) queue(calls);
                         });
