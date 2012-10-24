@@ -1027,14 +1027,26 @@ describe("builder, regarding modifiers,", function() {
                                               scene.add(b().add(target)); } } ],
                     function() {
 
-                varyAll([ { prepare: function() { modifier_time = trg_duration / 4; },
-                            description: "and modifier time is near to the start of the target" },
-                          { prepare: function() { modifier_time = trg_duration / 2; },
-                            description: "and modifier time is near to the middle of the target" },
-                          { prepare: function() { modifier_time = (trg_duration / 4) * 3; },
-                            description: "and modifier time is near to the end of the target" },
-                          { prepare: function() { modifier_time = 0; },
+                varyAll([ { prepare: function() { modifier_time = 0; },
                             description: "and modifier time is at the exact start of the target" },
+                          { prepare: function() { modifier_time = (1 / 15) * trg_duration; },
+                            description: "and modifier time is very-very close to the start of the target" },
+                          { prepare: function() { modifier_time = (1 / 14) * trg_duration; },
+                            description: "and modifier time is very close to the start of the target" },
+                          { prepare: function() { modifier_time = (1 / 10) * trg_duration; },
+                            description: "and modifier time is close to the start of the target" },
+                          { prepare: function() { modifier_time = (1 / 4)   * trg_duration; },
+                            description: "and modifier time is near to the start of the target" },
+                          { prepare: function() { modifier_time = (1 / 2)   * trg_duration; },
+                            description: "and modifier time is in the middle of the target" },
+                          { prepare: function() { modifier_time = (3 / 4)   * trg_duration; },
+                            description: "and modifier time is near to the end of the target" },
+                          { prepare: function() { modifier_time = (9 / 10) * trg_duration; },
+                            description: "and modifier time is close to the end of the target" },
+                          { prepare: function() { modifier_time = (13 / 14) * trg_duration; },
+                            description: "and modifier time is very close to the end of the target" },
+                          { prepare: function() { modifier_time = (14 / 15) * trg_duration; },
+                            description: "and modifier time is even closer to the end of the target" },
                           { prepare: function() { modifier_time = trg_duration; },
                             description: "and modifier time is at the exact end of the target" }
                         ], function() {
@@ -1133,21 +1145,24 @@ describe("builder, regarding modifiers,", function() {
                             var calls = [];
                             for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
                                 var later_time = trg_band[0] + modifier_time + (mFPS * FPS_ERR) + delta;
-                                (function(later_time) {
-                                    if ((modifier_time <= (trg_duration - mFPS)) ||
-                                        (later_time <= (trg_band[0] + trg_duration - mFPS)) ||
-                                        (later_time >= (trg_band[0] + trg_duration + mFPS))) {
-                                        calls.push(function() {
-                                            expectNotToCall(_mocks.nop, modifier_time,
+                                if (later_time <= _duration) {
+                                    (function(later_time) {
+                                        if ((modifier_time <= (trg_duration - mFPS)) ||
+                                            (later_time <= (trg_band[0] + trg_duration - mFPS)) ||
+                                            (later_time >= (trg_band[0] + trg_duration + mFPS))) {
+                                            calls.push(function() {
+                                                expectNotToCall(_mocks.nop, modifier_time,
                                                                         later_time, this.next);
-                                        });
-                                    } else {
-                                        calls.push(function() {
-                                            expectToCall(_mocks.nop, modifier_time,
+                                            });
+                                        } else {
+                                            console.log('was here!');
+                                            calls.push(function() {
+                                                expectToCall(_mocks.nop, modifier_time,
                                                                      later_time, this.next);
-                                        });
-                                    }
-                                }(later_time));
+                                            });
+                                        }
+                                    }(later_time));
+                                }
                             }
                             if (calls.length > 0) queue(calls);
                         });
