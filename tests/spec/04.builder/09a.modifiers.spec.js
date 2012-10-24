@@ -1155,12 +1155,13 @@ describe("builder, regarding modifiers,", function() {
                                             ((later_time >= (trg_band[0] + trg_duration + mFPS)) && fitsScene(later_time))) {
                                             calls.push(function() {
                                                 expectNotToCall(_mocks.nop, modifier_time,
-                                                                        later_time, this.next);
+                                                                later_time, this.next);
                                             });
                                         } else if (fitsScene(later_time)) {
                                             calls.push(function() {
-                                                expectToCall(_mocks.nop, modifier_time,
-                                                                     later_time, this.next);
+                                                expectToCall(function(t) {
+                                                    expect(_valueTest(t, modifier_time)).toBeTruthy();
+                                                }, modifier_time, later_time, this.next);
                                             });
                                         }
                                     }(later_time));
@@ -1186,6 +1187,17 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
+                    /* return b().add(b().rect([40, 40], [20, 20])
+                                      .band([0, 3])
+                                      .modify([0, 2.5], function(t) {
+                                          console.log('red called at ', t);
+                                          b(this.$).fill('#f00')
+                                      })
+                                      .modify([2.5, 3], function(t) {
+                                          console.log('yellow called at ', t);
+                                          b(this.$).fill('#ff0')
+                                      })); */
+
                     it("should call a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
                         var calls = [];
                         var fraction = 4 / 5;
@@ -1195,7 +1207,7 @@ describe("builder, regarding modifiers,", function() {
                         for (var delta = fraction * mFPS; delta > 0; delta -= .005) {
                             var call_at = trg_band[0] + (modifier_time - delta);
                             if (call_at < 0) call_at = 0;
-                            if ((call_at <= (trg_band[0] + modifier_time)) && (call_at <= (trg_band[0] + trg_duration))) {
+                            if ((call_at + mFPS) <= (trg_band[0] + trg_duration)) {
                                 (function(call_at) {
                                     calls.push(function() {
                                         (function(next) {

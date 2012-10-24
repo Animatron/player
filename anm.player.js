@@ -2086,7 +2086,7 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
                       ? (1 / (ltime - state._._appliedAt))
-                      : 0) || 0; // TODO: use FPS_FALLBACK?
+                      : 0) || 0;
       // FIXME: test if afps is not too big
       var tpos = band;
       var lband = this.xdata.lband;
@@ -2094,9 +2094,8 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))) ||
                    ((afps <= 0) && __close(ltime, tpos, 10)) ||
-                   ((afps > 0) && (tpos <= lband[1]) &&
-                    (tpos > (lband[1] - (1 / afps))) &&
-                    ((ltime + (1 / afps)) > lband[1]));
+                   ((tpos > (lband[1] - (1 / (afps || 10)))) &&
+                    ((ltime + (1 / (afps || 10))) > lband[1]));
       if (doCall) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
