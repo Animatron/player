@@ -1135,7 +1135,8 @@ describe("builder, regarding modifiers,", function() {
                                 var later_time = trg_band[0] + modifier_time + (mFPS * FPS_ERR) + delta;
                                 (function(later_time) {
                                     if ((modifier_time <= (trg_duration - mFPS)) ||
-                                        (later_time <= (trg_band[0] + trg_duration - mFPS))) {
+                                        (later_time <= (trg_band[0] + trg_duration - mFPS)) ||
+                                        (later_time >= (trg_band[0] + trg_duration + mFPS))) {
                                         calls.push(function() {
                                             expectNotToCall(_mocks.nop, modifier_time,
                                                                         later_time, this.next);
