@@ -1112,10 +1112,7 @@ describe("builder, regarding modifiers,", function() {
                     var mFPS = 1 / FPS,
                         FPS_ERR = anm.Element.FPS_ERR;
 
-                    function playValueTest(t, time) { return (t >= time) && (t <= time + (mFPS * FPS_ERR)); };
-                    /*function playValueTest(t, time) { return (((t >= time) && (t <= time + (mFPS * FPS_ERR)))/* ||
-                                                              ((t < time) && (time > trg_duration - mFPS)
-                                                                          && (t    > trg_duration - mFPS))); }*/
+                    function playValueTest(t, time) { return (t >= time) && (t <= time + (mFPS * FPS_ERR)); }
                     function drawValueTest(t, time) { return Math.round(t    * Math.pow(10, CLOSE_FACTOR)) ==
                                                              Math.round(time * Math.pow(10, CLOSE_FACTOR)); }
                     function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
@@ -1158,13 +1155,12 @@ describe("builder, regarding modifiers,", function() {
                                             ((later_time >= (trg_band[0] + trg_duration + mFPS)) && fitsScene(later_time))) {
                                             calls.push(function() {
                                                 expectNotToCall(_mocks.nop, modifier_time,
-                                                                later_time, this.next);
+                                                                        later_time, this.next);
                                             });
                                         } else if (fitsScene(later_time)) {
                                             calls.push(function() {
-                                                expectToCall(function(t) {
-                                                    //expect(_valueTest(t, modifier_time)).toBeTruthy();
-                                                }, modifier_time, later_time, this.next);
+                                                expectToCall(_mocks.nop, modifier_time,
+                                                                     later_time, this.next);
                                             });
                                         }
                                     }(later_time));

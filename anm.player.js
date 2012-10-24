@@ -370,16 +370,8 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
-// === INTERNAL CONSTANTS =========================================================
-// ================================================================================
-
-// rendering-related constants to determine
-// time to call modifiers
-var FPS_ERR = 1.3,
-    FPS_FALLBACK = 10;
-
-// === PLAYER =====================================================================
-// ================================================================================
+// === PLAYER ==================================================================
+// =============================================================================
 
 /*
  `id` is canvas id
@@ -2082,6 +2074,7 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
+Element.FPS_ERR = 1.3;
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
   if (band == null) return ltime;
   if (__array(band)) { // modifier is band-restricted
@@ -2093,14 +2086,15 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
                       ? (1 / (ltime - state._._appliedAt))
-                      : 0) || FPS_FALLBACK;
+                      : 0) || 0; // TODO: use FPS_FALLBACK?
       // FIXME: test if afps is not too big
       var tpos = band;
       var lband = this.xdata.lband;
-      var doCall = __close(ltime, tpos, 10) ||
-                   ((ltime >= tpos) &&
-                    (ltime <= tpos + ((1 / afps) * FPS_ERR))) ||
-                   ((tpos <= lband[1]) &&
+      var doCall = ((afps > 0) &&
+                    (ltime >= tpos) &&
+                    (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))) ||
+                   ((afps <= 0) && __close(ltime, tpos, 10)) ||
+                   ((afps > 0) && (tpos <= lband[1]) &&
                     (tpos > (lband[1] - (1 / afps))) &&
                     ((ltime + (1 / afps)) > lband[1]));
       if (doCall) {
