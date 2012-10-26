@@ -249,20 +249,20 @@ describe("as for known bugs,", function() {
             prepare: function() {
                 var scene = b('scene').band([0, 1.5]);
 
-                var b1 = b('b1').on(C.X_MCLICK,
-                    b1ClickSpy = jasmine.createSpy('b1-click-spy'));
+                b1 = b('b1').on(C.X_MCLICK,
+                b1ClickSpy = jasmine.createSpy('b1-click-spy'));
 
-                var b2 = b("b2").on(C.X_MCLICK,
-                    b2ClickSpy = jasmine.createSpy('b2-click-spy')
-                    .andCallFake(function(evt) {
-                        b1.disable();
-                    }));
+                b2 = b("b2").on(C.X_MCLICK,
+                                b2ClickSpy = jasmine.createSpy('b2-click-spy')
+                                                    .andCallFake(function(evt) {
+                                                        b1.disable();
+                                                    }));
 
-                var b3 = b("b3").on(C.X_MCLICK,
-                    b3ClickSpy = jasmine.createSpy('b3-click-spy')
-                    .andCallFake(function(evt) {
-                        b1.enable();
-                    }));
+                b3 = b("b3").on(C.X_MCLICK,
+                                b3ClickSpy = jasmine.createSpy('b3-click-spy')
+                                                    .andCallFake(function(evt) {
+                                                        b1.enable();
+                                                    }));
 
                 scene.add(b1).add(b2).add(b3);
 

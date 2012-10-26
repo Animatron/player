@@ -1223,7 +1223,7 @@ describe("builder, regarding modifiers,", function() {
                                             console.log('modifier time is', modifier_time); */
                                             var modifierSpy = jasmine.createSpy('modifier-spy')
                                                 .andCallFake(function(t) {
-                                                    console.log('modifier was called at', t, 'value test:', playValueTest(t, modifier_time));
+                                                    //console.log('modifier was called at', t, 'value test:', playValueTest(t, modifier_time));
                                                     expect(playValueTest(t, modifier_time)).toBeTruthy();
                                                 });
                                             doAsync(player, {
