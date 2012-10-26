@@ -415,11 +415,11 @@ describe("builder, regarding its formation techniques,", function() {
                 instance.modify(mod_three);
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(2);
                 expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
-                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][0][0]).toBe(mod_one);
-                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][1][0]).toBe(mod_two);
-                expect(instance.v._modifiers[anm.Element.USER_MOD][0][0][0]).toBe(mod_one);
-                expect(instance.v._modifiers[anm.Element.USER_MOD][0][1][0]).toBe(mod_two);
-                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][0][1]).toBe(mod_one);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][1][1]).toBe(mod_two);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][0][1]).toBe(mod_one);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][1][1]).toBe(mod_two);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][1]).toBe(mod_three);
 
                 var mod_four = _mocks.factory.nop(),
                     mod_five = _mocks.factory.nop();
@@ -427,23 +427,23 @@ describe("builder, regarding its formation techniques,", function() {
                 to_clone.modify(mod_five)
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(4);
                 expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
-                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_four);
-                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3][0]).toBe(mod_five);
-                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2][1]).toBe(mod_four);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3][1]).toBe(mod_five);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][1]).toBe(mod_three);
                 to_clone.unmodify(mod_four);
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(4);
                 expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2]).toBe(null);
-                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3][0]).toBe(mod_five);
+                expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3][1]).toBe(mod_five);
                 expect(instance.v._modifiers[anm.Element.USER_MOD][0][2]).not.toBe(null);
-                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][1]).toBe(mod_three);
                 to_clone.unmodify(mod_five);
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0].length).toBe(4);
                 expect(instance.v._modifiers[anm.Element.USER_MOD][0].length).toBe(3);
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][2]).toBe(null);
                 expect(to_clone.v._modifiers[anm.Element.USER_MOD][0][3]).toBe(null);
                 expect(instance.v._modifiers[anm.Element.USER_MOD][0][2]).not.toBe(null);
-                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][0]).toBe(mod_three);
+                expect(instance.v._modifiers[anm.Element.USER_MOD][0][2][1]).toBe(mod_three);
             });
 
             it("should clone painters array of given builder's element, not to copy", function() {
