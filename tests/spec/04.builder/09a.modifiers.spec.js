@@ -1110,11 +1110,14 @@ describe("builder, regarding modifiers,", function() {
                     };
 
                     var mFPS = 1 / FPS,
-                        FPS_ERR = anm.Element.FPS_ERR;
+                        FPS_ERR = anm.Element._FPS_ERROR;
 
-                    function playValueTest(t, time) { return (t >= time) && (t <= time + (mFPS * FPS_ERR)); }
-                    function drawValueTest(t, time) { return Math.round(t    * Math.pow(10, CLOSE_FACTOR)) ==
-                                                             Math.round(time * Math.pow(10, CLOSE_FACTOR)); }
+                    function playValueTest(t, time) { return ((t >= 0) && (t <= trg_duration)) &&
+                                                             (((t >= time) && (t <= time + (mFPS * FPS_ERR))) ||
+                                                              ((t < time)  && __close(t, time, 10))); }
+                    function drawValueTest(t, time) { return ((t >= 0) && (t <= trg_duration)) &&
+                                                             ( Math.round(t    * Math.pow(10, CLOSE_FACTOR)) ==
+                                                               Math.round(time * Math.pow(10, CLOSE_FACTOR)) ); }
                     function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
 
                     varyAll( [
@@ -1187,35 +1190,37 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    /* return b().add(b().rect([40, 40], [20, 20])
-                                      .band([0, 3])
-                                      .modify([0, 2.5], function(t) {
-                                          console.log('red called at ', t);
-                                          b(this.$).fill('#f00')
-                                      })
-                                      .modify([2.5, 3], function(t) {
-                                          console.log('yellow called at ', t);
-                                          b(this.$).fill('#ff0')
-                                      })); */
+/* return b().add(b().rect([80, 80], 80)
+                  .modify([1, 1.5], function(t) {
+                      b(this.$).fill(B.rgb(255 * t, 0, 0));
+                      b(this.$).stroke(B.rgb(255 - (t * 255), 0 ,0),
+                                       20 * t)
+                  }))
+          .add(b().circle([120, 120], 30)
+                  .modify(0.5, function(t) {
+                               b(this.$).fill('yellow'); })
+                  .modify(1.5, function(t) {
+                               b(this.$).fill('cyan'); })); */
 
                     it("should call a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
                         var calls = [];
                         var fraction = 4 / 5;
-                        console.log('===================');
+                        /* console.log('===================');
                         console.log('mFPS', mFPS);
-                        console.log('fraction', mFPS * fraction);
+                        console.log('fraction', mFPS * fraction); */
                         for (var delta = fraction * mFPS; delta > 0; delta -= .005) {
                             var call_at = trg_band[0] + (modifier_time - delta);
                             if (call_at < 0) call_at = 0;
-                            if ((call_at + mFPS) <= (trg_band[0] + trg_duration)) {
+                            if ((call_at >= trg_band[0]) &&
+                                (call_at + mFPS) <= (trg_band[0] + trg_duration)) {
                                 (function(call_at) {
                                     calls.push(function() {
                                         (function(next) {
-                                            console.log('------------------');
+                                            /* console.log('------------------');
                                             console.log('requested time is', call_at);
                                             console.log('target band start is', trg_band[0]);
                                             console.log('target band duration is', trg_duration);
-                                            console.log('modifier time is', modifier_time);
+                                            console.log('modifier time is', modifier_time); */
                                             var modifierSpy = jasmine.createSpy('modifier-spy')
                                                 .andCallFake(function(t) {
                                                     console.log('modifier was called at', t, 'value test:', playValueTest(t, modifier_time));

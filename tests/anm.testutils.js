@@ -222,4 +222,13 @@ function queue(fs) {
     q[0]();
 }
 
+function __close(n1, n2, precision) { // matches player implementation
+    if (!(precision === 0)) {
+        precision = precision || 2;
+    }
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n1 * multiplier) ==
+           Math.round(n2 * multiplier);
+}
+
 // TODO: tests for utils

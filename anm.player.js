@@ -370,8 +370,15 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
-// === PLAYER ==================================================================
-// =============================================================================
+// === INTERNAL CONSTANTS =========================================================
+// ================================================================================
+
+// for the cases when it is impossible to determine FPS
+var FPS_FALLBACK = 60,
+    FPS_ERROR = 1.3;
+
+// === PLAYER =====================================================================
+// ================================================================================
 
 /*
  `id` is canvas id
@@ -2074,7 +2081,8 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element.FPS_ERR = 1.3;
+Element._FPS_FALLBACK = FPS_FALLBACK;
+Element._FPS_ERROR = FPS_ERROR;
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
   if (band == null) return ltime;
   if (__array(band)) { // modifier is band-restricted
@@ -2092,10 +2100,10 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
       var lband = this.xdata.lband;
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
-                    (ltime <= tpos + ((1 / afps) * Element.FPS_ERR))) ||
+                    (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
                    ((afps <= 0) && __close(ltime, tpos, 10)) ||
-                   ((tpos > (lband[1] - (1 / (afps || 10)))) &&
-                    ((ltime + (1 / (afps || 10))) > lband[1]));
+                   ((tpos > (lband[1] - (1 / (afps || FPS_FALLBACK)))) &&
+                    ((ltime + (1 / (afps || FPS_FALLBACK))) > lband[1]));
       if (doCall) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
