@@ -2084,12 +2084,14 @@ Element.prototype._stateStr = function() {
 Element._FPS_FALLBACK = FPS_FALLBACK;
 Element._FPS_ERROR = FPS_ERROR;
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
-  if (band == null) return ltime;
+  var lband = this.xdata.lband,
+      elm_duration = lband[1] - lband[0];
+  if (band == null) return [ ltime / elm_duration, elm_duration ];
   if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
       if (ltime < band[0]) return 0;
       else if (ltime > band[1]) return 1;
-      else return (ltime - band[0]) / (band[1] - band[0]);
+      else return [ (ltime - band[0]) / (band[1] - band[0]), band[1] - band[0] ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
@@ -2097,7 +2099,6 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
                       : 0) || 0;
       // FIXME: test if afps is not too big
       var tpos = band;
-      var lband = this.xdata.lband;
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
@@ -2110,7 +2111,7 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       }
-      return doCall ? ltime : false;
+      return doCall ? [ ltime / elm_duration, elm_duration ]  : false;
   } else return ltime;
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
@@ -2138,7 +2139,7 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime, data);
+                return modifier.call(elm._state, lbtime[0], lbtime[1], data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
