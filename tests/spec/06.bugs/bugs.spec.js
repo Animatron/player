@@ -21,7 +21,7 @@ describe("as for known bugs,", function() {
 
         it('should not call modifiers of the elements immediately after the fact they were removed', function() {
 
-            _fakeCallsForCanvasRelatedStuff();
+            _fake(_Fake.CVS_POS);
 
             var player = createPlayer('foo', { mode: C.M_DYNAMIC });
             var rect1 = b().rect([50, 50], 70);
@@ -51,63 +51,64 @@ describe("as for known bugs,", function() {
             var m_removeRectSpy;
             var m_selfRemoveSpy;
 
-            runs(function() {
+            doAsync(player, {
+                prepare: function() {
+                    m_removeRectSpy = jasmine.createSpy('remove-rect')
+                                             .andCallFake(function(t) {
+                                                if ((t > .5) && !rect1Removed) {
+                                                    scene.remove(rect1);
+                                                    expect(m_doNothing1Spy).toHaveBeenCalled();
+                                                    m_doNothing1Spy.reset();
+                                                    rect1Removed = true;
+                                                }
+                                             });
+                    m_selfRemoveSpy = jasmine.createSpy('self-remove')
+                                             .andCallFake(function(t) {
+                                                if ((t > .4) && !rect4Removed) {
+                                                    this.$.parent.remove(this.$);
+                                                    expect(m_doNothing4Spy).toHaveBeenCalled();
+                                                    m_doNothing4Spy.reset();
+                                                    rect4Removed = true;
+                                                }
+                                             });
 
-                m_removeRectSpy = jasmine.createSpy('remove-rect')
-                                         .andCallFake(function(t) {
-                                            if ((t > .5) && !rect1Removed) {
-                                                scene.remove(rect1);
-                                                expect(m_doNothing1Spy).toHaveBeenCalled();
-                                                m_doNothing1Spy.reset();
-                                                rect1Removed = true;
-                                            }
-                                         });
-                m_selfRemoveSpy = jasmine.createSpy('self-remove')
-                                         .andCallFake(function(t) {
-                                            if ((t > .4) && !rect4Removed) {
-                                                this.$.parent.remove(this.$);
-                                                expect(m_doNothing4Spy).toHaveBeenCalled();
-                                                m_doNothing4Spy.reset();
-                                                rect4Removed = true;
-                                            }
-                                         });
+                    rect2.modify(m_removeRectSpy);
+                    rect4.modify(m_selfRemoveSpy);
 
-                rect2.modify(m_removeRectSpy);
-                rect4.modify(m_selfRemoveSpy);
+                    return scene;
+                },
+                run: function() {
+                    player.play();
 
-                player.load(scene).play();
+                    setTimeout(function() {
+                        scene.remove(rect3);
+                        expect(m_doNothing3Spy).toHaveBeenCalled();
+                        m_doNothing3Spy.reset();
+                        rect3Removed = true;
+                    }, 550);
+                },
+                waitFor: function() {
+                    return rect1Removed && rect3Removed && rect4Removed;
+                }, timeout: 0.7,
+                then: function() {
+                    expect(rect1Removed).toBeTruthy();
+                    expect(rect3Removed).toBeTruthy();
+                    expect(rect4Removed).toBeTruthy();
 
-                setTimeout(function() {
-                    scene.remove(rect3);
-                    expect(m_doNothing3Spy).toHaveBeenCalled();
-                    m_doNothing3Spy.reset();
-                    rect3Removed = true;
-                }, 550);
+                    expect(m_removeRectSpy).toHaveBeenCalled();
+                    expect(m_selfRemoveSpy).toHaveBeenCalled();
+                    expect(m_doNothing2Spy).toHaveBeenCalled();
 
-            });
-
-            waitsFor(function() { return rect1Removed && rect3Removed && rect4Removed; }, 700);
-
-            runs(function() {
-                expect(rect1Removed).toBeTruthy();
-                expect(rect3Removed).toBeTruthy();
-                expect(rect4Removed).toBeTruthy();
-
-                expect(m_removeRectSpy).toHaveBeenCalled();
-                expect(m_selfRemoveSpy).toHaveBeenCalled();
-                expect(m_doNothing2Spy).toHaveBeenCalled();
-
-                expect(m_doNothing1Spy).not.toHaveBeenCalled();
-                expect(m_doNothing3Spy).not.toHaveBeenCalled();
-                expect(m_doNothing4Spy).not.toHaveBeenCalled();
-
-                player.stop();
+                    expect(m_doNothing1Spy).not.toHaveBeenCalled();
+                    expect(m_doNothing3Spy).not.toHaveBeenCalled();
+                    expect(m_doNothing4Spy).not.toHaveBeenCalled();
+                }
             });
 
         });
 
         it('should not call modifiers of the elements immediately after the fact they were disabled', function() {
-            _fakeCallsForCanvasRelatedStuff();
+            _fake(_Fake.CVS_POS);
 
             var player = createPlayer('foo', { mode: C.M_DYNAMIC });
             var rect1 = b().rect([10, 10], 70);
@@ -131,9 +132,9 @@ describe("as for known bugs,", function() {
 
             var m_disableRectSpy;
 
-            runs(function() {
-
-                m_disableRectSpy = jasmine.createSpy('disable-rect')
+            doAsync(player, {
+                prepare: function() {
+                    m_disableRectSpy = jasmine.createSpy('disable-rect')
                                          .andCallFake(function(t) {
                                             if ((t > .5) && !rect1Disabled) {
                                                 expect(m_doNothing1Spy).toHaveBeenCalled();
@@ -143,33 +144,33 @@ describe("as for known bugs,", function() {
                                             }
                                          });
 
-                rect2.modify(m_disableRectSpy);
+                    rect2.modify(m_disableRectSpy);
 
-                player.load(scene).play();
+                    return scene;
+                },
+                run: function() {
+                    player.play();
 
-                setTimeout(function() {
-                    expect(m_doNothing3Spy).toHaveBeenCalled();
-                    rect3.disable();
-                    m_doNothing3Spy.reset();
-                    rect3Disabled = true;
-                }, 550);
+                    setTimeout(function() {
+                        expect(m_doNothing3Spy).toHaveBeenCalled();
+                        rect3.disable();
+                        m_doNothing3Spy.reset();
+                        rect3Disabled = true;
+                    }, 550);
+                },
+                waitFor: function() {
+                    return rect1Disabled && rect3Disabled;
+                }, timeout: 0.7,
+                then: function() {
+                    expect(rect1Disabled).toBeTruthy();
+                    expect(rect3Disabled).toBeTruthy();
 
+                    expect(m_disableRectSpy).toHaveBeenCalled();
+                    expect(m_doNothing2Spy).toHaveBeenCalled();
 
-            });
-
-            waitsFor(function() { return rect1Disabled && rect3Disabled; }, 700);
-
-            runs(function() {
-                expect(rect1Disabled).toBeTruthy();
-                expect(rect3Disabled).toBeTruthy();
-
-                expect(m_disableRectSpy).toHaveBeenCalled();
-                expect(m_doNothing2Spy).toHaveBeenCalled();
-
-                expect(m_doNothing1Spy).not.toHaveBeenCalled();
-                expect(m_doNothing3Spy).not.toHaveBeenCalled();
-
-                player.stop();
+                    expect(m_doNothing1Spy).not.toHaveBeenCalled();
+                    expect(m_doNothing3Spy).not.toHaveBeenCalled();
+                }
             });
 
         });
@@ -193,36 +194,36 @@ describe("as for known bugs,", function() {
     it('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
 
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         var player = createPlayer('foo');
 
         var started, stopSpy;
 
-        runs(function() {
-            stopSpy = spyOn(player, 'stop').andCallThrough();
-            var scene = new anm.Scene();
-            scene.add(new anm.Element());
-            scene.duration = 1;
-            player.load(scene).play();
-        });
-
-        waitsFor(function() {
-            if (player.state.happens === C.STOPPED) {
+        doAsync(player, {
+            prepare: function() {
+                stopSpy = spyOn(player, 'stop').andCallThrough();
+                var scene = new anm.Scene();
+                scene.add(new anm.Element());
+                scene.duration = 1;
+                return scene;
+            },
+            do: 'play', until: C.STOPPED, timeout: 1.1,
+            beforeEnd: function() {
                 expect(stopSpy).toHaveBeenCalled();
                 stopSpy.reset();
-                return true;
-            };
-        }, 1100);
+            },
+            afterThat: function() {
+                runs(function() {
+                    started = Date.now();
+                });
 
-        runs(function() {
-            started = Date.now();
-        });
+                waitsFor(function() { return ((Date.now() - started) > 1500); }, 2000);
 
-        waitsFor(function() { return ((Date.now() - started) > 1500); }, 2000);
-
-        runs(function() {
-            expect(stopSpy).not.toHaveBeenCalled();
+                runs(function() {
+                    expect(stopSpy).not.toHaveBeenCalled();
+                });
+            }
         });
 
         // __stopAnim should stop the exact animation __nextFrame started, not the global animation id
@@ -234,7 +235,7 @@ describe("as for known bugs,", function() {
     });
 
     it('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         var player = createPlayer('foo', { mode: C.M_DYNAMIC });
 
@@ -244,54 +245,53 @@ describe("as for known bugs,", function() {
 
         var b1ClickSpy, b2ClickSpy, b3ClickSpy;
 
-        runs(function() {
-            var scene = b('scene').band([0, 1.5]);
+        doAsync(player, {
+            prepare: function() {
+                var scene = b('scene').band([0, 1.5]);
 
-            var b1 = b('b1').on(C.X_MCLICK,
+                b1 = b('b1').on(C.X_MCLICK,
                 b1ClickSpy = jasmine.createSpy('b1-click-spy'));
 
-            var b2 = b("b2").on(C.X_MCLICK,
-                b2ClickSpy = jasmine.createSpy('b2-click-spy')
-                .andCallFake(function(evt) {
-                    b1.disable();
-                }));
+                b2 = b("b2").on(C.X_MCLICK,
+                                b2ClickSpy = jasmine.createSpy('b2-click-spy')
+                                                    .andCallFake(function(evt) {
+                                                        b1.disable();
+                                                    }));
 
-            var b3 = b("b3").on(C.X_MCLICK,
-                b3ClickSpy = jasmine.createSpy('b3-click-spy')
-                .andCallFake(function(evt) {
-                    b1.enable();
-                }));
+                b3 = b("b3").on(C.X_MCLICK,
+                                b3ClickSpy = jasmine.createSpy('b3-click-spy')
+                                                    .andCallFake(function(evt) {
+                                                        b1.enable();
+                                                    }));
 
-            scene.add(b1).add(b2).add(b3);
+                scene.add(b1).add(b2).add(b3);
 
-            player.load(scene).play();
-
-            setTimeout(function() {
-                b2.v.fire(C.X_MCLICK, {});
+                return scene;
+            },
+            run: function() {
+                player.play();
 
                 setTimeout(function() {
-                    expect(b2ClickSpy).toHaveBeenCalled();
-                    b1.v.fire(C.X_MCLICK, {});
+                    b2.v.fire(C.X_MCLICK, {});
 
-                        setTimeout(function() {
-                            expect(b1ClickSpy).not.toHaveBeenCalled();
-                            b3.v.fire(C.X_MCLICK, {});
+                    setTimeout(function() {
+                        expect(b2ClickSpy).toHaveBeenCalled();
+                        b1.v.fire(C.X_MCLICK, {});
 
                             setTimeout(function() {
-                                expect(b3ClickSpy).toHaveBeenCalled();
-                                enabledB1AndWaitedABit = true;
-                            }, 150);
-                        }, 200);
+                                expect(b1ClickSpy).not.toHaveBeenCalled();
+                                b3.v.fire(C.X_MCLICK, {});
+
+                                setTimeout(function() {
+                                    expect(b3ClickSpy).toHaveBeenCalled();
+                                    enabledB1AndWaitedABit = true;
+                                }, 150);
+                            }, 200);
+                    }, 200);
                 }, 200);
-            }, 200);
-
-        });
-
-        waitsFor(function() { return enabledB1AndWaitedABit; }, 1100);
-
-        runs(function() {
-            expect(b1ClickSpy).not.toHaveBeenCalled();
-            player.stop();
+            },
+            waitFor: function() { return enabledB1AndWaitedABit; }, timeout: 1.1,
+            then: function() { expect(b1ClickSpy).not.toHaveBeenCalled(); }
         });
 
     });

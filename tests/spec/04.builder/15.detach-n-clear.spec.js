@@ -78,7 +78,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
 
     it("should not call modifiers of cleared element children", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
         var player = createPlayer('foo');
 
         var root = b().band([0, 1]);
@@ -100,16 +100,13 @@ describe("builder, regading clearing elements or detaching them, ", function() {
             modifierSpies.push(modifierSpy);
         }
 
-        runs(function() {
-            target.clear();
-            player.load(root).play();
-        });
-
-        waitsFor(function() { return player.state.happens === C.STOPPED; });
-
-        runs(function() {
-            for (var i = 0; i < count; i++) {
-                expect(modifierSpies[i]).not.toHaveBeenCalled();
+        doAsync(player, {
+            prepare: function() { target.clear(); return root; },
+            do: 'play', until: C.STOPPED,
+            then: function() {
+                for (var i = 0; i < count; i++) {
+                    expect(modifierSpies[i]).not.toHaveBeenCalled();
+                }
             }
         });
 
@@ -119,6 +116,10 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     });
 
     it("should correctly detach element from parent and scene", function() {
+        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        _fake(_Fake.CVS_POS);
+        var player = createPlayer('foo');
+
         var root = b();
         var target = b();
 
@@ -149,15 +150,15 @@ describe("builder, regading clearing elements or detaching them, ", function() {
         expect(root.v.children.length).toBe(1);
         expect(target.v.children.length).toBe(count);
 
-        //player.load(root);
+        player.load(root);
+
+        expect(root.v.scene).not.toBe(null);
 
         for (var i = 0; i < count; i++) {
             var child = children[i];
             var subChild = subChildren[i];
-            //expect(subChild.v.scene).toBe(root.v.scene);
-            //expect(child.v.scene).toBe(root.v.scene);
-            expect(subChild.v.scene == root.v.scene).toBeTruthy();
-            expect(child.v.scene == root.v.scene).toBeTruthy();
+            expect(subChild.v.scene).toBe(root.v.scene);
+            expect(child.v.scene).toBe(root.v.scene);
         }
 
         for (var i = 0; i < count; i++) {
@@ -192,7 +193,18 @@ describe("builder, regading clearing elements or detaching them, ", function() {
             expect(subChild.v.scene).toBe(null);
         }
 
-        //  TODO: ensure scene also have no records
+        var scene = root.v.scene;
+        expect(root.v.scene).not.toBe(null);
+        for (var i = 0; i < count; i++) {
+            var childId = children[i].id;
+            var subChildId = subChildren[i].id;
+            expect(scene.hash[childId]).not.toBeDefined();
+            expect(scene.hash[subChildId]).not.toBeDefined();
+            travel(function(elm) {
+                expect(elm.id).not.toEqual(childId);
+                expect(elm.id).not.toEqual(subChildId);
+            }, scene.tree);
+        }
 
     });
 
@@ -202,7 +214,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
 
     it("should not call modifiers of detached elements", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
         var player = createPlayer('foo');
 
         var root = b().band([0, 1]);
@@ -226,20 +238,21 @@ describe("builder, regading clearing elements or detaching them, ", function() {
             modifierSpies.push(modifierSpy);
         }
 
-        runs(function() {
-            for (var i = 0; i < count; i++) {
-                children[i].detach();
+        doAsync(player, {
+            prepare: function() {
+                for (var i = 0; i < count; i++) {
+                    children[i].detach();
+                }
+                return root;
+            },
+            do: 'play', until: C.STOPPED,
+            then: function() {
+                for (var i = 0; i < count; i++) {
+                    expect(modifierSpies[i]).not.toHaveBeenCalled();
+                }
             }
-            player.load(root).play();
         });
 
-        waitsFor(function() { return player.state.happens === C.STOPPED; });
-
-        runs(function() {
-            for (var i = 0; i < count; i++) {
-                expect(modifierSpies[i]).not.toHaveBeenCalled();
-            }
-        });
     });
 
 });

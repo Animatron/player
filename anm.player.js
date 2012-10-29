@@ -23,9 +23,7 @@ define("anm", function() {
 // http://www.w3.org/TR/animation-timing/
 // https://gist.github.com/1579671
 
-var __frameId = -1;
-
-var __frameFunc = (function() {
+var __frameFunc = function() {
            return window.requestAnimationFrame ||
                   window.webkitRequestAnimationFrame ||
                   window.mozRequestAnimationFrame ||
@@ -33,9 +31,9 @@ var __frameFunc = (function() {
                   window.msRequestAnimationFrame ||
                   function(callback){
                     return window.setTimeout(callback, 1000 / 60);
-                  } })();
+                  } };
 
-var __clearFrameFunc = (function() {
+var __clearFrameFunc = function() {
            return window.cancelAnimationFrame ||
                   window.webkitCancelAnimationFrame ||
                   window.mozCancelAnimationFrame ||
@@ -43,15 +41,15 @@ var __clearFrameFunc = (function() {
                   window.msCancelAnimationFrame ||
                   function(id){
                     return window.clearTimeout(id);
-                  } })();
+                  } };
 
 // assigns to call a function on next animation frame
-var __nextFrame = __frameFunc;
+var __nextFrame;
 
 // stops the animation
 // FIXME: remove, not used, __supressFrames is used
 var __stopAnim = function(requestId) {
-    __clearFrameFunc(requestId);
+    __clearFrameFunc()(requestId);
 };
 
 // OTHER
@@ -221,7 +219,8 @@ function prepareImage(url, callback) {
                              // 'complete' fails on Firefox
         if (callback) callback(this);
     };
-    _img.src = url;
+    try { _img.src = url; }
+    catch(e) { throw new Error('Image at ' + url + ' is not accessible'); }
     return _img;
 }
 
@@ -234,6 +233,19 @@ function __builder(obj) {
 
 function __array(obj) {
     return Array.isArray(obj);
+}
+
+function __num(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function __close(n1, n2, precision) {
+    if (!(precision === 0)) {
+        precision = precision || 2;
+    }
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n1 * multiplier) ==
+           Math.round(n2 * multiplier);
 }
 
 function mrg_obj(src, backup) {
@@ -278,15 +290,20 @@ C.M_INFO_DISABLED = 0;
 C.M_INFO_ENABLED = 2;
 C.M_DO_NOT_HANDLE_EVENTS = 0;
 C.M_HANDLE_EVENTS = 4;
+C.M_DO_NOT_DRAW_STILL = 0;
+C.M_DRAW_STILL = 8;
 C.M_PREVIEW = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
-              | C.M_DO_NOT_HANDLE_EVENTS;
+              | C.M_DO_NOT_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL;
 C.M_DYNAMIC = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
-              | C.M_HANDLE_EVENTS;
+              | C.M_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL;
 C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_INFO_ENABLED
-            | C.M_DO_NOT_HANDLE_EVENTS;
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DRAW_STILL;
 
 
 // EVENTS
@@ -353,8 +370,15 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
-// === PLAYER ==================================================================
-// =============================================================================
+// === INTERNAL CONSTANTS =========================================================
+// ================================================================================
+
+// for the cases when it is impossible to determine FPS
+var FPS_FALLBACK = 60,
+    FPS_ERROR = 1.3;
+
+// === PLAYER =====================================================================
+// ================================================================================
 
 /*
  `id` is canvas id
@@ -434,6 +458,7 @@ Player.prototype.init = function(cvs, opts) {
     this._loadOpts(opts);
     this._postInit();
     // TODO: if (this.canvas.hasAttribute('data-url'))
+    return this;
 }
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
@@ -488,11 +513,13 @@ Player.prototype.load = function(object, importer, callback) {
     return player;
 }
 
-Player.prototype.play = function(from, speed) {
+Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) throw new Error(Player.ALREADY_PLAYING_ERR);
 
     var player = this;
+
+    __nextFrame = __frameFunc();
 
     player._ensureAnim();
     player._ensureState();
@@ -501,6 +528,7 @@ Player.prototype.play = function(from, speed) {
 
     state.from = from || state.from;
     state.speed = speed || state.speed;
+    state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -519,6 +547,7 @@ Player.prototype.play = function(from, speed) {
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
+                                  player.__beforeFrame(scene),
                                   player.__afterFrame(scene),
                                   player.__originateErrors());
 
@@ -544,13 +573,13 @@ Player.prototype.stop = function() {
 
     state.time = Player.NO_TIME;
     state.from = 0;
+    state.stop = Player.NO_TIME;
 
     if (player.anim) {
         state.happens = C.STOPPED;
-        // TODO: do not draw preview for games?
-        player.drawAt((player.mode & C.M_VIDEO)
-            ? state.duration * Player.PREVIEW_POS
-            : 0);
+        if (player.mode & C.M_DRAW_STILL) {
+            player.drawAt(state.duration * Player.PREVIEW_POS);
+        }
         if (player.controls/* && !player.controls.hidden*/) {
             player._renderControlsAt(0);
         }
@@ -954,11 +983,13 @@ Player.prototype._ensureState = function() {
 Player.prototype._ensureAnim = function() {
     if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
 }
-Player.prototype.__afterFrame = function(scene) {
-    return (function(player, state, scene, callback) {
+Player.prototype.__beforeFrame = function(scene) {
+    return (function(player, state, scene) {
         return function(time) {
             if (state.happens !== C.PLAYING) return false;
-            if (time > (state.duration + Player.PEFF)) {
+            if (((state.stop !== Player.NO_TIME) &&
+                 (time >= (state.from + state.stop))) ||
+                 (time > (state.duration + Player.PEFF))) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
@@ -967,11 +998,18 @@ Player.prototype.__afterFrame = function(scene) {
                 }
                 return false;
             }
+            return true;
+        }
+    })(this, this.state, scene);
+}
+Player.prototype.__afterFrame = function(scene) {
+    return (function(player, state, scene, callback) {
+        return function(time) {
             if (player.controls) {
                 player._renderControls();
             }
             if (callback) callback(time);
-          return true;
+            return true;
         }
     })(this, this.state, scene, this.__userAfterFrame);
 }
@@ -1025,8 +1063,8 @@ Player._saveCanvasPos = function(cvs) {
 
 Player.createState = function(player) {
     return {
-        'time': Player.NO_TIME, 'from': 0, 'speed': 1,
-        'fps': 30, 'afps': 0, 'duration': 0,
+        'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
+        'speed': 1, 'fps': 30, 'afps': 0, 'duration': 0,
         'debug': false, 'iactive': false,
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,
@@ -1206,13 +1244,13 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.render = function(ctx, time, zoom) {
+Scene.prototype.render = function(ctx, time, zoom, afps) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
     this.visitRoots(function(elm) {
-        elm.render(ctx, time);
+        elm.render(ctx, time, afps);
     });
     ctx.restore();
     this.fire(C.X_DRAW,ctx);
@@ -1415,7 +1453,7 @@ function Element(draw, onframe) {
     this.__data = null;
     this._modifiers = [];
     this._painters = [];
-    if (onframe) this.__modify(Element.USER_MOD, 0, onframe);
+    if (onframe) this.__modify(Element.USER_MOD, 0, null, onframe);
     if (draw) this.__paint(Element.USER_PNT, 0, draw);
     this.__lastJump = null;
     this.__jumpLock = false;
@@ -1449,8 +1487,8 @@ Element.prototype.prepare = function() {
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
-Element.prototype.onframe = function(ltime) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
+Element.prototype.onframe = function(ltime, afps) {
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, afps);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
@@ -1471,8 +1509,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= s.alpha;
     s._matrix.apply(ctx);
 }
-// > Element.render % (ctx: Context, gtime: Float)
-Element.prototype.render = function(ctx, gtime) {
+// > Element.render % (ctx: Context, gtime: Float[, afps: Float])
+Element.prototype.render = function(ctx, gtime, afps) {
     if (this.disabled) return;
     this.rendering = true;
     ctx.save();
@@ -1481,7 +1519,7 @@ Element.prototype.render = function(ctx, gtime) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     if (wasDrawn = (this.fits(ltime)
-                    && this.onframe(ltime)
+                    && this.onframe(ltime, afps)
                     && this.prepare())) {
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
@@ -1531,11 +1569,20 @@ Element.prototype.render = function(ctx, gtime) {
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-// > Element.addModifier % (modifier: Function(time: Float,
+// > Element.addModifier % ([restriction: Array[Float, 2] | Float],
+//                          modifier: Function(time: Float,
 //                                              data: Any) => Boolean,
-//                           data: Any) => Integer
-Element.prototype.addModifier = function(modifier, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, modifier, data);
+//                          [data: Any],
+//                          [priority: Int]
+//                         ) => Integer
+Element.prototype.addModifier = function(band, modifier, data, priority) {
+    var with_band = __array(band) || __num(band);
+    // match actual arguments, if band was omitted
+    priority = with_band ? priority : data;
+    data = with_band ? data : modifier;
+    modifier = with_band ? modifier : band;
+    band = with_band ? band : null;
+    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, data);
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -1602,11 +1649,11 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     }
 }
 // > Element.addS % (dimen: Array[Int, 2],
-//                    draw: Function(ctx: Context),
-//                    onframe: Function(time: Float),
-//                    [ transform: Function(ctx: Context,
-//                                          prev: Function(Context)) ])
-//                    => Element
+//                   draw: Function(ctx: Context),
+//                   onframe: Function(time: Float),
+//                   [ transform: Function(ctx: Context,
+//                                         prev: Function(Context)) ])
+//                   => Element
 Element.prototype.addS = function(dimen, draw, onframe, transform) {
     var _elm = this.add(draw, onframe, transform);
     _elm.sprite = true;
@@ -1712,7 +1759,7 @@ Element.prototype.ltime = function(gtime) {
     }
 }
 Element.prototype.m_on = function(type, handler) {
-    return this.__modify(Element.EVENT_MOD, 0, function(t) { // FIXME: handlers must have priority?
+    return this.__modify(Element.EVENT_MOD, 0, null, function(t) { // FIXME: handlers must have priority?
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
@@ -1758,6 +1805,12 @@ Element.prototype.reset = function() {
     s._matrix.reset();
     if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
+    (function(elm) {
+        elm.__forAllModifiers(function(band, modifier) {
+            if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
+            if (modifier.__wasCalledAt) modifier.__wasCalledAt[elm.id] = -1;
+        });
+    })(this);
     this.visitChildren(function(elm) {
         elm.reset();
     });
@@ -1951,6 +2004,7 @@ Element.prototype.deepClone = function() {
         trg_children.push(cclone);
     }
     clone._modifiers = [];
+    // FIXME: use __forAllModifiers & __forAllPainters
     // loop through type
     for (var mti = 0, mtl = this._modifiers.length; mti < mtl; mti++) {
         var type_group = this._modifiers[mti];
@@ -2027,84 +2081,109 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element.prototype.__callModifiers = function(order, ltime) {
-    // save the previous state
-    this.state._ = null; // clear the pointer, so it will not be cloned
-    this._state = obj_clone(this.state);
-    this._state._ = this.state;
+Element._FPS_FALLBACK = FPS_FALLBACK;
+Element._FPS_ERROR = FPS_ERROR;
+Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
+  if (band == null) return ltime;
+  if (__array(band)) { // modifier is band-restricted
+      //if ((ltime + band[0]) >= elm_duration) return ltime;
+      if (ltime < band[0]) return 0;
+      else if (ltime > band[1]) return 1;
+      else return (ltime - band[0]) / (band[1] - band[0]);
+  } else if (__num(band)) {
+      if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
+      afps = afps || (state._._appliedAt
+                      ? (1 / (ltime - state._._appliedAt))
+                      : 0) || 0;
+      // FIXME: test if afps is not too big
+      var tpos = band;
+      var lband = this.xdata.lband;
+      var doCall = ((afps > 0) &&
+                    (ltime >= tpos) &&
+                    (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
+                   ((afps <= 0) && __close(ltime, tpos, 10)) ||
+                   ((tpos > (lband[1] - (1 / (afps || FPS_FALLBACK)))) &&
+                    ((ltime + (1 / (afps || FPS_FALLBACK))) > lband[1]));
+      if (doCall) {
+          if (!modifier.__wasCalled) modifier.__wasCalled = {};
+          if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
+          modifier.__wasCalled[this.id] = true;
+          modifier.__wasCalledAt[this.id] = ltime;
+      }
+      return doCall ? ltime : false;
+  } else return ltime;
+}
+Element.prototype.__callModifiers = function(order, ltime, afps) {
+    return (function(elm) {
+        // save the previous state
+        elm.state._ = null; // clear the pointer, so it will not be cloned
+        elm._state = obj_clone(elm.state);
+        elm._state._ = elm.state;
 
-    // now it looks like:
-    // this.
-    //     .state -> state from the last modifiers call
-    //     ._state -> clone of the last state, it is passed to modifiers as `this`
-    //     ._state._ -> a pointer to the last state, so it will be accessible in
-    //                  modifiers as `this._`
+        // now it looks like:
+        // this.
+        //     .state -> state from the last modifiers call
+        //     ._state -> clone of the last state, it is passed to modifiers as `this`
+        //     ._state._ -> a pointer to the last state, so it will be accessible in
+        //                  modifiers as `this._`
 
-    this.__loadEvts(this._state);
+        elm.__loadEvts(elm._state);
 
-    var modifiers = this._modifiers;
-    var type, seq, cur;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = modifiers[type];
-        this.__modifying = type;
-        this.__mbefore(type);
-        if (seq) {
-          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
-            if (cur = seq[pi]) {
-              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci] && (cur[ci][0].call(this._state, ltime, cur[ci][1]) === false)) {
-                  this.__mafter(ltime, type, false);
-                  this.__modifying = null;
-                  this.__clearEvts(this._state);
-                  // NB: nothing happens to the state or element here,
-                  //     the modified things are not applied
-                  return false;
-                }
-              }
-            }
-          }
-        }
-        this.__mafter(ltime, type, true);
-    }
-    this.__modifying = null;
-    this._state._applied = true;
-    this._state._appliedAt = ltime;
+        if (!elm.__forAllModifiers(order,
+            function(band, modifier, data) { /* each modifier */
+                // lbtime is band-apadted time, if modifier has its own band
+                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, afps);
+                // false will be returned from __adaptModTime
+                // for trigger-like modifier if it is required to skip current one
+                if (lbtime === false) return true;
+                // modifier will return false if it is required to skip all next modifiers,
+                // returning false from our function means the same
+                return modifier.call(elm._state, lbtime, data);
+            }, function(type) { /* before each new type */
+                elm.__modifying = type;
+                elm.__mbefore(type);
+            }, function(type) { /* after each new type */
+                elm.__mafter(ltime, type, true);
+            })) { // one of modifiers returned false
+                // forget things...
+                elm.__mafter(ltime, elm.__modifying, false);
+                elm.__modifying = null;
+                elm.__clearEvts(elm._state);
+                // NB: nothing happens to the state or element here,
+                //     the modified things are not applied
+                return false; // ...and get out of the function
+            };
 
-    this.__clearEvts(this._state);
+        elm.__modifying = null;
+        elm._state._applied = true;
+        elm._state._appliedAt = ltime;
 
-    // save modified state as last
-    this.state = this._state;
-    this._state = null;
-    // state._ keeps pointing to prev state
+        elm.__clearEvts(elm._state);
 
-    // apply last state
-    return true;
+        // save modified state as last
+        elm.state = elm._state;
+        elm._state = null;
+        // state._ keeps pointing to prev state
+
+        // apply last state
+        return true;
+    })(this);
 }
 Element.prototype.__callPainters = function(order, ctx) {
-    var painters = this._painters;
-    var type, seq, cur;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = painters[type];
-        this.__painting = type;
-        this.__pbefore(ctx, type);
-        if (seq) {
-          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
-            if (cur = seq[pi]) {
-              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci]) cur[ci][0].call(this.xdata, ctx, cur[ci][1]);
-              }
-            }
-          }
-        }
-        this.__pafter(ctx, type);
-    }
-    this.__painting = null;
+    (function(elm) {
+        elm.__forAllPainters(order,
+            function(painter, data) { /* each painter */
+                painter.call(elm.xdata, ctx, data);
+            }, function(type) { /* before each new type */
+                elm.__painting = type;
+                elm.__pbefore(ctx, type);
+            }, function(type) { /* after each new type */
+                elm.__pafter(ctx, type);
+            });
+        elm.__painting = null;
+    })(this);
 }
-Element.prototype.__addTypedModifier = function(type, priority, modifier, data) {
+Element.prototype.__addTypedModifier = function(type, priority, band, modifier, data) {
     if (!modifier) return; // FIXME: throw some error?
     var modifiers = this._modifiers;
     var priority = priority || 0;
@@ -2112,12 +2191,36 @@ Element.prototype.__addTypedModifier = function(type, priority, modifier, data) 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([modifier, data]);
+    modifiers[type][priority].push([band, modifier, data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
+Element.prototype.__forAllModifiers = function(order, f, before_type, after_type) {
+    var modifiers = this._modifiers;
+    var type, seq, cur;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = modifiers[type];
+        if (before_type) before_type(type);
+        if (seq) {
+          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
+            if (cur = seq[pi]) {
+              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
+                var modifier;
+                if (modifier = cur[ci]) {
+                  if (f(modifier[0], modifier[1], modifier[2]) === false) return false;
+                } // if cur[ci]
+              } // for var ci
+            } // if cur = seq[pi]
+          } // for var pi
+        } // if seq
+        if (after_type) after_type(type);
+    }
+    return true;
+}
 Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     if (!painter) return; // FIXME: throw some error?
     var painters = this._painters;
@@ -2132,6 +2235,27 @@ Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     return painter;
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
+Element.prototype.__forAllPainters = function(order, f, before_type, after_type) {
+    var painters = this._painters;
+    var type, seq, cur;
+    for (var typenum = 0, last = order.length;
+         typenum < last; typenum++) {
+        type = order[typenum];
+        seq = painters[type];
+        if (before_type) before_type(type);
+        if (seq) {
+          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
+            if (cur = seq[pi]) {
+              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
+                if (cur[ci]) f(cur[ci][0], cur[ci][1]);
+              }
+            }
+          }
+        }
+        if (after_type) after_type(type);
+    }
+    return true;
+}
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === Element.EVENT_MOD) {
         this.__loadEvtsFromCache();
@@ -2266,9 +2390,9 @@ Element.createXData = function(owner) {
 }
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
-    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, Render.m_checkBand, xdata.gband);
-    elm.__modify(Element.SYS_MOD, 0, Render.m_saveReg);
-    elm.__modify(Element.SYS_MOD, 0, Render.m_applyPos);
+    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband);
+    elm.__modify(Element.SYS_MOD, 0, null, Render.m_saveReg);
+    elm.__modify(Element.SYS_MOD, 0, null, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
     elm.__paint(Element.SYS_PNT, 0, Render.p_applyAComp);
@@ -2292,8 +2416,9 @@ Element.__addTweenModifier = function(elm, tween) {
                                                : easing.f(easing.data),
                                    Tweens[tween.type],
                                    tween.band);
+    // FIXME FIXME now it is possible to pass bands inside
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        modifier, tween.data);
+                        null, modifier, tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
@@ -2412,7 +2537,7 @@ var D = {}; // means "Drawing"
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, callback, errback) {
+D.drawNext = function(ctx, state, scene, before, after, errback) {
     // NB: state here is a player state, not an element state
 
     try {
@@ -2425,6 +2550,10 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         var time = (sec * state.speed) + state.from;
         state.time = time;
 
+        if (before) {
+            if (!before(time)) return;
+        }
+
         if (state.__rsec === 0) state.__rsec = msec;
         if ((msec - state.__rsec) >= 1000) {
             state.afps = state.__redraws;
@@ -2436,21 +2565,21 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         ctx.clearRect(0, 0, state.width * state.ratio,
                             state.height * state.ratio);
 
-        scene.render(ctx, time, state.zoom * state.ratio);
+        scene.render(ctx, time, state.zoom * state.ratio, state.afps);
 
         // show fps
         if (state.debug) { // TODO: move to player.onrender
             D.drawFPS(ctx, state.afps);
         }
 
-        if (callback) {
-            if (!callback(time)) return;
+        if (after) {
+            if (!after(time)) return;
         }
 
         if (state.__supressFrames) return;
 
         return __nextFrame(function() {
-           D.drawNext(ctx, state, scene, callback, errback);
+           D.drawNext(ctx, state, scene, before, after, errback);
         });
 
     } catch(e) {

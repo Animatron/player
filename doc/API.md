@@ -202,7 +202,7 @@ The complete options object, filled with default values, looks like this (any op
 
 > ♦ `load(scene: Any[, importer: Importer])`
 
-> ♦ `play([time: Float][, speed: Float])`
+> ♦ `play([time: Float][, speed: Float][, stopAfter: Float])`
 
 > ♦ `pause()`
 

@@ -16,7 +16,7 @@ describe("player, when speaking about playing,", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id-' + _instances++);
     });
@@ -169,89 +169,77 @@ describe("player, when speaking about playing,", function() {
 
     it("should pause at a time where pause was called", function() {
 
-        runs(function() {
-            var scene = new anm.Scene();
-            scene.add(new anm.Element());
-            player.load(scene);
+        var scene = new anm.Scene();
+        scene.add(new anm.Element());
 
-            player.play();
-            expect(player.state.from).toBe(0);
+        doAsync(player, scene, {
+            run: function() {
+                player.play();
+                expect(player.state.from).toBe(0);
 
-            setTimeout(function() {
-                player.pause();
-            }, 600);
-        });
-
-        waitsFor(function() {
-            return player.state.happens === C.PAUSED;
-        }, 1000);
-
-        runs(function() {
-            expect(player.state.happens).toBe(C.PAUSED);
-            expect(player.state.time).toBeEpsilonyCloseTo(0.6, 0.15);
-            player.stop();
+                setTimeout(function() {
+                    player.pause();
+                }, 600);
+            },
+            until: C.PAUSED,
+            then: function() {
+                expect(player.state.happens).toBe(C.PAUSED);
+                expect(player.state.time).toBeEpsilonyCloseTo(0.6, 0.15);
+            }
         });
 
     });
 
     it("should allow to play from other point after a pause was called", function() {
 
-        runs(function() {
-            var scene = new anm.Scene();
-            scene.add(new anm.Element());
-            scene.duration = 1;
-            player.load(scene);
-
-            player.play();
-            expect(player.state.from).toBe(0);
-
-            setTimeout(function() {
-                player.pause();
-                player.play(.2);
-                expect(player.state.from).toBe(.2);
-            }, 600);
-        });
+        var scene = new anm.Scene();
+        scene.add(new anm.Element());
+        scene.duration = 1;
 
         var wasAtEnd = false;
 
-        waitsFor(function() {
-            var t = player.state.time;
-            if (!wasAtEnd && (t > .51)) wasAtEnd = true;
-            return wasAtEnd && (t > .2)
-                            && (t < .5);
-        }, 800);
+        doAsync(player, scene, {
+            run: function() {
+                player.play();
+                expect(player.state.from).toBe(0);
 
-        runs(function() {
-            expect(player.state.happens).toBe(C.PLAYING);
-            expect(player.state.time).toBeGreaterThan(0.2);
-            expect(player.state.time).toBeLessThan(0.5);
-            expect(player.state.from).toBe(0.2);
-            player.stop();
+                setTimeout(function() {
+                    player.pause();
+                    player.play(.2);
+                    expect(player.state.from).toBe(.2);
+                }, 600);
+            },
+            waitFor: function() {
+                var t = player.state.time;
+                if (!wasAtEnd && (t > .51)) wasAtEnd = true;
+                return wasAtEnd && (t > .2)
+                                && (t < .5);
+            }, timeout: 0.8,
+            then: function() {
+                expect(player.state.happens).toBe(C.PLAYING);
+                expect(player.state.time).toBeGreaterThan(0.2);
+                expect(player.state.time).toBeLessThan(0.5);
+                expect(player.state.from).toBe(0.2);
+            }
         });
-
     });
 
     it("should stop at no-time when stop was called", function() {
 
-        runs(function() {
-            var scene = new anm.Scene();
-            scene.add(new anm.Element());
-            player.load(scene);
+        var scene = new anm.Scene();
+        scene.add(new anm.Element());
 
-            player.play();
-            expect(player.state.from).toBe(0);
+        doAsync(player, scene, {
+            run: function() {
+                player.play();
+                expect(player.state.from).toBe(0);
 
-            setTimeout(function() {
-                player.stop();
-            }, 600);
-        });
-
-        waitsFor(function() {
-            return player.state.happens === C.STOPPED;
-        }, 800);
-
-        runs(function() {
-            expect(player.state.time).toBe(anm.Player.NO_TIME);
+                setTimeout(function() {
+                    player.stop();
+                }, 600);
+            },
+            until: C.STOPPED, timeout: 0.8,
+            then: function() { expect(player.state.time).toBe(anm.Player.NO_TIME); }
         });
 
     });
@@ -259,26 +247,6 @@ describe("player, when speaking about playing,", function() {
     it("should call modifiers and painters through all playing cycle", function() {
         var modifierSpy = jasmine.createSpy('modifier-spy');
         var painterSpy = jasmine.createSpy('painter-spy');
-
-        var duration = 1;
-        var mCalls = 0, pCalls = 0;
-
-        var scene = new anm.Scene();
-        var elem = new anm.Element();
-        elem.setBand([0, duration]);
-        elem.addModifier(modifierSpy);
-        elem.addPainter(painterSpy);
-        scene.add(elem);
-
-        expect(modifierSpy).not.toHaveBeenCalled();
-        expect(painterSpy).not.toHaveBeenCalled()
-
-        player.load(scene);
-
-        expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
-        expect(painterSpy).toHaveBeenCalledOnce(); // for preview
-        modifierSpy.reset();
-        painterSpy.reset();
 
         var onframeCallbackSpy = jasmine.createSpy('onframe-cb').andCallFake(function(t) {
             expect(t).toBeGreaterThanOrEqual(0);
@@ -292,17 +260,37 @@ describe("player, when speaking about playing,", function() {
             }
         });
 
-        player.afterFrame(onframeCallbackSpy);
+        var duration = 1;
+        var mCalls = 0, pCalls = 0;
 
-        runs(function() { player.play(); });
+        var scene = new anm.Scene();
+        var elem = new anm.Element();
+        elem.setBand([0, duration]);
+        elem.addModifier(modifierSpy);
+        elem.addPainter(painterSpy);
+        scene.add(elem);
 
-        waitsFor(function() { return player.state.happens === C.STOPPED; }, (duration*1000)+200);
+        doAsync(player, {
+            prepare: function() {
+                expect(modifierSpy).not.toHaveBeenCalled();
+                expect(painterSpy).not.toHaveBeenCalled();
+                return scene;
+            },
+            run: function() {
+                expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
+                expect(painterSpy).toHaveBeenCalledOnce(); // for preview
+                modifierSpy.reset();
+                painterSpy.reset();
 
-        runs(function() {
-            expect(onframeCallbackSpy).toHaveBeenCalled();
-            expect(mCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
-            expect(pCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
-            player.stop();
+                player.afterFrame(onframeCallbackSpy);
+
+                player.play();
+            }, until: C.STOPPED, timeout: duration + .2,
+            then: function() {
+                expect(onframeCallbackSpy).toHaveBeenCalled();
+                expect(mCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
+                expect(pCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
+            }
         });
 
     });
@@ -311,73 +299,64 @@ describe("player, when speaking about playing,", function() {
 
         it("should stop at end of scene by default", function() {
 
-            var stopSpy;
+            var stopSpy = spyOn(player, 'stop').andCallThrough();
 
-            runs(function() {
-                stopSpy = spyOn(player, 'stop').andCallThrough();
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            scene.duration = 1;
 
-                var scene = new anm.Scene();
-                scene.add(new anm.Element());
-                scene.duration = 1;
-                player.load(scene);
-
-                player.play();
-                expect(player.state.from).toBe(0);
-                expect(player.state.happens).toBe(C.PLAYING);
-                stopSpy.reset();
-            });
-
-            waitsFor(function() {
-                return player.state.happens === C.STOPPED;
-            }, 1200);
-
-            runs(function() {
-                expect(stopSpy).toHaveBeenCalledOnce();
-                player.stop();
+            doAsync(player, scene, {
+                run: function() {
+                    player.play();
+                    expect(player.state.from).toBe(0);
+                    expect(player.state.happens).toBe(C.PLAYING);
+                    stopSpy.reset();
+                }, until: C.STOPPED,
+                then: function() { expect(stopSpy).toHaveBeenCalledOnce(); }
             });
 
         });
 
         it("should repeat the scene at the end, if it was previously set with repeat option", function() {
 
-            var playSpy,
-                stopSpy;
-
-            runs(function() {
-                playSpy = spyOn(player, 'play').andCallThrough();
+            var playSpy = spyOn(player, 'play').andCallThrough(),
                 stopSpy = spyOn(player, 'stop').andCallThrough();
-
-                var scene = new anm.Scene();
-                scene.add(new anm.Element());
-                scene.duration = 1;
-                player.state.repeat = true;
-                player.load(scene);
-
-                player.play();
-                expect(player.state.from).toBe(0);
-                expect(player.state.happens).toBe(C.PLAYING);
-
-                playSpy.reset();
-                stopSpy.reset();
-            });
 
             var wasAtEnd = false;
 
-            waitsFor(function() {
-                var t = player.state.time;
-                if (!wasAtEnd && (t > .6)) wasAtEnd = true;
-                return wasAtEnd && (t > .1)
-                                && (t < .5);
-            }, 1200);
+            doAsync(player, {
+                prepare: function() {
+                    var scene = new anm.Scene();
+                    scene.add(new anm.Element());
+                    scene.duration = 1;
 
-            runs(function() {
-                expect(stopSpy).toHaveBeenCalledOnce();
-                expect(playSpy).toHaveBeenCalledOnce();
-                expect(player.state.happens).toBe(C.PLAYING);
-                expect(player.state.time).toBeGreaterThan(0);
-                expect(player.state.time).toBeLessThan(1);
-                expect(player.state.from).toBe(0);
-                player.stop();
+                    player.state.repeat = true;
+
+                    return scene;
+                },
+                run: function() {
+                    player.play();
+
+                    expect(player.state.from).toBe(0);
+                    expect(player.state.happens).toBe(C.PLAYING);
+
+                    playSpy.reset();
+                    stopSpy.reset();
+                },
+                waitFor: function() {
+                    var t = player.state.time;
+                    if (!wasAtEnd && (t > .6)) wasAtEnd = true;
+                    return wasAtEnd && (t > .1)
+                                    && (t < .5);
+                },
+                then: function() {
+                    expect(stopSpy).toHaveBeenCalledOnce();
+                    expect(playSpy).toHaveBeenCalledOnce();
+                    expect(player.state.happens).toBe(C.PLAYING);
+                    expect(player.state.time).toBeGreaterThan(0);
+                    expect(player.state.time).toBeLessThan(1);
+                    expect(player.state.from).toBe(0);
+                }
             });
 
         });
@@ -501,20 +480,9 @@ describe("player, when speaking about playing,", function() {
         });
 
         it("should actually call the given callback while playing", function() {
+
             var modifierSpy = jasmine.createSpy('modifier-spy');
-            var painterSpy = jasmine.createSpy('modifier-spy');
-
-            var scene = new anm.Scene();
-            var elem = new anm.Element();
-            elem.setBand([0, 1]);
-            elem.addModifier(modifierSpy);
-            elem.addPainter(painterSpy);
-            scene.add(elem);
-
-            player.load(scene);
-
-            modifierSpy.reset();
-            painterSpy.reset();
+            var painterSpy = jasmine.createSpy('painter-spy');
 
             var onframeCallbackSpy = jasmine.createSpy('onframe-cb').andCallFake(function(t) {
                 expect(t).toBeGreaterThanOrEqual(0);
@@ -528,16 +496,27 @@ describe("player, when speaking about playing,", function() {
                 }
             });
 
-            player.afterFrame(onframeCallbackSpy);
+            var scene = new anm.Scene();
+            var elem = new anm.Element();
+            elem.setBand([0, 1]);
+            elem.addModifier(modifierSpy);
+            elem.addPainter(painterSpy);
+            scene.add(elem);
 
-            runs(function() { player.play(); });
+            doAsync(player, {
+                prepare: function() {
+                    player.load(scene);
 
-            waitsFor(function() { return player.state.happens === C.STOPPED; }, 1200);
+                    modifierSpy.reset();
+                    painterSpy.reset();
 
-            runs(function() {
-                expect(onframeCallbackSpy).toHaveBeenCalled();
-                expect(onframeCallbackSpy.callCount).toBeEpsilonyCloseTo(player.state.afps, 5);
-                player.stop();
+                    player.afterFrame(onframeCallbackSpy);
+                },
+                do: 'play', until: C.STOPPED, timeout: 1.2,
+                then: function() {
+                    expect(onframeCallbackSpy).toHaveBeenCalled();
+                    expect(onframeCallbackSpy.callCount).toBeEpsilonyCloseTo(player.state.afps, 5);
+                }
             });
 
         });
@@ -621,14 +600,20 @@ describe("player, when speaking about playing,", function() {
 
         });
 
-        // TODO: tests resetting state after drawAt and stuff
+        // TODO: test resetting state after drawAt and stuff
 
     });
 
-    // drawAt should be synchrounous (scene should be fully rendered after drawFrame)
-    // should not call modifiers/painters while stopped/paused
-    // test if while preview is shown at preview time pos, controls are at 0
+    // ensure drawAt and playing are the similar calls and produce the same results
+    // test passing stopAt value to play() method (state.stop)
     // state.from
+    // state.time
+    // drawAt should be synchrounous (scene should be fully rendered after drawFrame)
+    // test all the inner sequence of playing
+    // test callback passed to be called after every frame
+    // test callback passed to be called after playing
+    // should not call modifiers/painters while stopped/paused
+    /// test if while preview is shown at preview time pos, only for video mode, controls are at 0
     // errors
 
 });

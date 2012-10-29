@@ -111,6 +111,8 @@ mocks.gradient = mocks.factory.linearGradient();
 
 mocks.nop = mocks.factory.nop();
 
+// TODO: tests for mocks
+
 return mocks;
 
 })();

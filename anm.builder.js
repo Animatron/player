@@ -19,6 +19,8 @@ var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
 
+//var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') };
+
 // =============================================================================
 // === BUILDER =================================================================
 
@@ -383,11 +385,12 @@ Builder.prototype.bounce = function() {
 
 // * MODIFIERS & PAINTERS *
 
-// > builder.modify % (modifier: Function(time: Float,
+// > builder.modify % ([band: Array[2, Float],]
+//                     modifier: Function(time: Float,
 //                                        data: Any),
 //                     [data: Any, priority: Integer]) => Builder
-Builder.prototype.modify = function(func, data, priority) {
-    this.v.addModifier(func, data, priority);
+Builder.prototype.modify = function(band, func, data, priority) {
+    this.v.addModifier(band, func, data, priority);
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,
@@ -401,11 +404,7 @@ Builder.prototype.paint = function(func, data, priority) {
 //                                             data: Any),
 //                     [data: Any, priority: Integer]) => Builder
 Builder.prototype.at = function(t, func, data, priority) {
-    var me = this;
-    var m_at = function(real_t, data) {
-        if (real_t >= t) { func.call(this, real_t, data); me.unmodify(m_at); }
-    };
-    return me.modify(m_at, data, priority);
+    return this.modify(t, func, data, priority);
 }
 // > builder.unmodify % (modifier: Function) => Builder
 Builder.prototype.unmodify = function(modifier) {
