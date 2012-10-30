@@ -2089,9 +2089,10 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
   if (band == null) return [ ltime / elm_duration, elm_duration ];
   if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
-      if (ltime < band[0]) return 0;
-      else if (ltime > band[1]) return 1;
-      else return [ (ltime - band[0]) / (band[1] - band[0]), band[1] - band[0] ];
+      var mod_duration = band[1] - band[0];
+      if (ltime < band[0]) return [ 0, mod_duration ];
+      else if (ltime > band[1]) return [ 1, mod_duration ];
+      else return [ (ltime - band[0]) / mod_duration, mod_duration ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt

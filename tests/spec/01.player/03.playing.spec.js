@@ -12,14 +12,20 @@ describe("player, when speaking about playing,", function() {
 
     var _instances = 0;
 
+    // var FPS = 60;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
+        // _FrameGen.enable(FPS);
+
         player = createPlayer('test-id-' + _instances++);
     });
+
+    // afterEach(function() { _FrameGen.disable(); });
 
     it("should not play anything just after loading a scene", function() {
         var playSpy = spyOn(player, 'play');
@@ -248,19 +254,28 @@ describe("player, when speaking about playing,", function() {
         var modifierSpy = jasmine.createSpy('modifier-spy');
         var painterSpy = jasmine.createSpy('painter-spy');
 
+        var duration = 1.1;
+
+        var maxFPS = -1,
+            minFPS = Number.MAX_VALUE;
+
         var onframeCallbackSpy = jasmine.createSpy('onframe-cb').andCallFake(function(t) {
             expect(t).toBeGreaterThanOrEqual(0);
             expect(t).toBeLessThanOrEqual(duration + anm.Player.PEFF);
             if (t <= duration) {
-                expect(modifierSpy).toHaveBeenCalledWith(t, undefined);
+                expect(modifierSpy).toHaveBeenCalledWith(t / duration, duration, undefined);
                 expect(painterSpy).toHaveBeenCalledWith(_mocks.context2d, undefined);
                 mCalls++; pCalls++;
                 modifierSpy.reset();
                 painterSpy.reset();
             }
+            var lastFPS = player.state.afps;
+            if (lastFPS > 0) {
+                if (lastFPS > maxFPS) maxFPS = lastFPS;
+                if (lastFPS < minFPS) minFPS = lastFPS;
+            }
         });
 
-        var duration = 1;
         var mCalls = 0, pCalls = 0;
 
         var scene = new anm.Scene();
@@ -277,6 +292,7 @@ describe("player, when speaking about playing,", function() {
                 return scene;
             },
             run: function() {
+                expect(scene.duration).toBe(duration);
                 expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
                 expect(painterSpy).toHaveBeenCalledOnce(); // for preview
                 modifierSpy.reset();
@@ -288,8 +304,16 @@ describe("player, when speaking about playing,", function() {
             }, until: C.STOPPED, timeout: duration + .2,
             then: function() {
                 expect(onframeCallbackSpy).toHaveBeenCalled();
-                expect(mCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
-                expect(pCalls).toBeEpsilonyCloseTo(player.state.afps * duration, 10);
+                expect(player.state.afps).toBeGreaterThan(0);
+                expect(minFPS).toBeLessThan(Number.MAX_VALUE);
+                expect(maxFPS).toBeGreaterThan(0);
+                var midFPS = minFPS + ((maxFPS - minFPS) / 2);
+                expect(midFPS).toBeGreaterThan(0);
+                expect(mCalls).toBeEpsilonyCloseTo(midFPS * duration, 3);
+                expect(pCalls).toBeEpsilonyCloseTo(midFPS * duration, 3);
+                /*expect(player.state.afps).toEqual(FPS);
+                expect(mCalls).toEqual(FPS * duration, 10);
+                expect(pCalls).toEqual(FPS * duration, 10);*/
             }
         });
 
@@ -484,21 +508,32 @@ describe("player, when speaking about playing,", function() {
             var modifierSpy = jasmine.createSpy('modifier-spy');
             var painterSpy = jasmine.createSpy('painter-spy');
 
+            var duration = 1.1;
+
+            var maxFPS = -1,
+                minFPS = Number.MAX_VALUE;
+
             var onframeCallbackSpy = jasmine.createSpy('onframe-cb').andCallFake(function(t) {
                 expect(t).toBeGreaterThanOrEqual(0);
-                expect(t).toBeLessThanOrEqual(1 + anm.Player.PEFF);
-                if (t <= 1) {
+                expect(t).toBeLessThanOrEqual(duration + anm.Player.PEFF);
+                if (t <= duration) {
                     // ensure modifying and painting was performed for this frame
-                    expect(modifierSpy).toHaveBeenCalledWith(t, undefined);
+                    expect(modifierSpy).toHaveBeenCalledWith(t / duration, duration, undefined);
                     expect(painterSpy).toHaveBeenCalled();
                     modifierSpy.reset();
                     painterSpy.reset();
+                    var lastFPS = player.state.afps;
+                    if (lastFPS > 0) {
+                        if (lastFPS > maxFPS) maxFPS = lastFPS;
+                        if (lastFPS < minFPS) minFPS = lastFPS;
+                        console.log(lastFPS, minFPS, maxFPS);
+                    }
                 }
             });
 
             var scene = new anm.Scene();
             var elem = new anm.Element();
-            elem.setBand([0, 1]);
+            elem.setBand([0, duration]);
             elem.addModifier(modifierSpy);
             elem.addPainter(painterSpy);
             scene.add(elem);
@@ -512,10 +547,16 @@ describe("player, when speaking about playing,", function() {
 
                     player.afterFrame(onframeCallbackSpy);
                 },
-                do: 'play', until: C.STOPPED, timeout: 1.2,
+                do: 'play', until: C.STOPPED, timeout: duration + .2,
                 then: function() {
+                    expect(scene.duration).toBe(duration);
                     expect(onframeCallbackSpy).toHaveBeenCalled();
-                    expect(onframeCallbackSpy.callCount).toBeEpsilonyCloseTo(player.state.afps, 5);
+                    expect(minFPS).toBeLessThan(Number.MAX_VALUE);
+                    expect(maxFPS).toBeGreaterThan(0);
+                    var midFPS = minFPS + ((maxFPS - minFPS) / 2);
+                    console.log(midFPS);
+                    expect(midFPS).toBeGreaterThan(0);
+                    expect(onframeCallbackSpy.callCount).toBeEpsilonyCloseTo(midFPS * duration, 5);
                 }
             });
 
@@ -531,7 +572,7 @@ describe("player, when speaking about playing,", function() {
 
         it("should not allow to be called out of scene bounds", function() {
 
-            var duration = 1;
+            var duration = 1.1;
 
             var scene = new anm.Scene();
             var elem = new anm.Element();
@@ -570,7 +611,7 @@ describe("player, when speaking about playing,", function() {
             var modifierSpy = jasmine.createSpy('modifier-spy');
             var painterSpy = jasmine.createSpy('painter-spy');
 
-            var duration = 1;
+            var duration = 1.1;
 
             var scene = new anm.Scene();
             var elem = new anm.Element();
@@ -595,7 +636,7 @@ describe("player, when speaking about playing,", function() {
 
             expect(modifierSpy).toHaveBeenCalledOnce();
             expect(painterSpy).toHaveBeenCalledOnce();
-            expect(modifierSpy).toHaveBeenCalledWith(testTime, undefined);
+            expect(modifierSpy).toHaveBeenCalledWith(testTime / duration, duration, undefined);
             expect(painterSpy).toHaveBeenCalledWith(_mocks.context2d, undefined);
 
         });
