@@ -1323,6 +1323,7 @@ Scene.prototype._addToTree = function(elm) {
         throw new Error('It appears that it is not a clip object or element that you pass');
     }
     this.duration = this.calculateDuration();
+    elm.__ensureHasBand();
     if (elm.xdata.gband &&
         (elm.xdata.gband[1] > this.duration)) {
         this.duration = elm.xdata.gband[1];
@@ -1331,17 +1332,18 @@ Scene.prototype._addToTree = function(elm) {
     //if (elm.children) this._addElems(elm.children);
     this.tree.push(elm);
 }
-Scene.prototype._addElems = function(elems) {
+/*Scene.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
         var _elm = elems[ei];
         this._register(_elm);
     }
-}
+}*/
 Scene.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw new Error('Element already registered');
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
+    elm.__ensureHasBand();
     var me = this;
     elm.visitChildren(function(elm) {
         me._register(elm);
@@ -1473,7 +1475,8 @@ function Element(draw, onframe) {
     Element.__addSysPainters(this);
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
-Element.DEFAULT_LEN = Number.MAX_VALUE;
+Element.NO_BAND = null;
+Element.DEFAULT_LEN = 10;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -1512,6 +1515,7 @@ Element.prototype.transform = function(ctx) {
 // > Element.render % (ctx: Context, gtime: Float[, afps: Float])
 Element.prototype.render = function(ctx, gtime, afps) {
     if (this.disabled) return;
+    this.__errorIfNoBand();
     this.rendering = true;
     ctx.save();
     var wasDrawn = false;
@@ -1701,11 +1705,28 @@ Element.prototype.makeBandFit = function() {
     this.xdata.gband = wband;
     this.xdata.lband[1] = wband[1] - wband[0];
 }
+Element.prototype.hasBand = function() {
+    return this.xdata.lband !== Element.NO_BAND;
+}
+Element.prototype.__errorIfNoBand = function() {
+    if (this.xdata.lband === Element.NO_BAND) throw new Error('Band is not auto-calculated or defined');
+}
+Element.prototype.__ensureHasBand = function() {
+    if (this.xdata.lband !== Element.NO_BAND) return;
+    if (this.parent && (this.parent.xdata.lband !== Element.NO_BAND)) {
+        this.xdata.lband = [ 0, this.parent.duration() ];
+    } else if (this.scene && this.scene.duration) {
+        this.xdata.lband = [ 0, this.scene.duration ];
+    } else this.xdata.lband = [ 0, Element.DEFAULT_LEN ];
+    if (this.duration() == 0) this.xdata.lband = [ 0, Element.DEFAULT_LEN ];
+    Bands.recalc(this);
+}
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
 Element.prototype.duration = function() { // for external use
+    this.__errorIfNoBand();
     return this.xdata.lband[1] - this.xdata.lband[0];
 }
 Element.prototype.fits = function(ltime) {
@@ -2050,8 +2071,8 @@ Element.prototype.deepClone = function() {
     if (src_x.text) trg_x.text = src_x.text.clone();
     trg_x.pos = [].concat(src_x.pos);
     trg_x.reg = [].concat(src_x.reg);
-    trg_x.lband = [].concat(src_x.lband);
-    trg_x.gband = [].concat(src_x.gband);
+    trg_x.lband = (src_x.lband !== Element.NO_BAND) ? [].concat(src_x.lband) : Element.NO_BAND;
+    trg_x.gband = (src_x.gband !== Element.NO_BAND) ? [].concat(src_x.gband) : Element.NO_BAND;
     trg_x.keys = obj_clone(src_x.keys);
     return clone;
 }
@@ -2059,7 +2080,10 @@ Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
     if (this.scene) this.scene._register(elm);
-    Bands.recalc(this);
+    if (this.hasBand()) {
+      //elm.__ensureHasBand();
+      Bands.recalc(this);
+    }
 }
 Element.prototype._addChildren = function(elms) {
     for (var ei = 0, el = elms.length; ei < el; ei++) {
@@ -2117,6 +2141,7 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
+
         // save the previous state
         elm.state._ = null; // clear the pointer, so it will not be cloned
         elm._state = obj_clone(elm.state);
@@ -2380,8 +2405,8 @@ Element.createXData = function(owner) {
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'mode': C.R_ONCE,            // playing mode
-             'lband': [0, Element.DEFAULT_LEN], // local band
-             'gband': [0, Element.DEFAULT_LEN], // global band
+             'lband': Element.NO_BAND, // local band
+             'gband': Element.NO_BAND, // global band
              'canvas': null,   // own canvas for static (cached) elements
              'dimen': null,    // dimensions for static (cached) elements
              'keys': {},

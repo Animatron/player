@@ -172,7 +172,7 @@ describe("as for known bugs,", function() {
                         rect3.disable();
                         m_doNothing3Spy.reset();
                         rect3Disabled = true;
-                    }, ((disableAt * duration) * 1000) + 50));
+                    }, ((disableAt * duration) * 1000) + 50);
                 },
                 waitFor: function() {
                     return rect1Disabled && rect3Disabled;

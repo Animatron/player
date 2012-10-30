@@ -45,6 +45,8 @@ describe("player, when speaking about playing,", function() {
         expect(player.state.duration).toBe(anm.Scene.DEFAULT_VIDEO_DURATION);
     });
 
+    // FIXME: ensure duration is DEFAULT only for VIDEO_MODE and PREVIEW_MODE
+
     it("should try to draw stop-frame of an empty scene at 0, " +
        "when it will be loaded into player", function() {
         var drawSpy = spyOn(player, 'drawAt').andCallThrough();
@@ -75,6 +77,8 @@ describe("player, when speaking about playing,", function() {
                                            * anm.Player.PREVIEW_POS);
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
+
+    // FIXME: ensure that preview is not shown when in C.M_DYNAMIC and C.M_PREVIEW modes
 
     it("should keep player.anim to point to current scene", function() {
         var scene = new anm.Scene();
@@ -553,7 +557,6 @@ describe("player, when speaking about playing,", function() {
                     expect(minFPS).toBeLessThan(Number.MAX_VALUE);
                     expect(maxFPS).toBeGreaterThan(0);
                     var midFPS = minFPS + ((maxFPS - minFPS) / 2);
-                    console.log(midFPS);
                     expect(midFPS).toBeGreaterThan(0);
                     expect(onframeCallbackSpy.callCount).toBeEpsilonyCloseTo(midFPS * duration, 5);
                 }
