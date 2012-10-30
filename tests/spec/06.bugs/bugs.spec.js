@@ -23,12 +23,14 @@ describe("as for known bugs,", function() {
 
             _fake(_Fake.CVS_POS);
 
+            var duration = 10;
+
             var player = createPlayer('foo', { mode: C.M_DYNAMIC });
             var rect1 = b().rect([50, 50], 70);
             var rect2 = b().rect([100, 100], 70);
             var rect3 = b().rect([150, 150], 70);
             var rect4 = b().rect([40, 40], 70);
-            var scene = b('scene').band([0, 10])
+            var scene = b('scene').band([0, duration])
                                   .add(rect1)
                                   .add(rect2)
                                   .add(rect3)
@@ -51,12 +53,19 @@ describe("as for known bugs,", function() {
             var m_removeRectSpy;
             var m_selfRemoveSpy;
 
+            var removeAt = 1 / 20;
+            var selfRemoveAt = 1 / 24;
+
+            expect(selfRemoveAt).toBeLessThan(removeAt);
+
             doAsync(player, {
                 prepare: function() {
                     m_removeRectSpy = jasmine.createSpy('remove-rect')
                                              .andCallFake(function(t) {
-                                                if ((t > .5) && !rect1Removed) {
+                                                //console.log(this.$.xdata.lband[0], this.$.xdata.lband[1], t);
+                                                if ((t > removeAt) && !rect1Removed) {
                                                     scene.remove(rect1);
+                                                    //console.log('remove 1');
                                                     expect(m_doNothing1Spy).toHaveBeenCalled();
                                                     m_doNothing1Spy.reset();
                                                     rect1Removed = true;
@@ -64,8 +73,10 @@ describe("as for known bugs,", function() {
                                              });
                     m_selfRemoveSpy = jasmine.createSpy('self-remove')
                                              .andCallFake(function(t) {
-                                                if ((t > .4) && !rect4Removed) {
+                                                //console.log(this.$.xdata.lband[0], this.$.xdata.lband[1], t);
+                                                if ((t > selfRemoveAt) && !rect4Removed) {
                                                     this.$.parent.remove(this.$);
+                                                    //console.log('remove 4');
                                                     expect(m_doNothing4Spy).toHaveBeenCalled();
                                                     m_doNothing4Spy.reset();
                                                     rect4Removed = true;
@@ -81,15 +92,16 @@ describe("as for known bugs,", function() {
                     player.play();
 
                     setTimeout(function() {
-                        scene.remove(rect3);
                         expect(m_doNothing3Spy).toHaveBeenCalled();
+                        scene.remove(rect3);
+                        //console.log('remove 3');
                         m_doNothing3Spy.reset();
                         rect3Removed = true;
-                    }, 550);
+                    }, ((removeAt * duration) * 1000) + 50);
                 },
                 waitFor: function() {
                     return rect1Removed && rect3Removed && rect4Removed;
-                }, timeout: 0.7,
+                }, timeout: (removeAt * duration) + .2,
                 then: function() {
                     expect(rect1Removed).toBeTruthy();
                     expect(rect3Removed).toBeTruthy();
@@ -110,11 +122,13 @@ describe("as for known bugs,", function() {
         it('should not call modifiers of the elements immediately after the fact they were disabled', function() {
             _fake(_Fake.CVS_POS);
 
-            var player = createPlayer('foo', { mode: C.M_DYNAMIC });
+            var duration = 10;
+
+            var player = createPlayer('foo', { mode: C.M_DYNAMIC }); // TODO: varyAll with mode?
             var rect1 = b().rect([10, 10], 70);
             var rect2 = b().rect([20, 20], 70);
             var rect3 = b().rect([30, 30], 70);
-            var scene = b('scene').band([0, 10])
+            var scene = b('scene').band([0, duration])
                                   .add(rect1)
                                   .add(rect2)
                                   .add(rect3);
@@ -132,11 +146,13 @@ describe("as for known bugs,", function() {
 
             var m_disableRectSpy;
 
+            var disableAt = 1 / 20;
+
             doAsync(player, {
                 prepare: function() {
                     m_disableRectSpy = jasmine.createSpy('disable-rect')
                                          .andCallFake(function(t) {
-                                            if ((t > .5) && !rect1Disabled) {
+                                            if ((t > disableAt) && !rect1Disabled) {
                                                 expect(m_doNothing1Spy).toHaveBeenCalled();
                                                 rect1.disable();
                                                 m_doNothing1Spy.reset();
@@ -156,11 +172,11 @@ describe("as for known bugs,", function() {
                         rect3.disable();
                         m_doNothing3Spy.reset();
                         rect3Disabled = true;
-                    }, 550);
+                    }, ((disableAt * duration) * 1000) + 50));
                 },
                 waitFor: function() {
                     return rect1Disabled && rect3Disabled;
-                }, timeout: 0.7,
+                }, timeout: (disableAt * duration) + .2,
                 then: function() {
                     expect(rect1Disabled).toBeTruthy();
                     expect(rect3Disabled).toBeTruthy();

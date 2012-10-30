@@ -526,7 +526,6 @@ describe("player, when speaking about playing,", function() {
                     if (lastFPS > 0) {
                         if (lastFPS > maxFPS) maxFPS = lastFPS;
                         if (lastFPS < minFPS) minFPS = lastFPS;
-                        console.log(lastFPS, minFPS, maxFPS);
                     }
                 }
             });
