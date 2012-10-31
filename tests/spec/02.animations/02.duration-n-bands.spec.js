@@ -174,7 +174,7 @@ describe("regarding duration and bands in animations,", function() {
                 var big_band_elm = new anm.Element();
                 big_band_elm.setBand(big_band);
                 scene.add(big_band_elm);
-                expect(scene.duration).toBe(expected_duration);
+                expect(scene.duration).toBe(big_band[0] + big_band[1]);
                 expect(player.state.duration).toBe(expected_duration);
                 player.stop();
             });

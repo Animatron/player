@@ -544,6 +544,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var scene = player.anim;
     scene.reset();
+    player.updateDuration(scene.duration);
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
@@ -1324,9 +1325,10 @@ Scene.prototype._addToTree = function(elm) {
     }
     this.duration = this.calculateDuration();
     elm.__ensureHasBand();
-    if (elm.xdata.gband &&
-        (elm.xdata.gband[1] > this.duration)) {
-        this.duration = elm.xdata.gband[1];
+    var elm_band = elm.xdata.gband;
+    if (elm_band &&
+        (elm_band[1] > this.duration)) {
+        this.duration = (elm_band[0] >= 0) ? elm_band[1] : elm_band[1] + elm_band[0];
     }
     this._register(elm);
     //if (elm.children) this._addElems(elm.children);
