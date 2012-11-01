@@ -361,14 +361,17 @@ describe("regarding duration and bands in animations,", function() {
             expect(elm.xdata.gband).toEqual([2, 15]);
         });
 
-        it("should crop the child global band to a parent band, if child band exceeds the parent one", function() {
+        it("should not crop the child global band to a parent band, if child band exceeds the parent one", function() {
+            // while rendering, element will not pass .fits() test if its parent band is narrower than its own band,
+            // so it is ok to have a wider global band for it.
+
             var child = new anm.Element();
             var elm = new anm.Element();
             elm.setBand([2, 15]);
             child.setBand([3, 30]);
             elm.add(child);
             expect(child.xdata.lband).toEqual([3, 30]);
-            expect(child.xdata.gband).toEqual([5, 15]);
+            expect(child.xdata.gband).toEqual([5, 35]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
 
@@ -378,7 +381,7 @@ describe("regarding duration and bands in animations,", function() {
             child.setBand([-5, 10]);
             elm.add(child);
             expect(child.xdata.lband).toEqual([-5, 10]);
-            expect(child.xdata.gband).toEqual([2, 12]);
+            expect(child.xdata.gband).toEqual([-3, 12]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
 
@@ -388,7 +391,7 @@ describe("regarding duration and bands in animations,", function() {
             child.setBand([-5, 30]);
             elm.add(child);
             expect(child.xdata.lband).toEqual([-5, 30]);
-            expect(child.xdata.gband).toEqual([2, 15]);
+            expect(child.xdata.gband).toEqual([-3, 32]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
 
@@ -398,19 +401,37 @@ describe("regarding duration and bands in animations,", function() {
             child.setBand([22, 30]);
             elm.add(child);
             expect(child.xdata.lband).toEqual([22, 30]);
-            expect(child.xdata.gband).toEqual([15, 15]);
+            expect(child.xdata.gband).toEqual([24, 54]);
+            expect(elm.xdata.lband).toEqual([2, 15]);
+            expect(elm.xdata.gband).toEqual([2, 15]);
+
+            var grandchild = new anm.Element();
+            child = new anm.Element();
+            elm = new anm.Element();
+            elm.setBand([2, 15]);
+            child.setBand([22, 30]);
+            grandchild.setBand([1, 53]);
+            elm.add(child);
+            child.add(grandchild);
+            expect(grandchild.xdata.lband).toEqual([1, 53]);
+            expect(grandchild.xdata.gband).toEqual([25, 79]);
+            expect(child.xdata.lband).toEqual([22, 30]);
+            expect(child.xdata.gband).toEqual([24, 54]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
         });
 
-        it("should crop the child global band to a parent band, if child band exceeds the parent one, even if band was set after the actual adding fact", function() {
+        it("should not crop the child global band to a parent band, if child band exceeds the parent one, even if band was set after the actual adding fact", function() {
+            // while rendering, element will not pass .fits() test if its parent band is narrower than its own band,
+            // so it is ok to have a wider global band for it.
+
             var child = new anm.Element();
             var elm = new anm.Element();
             child.setBand([3, 30]);
             elm.add(child);
             elm.setBand([2, 15]);
             expect(child.xdata.lband).toEqual([3, 30]);
-            expect(child.xdata.gband).toEqual([5, 15]);
+            expect(child.xdata.gband).toEqual([5, 35]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
 
@@ -420,7 +441,7 @@ describe("regarding duration and bands in animations,", function() {
             elm.add(child);
             elm.setBand([2, 15]);
             expect(child.xdata.lband).toEqual([-5, 10]);
-            expect(child.xdata.gband).toEqual([2, 12]);
+            expect(child.xdata.gband).toEqual([-3, 12]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
 
@@ -430,7 +451,7 @@ describe("regarding duration and bands in animations,", function() {
             elm.add(child);
             elm.setBand([2, 15]);
             expect(child.xdata.lband).toEqual([-5, 30]);
-            expect(child.xdata.gband).toEqual([2, 15]);
+            expect(child.xdata.gband).toEqual([-3, 32]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
 
@@ -440,7 +461,22 @@ describe("regarding duration and bands in animations,", function() {
             elm.add(child);
             elm.setBand([2, 15]);
             expect(child.xdata.lband).toEqual([22, 30]);
-            expect(child.xdata.gband).toEqual([15, 15]);
+            expect(child.xdata.gband).toEqual([24, 54]);
+            expect(elm.xdata.lband).toEqual([2, 15]);
+            expect(elm.xdata.gband).toEqual([2, 15]);
+
+            var grandchild = new anm.Element();
+            child = new anm.Element();
+            elm = new anm.Element();
+            elm.add(child);
+            child.add(granchild);
+            elm.setBand([2, 15]);
+            child.setBand([22, 30]);
+            grandchild.setBand([1, 53]);
+            expect(grandchild.xdata.lband).toEqual([1, 53]);
+            expect(grandchild.xdata.gband).toEqual([25, 79]);
+            expect(child.xdata.lband).toEqual([22, 30]);
+            expect(child.xdata.gband).toEqual([24, 54]);
             expect(elm.xdata.lband).toEqual([2, 15]);
             expect(elm.xdata.gband).toEqual([2, 15]);
         });
@@ -521,7 +557,7 @@ describe("regarding duration and bands in animations,", function() {
             expect(root.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
         });
 
-        it("if parent already has a band, it should correct the local band of a child to its band, but granparent's band should stay empty", function() {
+        it("if parent already has a band, it should correct the local band of a child to its band, but granparent's band should stay default", function() {
             var root = new anm.Element();
             var leaf1 = new anm.Element();
             var leaf2 = new anm.Element();
@@ -621,7 +657,7 @@ describe("regarding duration and bands in animations,", function() {
             leaf2.setBand([4, 11]);
 
             expect(subleaf2.xdata.lband).toEqual([3, 12]);
-            expect(subleaf2.xdata.gband).toEqual([7, 11]);
+            expect(subleaf2.xdata.gband).toEqual([7, 16]);
             expect(subleaf3.xdata.lband).toEqual([2, 7]);
             expect(subleaf3.xdata.gband).toEqual([6, 11]);
         });
@@ -677,7 +713,7 @@ describe("regarding duration and bands in animations,", function() {
             expect(subleaf.xdata.gband).toEqual([-1, 1]);
         });
 
-        it("if parent element has no band, should not change a band of a child", function() {
+        it("if parent element has default band, should still align a band of a child", function() {
             var subleaf = new anm.Element();
             var leaf = new anm.Element();
             var root = new anm.Element();
@@ -690,17 +726,17 @@ describe("regarding duration and bands in animations,", function() {
             expect(leaf.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(leaf.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(subleaf.xdata.lband).toEqual([1, 3]);
-            expect(subleaf.xdata.gband).toEqual([1, 3]);
+            expect(subleaf.xdata.gband).toEqual([3, 5]);
             root.setBand([1, 9]);
             expect(leaf.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(leaf.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(subleaf.xdata.lband).toEqual([1, 3]);
-            expect(subleaf.xdata.gband).toEqual([1, 3]);
+            expect(subleaf.xdata.gband).toEqual([2, 4]);
             root.setBand([-2, 6]);
             expect(leaf.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(leaf.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(subleaf.xdata.lband).toEqual([1, 3]);
-            expect(subleaf.xdata.gband).toEqual([1, 3]);
+            expect(subleaf.xdata.gband).toEqual([-1, 1]);
         });
 
     });
