@@ -146,6 +146,7 @@ describe("regarding duration and bands in animations,", function() {
                                     scene.add(root1);
                                     scene.add(root2);
                                     scene.add(root3);
+                                    scene.add(root4);
                                     root2.add(inner2);
                                     root2.add(inner3);
                                     root3.add(inner4);
@@ -171,12 +172,13 @@ describe("regarding duration and bands in animations,", function() {
                                     scene.add(root1);
                                     scene.add(root2);
                                     scene.add(root3);
+                                    scene.add(root4);
                                     root2.add(inner2);
                                     root2.add(inner3);
                                     root3.add(inner4);
                                     root3.setBand([2, 2]);
-                                    root4.setBand([-40, 8]);
-                                    expected_duration = 8; } }
+                                    root4.setBand([-40, 12.5]);
+                                    expected_duration = 12.5; } }
 
             // TODO: test what happens if element was live-removed from a scene
 
