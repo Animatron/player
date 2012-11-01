@@ -260,25 +260,25 @@ describe("regarding duration and bands in animations,", function() {
             expect(elm.duration()).toBe(DEFAULT_ELEMENT_LENGTH);
         });
 
-        it("should equal to actual duration if it starts at zero", function() {
+        it("should equal to actual duration if its band starts at zero", function() {
             var elm = new anm.Element();
             elm.setBand([0, 51]);
             expect(elm.duration()).toEqual(50);
         });
 
-        it("should equal to actual duration if it happens during time", function() {
+        it("should equal to actual duration if its band happens during time", function() {
             var elm = new anm.Element();
             elm.setBand([12, 73]);
             expect(elm.duration()).toEqual(85);
         });
 
-        it("should equal to actual duration if it starts below zero", function() {
+        it("should equal to actual duration if its band starts below zero", function() {
             var elm = new anm.Element();
             elm.setBand([-23.5, 11.2]);
             expect(elm.duration()).toEqual(34.7);
         });
 
-        it("should equal to actual duration if it is all placed below zero", function() {
+        it("should equal to actual duration if its band is totally placed below zero", function() {
             var elm = new anm.Element();
             elm.setBand([-20.1, -3]);
             expect(elm.duration()).toEqual(17.1);

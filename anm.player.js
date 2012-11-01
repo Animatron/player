@@ -544,7 +544,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var scene = player.anim;
     scene.reset();
-    player.updateDuration(scene.duration);
+    player.setDuration(scene.duration);
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
@@ -844,9 +844,9 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this), false);
 }
-Player.prototype.updateDuration = function(value) {
+Player.prototype.setDuration = function(value) {
     this.state.duration = value;
-    if (this.info) this.info.updateDuration(value);
+    if (this.info) this.info.setDuration(value);
 }
 Player.prototype.drawSplash = function() {
     var ctx = this.ctx,
@@ -1262,13 +1262,14 @@ Scene.prototype.handle__x = function(type, evt) {
     });
     return true;
 }
-Scene.prototype.calculateDuration = function() {
+Scene.prototype.updateDuration = function() {
     var max_pos = 0;
+    var me = this;
     this.visitRoots(function(elm) {
         var elm_tpos = elm._max_tpos();
-        if (elm_tpos > max_pos) max_pos = elm_tpos;
+        if (elm_tpos > me.duration) me.duration = elm_tpos;
     });
-    return max_pos;
+    return this.duration;
 }
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
@@ -1324,12 +1325,10 @@ Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new Error('It appears that it is not a clip object or element that you pass');
     }
-    //this.duration = this.calculateDuration();
-    var elm_tpos = elm._max_tpos();
-    if (elm_tpos > this.duration) this.duration = elm._max_tpos();
     this._register(elm);
     //if (elm.children) this._addElems(elm.children);
     this.tree.push(elm);
+    this.updateDuration();
 }
 /*Scene.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
@@ -1358,6 +1357,7 @@ Scene.prototype._unregister = function(elm) {
       this.tree.splice(pos, 1);
     }
     delete this.hash[elm.id];
+    this.updateDuration();
     elm.registered = false;
     elm.scene = null;
     //elm.parent = null;
@@ -1705,6 +1705,7 @@ Element.prototype.makeBandFit = function() {
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
+    if (this.scene) this.scene.updateDuration();
 }
 Element.prototype.duration = function() {
     return this.xdata.lband[1] - this.xdata.lband[0];
@@ -2691,7 +2692,7 @@ L.loadScene = function(player, scene, callback) {
             && (scene.duration === Number.MAX_VALUE)) {
           scene.duration = Scene.DEFAULT_VIDEO_DURATION;
         }
-        player.updateDuration(scene.duration);
+        player.setDuration(scene.duration);
     }
     scene.awidth = player.state.width;
     scene.aheight = player.state.height;
@@ -4104,7 +4105,7 @@ InfoBlock.prototype.show = function() {
     this.hidden = false;
     this.div.style.display = 'block';
 }
-InfoBlock.prototype.updateDuration = function(value) {
+InfoBlock.prototype.setDuration = function(value) {
     this.div.getElementsByClassName('duration')[0].innerHTML = value+'sec';
 }
 InfoBlock.prototype.changeColors = function(front, back) {
