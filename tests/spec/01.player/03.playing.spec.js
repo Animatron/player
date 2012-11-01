@@ -38,14 +38,16 @@ describe("player, when speaking about playing,", function() {
         expect(player.state.duration).toEqual(0);
     });
 
-    it("should use default duration for a scene with element", function() {
+    it("should use default duration for a scene with no-band element", function() {
         var scene = new anm.Scene();
         scene.add(new anm.Element());
         player.load(scene);
-        expect(player.state.duration).toBe(anm.Scene.DEFAULT_VIDEO_DURATION);
+        expect(player.state.duration).toBe(anm.Element.DEFAULT_LEN);
     });
 
-    // FIXME: ensure duration is DEFAULT only for VIDEO_MODE and PREVIEW_MODE
+    it("should set duration to infinite in DYNAMIC mode and not in PREVIEW or VIDEO modes", function() {
+        this.fail('NI');
+    });
 
     it("should try to draw stop-frame of an empty scene at 0, " +
        "when it will be loaded into player", function() {
@@ -78,7 +80,9 @@ describe("player, when speaking about playing,", function() {
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
-    // FIXME: ensure that preview is not shown when in C.M_DYNAMIC and C.M_PREVIEW modes
+    it("should not show a preview in the mode other than VIDEO", function() {
+        this.fail('NI');
+    });
 
     it("should keep player.anim to point to current scene", function() {
         var scene = new anm.Scene();

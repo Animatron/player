@@ -20,15 +20,15 @@ describe("structure", function() {
 
         try {
             inner.add(test_elm);
-            this.fail();
+            this.fail('No exception was thrown');
         } catch(e) {
-            // expect(e.message)
+            console.log(e.message);
         };
 
         try {
             inner.add(test_elm.clone());
         } catch(e) {
-            this.fail();
+            this.fail('Should not throw an exception');
         };
 
     });

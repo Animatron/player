@@ -521,8 +521,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     __nextFrame = __frameFunc();
 
-    player._ensureAnim();
-    player._ensureState();
+    player._ensureHasAnim();
+    player._ensureHasState();
 
     var state = player.state;
 
@@ -562,7 +562,7 @@ Player.prototype.stop = function() {
 
     var player = this;
 
-    player._ensureState();
+    player._ensureHasState();
 
     var state = player.state;
 
@@ -598,8 +598,8 @@ Player.prototype.stop = function() {
 Player.prototype.pause = function() {
     var player = this;
 
-    player._ensureState();
-    player._ensureAnim();
+    player._ensureHasState();
+    player._ensureHasAnim();
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
@@ -978,10 +978,10 @@ Player.prototype.__subscribeDynamicEvents = function(scene) {
         scene.__subscribedEvts = true;
     }
 }
-Player.prototype._ensureState = function() {
+Player.prototype._ensureHasState = function() {
     if (!this.state) throw new Error(Player.NO_STATE_ERR);
 }
-Player.prototype._ensureAnim = function() {
+Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
 }
 Player.prototype.__beforeFrame = function(scene) {
@@ -1263,11 +1263,12 @@ Scene.prototype.handle__x = function(type, evt) {
     return true;
 }
 Scene.prototype.calculateDuration = function() {
-    var gband = [Number.MAX_VALUE, 0];
+    var max_pos = 0;
     this.visitRoots(function(elm) {
-        gband = Bands.expand(gband, elm.findWrapBand());
+        var elm_tpos = elm._max_tpos();
+        if (elm_tpos > max_pos) max_pos = elm_tpos;
     });
-    return gband[1];
+    return max_pos;
 }
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
@@ -1323,13 +1324,9 @@ Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new Error('It appears that it is not a clip object or element that you pass');
     }
-    this.duration = this.calculateDuration();
-    elm.__ensureHasBand();
-    var elm_band = elm.xdata.gband;
-    if (elm_band &&
-        (elm_band[1] > this.duration)) {
-        this.duration = (elm_band[0] >= 0) ? elm_band[1] : elm_band[1] + elm_band[0];
-    }
+    //this.duration = this.calculateDuration();
+    var elm_tpos = elm._max_tpos();
+    if (elm_tpos > this.duration) this.duration = elm._max_tpos();
     this._register(elm);
     //if (elm.children) this._addElems(elm.children);
     this.tree.push(elm);
@@ -1345,7 +1342,6 @@ Scene.prototype._register = function(elm) {
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
-    elm.__ensureHasBand();
     var me = this;
     elm.visitChildren(function(elm) {
         me._register(elm);
@@ -1517,7 +1513,6 @@ Element.prototype.transform = function(ctx) {
 // > Element.render % (ctx: Context, gtime: Float[, afps: Float])
 Element.prototype.render = function(ctx, gtime, afps) {
     if (this.disabled) return;
-    this.__errorIfNoBand();
     this.rendering = true;
     ctx.save();
     var wasDrawn = false;
@@ -1707,30 +1702,24 @@ Element.prototype.makeBandFit = function() {
     this.xdata.gband = wband;
     this.xdata.lband[1] = wband[1] - wband[0];
 }
-Element.prototype.hasBand = function() {
-    return this.xdata.lband !== Element.NO_BAND;
-}
-Element.prototype.__errorIfNoBand = function() {
-    if (this.xdata.lband === Element.NO_BAND) throw new Error('Band is not auto-calculated or defined');
-}
-Element.prototype.__ensureHasBand = function() {
-    if (this.xdata.lband !== Element.NO_BAND) return;
-    if (this.parent && (this.parent.xdata.lband !== Element.NO_BAND)) {
-        this.xdata.lband = [ 0, this.parent.duration() ];
-    } else if (this.scene && this.scene.duration) {
-        this.xdata.lband = [ 0, this.scene.duration ];
-    } else this.xdata.lband = [ 0, Element.DEFAULT_LEN ];
-    if (this.duration() == 0) this.xdata.lband = [ 0, Element.DEFAULT_LEN ];
-    Bands.recalc(this);
-}
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
-Element.prototype.duration = function() { // for external use
-    this.__errorIfNoBand();
+Element.prototype.duration = function() {
     return this.xdata.lband[1] - this.xdata.lband[0];
 }
+/* Element.prototype.rel_duration = function() { // TODO: duration cut with global band
+    return
+} */
+Element.prototype._max_tpos = function() {
+    return (this.xdata.gband[1] >= 0) ? this.xdata.gband[1] : 0;
+}
+/* Element.prototype.neg_duration = function() {
+    return (this.xdata.lband[0] < 0)
+            ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
+            : 0;
+} */
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
@@ -2073,8 +2062,8 @@ Element.prototype.deepClone = function() {
     if (src_x.text) trg_x.text = src_x.text.clone();
     trg_x.pos = [].concat(src_x.pos);
     trg_x.reg = [].concat(src_x.reg);
-    trg_x.lband = (src_x.lband !== Element.NO_BAND) ? [].concat(src_x.lband) : Element.NO_BAND;
-    trg_x.gband = (src_x.gband !== Element.NO_BAND) ? [].concat(src_x.gband) : Element.NO_BAND;
+    trg_x.lband = [].concat(src_x.lband);
+    trg_x.gband = [].concat(src_x.gband);
     trg_x.keys = obj_clone(src_x.keys);
     return clone;
 }
@@ -2082,10 +2071,7 @@ Element.prototype._addChild = function(elm) {
     this.children.push(elm); // or add elem.id?
     elm.parent = this;
     if (this.scene) this.scene._register(elm);
-    if (this.hasBand()) {
-      //elm.__ensureHasBand();
-      Bands.recalc(this);
-    }
+    Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
     for (var ei = 0, el = elms.length; ei < el; ei++) {
@@ -2407,8 +2393,8 @@ Element.createXData = function(owner) {
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'mode': C.R_ONCE,            // playing mode
-             'lband': Element.NO_BAND, // local band
-             'gband': Element.NO_BAND, // global band
+             'lband': [0, Element.DEFAULT_LEN], // local band
+             'gband': [0, Element.DEFAULT_LEN], // global band
              'canvas': null,   // own canvas for static (cached) elements
              'dimen': null,    // dimensions for static (cached) elements
              'keys': {},
@@ -2813,7 +2799,7 @@ Bands.recalc = function(elm, in_band) {
     var in_band = in_band ||
                   ( elm.parent
                   ? elm.parent.xdata.gband
-                  : x.lband );
+                  : [0, 0] );
     x.gband = [ in_band[0] + x.lband[0],
                 in_band[0] + x.lband[1] ];
     elm.visitChildren(function(celm) {

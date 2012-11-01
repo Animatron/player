@@ -9,6 +9,10 @@ describe("regarding duration and bands in animations,", function() {
 
     var player;
 
+    var DEFAULT_VIDEO_DURATION = anm.Scene.DEFAULT_VIDEO_DURATION;
+    var DEFAULT_ELEMENT_LENGTH = anm.Element.DEFAULT_LEN;
+    var DEFAULT_ELEMENT_BAND = [ 0, DEFAULT_ELEMENT_LENGTH ];
+
     beforeEach(function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
@@ -22,7 +26,7 @@ describe("regarding duration and bands in animations,", function() {
 
         var expected_duration;
 
-        var big_band = [2, 100];
+        var big_band = [-10, 101];
 
         beforeEach(function() {
             scene = new anm.Scene();
@@ -30,14 +34,14 @@ describe("regarding duration and bands in animations,", function() {
 
         varyAll([
 
-            { description: "in case of empty scene, duration will be zero,",
+            { description: "in case of empty scene, duration will be the default duration of the video",
               prepare: function() { expected_duration = 0; } },
 
-            { description: "in case of scene with no-band element, duration still will be zero",
+            { description: "in case of scene with no-band element, duration will be the default length of an element",
               prepare: function() { scene.add(new anm.Element());
-                                    expected_duration = 0; } },
+                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
 
-            { description: "in case of scene with several no-band elements, duration still will be zero",
+            { description: "in case of scene with several no-band elements, duration will be the default length of an element",
               prepare: function() { var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
@@ -45,38 +49,38 @@ describe("regarding duration and bands in animations,", function() {
                                     inner.add(new anm.Element());
                                     scene.add(root);
                                     scene.add(new anm.Element());
-                                    expected_duration = 0; } },
+                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
 
-            { description: "in case of scene with an element that has a simple band, duration with be equal to a band duration",
+            { description: "in case of scene with an element that has a simple band, duration will be equal to a band duration",
               prepare: function() { var elm = new anm.Element();
                                     elm.setBand([0, 5]);
                                     scene.add(elm);
                                     expected_duration = 5; } },
 
-            { description: "in case of scene with an element that has a shifted band, duration with be equal to band start + band duration",
+            { description: "in case of scene with an element that has a shifted band, duration will be equal to band end",
               prepare: function() { var elm = new anm.Element();
                                     elm.setBand([2, 15]);
                                     scene.add(elm);
-                                    expected_duration = 17; } },
+                                    expected_duration = 15; } },
 
-            { description: "in case of scene with an element that has a negative band, duration with be equal to a band end",
+            { description: "in case of scene with an element that has a negative band, duration will be equal to a band end",
               prepare: function() { var elm = new anm.Element();
                                     elm.setBand([-12, 50]);
                                     scene.add(elm);
                                     expected_duration = 50; } },
 
-            { description: "in case of scene with some element that has a shifted band inside (set before adding), duration will be band start + band duration",
+            { description: "in case of scene with some element that has a shifted band inside (set before adding), duration will be equal to a root duration (default one, since it wasn't set)",
               prepare: function() { var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
-                                    inner.setBand([2, 17])
+                                    inner.setBand([2, 17]);
                                     root.add(inner);
                                     inner.add(new anm.Element());
                                     scene.add(root);
                                     scene.add(new anm.Element());
-                                    expected_duration = 19; } },
+                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
 
-            { description: "in case of scene with some element that has a shifted band inside (set after adding), duration will be band start + band duration",
+            { description: "in case of scene with some element that has a shifted band inside (set after adding), duration will be equal to a root duration (default one, since it wasn't set)",
               prepare: function() { var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
@@ -84,29 +88,95 @@ describe("regarding duration and bands in animations,", function() {
                                     inner.add(new anm.Element());
                                     scene.add(root);
                                     scene.add(new anm.Element());
-                                    inner.setBand([2, 17])
-                                    expected_duration = 19; } },
+                                    inner.setBand([2, 17]);
+                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
+
+            { description: "in case of scene with some element that has a shifted band inside (set before adding) and root has a band, duration will be equal to a root duration",
+              prepare: function() { var root = new anm.Element();
+                                    var inner = new anm.Element();
+                                    root.add(new anm.Element());
+                                    inner.setBand([2, 17]);
+                                    root.add(inner);
+                                    inner.add(new anm.Element());
+                                    root.setBand([-2, 12]);
+                                    scene.add(root);
+                                    scene.add(new anm.Element());
+                                    expected_duration = 12; } },
+
+            { description: "in case of scene with some element that has a shifted band inside (set after adding) and root has a band, duration will be equal to a root duration",
+              prepare: function() { var root = new anm.Element();
+                                    var inner = new anm.Element();
+                                    root.add(new anm.Element());
+                                    root.add(inner);
+                                    inner.add(new anm.Element());
+                                    scene.add(root);
+                                    scene.add(new anm.Element());
+                                    root.setBand([-2, 12]);
+                                    inner.setBand([2, 17]);
+                                    expected_duration = 12; } },
+
+            { description: "when one of the roots has duration less than default, scene will have default duration",
+              prepare: function() { expect(DEFAULT_ELEMENT_LENGTH).toBeGreaterThan(2);
+                                    var root = new anm.Element();
+                                    var inner = new anm.Element();
+                                    root.setBand([-9, DEFAULT_ELEMENT_LENGTH - 2]);
+                                    root.add(new anm.Element());
+                                    root.add(inner);
+                                    inner.add(new anm.Element());
+                                    scene.add(root);
+                                    scene.add(new anm.Element());
+                                    inner.setBand([2, 17]);
+                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
 
             { description: "in case of scene with several elements that has different bands, duration will be minimum-start + maximum-reachable root band",
               prepare: function() { var root1 = new anm.Element();
                                     var root2 = new anm.Element();
                                     var root3 = new anm.Element();
+                                    var root4 = new anm.Element();
                                     var inner1 = new anm.Element();
                                     var inner2 = new anm.Element();
                                     var inner3 = new anm.Element();
+                                    var inner4 = new anm.Element();
                                     root1.setBand([1, 6]);
                                     root2.setBand([1, 5]);
                                     root2.add(inner1);
-                                    inner1.setBand([2, 11]);
+                                    inner1.setBand([2, 75]);
                                     inner3.setBand([0, 3]);
+                                    inner4.setBand([-2, 5]);
                                     scene.add(root1);
                                     scene.add(root2);
                                     scene.add(root3);
                                     root2.add(inner2);
                                     root2.add(inner3);
-                                    root3.setBand([2, 7]);
-                                    expected_duration = 9 /* root band maximum is 2 + 7, which is 9. */
-                                                          /* [2, 11] is inside of [1, 6], so it should be cut to size; */ } },
+                                    root3.add(inner4);
+                                    root3.setBand([2, 36]);
+                                    root4.setBand([-40, 4]);
+                                    expected_duration = 36; } },
+
+            { description: "in case of scene with several elements that has different bands and some top-level of them has a negative band, duration still will be 0 + maximum-reachable root band",
+              prepare: function() { var root1 = new anm.Element();
+                                    var root2 = new anm.Element();
+                                    var root3 = new anm.Element();
+                                    var root4 = new anm.Element();
+                                    var inner1 = new anm.Element();
+                                    var inner2 = new anm.Element();
+                                    var inner3 = new anm.Element();
+                                    var inner4 = new anm.Element();
+                                    root1.setBand([1, 6]);
+                                    root2.setBand([1, 5]);
+                                    root2.add(inner1);
+                                    inner1.setBand([2, 75]);
+                                    inner3.setBand([0, 3]);
+                                    inner4.setBand([-2, 5]);
+                                    scene.add(root1);
+                                    scene.add(root2);
+                                    scene.add(root3);
+                                    root2.add(inner2);
+                                    root2.add(inner3);
+                                    root3.add(inner4);
+                                    root3.setBand([2, 2]);
+                                    root4.setBand([-40, 8]);
+                                    expected_duration = 8; } }
 
             // TODO: test what happens if element was live-removed from a scene
 
@@ -163,7 +233,7 @@ describe("regarding duration and bands in animations,", function() {
                 big_band_elm.setBand(big_band);
                 scene.add(big_band_elm);
                 player.play();
-                expect(scene.duration).toBe(big_band[0] + big_band[1]);
+                expect(scene.duration).toBe(big_band[1]);
                 expect(player.state.duration).toEqual(scene.duration);
                 player.stop();
             });
@@ -174,7 +244,7 @@ describe("regarding duration and bands in animations,", function() {
                 var big_band_elm = new anm.Element();
                 big_band_elm.setBand(big_band);
                 scene.add(big_band_elm);
-                expect(scene.duration).toBe(big_band[0] + big_band[1]);
+                expect(scene.duration).toBe(big_band[1]);
                 expect(player.state.duration).toBe(expected_duration);
                 player.stop();
             });
@@ -183,12 +253,57 @@ describe("regarding duration and bands in animations,", function() {
 
     });
 
+    describe("element duration", function() {
+
+        it("should be equal to default length if band is not specified", function() {
+            var elm = new anm.Element();
+            expect(elm.duration()).toBe(DEFAULT_ELEMENT_LENGTH);
+        });
+
+        it("should equal to actual duration if it starts at zero", function() {
+            var elm = new anm.Element();
+            elm.setBand([0, 51]);
+            expect(elm.duration()).toEqual(50);
+        });
+
+        it("should equal to actual duration if it happens during time", function() {
+            var elm = new anm.Element();
+            elm.setBand([12, 73]);
+            expect(elm.duration()).toEqual(85);
+        });
+
+        it("should equal to actual duration if it starts below zero", function() {
+            var elm = new anm.Element();
+            elm.setBand([-23.5, 11.2]);
+            expect(elm.duration()).toEqual(34.7);
+        });
+
+        it("should equal to actual duration if it is all placed below zero", function() {
+            var elm = new anm.Element();
+            elm.setBand([-20.1, -3]);
+            expect(elm.duration()).toEqual(17.1);
+        });
+
+        it("should not depend on how deep is it inside of the structure", function() {
+            var root = new anm.Element();
+            var leaf = new anm.Element();
+            var subleaf = new anm.Element();
+            root.add(leaf);
+            root.setBand([-20, 60]);
+            leaf.setBand([8, 19]);
+            leaf.add(subleaf);
+            subleaf.setBand([-2, 4]);
+            expect(subleaf.duration()).toBe(6);
+        });
+
+    });
+
     describe("elements' bands", function() {
 
-        it("should set a band to no-band if element has no band", function() {
+        it("should set a band to a default band if element band wasn't set", function() {
             var elm = new anm.Element();
-            expect(elm.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(elm.xdata.gband).toBe(anm.Element.NO_BAND);
+            expect(elm.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(elm.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
         });
 
         it("should set both gband and lband to an element", function() {
@@ -205,8 +320,8 @@ describe("regarding duration and bands in animations,", function() {
             elm.add(child);
             expect(child.xdata.lband).toEqual([1, 20]);
             expect(child.xdata.gband).toEqual([1, 20]);
-            expect(elm.xdata.lband).toEqual(anm.Element.NO_BAND);
-            expect(elm.xdata.gband).toEqual(anm.Element.NO_BAND);
+            expect(elm.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(elm.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
         });
 
         it("should not change the value of no-band of an element even when its child's band was changed after the actual adding fact", function() {
@@ -216,8 +331,8 @@ describe("regarding duration and bands in animations,", function() {
             child.setBand([2, 17]);
             expect(child.xdata.lband).toEqual([2, 17]);
             expect(child.xdata.gband).toEqual([2, 17]);
-            expect(elm.xdata.lband).toEqual(anm.Element.NO_BAND);
-            expect(elm.xdata.gband).toEqual(anm.Element.NO_BAND);
+            expect(elm.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(elm.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
         });
 
         it("should correct the child global band to a parent band, if it has one", function() {
@@ -350,7 +465,7 @@ describe("regarding duration and bands in animations,", function() {
             });
         } */
 
-        it("should set a band to no-band if no element in a complex structure has a band", function() {
+        it("should set a band to default band if no element in a complex structure has a band set", function() {
             var elms = [];
 
             var root = new anm.Element(); elms.push(root);
@@ -369,8 +484,8 @@ describe("regarding duration and bands in animations,", function() {
             root.add(leaf3);
 
             _each(elms, function(elm) {
-                expect(elm.xdata.lband).toBe(anm.Element.NO_BAND);
-                expect(elm.xdata.gband).toBe(anm.Element.NO_BAND);
+                expect(elm.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+                expect(elm.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             });
 
         });
@@ -393,15 +508,15 @@ describe("regarding duration and bands in animations,", function() {
 
             subleaf3.setBand([2, 7]);
 
-            expect(leaf1.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf1.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(leaf2.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf2.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.gband).toBe(anm.Element.NO_BAND);
+            expect(leaf1.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf1.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf2.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf2.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
 
-            expect(root.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(root.xdata.gband).toBe(anm.Element.NO_BAND);
+            expect(root.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(root.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
         });
 
         it("if parent already has a band, it should correct the local band of a child to its band, but granparent's band should stay empty", function() {
@@ -423,15 +538,15 @@ describe("regarding duration and bands in animations,", function() {
             leaf2.setBand([3, 15]);
             subleaf3.setBand([2, 7]);
 
-            expect(root.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(root.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(leaf1.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf1.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.gband).toBe(anm.Element.NO_BAND);
+            expect(root.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(root.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf1.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf1.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
 
-            expect(subleaf3.xdata.lband).toBe([2, 7]);
-            expect(subleaf3.xdata.gband).toBe([5, 12]);
+            expect(subleaf3.xdata.lband).toEqual([2, 7]);
+            expect(subleaf3.xdata.gband).toEqual([5, 12]);
         });
 
         it("if grand-parent already has a band, it should also correct the local band both of a child and grand-child", function() {
@@ -454,17 +569,17 @@ describe("regarding duration and bands in animations,", function() {
             subleaf3.setBand([2, 7]);
             root.setBand([2, 20]);
 
-            expect(leaf1.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf1.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.gband).toBe(anm.Element.NO_BAND);
+            expect(leaf1.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf1.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
 
-            expect(root.xdata.lband).toBe([2, 20]);
-            expect(root.xdata.gband).toBe([2, 20]);
-            expect(leaf2.xdata.lband).toBe([3, 14]);
-            expect(leaf2.xdata.gband).toBe([5, 16]);
-            expect(subleaf3.xdata.lband).toBe([2, 7]);
-            expect(subleaf3.xdata.gband).toBe([7, 12]);
+            expect(root.xdata.lband).toEqual([2, 20]);
+            expect(root.xdata.gband).toEqual([2, 20]);
+            expect(leaf2.xdata.lband).toEqual([3, 14]);
+            expect(leaf2.xdata.gband).toEqual([5, 16]);
+            expect(subleaf3.xdata.lband).toEqual([2, 7]);
+            expect(subleaf3.xdata.gband).toEqual([7, 12]);
         });
 
         it("if there are several children, their band should also be aligned to a parent", function() {
@@ -487,26 +602,26 @@ describe("regarding duration and bands in animations,", function() {
             subleaf2.setBand([3, 12]);
             subleaf3.setBand([2, 7]);
 
-            expect(leaf1.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf1.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(leaf3.xdata.gband).toBe(anm.Element.NO_BAND);
-            expect(root.xdata.lband).toBe(anm.Element.NO_BAND);
-            expect(root.xdata.gband).toBe(anm.Element.NO_BAND);
+            expect(leaf1.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf1.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf3.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(root.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(root.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
 
-            expect(subleaf2.xdata.lband).toBe([3, 12]);
-            expect(subleaf2.xdata.gband).toBe([4, 13]);
-            expect(subleaf3.xdata.lband).toBe([2, 7]);
-            expect(subleaf3.xdata.gband).toBe([3, 8]);
+            expect(subleaf2.xdata.lband).toEqual([3, 12]);
+            expect(subleaf2.xdata.gband).toEqual([4, 13]);
+            expect(subleaf3.xdata.lband).toEqual([2, 7]);
+            expect(subleaf3.xdata.gband).toEqual([3, 8]);
 
             //subleaf2.setBand([3, 12]);
             //subleaf3.setBand([2, 7]);
             leaf2.setBand([4, 11]);
 
-            expect(subleaf2.xdata.lband).toBe([3, 12]);
-            expect(subleaf2.xdata.gband).toBe([7, 11]);
-            expect(subleaf3.xdata.lband).toBe([2, 7]);
-            expect(subleaf3.xdata.gband).toBe([6, 11]);
+            expect(subleaf2.xdata.lband).toEqual([3, 12]);
+            expect(subleaf2.xdata.gband).toEqual([7, 11]);
+            expect(subleaf3.xdata.lband).toEqual([2, 7]);
+            expect(subleaf3.xdata.gband).toEqual([6, 11]);
         });
 
         it("should catch the changes of a parent band and change child band accordingly", function() {
@@ -570,18 +685,18 @@ describe("regarding duration and bands in animations,", function() {
             root.setBand([2, 10]);
             expect(root.xdata.lband).toEqual([2, 10]);
             expect(root.xdata.gband).toEqual([2, 10]);
-            expect(leaf.xdata.lband).toEqual(anm.Element.NO_BAND);
-            expect(leaf.xdata.gband).toEqual(anm.Element.NO_BAND);
+            expect(leaf.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(subleaf.xdata.lband).toEqual([1, 3]);
             expect(subleaf.xdata.gband).toEqual([1, 3]);
             root.setBand([1, 9]);
-            expect(leaf.xdata.lband).toEqual(anm.Element.NO_BAND);
-            expect(leaf.xdata.gband).toEqual(anm.Element.NO_BAND);
+            expect(leaf.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(subleaf.xdata.lband).toEqual([1, 3]);
             expect(subleaf.xdata.gband).toEqual([1, 3]);
             root.setBand([-2, 6]);
-            expect(leaf.xdata.lband).toEqual(anm.Element.NO_BAND);
-            expect(leaf.xdata.gband).toEqual(anm.Element.NO_BAND);
+            expect(leaf.xdata.lband).toEqual(DEFAULT_ELEMENT_BAND);
+            expect(leaf.xdata.gband).toEqual(DEFAULT_ELEMENT_BAND);
             expect(subleaf.xdata.lband).toEqual([1, 3]);
             expect(subleaf.xdata.gband).toEqual([1, 3]);
         });
