@@ -2434,7 +2434,7 @@ Element.__addDebugRender = function(elm) {
 }
 Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify with adding object same way,
                                                     // include easing in all modifiers
-    var m_tween = Tweens[tween.type],
+    var m_tween = Tweens[tween.type](),
         easing = tween.easing;
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
                         tween.band, m_tween,
@@ -2866,30 +2866,40 @@ Tween.TWEENS_COUNT = 5;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
-    function(t, duration, data) {
+    function() {
+      return function(t, duration, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
+      };
     };
 Tweens[C.T_TRANSLATE] =
-    function(t, duration, data) {
-        var p = data.pointAt(t);
-        this._mpath = data;
-        this.x = p[0];
-        this.y = p[1];
+    function() {
+      return function(t, duration, data) {
+          var p = data.pointAt(t);
+          this._mpath = data;
+          this.x = p[0];
+          this.y = p[1];
+      };
     };
 Tweens[C.T_ALPHA] =
-    function(t, duration, data) {
-        this.alpha = data[0] * (1 - t) + data[1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.alpha = data[0] * (1.0 - t) + data[1] * t;
+      };
     };
 Tweens[C.T_SCALE] =
-    function(t, duration, data) {
+    function() {
+      return function(t, duration, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+      };
     };
 Tweens[C.T_ROT_TO_PATH] =
-    function(t, duration, data) {
+    function() {
+      return function(t, duration, data) {
         var path = this._mpath;
         this.angle = path.tangentAt(t);
+      };
     };
 
 // function-based easings

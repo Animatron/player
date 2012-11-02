@@ -10,6 +10,9 @@ xdescribe("tweens", function() {
 
     });
 
+    // TODO: ensure that tweens modifier is always new (instead, it rises an error that the element
+    //       has this modifier already)
+
 });
 
 // Tweens are called with values from 0 to 1, but modifiers with actual time, should it be changed?
