@@ -2771,18 +2771,18 @@ Render.h_drawMPath = function(ctx, mPath) {
     ctx.restore()
 }
 
-Render.m_checkBand = function(time, band) {
-    if (band[0] > time) return false; // exit
-    if (band[1] < time) return false; // exit
+Render.m_checkBand = function(time, duration, band) {
+    if (band[0] > (duration * time)) return false; // exit
+    if (band[1] < (duration * time)) return false; // exit
 }
 
-Render.m_saveReg = function(time, reg) {
+Render.m_saveReg = function(time, duration, reg) {
     if (!(reg = reg || this.$.xdata.reg)) return;
     this.rx = reg[0];
     this.ry = reg[1];
 }
 
-Render.m_applyPos = function(time, pos) {
+Render.m_applyPos = function(time, duration, pos) {
     if (!(pos = pos || this.$.xdata.pos)) return;
     this.lx = pos[0];
     this.ly = pos[1];
@@ -2833,22 +2833,22 @@ Bands.reduce = function(from, to) {
 }
 
 Bands.adaptModifier = function(func, sband) {
-    return function(time, data) { // returns modifier
+    return function(time, duration, data) { // returns modifier
         if (sband[0] > time) return;
         if (sband[1] < time) return;
         var t = (time-sband[0])/(sband[1]-sband[0]);
-        func.call(this, t, data);
+        func.call(this, t, duration, data);
     };
 }
 
 Bands.adaptModifierByTime = function(tfunc, func, sband) {
-    return function(time, data) { // returns modifier
+    return function(time, duration, data) { // returns modifier
         if ((sband[0] > time) || (sband[1] < time)) return;
         var blen = sband[1] - sband[0],
             t = (time - sband[0]) / blen,
             mt = tfunc(t);
         if ((0 > mt) || (1 < mt)) return;
-        func.call(this, mt, data);
+        func.call(this, mt, duration, data);
     }
 }
 
@@ -2879,28 +2879,28 @@ Tween.TWEENS_COUNT = 5;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
-    function(t, data) {
+    function(t, duration, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
     };
 Tweens[C.T_TRANSLATE] =
-    function(t, data) {
+    function(t, duration, data) {
         var p = data.pointAt(t);
         this._mpath = data;
         this.x = p[0];
         this.y = p[1];
     };
 Tweens[C.T_ALPHA] =
-    function(t, data) {
+    function(t, duration, data) {
         this.alpha = data[0] * (1 - t) + data[1] * t;
     };
 Tweens[C.T_SCALE] =
-    function(t, data) {
+    function(t, duration, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
     };
 Tweens[C.T_ROT_TO_PATH] =
-    function(t, data) {
+    function(t, duration, data) {
         var path = this._mpath;
         this.angle = path.tangentAt(t);
     };

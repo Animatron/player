@@ -161,7 +161,7 @@ Builder.prototype.image = function(pt, src) {
         this.x.image =
            // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src, function(img) {
-                b.__modify(Element.SYS_MOD, function(t) {
+                b.__modify(Element.SYS_MOD, function() {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
                 });
@@ -433,7 +433,7 @@ Builder.prototype.time = function(f) {
 // > builder.tease % (ease: Function(t: Float)) => Builder
 Builder.prototype.tease = function(ease) {
     if (!ease) throw new Error('Ease function not defined');
-    var duration = this.x.lband[1]-this.x.lband[0];
+    var duration = this.x.duration();
     this.time(function(t) {
         return ease(t / duration);
     });
