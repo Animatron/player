@@ -130,7 +130,7 @@ var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                                    .stroke('#f00', 3))
                 .add(b('def-rect').rect([115, 90], [60, 60]))
                 .rotate([0, 10], [0, Math.PI]);
-createPlayer('canvas2').load(scene2);
+createPlayer('canvas2', { 'mode': C.M_DYNAMIC, 'zoom': 1.4 }).load(scene2);
     </code></pre>
     <canvas id="canvas2" data-title="Rectangles-2"></canvas>
 

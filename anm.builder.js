@@ -15,6 +15,8 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
+var is = anm._typecheck;
+
 var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
@@ -63,7 +65,7 @@ Builder._$ = function(obj) {
 }
 
 Builder.__path = function(val, join) {
-    return (Array.isArray(val))
+    return is.array(val)
            ? Builder.path(val)
            : ((val instanceof Path) ? val
               : Path.parse(val, join))
@@ -127,8 +129,7 @@ Builder.prototype.path = function(path, pt) {
 // > builder.rect % (pt: Array[2,Integer],
 //                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var rect = Array.isArray(rect) ? rect
-                                   : [ rect, rect ];
+    var rect = is.array(rect) ? rect : [ rect, rect ];
     var w = rect[0], h = rect[1];
     this.path([[0, 0], [w, 0],
                [w, h], [0, h],
@@ -161,7 +162,7 @@ Builder.prototype.image = function(pt, src) {
         this.x.image =
            // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src, function(img) {
-                b.__modify(Element.SYS_MOD, function(t) {
+                b.x.__modify(Element.SYS_MOD, 0, null, function() {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
                 });
@@ -388,9 +389,21 @@ Builder.prototype.bounce = function() {
 // > builder.modify % ([band: Array[2, Float],]
 //                     modifier: Function(time: Float,
 //                                        data: Any),
-//                     [data: Any, priority: Integer]) => Builder
-Builder.prototype.modify = function(band, func, data, priority) {
-    this.v.addModifier(band, func, data, priority);
+//                     [data: Any, easing: Function(time),
+//                                 priority: Integer]) => Builder
+Builder.prototype.modify = function(band, modifier, data, easing, priority) {
+    if (is.array(band) || is.num(band)) {
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addTModifier(band, modifier, easing, data, priority);
+    } else {
+        // match actual arguments, if band was omitted
+        priority = easing;
+        easing = data;
+        data = modifier;
+        modifier = band;
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addModifier(modifier, easing, data, priority);
+    }
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,
@@ -433,7 +446,7 @@ Builder.prototype.time = function(f) {
 // > builder.tease % (ease: Function(t: Float)) => Builder
 Builder.prototype.tease = function(ease) {
     if (!ease) throw new Error('Ease function not defined');
-    var duration = this.x.lband[1]-this.x.lband[0];
+    var duration = this.x.duration();
     this.time(function(t) {
         return ease(t / duration);
     });

@@ -236,6 +236,52 @@ describe("player, when speaking about modes,", function() {
             player.stop();
         });
 
+        describe("scene duration, according to the mode", function() {
+
+            it("should be infinite in dynamic mode", function() {
+                var scene = new anm.Scene();
+                player.init('fake', { mode: C.M_DYNAMIC }).load(scene);
+                expect(scene.duration).toBe(Number.MAX_VALUE);
+
+                var elm = new anm.Element();
+                elm.setBand([0, 12]);
+                scene.add(elm);
+
+                player.play();
+                expect(scene.duration).toBe(Number.MAX_VALUE);
+                expect(player.state.duration).toBe(Number.MAX_VALUE);
+            });
+
+            it("should be finite in video mode", function() {
+                var scene = new anm.Scene();
+                player.init('fake', { mode: C.M_VIDEO }).load(scene);
+                expect(scene.duration).toBe(0);
+
+                var elm = new anm.Element();
+                elm.setBand([0, 12]);
+                scene.add(elm);
+
+                player.play();
+                expect(scene.duration).toBe(12);
+                expect(player.state.duration).toBe(12);
+            });
+
+            it("should be finite in preview mode", function() {
+                var scene = new anm.Scene();
+                player.init('fake', { mode: C.M_PREVIEW }).load(scene);
+                expect(scene.duration).toBe(0);
+
+                var elm = new anm.Element();
+                elm.setBand([0, 12]);
+                scene.add(elm);
+
+                player.play();
+                expect(scene.duration).toBe(12);
+                expect(player.state.duration).toBe(12);
+            });
+
+        });
+
     });
 
     // TODO: test the same for remote scenes?

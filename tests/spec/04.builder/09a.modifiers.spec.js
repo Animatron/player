@@ -13,7 +13,10 @@ describe("builder, regarding modifiers,", function() {
     var b = Builder._$,
         B = Builder;
 
-    var FPS = 10;
+    var FPS = 10,
+        mFPS = 1 / FPS;
+
+    var CLOSE_FACTOR = 14; // digits following floating point
 
     beforeEach(function() {
         this.addMatchers(_matchers);
@@ -119,7 +122,7 @@ describe("builder, regarding modifiers,", function() {
 
                 var expectedData = { 'foo': 42 };
 
-                var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, data) {
+                var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration, data) {
                     expect(data).toBeDefined();
                     expect(data).toBe(expectedData);
                     expect(data.foo).toBeDefined();
@@ -287,7 +290,7 @@ describe("builder, regarding modifiers,", function() {
             describe("adding them and the way it affects their bands", function() {
 
                 it("should add modifier and call it", function() {
-                    scene = b('scene').band([0, 1]);
+                    scene = b('scene').band([0, 3]);
 
                     var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
                         expect(t).toBeGreaterThanOrEqual(0);
@@ -311,8 +314,9 @@ describe("builder, regarding modifiers,", function() {
                     scene.add(b().add(b().add(target)));
 
                     var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                        expect(t * (1.5 - .3)).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
                         expect(t).toBeGreaterThanOrEqual(0);
-                        expect(t).toBeLessThanOrEqual(1.5 - .3);
+                        expect(t).toBeLessThanOrEqual(1);
                     });
 
                     doAsync(player, {
@@ -357,8 +361,9 @@ describe("builder, regarding modifiers,", function() {
                     scene.add(b().add(parent));
 
                     var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                        expect(t * (.42 - .11)).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
                         expect(t).toBeGreaterThanOrEqual(0);
-                        expect(t).toBeLessThanOrEqual(.31);
+                        expect(t).toBeLessThanOrEqual(1);
                     });
 
                     doAsync(player, {
@@ -366,6 +371,40 @@ describe("builder, regarding modifiers,", function() {
                                               return scene; },
                         do: 'play', until: C.STOPPED, timeout: 1.2,
                         then: function() { expect(modifierSpy).toHaveBeenCalled(); }
+                    });
+
+                });
+
+                it("should pass element's band duration inside", function() {
+                    scene = b('scene').band([2, 5]);
+
+                    var bands = [ [ 0.5, 1.2 ],
+                                  [ 0.9, 1.0 ],
+                                  [ 0.9, 1.3 ],
+                                  [ 1.5, 2.6 ],
+                                  [ 2.3, 3.0 ] ];
+
+                    var spiesCount = bands.length;
+
+                    var spies = [];
+
+                    for (var i = 0, sc = spiesCount; i < sc; i++) {
+                        spies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
+                            return function(t, duration) {
+                                expect(duration).toBe(bands[i][1] - bands[i][0]);
+                            }
+                        })(i)));
+                    }
+
+                    doAsync(player, {
+                        prepare: function() {
+                            _each(spies, function(spy, idx) {
+                                scene.add(b().band(bands[idx]).modify(spy));
+                            });
+                            return scene;
+                        },
+                        do: 'play', until: C.STOPPED, timeout: 5.2,
+                        then: function() { _each(spies, function(spy) { expect(spy).toHaveBeenCalled(); } ); }
                     });
 
                 });
@@ -407,6 +446,7 @@ describe("builder, regarding modifiers,", function() {
 
                     var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
                         expect(t).toBeGreaterThanOrEqual(0);
+                        // remove modifier after .5
                         if (t > .5) {
                             expect(modifierSpy).toHaveBeenCalled();
                             scene.unmodify(modifierSpy);
@@ -436,7 +476,7 @@ describe("builder, regarding modifiers,", function() {
 
                     for (var i = 0; i < spiesCount; i++) {
                         modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
-                            return function(t, removeTime) {
+                            return function(t, duration, removeTime) {
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 if (t > removeTime) {
                                     var modifier = modifierSpies[i];
@@ -484,10 +524,8 @@ describe("builder, regarding modifiers,", function() {
 
             var scene = b();
 
-            var CLOSE_FACTOR = 14; // digits following floating point
-
             // FIXME: test that 0-duration throws error
-            // FIXME: test that applying any tween calls b().modify
+            // TODO: ensure duration() method of the element is accessible in such modifier
 
             varyAll([ {
                     description: "when assigned to the scene",
@@ -565,40 +603,80 @@ describe("builder, regarding modifiers,", function() {
                                     prepare: function() { mod_band = [ trg_duration / 4, trg_duration / 3 ];
                                                           mod_duration = mod_band[1] - mod_band[0]; } } ], function() {
 
+                            /* it("should pass modifier band duration inside, independently of alignment", function() {
+                                function m_checkDuration() {
+                                    return function(t, duration) {
+                                        expect(duration).toBe(mod_duration);
+                                    }
+                                };
+
+                                expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: m_checkDuration(),
+                                        time: trg_band[0] + (mod_band[0] / 3) });
+
+                                expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: m_checkDuration(),
+                                        time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+
+                                expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: m_checkDuration(),
+                                        time: trg_band[0] + (mod_band[0] >=0 ? mod_band[0] : 0) });
+
+                                expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: m_checkDuration(),
+                                        time: trg_band[0] + mod_band[0] + mod_duration });
+
+                                expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: m_checkDuration(),
+                                        time: (mod_duration < trg_duration)
+                                                ? trg_band[0] + mod_band[1] +
+                                                  ((trg_duration - mod_band[1]) / 2)
+                                                : trg_band[1] });
+
+                            }); */
+
                             describe("in favor of alignment,", function() {
 
-                                it("should call modifier before the fact when its band has started and pass the starting time inside", function() {
+                                it("should call modifier before the fact when its band has started and pass the starting time and modifier duration inside", function() {
                                     expectAtTime({
                                         bands: mod_band,
-                                        modifiers: function(t) {
+                                        modifiers: function(t, duration) {
                                             expect(t).toBe(0);
+                                            expect(duration).toBe(mod_duration);
                                         },
                                         time: ( (mod_band[0] > 0)
                                                ? trg_band[0] + (mod_band[0] / 2)
                                                : trg_band[0] ) });
                                 });
 
-                                it("should call modifier after the fact when its band has finished and pass the ending time inside", function() {
+                                it("should call modifier after the fact when its band has finished and pass the ending time and modifier duration  inside", function() {
                                     var mod_duration = mod_band[1] - mod_band[0];
                                     expectAtTime({
                                         bands: mod_band,
-                                        modifiers: function(t) {
+                                        modifiers: function(t, duration) {
                                             expect(t).toBe(1);
+                                            expect(duration).toBe(mod_duration);
                                         },
                                         time: ( (mod_duration < trg_duration)
-                                               ? trg_band[0] + mod_band[1] +
-                                                 ((trg_duration - mod_band[1]) / 2)
-                                               : trg_band[1] ) });
+                                                ? trg_band[0] + mod_band[1] +
+                                                  ((trg_duration - mod_band[1]) / 2)
+                                                : trg_band[1] ) });
                                 });
 
-                                it("should just pass the local time to modifier (and, for sure, call it), if its band is within current time", function() {
+                                it("should just pass the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
                                     var mod_duration = mod_band[1] - mod_band[0];
                                     expectAtTime({
                                         bands: mod_band,
-                                        modifiers: function(t) {
+                                        modifiers: function(t, duration) {
                                             expect(t).toBeGreaterThan(0);
                                             expect(t).toBeLessThan(1);
                                             expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
+                                            expect(duration).toBe(mod_duration);
                                         },
                                         time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                                 });
@@ -912,7 +990,7 @@ describe("builder, regarding modifiers,", function() {
                         var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands);
                         var modifiers = [];
                         _each(bands, function(band) {
-                            modifiers.push(function(t) {
+                            modifiers.push(function(t, duration) {
                                 var _start = band[0],
                                     _end = band[1],
                                     _band_duration = _end - _start;
@@ -927,6 +1005,7 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     expect(t).toBe(1);
                                 }
+                                expect(duration).toBe(band[1] - band[0]);
                             });
                         });
                         whilePlaying(bands, modifiers);
@@ -1013,8 +1092,6 @@ describe("builder, regarding modifiers,", function() {
 
             var modifier_time;
 
-            var CLOSE_FACTOR = 14; // digits following floating point
-
             varyAll([ { description: "when target is a scene,",
                         prepare: function() { target = scene;
                                               trg_band = [ 0, _duration ];
@@ -1063,23 +1140,39 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    it("should call a modifier at given time or a bit later", function() {
-                        var calledAt = -1;
+                    it("should pass target band duration inside the modifier", function() {
                         var expectedT = 0.7;
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                            expect(t).toBeGreaterThanOrEqual(expectedT);
-                            expect(t).toBeCloseTo(expectedT, CLOSE_FACTOR);
-                            expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
-                            calledAt = t;
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                            expect(duration).toEqual(trg_duration);
                         });
 
                         doAsync(player, {
-                            prepare: function() { scene.at(expectedT, modifierSpy); },
+                            prepare: function() { target.modify(expectedT, modifierSpy); },
+                            do: 'play', until: C.STOPPED, timeout: _timeout,
+                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                        });
+
+                    });
+
+                    it("should call a modifier at given time or a bit later", function() {
+                        var calledAt = -1;
+                        var expectedT = 0.7;
+                        var FPS_ERR = 7 / 9;
+
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                            expect(t).toBeGreaterThanOrEqual(expectedT / duration);
+                            expect(t * duration).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
+                            expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
+                            calledAt = t * trg_duration;
+                        });
+
+                        doAsync(player, {
+                            prepare: function() { target.modify(expectedT, modifierSpy); },
                             do: 'play', until: C.STOPPED, timeout: _timeout,
                             then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
                                                expect(calledAt).toBeGreaterThanOrEqual(expectedT);
-                                               expect(calledAt).toBeCloseTo(expectedT, CLOSE_FACTOR); }
+                                               expect(calledAt).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS); }
                         });
 
                     });
@@ -1109,15 +1202,18 @@ describe("builder, regarding modifiers,", function() {
                         });
                     };
 
-                    var mFPS = 1 / FPS,
-                        FPS_ERR = anm.Element._FPS_ERROR;
+                    var FPS_ERR = anm.Element._FPS_ERROR;
 
-                    function playValueTest(t, time) { return ((t >= 0) && (t <= trg_duration)) &&
-                                                             (((t >= time) && (t <= time + (mFPS * FPS_ERR))) ||
-                                                              ((t < time)  && __close(t, time, 10))); }
-                    function drawValueTest(t, time) { return ((t >= 0) && (t <= trg_duration)) &&
-                                                             ( Math.round(t    * Math.pow(10, CLOSE_FACTOR)) ==
-                                                               Math.round(time * Math.pow(10, CLOSE_FACTOR)) ); }
+                    function playValueTest(t, duration, time) {
+                        return (duration === trg_duration) &&
+                               ((t >= 0) && (t <= 1)) &&
+                               ((((t * duration) >= time) && ((t * duration) <= time + (mFPS * FPS_ERR))) ||
+                                (((t * duration) < time)  && __close(t * duration, time, 10))); }
+                    function drawValueTest(t, duration, time) {
+                        return (duration === trg_duration) &&
+                               ((t >= 0) && (t <= 1)) &&
+                               ( Math.round((t * duration) * Math.pow(10, CLOSE_FACTOR)) ==
+                                 Math.round(time           * Math.pow(10, CLOSE_FACTOR)) ); }
                     function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
 
                     varyAll( [
@@ -1142,8 +1238,8 @@ describe("builder, regarding modifiers,", function() {
                         ], function() {
 
                         it("should call a modifier if current frame matches its time", function() {
-                            expectToCall(function(t) {
-                                expect(_valueTest(t, modifier_time)).toBeTruthy();
+                            expectToCall(function(t, duration) {
+                                expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
                             }, modifier_time, modifier_time);
                         });
 
@@ -1162,8 +1258,8 @@ describe("builder, regarding modifiers,", function() {
                                             });
                                         } else if (fitsScene(later_time)) {
                                             calls.push(function() {
-                                                expectToCall(function(t) {
-                                                    expect(_valueTest(t, modifier_time)).toBeTruthy();
+                                                expectToCall(function(t, duration) {
+                                                    expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
                                                 }, modifier_time, later_time, this.next);
                                             });
                                         }
@@ -1180,8 +1276,8 @@ describe("builder, regarding modifiers,", function() {
                             var calls = [];
                             for (var i = 0; i < 10; i++) {
                                 calls.push(function() {
-                                    expectToCall(function(t) {
-                                        expect(_valueTest(t, modifier_time)).toBeTruthy();
+                                    expectToCall(function(t, duration) {
+                                        expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
                                     }, modifier_time, modifier_time, this.next);
                                 });
                             }
@@ -1189,18 +1285,6 @@ describe("builder, regarding modifiers,", function() {
                         });
 
                     });
-
-/* return b().add(b().rect([80, 80], 80)
-                  .modify([1, 1.5], function(t) {
-                      b(this.$).fill(B.rgb(255 * t, 0, 0));
-                      b(this.$).stroke(B.rgb(255 - (t * 255), 0 ,0),
-                                       20 * t)
-                  }))
-          .add(b().circle([120, 120], 30)
-                  .modify(0.5, function(t) {
-                               b(this.$).fill('yellow'); })
-                  .modify(1.5, function(t) {
-                               b(this.$).fill('cyan'); })); */
 
                     it("should call a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
                         var calls = [];
@@ -1222,9 +1306,9 @@ describe("builder, regarding modifiers,", function() {
                                             console.log('target band duration is', trg_duration);
                                             console.log('modifier time is', modifier_time); */
                                             var modifierSpy = jasmine.createSpy('modifier-spy')
-                                                .andCallFake(function(t) {
+                                                .andCallFake(function(t, duration) {
                                                     //console.log('modifier was called at', t, 'value test:', playValueTest(t, modifier_time));
-                                                    expect(playValueTest(t, modifier_time)).toBeTruthy();
+                                                    expect(playValueTest(t, duration, modifier_time)).toBeTruthy();
                                                 });
                                             doAsync(player, {
                                                 prepare: function() { target.modify(modifier_time, modifierSpy); },

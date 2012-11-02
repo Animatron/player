@@ -127,7 +127,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -151,7 +151,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -175,7 +175,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -221,7 +221,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -245,7 +245,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -269,7 +269,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -420,7 +420,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
         });
 
@@ -443,7 +443,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -467,7 +467,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -491,7 +491,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
         });
 
@@ -514,7 +514,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
@@ -560,7 +560,7 @@ describe("builder, regading iterations, ", function() {
                 this.fail('Should throw exception');
 
             } catch(e) {
-                expect(e.message).toBe(anm.Player.UNSAFE_TO_REMOVE_ERR);
+                expect(e.message).toBe(anm.Errors.E.UNSAFE_TO_REMOVE);
             }
 
         });
