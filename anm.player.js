@@ -451,8 +451,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 // TODO: add load/play/pause/stop events
 
 Player.prototype.init = function(cvs, opts) {
-    if (this.canvas) throw new Error('Initialization was called twice');
-    if (this.anim) throw new Error('Initialization was called after loading a scene');
+    if (this.canvas) throw new Error(Errors.P.INIT_TWICE);
+    if (this.anim) throw new Error(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); // TODO: make automatic
     this._prepare(cvs);
     this._loadOpts(opts);
@@ -467,15 +467,15 @@ Player.prototype.load = function(object, importer, callback) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new Error(Player.NO_SCENE_PASSED_ERR);
+        throw new Error(Errors.P.NO_SCENE_PASSED);
     }
 
     if ((player.state.happens === C.PLAYING) ||
         (player.state.happens === C.PAUSED)) {
-        throw new Error(Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR);
+        throw new Error(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
-    if (!player.__canvasPrepared) throw new Error(Player.CANVAS_NOT_PREPARED_ERR);
+    if (!player.__canvasPrepared) throw new Error(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
@@ -515,7 +515,7 @@ Player.prototype.load = function(object, importer, callback) {
 
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) throw new Error(Player.ALREADY_PLAYING_ERR);
+    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.ALREADY_PLAYING);
 
     var player = this;
 
@@ -603,7 +603,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new Error(Player.PAUSING_WHEN_STOPPED_ERR);
+        throw new Error(Errors.P.PAUSING_WHEN_STOPPED);
     }
 
     if (state.happens === C.PLAYING) {
@@ -657,10 +657,10 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
-        if (!this.canvas) throw new Error(Player.NO_CANVAS_WITH_ID_ERR + cvs);
+        if (!this.canvas) throw new Error(Errors.P.NO_CANVAS_WITH_ID + cvs);
         this.id = cvs;
     } else {
-        if (!cvs) throw new Error(Player.NO_CANVAS_PASSED_ERR);
+        if (!cvs) throw new Error(Errors.P.NO_CANVAS_PASSED);
         this.id = cvs.id;
         this.canvas = cvs;
     }
@@ -765,7 +765,7 @@ Player.prototype.configureMeta = function(info) {
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
     if ((time < 0) || (time > this.state.duration)) {
-        throw new Error(Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+        throw new Error(Errors.P.PASSED_TIME_NOT_IN_RANGE);
     }
     var ctx = this.ctx,
         state = this.state;
@@ -778,7 +778,7 @@ Player.prototype.drawAt = function(time) {
     }
 }
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new Error(Player.AFTERFRAME_BEFORE_PLAY_ERR);
+    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
 }
 Player.prototype.detach = function() {
@@ -979,10 +979,10 @@ Player.prototype.__subscribeDynamicEvents = function(scene) {
     }
 }
 Player.prototype._ensureHasState = function() {
-    if (!this.state) throw new Error(Player.NO_STATE_ERR);
+    if (!this.state) throw new Error(Errors.P.NO_STATE);
 }
 Player.prototype._ensureHasAnim = function() {
-    if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
+    if (!this.anim) throw new Error(Errors.P.NO_SCENE);
 }
 Player.prototype.__beforeFrame = function(scene) {
     return (function(player, state, scene) {
@@ -1213,8 +1213,8 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
 }
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
-    if (!this.hash[elm.id]) throw new Error('Element \''+elm.id+'\' (\''+
-                            elm.name+'\') is not registered in this scene');
+    // error will be thrown in _unregister method
+    //if (!this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -1337,7 +1337,7 @@ Scene.prototype._addToTree = function(elm) {
     }
 }*/
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new Error('Element already registered');
+    if (this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_REGISTERED);
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
@@ -1347,7 +1347,7 @@ Scene.prototype._register = function(elm) {
     });
 }
 Scene.prototype._unregister = function(elm) {
-    if (!elm.registered) throw new Error('Element not registered');
+    if (!elm.registered) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
@@ -1668,7 +1668,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+            if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -1687,7 +1687,7 @@ Element.prototype.remove = function(elm) {
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+        this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.scene) this.scene._unregister(this);
     // this.scene should be null after unregistering
@@ -1870,7 +1870,7 @@ Element.prototype.__performDetach = function() {
     this.__detachQueue = [];
 }
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+    if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -2069,9 +2069,9 @@ Element.prototype.deepClone = function() {
     return clone;
 }
 Element.prototype._addChild = function(elm) {
-    this.children.push(elm); // or add elem.id?
     elm.parent = this;
-    if (this.scene) this.scene._register(elm);
+    this.children.push(elm); // or add elem.id?
+    if (this.scene) this.scene._register(elm); // TODO: rollback parent and child?
     Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
@@ -4114,24 +4114,33 @@ InfoBlock.prototype.changeColors = function(front, back) {
 
 // TODO: Move Scene and Element errors here ?
 
-Player.NO_CANVAS_WITH_ID_ERR = 'No canvas found with given id: ';
-Player.NO_CANVAS_WAS_PASSED_ERR = 'No canvas was passed';
-Player.CANVAS_NOT_PREPARED_ERR = 'Canvas is not prepared, don\'t forget to call \'init\' method';
-Player.ALREADY_PLAYING_ERR = 'Player is already in playing mode, please call ' +
-                             '\'stop\' or \'pause\' before playing again';
-Player.PAUSING_WHEN_STOPPED_ERR = 'Player is stopped, so it is not allowed to pause';
-Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
-Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
-Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
-Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR = 'Could not load any scene while playing or paused, ' +
-                      'please stop player before loading';
-Player.UNSAFE_TO_REMOVE_ERR = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
-Player.AFTERFRAME_BEFORE_PLAY_ERR = 'Please assign afterFrame callback before calling play()';
-Player.PASSED_TIME_NOT_IN_RANGE_ERR = 'Passed time is not in scene range';
+var Errors = {};
+Errors.P = {}; // Player Errors
+Errors.S = {}; // Scene Errors
+Errors.E = {}; // Element Errors
+
+Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: ';
+Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
+Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
+Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
+                           '\'stop\' or \'pause\' before playing again';
+Errors.P.PAUSING_WHEN_STOPPED = 'Player is stopped, so it is not allowed to pause';
+Errors.P.NO_SCENE_PASSED = 'No scene passed to load method';
+Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
+                    'please load something in player before ' +
+                    'calling its playing-related methods';
+Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
+                    'please load something in player before ' +
+                    'calling its playing-related methods';
+Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
+                    'please stop player before loading';
+Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
+Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time is not in scene range';
+Errors.P.INIT_TWICE = 'Initialization was called twice';
+Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
+Errors.S.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
+Errors.S.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
+Errors.E.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
 
 // =============================================================================
 // === EXPORTS =================================================================
@@ -4149,6 +4158,7 @@ var exports = {
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU,
+    'Errors': Errors,
     'MODULES': {},
 
     'obj_clone': obj_clone,

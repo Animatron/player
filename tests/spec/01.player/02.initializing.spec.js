@@ -59,7 +59,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.play();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -69,7 +69,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.pause();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -79,7 +79,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.stop();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 

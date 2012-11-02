@@ -168,7 +168,7 @@ describe("player, when speaking about playing,", function() {
         try {
             player.pause();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.PAUSING_WHEN_STOPPED_ERR);
+            expect(e.message).toBe(anm.Errors.P.PAUSING_WHEN_STOPPED);
             player.stop();
         }
     });
@@ -489,7 +489,7 @@ describe("player, when speaking about playing,", function() {
                 player.play();
                 player.afterFrame(function() {});
             } catch(e) {
-                expect(e.message).toBe(anm.Player.AFTERFRAME_BEFORE_PLAY_ERR);
+                expect(e.message).toBe(anm.Errors.P.AFTERFRAME_BEFORE_PLAY);
                 player.stop();
             }
 
@@ -498,7 +498,7 @@ describe("player, when speaking about playing,", function() {
                 player.play(1);
                 player.afterFrame(function() {});
             } catch(e) {
-                expect(e.message).toBe(anm.Player.AFTERFRAME_BEFORE_PLAY_ERR);
+                expect(e.message).toBe(anm.Errors.P.AFTERFRAME_BEFORE_PLAY);
                 player.stop();
             }
         });
@@ -582,25 +582,25 @@ describe("player, when speaking about playing,", function() {
             try {
                 player.drawAt(duration + 0.05);
             } catch(e) {
-                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
             }
 
             try {
                 player.drawAt(duration + 10);
             } catch(e) {
-                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
             }
 
             try {
                 player.drawAt(-0.05);
             } catch(e) {
-                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
             }
 
             try {
                 player.drawAt(-10);
             } catch(e) {
-                expect(e.message).toBe(anm.Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
             }
 
         });
