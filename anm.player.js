@@ -2423,18 +2423,27 @@ Element.__addDebugRender = function(elm) {
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
-Element.__addTweenModifier = function(elm, tween) {
-    var easing = tween.easing;
-    var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type],
+Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify with adding object same way,
+                                                    // include easing in all modifiers
+    var m_tween = Tweens[tween.type],
+        easing = tween.easing;
+    if (easing) {
+        m_tween = (function(tween_f, ease_f) {
+          return function(t, duration, data) {
+            tween_f(ease_f(t), duration, data);
+          }
+        })(m_tween, (easing.type ? EasingImpl[easing.type](easing.data)
+                                 : easing.f(easing.data)));
+    }
+    /*var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type],
                                                  tween.band)
                            : Bands.adaptModifierByTime(
                                    easing.type ? EasingImpl[easing.type](easing.data)
                                                : easing.f(easing.data),
                                    Tweens[tween.type],
-                                   tween.band);
-    // FIXME FIXME now it is possible to pass bands inside
+                                   tween.band);*/
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        null, modifier, tween.data);
+                        tween.band, m_tween, tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
