@@ -1572,18 +1572,23 @@ Element.prototype.render = function(ctx, gtime, afps) {
 }
 // > Element.addModifier % ([restriction: Array[Float, 2] | Float],
 //                          modifier: Function(time: Float,
-//                                              data: Any) => Boolean,
+//                                             data: Any) => Boolean,
+//                          [easing: Function()],
 //                          [data: Any],
 //                          [priority: Int]
 //                         ) => Integer
-Element.prototype.addModifier = function(band, modifier, data, priority) {
-    var with_band = __array(band) || __num(band);
-    // match actual arguments, if band was omitted
-    priority = with_band ? priority : data;
-    data = with_band ? data : modifier;
-    modifier = with_band ? modifier : band;
-    band = with_band ? band : null;
-    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, data);
+Element.prototype.addModifier = function(modifier, easing, data, priority) {
+    return this.__modify(Element.USER_MOD, priority || 0, null, modifier, easing, data);
+}
+// > Element.addTModifier % ([restriction: Array[Float, 2] | Float],
+//                           modifier: Function(time: Float,
+//                                              data: Any) => Boolean,
+//                           [easing: Function()],
+//                           [data: Any],
+//                           [priority: Int]
+//                          ) => Integer
+Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
+    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, easing, data);
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -2096,7 +2101,7 @@ Element.prototype._stateStr = function() {
 }
 Element._FPS_FALLBACK = FPS_FALLBACK;
 Element._FPS_ERROR = FPS_ERROR;
-Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
+Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
   var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0];
   if (band == null) return [ ltime / elm_duration, elm_duration ];
@@ -2105,7 +2110,9 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
       var mod_duration = band[1] - band[0];
       if (ltime < band[0]) return [ 0, mod_duration ];
       else if (ltime > band[1]) return [ 1, mod_duration ];
-      else return [ (ltime - band[0]) / mod_duration, mod_duration ];
+      else return [ easing ? easing((ltime - band[0]) / mod_duration)
+                           : (ltime - band[0]) / mod_duration,
+                    mod_duration ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
@@ -2125,8 +2132,10 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       }
-      return doCall ? [ ltime / elm_duration, elm_duration ]  : false;
-  } else return ltime;
+      return doCall ? [ easing ? easing(ltime / elm_duration)
+                               : ltime / elm_duration,
+                        elm_duration ]  : false;
+  } else return easing ? easing(ltime) : ltime;
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
@@ -2146,9 +2155,9 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
         elm.__loadEvts(elm._state);
 
         if (!elm.__forAllModifiers(order,
-            function(band, modifier, data) { /* each modifier */
+            function(band, modifier, easing, data) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, afps);
+                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, easing, afps);
                 // false will be returned from __adaptModTime
                 // for trigger-like modifier if it is required to skip current one
                 if (lbtime === false) return true;
@@ -2199,7 +2208,7 @@ Element.prototype.__callPainters = function(order, ctx) {
         elm.__painting = null;
     })(this);
 }
-Element.prototype.__addTypedModifier = function(type, priority, band, modifier, data) {
+Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
     if (!modifier) return; // FIXME: throw some error?
     var modifiers = this._modifiers;
     var priority = priority || 0;
@@ -2207,7 +2216,7 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, data]);
+    modifiers[type][priority].push([band, modifier, easing, data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
@@ -2227,7 +2236,7 @@ Element.prototype.__forAllModifiers = function(order, f, before_type, after_type
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 var modifier;
                 if (modifier = cur[ci]) {
-                  if (f(modifier[0], modifier[1], modifier[2]) === false) return false;
+                  if (f(modifier[0], modifier[1], modifier[2], modifier[3]) === false) return false;
                 } // if cur[ci]
               } // for var ci
             } // if cur = seq[pi]
@@ -2427,23 +2436,12 @@ Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify wit
                                                     // include easing in all modifiers
     var m_tween = Tweens[tween.type],
         easing = tween.easing;
-    if (easing) {
-        m_tween = (function(tween_f, ease_f) {
-          return function(t, duration, data) {
-            tween_f(ease_f(t), duration, data);
-          }
-        })(m_tween, (easing.type ? EasingImpl[easing.type](easing.data)
-                                 : easing.f(easing.data)));
-    }
-    /*var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type],
-                                                 tween.band)
-                           : Bands.adaptModifierByTime(
-                                   easing.type ? EasingImpl[easing.type](easing.data)
-                                               : easing.f(easing.data),
-                                   Tweens[tween.type],
-                                   tween.band);*/
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        tween.band, m_tween, tween.data);
+                        tween.band, m_tween,
+                        (easing ? (easing.type ? EasingImpl[easing.type](easing.data)
+                                               : easing.f(easing.data))
+                                : null),
+                        tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
@@ -2839,26 +2837,6 @@ Bands.reduce = function(from, to) {
              ((to[1] < from[1])
               ? to[1] : from[1])
            ];
-}
-
-Bands.adaptModifier = function(func, sband) {
-    return function(time, duration, data) { // returns modifier
-        if (sband[0] > time) return;
-        if (sband[1] < time) return;
-        var t = (time-sband[0])/(sband[1]-sband[0]);
-        func.call(this, t, duration, data);
-    };
-}
-
-Bands.adaptModifierByTime = function(tfunc, func, sband) {
-    return function(time, duration, data) { // returns modifier
-        if ((sband[0] > time) || (sband[1] < time)) return;
-        var blen = sband[1] - sband[0],
-            t = (time - sband[0]) / blen,
-            mt = tfunc(t);
-        if ((0 > mt) || (1 < mt)) return;
-        func.call(this, mt, duration, data);
-    }
 }
 
 // =============================================================================
@@ -4173,7 +4151,11 @@ var exports = {
     'obj_clone': obj_clone,
 
     'createPlayer': function(cvs, opts) { var p = new Player();
-                                          p.init(cvs, opts); return p; }
+                                          p.init(cvs, opts); return p; },
+
+    '_typecheck': { builder: __builder,
+                    array: __array,
+                    num: __num }
 
     //'__dev': { 'Controls': Controls, 'Info': InfoBlock  },
 

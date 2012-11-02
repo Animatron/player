@@ -525,7 +525,7 @@ describe("builder, regarding modifiers,", function() {
             var scene = b();
 
             // FIXME: test that 0-duration throws error
-            // FIXME: test that applying any tween calls b().modify
+            // TODO: ensure duration() method of the element is accessible in such modifier
 
             varyAll([ {
                     description: "when assigned to the scene",

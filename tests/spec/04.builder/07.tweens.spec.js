@@ -6,6 +6,8 @@ xdescribe("tweens", function() {
             this.fail('NI');
         });
 
+        // FIXME: test that applying any tween calls b().modify
+
     });
 
 });
