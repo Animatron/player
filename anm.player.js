@@ -2688,10 +2688,7 @@ L.loadScene = function(player, scene, callback) {
     player.anim = scene;
     // update duration
     if (!player.state.duration) {
-        if (!(player.mode & C.M_DYNAMIC)
-            && (scene.duration === Number.MAX_VALUE)) {
-          scene.duration = Scene.DEFAULT_VIDEO_DURATION;
-        }
+        if (player.mode & C.M_DYNAMIC) scene.duration = Number.MAX_VALUE;
         player.setDuration(scene.duration);
     }
     scene.awidth = player.state.width;
