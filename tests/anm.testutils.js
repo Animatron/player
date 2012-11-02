@@ -122,7 +122,8 @@ function varyAll(conditions, tests) {
     for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
         var condition = conditions[ci];
         describe(condition.description, function() {
-            beforeEach(condition.prepare);
+            beforeEach(condition.prepare); // TODO: rename `prepare` to `before`
+            if (condition.after) afterEach(condition.after);
 
             tests();
         });

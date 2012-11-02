@@ -22,7 +22,7 @@
     <script src="../vendor/Tangle-0.1.0/Tangle.js" type="text/javascript"></script>
     <script src="../vendor/Tangle-0.1.0/TangleKit/mootools.js" type="text/javascript"></script>
     <script src="../vendor/Tangle-0.1.0/TangleKit/sprintf.js" type="text/javascript"></script>
-    <script src="../vendor/Tangle-0.1.0/TangleKit/BVTouchable.js" type="text/javascript"></script>    
+    <script src="../vendor/Tangle-0.1.0/TangleKit/BVTouchable.js" type="text/javascript"></script>
     <script src="../vendor/Tangle-0.1.0/TangleKit/TangleKit.js" type="text/javascript"></script>
     <script src="./sandbox.js" type="text/javascript"></script>
   </head>
@@ -33,7 +33,7 @@
     <!-- left pane -->
 
     <div id="left-pane">
-      
+
             <pre class="locked">var b = Builder._$, B = Builder, C = anm.C;
 
 var scene = (function() {</pre>
@@ -51,7 +51,7 @@ createPlayer("my-canvas").load(scene).play();</pre>
 
     </div>
 
-    <!-- left pane -->    
+    <!-- left pane -->
 
     <div id="right-pane">
       <pre class="locked">#my-canvas</pre>
@@ -99,9 +99,9 @@ createPlayer("my-canvas").load(scene).play();</pre>
         <dd>Rotate this element in given time-band. Values are start and end angle in radians. Example: <code>.rotate([0, 5], [0, Math.PI / 2])</code></dd>
         <dt>.paint(Function(ctx: Context)) => Builder</dt>
         <dd>Paint this element directly to 2D context, using the given function. These function are stacked, so if you call this method twice on the same element with different functions, these functions will be callled sequentially in the same order.</dt>
-        <dt>.modify(Function(Float, Any)[, Any]) => Builder</dt>
+        <dt>.modify(Function(Float, Float, Any)[, Any]) => Builder</dt>
         <dd>Modify this element position, scale, alpha and/or rotation using the given function.
-          <code>this</code> in the given function will refer to the element state that is allowed to change (try changing <code>this.x</code>, for example), first function parameter is current animation time.</dd>
+          <code>this</code> in the given function will refer to the element state that is allowed to change (try changing <code>this.x</code>, for example), first function parameter is current animation position in 0..1 range, second is its duration.</dd>
       </dl>
     </div>
 

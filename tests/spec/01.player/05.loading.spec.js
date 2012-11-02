@@ -22,7 +22,7 @@ describe("player, when speaking about loading scenes,", function() {
         try {
             player.load();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_PASSED_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE_PASSED);
         }
     });
 

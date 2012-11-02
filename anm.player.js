@@ -451,8 +451,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 // TODO: add load/play/pause/stop events
 
 Player.prototype.init = function(cvs, opts) {
-    if (this.canvas) throw new Error('Initialization was called twice');
-    if (this.anim) throw new Error('Initialization was called after loading a scene');
+    if (this.canvas) throw new Error(Errors.P.INIT_TWICE);
+    if (this.anim) throw new Error(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); // TODO: make automatic
     this._prepare(cvs);
     this._loadOpts(opts);
@@ -467,15 +467,15 @@ Player.prototype.load = function(object, importer, callback) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new Error(Player.NO_SCENE_PASSED_ERR);
+        throw new Error(Errors.P.NO_SCENE_PASSED);
     }
 
     if ((player.state.happens === C.PLAYING) ||
         (player.state.happens === C.PAUSED)) {
-        throw new Error(Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR);
+        throw new Error(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
-    if (!player.__canvasPrepared) throw new Error(Player.CANVAS_NOT_PREPARED_ERR);
+    if (!player.__canvasPrepared) throw new Error(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
@@ -515,14 +515,14 @@ Player.prototype.load = function(object, importer, callback) {
 
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) throw new Error(Player.ALREADY_PLAYING_ERR);
+    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.ALREADY_PLAYING);
 
     var player = this;
 
     __nextFrame = __frameFunc();
 
-    player._ensureAnim();
-    player._ensureState();
+    player._ensureHasAnim();
+    player._ensureHasState();
 
     var state = player.state;
 
@@ -544,6 +544,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var scene = player.anim;
     scene.reset();
+    player.setDuration(scene.duration);
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
@@ -561,7 +562,7 @@ Player.prototype.stop = function() {
 
     var player = this;
 
-    player._ensureState();
+    player._ensureHasState();
 
     var state = player.state;
 
@@ -597,12 +598,12 @@ Player.prototype.stop = function() {
 Player.prototype.pause = function() {
     var player = this;
 
-    player._ensureState();
-    player._ensureAnim();
+    player._ensureHasState();
+    player._ensureHasAnim();
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new Error(Player.PAUSING_WHEN_STOPPED_ERR);
+        throw new Error(Errors.P.PAUSING_WHEN_STOPPED);
     }
 
     if (state.happens === C.PLAYING) {
@@ -656,10 +657,10 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
-        if (!this.canvas) throw new Error(Player.NO_CANVAS_WITH_ID_ERR + cvs);
+        if (!this.canvas) throw new Error(Errors.P.NO_CANVAS_WITH_ID + cvs);
         this.id = cvs;
     } else {
-        if (!cvs) throw new Error(Player.NO_CANVAS_PASSED_ERR);
+        if (!cvs) throw new Error(Errors.P.NO_CANVAS_PASSED);
         this.id = cvs.id;
         this.canvas = cvs;
     }
@@ -764,7 +765,7 @@ Player.prototype.configureMeta = function(info) {
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
     if ((time < 0) || (time > this.state.duration)) {
-        throw new Error(Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+        throw new Error(Errors.P.PASSED_TIME_NOT_IN_RANGE);
     }
     var ctx = this.ctx,
         state = this.state;
@@ -777,7 +778,7 @@ Player.prototype.drawAt = function(time) {
     }
 }
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new Error(Player.AFTERFRAME_BEFORE_PLAY_ERR);
+    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
 }
 Player.prototype.detach = function() {
@@ -843,9 +844,9 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this), false);
 }
-Player.prototype.updateDuration = function(value) {
+Player.prototype.setDuration = function(value) {
     this.state.duration = value;
-    if (this.info) this.info.updateDuration(value);
+    if (this.info) this.info.setDuration(value);
 }
 Player.prototype.drawSplash = function() {
     var ctx = this.ctx,
@@ -977,11 +978,11 @@ Player.prototype.__subscribeDynamicEvents = function(scene) {
         scene.__subscribedEvts = true;
     }
 }
-Player.prototype._ensureState = function() {
-    if (!this.state) throw new Error(Player.NO_STATE_ERR);
+Player.prototype._ensureHasState = function() {
+    if (!this.state) throw new Error(Errors.P.NO_STATE);
 }
-Player.prototype._ensureAnim = function() {
-    if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
+Player.prototype._ensureHasAnim = function() {
+    if (!this.anim) throw new Error(Errors.P.NO_SCENE);
 }
 Player.prototype.__beforeFrame = function(scene) {
     return (function(player, state, scene) {
@@ -1212,8 +1213,8 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
 }
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
-    if (!this.hash[elm.id]) throw new Error('Element \''+elm.id+'\' (\''+
-                            elm.name+'\') is not registered in this scene');
+    // error will be thrown in _unregister method
+    //if (!this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -1261,12 +1262,14 @@ Scene.prototype.handle__x = function(type, evt) {
     });
     return true;
 }
-Scene.prototype.calculateDuration = function() {
-    var gband = [Number.MAX_VALUE, 0];
+Scene.prototype.updateDuration = function() {
+    var max_pos = 0;
+    var me = this;
     this.visitRoots(function(elm) {
-        gband = Bands.expand(gband, elm.findWrapBand());
+        var elm_tpos = elm._max_tpos();
+        if (elm_tpos > me.duration) me.duration = elm_tpos;
     });
-    return gband[1];
+    return this.duration;
 }
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
@@ -1322,23 +1325,19 @@ Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new Error('It appears that it is not a clip object or element that you pass');
     }
-    this.duration = this.calculateDuration();
-    if (elm.xdata.gband &&
-        (elm.xdata.gband[1] > this.duration)) {
-        this.duration = elm.xdata.gband[1];
-    }
     this._register(elm);
     //if (elm.children) this._addElems(elm.children);
     this.tree.push(elm);
+    this.updateDuration();
 }
-Scene.prototype._addElems = function(elems) {
+/*Scene.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
         var _elm = elems[ei];
         this._register(_elm);
     }
-}
+}*/
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new Error('Element already registered');
+    if (this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_REGISTERED);
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
@@ -1348,7 +1347,7 @@ Scene.prototype._register = function(elm) {
     });
 }
 Scene.prototype._unregister = function(elm) {
-    if (!elm.registered) throw new Error('Element not registered');
+    if (!elm.registered) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
@@ -1358,6 +1357,7 @@ Scene.prototype._unregister = function(elm) {
       this.tree.splice(pos, 1);
     }
     delete this.hash[elm.id];
+    this.updateDuration();
     elm.registered = false;
     elm.scene = null;
     //elm.parent = null;
@@ -1473,7 +1473,8 @@ function Element(draw, onframe) {
     Element.__addSysPainters(this);
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
-Element.DEFAULT_LEN = Number.MAX_VALUE;
+Element.NO_BAND = null;
+Element.DEFAULT_LEN = 10;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -1571,18 +1572,23 @@ Element.prototype.render = function(ctx, gtime, afps) {
 }
 // > Element.addModifier % ([restriction: Array[Float, 2] | Float],
 //                          modifier: Function(time: Float,
-//                                              data: Any) => Boolean,
+//                                             data: Any) => Boolean,
+//                          [easing: Function()],
 //                          [data: Any],
 //                          [priority: Int]
 //                         ) => Integer
-Element.prototype.addModifier = function(band, modifier, data, priority) {
-    var with_band = __array(band) || __num(band);
-    // match actual arguments, if band was omitted
-    priority = with_band ? priority : data;
-    data = with_band ? data : modifier;
-    modifier = with_band ? modifier : band;
-    band = with_band ? band : null;
-    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, data);
+Element.prototype.addModifier = function(modifier, easing, data, priority) {
+    return this.__modify(Element.USER_MOD, priority || 0, null, modifier, easing, data);
+}
+// > Element.addTModifier % ([restriction: Array[Float, 2] | Float],
+//                           modifier: Function(time: Float,
+//                                              data: Any) => Boolean,
+//                           [easing: Function()],
+//                           [data: Any],
+//                           [priority: Int]
+//                          ) => Integer
+Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
+    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, easing, data);
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -1667,7 +1673,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+            if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -1686,7 +1692,7 @@ Element.prototype.remove = function(elm) {
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+        this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.scene) this.scene._unregister(this);
     // this.scene should be null after unregistering
@@ -1704,10 +1710,22 @@ Element.prototype.makeBandFit = function() {
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
+    if (this.scene) this.scene.updateDuration();
 }
-Element.prototype.duration = function() { // for external use
+Element.prototype.duration = function() {
     return this.xdata.lband[1] - this.xdata.lband[0];
 }
+/* Element.prototype.rel_duration = function() { // TODO: duration cut with global band
+    return
+} */
+Element.prototype._max_tpos = function() {
+    return (this.xdata.gband[1] >= 0) ? this.xdata.gband[1] : 0;
+}
+/* Element.prototype.neg_duration = function() {
+    return (this.xdata.lband[0] < 0)
+            ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
+            : 0;
+} */
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
@@ -1792,17 +1810,8 @@ Element.prototype.dispose = function() {
     });
 }
 Element.prototype.reset = function() {
-    var s = this.state;
-    s.x = 0; s.y = 0;
-    s.lx = 0; s.ly = 0;
-    s.rx = 0; s.ry = 0;
-    s.angle = 0; s.alpha = 1;
-    s.sx = 1; s.sy = 1;
-    s.p = null; s.t = null; s.key = null;
+    this.__resetState();
     this.__lastJump = null;
-    s._applied = false;
-    s._appliedAt = null;
-    s._matrix.reset();
     if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
     (function(elm) {
@@ -1857,7 +1866,7 @@ Element.prototype.__performDetach = function() {
     this.__detachQueue = [];
 }
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+    if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -2056,9 +2065,9 @@ Element.prototype.deepClone = function() {
     return clone;
 }
 Element.prototype._addChild = function(elm) {
-    this.children.push(elm); // or add elem.id?
     elm.parent = this;
-    if (this.scene) this.scene._register(elm);
+    this.children.push(elm); // or add elem.id?
+    if (this.scene) this.scene._register(elm); // TODO: rollback parent and child?
     Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
@@ -2083,13 +2092,18 @@ Element.prototype._stateStr = function() {
 }
 Element._FPS_FALLBACK = FPS_FALLBACK;
 Element._FPS_ERROR = FPS_ERROR;
-Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) {
-  if (band == null) return ltime;
+Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
+  var lband = this.xdata.lband,
+      elm_duration = lband[1] - lband[0];
+  if (band == null) return [ ltime / elm_duration, elm_duration ];
   if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
-      if (ltime < band[0]) return 0;
-      else if (ltime > band[1]) return 1;
-      else return (ltime - band[0]) / (band[1] - band[0]);
+      var mod_duration = band[1] - band[0];
+      if (ltime < band[0]) return [ 0, mod_duration ];
+      else if (ltime > band[1]) return [ 1, mod_duration ];
+      else return [ easing ? easing((ltime - band[0]) / mod_duration)
+                           : (ltime - band[0]) / mod_duration,
+                    mod_duration ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
@@ -2097,7 +2111,6 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
                       : 0) || 0;
       // FIXME: test if afps is not too big
       var tpos = band;
-      var lband = this.xdata.lband;
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
@@ -2110,15 +2123,18 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, afps) 
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       }
-      return doCall ? ltime : false;
-  } else return ltime;
+      return doCall ? [ easing ? easing(ltime / elm_duration)
+                               : ltime / elm_duration,
+                        elm_duration ]  : false;
+  } else return easing ? easing(ltime) : ltime;
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
+
         // save the previous state
         elm.state._ = null; // clear the pointer, so it will not be cloned
-        elm._state = obj_clone(elm.state);
-        elm._state._ = elm.state;
+        elm._state = Element.createState(elm);
+        elm._state._ = obj_clone(elm.state);
 
         // now it looks like:
         // this.
@@ -2130,15 +2146,15 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
         elm.__loadEvts(elm._state);
 
         if (!elm.__forAllModifiers(order,
-            function(band, modifier, data) { /* each modifier */
+            function(band, modifier, easing, data) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, afps);
+                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, easing, afps);
                 // false will be returned from __adaptModTime
                 // for trigger-like modifier if it is required to skip current one
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime, data);
+                return modifier.call(elm._state, lbtime[0], lbtime[1], data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -2183,7 +2199,7 @@ Element.prototype.__callPainters = function(order, ctx) {
         elm.__painting = null;
     })(this);
 }
-Element.prototype.__addTypedModifier = function(type, priority, band, modifier, data) {
+Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
     if (!modifier) return; // FIXME: throw some error?
     var modifiers = this._modifiers;
     var priority = priority || 0;
@@ -2191,7 +2207,7 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, data]);
+    modifiers[type][priority].push([band, modifier, easing, data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
@@ -2211,7 +2227,7 @@ Element.prototype.__forAllModifiers = function(order, f, before_type, after_type
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 var modifier;
                 if (modifier = cur[ci]) {
-                  if (f(modifier[0], modifier[1], modifier[2]) === false) return false;
+                  if (f(modifier[0], modifier[1], modifier[2], modifier[3]) === false) return false;
                 } // if cur[ci]
               } // for var ci
             } // if cur = seq[pi]
@@ -2353,6 +2369,18 @@ Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
 }
+Element.prototype.__resetState = function() {
+    var s = this.state;
+    s.x = 0; s.y = 0;
+    s.lx = 0; s.ly = 0;
+    s.rx = 0; s.ry = 0;
+    s.angle = 0; s.alpha = 1;
+    s.sx = 1; s.sy = 1;
+    s.p = null; s.t = null; s.key = null;
+    s._applied = false;
+    s._appliedAt = null;
+    s._matrix.reset();
+}
 
 // state of the element
 Element.createState = function(owner) {
@@ -2407,18 +2435,16 @@ Element.__addDebugRender = function(elm) {
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
-Element.__addTweenModifier = function(elm, tween) {
-    var easing = tween.easing;
-    var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type],
-                                                 tween.band)
-                           : Bands.adaptModifierByTime(
-                                   easing.type ? EasingImpl[easing.type](easing.data)
-                                               : easing.f(easing.data),
-                                   Tweens[tween.type],
-                                   tween.band);
-    // FIXME FIXME now it is possible to pass bands inside
+Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify with adding object same way,
+                                                    // include easing in all modifiers
+    var m_tween = Tweens[tween.type](),
+        easing = tween.easing;
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        null, modifier, tween.data);
+                        tween.band, m_tween,
+                        (easing ? (easing.type ? EasingImpl[easing.type](easing.data)
+                                               : easing.f(easing.data))
+                                : null),
+                        tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
@@ -2672,11 +2698,8 @@ L.loadScene = function(player, scene, callback) {
     player.anim = scene;
     // update duration
     if (!player.state.duration) {
-        if (!(player.mode & C.M_DYNAMIC)
-            && (scene.duration === Number.MAX_VALUE)) {
-          scene.duration = Scene.DEFAULT_VIDEO_DURATION;
-        }
-        player.updateDuration(scene.duration);
+        if (player.mode & C.M_DYNAMIC) scene.duration = Number.MAX_VALUE;
+        player.setDuration(scene.duration);
     }
     scene.awidth = player.state.width;
     scene.aheight = player.state.height;
@@ -2758,18 +2781,18 @@ Render.h_drawMPath = function(ctx, mPath) {
     ctx.restore()
 }
 
-Render.m_checkBand = function(time, band) {
-    if (band[0] > time) return false; // exit
-    if (band[1] < time) return false; // exit
+Render.m_checkBand = function(time, duration, band) {
+    if (band[0] > (duration * time)) return false; // exit
+    if (band[1] < (duration * time)) return false; // exit
 }
 
-Render.m_saveReg = function(time, reg) {
+Render.m_saveReg = function(time, duration, reg) {
     if (!(reg = reg || this.$.xdata.reg)) return;
     this.rx = reg[0];
     this.ry = reg[1];
 }
 
-Render.m_applyPos = function(time, pos) {
+Render.m_applyPos = function(time, duration, pos) {
     if (!(pos = pos || this.$.xdata.pos)) return;
     this.lx = pos[0];
     this.ly = pos[1];
@@ -2784,7 +2807,7 @@ Bands.recalc = function(elm, in_band) {
     var in_band = in_band ||
                   ( elm.parent
                   ? elm.parent.xdata.gband
-                  : x.lband );
+                  : [0, 0] );
     x.gband = [ in_band[0] + x.lband[0],
                 in_band[0] + x.lband[1] ];
     elm.visitChildren(function(celm) {
@@ -2819,26 +2842,6 @@ Bands.reduce = function(from, to) {
            ];
 }
 
-Bands.adaptModifier = function(func, sband) {
-    return function(time, data) { // returns modifier
-        if (sband[0] > time) return;
-        if (sband[1] < time) return;
-        var t = (time-sband[0])/(sband[1]-sband[0]);
-        func.call(this, t, data);
-    };
-}
-
-Bands.adaptModifierByTime = function(tfunc, func, sband) {
-    return function(time, data) { // returns modifier
-        if ((sband[0] > time) || (sband[1] < time)) return;
-        var blen = sband[1] - sband[0],
-            t = (time - sband[0]) / blen,
-            mt = tfunc(t);
-        if ((0 > mt) || (1 < mt)) return;
-        func.call(this, mt, data);
-    }
-}
-
 // =============================================================================
 // === TWEENS ==================================================================
 
@@ -2866,30 +2869,40 @@ Tween.TWEENS_COUNT = 5;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
-    function(t, data) {
-        this.angle = data[0] * (1 - t) + data[1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.angle += data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
+      };
     };
 Tweens[C.T_TRANSLATE] =
-    function(t, data) {
-        var p = data.pointAt(t);
-        this._mpath = data;
-        this.x = p[0];
-        this.y = p[1];
+    function() {
+      return function(t, duration, data) {
+          var p = data.pointAt(t);
+          this._mpath = data;
+          this.x += p[0];
+          this.y += p[1];
+      };
     };
 Tweens[C.T_ALPHA] =
-    function(t, data) {
-        this.alpha = data[0] * (1 - t) + data[1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.alpha *= data[0] * (1.0 - t) + data[1] * t;
+      };
     };
 Tweens[C.T_SCALE] =
-    function(t, data) {
-        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.sx *= data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy *= data[0][1] * (1.0 - t) + data[1][1] * t;
+      };
     };
 Tweens[C.T_ROT_TO_PATH] =
-    function(t, data) {
+    function() {
+      return function(t, duration, data) {
         var path = this._mpath;
-        this.angle = path.tangentAt(t);
+        this.angle += path.tangentAt(t);
+      };
     };
 
 // function-based easings
@@ -4089,7 +4102,7 @@ InfoBlock.prototype.show = function() {
     this.hidden = false;
     this.div.style.display = 'block';
 }
-InfoBlock.prototype.updateDuration = function(value) {
+InfoBlock.prototype.setDuration = function(value) {
     this.div.getElementsByClassName('duration')[0].innerHTML = value+'sec';
 }
 InfoBlock.prototype.changeColors = function(front, back) {
@@ -4101,24 +4114,33 @@ InfoBlock.prototype.changeColors = function(front, back) {
 
 // TODO: Move Scene and Element errors here ?
 
-Player.NO_CANVAS_WITH_ID_ERR = 'No canvas found with given id: ';
-Player.NO_CANVAS_WAS_PASSED_ERR = 'No canvas was passed';
-Player.CANVAS_NOT_PREPARED_ERR = 'Canvas is not prepared, don\'t forget to call \'init\' method';
-Player.ALREADY_PLAYING_ERR = 'Player is already in playing mode, please call ' +
-                             '\'stop\' or \'pause\' before playing again';
-Player.PAUSING_WHEN_STOPPED_ERR = 'Player is stopped, so it is not allowed to pause';
-Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
-Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
-Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
-Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR = 'Could not load any scene while playing or paused, ' +
-                      'please stop player before loading';
-Player.UNSAFE_TO_REMOVE_ERR = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
-Player.AFTERFRAME_BEFORE_PLAY_ERR = 'Please assign afterFrame callback before calling play()';
-Player.PASSED_TIME_NOT_IN_RANGE_ERR = 'Passed time is not in scene range';
+var Errors = {};
+Errors.P = {}; // Player Errors
+Errors.S = {}; // Scene Errors
+Errors.E = {}; // Element Errors
+
+Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: ';
+Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
+Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
+Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
+                           '\'stop\' or \'pause\' before playing again';
+Errors.P.PAUSING_WHEN_STOPPED = 'Player is stopped, so it is not allowed to pause';
+Errors.P.NO_SCENE_PASSED = 'No scene passed to load method';
+Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
+                    'please load something in player before ' +
+                    'calling its playing-related methods';
+Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
+                    'please load something in player before ' +
+                    'calling its playing-related methods';
+Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
+                    'please stop player before loading';
+Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
+Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time is not in scene range';
+Errors.P.INIT_TWICE = 'Initialization was called twice';
+Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
+Errors.S.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
+Errors.S.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
+Errors.E.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
 
 // =============================================================================
 // === EXPORTS =================================================================
@@ -4136,12 +4158,17 @@ var exports = {
     'Render': Render, 'Bands': Bands,
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU,
+    'Errors': Errors,
     'MODULES': {},
 
     'obj_clone': obj_clone,
 
     'createPlayer': function(cvs, opts) { var p = new Player();
-                                          p.init(cvs, opts); return p; }
+                                          p.init(cvs, opts); return p; },
+
+    '_typecheck': { builder: __builder,
+                    array: __array,
+                    num: __num }
 
     //'__dev': { 'Controls': Controls, 'Info': InfoBlock  },
 
