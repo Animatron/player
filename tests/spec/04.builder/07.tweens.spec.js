@@ -12,6 +12,7 @@ xdescribe("tweens", function() {
 
     // TODO: ensure that tweens modifier is always new (instead, it rises an error that the element
     //       has this modifier already)
+    // TODO: test the case when several tweens overlap (they always overlap now), test that state is changed correctly
 
 });
 

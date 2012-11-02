@@ -1810,17 +1810,8 @@ Element.prototype.dispose = function() {
     });
 }
 Element.prototype.reset = function() {
-    var s = this.state;
-    s.x = 0; s.y = 0;
-    s.lx = 0; s.ly = 0;
-    s.rx = 0; s.ry = 0;
-    s.angle = 0; s.alpha = 1;
-    s.sx = 1; s.sy = 1;
-    s.p = null; s.t = null; s.key = null;
+    this.__resetState();
     this.__lastJump = null;
-    s._applied = false;
-    s._appliedAt = null;
-    s._matrix.reset();
     if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
     (function(elm) {
@@ -2142,8 +2133,8 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
 
         // save the previous state
         elm.state._ = null; // clear the pointer, so it will not be cloned
-        elm._state = obj_clone(elm.state);
-        elm._state._ = elm.state;
+        elm._state = Element.createState(elm);
+        elm._state._ = obj_clone(elm.state);
 
         // now it looks like:
         // this.
@@ -2377,6 +2368,18 @@ Element.prototype.__clearEvts = function(from) {
 Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
+}
+Element.prototype.__resetState = function() {
+    var s = this.state;
+    s.x = 0; s.y = 0;
+    s.lx = 0; s.ly = 0;
+    s.rx = 0; s.ry = 0;
+    s.angle = 0; s.alpha = 1;
+    s.sx = 1; s.sy = 1;
+    s.p = null; s.t = null; s.key = null;
+    s._applied = false;
+    s._appliedAt = null;
+    s._matrix.reset();
 }
 
 // state of the element
@@ -2868,7 +2871,7 @@ var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
       return function(t, duration, data) {
-        this.angle = data[0] * (1 - t) + data[1] * t;
+        this.angle += data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
@@ -2877,28 +2880,28 @@ Tweens[C.T_TRANSLATE] =
       return function(t, duration, data) {
           var p = data.pointAt(t);
           this._mpath = data;
-          this.x = p[0];
-          this.y = p[1];
+          this.x += p[0];
+          this.y += p[1];
       };
     };
 Tweens[C.T_ALPHA] =
     function() {
       return function(t, duration, data) {
-        this.alpha = data[0] * (1.0 - t) + data[1] * t;
+        this.alpha *= data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
     function() {
       return function(t, duration, data) {
-        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+        this.sx *= data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy *= data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;
-        this.angle = path.tangentAt(t);
+        this.angle += path.tangentAt(t);
       };
     };
 
