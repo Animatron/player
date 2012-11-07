@@ -1,0 +1,8 @@
+# Thanks to http://github.com/pwmckenna/travis_jasmine
+
+language: ruby
+rvm:
+  - 1.9.2
+env:
+  - DISPLAY=:99.0
+before_install: sh -e /etc/init.d/xvfb start  
