@@ -20,15 +20,16 @@
         },
 
         info: function() {
-            this._log(arguments);
+            this._log(arguments, '[i]');
         },
 
-        error: function(message) {
-            this._log(arguments, 'ERROR:');
+        error: function(err) {
+            this._rlog(err.message, '[E]');
+            if (realConsole.error) realConsole.error(err.message);
         },
 
         warn: function() {
-            this._log(arguments, 'WARN:');
+            this._log(arguments, '[!]');
         },
 
         group: function() {
@@ -57,6 +58,11 @@
             var argsArr = this.__argsToArray(args);
             if (marker) argsArr = [marker].concat(argsArr);
             realConsole.log(this._prefix() + this._format(argsArr));
+        },
+
+        // raw log
+        _rlog: function(str, marker) {
+            realConsole.log(this._prefix() + (marker || '') + ' ' + str);
         },
 
         _format: function(params) {
@@ -200,11 +206,11 @@
 
     function itemResults(item) {
         if (item.passed && !item.passed()) {
-            console.warn({actual:item.actual,expected: item.expected});
-            item.trace.message = item.matcherName;
+            console.warn('actual: ' + item.actual + '; expected: ' + item.expected);
+            item.trace.message = item.trace.message || item.message || item.matcherName;
             console.error(item.trace);
         } else {
-            console.info('    OK. ');
+            console.info('OK.');
         }
     }
 

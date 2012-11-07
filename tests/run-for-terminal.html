@@ -22,6 +22,14 @@
     <script type="text/javascript" src="./anm.mocks.js"></script>
     <script type="text/javascript" src="./anm.testutils.js"></script>
 
+    <!-- <script>
+        describe('it fails', function() {
+            it('it does', function() {
+                expect(true).toBeFalsy();
+            })
+        });
+    </script> -->
+
     <!-- include spec files here... -->
     <script type="text/javascript" src="./spec/01.player/01.formation.spec.js"></script>
     <script type="text/javascript" src="./spec/01.player/02.initializing.spec.js"></script>
@@ -63,7 +71,7 @@
 </head>
 <body>
     <script type="text/javascript">
-        jasmine.getEnv().addReporter(new jasmine.TerminalReporter({ logInProgress: true }));
+        jasmine.getEnv().addReporter(new jasmine.TerminalReporter(/*{ logInProgress: true }*/));
         jasmine.getEnv().execute();
     </script>
 </body>
