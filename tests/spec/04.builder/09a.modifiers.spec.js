@@ -1346,6 +1346,7 @@ describe("builder, regarding modifiers,", function() {
     // TODO: test adding one modifier to several elements and removing it then
     // TODO: ensure that if time-triggered modifier fails time-check all next modifiers are called
     // TODO: change time-value for all of modifiers to 0..1 value?
+    // TODO: test local/global time calculated from modifiers
 
     // TODO: test events
 
