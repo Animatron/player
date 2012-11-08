@@ -18,6 +18,8 @@ describe("builder, regarding modifiers,", function() {
 
     var CLOSE_FACTOR = 14; // digits following floating point
 
+    var scene;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 

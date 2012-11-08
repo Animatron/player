@@ -79,6 +79,8 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     it("should not call modifiers of cleared element children", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
+        _FrameGen.enable(20);
+
         var player = createPlayer('foo');
 
         var root = b().band([0, 1]);
@@ -107,6 +109,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
                 for (var i = 0; i < count; i++) {
                     expect(modifierSpies[i]).not.toHaveBeenCalled();
                 }
+                _FrameGen.disable();
             }
         });
 
@@ -118,6 +121,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     it("should correctly detach element from parent and scene", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
+
         var player = createPlayer('foo');
 
         var root = b();
@@ -215,6 +219,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     it("should not call modifiers of detached elements", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
+        _FrameGen.enable(20);
         var player = createPlayer('foo');
 
         var root = b().band([0, 1]);
@@ -250,6 +255,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
                 for (var i = 0; i < count; i++) {
                     expect(modifierSpies[i]).not.toHaveBeenCalled();
                 }
+                _FrameGen.disable();
             }
         });
 

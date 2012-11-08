@@ -15,13 +15,15 @@ describe("as for known bugs,", function() {
     beforeEach(function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         this.addMatchers(_matchers);
-    })
+        _fake(_Fake.CVS_POS);
+        _FrameGen.enable(20);
+    });
+
+    afterEach(function() { _FrameGen.disable(); });
 
     describe('#34591729 should work as expected:', function() {
 
         it('should not call modifiers of the elements immediately after the fact they were removed', function() {
-
-            _fake(_Fake.CVS_POS);
 
             var duration = 10;
 
@@ -89,15 +91,17 @@ describe("as for known bugs,", function() {
                     return scene;
                 },
                 run: function() {
-                    player.play();
-
-                    setTimeout(function() {
+                    setTimeout(function() { // since play is sync (not async) with jasmine Clock mock,
+                                            // we should set timeout before starting to play
                         expect(m_doNothing3Spy).toHaveBeenCalled();
                         scene.remove(rect3);
                         //console.log('remove 3');
                         m_doNothing3Spy.reset();
                         rect3Removed = true;
                     }, ((removeAt * duration) * 1000) + 50);
+
+                    player.play();
+
                 },
                 waitFor: function() {
                     return rect1Removed && rect3Removed && rect4Removed;
@@ -120,7 +124,6 @@ describe("as for known bugs,", function() {
         });
 
         it('should not call modifiers of the elements immediately after the fact they were disabled', function() {
-            _fake(_Fake.CVS_POS);
 
             var duration = 10;
 
@@ -165,14 +168,15 @@ describe("as for known bugs,", function() {
                     return scene;
                 },
                 run: function() {
-                    player.play();
-
-                    setTimeout(function() {
+                    setTimeout(function() { // since play is sync (not async) with jasmine Clock mock,
+                                            // we should set timeout before starting to play
                         expect(m_doNothing3Spy).toHaveBeenCalled();
                         rect3.disable();
                         m_doNothing3Spy.reset();
                         rect3Disabled = true;
                     }, ((disableAt * duration) * 1000) + 50);
+
+                    player.play();
                 },
                 waitFor: function() {
                     return rect1Disabled && rect3Disabled;
@@ -210,8 +214,6 @@ describe("as for known bugs,", function() {
     it('#34641813 should work as expected (__stopAnim should stop the player-related animation, not the global one)',
     function() {
 
-        _fake(_Fake.CVS_POS);
-
         var player = createPlayer('foo');
 
         var started, stopSpy;
@@ -224,7 +226,7 @@ describe("as for known bugs,", function() {
                 scene.duration = 1;
                 return scene;
             },
-            do: 'play', until: C.STOPPED, timeout: 1.1,
+            do: 'play', until: C.STOPPED, timeout: 1.3,
             beforeEnd: function() {
                 expect(stopSpy).toHaveBeenCalled();
                 stopSpy.reset();
@@ -234,7 +236,10 @@ describe("as for known bugs,", function() {
                     started = Date.now();
                 });
 
-                waitsFor(function() { return ((Date.now() - started) > 1500); }, 2000);
+                waitsFor(function() {
+                    jasmine.Clock.tick(50); // clocks mock is not ticking while not playing
+                    return ((Date.now() - started) > 1500);
+                }, 2000);
 
                 runs(function() {
                     expect(stopSpy).not.toHaveBeenCalled();
@@ -251,7 +256,6 @@ describe("as for known bugs,", function() {
     });
 
     it('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
-        _fake(_Fake.CVS_POS);
 
         var player = createPlayer('foo', { mode: C.M_DYNAMIC });
 
@@ -285,9 +289,8 @@ describe("as for known bugs,", function() {
                 return scene;
             },
             run: function() {
-                player.play();
-
-                setTimeout(function() {
+                setTimeout(function() {  // since play is sync (not async) with jasmine Clock mock,
+                                         // we should set timeouts before starting to play
                     b2.v.fire(C.X_MCLICK, {});
 
                     setTimeout(function() {
@@ -305,6 +308,8 @@ describe("as for known bugs,", function() {
                             }, 200);
                     }, 200);
                 }, 200);
+
+                player.play();
             },
             waitFor: function() { return enabledB1AndWaitedABit; }, timeout: 1.1,
             then: function() { expect(b1ClickSpy).not.toHaveBeenCalled(); }
