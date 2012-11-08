@@ -1444,12 +1444,12 @@ function Element(draw, onframe) {
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
+    this.scene = null;
     this.sprite = false;
     this.visible = false;
     this.registered = false;
     this.disabled = false;
     this.rendering = false;
-    this.scene = null;
     this.__data = null;
     this._modifiers = [];
     this._painters = [];
@@ -4155,9 +4155,9 @@ var exports = {
     'Clip': Clip,
     'Path': Path, 'Text': Text,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
-    'Render': Render, 'Bands': Bands,
+    'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
-    'DU': DU,
+    'DU': DU, // why DU class is visible to pulic?
     'Errors': Errors,
     'MODULES': {},
 
