@@ -36,5 +36,6 @@ describe("player, when speaking about loading scenes,", function() {
     // scene width and height should be equal to canvas width/height
     // duration
     // test remote loading
+    // test that one element may be re-used in other players/scenes
 
 });
