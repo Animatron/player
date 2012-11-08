@@ -49,6 +49,7 @@ var _FrameGen = (function() {
             Date.now = function() { return timer.nowMillis; }
 
             function stubFrameGen(callback) {
+                if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
                 clock.tick(period);
                 callback();
                 // return _window.setTimeout(callback, period);
@@ -72,7 +73,8 @@ var _FrameGen = (function() {
             }
 
             function stubFrameRem(id) {
-                //if (clock.isInstalled()) clock.uninstallMock();
+                //if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
+                //clock.reset();
                 //return _window.clearTimeout(id);
             };
 
@@ -97,7 +99,6 @@ var _FrameGen = (function() {
     }
 
     function _disable() {
-        //if (clock && clock.isInstalled()) clock.uninstallMock();
         Date.now = realDateNow;
         //requestSpy.andCallThrough();
         //cancelSpy.andCallThrough();
