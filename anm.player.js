@@ -29,6 +29,7 @@ var __frameFunc = function() {
                   window.mozRequestAnimationFrame ||
                   window.oRequestAnimationFrame ||
                   window.msRequestAnimationFrame ||
+                  window.__anm__frameGen ||
                   function(callback){
                     return window.setTimeout(callback, 1000 / 60);
                   } };
@@ -39,6 +40,7 @@ var __clearFrameFunc = function() {
                   window.mozCancelAnimationFrame ||
                   window.oCancelAnimationFrame ||
                   window.msCancelAnimationFrame ||
+                  window.__anm__frameRem ||
                   function(id){
                     return window.clearTimeout(id);
                   } };
