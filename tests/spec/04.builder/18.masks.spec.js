@@ -11,9 +11,12 @@ describe("builder, regarding masks", function() {
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
+        _FrameGen.enable(20);
 
         player = createPlayer('test-id');
     });
+
+    afterEach(function() { _FrameGen.disable(); });
 
     it("mask drawing sequence should be right", function() {
 

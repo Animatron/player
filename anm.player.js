@@ -29,6 +29,7 @@ var __frameFunc = function() {
                   window.mozRequestAnimationFrame ||
                   window.oRequestAnimationFrame ||
                   window.msRequestAnimationFrame ||
+                  window.__anm__frameGen ||
                   function(callback){
                     return window.setTimeout(callback, 1000 / 60);
                   } };
@@ -39,6 +40,7 @@ var __clearFrameFunc = function() {
                   window.mozCancelAnimationFrame ||
                   window.oCancelAnimationFrame ||
                   window.msCancelAnimationFrame ||
+                  window.__anm__frameRem ||
                   function(id){
                     return window.clearTimeout(id);
                   } };
@@ -2568,6 +2570,8 @@ D.drawNext = function(ctx, state, scene, before, after, errback) {
 
     try {
 
+        var thrown_e = null;
+
         if (state.happens !== C.PLAYING) return;
 
         var msec = (Date.now() - state.__startTime);
@@ -2605,10 +2609,17 @@ D.drawNext = function(ctx, state, scene, before, after, errback) {
         if (state.__supressFrames) return;
 
         return __nextFrame(function() {
-           D.drawNext(ctx, state, scene, before, after, errback);
+           try {
+              D.drawNext(ctx, state, scene, before, after, errback);
+           } catch(e) {
+              if (e === thrown_e) return;
+              thrown_e = e;
+              throw e;
+           };
         });
 
     } catch(e) {
+        if (e === thrown_e) return;
         if (!errback) throw e;
         if (errback && errback(e)) throw e;
     }
