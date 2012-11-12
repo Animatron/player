@@ -1,5 +1,5 @@
 // Source:
-// https://github.com/larrymyers/jasmine-reporters/blob/master/src/jasmine.teamcity_reporter.js
+// https://github.com/larrymyers/jasmine-reporters
 
 (function() {
     if (! jasmine) {

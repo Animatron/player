@@ -23,35 +23,35 @@ define("anm", function() {
 // http://www.w3.org/TR/animation-timing/
 // https://gist.github.com/1579671
 
-var __frameId = -1;
-
-var __frameFunc = (function() {
+var __frameFunc = function() {
            return window.requestAnimationFrame ||
                   window.webkitRequestAnimationFrame ||
                   window.mozRequestAnimationFrame ||
                   window.oRequestAnimationFrame ||
                   window.msRequestAnimationFrame ||
+                  window.__anm__frameGen ||
                   function(callback){
                     return window.setTimeout(callback, 1000 / 60);
-                  } })();
+                  } };
 
-var __clearFrameFunc = (function() {
+var __clearFrameFunc = function() {
            return window.cancelAnimationFrame ||
                   window.webkitCancelAnimationFrame ||
                   window.mozCancelAnimationFrame ||
                   window.oCancelAnimationFrame ||
                   window.msCancelAnimationFrame ||
+                  window.__anm__frameRem ||
                   function(id){
                     return window.clearTimeout(id);
-                  } })();
+                  } };
 
 // assigns to call a function on next animation frame
-var __nextFrame = __frameFunc;
+var __nextFrame;
 
 // stops the animation
 // FIXME: remove, not used, __supressFrames is used
 var __stopAnim = function(requestId) {
-    __clearFrameFunc(requestId);
+    __clearFrameFunc()(requestId);
 };
 
 // OTHER
@@ -185,11 +185,13 @@ function ajax(url, callback/*, errback*/) {
 
 // CANVAS-RELATED
 
+function getPxRatio() { return window.devicePixelRatio || 1; }
+
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
 var DEF_CNVS_BG = '#fff';
 
-function canvasOpts(canvas, opts) {
+function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
@@ -198,15 +200,16 @@ function canvasOpts(canvas, opts) {
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
+    canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
     canvas.style.height = _h + 'px';
-    canvas.setAttribute('width', _w);
-    canvas.setAttribute('height', _h);
+    canvas.setAttribute('width', _w * (ratio || 1));
+    canvas.setAttribute('height', _h * (ratio || 1));
 }
 
-function newCanvas(dimen) {
+function newCanvas(dimen, ratio) {
     var _canvas = document.createElement('canvas');
-    canvasOpts(_canvas, dimen);
+    canvasOpts(_canvas, dimen, ratio);
     return _canvas;
 }
 
@@ -218,9 +221,12 @@ function prepareImage(url, callback) {
                              // 'complete' fails on Firefox
         if (callback) callback(this);
     };
-    _img.src = url;
+    try { _img.src = url; }
+    catch(e) { throw new Error('Image at ' + url + ' is not accessible'); }
     return _img;
 }
+
+// HELPERS
 
 function __builder(obj) {
     return (typeof Builder !== 'undefined') &&
@@ -229,6 +235,26 @@ function __builder(obj) {
 
 function __array(obj) {
     return Array.isArray(obj);
+}
+
+function __num(n) {
+    return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+function __close(n1, n2, precision) {
+    if (!(precision === 0)) {
+        precision = precision || 2;
+    }
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n1 * multiplier) ==
+           Math.round(n2 * multiplier);
+}
+
+function mrg_obj(src, backup) {
+    var res = {};
+    for (prop in backup) {
+        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
+    return res;
 }
 
 var trashBin = null;
@@ -266,15 +292,20 @@ C.M_INFO_DISABLED = 0;
 C.M_INFO_ENABLED = 2;
 C.M_DO_NOT_HANDLE_EVENTS = 0;
 C.M_HANDLE_EVENTS = 4;
+C.M_DO_NOT_DRAW_STILL = 0;
+C.M_DRAW_STILL = 8;
 C.M_PREVIEW = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
-              | C.M_DO_NOT_HANDLE_EVENTS;
+              | C.M_DO_NOT_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL;
 C.M_DYNAMIC = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
-              | C.M_HANDLE_EVENTS;
+              | C.M_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL;
 C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_INFO_ENABLED
-            | C.M_DO_NOT_HANDLE_EVENTS;
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DRAW_STILL;
 
 
 // EVENTS
@@ -341,8 +372,15 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
-// === PLAYER ==================================================================
-// =============================================================================
+// === INTERNAL CONSTANTS =========================================================
+// ================================================================================
+
+// for the cases when it is impossible to determine FPS
+var FPS_FALLBACK = 60,
+    FPS_ERROR = 1.3;
+
+// === PLAYER =====================================================================
+// ================================================================================
 
 /*
  `id` is canvas id
@@ -415,10 +453,14 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 // TODO: add load/play/pause/stop events
 
 Player.prototype.init = function(cvs, opts) {
+    if (this.canvas) throw new Error(Errors.P.INIT_TWICE);
+    if (this.anim) throw new Error(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); // TODO: make automatic
     this._prepare(cvs);
     this._loadOpts(opts);
     this._postInit();
+    // TODO: if (this.canvas.hasAttribute('data-url'))
+    return this;
 }
 Player.prototype.load = function(object, importer, callback) {
     var player = this;
@@ -427,15 +469,15 @@ Player.prototype.load = function(object, importer, callback) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new Error(Player.NO_SCENE_PASSED_ERR);
+        throw new Error(Errors.P.NO_SCENE_PASSED);
     }
 
     if ((player.state.happens === C.PLAYING) ||
         (player.state.happens === C.PAUSED)) {
-        throw new Error(Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR);
+        throw new Error(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
-    if (!player.__canvasPrepared) throw new Error(Player.CANVAS_NOT_PREPARED_ERR);
+    if (!player.__canvasPrepared) throw new Error(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
@@ -473,19 +515,22 @@ Player.prototype.load = function(object, importer, callback) {
     return player;
 }
 
-Player.prototype.play = function(from, speed) {
+Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) throw new Error(Player.ALREADY_PLAYING_ERR);
+    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.ALREADY_PLAYING);
 
     var player = this;
 
-    player._ensureAnim();
-    player._ensureState();
+    __nextFrame = __frameFunc();
+
+    player._ensureHasAnim();
+    player._ensureHasState();
 
     var state = player.state;
 
     state.from = from || state.from;
     state.speed = speed || state.speed;
+    state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -501,9 +546,11 @@ Player.prototype.play = function(from, speed) {
 
     var scene = player.anim;
     scene.reset();
+    player.setDuration(scene.duration);
 
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
+                                  player.__beforeFrame(scene),
                                   player.__afterFrame(scene),
                                   player.__originateErrors());
 
@@ -517,7 +564,7 @@ Player.prototype.stop = function() {
 
     var player = this;
 
-    player._ensureState();
+    player._ensureHasState();
 
     var state = player.state;
 
@@ -529,13 +576,13 @@ Player.prototype.stop = function() {
 
     state.time = Player.NO_TIME;
     state.from = 0;
+    state.stop = Player.NO_TIME;
 
     if (player.anim) {
         state.happens = C.STOPPED;
-        // TODO: do not draw preview for games?
-        player.drawAt((player.mode & C.M_VIDEO)
-            ? state.duration * Player.PREVIEW_POS
-            : 0);
+        if (player.mode & C.M_DRAW_STILL) {
+            player.drawAt(state.duration * Player.PREVIEW_POS);
+        }
         if (player.controls/* && !player.controls.hidden*/) {
             player._renderControlsAt(0);
         }
@@ -553,12 +600,12 @@ Player.prototype.stop = function() {
 Player.prototype.pause = function() {
     var player = this;
 
-    player._ensureState();
-    player._ensureAnim();
+    player._ensureHasState();
+    player._ensureHasAnim();
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new Error(Player.PAUSING_WHEN_STOPPED_ERR);
+        throw new Error(Errors.P.PAUSING_WHEN_STOPPED);
     }
 
     if (state.happens === C.PLAYING) {
@@ -612,10 +659,10 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
-        if (!this.canvas) throw new Error(Player.NO_CANVAS_WITH_ID_ERR + cvs);
+        if (!this.canvas) throw new Error(Errors.P.NO_CANVAS_WITH_ID + cvs);
         this.id = cvs;
     } else {
-        if (!cvs) throw new Error(Player.NO_CANVAS_PASSED_ERR);
+        if (!cvs) throw new Error(Errors.P.NO_CANVAS_PASSED);
         this.id = cvs.id;
         this.canvas = cvs;
     }
@@ -625,8 +672,9 @@ Player.prototype._prepare = function(cvs) {
     this.subscribeEvents(canvas);
 }
 Player.prototype._loadOpts = function(opts) {
-    var opts = opts || Player._optsFromAttrsOrDefault(this.canvas)
-                    || Player.DEFAULT_CONFIGURATION;
+    var cvs_opts = Player._mergeOpts(Player._optsFromCvsAttrs(this.canvas),
+                                     Player.DEFAULT_CONFIGURATION);
+    var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
@@ -719,19 +767,20 @@ Player.prototype.configureMeta = function(info) {
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
     if ((time < 0) || (time > this.state.duration)) {
-        throw new Error(Player.PASSED_TIME_NOT_IN_RANGE_ERR);
+        throw new Error(Errors.P.PASSED_TIME_NOT_IN_RANGE);
     }
     var ctx = this.ctx,
         state = this.state;
-    ctx.clearRect(0, 0, state.width, state.height);
+    ctx.clearRect(0, 0, state.width * state.ratio,
+                        state.height * state.ratio);
     this.anim.reset();
-    this.anim.render(ctx, time, state.zoom);
+    this.anim.render(ctx, time, state.zoom * state.ratio);
     if (this.controls) {
         this._renderControlsAt(time);
     }
 }
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new Error(Player.AFTERFRAME_BEFORE_PLAY_ERR);
+    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
 }
 Player.prototype.detach = function() {
@@ -797,9 +846,9 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this), false);
 }
-Player.prototype.updateDuration = function(value) {
+Player.prototype.setDuration = function(value) {
     this.state.duration = value;
-    if (this.info) this.info.updateDuration(value);
+    if (this.info) this.info.setDuration(value);
 }
 Player.prototype.drawSplash = function() {
     var ctx = this.ctx,
@@ -858,16 +907,18 @@ Player.prototype._reset = function() {
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
-    state.zoom = 1;
+    //state.zoom = 1; // do not override the zoom
     state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
-    this.ctx.clearRect(0, 0, state.width, state.height);
+    this.ctx.clearRect(0, 0, state.width * state.ratio,
+                             state.height * state.ratio);
     //this.stop();
 }
 // update player's canvas with configuration
 Player.prototype._applyConfToCanvas = function(opts) {
     var canvas = this.canvas;
+    var pxRatio = getPxRatio();
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -875,8 +926,9 @@ Player.prototype._applyConfToCanvas = function(opts) {
     opts.height = _h;
     this.state.width = _w;
     this.state.height = _h;
+    this.state.ratio = pxRatio;
     if (opts.bgfill) this.state.bgfill = opts.bgfill;
-    canvasOpts(canvas, opts);
+    canvasOpts(canvas, opts, pxRatio);
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
@@ -928,17 +980,19 @@ Player.prototype.__subscribeDynamicEvents = function(scene) {
         scene.__subscribedEvts = true;
     }
 }
-Player.prototype._ensureState = function() {
-    if (!this.state) throw new Error(Player.NO_STATE_ERR);
+Player.prototype._ensureHasState = function() {
+    if (!this.state) throw new Error(Errors.P.NO_STATE);
 }
-Player.prototype._ensureAnim = function() {
-    if (!this.anim) throw new Error(Player.NO_SCENE_ERR);
+Player.prototype._ensureHasAnim = function() {
+    if (!this.anim) throw new Error(Errors.P.NO_SCENE);
 }
-Player.prototype.__afterFrame = function(scene) {
-    return (function(player, state, scene, callback) {
+Player.prototype.__beforeFrame = function(scene) {
+    return (function(player, state, scene) {
         return function(time) {
             if (state.happens !== C.PLAYING) return false;
-            if (time > (state.duration + Player.PEFF)) {
+            if (((state.stop !== Player.NO_TIME) &&
+                 (time >= (state.from + state.stop))) ||
+                 (time > (state.duration + Player.PEFF))) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
@@ -947,11 +1001,18 @@ Player.prototype.__afterFrame = function(scene) {
                 }
                 return false;
             }
+            return true;
+        }
+    })(this, this.state, scene);
+}
+Player.prototype.__afterFrame = function(scene) {
+    return (function(player, state, scene, callback) {
+        return function(time) {
             if (player.controls) {
                 player._renderControls();
             }
             if (callback) callback(time);
-          return true;
+            return true;
         }
     })(this, this.state, scene, this.__userAfterFrame);
 }
@@ -1005,8 +1066,8 @@ Player._saveCanvasPos = function(cvs) {
 
 Player.createState = function(player) {
     return {
-        'time': Player.NO_TIME, 'from': 0, 'speed': 1,
-        'fps': 30, 'afps': 0, 'duration': 0,
+        'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
+        'speed': 1, 'fps': 30, 'afps': 0, 'duration': 0,
         'debug': false, 'iactive': false,
         // TODO: use iactive to determine if controls/info should be init-zed
         'width': player.canvas.offsetWidth,
@@ -1024,28 +1085,71 @@ function __attrOr(canvas, attr, _default) {
            ? canvas.getAttribute(attr)
            : _default;
 }
-Player._optsFromAttrsOrDefault = function(canvas) {
-    var _default = Player.DEFAULT_CONFIGURATION;
-    return { 'debug': __attrOr(canvas, 'data-debug', _default.debug),
-             'inParent': _default.inParent,
-             'muteErrors': __attrOr(canvas, 'data-mute-errors', _default.muteErrors),
-             'repeat': __attrOr(canvas, 'data-repeat', _default.repeat),
-             'mode': __attrOr(canvas, 'data-mode', _default.mode),
-             'zoom': __attrOr(canvas, 'data-zoom', _default.zoom),
-             'meta': { 'title': __attrOr(canvas, 'data-title', _default.meta.title),
-                        'author': __attrOr(canvas, 'data-author', _default.meta.author),
-                        'copyright': _default.meta.copyright,
-                        'version': _default.meta.version,
-                        'description': _default.meta.description },
-              'anim': { 'fps': _default.anim.fps,
-                        'width': __attrOr(canvas, 'data-width', _default.anim.width),
-                        'height': __attrOr(canvas, 'data-height', _default.anim.height),
-                        'bgfill': canvas.hasAttribute('data-bgcolor')
-                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
-                                  : _default.anim.bgfill,
-                        'duration': _default.anim.duration }
-                      };
+Player._mergeOpts = function(what, where) {
+    var res = mrg_obj(what, where);
+    res.meta = what.meta ? mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
+    res.anim = what.anim ? mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
+    return res;
+}
+Player._optsFromCvsAttrs = function(canvas) {
+    var width, height,
+        pxRatio = getPxRatio();
+    return { 'debug': __attrOr(canvas, 'data-debug', undefined),
+             'inParent': undefined,
+             'muteErrors': __attrOr(canvas, 'data-mute-errors', undefined),
+             'repeat': __attrOr(canvas, 'data-repeat', undefined),
+             'mode': __attrOr(canvas, 'data-mode', undefined),
+             'zoom': __attrOr(canvas, 'data-zoom', undefined),
+             'meta': { 'title': __attrOr(canvas, 'data-title', undefined),
+                       'author': __attrOr(canvas, 'data-author', undefined),
+                       'copyright': undefined,
+                       'version': undefined,
+                       'description': undefined },
+             'anim': { 'fps': undefined,
+                       'width': (__attrOr(canvas, 'data-width',
+                                (width = __attrOr(canvas, 'width', undefined),
+                                 width ? (width / pxRatio) : undefined))),
+                       'height': (__attrOr(canvas, 'data-height',
+                                 (height = __attrOr(canvas, 'height', undefined),
+                                  height ? (height / pxRatio) : undefined))),
+                       'bgfill': canvas.hasAttribute('data-bgcolor')
+                                 ? { 'color': canvas.getAttribute('data-bgcolor') }
+                                 : undefined,
+                       'duration': undefined } };
 };
+Player._optsFromURLParams = function(attrs/* as json */) {
+    return { 'debug': attrs.debug,
+             'inParent': undefined,
+             'muteErrors': undefined,
+             'repeat': attrs.r,
+             'mode': attrs.m,
+             'zoom': attrs.z,
+             'anim': { 'fps': undefined,
+                       'width': attrs.w,
+                       'height': attrs.h,
+                       'bgfill': { color: "#" + attrs.bg },
+                       'duration': undefined } };
+}
+Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, importer) {
+    var options = Player._optsFromURLParams(params);
+    var player = new Player();
+    player.init(canvasId, options);
+    function updateWithParams() {
+        if (typeof params.t !== 'undefined') {
+            player.play(params.t / 100);
+        } else if (typeof params.p !== 'undefined') {
+            player.play(params.p / 100).pause();
+        }
+        if (params.w && params.h) {
+            player._applyConfToCanvas({ width: params.w, height: params.h });
+        }
+        if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
+    }
+
+    player.load(snapshotURL, importer, updateWithParams);
+
+    return player;
+}
 
 // the dynamic method subsribes player itself to
 /* Player.subscribeEvents = function(canvas, anim) {
@@ -1111,8 +1215,8 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
 }
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
-    if (!this.hash[elm.id]) throw new Error('Element \''+elm.id+'\' (\''+
-                            elm.name+'\') is not registered in this scene');
+    // error will be thrown in _unregister method
+    //if (!this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -1143,14 +1247,13 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.render = function(ctx, time, zoom) {
-    var zoom = zoom || 1;
+Scene.prototype.render = function(ctx, time, zoom, afps) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
     this.visitRoots(function(elm) {
-        elm.render(ctx, time);
+        elm.render(ctx, time, afps);
     });
     ctx.restore();
     this.fire(C.X_DRAW,ctx);
@@ -1161,12 +1264,14 @@ Scene.prototype.handle__x = function(type, evt) {
     });
     return true;
 }
-Scene.prototype.calculateDuration = function() {
-    var gband = [Number.MAX_VALUE, 0];
+Scene.prototype.updateDuration = function() {
+    var max_pos = 0;
+    var me = this;
     this.visitRoots(function(elm) {
-        gband = Bands.expand(gband, elm.findWrapBand());
+        var elm_tpos = elm._max_tpos();
+        if (elm_tpos > me.duration) me.duration = elm_tpos;
     });
-    return gband[1];
+    return this.duration;
 }
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
@@ -1222,23 +1327,19 @@ Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new Error('It appears that it is not a clip object or element that you pass');
     }
-    this.duration = this.calculateDuration();
-    if (elm.xdata.gband &&
-        (elm.xdata.gband[1] > this.duration)) {
-        this.duration = elm.xdata.gband[1];
-    }
     this._register(elm);
     //if (elm.children) this._addElems(elm.children);
     this.tree.push(elm);
+    this.updateDuration();
 }
-Scene.prototype._addElems = function(elems) {
+/*Scene.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
         var _elm = elems[ei];
         this._register(_elm);
     }
-}
+}*/
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new Error('Element already registered');
+    if (this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_REGISTERED);
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
@@ -1248,7 +1349,7 @@ Scene.prototype._register = function(elm) {
     });
 }
 Scene.prototype._unregister = function(elm) {
-    if (!elm.registered) throw new Error('Element not registered');
+    if (!elm.registered) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
@@ -1258,6 +1359,7 @@ Scene.prototype._unregister = function(elm) {
       this.tree.splice(pos, 1);
     }
     delete this.hash[elm.id];
+    this.updateDuration();
     elm.registered = false;
     elm.scene = null;
     //elm.parent = null;
@@ -1344,16 +1446,16 @@ function Element(draw, onframe) {
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
+    this.scene = null;
     this.sprite = false;
     this.visible = false;
     this.registered = false;
     this.disabled = false;
     this.rendering = false;
-    this.scene = null;
     this.__data = null;
     this._modifiers = [];
     this._painters = [];
-    if (onframe) this.__modify(Element.USER_MOD, 0, onframe);
+    if (onframe) this.__modify(Element.USER_MOD, 0, null, onframe);
     if (draw) this.__paint(Element.USER_PNT, 0, draw);
     this.__lastJump = null;
     this.__jumpLock = false;
@@ -1373,7 +1475,8 @@ function Element(draw, onframe) {
     Element.__addSysPainters(this);
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
-Element.DEFAULT_LEN = Number.MAX_VALUE;
+Element.NO_BAND = null;
+Element.DEFAULT_LEN = 10;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -1387,8 +1490,8 @@ Element.prototype.prepare = function() {
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
-Element.prototype.onframe = function(ltime) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
+Element.prototype.onframe = function(ltime, afps) {
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, afps);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
@@ -1409,8 +1512,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= s.alpha;
     s._matrix.apply(ctx);
 }
-// > Element.render % (ctx: Context, gtime: Float)
-Element.prototype.render = function(ctx, gtime) {
+// > Element.render % (ctx: Context, gtime: Float[, afps: Float])
+Element.prototype.render = function(ctx, gtime, afps) {
     if (this.disabled) return;
     this.rendering = true;
     ctx.save();
@@ -1419,7 +1522,7 @@ Element.prototype.render = function(ctx, gtime) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     if (wasDrawn = (this.fits(ltime)
-                    && this.onframe(ltime)
+                    && this.onframe(ltime, afps)
                     && this.prepare())) {
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
@@ -1469,15 +1572,32 @@ Element.prototype.render = function(ctx, gtime) {
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-// > Element.addModifier % (modifier: Function(time: Float,
-//                                              data: Any) => Boolean,
-//                           data: Any) => Integer
-Element.prototype.addModifier = function(modifier, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, modifier, data);
+// > Element.addModifier % ([restriction: Array[Float, 2] | Float],
+//                          modifier: Function(time: Float,
+//                                             data: Any) => Boolean,
+//                          [easing: Function()],
+//                          [data: Any],
+//                          [priority: Int]
+//                         ) => Integer
+Element.prototype.addModifier = function(modifier, easing, data, priority) {
+    return this.__modify(Element.USER_MOD, priority || 0, null, modifier, easing, data);
 }
-// > Element.removeModifier % (id: Integer)
-Element.prototype.removeModifier = function(id) {
+// > Element.addTModifier % ([restriction: Array[Float, 2] | Float],
+//                           modifier: Function(time: Float,
+//                                              data: Any) => Boolean,
+//                           [easing: Function()],
+//                           [data: Any],
+//                           [priority: Int]
+//                          ) => Integer
+Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
+    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, easing, data);
+}
+// > Element.removeModifier % (modifier: Function)
+Element.prototype.removeModifier = function(modifier) {
+    if (!modifier.__m_ids) throw new Error('Modifier wasn\'t applied to anything');
     //if (this.__modifying) throw new Error("Can't remove modifiers while modifying");
+    var id = modifier.__m_ids[this.id];
+    if (!id) throw new Error('Modifier wasn\'t applied to this element');
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
@@ -1490,9 +1610,11 @@ Element.prototype.removeModifier = function(id) {
 Element.prototype.addPainter = function(painter, data, priority) {
     return this.__paint(Element.USER_PNT, priority || 0, painter, data);
 }
-// > Element.removePainter % (id: Integer)
-Element.prototype.removePainter = function(id) {
+// > Element.removePainter % (painter: Function)
+Element.prototype.removePainter = function(painter) {
+    if (!painter.__p_ids) throw new Error('Painter wasn\'t applied to anything');
     //if (this.__painting) throw new Error("Can't remove painters while painting");
+    var id = painter.__p_ids[this.id];
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
@@ -1535,11 +1657,11 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     }
 }
 // > Element.addS % (dimen: Array[Int, 2],
-//                    draw: Function(ctx: Context),
-//                    onframe: Function(time: Float),
-//                    [ transform: Function(ctx: Context,
-//                                          prev: Function(Context)) ])
-//                    => Element
+//                   draw: Function(ctx: Context),
+//                   onframe: Function(time: Float),
+//                   [ transform: Function(ctx: Context,
+//                                         prev: Function(Context)) ])
+//                   => Element
 Element.prototype.addS = function(dimen, draw, onframe, transform) {
     var _elm = this.add(draw, onframe, transform);
     _elm.sprite = true;
@@ -1553,7 +1675,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+            if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -1572,7 +1694,7 @@ Element.prototype.remove = function(elm) {
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+        this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.scene) this.scene._unregister(this);
     // this.scene should be null after unregistering
@@ -1590,10 +1712,22 @@ Element.prototype.makeBandFit = function() {
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
+    if (this.scene) this.scene.updateDuration();
 }
-Element.prototype.duration = function() { // for external use
+Element.prototype.duration = function() {
     return this.xdata.lband[1] - this.xdata.lband[0];
 }
+/* Element.prototype.rel_duration = function() { // TODO: duration cut with global band
+    return
+} */
+Element.prototype._max_tpos = function() {
+    return (this.xdata.gband[1] >= 0) ? this.xdata.gband[1] : 0;
+}
+/* Element.prototype.neg_duration = function() {
+    return (this.xdata.lband[0] < 0)
+            ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
+            : 0;
+} */
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return (ltime <= (this.xdata.lband[1]
@@ -1645,7 +1779,7 @@ Element.prototype.ltime = function(gtime) {
     }
 }
 Element.prototype.m_on = function(type, handler) {
-    return this.__modify(Element.EVENT_MOD, 0, function(t) { // FIXME: handlers must have priority?
+    return this.__modify(Element.EVENT_MOD, 0, null, function(t) { // FIXME: handlers must have priority?
       if (this.__evt_st & type) {
         var evts = this.__evts[type];
         for (var i = 0; i < evts.length; i++) {
@@ -1678,19 +1812,16 @@ Element.prototype.dispose = function() {
     });
 }
 Element.prototype.reset = function() {
-    var s = this.state;
-    s.x = 0; s.y = 0;
-    s.lx = 0; s.ly = 0;
-    s.rx = 0; s.ry = 0;
-    s.angle = 0; s.alpha = 1;
-    s.sx = 1; s.sy = 1;
-    s.p = null; s.t = null; s.key = null;
+    this.__resetState();
     this.__lastJump = null;
-    s._applied = false;
-    s._appliedAt = null;
-    s._matrix.reset();
     if (this.__mask) this.__removeMaskCanvases();
     //this.__clearEvtState();
+    (function(elm) {
+        elm.__forAllModifiers(function(band, modifier) {
+            if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
+            if (modifier.__wasCalledAt) modifier.__wasCalledAt[elm.id] = -1;
+        });
+    })(this);
     this.visitChildren(function(elm) {
         elm.reset();
     });
@@ -1737,7 +1868,7 @@ Element.prototype.__performDetach = function() {
     this.__detachQueue = [];
 }
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new Error(Player.UNSAFE_TO_REMOVE_ERR);
+    if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -1817,9 +1948,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__maskCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.awidth, scene.aheight]);
+    this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     // document.body.appendChild(this.__maskCvs);
     // document.body.appendChild(this.__backCvs);
@@ -1884,6 +2015,7 @@ Element.prototype.deepClone = function() {
         trg_children.push(cclone);
     }
     clone._modifiers = [];
+    // FIXME: use __forAllModifiers & __forAllPainters
     // loop through type
     for (var mti = 0, mtl = this._modifiers.length; mti < mtl; mti++) {
         var type_group = this._modifiers[mti];
@@ -1894,6 +2026,12 @@ Element.prototype.deepClone = function() {
             var priority_group = type_group[mpi];
             if (!priority_group) continue;
             clone._modifiers[mti][mpi] = [].concat(priority_group);
+            for (mi = 0, ml = priority_group.length; mi < ml; mi++) {
+                var modifier = priority_group[mi];
+                if (modifier && modifier.__m_ids) {
+                    modifier.__m_ids[clone.id] = modifier.__m_ids[this.id];
+                }
+            }
         }
     }
     clone._painters = [];
@@ -1907,6 +2045,12 @@ Element.prototype.deepClone = function() {
             var priority_group = type_group[ppi];
             if (!priority_group) continue;
             clone._painters[pti][ppi] = [].concat(priority_group);
+            for (pi = 0, pl = priority_group.length; pi < pl; pi++) {
+                var painter = priority_group[pi];
+                if (painter && painter.__p_ids) {
+                    painter.__p_ids[clone.id] = painter.__p_ids[this.id];
+                }
+            }
         }
     }
     clone.__data = obj_clone(this.__data);
@@ -1923,9 +2067,9 @@ Element.prototype.deepClone = function() {
     return clone;
 }
 Element.prototype._addChild = function(elm) {
-    this.children.push(elm); // or add elem.id?
     elm.parent = this;
-    if (this.scene) this.scene._register(elm);
+    this.children.push(elm); // or add elem.id?
+    if (this.scene) this.scene._register(elm); // TODO: rollback parent and child?
     Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
@@ -1934,7 +2078,7 @@ Element.prototype._addChildren = function(elms) {
     }
 }
 Element.prototype._drawToCache = function() {
-    var _canvas = newCanvas(this.state.dimen);
+    var _canvas = newCanvas(this.state.dimen, this.state.ratio);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
@@ -1948,105 +2092,188 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element.prototype.__callModifiers = function(order, ltime) {
-    // save the previous state
-    this.state._ = null; // clear the pointer, so it will not be cloned
-    this._state = obj_clone(this.state);
-    this._state._ = this.state;
+Element._FPS_FALLBACK = FPS_FALLBACK;
+Element._FPS_ERROR = FPS_ERROR;
+Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
+  var lband = this.xdata.lband,
+      elm_duration = lband[1] - lband[0];
+  if (band == null) return [ ltime / elm_duration, elm_duration ];
+  if (__array(band)) { // modifier is band-restricted
+      //if ((ltime + band[0]) >= elm_duration) return ltime;
+      var mod_duration = band[1] - band[0];
+      if (ltime < band[0]) return [ 0, mod_duration ];
+      else if (ltime > band[1]) return [ 1, mod_duration ];
+      else return [ easing ? easing((ltime - band[0]) / mod_duration)
+                           : (ltime - band[0]) / mod_duration,
+                    mod_duration ];
+  } else if (__num(band)) {
+      if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
+      afps = afps || (state._._appliedAt
+                      ? (1 / (ltime - state._._appliedAt))
+                      : 0) || 0;
+      // FIXME: test if afps is not too big
+      var tpos = band;
+      var doCall = ((afps > 0) &&
+                    (ltime >= tpos) &&
+                    (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
+                   ((afps <= 0) && __close(ltime, tpos, 10)) ||
+                   ((tpos > (lband[1] - (1 / (afps || FPS_FALLBACK)))) &&
+                    ((ltime + (1 / (afps || FPS_FALLBACK))) > lband[1]));
+      if (doCall) {
+          if (!modifier.__wasCalled) modifier.__wasCalled = {};
+          if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
+          modifier.__wasCalled[this.id] = true;
+          modifier.__wasCalledAt[this.id] = ltime;
+      }
+      return doCall ? [ easing ? easing(ltime / elm_duration)
+                               : ltime / elm_duration,
+                        elm_duration ]  : false;
+  } else return easing ? easing(ltime) : ltime;
+}
+Element.prototype.__callModifiers = function(order, ltime, afps) {
+    return (function(elm) {
 
-    // now it looks like:
-    // this.
-    //     .state -> state from the last modifiers call
-    //     ._state -> clone of the last state, it is passed to modifiers as `this`
-    //     ._state._ -> a pointer to the last state, so it will be accessible in
-    //                  modifiers as `this._`
+        // save the previous state
+        elm.state._ = null; // clear the pointer, so it will not be cloned
+        elm._state = Element.createState(elm);
+        elm._state._ = obj_clone(elm.state);
 
-    this.__loadEvts(this._state);
+        // now it looks like:
+        // this.
+        //     .state -> state from the last modifiers call
+        //     ._state -> clone of the last state, it is passed to modifiers as `this`
+        //     ._state._ -> a pointer to the last state, so it will be accessible in
+        //                  modifiers as `this._`
 
+        elm.__loadEvts(elm._state);
+
+        if (!elm.__forAllModifiers(order,
+            function(band, modifier, easing, data) { /* each modifier */
+                // lbtime is band-apadted time, if modifier has its own band
+                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, easing, afps);
+                // false will be returned from __adaptModTime
+                // for trigger-like modifier if it is required to skip current one
+                if (lbtime === false) return true;
+                // modifier will return false if it is required to skip all next modifiers,
+                // returning false from our function means the same
+                return modifier.call(elm._state, lbtime[0], lbtime[1], data);
+            }, function(type) { /* before each new type */
+                elm.__modifying = type;
+                elm.__mbefore(type);
+            }, function(type) { /* after each new type */
+                elm.__mafter(ltime, type, true);
+            })) { // one of modifiers returned false
+                // forget things...
+                elm.__mafter(ltime, elm.__modifying, false);
+                elm.__modifying = null;
+                elm.__clearEvts(elm._state);
+                // NB: nothing happens to the state or element here,
+                //     the modified things are not applied
+                return false; // ...and get out of the function
+            };
+
+        elm.__modifying = null;
+        elm._state._applied = true;
+        elm._state._appliedAt = ltime;
+
+        elm.__clearEvts(elm._state);
+
+        // save modified state as last
+        elm.state = elm._state;
+        elm._state = null;
+        // state._ keeps pointing to prev state
+
+        // apply last state
+        return true;
+    })(this);
+}
+Element.prototype.__callPainters = function(order, ctx) {
+    (function(elm) {
+        elm.__forAllPainters(order,
+            function(painter, data) { /* each painter */
+                painter.call(elm.xdata, ctx, data);
+            }, function(type) { /* before each new type */
+                elm.__painting = type;
+                elm.__pbefore(ctx, type);
+            }, function(type) { /* after each new type */
+                elm.__pafter(ctx, type);
+            });
+        elm.__painting = null;
+    })(this);
+}
+Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
+    if (!modifier) return; // FIXME: throw some error?
+    var modifiers = this._modifiers;
+    var priority = priority || 0;
+    if (!modifier.__m_ids) modifier.__m_ids = {};
+    else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
+    if (!modifiers[type]) modifiers[type] = [];
+    if (!modifiers[type][priority]) modifiers[type][priority] = [];
+    modifiers[type][priority].push([band, modifier, easing, data]);
+    modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                                (modifiers[type][priority].length - 1);
+    return modifier;
+}
+Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
+Element.prototype.__forAllModifiers = function(order, f, before_type, after_type) {
     var modifiers = this._modifiers;
     var type, seq, cur;
     for (var typenum = 0, last = order.length;
          typenum < last; typenum++) {
         type = order[typenum];
         seq = modifiers[type];
-        this.__modifying = type;
-        this.__mbefore(type);
+        if (before_type) before_type(type);
         if (seq) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci] && (cur[ci][0].call(this._state, ltime, cur[ci][1]) === false)) {
-                  this.__mafter(ltime, type, false);
-                  this.__modifying = null;
-                  this.__clearEvts(this._state);
-                  // NB: nothing happens to the state or element here,
-                  //     the modified things are not applied
-                  return false;
-                }
-              }
-            }
-          }
-        }
-        this.__mafter(ltime, type, true);
+                var modifier;
+                if (modifier = cur[ci]) {
+                  if (f(modifier[0], modifier[1], modifier[2], modifier[3]) === false) return false;
+                } // if cur[ci]
+              } // for var ci
+            } // if cur = seq[pi]
+          } // for var pi
+        } // if seq
+        if (after_type) after_type(type);
     }
-    this.__modifying = null;
-    this._state._applied = true;
-    this._state._appliedAt = ltime;
-
-    this.__clearEvts(this._state);
-
-    // save modified state as last
-    this.state = this._state;
-    this._state = null;
-    // state._ keeps pointing to prev state
-
-    // apply last state
     return true;
 }
-Element.prototype.__callPainters = function(order, ctx) {
+Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
+    if (!painter) return; // FIXME: throw some error?
+    var painters = this._painters;
+    var priority = priority || 0;
+    if (!painter.__p_ids) painter.__p_ids = {};
+    else if (painter.__p_ids[this.id]) throw new Error('Painter was already added to this element');
+    if (!painters[type]) painters[type] = [];
+    if (!painters[type][priority]) painters[type][priority] = [];
+    painters[type][priority].push([painter, data]);
+    painter.__p_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                               (painters[type][priority].length - 1);
+    return painter;
+}
+Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
+Element.prototype.__forAllPainters = function(order, f, before_type, after_type) {
     var painters = this._painters;
     var type, seq, cur;
     for (var typenum = 0, last = order.length;
          typenum < last; typenum++) {
         type = order[typenum];
         seq = painters[type];
-        this.__painting = type;
-        this.__pbefore(ctx, type);
+        if (before_type) before_type(type);
         if (seq) {
           for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
             if (cur = seq[pi]) {
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci]) cur[ci][0].call(this.xdata, ctx, cur[ci][1]);
+                if (cur[ci]) f(cur[ci][0], cur[ci][1]);
               }
             }
           }
         }
-        this.__pafter(ctx, type);
+        if (after_type) after_type(type);
     }
-    this.__painting = null;
+    return true;
 }
-Element.prototype.__addTypedModifier = function(type, priority, modifier, data) {
-    if (!modifier) return; // FIXME: throw some error?
-    var modifiers = this._modifiers;
-    var priority = priority || 0;
-    if (!modifiers[type]) modifiers[type] = [];
-    if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([modifier, data]);
-    return (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-           (modifiers[type][priority].length - 1);
-}
-Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
-Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
-    if (!painter) return; // FIXME: throw some error?
-    var painters = this._painters;
-    var priority = priority || 0;
-    if (!painters[type]) painters[type] = [];
-    if (!painters[type][priority]) painters[type][priority] = [];
-    painters[type][priority].push([painter, data]);
-    return (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-           (painters[type][priority].length - 1);
-}
-Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === Element.EVENT_MOD) {
         this.__loadEvtsFromCache();
@@ -2144,6 +2371,18 @@ Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
 }
+Element.prototype.__resetState = function() {
+    var s = this.state;
+    s.x = 0; s.y = 0;
+    s.lx = 0; s.ly = 0;
+    s.rx = 0; s.ry = 0;
+    s.angle = 0; s.alpha = 1;
+    s.sx = 1; s.sy = 1;
+    s.p = null; s.t = null; s.key = null;
+    s._applied = false;
+    s._appliedAt = null;
+    s._matrix.reset();
+}
 
 // state of the element
 Element.createState = function(owner) {
@@ -2181,9 +2420,9 @@ Element.createXData = function(owner) {
 }
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
-    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, Render.m_checkBand, xdata.gband);
-    elm.__modify(Element.SYS_MOD, 0, Render.m_saveReg);
-    elm.__modify(Element.SYS_MOD, 0, Render.m_applyPos);
+    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband);
+    elm.__modify(Element.SYS_MOD, 0, null, Render.m_saveReg);
+    elm.__modify(Element.SYS_MOD, 0, null, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
     elm.__paint(Element.SYS_PNT, 0, Render.p_applyAComp);
@@ -2198,17 +2437,16 @@ Element.__addDebugRender = function(elm) {
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
-Element.__addTweenModifier = function(elm, tween) {
-    var easing = tween.easing;
-    var modifier = !easing ? Bands.adaptModifier(Tweens[tween.type],
-                                                 tween.band)
-                           : Bands.adaptModifierByTime(
-                                   easing.type ? EasingImpl[easing.type](easing.data)
-                                               : easing.f(easing.data),
-                                   Tweens[tween.type],
-                                   tween.band);
+Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify with adding object same way,
+                                                    // include easing in all modifiers
+    var m_tween = Tweens[tween.type](),
+        easing = tween.easing;
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        modifier, tween.data);
+                        tween.band, m_tween,
+                        (easing ? (easing.type ? EasingImpl[easing.type](easing.data)
+                                               : easing.f(easing.data))
+                                : null),
+                        tween.data);
 }
 
 Element._getMatrixOf = function(s, m) {
@@ -2327,10 +2565,12 @@ var D = {}; // means "Drawing"
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, callback, errback) {
+D.drawNext = function(ctx, state, scene, before, after, errback) {
     // NB: state here is a player state, not an element state
 
     try {
+
+        var thrown_e = null;
 
         if (state.happens !== C.PLAYING) return;
 
@@ -2340,6 +2580,10 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         var time = (sec * state.speed) + state.from;
         state.time = time;
 
+        if (before) {
+            if (!before(time)) return;
+        }
+
         if (state.__rsec === 0) state.__rsec = msec;
         if ((msec - state.__rsec) >= 1000) {
             state.afps = state.__redraws;
@@ -2348,26 +2592,34 @@ D.drawNext = function(ctx, state, scene, callback, errback) {
         }
         state.__redraws++;
 
-        ctx.clearRect(0, 0, state.width, state.height);
+        ctx.clearRect(0, 0, state.width * state.ratio,
+                            state.height * state.ratio);
 
-        scene.render(ctx, time, state.zoom);
+        scene.render(ctx, time, state.zoom * state.ratio, state.afps);
 
         // show fps
         if (state.debug) { // TODO: move to player.onrender
             D.drawFPS(ctx, state.afps);
         }
 
-        if (callback) {
-            if (!callback(time)) return;
+        if (after) {
+            if (!after(time)) return;
         }
 
         if (state.__supressFrames) return;
 
         return __nextFrame(function() {
-           D.drawNext(ctx, state, scene, callback, errback);
+           try {
+              D.drawNext(ctx, state, scene, before, after, errback);
+           } catch(e) {
+              if (e === thrown_e) return;
+              thrown_e = e;
+              throw e;
+           };
         });
 
     } catch(e) {
+        if (e === thrown_e) return;
         if (!errback) throw e;
         if (errback && errback(e)) throw e;
     }
@@ -2457,11 +2709,8 @@ L.loadScene = function(player, scene, callback) {
     player.anim = scene;
     // update duration
     if (!player.state.duration) {
-        if (!(player.mode & C.M_DYNAMIC)
-            && (scene.duration === Number.MAX_VALUE)) {
-          scene.duration = Scene.DEFAULT_VIDEO_DURATION;
-        }
-        player.updateDuration(scene.duration);
+        if (player.mode & C.M_DYNAMIC) scene.duration = Number.MAX_VALUE;
+        player.setDuration(scene.duration);
     }
     scene.awidth = player.state.width;
     scene.aheight = player.state.height;
@@ -2543,18 +2792,18 @@ Render.h_drawMPath = function(ctx, mPath) {
     ctx.restore()
 }
 
-Render.m_checkBand = function(time, band) {
-    if (band[0] > time) return false; // exit
-    if (band[1] < time) return false; // exit
+Render.m_checkBand = function(time, duration, band) {
+    if (band[0] > (duration * time)) return false; // exit
+    if (band[1] < (duration * time)) return false; // exit
 }
 
-Render.m_saveReg = function(time, reg) {
+Render.m_saveReg = function(time, duration, reg) {
     if (!(reg = reg || this.$.xdata.reg)) return;
     this.rx = reg[0];
     this.ry = reg[1];
 }
 
-Render.m_applyPos = function(time, pos) {
+Render.m_applyPos = function(time, duration, pos) {
     if (!(pos = pos || this.$.xdata.pos)) return;
     this.lx = pos[0];
     this.ly = pos[1];
@@ -2569,7 +2818,7 @@ Bands.recalc = function(elm, in_band) {
     var in_band = in_band ||
                   ( elm.parent
                   ? elm.parent.xdata.gband
-                  : x.lband );
+                  : [0, 0] );
     x.gband = [ in_band[0] + x.lband[0],
                 in_band[0] + x.lband[1] ];
     elm.visitChildren(function(celm) {
@@ -2604,26 +2853,6 @@ Bands.reduce = function(from, to) {
            ];
 }
 
-Bands.adaptModifier = function(func, sband) {
-    return function(time, data) { // returns modifier
-        if (sband[0] > time) return;
-        if (sband[1] < time) return;
-        var t = (time-sband[0])/(sband[1]-sband[0]);
-        func.call(this, t, data);
-    };
-}
-
-Bands.adaptModifierByTime = function(tfunc, func, sband) {
-    return function(time, data) { // returns modifier
-        if ((sband[0] > time) || (sband[1] < time)) return;
-        var blen = sband[1] - sband[0],
-            t = (time - sband[0]) / blen,
-            mt = tfunc(t);
-        if ((0 > mt) || (1 < mt)) return;
-        func.call(this, mt, data);
-    }
-}
-
 // =============================================================================
 // === TWEENS ==================================================================
 
@@ -2651,30 +2880,40 @@ Tween.TWEENS_COUNT = 5;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
-    function(t, data) {
-        this.angle = data[0] * (1 - t) + data[1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.angle += data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
+      };
     };
 Tweens[C.T_TRANSLATE] =
-    function(t, data) {
-        var p = data.pointAt(t);
-        this._mpath = data;
-        this.x = p[0];
-        this.y = p[1];
+    function() {
+      return function(t, duration, data) {
+          var p = data.pointAt(t);
+          this._mpath = data;
+          this.x += p[0];
+          this.y += p[1];
+      };
     };
 Tweens[C.T_ALPHA] =
-    function(t, data) {
-        this.alpha = data[0] * (1 - t) + data[1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.alpha *= data[0] * (1.0 - t) + data[1] * t;
+      };
     };
 Tweens[C.T_SCALE] =
-    function(t, data) {
-        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+    function() {
+      return function(t, duration, data) {
+        this.sx *= data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy *= data[0][1] * (1.0 - t) + data[1][1] * t;
+      };
     };
 Tweens[C.T_ROT_TO_PATH] =
-    function(t, data) {
+    function() {
+      return function(t, duration, data) {
         var path = this._mpath;
-        this.angle = path.tangentAt(t);
+        this.angle += path.tangentAt(t);
+      };
     };
 
 // function-based easings
@@ -3504,6 +3743,7 @@ function Controls(player) {
     this.hidden = false;
     this.elapsed = false;
     this._time = -1000;
+    this._ratio = 1;
     this._lhappens = C.NOTHING;
     this._initHandlers(); // TODO: make automatic
     this._inParent = player.inParent;
@@ -3519,9 +3759,10 @@ Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var _w = parent.width,
+    var _ratio = parent.__pxRatio,
+        _w = parent.width / _ratio,
         _h = Controls.HEIGHT,
-        _hdiff = parent.height - Controls.HEIGHT,
+        _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
         _bp = [ _pp[0], _pp[1] + _hdiff ], // bounds position
         _cp = this._inParent ? [ parent.parentNode.offsetLeft,
@@ -3529,7 +3770,7 @@ Controls.prototype.update = function(parent) {
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
-        _canvas = newCanvas([ _w, _h ]);
+        _canvas = newCanvas([ _w, _h ], _ratio);
         if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
         _canvas.className = 'anm-controls';
         _canvas.style.position = 'absolute';
@@ -3542,10 +3783,11 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeColor(Controls.DEF_FGCOLOR);
     } else {
-        canvasOpts(_canvas, [ _w, _h ]);
+        canvasOpts(_canvas, [ _w, _h ], _ratio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
+    this._ratio = _ratio;
     this.ctx.font = Math.floor(Controls._TS) + 'px sans-serif';
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
@@ -3556,7 +3798,8 @@ Controls.prototype.update = function(parent) {
         this.ready = true;
     }
     if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
-    this.bounds = [ _bp[0], _bp[1], _bp[0]+_w, _bp[1]+_h ];
+    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
+                                    _bp[1]+(_h*_ratio) ];
 }
 Controls.prototype.subscribeEvents = function(canvas) {
     canvas.addEventListener('mousedown', (function(controls) {
@@ -3581,16 +3824,18 @@ Controls.prototype.render = function(state, time) {
     this._time = time;
     this._lhappens = _s;
 
-    var ctx = this.ctx;
+    var ctx = this.ctx,
+        _ratio = this._ratio; // pixelRatio (or use this.canvas.__pxRatio?)
     var _bh = Controls._BH, // button height
-        _w = this.canvas.width,
-        _h = this.canvas.height,
+        _w = this.bounds[2] - this.bounds[0],
+        _h = this.bounds[3] - this.bounds[1],
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
-        _pw = _w - ((_m * 4) + _tw + _bh); // progress width
+        _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
     // TODO: update only progress if state not changed?
     ctx.clearRect(0, 0, _w, _h);
     ctx.save();
+    if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
     ctx.fillStyle = this.canvas.style.color || this.__fgcolor || Controls.DEF_FGCOLOR;
 
@@ -3647,7 +3892,8 @@ Controls.prototype.handle_mdown = function(event) {
         _bh = Controls._BH,
         _m = Controls.MARGIN,
         _tw = Controls._TW,
-        _w = this.bounds[2] - this.bounds[0];
+        _w = this.bounds[2] - this.bounds[0],
+        _ratio = this._ratio;
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
         var _s = this.player.state.happens;
         if (_s === C.STOPPED) {
@@ -3660,7 +3906,7 @@ Controls.prototype.handle_mdown = function(event) {
     } else if (_lx < (_w - (_tw + _m))) { // progress area
         var _s = this.player.state.happens;
         if (_s === C.NOTHING) return;
-        var _pw = _w - ((_m * 4) + _tw + _bh), // progress width
+        var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
@@ -3867,7 +4113,7 @@ InfoBlock.prototype.show = function() {
     this.hidden = false;
     this.div.style.display = 'block';
 }
-InfoBlock.prototype.updateDuration = function(value) {
+InfoBlock.prototype.setDuration = function(value) {
     this.div.getElementsByClassName('duration')[0].innerHTML = value+'sec';
 }
 InfoBlock.prototype.changeColors = function(front, back) {
@@ -3879,24 +4125,33 @@ InfoBlock.prototype.changeColors = function(front, back) {
 
 // TODO: Move Scene and Element errors here ?
 
-Player.NO_CANVAS_WITH_ID_ERR = 'No canvas found with given id: ';
-Player.NO_CANVAS_WAS_PASSED_ERR = 'No canvas was passed';
-Player.CANVAS_NOT_PREPARED_ERR = 'Canvas is not prepared, don\'t forget to call \'init\' method';
-Player.ALREADY_PLAYING_ERR = 'Player is already in playing mode, please call ' +
-                             '\'stop\' or \'pause\' before playing again';
-Player.PAUSING_WHEN_STOPPED_ERR = 'Player is stopped, so it is not allowed to pause';
-Player.NO_SCENE_PASSED_ERR = 'No scene passed to load method';
-Player.NO_STATE_ERR = 'There\'s no player state defined, nowhere to draw, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
-Player.NO_SCENE_ERR = 'There\'s nothing at all to manage with, ' +
-                      'please load something in player before ' +
-                      'calling its playing-related methods';
-Player.COULD_NOT_LOAD_WHILE_PLAYING_ERR = 'Could not load any scene while playing or paused, ' +
-                      'please stop player before loading';
-Player.UNSAFE_TO_REMOVE_ERR = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
-Player.AFTERFRAME_BEFORE_PLAY_ERR = 'Please assign afterFrame callback before calling play()';
-Player.PASSED_TIME_NOT_IN_RANGE_ERR = 'Passed time is not in scene range';
+var Errors = {};
+Errors.P = {}; // Player Errors
+Errors.S = {}; // Scene Errors
+Errors.E = {}; // Element Errors
+
+Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: ';
+Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
+Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
+Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
+                           '\'stop\' or \'pause\' before playing again';
+Errors.P.PAUSING_WHEN_STOPPED = 'Player is stopped, so it is not allowed to pause';
+Errors.P.NO_SCENE_PASSED = 'No scene passed to load method';
+Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
+                    'please load something in player before ' +
+                    'calling its playing-related methods';
+Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
+                    'please load something in player before ' +
+                    'calling its playing-related methods';
+Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
+                    'please stop player before loading';
+Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
+Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time is not in scene range';
+Errors.P.INIT_TWICE = 'Initialization was called twice';
+Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
+Errors.S.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
+Errors.S.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
+Errors.E.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
 
 // =============================================================================
 // === EXPORTS =================================================================
@@ -3911,15 +4166,20 @@ var exports = {
     'Clip': Clip,
     'Path': Path, 'Text': Text,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
-    'Render': Render, 'Bands': Bands,
+    'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
-    'DU': DU,
+    'DU': DU, // why DU class is visible to pulic?
+    'Errors': Errors,
     'MODULES': {},
 
     'obj_clone': obj_clone,
 
     'createPlayer': function(cvs, opts) { var p = new Player();
-                                          p.init(cvs, opts); return p; }
+                                          p.init(cvs, opts); return p; },
+
+    '_typecheck': { builder: __builder,
+                    array: __array,
+                    num: __num }
 
     //'__dev': { 'Controls': Controls, 'Info': InfoBlock  },
 

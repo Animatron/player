@@ -15,9 +15,13 @@ var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
+var is = anm._typecheck;
+
 var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
+
+//var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') };
 
 // =============================================================================
 // === BUILDER =================================================================
@@ -61,7 +65,7 @@ Builder._$ = function(obj) {
 }
 
 Builder.__path = function(val, join) {
-    return (Array.isArray(val))
+    return is.array(val)
            ? Builder.path(val)
            : ((val instanceof Path) ? val
               : Path.parse(val, join))
@@ -125,8 +129,7 @@ Builder.prototype.path = function(path, pt) {
 // > builder.rect % (pt: Array[2,Integer],
 //                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var rect = Array.isArray(rect) ? rect
-                                   : [ rect, rect ];
+    var rect = is.array(rect) ? rect : [ rect, rect ];
     var w = rect[0], h = rect[1];
     this.path([[0, 0], [w, 0],
                [w, h], [0, h],
@@ -159,7 +162,7 @@ Builder.prototype.image = function(pt, src) {
         this.x.image =
            // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src, function(img) {
-                b.__modify(Element.SYS_MOD, function(t) {
+                b.x.__modify(Element.SYS_MOD, 0, null, function() {
                     this.rx = Math.floor(img.width/2);
                     this.ry = Math.floor(img.height/2);
                 });
@@ -302,7 +305,7 @@ Builder.prototype.tween = function(type, band, data, easing) {
         aeasing = (easing && (typeof easing === 'function'))
                   ? { f: function() { return easing; }, data: null }
                   : aeasing;
-    this.__m_id = this.v.addTween({
+    this.v.addTween({
         type: type,
         band: band,
         data: data,
@@ -310,9 +313,7 @@ Builder.prototype.tween = function(type, band, data, easing) {
     });
     return this;
 }
-// > builder.get_t_id % () => Integer
-Builder.prototype.get_t_id = Builder.prototype.get_m_id;
-// > builder.untween % (id: Integer) => Builder
+// > builder.untween % (tween: Function) => Builder
 Builder.prototype.untween = Builder.prototype.unmodify;
 // > builder.rotate % (band: Array[2,Float],
 //                     angles: Array[2,Float],
@@ -385,47 +386,47 @@ Builder.prototype.bounce = function() {
 
 // * MODIFIERS & PAINTERS *
 
-// > builder.modify % (modifier: Function(time: Float,
+// > builder.modify % ([band: Array[2, Float],]
+//                     modifier: Function(time: Float,
 //                                        data: Any),
-//                     [data: Any, priority: Integer]) => Builder
-Builder.prototype.modify = function(func, data, priority) {
-    this.__m_id = this.v.addModifier(func, data, priority);
+//                     [data: Any, easing: Function(time),
+//                                 priority: Integer]) => Builder
+Builder.prototype.modify = function(band, modifier, data, easing, priority) {
+    if (is.array(band) || is.num(band)) {
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addTModifier(band, modifier, easing, data, priority);
+    } else {
+        // match actual arguments, if band was omitted
+        priority = easing;
+        easing = data;
+        data = modifier;
+        modifier = band;
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addModifier(modifier, easing, data, priority);
+    }
     return this;
 }
 // > builder.paint % (painter: Function(ctx: Context,
 //                                      data: Any),
 //                    [data: Any, priority: Integer]) => Builder
 Builder.prototype.paint = function(func, data, priority) {
-    this.__p_id = this.v.addPainter(func, data, priority);
+    this.v.addPainter(func, data, priority);
     return this;
 }
 // > builder.at % (t: time, modifier: Function(time: Float,
 //                                             data: Any),
 //                     [data: Any, priority: Integer]) => Builder
 Builder.prototype.at = function(t, func, data, priority) {
-    var me = this;
-    var at_id = me.modify(function(real_t, data) {
-        if (real_t >= t) { func.call(this, real_t, data); me.unmodify(at_id); }
-    }, data, priority).get_m_id();
+    return this.modify(t, func, data, priority);
 }
-// > builder.get_m_id % () => Integer
-Builder.prototype.get_m_id = function() {
-    if (typeof this.__m_id === 'undefined') throw new Error('No modifiers were added before');
-    return this.__m_id;
-}
-// > builder.get_p_id % () => Integer
-Builder.prototype.get_p_id = function() {
-    if (typeof this.__p_id === 'undefined') throw new Error('No painters were added before');
-    return this.__p_id;
-}
-// > builder.unmodify % (id: Integer) => Builder
-Builder.prototype.unmodify = function(id) {
-    this.v.removeModifier(id);
+// > builder.unmodify % (modifier: Function) => Builder
+Builder.prototype.unmodify = function(modifier) {
+    this.v.removeModifier(modifier);
     return this;
 }
-// > builder.unpaint % (id: Integer) => Builder
-Builder.prototype.unpaint = function(id) {
-    this.v.removePainter(id);
+// > builder.unpaint % (painter: Function) => Builder
+Builder.prototype.unpaint = function(painter) {
+    this.v.removePainter(painter);
     return this;
 }
 
@@ -445,7 +446,7 @@ Builder.prototype.time = function(f) {
 // > builder.tease % (ease: Function(t: Float)) => Builder
 Builder.prototype.tease = function(ease) {
     if (!ease) throw new Error('Ease function not defined');
-    var duration = this.x.lband[1]-this.x.lband[0];
+    var duration = this.x.duration();
     this.time(function(t) {
         return ease(t / duration);
     });
@@ -456,12 +457,10 @@ Builder.prototype.tease = function(ease) {
 
 // > builder.on % (type: String, handler: Function(evt: Event, t: Float)) => Builder
 Builder.prototype.on = function(type, handler) {
-    this.__m_id = this.v.m_on(type, handler);
+    this.v.m_on(type, handler);
     return this;
 }
-// > builder.get_h_id % () => Integer
-Builder.prototype.get_h_id = Builder.prototype.get_m_id;
-// > builder.unhandle % (id: Integer) => Builder
+// > builder.unhandle % (handler: Function) => Builder
 Builder.prototype.unhandle = Builder.prototype.unmodify;
 
 // * TAKE & USE *

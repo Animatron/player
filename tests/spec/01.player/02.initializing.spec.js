@@ -13,7 +13,7 @@ describe("player, when speaking about initialization,", function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        _fake(_Fake.CVS_POS);
 
         player = new anm.Player();
     });
@@ -59,7 +59,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.play();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -69,7 +69,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.pause();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -79,7 +79,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.stop();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -104,17 +104,23 @@ describe("player, when speaking about initialization,", function() {
     });
 
     it("player should throw errors by default", function() {
+        var test = this;
+
         player.init('test-id');
         var scene = new anm.Scene();
         var elm = new anm.Element();
         elm.addModifier(function(t) {
             throw new Error('Boo');
-        })
+        });
+        scene.add(elm);
+
         try {
-            player.load(scene).play();
+            doAsync(player, scene, {
+                do: 'play', until: anm.C.STOPPED, timeout: 1,
+                then: function() { test.fail('Should throw an error'); },
+            });
         } catch(e) {
             expect(e.message).toEqual('Boo');
-            player.stop();
         }
     });
 
@@ -124,6 +130,8 @@ describe("player, when speaking about initialization,", function() {
 
     // test if configuration (options) correctly applied (including modules?)
     // test configuration through data-attributes, including loop-mode
+    // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
+    // test that drawAt (scene preview) is only called for VIDEO mode
     // test createPlayer itself
     // test width and height behaviour
     // ensure checkMode is called once

@@ -33,12 +33,12 @@ mocks.factory.canvas = function(id) {
         'getAttribute': function(attr) { return this.__attrs[attr]; },
         'style': mocks.factory.cssStyle(),
         'addEventListener': _empty,
-        'width': null,
-        'height': null,
+        'width': undefined,
+        'height': undefined,
         '__resetMock': function() { this.__attrs = {};
-                                    this.style = mocks.factory.style();
-                                    this.width = null;
-                                    this.height = null; }
+                                    this.style = mocks.factory.cssStyle();
+                                    this.width = undefined;
+                                    this.height = undefined; }
     };
 };
 
@@ -74,6 +74,7 @@ mocks.factory.context2d = function() {
         'stroke': _empty,
         'clip': _empty,
         'drawImage': _empty,
+        'scale': _empty,
         'globalCompositeOperation': 'source-over',
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
     };
@@ -109,6 +110,8 @@ mocks.canvasStyle = mocks.canvas.style;
 mocks.gradient = mocks.factory.linearGradient();
 
 mocks.nop = mocks.factory.nop();
+
+// TODO: tests for mocks
 
 return mocks;
 

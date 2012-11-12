@@ -5,52 +5,114 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-function _fakeCallsForCanvasRelatedStuff() {
+var _Fake = {};
+_Fake.SKIP_EVENTS = 0; // do not listen events
+_Fake.CVS_POS = 1; // canvas position
+//_Fake.JSM_CLOCK = 2; // disable jasmine clock
+//_Fake.FRAME_GEN = 3; // frame calls
 
-    if (window) spyOn(window, 'addEventListener').andCallFake(_mocks._empty);
+var _window = jasmine.getGlobal();
 
-    spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake);
-
-    if (jasmine.Clock.isInstalled()) {
-        jasmine.Clock.uninstallMock();
-    }
-
-    if (window) {
-        function stubFrameGen(callback) {
-            return window.setTimeout(callback, 1000 / 60);
-        };
-
-        if (window.requestAnimationFrame) {
-            spyOn(window, 'requestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.webkitRequestAnimationFrame) {
-            spyOn(window, 'webkitRequestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.mozRequestAnimationFrame) {
-            spyOn(window, 'mozRequestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.oRequestAnimationFrame) {
-            spyOn(window, 'oRequestAnimationFrame').andCallFake(stubFrameGen);
-        } else if (window.msRequestAnimationFrame) {
-            spyOn(window, 'msRequestAnimationFrame').andCallFake(stubFrameGen);
+function _fake(what) {
+    if (!what) throw new Error('Please specify what to fake');
+    what = _arrayFrom(what);
+    _each(what, function(option) {
+        switch (option) {
+            case _Fake.SKIP_EVENTS: __skipEvents(); break;
+            case _Fake.CVS_POS: __stubSavePos(); break;
+            //case _Fake.JSM_CLOCK: __disableJsmClock(); break;
+            //case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
+            default: throw new Error('Unknown option ' + option);
         }
-
-        function stubFrameRem(id) {
-            return window.clearTimeout(id);
-        };
-
-        if (window.cancelAnimationFrame) {
-            spyOn(window, 'cancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.webkitCancelAnimationFrame) {
-            spyOn(window, 'webkitCancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.mozCancelAnimationFrame) {
-            spyOn(window, 'mozCancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.oCancelAnimationFrame) {
-            spyOn(window, 'oCancelAnimationFrame').andCallFake(stubFrameRem);
-        } else if (window.msCancelAnimationFrame) {
-            spyOn(window, 'msCancelAnimationFrame').andCallFake(stubFrameRem);
-        }
-
-    }
-
+    });
 }
+
+function __skipEvents() { if (_window) spyOn(_window, 'addEventListener').andCallFake(_mocks._empty); }
+function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake); }
+
+var _FrameGen = (function() {
+
+    var realDateNow = Date.now;
+
+    var requestSpy, cancelSpy;
+
+    var clock = jasmine.Clock;
+
+    function _enable(fps) {
+
+        if (_window) {
+
+            var period = 1000 / (fps || 60);
+
+            clock.useMock();
+            var timer = clock.defaultFakeTimer;
+            Date.now = function() { return timer.nowMillis; }
+
+            function stubFrameGen(callback) {
+                if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
+                clock.tick(period);
+                callback();
+                // return _window.setTimeout(callback, period);
+            };
+
+            if (_window.requestAnimationFrame) {
+                requestSpy = spyOn(_window, 'requestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (_window.webkitRequestAnimationFrame) {
+                requestSpy = spyOn(_window, 'webkitRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (_window.mozRequestAnimationFrame) {
+                requestSpy = spyOn(_window, 'mozRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (_window.oRequestAnimationFrame) {
+                requestSpy = spyOn(_window, 'oRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (_window.msRequestAnimationFrame) {
+                requestSpy = spyOn(_window, 'msRequestAnimationFrame').andCallFake(stubFrameGen);
+            } else if (anm) {
+                _window.__anm__frameGen = stubFrameGen;
+                requestSpy = spyOn(_window, '__anm__frameGen').andCallThrough();
+            } else {
+                requestSpy = jasmine.createSpy('request-frame-spy').andCallFake(stubFrameGen);
+            }
+
+            function stubFrameRem(id) {
+                //if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
+                //clock.reset();
+                //return _window.clearTimeout(id);
+            };
+
+            if (_window.cancelAnimationFrame) {
+                cancelSpy = spyOn(_window, 'cancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (_window.webkitCancelAnimationFrame) {
+                cancelSpy = spyOn(_window, 'webkitCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (_window.mozCancelAnimationFrame) {
+                cancelSpy = spyOn(_window, 'mozCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (_window.oCancelAnimationFrame) {
+                cancelSpy = spyOn(_window, 'oCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (_window.msCancelAnimationFrame) {
+                cancelSpy = spyOn(_window, 'msCancelAnimationFrame').andCallFake(stubFrameRem);
+            } else if (anm) {
+                _window.__anm__frameRem = stubFrameRem;
+                requestSpy = spyOn(_window, '__anm__frameRem').andCallThrough();
+            } else {
+                cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameGen);
+            }
+
+        } else throw new Error('No window object');
+    }
+
+    function _disable() {
+        Date.now = realDateNow;
+        //requestSpy.andCallThrough();
+        //cancelSpy.andCallThrough();
+    }
+
+    return {
+        enabled: false,
+        enable: function(fps) { if (this.enabled) throw new Error('Already enabled');
+                                _enable(fps); this.enabled = true; },
+        disable: function() { if (!this.enabled) throw new Error('Not enabled');
+                              _disable(); this.enabled = false; }
+    }
+
+})();
 
 function _s4() {
    return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
@@ -59,54 +121,130 @@ function guid() {
    return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
 }
 
-/* function fillMockWithSpies(mock) {
-    for (prop in mock) {
-        if (typeof mock[prop] == 'function') {
-            mock[prop] = spyOn(mock, prop).andCallThrough();
-        }
+function _each(arr, func) {
+    for (var i = 0, il = arr.length; i < il; i++) {
+        func(arr[i], i);
     }
-} */
+}
 
-// TODO: integrate everywhere
-/* function withPlayer(player) {
-    var toCall = [];
-    var stateToWaitFor,
-        waitingTime,
-        expectations;
-    function postponeCall(func) {
-        return function() { toCall.push([this, func, arguments]); }
+function _arrayFrom(val) {
+    if (!val) return [];
+    if (Array.isArray(val)) return val;
+    return [ val ];
+}
+
+function varyAll(conditions, tests) {
+    for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
+        var condition = conditions[ci];
+        describe(condition.description, function() {
+            beforeEach(condition.prepare); // TODO: rename `prepare` to `before`
+            if (condition.after) afterEach(condition.after);
+
+            tests();
+        });
     }
-    return {
-        play: postponeCall('play'),
-        load: postponeCall('load'),
-        stop: postponeCall('stop')
-        waitToBe: function(state, time) {
-            stateToWaitFor = state;
-            waitingTime = time;
-        },
-        andCheck: function(f) { expectations = f; }
-        run: function() {
-            runs(function() {
-                for (var ci = 0, cl = toCall.length; ci < cl; ci++) {
-                    var f = toCall[ci];
-                    f[0][f[1]].call(f[0], f[2]);
-                }
-            });
+}
 
-            waitsFor(function() {
-                return player.state.happens === stateToWaitFor;
-            }, waitingTime * 1000);
+// type-check
 
-            runs(expectations);
-        }
+function __builder(obj) {
+    return (typeof Builder !== 'undefined') &&
+           (obj instanceof Builder);
+}
+
+function __array(obj) {
+    return Array.isArray(obj);
+}
+
+function __num(n) {
+  return !isNaN(parseFloat(n)) && isFinite(n);
+}
+
+/* conf = {
+    prepare: function() {...} | scene: Object
+    do: action | run: function() {},
+    [ beforeEnd: function() {...}, ]
+    ( until: <state>[, timeout: 2],
+      | waitFor: function() {}[, timeout: 2], )
+    [ then: function() {} ]
+}; */
+function doAsync(player, conf) {
+    var conf,
+        _scene,
+        _timeout;
+
+    if (arguments.length === 3) {
+        _scene = arguments[1];
+        conf = arguments[2];
+    } else if (arguments.length === 2) {
+        conf = arguments[1];
+    } else throw new Error('Not enough arguments');
+
+    if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
+
+    if (_scene) player.load(_scene);
+    _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
+    _timeout *= 1000;
+
+    runs(function() {
+        if (conf.do) player[conf.do]();
+        else if (conf.run) conf.run.call(player);
+        else player.play();
+    });
+
+    if (conf.waitFor) {
+        waitsFor(function() {
+            return conf.waitFor.call(player);
+        }, _timeout);
+    } else {
+        var expectedState = (typeof conf.until !== 'undefined') ? conf.until : anm.C.STOPPED;
+        waitsFor(function() {
+            var finished = (player.state.happens === expectedState);
+            if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
+            return finished;
+        }, _timeout);
     }
-} */
 
-// TODO: function(prepareCanvasTest)
+    if (conf.afterThat) conf.afterThat.call(player);
 
-/*
-       //this.addMatchers(_matchers);
+    runs(function() {
+        if (conf.then) conf.then.call(player);
+        player.stop();
+    });
+}
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
-*/
+function travel(f, elms) {
+    for (var i = 0; i < elms.length; i++) {
+        f(elms[i]);
+        travel(f, elms[i].children);
+    }
+}
+
+function queue(fs) {
+    var q = [];
+        count = fs.length;
+    for (var i = 0; i < count; i++) {
+        q.push((function(i) {
+            return function(next) {
+                return function() {
+                    fs[i].call({ next: next });
+                };
+            }
+        })(i));
+    }
+    while (count--) {
+        q[count] = q[count](q[count+1] || null);
+    };
+    q[0]();
+}
+
+function __close(n1, n2, precision) { // matches player implementation
+    if (!(precision === 0)) {
+        precision = precision || 2;
+    }
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n1 * multiplier) ==
+           Math.round(n2 * multiplier);
+}
+
+// TODO: tests for utils

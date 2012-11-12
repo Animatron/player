@@ -1,5 +1,7 @@
 ### JS Player for Animatron project (not yet released)
 
+[![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player)
+
 Licensed under MIT License, see `LICENSE` file.
 
 See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) for description on current API state (be aware, it may appear not updated to the _real_ current state).

@@ -22,6 +22,8 @@
     <script type="text/javascript" src="./anm.mocks.js"></script>
     <script type="text/javascript" src="./anm.testutils.js"></script>
 
+    <script type="text/javascript" src="vendor/jasmine.terminal_reporter.js"></script>
+
     <!-- include spec files here... -->
     <script type="text/javascript" src="./spec/01.player/01.formation.spec.js"></script>
     <script type="text/javascript" src="./spec/01.player/02.initializing.spec.js"></script>
@@ -59,12 +61,10 @@
 
     <script type="text/javascript" src="./spec/06.bugs/bugs.spec.js"></script>
 
-    <script type="text/javascript" src="vendor/jasmine.teamcity_reporter.js"></script>
 </head>
 <body>
     <script type="text/javascript">
-        jasmine.getEnv().addReporter(new jasmine.TeamcityReporter());
-        jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
+        jasmine.getEnv().addReporter(new jasmine.TerminalReporter(/*{ logInProgress: true }*/));
         jasmine.getEnv().execute();
     </script>
 </body>
