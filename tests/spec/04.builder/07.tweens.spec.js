@@ -189,6 +189,7 @@ describe("tweens", function() {
 
     });
 
+    // TODO: test priorities and easing
     // TODO: test creating custom tweens or it is the same as modifiers?
 
     describe("different types of tweens", function() {
@@ -197,7 +198,7 @@ describe("tweens", function() {
 
         var FPS = 40;
 
-        var CLOSE_FACTOR = 14;
+        var CLOSE_FACTOR = 11;
 
         beforeEach(function() {
 
@@ -231,7 +232,7 @@ describe("tweens", function() {
                             throw new Error(message || 'Time check failed');
                         } */
                         //return false;
-                        checking_f(this, t, player.state.time);
+                        checking_f(this, player.state.time, t);
                     });
                     return scene;
                 },
@@ -246,7 +247,7 @@ describe("tweens", function() {
                 it("works in case of simple values", function() {
                     checkTweens([0, 1],
                                 [ [ 'trans', [ 0, 1 ], [[0, 0], [10, 10]] ] ],
-                                function(s, t, at) {
+                                function(s, at) {
                                     expect(s.x).toBeCloseTo(at * 10, CLOSE_FACTOR);
                                     expect(s.y).toBeCloseTo(at * 10, CLOSE_FACTOR);
                                 });
@@ -255,52 +256,125 @@ describe("tweens", function() {
                 it("works in case of mixed values (incl. negative)", function() {
                     checkTweens([0, 1],
                                 [ [ 'trans', [ 0, 1 ], [[12, 15], [8, -11]] ] ],
-                                function(s, t, at) {
-                                    expect(s.x).toBeCloseTo(12 + (at * (8 - 12)), CLOSE_FACTOR);
-                                    expect(s.y).toBeCloseTo(15 + (at * (-11 - 15)), CLOSE_FACTOR);
+                                function(s, at) {
+                                    expect(s.x).toBeCloseTo(12 + (at * (    8 - 12)), CLOSE_FACTOR);
+                                    expect(s.y).toBeCloseTo(15 + (at * ((-11) - 15)), CLOSE_FACTOR);
                                 });
                 });
 
                 it("works in case of floating values", function() {
                     checkTweens([0, 1],
                             [ [ 'trans', [ 0, 1 ], [[13, -17.1], [8.5, -11]] ] ],
-                            function(s, t, at) {
-                                expect(s.x).toBeCloseTo(13 +    (at * (8.5 - 13)), CLOSE_FACTOR);
-                                expect(s.y).toBeCloseTo(-17.1 + (at * (-11 - -17.1)), CLOSE_FACTOR);
+                            function(s, at) {
+                                expect(s.x).toBeCloseTo(     13 + (at * (  8.5 -      13)), CLOSE_FACTOR);
+                                expect(s.y).toBeCloseTo((-17.1) + (at * ((-11) - (-17.1))), CLOSE_FACTOR);
                             });
                 });
 
-                /* TODO:
-
                 it("works in case of band not equal to element's band", function() {
-                    checkTweens([.2, 1],
-                                [ [ 'trans', [.1, .65], [[5, 10], [16, 17]] ] ],
-                                function(s, t, at) {
-                                    console.log(t, at, s.x, s.y);
+                    checkTweens([.2, 2],
+                                [ [ 'trans', [.1, 1.65], [[5, 10], [16, 17]] ] ],
+                                function(s, at) {
+                                    // before the tween
                                     if (at < (.2 + .1)) {
                                         expect(s.x).toBe(5);
                                         expect(s.y).toBe(10);
                                         return true;
                                     }
-                                    if (at > (.2 + .1 + .65)) {
+                                    // after the tween
+                                    if (at > (.2 + 1.65)) {
                                         expect(s.x).toBe(16);
                                         expect(s.y).toBe(17);
                                         return true;
                                     }
-                                    expect(s.x).toBeCloseTo(5  + (at - .1 - .2) * (16 - 5)  * (.65 - .1), CLOSE_FACTOR);
-                                    expect(s.y).toBeCloseTo(10 + (at - .1 - .2) * (17 - 10) * (.65 - .1), CLOSE_FACTOR);
+                                    // during the tween
+                                    expect(s.x).toBeCloseTo( 5 + (((at - .2 - .1) / (1.65 - .1)) * (16 -  5)), CLOSE_FACTOR);
+                                    expect(s.y).toBeCloseTo(10 + (((at - .2 - .1) / (1.65 - .1)) * (17 - 10)), CLOSE_FACTOR);
                                 });
-                }); */
+                });
 
             });
 
-            describe("should sum x/y values of the state according to given direction for an overlapping tweens in a band of element", function() {
+            describe("should sum x/y values of the state according to given direction for an several tweens in a band of element", function() {
 
+                it("works with non-overlapping bands", function() {
+                    checkTweens([.15, 2],
+                                [ [ 'trans', [  .3,   .9 ], [[6,  4], [9,    15]] ],
+                                  [ 'trans', [ 1.1, 1.85 ], [[3, 19], [8.4, -11]] ] ],
+                                function(s, at) {
+                                    // before first tween
+                                    if (at < (.15 + .3)) {
+                                        expect(s.x).toBe(3  + 6);
+                                        expect(s.y).toBe(19 + 4);
+                                        return true;
+                                    }
+                                    // during first tween
+                                    if (at < (.15 + .9)) {
+                                        expect(s.x).toBeCloseTo( 3 + 6 + (((at - .3 - .15) / (.9 - .3)) * ( 9 - 6)),  CLOSE_FACTOR);
+                                        expect(s.y).toBeCloseTo(19 + 4 + (((at - .3 - .15) / (.9 - .3)) * (15 - 4)), CLOSE_FACTOR);
+                                        return true;
+                                    }
+                                    // after first tween, before second
+                                    if (at < (.15 + 1.1)) {
+                                        expect(s.x).toBe(3  + 9);
+                                        expect(s.y).toBe(19 + 15);
+                                        return true;
+                                    }
+                                    // during second tween
+                                    if (at < (.15 + 1.85)) {
+                                        expect(s.x).toBeCloseTo( 9 +  3 + (((at - 1.1 - .15) / (1.85 - 1.1)) * (  8.4 -  3)), CLOSE_FACTOR);
+                                        expect(s.y).toBeCloseTo(15 + 19 + (((at - 1.1 - .15) / (1.85 - 1.1)) * ((-11) - 19)), CLOSE_FACTOR);
+                                        return true;
+                                    }
+                                    // after second tween
+                                    expect(s.x).toBe( 9 +   8.4);
+                                    expect(s.y).toBe(15 + (-11));
+                                });
+                });
 
+                it("works with overlapping bands", function() {
+                    checkTweens([.2, 1.8],
+                                [ [ 'trans', [.12,    .9 ], [[ 5, 12], [3.2, 40]] ],
+                                  [ 'trans', [ .5,  1.56 ], [[-1,  9], [0,   16]] ] ],
+                                function(s, at) {
+                                    // before first tween
+                                    if (at < (.2 + .12)) {
+                                        expect(s.x).toBe((-1) +  5);
+                                        expect(s.y).toBe(   9 + 12);
+                                        return true;
+                                    }
+                                    // during first tween, before overlap period
+                                    if (at < (.2 + .5)) {
+                                        expect(s.x).toBeCloseTo((-1) +  5 + (((at - .12 - .2) / (.9 - .12)) * (3.2 -  5)), CLOSE_FACTOR);
+                                        expect(s.y).toBeCloseTo(   9 + 12 + (((at - .12 - .2) / (.9 - .12)) * ( 40 - 12)), CLOSE_FACTOR);
+                                        return true;
+                                    }
+                                    // during overlap period
+                                    if (at < (.2 + .9)) {
+                                        expect(s.x).toBeCloseTo(   5 + (((at - .12 - .2) / (  .9 - .12)) * (3.2 -    5)) +
+                                                                (-1) + (((at -  .5 - .2) / (1.56 -  .5)) * (  0 - (-1))), CLOSE_FACTOR);
+                                        expect(s.y).toBeCloseTo(  12 + (((at - .12 - .2) / (  .9 - .12)) * ( 40 -   12)) +
+                                                                   9 + (((at -  .5 - .2) / (1.56 -  .5)) * ( 16 -    9)), CLOSE_FACTOR);
+                                        return true;
+                                    }
+                                    // during second tween, after overlap period
+                                    if (at < (.2 + 1.56)) {
+                                        expect(s.x).toBeCloseTo(3.2 + (-1) + (((at -  .5 - .2) / (1.56 -  .5)) * (  0 - (-1))), CLOSE_FACTOR);
+                                        expect(s.y).toBeCloseTo( 40 +    9 + (((at -  .5 - .2) / (1.56 -  .5)) * ( 16 -    9)), CLOSE_FACTOR);
+                                        return true;
+                                    }
+                                    // after second tween
+                                    expect(s.x).toBe(3.2 +  0);
+                                    expect(s.y).toBe( 40 + 16);
+                                });
+                });
+
+                xit("works with more than two tweens", function() {
+                });
 
             });
 
-            // TODO: test among with move()
+            // TODO: test among with move() and reg
 
         });
 
@@ -310,7 +384,6 @@ describe("tweens", function() {
         // translate tween should call translate by path
         // test translate by path separately
         // test fails if no data specified
-        // should increase x/y values
 
         // FIXME: test that applying any tween calls b().modify
 
@@ -324,7 +397,7 @@ describe("tweens", function() {
 
 });
 
-// Tweens are called with values from 0 to 1, but modifiers with actual time, should it be changed?
+// TODO: test priorities for tweens
 
 // TODO: test working with bands
 // TODO: test untweening
