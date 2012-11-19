@@ -56,7 +56,6 @@ describe("utils", function() {
             wrapFunctionSpy.andCallFake(function() {
 
                 it("test pass for it", checkFunctionSpy.andCallFake(function() {
-                    console.log('testing function called');
 
                     expect(externalBeforeEachSpy).toHaveBeenCalled();
 
