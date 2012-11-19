@@ -297,19 +297,13 @@ Builder.prototype.band = function(band) {
 // > builder.tween % (type: String, // (C.T_*)
 //                    band: Array[2,Float],
 //                    data: Any,
-//                    [easing: String | Object]) => Builder // (Easing.T_*)
+//                    [easing: String (Easing.T_*) | Object | Function]) => Builder
 Builder.prototype.tween = function(type, band, data, easing) {
-    var aeasing = (easing && (typeof easing === 'string'))
-                  ? { type: easing, data: null }
-                  : easing,
-        aeasing = (easing && (typeof easing === 'function'))
-                  ? { f: function() { return easing; }, data: null }
-                  : aeasing;
     this.v.addTween({
         type: type,
         band: band,
         data: data,
-        easing: aeasing
+        easing: easing
     });
     return this;
 }
@@ -669,6 +663,7 @@ Builder.easing = function(func, data) {
         'data': data
     }
 }
+Builder.easingF = Builder.easing; // type: C.E_FUNC
 Builder.easingP = function(path) {
     return { type: C.E_PATH, data: Builder.__path(path) };
 }

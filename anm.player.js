@@ -2209,7 +2209,7 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, easing, data]);
+    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing, data), data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
@@ -2439,14 +2439,19 @@ Element.__addDebugRender = function(elm) {
 }
 Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify with adding object same way,
                                                     // include easing in all modifiers
-    var m_tween = Tweens[tween.type](),
-        easing = tween.easing;
+    var m_tween = Tweens[tween.type]();
     return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
                         tween.band, m_tween,
-                        (easing ? (easing.type ? EasingImpl[easing.type](easing.data)
-                                               : easing.f(easing.data))
-                                : null),
+                        tween.easing,
                         tween.data);
+}
+Element.__convertEasing = function(easing, data) {
+  if (!easing) return null;
+  if (typeof easing === 'string') return EasingImpl[easing](data);
+  if ((typeof easing === 'function') && !data) return easing;
+  if ((typeof easing === 'function') && data) return easing(data);
+  if (easing.type) return EasingImpl[easing.type](easing.data || data);
+  if (easing.f) return easing.f(easing.data || data);
 }
 
 Element._getMatrixOf = function(s, m) {
