@@ -136,14 +136,27 @@ function _arrayFrom(val) {
 function varyAll(conditions, tests) {
     for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
         var condition = conditions[ci];
-        describe(condition.description, function() {
+        describe(condition.description, (function(condition) { return function() {
             beforeEach(condition.prepare); // TODO: rename `prepare` to `before`
             if (condition.after) afterEach(condition.after);
 
             tests();
-        });
+        } })(condition));
     }
 }
+
+/* function varyAll(conditions, tests) {
+    for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
+        var condition = conditions[ci];
+        it(condition.description, (function(condition) { return function() {
+            condition.prepare(); // TODO: rename `prepare` to `before`
+
+            tests();
+
+            if (condition.after) condition.after();
+        } })(condition));
+    }
+} */
 
 // type-check
 
@@ -213,6 +226,11 @@ function doAsync(player, conf) {
     });
 }
 
+// FIMXE: in doAsync, if you specify both scene as argument and conf.prepare, conf.prepare
+//        will be silently not called
+
+// TODO: some function to mock just everything required to create player and return it
+
 function travel(f, elms) {
     for (var i = 0; i < elms.length; i++) {
         f(elms[i]);
@@ -246,5 +264,3 @@ function __close(n1, n2, precision) { // matches player implementation
     return Math.round(n1 * multiplier) ==
            Math.round(n2 * multiplier);
 }
-
-// TODO: tests for utils

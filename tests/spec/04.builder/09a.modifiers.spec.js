@@ -44,20 +44,49 @@ describe("builder, regarding modifiers,", function() {
             _timeout = _duration + .2,
             _run = function() { player.play(); };
 
+        var _band_val;
+
         // FIXME: test duration is accessible inside of the modifier
-        // FIXME: test easings
+        // FIXME: test easings and priority
 
         varyAll([ {
                     description: "either it is a default modifier (band is equal to element's band),",
-                    prepare: function() { curClass = function(spy) { return [ spy ] } }
+                    prepare: function() { _band_val = null;
+                                          curClass = function(spy) { return [ spy ] }; }
                   }, {
                     description: "either it is a band-restricted modifier,",
-                    prepare: function() { curClass = function(spy) { return [ [ 0, _duration ], spy ] } }
+                    prepare: function() { _band_val = [ 0, _duration ];
+                                          curClass = function(spy) { return [ _band_val, spy ] } }
                   }, {
                     description: "or it is a trigger-like modifier,",
-                    prepare: function() { curClass = function(spy) { return [ _duration / 4, spy ] };
-                                          _run = function() { player.play(_duration / 4, 1, 1 / (FPS * 2)); }; }
+                    prepare: function() { _band_val = _duration / 4;
+                                          curClass = function(spy) { return [ _band_val, spy ] };
+                                          _run = function() { player.play(_band_val, 1, 1 / (FPS * 2)); }; }
                   } ],  function() {
+
+            it("calls an inner __modify function to add modifier", function() {
+                // this test is conformant with tweens test, so
+                // it will not be required for tweens to test modifiers functionality
+                // because mostly they do intersect (in bands principles, for example)
+                scene = b('scene').band([0, _duration]);
+
+                var modifierSpy = jasmine.createSpy('modifier-spy');
+
+                var elm = b();
+                var __modifySpy = spyOn(elm.v, '__modify').andCallThrough();
+
+                scene.add(elm);
+
+                elm.modify.apply(elm, curClass(modifierSpy));
+
+                expect(__modifySpy).toHaveBeenCalled();
+                expect(__modifySpy).toHaveBeenCalledWith(anm.Element.USER_MOD,
+                                                         0,
+                                                         _band_val,
+                                                         modifierSpy,
+                                                         jasmine.undefined, // undefined
+                                                         jasmine.undefined);
+            });
 
             it("should call given modifier", function() {
                 scene = b('scene').band([0, _duration]);
@@ -1339,6 +1368,10 @@ describe("builder, regarding modifiers,", function() {
 
     });
 
+    // TODO: test easing (all of the types, see EasingImpl)! (function, function with data, object with type/data, object with f/data, see Element.__convertEasing)
+    //       also see Builder.easing[PCF]
+    //       especially test easing with data
+    // TODO: test priorities
     // TODO: test different types of modifiers working simultaneously in one test
     // TODO: ensure removing fails if modifier wasn't added to element
     // TODO: test jumping in time
