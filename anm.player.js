@@ -2209,7 +2209,7 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing, data), data]);
+    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing), data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
@@ -2917,7 +2917,7 @@ Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;
-        this.angle += path.tangentAt(t);
+        this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 
@@ -3460,7 +3460,7 @@ MSeg.prototype.atT = function(start, t) {
     return this.atDist(start, null);
 }
 MSeg.prototype.tangentAt = function(start, t) {
-    return [0, 0];
+    return Math.atan2(this.pts[0], this.pts[1]);
 }
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];

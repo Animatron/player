@@ -192,6 +192,8 @@ describe("tweens", function() {
     // TODO: test priorities and easing
     // TODO: test creating custom tweens or it is the same as modifiers?
 
+
+
     describe("different types of tweens", function() {
 
         var player;
@@ -319,7 +321,7 @@ describe("tweens", function() {
 
             });
 
-            describe("should sum x/y values of the state according to given direction for an several tweens in a band of element", function() {
+            describe("should sum x/y values of the state according to given direction for several tweens in a band of element", function() {
 
                 it("works with non-overlapping bands", function() {
                     checkTweens([.15, 2],
@@ -475,7 +477,7 @@ describe("tweens", function() {
 
             });
 
-            describe("should sum x/y values of the state according to given direction for an several tweens in a band of element", function() {
+            describe("should sum x/y values of the state according to given direction for several tweens in a band of element", function() {
 
                 it("works with non-overlapping bands", function() {
                     checkTweens([.15, 2],
@@ -633,7 +635,7 @@ describe("tweens", function() {
 
             });
 
-            describe("should multiply sx/sy values of the state according to given values for an several tweens in a band of element", function() {
+            describe("should multiply sx/sy values of the state according to given values for several tweens in a band of element", function() {
 
                 it("works with non-overlapping bands", function() {
                     checkTweens([.15, 2],
@@ -783,7 +785,7 @@ describe("tweens", function() {
 
             });
 
-            describe("should multiply sx/sy values of the state according to given values for an several tweens in a band of element", function() {
+            describe("should multiply sx/sy values of the state according to given values for several tweens in a band of element", function() {
 
                 it("works with non-overlapping bands", function() {
                     checkTweens([.15, 2],
@@ -937,7 +939,7 @@ describe("tweens", function() {
 
             });
 
-            describe("should sum angle value of the state according to given rotation for an several tweens in a band of element", function() {
+            describe("should sum angle value of the state according to given rotation for several tweens in a band of element", function() {
 
                 it("works with non-overlapping bands", function() {
                     checkTweens([.15, 2],
@@ -1019,6 +1021,78 @@ describe("tweens", function() {
 
         });
 
+        describe("rotate-to-path tween", function() {
+
+            describe("should change angle value of the state according to given path for a single tween", function() {
+
+                it("works in case of simple values", function() {
+                    checkTweens([0, 1],
+                                [ [ 'transP', [ 0, 1 ], 'M0 0 L12 12 Z' ],
+                                  [ 'rotateP', [ 0, 1 ] ] ],
+                                function(s, at) {
+                                    expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 4) : 0, CLOSE_FACTOR);
+                                });
+                });
+
+                it("works in case of zero", function() {
+                    checkTweens([0, 1],
+                                [ [ 'transP', [ 0, 1 ], 'M0 0 L0 0 Z' ],
+                                  [ 'rotateP', [ 0, 1 ] ] ],
+                                function(s, at) {
+                                    expect(s.angle).toBeCloseTo(0, CLOSE_FACTOR);
+                                });
+
+                    // both zero?
+                });
+
+                it("works in case of mixed values (incl. negative)", function() {
+                    checkTweens([0, 1],
+                                [ [ 'transP', [ 0, 1 ], 'M0 -10 L0 10 Z' ],
+                                  [ 'rotateP', [ 0, 1 ] ] ],
+                                function(s, at) {
+                                    expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 2) : Math.PI, CLOSE_FACTOR);
+                                });
+                });
+
+                it("works in case of floating values", function() {
+                    var x0 = Math.cos(4 * Math.PI / 3),
+                        y0 = Math.sin(4 * Math.PI / 3),
+                        x1 = Math.cos(    Math.PI / 3),
+                        y1 = Math.sin(    Math.PI / 3);
+                    checkTweens([0, 1],
+                                [ [ 'transP', [ 0, 1 ], 'M'+x0+' '+y0+' L'+x1+' '+y1+' Z' ],
+                                  [ 'rotateP', [ 0, 1 ] ] ],
+                                function(s, at) {
+                                    expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 3) : -(5 * Math.PI / 6), CLOSE_FACTOR);
+                                });
+                });
+
+                it("works in case of band not equal to element's band", function() {
+                    checkTweens([.5, 1.9],
+                                [ [ 'transP', [.1, 1.2], 'M0 0 L-8 -8 Z' ],
+                                  [ 'rotateP', [.1, 1.2] ] ],
+                                function(s, at) {
+                                    // before the tween
+                                    if (at <= (.5 + .1)) {
+                                        expect(s.angle).toBe(0);
+                                        return true;
+                                    }
+                                    // after the tween
+                                    if (at > (.5 + 1.2)) {
+                                        expect(s.angle).toBe(-(3 * Math.PI / 4));
+                                        return true;
+                                    }
+                                    // during the tween
+                                    expect(s.angle).toBeCloseTo(-(3 * Math.PI / 4), CLOSE_FACTOR);
+                                });
+                });
+
+            });
+
+            // TODO: test if works with several rotateP, thought it has no meaning
+
+        });
+
         describe("alpha tween", function() {
 
             describe("should change alpha value of the state according to given opacity for a single tween", function() {
@@ -1079,7 +1153,7 @@ describe("tweens", function() {
 
             });
 
-            describe("should multiply alpha value of the state according to given opacity for an several tweens in a band of element", function() {
+            describe("should multiply alpha value of the state according to given opacity for several tweens in a band of element", function() {
 
                 it("works with non-overlapping bands", function() {
                     checkTweens([.15, 2],
