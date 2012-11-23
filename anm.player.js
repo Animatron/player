@@ -2097,15 +2097,15 @@ Element._FPS_ERROR = FPS_ERROR;
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
   var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0];
-  if (band == null) return [ ltime / elm_duration, elm_duration ];
-  if (__array(band)) { // modifier is band-restricted
+  var _tpair = null;
+  if (band == null) {
+      _tpair = [ ltime / elm_duration, elm_duration ];
+  } else if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
       var mod_duration = band[1] - band[0];
-      if (ltime < band[0]) return [ 0, mod_duration ];
-      else if (ltime > band[1]) return [ 1, mod_duration ];
-      else return [ easing ? easing((ltime - band[0]) / mod_duration)
-                           : (ltime - band[0]) / mod_duration,
-                    mod_duration ];
+      if (ltime < band[0]) _tpair = [ 0, mod_duration ];
+      else if (ltime > band[1]) _tpair = [ 1, mod_duration ];
+      else _tpair = [ (ltime - band[0]) / mod_duration, mod_duration ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
@@ -2125,10 +2125,10 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       }
-      return doCall ? [ easing ? easing(ltime / elm_duration)
-                               : ltime / elm_duration,
-                        elm_duration ]  : false;
-  } else return easing ? easing(ltime) : ltime;
+      if (!doCall) return false;
+      _tpair = [ ltime / elm_duration, elm_duration ];
+  } else _tpair = [ ltime, elm_duration ];
+  return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
