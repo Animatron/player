@@ -2097,15 +2097,15 @@ Element._FPS_ERROR = FPS_ERROR;
 Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
   var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0];
-  if (band == null) return [ ltime / elm_duration, elm_duration ];
-  if (__array(band)) { // modifier is band-restricted
+  var _tpair = null;
+  if (band == null) {
+      _tpair = [ ltime / elm_duration, elm_duration ];
+  } else if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
       var mod_duration = band[1] - band[0];
-      if (ltime < band[0]) return [ 0, mod_duration ];
-      else if (ltime > band[1]) return [ 1, mod_duration ];
-      else return [ easing ? easing((ltime - band[0]) / mod_duration)
-                           : (ltime - band[0]) / mod_duration,
-                    mod_duration ];
+      if (ltime < band[0]) _tpair = [ 0, mod_duration ];
+      else if (ltime > band[1]) _tpair = [ 1, mod_duration ];
+      else _tpair = [ (ltime - band[0]) / mod_duration, mod_duration ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
@@ -2125,10 +2125,10 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       }
-      return doCall ? [ easing ? easing(ltime / elm_duration)
-                               : ltime / elm_duration,
-                        elm_duration ]  : false;
-  } else return easing ? easing(ltime) : ltime;
+      if (!doCall) return false;
+      _tpair = [ ltime / elm_duration, elm_duration ];
+  } else _tpair = [ ltime, elm_duration ];
+  return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
@@ -2209,7 +2209,7 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing, data), data]);
+    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing), data]);
     modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                 (modifiers[type][priority].length - 1);
     return modifier;
@@ -2917,7 +2917,7 @@ Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;
-        this.angle += path.tangentAt(t);
+        this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 
@@ -3460,7 +3460,7 @@ MSeg.prototype.atT = function(start, t) {
     return this.atDist(start, null);
 }
 MSeg.prototype.tangentAt = function(start, t) {
-    return [0, 0];
+    return Math.atan2(this.pts[0], this.pts[1]);
 }
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
