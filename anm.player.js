@@ -2896,8 +2896,8 @@ Tweens[C.T_TRANSLATE] =
       return function(t, duration, data) {
           var p = data.pointAt(t);
           this._mpath = data;
-          this.x += p[0];
-          this.y += p[1];
+          this.x = p[0];
+          this.y = p[1];
       };
     };
 Tweens[C.T_ALPHA] =
