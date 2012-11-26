@@ -3152,7 +3152,7 @@ Path.prototype.hitAt = function(t/*, func*/) {
             // inside current segment
             var segdist = distance - length;
             return {
-              'seg': seg, 'start': p, 'slen': slen, 'segt': (segdist / slen)
+              'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
             };
         }
         length += slen;
