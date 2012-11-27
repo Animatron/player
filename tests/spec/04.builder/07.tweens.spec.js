@@ -864,160 +864,303 @@ describe("tweens", function() {
 
             describe("scale tween", function() {
 
-                describe("should change sx/sy values of the state according to given values for a single tween", function() {
+                describe("single one", function() {
 
-                    it("works in case of simple values", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'scale', [ 0, 1 ], [ [2, 3], [10, 20] ] ] ],
-                                    function(s, at) {
-                                        expect(s.sx).toBeCloseTo((2 * (1.0 - at)) + (10 * at), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo((3 * (1.0 - at)) + (20 * at), CLOSE_FACTOR);
-                                    });
-                    });
+                    describe("will change x/y values of the state according to given direction", function() {
 
-                    it("works in case of zero", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'scale', [ 0, 1 ], [ [0, 3], [4, 0] ] ] ],
-                                    function(s, at) {
-                                        expect(s.sx).toBeCloseTo((0 * (1.0 - at)) + (4 * at), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo((3 * (1.0 - at)) + (0 * at), CLOSE_FACTOR);
-                                    });
+                        it("works in case of simple values", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'scale', [ 0, 1 ], [ [2, 3], [10, 20] ] ] ],
+                                        function(s, at) {
+                                            expect(s.sx).toBeCloseTo((2 * (1.0 - at)) + (10 * at), CLOSE_FACTOR);
+                                            expect(s.sy).toBeCloseTo((3 * (1.0 - at)) + (20 * at), CLOSE_FACTOR);
+                                        });
+                        });
 
-                        // both zero?
-                    });
+                        it("works in case of zero", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'scale', [ 0, 1 ], [ [0, 3], [4, 0] ] ] ],
+                                        function(s, at) {
+                                            expect(s.sx).toBeCloseTo((0 * (1.0 - at)) + (4 * at), CLOSE_FACTOR);
+                                            expect(s.sy).toBeCloseTo((3 * (1.0 - at)) + (0 * at), CLOSE_FACTOR);
+                                        });
 
-                    it("works in case of mixed values (incl. negative)", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'scale', [ 0, 1 ], [ [-1, 3], [11, -5] ] ] ],
-                                    function(s, at) {
-                                        expect(s.sx).toBeCloseTo(((-1) * (1.0 - at)) + (  11 * at), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo((   3 * (1.0 - at)) + ((-5) * at), CLOSE_FACTOR);
-                                    });
-                    });
+                            // both zero?
+                        });
 
-                    it("works in case of floating values", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'scale', [ 0, 1 ], [ [-1.1, 2.3], [6, 14.7] ] ] ],
-                                    function(s, at) {
-                                        expect(s.sx).toBeCloseTo(((-1.1) * (1.0 - at)) + (6    * at), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo((   2.3 * (1.0 - at)) + (14.7 * at), CLOSE_FACTOR);
-                                    });
-                    });
+                        it("works in case of mixed values (incl. negative)", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'scale', [ 0, 1 ], [ [-1, 3], [11, -5] ] ] ],
+                                        function(s, at) {
+                                            expect(s.sx).toBeCloseTo(((-1) * (1.0 - at)) + (  11 * at), CLOSE_FACTOR);
+                                            expect(s.sy).toBeCloseTo((   3 * (1.0 - at)) + ((-5) * at), CLOSE_FACTOR);
+                                        });
+                        });
 
-                    it("works in case of band not equal to element's band", function() {
-                        checkTweens([.2, 2],
-                                    [ [ 'scale', [.2, 1.3], [[6, 9], [12, 9.5]] ] ],
-                                    function(s, at) {
-                                        // before the tween
-                                        if (at < (.2 + .2)) {
-                                            expect(s.sx).toBe(6);
-                                            expect(s.sy).toBe(9);
-                                            return true;
-                                        }
-                                        // after the tween
-                                        if (at > (.2 + 1.3)) {
-                                            expect(s.sx).toBe(12);
-                                            expect(s.sy).toBe(9.5);
-                                            return true;
-                                        }
-                                        // during the tween
-                                        var adt = (at - .2 - .2) / (1.3 - .2);
-                                        expect(s.sx).toBeCloseTo((6 * (1.0 - adt)) + ( 12 * adt), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo((9 * (1.0 - adt)) + (9.5 * adt), CLOSE_FACTOR);
-                                    });
+                        it("works in case of floating values", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'scale', [ 0, 1 ], [ [-1.1, 2.3], [6, 14.7] ] ] ],
+                                        function(s, at) {
+                                            expect(s.sx).toBeCloseTo(((-1.1) * (1.0 - at)) + (6    * at), CLOSE_FACTOR);
+                                            expect(s.sy).toBeCloseTo((   2.3 * (1.0 - at)) + (14.7 * at), CLOSE_FACTOR);
+                                        });
+                        });
+
+                        it("works in case of band not equal to element's band", function() {
+                            checkTweens([.2, 2],
+                                        [ [ 'scale', [.2, 1.3], [[6, 9], [12, 9.5]] ] ],
+                                        function(s, at) {
+                                            // before the tween
+                                            if (at < (.2 + .2)) {
+                                                expect(s.sx).toBe(6);
+                                                expect(s.sy).toBe(9);
+                                                return true;
+                                            }
+                                            // after the tween
+                                            if (at > (.2 + 1.3)) {
+                                                expect(s.sx).toBe(12);
+                                                expect(s.sy).toBe(9.5);
+                                                return true;
+                                            }
+                                            // during the tween
+                                            var adt = (at - .2 - .2) / (1.3 - .2);
+                                            expect(s.sx).toBeCloseTo((6 * (1.0 - adt)) + ( 12 * adt), CLOSE_FACTOR);
+                                            expect(s.sy).toBeCloseTo((9 * (1.0 - adt)) + (9.5 * adt), CLOSE_FACTOR);
+                                        });
+                        });
+
                     });
 
                 });
 
-                describe("should multiply sx/sy values of the state according to given values for several tweens in a band of element", function() {
+                describe("several ones", function() {
 
-                    it("works with non-overlapping bands", function() {
-                        checkTweens([.15, 2],
-                                    [ [ 'scale', [  .3,   .9 ], [[6,  4], [  9,  15]] ],
-                                      [ 'scale', [ 1.1, 1.83 ], [[3, 19], [8.4, -11]] ] ],
-                                    function(s, at) {
-                                        // before first tween
-                                        if (at < (.15 + .3)) {
-                                            expect(s.sx).toBe(6 *  3);
-                                            expect(s.sy).toBe(4 * 19);
-                                            return true;
-                                        }
-                                        // during first tween
-                                        if (at < (.15 + .9)) {
-                                            var adt = (at - .3 - .15) / (.9 - .3);
-                                            expect(s.sx).toBeCloseTo( 3 * ((6 * (1.0 - adt)) + ( 9 * adt)), CLOSE_FACTOR);
-                                            expect(s.sy).toBeCloseTo(19 * ((4 * (1.0 - adt)) + (15 * adt)), CLOSE_FACTOR);
-                                            return true;
-                                        }
-                                        // after first tween, before second
-                                        if (at < (.15 + 1.1)) {
-                                            expect(s.sx).toBe(9  *  3);
-                                            expect(s.sy).toBe(15 * 19);
-                                            return true;
-                                        }
-                                        // during second tween
-                                        if (at < (.15 + 1.83)) {
-                                            var adt = (at - 1.1 - .15) / (1.83 - 1.1);
-                                            expect(s.sx).toBeCloseTo( 9 * (( 3 * (1.0 - adt)) + (  8.4 * adt)), CLOSE_FACTOR);
-                                            expect(s.sy).toBeCloseTo(15 * ((19 * (1.0 - adt)) + ((-11) * adt)), CLOSE_FACTOR);
-                                            return true;
-                                        }
-                                        // after second tween
-                                        expect(s.sx).toBe( 9 *   8.4);
-                                        expect(s.sy).toBe(15 * (-11));
-                                    });
+                    describe("default implementation", function() {
+
+                        describe("will override x/y values of the state according to given direction", function() {
+
+                            describe("non-overlapping bands", function() {
+
+                                it("last-added modifier goes just after the first in timeline", function() {
+                                    checkTweens([.15, 2],
+                                                [ [ 'scale', [  .3,   .9 ], [[6,  4], [  9,  15]] ],
+                                                  [ 'scale', [ 1.1, 1.83 ], [[3, 19], [8.4, -11]] ] ],
+                                                function(s, at) {
+                                                    // before last-added tween
+                                                    if (at < (.15 + 1.1)) {
+                                                        expect(s.sx).toBe(3);
+                                                        expect(s.sy).toBe(19);
+                                                        return true;
+                                                    }
+                                                    // during last-added tween
+                                                    if (at < (.15 + 1.83)) {
+                                                        expect(s.sx).toBeCloseTo( 3 + (((at - 1.1 - .15) / (1.83 - 1.1)) * (  8.4 -  3)), CLOSE_FACTOR);
+                                                        expect(s.sy).toBeCloseTo(19 + (((at - 1.1 - .15) / (1.83 - 1.1)) * ((-11) - 19)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // after last-added tween
+                                                    expect(s.sx).toBe(8.4);
+                                                    expect(s.sy).toBe(-11);
+                                                });
+
+                                });
+
+                                it("last-added modifier goes just before the first in timeline", function() {
+                                    checkTweens([.15, 2],
+                                                [ [ 'scale', [ 1.1, 1.83 ], [[3, 19], [8.4, -11]] ],
+                                                  [ 'scale', [  .3,   .9 ], [[6,  4], [  9,  15]] ] ],
+                                                function(s, at) {
+                                                    // before last-added tween
+                                                    if (at < (.15 + .3)) {
+                                                        expect(s.sx).toBe(6);
+                                                        expect(s.sy).toBe(4);
+                                                        return true;
+                                                    }
+                                                    // during last-added tween
+                                                    if (at < (.15 + .9)) {
+                                                        expect(s.sx).toBeCloseTo(6 + (((at - .3 - .15) / (.9 - .3)) * ( 9 - 6)), CLOSE_FACTOR);
+                                                        expect(s.sy).toBeCloseTo(4 + (((at - .3 - .15) / (.9 - .3)) * (15 - 4)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // after last-added tween
+                                                    expect(s.sx).toBe(9);
+                                                    expect(s.sy).toBe(15);
+                                                });
+                                });
+
+                            });
+
+                            describe("overlapping bands", function() {
+
+                                it("last-added modifier starting point goes after the first in timeline", function() {
+                                    checkTweens([.2, 1.8],
+                                                [ [ 'scale', [.12,   .9], [[ 5, 12], [3.2, 40]] ],
+                                                  [ 'scale', [.54, 1.63], [[-1,  9], [  0, 16]] ] ],
+                                                function(s, at) {
+                                                    // before last-added tween
+                                                    if (at < (.2 + .54)) {
+                                                        expect(s.sx).toBe(-1);
+                                                        expect(s.sy).toBe( 9);
+                                                        return true;
+                                                    }
+                                                    // during last-added tween
+                                                    if (at < (.2 + 1.63)) {
+                                                        expect(s.sx).toBeCloseTo(-1 + (((at - .54 - .2) / (1.63 - .54)) * ( 0 - (-1))), CLOSE_FACTOR);
+                                                        expect(s.sy).toBeCloseTo( 9 + (((at - .54 - .2) / (1.63 - .54)) * (16 -    9)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // after last-added tween
+                                                    expect(s.sx).toBe( 0);
+                                                    expect(s.sy).toBe(16);
+                                                });
+                                });
+
+                                it("last-added modifier starting point goes before the first in timeline", function() {
+                                    checkTweens([.2, 1.8],
+                                                [ [ 'scale', [.54, 1.63], [[-1,  9], [  0, 16]] ],
+                                                  [ 'scale', [.12,   .9], [[ 5, 12], [3.2, 40]] ] ],
+                                                function(s, at) {
+                                                    // before last-added tween
+                                                    if (at < (.2 + .12)) {
+                                                        expect(s.sx).toBe(5);
+                                                        expect(s.sy).toBe(12);
+                                                        return true;
+                                                    }
+                                                    // during last-added tween
+                                                    if (at < (.2 + .9)) {
+                                                        expect(s.sx).toBeCloseTo( 5 + (((at - .12 - .2) / (.9 - .12)) * (3.2 -  5)), CLOSE_FACTOR);
+                                                        expect(s.sy).toBeCloseTo(12 + (((at - .12 - .2) / (.9 - .12)) * ( 40 - 12)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // after last-added tween
+                                                    expect(s.sx).toBe(3.2);
+                                                    expect(s.sy).toBe(40);
+                                                });
+                                });
+
+
+                            });
+
+                            it("works with more than two tweens", function() {
+                                checkTweens([.1, 3],
+                                            [ [ 'scale', [   0,   1 ], [ [5, 5], [10, 12] ] ],
+                                              [ 'scale', [   1, 1.5 ], [ [7, 7], [ 9, 11] ] ],
+                                              [ 'scale', [ 1.3,   2 ], [ [9, 8], [11, 22] ] ] ],
+                                            function(s, at) {
+                                                // before the tween
+                                                if (at < (.1 + 1.3)) {
+                                                    expect(s.sx).toBe(9);
+                                                    expect(s.sy).toBe(8);
+                                                    return true;
+                                                }
+                                                // after the tween
+                                                if (at > (.1 + 2)) {
+                                                    expect(s.sx).toBe(11);
+                                                    expect(s.sy).toBe(22);
+                                                    return true;
+                                                }
+                                                // during the tween
+                                                expect(s.sx).toBeCloseTo(9 + (((at - 1.3 - .1) / (2 - 1.3)) * (11 - 9)), CLOSE_FACTOR);
+                                                expect(s.sy).toBeCloseTo(8 + (((at - 1.3 - .1) / (2 - 1.3)) * (22 - 8)), CLOSE_FACTOR);
+                                            });
+                            });
+
+                        });
+
                     });
 
-                    it("works with overlapping bands", function() {
-                        checkTweens([.2, 1.8],
-                                    [ [ 'scale', [.12,   .9], [[ 5, 12], [3.2, 40]] ],
-                                      [ 'scale', [.54, 1.63], [[-1,  9], [  0, 16]] ] ],
-                                    function(s, at) {
-                                        // before first tween
-                                        if (at < (.2 + .12)) {
-                                            expect(s.sx).toBe( 5 * (-1));
-                                            expect(s.sy).toBe(12 *    9);
-                                            return true;
-                                        }
-                                        // during first tween, before overlap period
-                                        if (at < (.2 + .54)) {
-                                            var adt = (at - .12 - .2) / (.9 - .12);
-                                            expect(s.sx).toBeCloseTo((-1) * (( 5 * (1.0 - adt)) + (3.2 * adt)), CLOSE_FACTOR);
-                                            expect(s.sy).toBeCloseTo(   9 * ((12 * (1.0 - adt)) + ( 40 * adt)), CLOSE_FACTOR);
-                                            return true;
-                                        }
-                                        // during overlap period
-                                        if (at < (.2 + .9)) {
-                                            var adt1 = (at - .12 - .2) / (  .9 - .12),
-                                                adt2 = (at - .54 - .2) / (1.63 - .54);
-                                            expect(s.sx).toBeCloseTo(((   5 * (1.0 - adt1)) + (3.2 * adt1)) *
-                                                                     (((-1) * (1.0 - adt2)) + (  0 * adt2)), CLOSE_FACTOR);
-                                            expect(s.sy).toBeCloseTo(((  12 * (1.0 - adt1)) + ( 40 * adt1)) *
-                                                                     ((   9 * (1.0 - adt2)) + ( 16 * adt2)), CLOSE_FACTOR);
-                                            return true;
-                                        }
-                                        // during second tween, after overlap period
-                                        if (at < (.2 + 1.63)) {
-                                            var adt = (at - .54 - .2) / (1.63 - .54);
-                                            expect(s.sx).toBeCloseTo(3.2 * (((-1) * (1.0 - adt)) + ( 0 * adt)), CLOSE_FACTOR);
-                                            expect(s.sy).toBeCloseTo( 40 * ((   9 * (1.0 - adt)) + (16 * adt)), CLOSE_FACTOR);
-                                            return true;
-                                        }
-                                        // after second tween
-                                        expect(s.sx).toBe(3.2 *  0);
-                                        expect(s.sy).toBe( 40 * 16);
-                                    });
-                    });
+                    /* TODO: xdescribe("smart implementation", function() {
 
-                    /* it("works with more than two tweens", function() {
-                        checkTweens([0, 3],
-                                    [ [ 'scale', [   0,   1 ], [[5, 5], [10, 12]] ],
-                                      [ 'scale', [   1, 1.5 ], [[7, 7], [9,  11]] ],
-                                      [ 'scale', [ 1.5, 1.5 ], [[9, 8], [11, 22]] ] ],
-                                    function(s, at) {
+                        it("works with non-overlapping bands", function() {
+                            checkTweens([.15, 2],
+                                        [ [ 'scale', [  .3,   .9 ], [[6,  4], [  9,  15]] ],
+                                          [ 'scale', [ 1.1, 1.83 ], [[3, 19], [8.4, -11]] ] ],
+                                        function(s, at) {
+                                            // before first tween
+                                            if (at < (.15 + .3)) {
+                                                expect(s.sx).toBe(6 *  3);
+                                                expect(s.sy).toBe(4 * 19);
+                                                return true;
+                                            }
+                                            // during first tween
+                                            if (at < (.15 + .9)) {
+                                                var adt = (at - .3 - .15) / (.9 - .3);
+                                                expect(s.sx).toBeCloseTo( 3 * ((6 * (1.0 - adt)) + ( 9 * adt)), CLOSE_FACTOR);
+                                                expect(s.sy).toBeCloseTo(19 * ((4 * (1.0 - adt)) + (15 * adt)), CLOSE_FACTOR);
+                                                return true;
+                                            }
+                                            // after first tween, before second
+                                            if (at < (.15 + 1.1)) {
+                                                expect(s.sx).toBe(9  *  3);
+                                                expect(s.sy).toBe(15 * 19);
+                                                return true;
+                                            }
+                                            // during second tween
+                                            if (at < (.15 + 1.83)) {
+                                                var adt = (at - 1.1 - .15) / (1.83 - 1.1);
+                                                expect(s.sx).toBeCloseTo( 9 * (( 3 * (1.0 - adt)) + (  8.4 * adt)), CLOSE_FACTOR);
+                                                expect(s.sy).toBeCloseTo(15 * ((19 * (1.0 - adt)) + ((-11) * adt)), CLOSE_FACTOR);
+                                                return true;
+                                            }
+                                            // after second tween
+                                            expect(s.sx).toBe( 9 *   8.4);
+                                            expect(s.sy).toBe(15 * (-11));
+                                        });
+                        });
 
-                                    });
+                        it("works with overlapping bands", function() {
+                            checkTweens([.2, 1.8],
+                                        [ [ 'scale', [.12,   .9], [[ 5, 12], [3.2, 40]] ],
+                                          [ 'scale', [.54, 1.63], [[-1,  9], [  0, 16]] ] ],
+                                        function(s, at) {
+                                            // before first tween
+                                            if (at < (.2 + .12)) {
+                                                expect(s.sx).toBe( 5 * (-1));
+                                                expect(s.sy).toBe(12 *    9);
+                                                return true;
+                                            }
+                                            // during first tween, before overlap period
+                                            if (at < (.2 + .54)) {
+                                                var adt = (at - .12 - .2) / (.9 - .12);
+                                                expect(s.sx).toBeCloseTo((-1) * (( 5 * (1.0 - adt)) + (3.2 * adt)), CLOSE_FACTOR);
+                                                expect(s.sy).toBeCloseTo(   9 * ((12 * (1.0 - adt)) + ( 40 * adt)), CLOSE_FACTOR);
+                                                return true;
+                                            }
+                                            // during overlap period
+                                            if (at < (.2 + .9)) {
+                                                var adt1 = (at - .12 - .2) / (  .9 - .12),
+                                                    adt2 = (at - .54 - .2) / (1.63 - .54);
+                                                expect(s.sx).toBeCloseTo(((   5 * (1.0 - adt1)) + (3.2 * adt1)) *
+                                                                         (((-1) * (1.0 - adt2)) + (  0 * adt2)), CLOSE_FACTOR);
+                                                expect(s.sy).toBeCloseTo(((  12 * (1.0 - adt1)) + ( 40 * adt1)) *
+                                                                         ((   9 * (1.0 - adt2)) + ( 16 * adt2)), CLOSE_FACTOR);
+                                                return true;
+                                            }
+                                            // during second tween, after overlap period
+                                            if (at < (.2 + 1.63)) {
+                                                var adt = (at - .54 - .2) / (1.63 - .54);
+                                                expect(s.sx).toBeCloseTo(3.2 * (((-1) * (1.0 - adt)) + ( 0 * adt)), CLOSE_FACTOR);
+                                                expect(s.sy).toBeCloseTo( 40 * ((   9 * (1.0 - adt)) + (16 * adt)), CLOSE_FACTOR);
+                                                return true;
+                                            }
+                                            // after second tween
+                                            expect(s.sx).toBe(3.2 *  0);
+                                            expect(s.sy).toBe( 40 * 16);
+                                        });
+                        });
+
+                        // it("works with more than two tweens", function() {
+                        //    checkTweens([0, 3],
+                        //                [ [ 'scale', [   0,   1 ], [[5, 5], [10, 12]] ],
+                        //                  [ 'scale', [   1, 1.5 ], [[7, 7], [9,  11]] ],
+                        //                  [ 'scale', [ 1.5, 1.5 ], [[9, 8], [11, 22]] ] ],
+                        //                function(s, at) {
+                        //
+                        //                });
+                        // });
+
                     }); */
+
 
                 });
 

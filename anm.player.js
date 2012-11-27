@@ -2909,8 +2909,8 @@ Tweens[C.T_ALPHA] =
 Tweens[C.T_SCALE] =
     function() {
       return function(t, duration, data) {
-        this.sx *= data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy *= data[0][1] * (1.0 - t) + data[1][1] * t;
+        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 Tweens[C.T_ROT_TO_PATH] =
