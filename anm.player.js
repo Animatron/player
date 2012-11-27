@@ -2887,7 +2887,7 @@ var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
       return function(t, duration, data) {
-        this.angle += data[0] * (1 - t) + data[1] * t;
+        this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
