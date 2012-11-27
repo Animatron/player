@@ -1745,77 +1745,165 @@ describe("tweens", function() {
 
             describe("rotate-to-path tween", function() {
 
+                describe("single one", function() {
 
+                    describe("should change angle value of the state according to given path", function() {
 
-                describe("should change angle value of the state according to given path for a single tween", function() {
+                        it("works in case of simple values", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'transP',  [ 0, 1 ], 'M0 0 L12 12 Z' ],
+                                          [ 'rotateP', [ 0, 1 ] ] ],
+                                        function(s, at) {
+                                            expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 4) : 0, CLOSE_FACTOR);
+                                        });
+                        });
 
-                    it("works in case of simple values", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'transP', [ 0, 1 ], 'M0 0 L12 12 Z' ],
-                                      [ 'rotateP', [ 0, 1 ] ] ],
-                                    function(s, at) {
-                                        expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 4) : 0, CLOSE_FACTOR);
-                                    });
+                        it("works in case of zero", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'transP',  [ 0, 1 ], 'M0 0 L0 0 Z' ],
+                                          [ 'rotateP', [ 0, 1 ] ] ],
+                                        function(s, at) {
+                                            expect(s.angle).toBeCloseTo(0, CLOSE_FACTOR);
+                                        });
+
+                            // both zero?
+                        });
+
+                        it("works in case of mixed values (incl. negative)", function() {
+                            checkTweens([0, 1],
+                                        [ [ 'transP',  [ 0, 1 ], 'M0 -10 L0 10 Z' ],
+                                          [ 'rotateP', [ 0, 1 ] ] ],
+                                        function(s, at) {
+                                            expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 2) : Math.PI, CLOSE_FACTOR);
+                                        });
+                        });
+
+                        it("works in case of floating values", function() {
+                            var x0 = Math.cos(4 * Math.PI / 3),
+                                y0 = Math.sin(4 * Math.PI / 3),
+                                x1 = Math.cos(    Math.PI / 3),
+                                y1 = Math.sin(    Math.PI / 3);
+                            checkTweens([0, 1],
+                                        [ [ 'transP',  [ 0, 1 ], 'M'+x0+' '+y0+' L'+x1+' '+y1+' Z' ],
+                                          [ 'rotateP', [ 0, 1 ] ] ],
+                                        function(s, at) {
+                                            expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 3) : -(5 * Math.PI / 6), CLOSE_FACTOR);
+                                        });
+                        });
+
+                        it("works in case of band not equal to element's band", function() {
+                            checkTweens([.5, 1.9],
+                                        [ [ 'transP',  [.1, 1.2], 'M0 0 L-8 -8 Z' ],
+                                          [ 'rotateP', [.1, 1.2] ] ],
+                                        function(s, at) {
+                                            // before the tween
+                                            if (at <= (.5 + .1)) {
+                                                expect(s.angle).toBe(0);
+                                                return true;
+                                            }
+                                            // after the tween
+                                            if (at > (.5 + 1.2)) {
+                                                expect(s.angle).toBe(-(3 * Math.PI / 4));
+                                                return true;
+                                            }
+                                            // during the tween
+                                            expect(s.angle).toBeCloseTo(-(3 * Math.PI / 4), CLOSE_FACTOR);
+                                        });
+                        });
+
+                        // FIXME: test for several paths applied
+
+                        it("works if path band exceeds rotateP band", function() {
+                            checkTweens([.5, 1.9],
+                                        [ [ 'transP',  [.1, 1.2], 'M0 0 L-8 -8 Z' ],
+                                          [ 'rotateP', [.5, 1.2] ] ],
+                                        function(s, at) {
+                                            // before the tween
+                                            if (at <= (.5 + .5)) {
+                                                expect(s.angle).toBe(0);
+                                                return true;
+                                            }
+                                            // after the tween
+                                            if (at > (.5 + 1.2)) {
+                                                expect(s.angle).toBe(-(3 * Math.PI / 4));
+                                                return true;
+                                            }
+                                            // during the tween
+                                            expect(s.angle).toBeCloseTo(-(3 * Math.PI / 4), CLOSE_FACTOR);
+                                        });
+                        });
+
+                        it("works if there is no path at the part of a band", function() {
+                            checkTweens([.5, 1.9],
+                                        [ [ 'transP',  [.5, 1.2], 'M0 0 L-8 -8 Z' ],
+                                          [ 'rotateP', [.1, 1.2] ] ],
+                                        function(s, at) {
+                                            // before the tween
+                                            if (at <= (.5 + .1)) {
+                                                expect(s.angle).toBe(0);
+                                                return true;
+                                            }
+                                            // after the tween
+                                            if (at > (.5 + 1.2)) {
+                                                expect(s.angle).toBe(-(3 * Math.PI / 4));
+                                                return true;
+                                            }
+                                            // during the tween
+                                            expect(s.angle).toBeCloseTo(-(3 * Math.PI / 4), CLOSE_FACTOR);
+                                        });
+                        });
+
+                        it("uses the last path when there are several paths inside of a tween band", function() {
+                            checkTweens([.5, 1.9],
+                                        [ [ 'transP',  [.1,  .5], 'M0 0 L-8 -8 Z' ],
+                                          [ 'transP',  [.5, 1.2], 'M0 0 L12 12 Z' ],
+                                          [ 'rotateP', [.1, 1.2] ] ],
+                                        function(s, at) {
+                                            // before the tween
+                                            if (at <= (.5 + .1)) {
+                                                expect(s.angle).toBe(0);
+                                                return true;
+                                            }
+                                            // after the tween
+                                            if (at > (.5 + 1.2)) {
+                                                expect(s.angle).toBe(Math.PI / 4);
+                                                return true;
+                                            }
+                                            // during the tween
+                                            expect(s.angle).toBeCloseTo(Math.PI / 4, CLOSE_FACTOR);
+                                        });
+                        });
+
                     });
-
-                    it("works in case of zero", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'transP', [ 0, 1 ], 'M0 0 L0 0 Z' ],
-                                      [ 'rotateP', [ 0, 1 ] ] ],
-                                    function(s, at) {
-                                        expect(s.angle).toBeCloseTo(0, CLOSE_FACTOR);
-                                    });
-
-                        // both zero?
-                    });
-
-                    it("works in case of mixed values (incl. negative)", function() {
-                        checkTweens([0, 1],
-                                    [ [ 'transP', [ 0, 1 ], 'M0 -10 L0 10 Z' ],
-                                      [ 'rotateP', [ 0, 1 ] ] ],
-                                    function(s, at) {
-                                        expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 2) : Math.PI, CLOSE_FACTOR);
-                                    });
-                    });
-
-                    it("works in case of floating values", function() {
-                        var x0 = Math.cos(4 * Math.PI / 3),
-                            y0 = Math.sin(4 * Math.PI / 3),
-                            x1 = Math.cos(    Math.PI / 3),
-                            y1 = Math.sin(    Math.PI / 3);
-                        checkTweens([0, 1],
-                                    [ [ 'transP', [ 0, 1 ], 'M'+x0+' '+y0+' L'+x1+' '+y1+' Z' ],
-                                      [ 'rotateP', [ 0, 1 ] ] ],
-                                    function(s, at) {
-                                        expect(s.angle).toBeCloseTo(at !== 0 ? (Math.PI / 3) : -(5 * Math.PI / 6), CLOSE_FACTOR);
-                                    });
-                    });
-
-                    it("works in case of band not equal to element's band", function() {
-                        checkTweens([.5, 1.9],
-                                    [ [ 'transP', [.1, 1.2], 'M0 0 L-8 -8 Z' ],
-                                      [ 'rotateP', [.1, 1.2] ] ],
-                                    function(s, at) {
-                                        // before the tween
-                                        if (at <= (.5 + .1)) {
-                                            expect(s.angle).toBe(0);
-                                            return true;
-                                        }
-                                        // after the tween
-                                        if (at > (.5 + 1.2)) {
-                                            expect(s.angle).toBe(-(3 * Math.PI / 4));
-                                            return true;
-                                        }
-                                        // during the tween
-                                        expect(s.angle).toBeCloseTo(-(3 * Math.PI / 4), CLOSE_FACTOR);
-                                    });
-                    });
-
-                    // FIXME: test for several paths applied
 
                 });
 
-                // TODO: test if works with several rotateP, thought it has no meaning
+                describe("several ones", function() {
+
+                    it("should override angle value of the state according to current path", function() {
+                        checkTweens([.5, 1.9],
+                                    [ [ 'transP',  [.1,  .5], 'M0 0 L-8 -8 Z' ],
+                                      [ 'rotateP', [.1, 1.2] ],
+                                      [ 'rotateP', [.5, 1.2] ] ],
+                                        function(s, at) {
+                                            // before the tween
+                                            if (at <= (.5 + .5)) {
+                                                expect(s.angle).toBe(0);
+                                                return true;
+                                            }
+                                            // after the tween
+                                            if (at > (.5 + 1.2)) {
+                                                expect(s.angle).toBe(-(3 * Math.PI / 4));
+                                                return true;
+                                            }
+                                            // during the tween
+                                            expect(s.angle).toBeCloseTo(-(3 * Math.PI / 4), CLOSE_FACTOR);
+                                        });
+                    });
+
+                    // FIXME: test other cases: where bands overlap or not
+
+                });
 
             });
 
