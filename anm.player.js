@@ -2903,7 +2903,7 @@ Tweens[C.T_TRANSLATE] =
 Tweens[C.T_ALPHA] =
     function() {
       return function(t, duration, data) {
-        this.alpha *= data[0] * (1.0 - t) + data[1] * t;
+        this.alpha = data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
