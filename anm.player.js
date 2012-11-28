@@ -2887,7 +2887,7 @@ var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
       return function(t, duration, data) {
-        this.angle += data[0] * (1 - t) + data[1] * t;
+        this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
@@ -2896,28 +2896,28 @@ Tweens[C.T_TRANSLATE] =
       return function(t, duration, data) {
           var p = data.pointAt(t);
           this._mpath = data;
-          this.x += p[0];
-          this.y += p[1];
+          this.x = p[0];
+          this.y = p[1];
       };
     };
 Tweens[C.T_ALPHA] =
     function() {
       return function(t, duration, data) {
-        this.alpha *= data[0] * (1.0 - t) + data[1] * t;
+        this.alpha = data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
     function() {
       return function(t, duration, data) {
-        this.sx *= data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy *= data[0][1] * (1.0 - t) + data[1][1] * t;
+        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;
-        this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
+        this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 
@@ -3152,7 +3152,7 @@ Path.prototype.hitAt = function(t/*, func*/) {
             // inside current segment
             var segdist = distance - length;
             return {
-              'seg': seg, 'start': p, 'slen': slen, 'segt': (segdist / slen)
+              'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
             };
         }
         length += slen;
