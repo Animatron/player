@@ -5,7 +5,7 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-describe("regarding duration and bands in animations,", function() {
+describe("regarding elements' duration and bands in animations,", function() {
 
     var player;
 

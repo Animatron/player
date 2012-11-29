@@ -292,7 +292,7 @@ describe("player, when speaking about playing,", function() {
                 return scene;
             },
             run: function() {
-                expect(scene.duration).toBe(duration);
+                expect(scene.duration).toBe(duration); // FIXME: move to a separate test
                 expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
                 expect(painterSpy).toHaveBeenCalledOnce(); // for preview
                 modifierSpy.reset();
