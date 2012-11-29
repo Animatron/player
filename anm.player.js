@@ -1502,7 +1502,25 @@ Element.prototype.draw = function(ctx) {
     if (!this.sprite) {
         this.drawTo(ctx);
     } else {
-        ctx.drawImage(this.xdata.canvas, 0, 0);
+        if (this.sheet) {
+            var tw;
+            var th;
+            var w = 1;
+            var h = 1;
+            if (this.sheet instanceof Array) {
+                w = this.xdata.image.width / this.sheet[0];
+                h = this.xdata.image.height / this.sheet[1];
+                tw = this.sheet[0];
+                th = this.sheet[1];
+            } else {
+                w = this.xdata.image.width / this.sheet;
+                tw = this.sheet;
+            }
+            var sy = Math.floor( this.xdata.frame / w ) * tw;
+            var sx = this.xdata.frame % w * th;
+            ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
+        }
+        else ctx.drawImage(this.xdata.canvas, 0, 0);
     }
 }
 // > Element.transform % (ctx: Context)
@@ -1996,6 +2014,7 @@ Element.prototype.clone = function() {
     clone.name = this.name;
     clone.children = [].concat(this.children);
     clone.sprite = this.sprite;
+    clone.sheet = this.sheet;
     clone._modifiers = [].concat(this._modifiers);
     clone._painters = [].concat(this._painters);
     clone.xdata = obj_clone(this.xdata);
@@ -2078,7 +2097,9 @@ Element.prototype._addChildren = function(elms) {
     }
 }
 Element.prototype._drawToCache = function() {
-    var _canvas = newCanvas(this.state.dimen, this.state.ratio);
+    var dim = this.state.dimen;
+    if (this.sheet) dim = [this.xdata.image.width, this.xdata.image.height];
+    var _canvas = newCanvas(dim, this.state.ratio);
     var _ctx = _canvas.getContext('2d');
     this.drawTo(_ctx);
     this.xdata.canvas = _canvas;
