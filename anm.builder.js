@@ -161,12 +161,10 @@ Builder.prototype.image = function(pt, src) {
         var b = this;
         this.x.image =
            // width/height olny will be known when image will be loaded
-           Element.imgFromUrl(src, function(img) {
-                b.x.__modify(Element.SYS_MOD, 0, null, function() {
-                    this.rx = Math.floor(img.width/2);
-                    this.ry = Math.floor(img.height/2);
-                });
-           });
+           Element.imgFromUrl(src, function(img) { });
+    }
+    return this;
+}
     }
     return this;
 }
