@@ -4202,7 +4202,7 @@ var exports = {
 
     'createPlayer': function(cvs, opts) { var p = new Player();
                                           p.init(cvs, opts); return p; },
-
+    'ajax': ajax,
     '_typecheck': { builder: __builder,
                     array: __array,
                     num: __num }
