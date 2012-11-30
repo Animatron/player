@@ -2,6 +2,8 @@
 // TODO: errors, thrown in player creating process, should be shown in the console.
 // TODO: errors should be thrown only once
 
+// TODO: test muteErrors
+
 describe("errors", function() {
 
     var player;
@@ -25,7 +27,7 @@ describe("errors", function() {
         try {
             player.play();
             this.fail();
-        } catch(e) { expect(player.state.happens).toBe(anm.C.STOPPED); }
+        } catch(e) { console.log(e); expect(player.state.happens).toBe(anm.C.STOPPED); }
     });
 
     it("throws an error if modifier or painter code is incorrect", function() {
@@ -90,7 +92,12 @@ describe("errors", function() {
 
     xit("initialization-related error and playing-related error have different types", function() {
 
+
     });
+
+    // TODO: test both for PlayerError and AnimationError
+    // TODO: options.muteErrors
+    // TODO: do not mute SysErrors
 
     describe("onerror handler", function() {
 
