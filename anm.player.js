@@ -1502,25 +1502,27 @@ Element.prototype.draw = function(ctx) {
     if (!this.sprite) {
         this.drawTo(ctx);
     } else {
-        if (this.sheet) {
-            var tw;
-            var th;
-            var w = 1;
-            var h = 1;
-            if (this.sheet instanceof Array) {
-                w = this.xdata.image.width / this.sheet[0];
-                h = this.xdata.image.height / this.sheet[1];
-                tw = this.sheet[0];
-                th = this.sheet[1];
-            } else {
-                w = this.xdata.image.width / this.sheet;
-                tw = this.sheet;
+        if (this.xdata.canvas.width > 0 && this.xdata.canvas.height > 0) {
+            if (this.sheet ) {
+                var tw;
+                var th;
+                var w = 1;
+                var h = 1;
+                if (this.sheet instanceof Array) {
+                    w = this.xdata.image.width / this.sheet[0];
+                    h = this.xdata.image.height / this.sheet[1];
+                    tw = this.sheet[0];
+                    th = this.sheet[1];
+                } else {
+                    w = this.xdata.image.width / this.sheet;
+                    tw = this.sheet;
+                }
+                var sy = Math.floor( this.xdata.frame / w ) * tw;
+                var sx = this.xdata.frame % w * th;
+                ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
             }
-            var sy = Math.floor( this.xdata.frame / w ) * tw;
-            var sx = this.xdata.frame % w * th;
-            ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
+            else ctx.drawImage(this.xdata.canvas, 0, 0);
         }
-        else ctx.drawImage(this.xdata.canvas, 0, 0);
     }
 }
 // > Element.transform % (ctx: Context)
