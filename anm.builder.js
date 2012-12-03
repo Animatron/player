@@ -161,12 +161,31 @@ Builder.prototype.image = function(pt, src) {
         var b = this;
         this.x.image =
            // width/height olny will be known when image will be loaded
-           Element.imgFromUrl(src, function(img) {
-                b.x.__modify(Element.SYS_MOD, 0, null, function() {
-                    this.rx = Math.floor(img.width/2);
-                    this.ry = Math.floor(img.height/2);
-                });
-           });
+           Element.imgFromUrl(src, function(img) { });
+    }
+    return this;
+}
+Builder.prototype.sprite = function(pt, src, sheet, frame) {
+    this.x.pos = pt;
+    this.v.sheet = sheet;
+    this.v.sprite = true;
+    if (frame !== undefined) this.x.frame = frame;
+    else frame = 0;
+
+    if (src) {
+        var b = this;
+        this.x.image =
+            // width/height olny will be known when image will be loaded
+            Element.imgFromUrl(src, function(img) {
+                var w, h;
+                if (sheet instanceof Array) {
+                    w = sheet[0];
+                    h = sheet[1];
+                } else w = sheet;
+                b.x.$.state.dimen = [w, h];
+                b.x.$.state.ratio = 1;
+                b.v.prepare();
+            });
     }
     return this;
 }
