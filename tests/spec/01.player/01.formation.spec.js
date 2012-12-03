@@ -140,7 +140,7 @@ describe("player, when created,", function() {
 
             });
 
-            it("should use canvas size, given in option, even if there is size specified in element", function() {
+            it("should use canvas size, given in optionы, even if there is size specified in element", function() {
                 expect(canvas).not.toHaveSizeDefined();
 
                 var test_w = 521,
@@ -176,6 +176,36 @@ describe("player, when created,", function() {
                                                 anm.Player.DEFAULT_CANVAS.height ]);
                 expect(canvas).toHaveSize([ test_w, test_h ]);
 
+            });
+
+            // may be its not ok to make presumptions like these, so we need to enfore user to use createPlayer options in all of the cases
+            xit("should correct canvas size, if there is some specified in the element, to proper size", function() {
+                var test_w = 670,
+                    test_h = 360;
+
+                canvas.setAttribute('width', test_w);
+                canvas.setAttribute('height', test_h);
+
+                createPlayer(canvasId);
+
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
+            });
+
+            // may be its not ok to make presumptions like these, so we need to enfore user to use createPlayer options in all of the cases
+            xit("should correct canvas size, if there is some specified in styles, to proper size", function() {
+                var test_w = 670,
+                    test_h = 360;
+
+                canvas.style.width = test_w + 'px';
+                canvas.style.height = test_h + 'px';
+
+                createPlayer(canvasId);
+
+                expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
+                                                anm.Player.DEFAULT_CANVAS.height ]);
+                expect(canvas).toHaveSize([ test_w, test_h ]);
             });
 
         });
