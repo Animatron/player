@@ -2,8 +2,6 @@
 // TODO: errors, thrown in player creating process, should be shown in the console.
 // TODO: errors should be thrown only once
 
-// TODO: test muteErrors
-
 describe("errors", function() {
 
     var player;
@@ -23,98 +21,188 @@ describe("errors", function() {
 
     afterEach(function() { _FrameGen.disable() });
 
-    it("throws one when player was incorrectly initialized", function() {
-        try {
-            player.play();
-            this.fail();
-        } catch(e) { console.log(e); expect(player.state.happens).toBe(anm.C.STOPPED); }
+    describe("throwing errors", function() {
+
+        it("throws one when player was incorrectly initialized (player-related errors)", function() {
+            try {
+                player.play();
+                this.fail();
+            } catch(e) { console.log(e); expect(player.state.happens).toBe(anm.C.STOPPED); }
+
+            this.fail("NI");
+        });
+
+        it("throws an error if modifier or painter code is incorrect (animation-related errors)", function() {
+            var elm = new anm.Element();
+            elm.addModifier(function(t) {
+                if (t > .5) {
+                    some_undefined_var.foo = 'bar';
+                }
+            });
+
+            var scene = new anm.Scene();
+            scene.duration = 1;
+
+            doAsync(player, scene, {
+                do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                then: function() { this.fail(); } // should not reach this code due to error
+            });
+
+            this.fail("NI");
+        });
+
+        it("throws an error manually fired from modifier or painter (system errors)", function() {
+            var elm = new anm.Element();
+            elm.addModifier(function(t) {
+                if (t > .5) {
+                    throw new Error('foo');
+                }
+            });
+
+            var scene = new anm.Scene();
+            scene.duration = 1;
+
+            doAsync(player, scene, {
+                do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                then: function() { this.fail(); } // should not reach this code due to error
+                // TODO: onerror: ensure if error was fired
+            });
+
+            this.fail("NI");
+        });
+
+        describe("any error is thrown only once", function() {
+
+            // var elm = new anm.Element();
+
+            // var childElm = new anm.Element();
+            // elm.add(childElm);
+
+            // var grandChildElm = new anm.Element();
+            // childElm.add(grandChildElm);
+            // grandChildElm.addModifier(function(t) {
+            //     if (t > .5) {
+            //         throw new Error('foo');
+            //     }
+            // });
+
+            // var scene = new anm.Scene();
+            // scene.duration = 1;
+
+            // doAsync(player, scene, {
+            //     do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+            //     then: function() { this.fail(); } // should not reach here due to errors
+            //     // TODO: onerror: check if it was fired only once
+            // });
+
+            it("works for player-related errors", function() {
+                this.fail("NI");
+            });
+
+            it("works for animation-related errors", function() {
+                this.fail("NI");
+            });
+
+            it("works for system errors", function() {
+                this.fail("NI");
+            });
+
+        });
+
+        it("different kinds of errors have different types", function() {
+
+            // PlayerErr
+            try {
+                player.play();
+                this.fail();
+            } catch(e) { console.log(e); expect(player.state.happens).toBe(anm.C.STOPPED); }
+
+            // SysErr
+            grandChildElm.addModifier(function(t) {
+                if (t > .5) {
+                    throw new Error('foo');
+                }
+            });
+
+            // AnimErr
+            elm.removeModifier(function(t) {});
+
+            this.fail("NI");
+
+        });
+
     });
 
-    it("throws an error if modifier or painter code is incorrect", function() {
-        var elm = new anm.Element();
-        elm.addModifier(function(t) {
-            if (t > .5) {
-                some_undefined_var.foo = 'bar';
-            }
-        });
+    describe("handling errors", function() {
 
-        var scene = new anm.Scene();
-        scene.duration = 1;
+        describe("onerror handler", function() {
 
-        doAsync(player, scene, {
-            do: 'play', until: anm.C.STOPPED, timeout: 1.2,
-            then: function() { this.fail(); /* should not reach this code due to error */ }
-        });
-    });
+            describe("getting errors", function() {
 
-    it("throws an error manually fired from modifier or painter", function() {
-        var elm = new anm.Element();
-        elm.addModifier(function(t) {
-            if (t > .5) {
-                throw new Error('foo');
-            }
-        });
+                it("gets player-related errors", function() {
+                    this.fail("NI");
+                });
 
-        var scene = new anm.Scene();
-        scene.duration = 1;
+                it("gets animation-related errors", function() {
+                    this.fail("NI");
+                });
 
-        doAsync(player, scene, {
-            do: 'play', until: anm.C.STOPPED, timeout: 1.2,
-            then: function() { this.fail(); /* should not reach this code due to error */ }
-            // TODO: onerror: ensure if error was fired
-        });
-    });
+                it("gets system errors", function() {
+                    this.fail("NI");
+                });
 
-    it("throws any error only once", function() {
-        var elm = new anm.Element();
+            });
 
-        var childElm = new anm.Element();
-        elm.add(childElm);
+            describe("suppressing errors", function() {
 
-        var grandChildElm = new anm.Element();
-        childElm.add(grandChildElm);
-        grandChildElm.addModifier(function(t) {
-            if (t > .5) {
-                throw new Error('foo');
-            }
-        });
+                it("supresses player-related errors by default", function() {
+                    this.fail("NI");
+                });
 
-        var scene = new anm.Scene();
-        scene.duration = 1;
+                it("supresses animation-related errors by default", function() {
+                    this.fail("NI");
+                });
 
-        doAsync(player, scene, {
-            do: 'play', until: anm.C.STOPPED, timeout: 1.2,
-            then: function() { this.fail(); /* should not reach this code due to error */ }
-            // TODO: onerror: check if it was fired only once
-        });
+                it("do not supresses system errors by default", function() {
+                    this.fail("NI");
+                });
 
-    });
+            });
 
-    xit("initialization-related error and playing-related error have different types", function() {
+            describe("forcing errors to raise (with returning true)", function() {
 
+                it("works for player-related errors", function() {
+                    this.fail("NI");
+                });
 
-    });
+                it("works for animation-related errors", function() {
+                    this.fail("NI");
+                });
 
-    // TODO: test both for PlayerError and AnimationError
-    // TODO: options.muteErrors
-    // TODO: do not mute SysErrors
+                it("works for system errors", function() {
+                    this.fail("NI");
+                });
 
-    describe("onerror handler", function() {
-
-        it("supresses initialization-related errors if onerror handler is specified", function() {
+            });
 
         });
 
-        it("supresses playing-related errors if onerror handler is specified", function() {
+        describe("mute errors option", function() {
 
-        });
+            it("mutes player-related errors", function() {
+                this.fail("NI");
+            });
 
-        it("passes all types of errors to onerror handler", function() {
+            it("mutes animation-related errors", function() {
+                this.fail("NI");
+            });
+
+            it("do not mutes system errors", function() {
+                this.fail("NI");
+            });
 
         });
 
     });
-
-
 
 });
