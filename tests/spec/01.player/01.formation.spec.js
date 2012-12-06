@@ -140,7 +140,7 @@ describe("player, when created,", function() {
 
             });
 
-            it("should use canvas size, given in optionы, even if there is size specified in element", function() {
+            it("should use canvas size, given in options, even if there is size specified in element", function() {
                 expect(canvas).not.toHaveSizeDefined();
 
                 var test_w = 521,

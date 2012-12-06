@@ -177,7 +177,7 @@ function ajax(url, callback/*, errback*/) {
     //}
 
     if (!req) {
-      throw new Error('Failed to create XMLHttp instance');
+      throw new SysErr('Failed to create XMLHttp instance');
     }
 
     var whenDone = function() {
@@ -794,7 +794,7 @@ Player.prototype.configureMeta = function(info) {
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new PlayerErr('Given time is not allowed, it is treated as no-time');
     if ((time < 0) || (time > this.state.duration)) {
-        throw new Error(Errors.P.PASSED_TIME_NOT_IN_RANGE);
+        throw new PlayerErr(Errors.P.PASSED_TIME_NOT_IN_RANGE);
     }
     var ctx = this.ctx,
         state = this.state;

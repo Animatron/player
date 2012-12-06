@@ -179,7 +179,8 @@ function __num(n) {
     [ beforeEnd: function() {...}, ]
     ( until: <state>[, timeout: 2],
       | waitFor: function() {}[, timeout: 2], )
-    [ then: function() {} ]
+    [ then: function() {} ],
+    [ onerror: function(err) {} ]
 }; */
 function doAsync(player, conf) {
     var conf,
@@ -193,36 +194,52 @@ function doAsync(player, conf) {
         conf = arguments[1];
     } else throw new Error('Not enough arguments');
 
-    if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
+    function reportOrThrow(err) {
+        if (conf.onerror) { conf.onerror(err); } else throw err;
+    }
 
-    if (_scene) player.load(_scene);
-    _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
-    _timeout *= 1000;
+    try {
+        if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
+
+        if (_scene) player.load(_scene);
+        _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
+        _timeout *= 1000;
+    } catch(err) { reportOrThrow(err); }
 
     runs(function() {
-        if (conf.do) player[conf.do]();
-        else if (conf.run) conf.run.call(player);
-        else player.play();
+        try {
+            if (conf.do) player[conf.do]();
+            else if (conf.run) conf.run.call(player);
+            else player.play();
+        } catch(err) { reportOrThrow(err); }
     });
 
     if (conf.waitFor) {
         waitsFor(function() {
-            return conf.waitFor.call(player);
+            try {
+               return conf.waitFor.call(player);
+            } catch(err) { reportOrThrow(err); }
         }, _timeout);
     } else {
         var expectedState = (typeof conf.until !== 'undefined') ? conf.until : anm.C.STOPPED;
         waitsFor(function() {
-            var finished = (player.state.happens === expectedState);
-            if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
-            return finished;
+            try {
+                var finished = (player.state.happens === expectedState);
+                if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
+                return finished;
+            } catch(err) { reportOrThrow(err); }
         }, _timeout);
     }
 
-    if (conf.afterThat) conf.afterThat.call(player);
+    try {
+        if (conf.afterThat) conf.afterThat.call(player);
+    } catch(err) { reportOrThrow(err); }
 
     runs(function() {
-        if (conf.then) conf.then.call(player);
-        player.stop();
+        try {
+            if (conf.then) conf.then.call(player);
+            player.stop();
+        } catch(err) { reportOrThrow(err); }
     });
 }
 
