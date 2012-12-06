@@ -56,19 +56,16 @@ var __stopAnim = function(requestId) {
 
 // ERRORS
 
-function SystemError(msg) { this.message = msg; }
-SystemError.prototype = new Error();
-SystemError.prototype.toString = function() { return 'SystemError: ' + this.message; }
+var SystemError = __errorAs('SystemError',
+                            function(msg) { this.message = msg || ''; });
 var SysErr = SystemError;
 
-function PlayerError(msg) { this.message = msg; }
-PlayerError.prototype = new Error();
-PlayerError.prototype.toString = function() { return 'PlayerError: ' + this.message; }
+var PlayerError = __errorAs('PlayerError',
+                            function(msg) { this.message = msg || ''; });
 var PlayerErr = PlayerError;
 
-function AnimationError(msg) { this.message = msg; }
-AnimationError.prototype = new Error();
-AnimationError.prototype.toString = function() { return 'AnimationError: ' + this.message; }
+var AnimationError = __errorAs('AnimationError',
+                               function(msg) { this.message = msg || ''; });
 var AnimErr = AnimationError;
 
 // OTHER
@@ -267,6 +264,15 @@ function __close(n1, n2, precision) {
            Math.round(n2 * multiplier);
 }
 
+function __errorAs(name, _constructor) {
+  //var _constructor = function(msg) { this.message = msg; }
+  _constructor.prototype = new Error();
+  //_constructor.prototype.constructor = _constructor;
+  _constructor.prototype.name = name || 'Unknown';
+  _constructor.prototype.toString = function() { return name + (this.message ? ': ' + this.message : ''); }
+  return _constructor;
+}
+
 function mrg_obj(src, backup) {
     var res = {};
     for (prop in backup) {
@@ -434,6 +440,7 @@ function Player() {
     this.info = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
+    this.__makeSafe(Player._SAFE_METHODS);
 }
 Player.__instances = 0;
 
@@ -448,7 +455,7 @@ Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'bgfill': null/*{ 'color': DEF_CNVS_BG }*/ };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
-                                 'muteErrors': false,
+                                 'muteErrors': true,
                                  'repeat': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
@@ -466,6 +473,12 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 // === PLAYING CONTROL API =====================================================
 // =============================================================================
+
+// methods listed below are directly wrapped with try/catch to check
+// which way of handling/suppressing errors is current one for this player
+// and act with catched errors basing on this way
+
+Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause' ];
 
 // TODO: add load/play/pause/stop events
 
@@ -569,9 +582,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                   state, scene,
                                   player.__beforeFrame(scene),
                                   player.__afterFrame(scene),
-                                  function(f) {
-                                    player.__callSafe(f);
-                                  });
+                                  function(f) { player.__callSafe(f); });
 
     player.fire(C.S_PLAY, state.from);
 
@@ -705,9 +716,6 @@ Player.prototype._loadOpts = function(opts) {
     this._checkMode();
 
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
-
-    this.state.muteErrors = true;
-
 }
 // initial state of the player, called from conctuctor
 Player.prototype._postInit = function() {
@@ -1037,24 +1045,27 @@ Player.prototype.__afterFrame = function(scene) {
 }
 
 // Called when any error happens during player initialization or animation
+// Player should mute all non-system errors by default, and if it got a system error, it may show
+// this error over itself
 Player.prototype.__onerror = function(err) {
   var player = this;
-  if (player.state.muteErrors) return;
+  var doMute = (player.state && player.state.muteErrors);
+      doMute = doMute && !(err instanceof SysErr);
 
   try {
     player.fire(C.S_ERROR, err);
 
     player.anim = null;
-    player.stop();
-  } catch(e) { throw new SysError('Error-handling mechanics were broken with error ' + err); }
+    /*if (player.state)*/ player.__unsafe_stop();
+  } catch(e) { throw new SysErr('Error-handling mechanics were broken with error ' + err); }
 
-  if (this.__err_handler) {
-    if (!this.__err_handler(err)) throw err;
-  }
+  doMute = doMute || (this.__err_handler && this.__err_handler(err));
+
+  if (!doMute) throw err;
 }
 Player.prototype.__callSafe = function(f) {
   try {
-    return f();
+    return f.call(this);
   } catch(e) {
     this.__onerror(e);
   }
@@ -1063,11 +1074,13 @@ Player.prototype.__makeSafe = function(methods) {
   var player = this;
   for (var i = 0, il = methods.length; i < il; i++) {
     var method = methods[i];
+    if (!player[method]) throw new SysErr('There is no such method \'' + method + '\' for player');
+    player['__unsafe_'+method] = player[method];
     player[method] = (function(method_f) {
       return function() {
         var args = arguments;
         return player.__callSafe(function() {
-          return method_f.call(player, args);
+          return method_f.apply(player, args);
         });
       };
     })(player[method]);
@@ -1153,7 +1166,7 @@ Player._optsFromCvsAttrs = function(canvas) {
         pxRatio = getPxRatio();
     return { 'debug': __attrOr(canvas, 'data-debug', undefined),
              'inParent': undefined,
-             'muteErrors': __attrOr(canvas, 'data-mute-errors', undefined),
+             'muteErrors': __attrOr(canvas, 'data-mute-errors', true),
              'repeat': __attrOr(canvas, 'data-repeat', undefined),
              'mode': __attrOr(canvas, 'data-mode', undefined),
              'zoom': __attrOr(canvas, 'data-zoom', undefined),
@@ -1177,7 +1190,7 @@ Player._optsFromCvsAttrs = function(canvas) {
 Player._optsFromURLParams = function(attrs/* as json */) {
     return { 'debug': attrs.debug,
              'inParent': undefined,
-             'muteErrors': undefined,
+             'muteErrors': true,
              'repeat': attrs.r,
              'mode': attrs.m,
              'zoom': attrs.z,
@@ -4218,7 +4231,9 @@ var exports = {
     'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU, // why DU class is visible to pulic?
-    'Errors': Errors,
+    'Errors': Errors, 'SystemError': SystemError,
+                      'PlayerError': PlayerError,
+                      'AnimationError': AnimationError,
     'MODULES': {},
 
     'obj_clone': obj_clone,

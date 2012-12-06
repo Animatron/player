@@ -24,12 +24,26 @@ describe("errors", function() {
     describe("throwing errors", function() {
 
         it("throws one when player was incorrectly initialized (player-related errors)", function() {
+            player.state.muteErrors = false;
+
             try {
                 player.play();
-                this.fail();
-            } catch(e) { console.log(e); expect(player.state.happens).toBe(anm.C.STOPPED); }
+                this.fail('Should throw an error');
+            } catch(e) { expect(e).toEqual(jasmine.any(anm.PlayerError));
+                         expect(player.state.happens).toBe(anm.C.NOTHING); }
 
-            this.fail("NI");
+            try {
+                player.load();
+                this.fail('Should throw an error');
+            } catch(e) { expect(e).toEqual(jasmine.any(anm.PlayerError));
+                         expect(player.state.happens).toBe(anm.C.NOTHING); }
+
+            try {
+                player.load(new anm.Scene());
+                player.drawAt(anm.Player.NO_TIME);
+                this.fail('Should throw an error');
+            } catch(e) { expect(e).toEqual(jasmine.any(anm.PlayerError));
+                         expect(player.state.happens).toBe(anm.C.STOPPED); }
         });
 
         it("throws an error if modifier or painter code is incorrect (animation-related errors)", function() {
@@ -45,7 +59,7 @@ describe("errors", function() {
 
             doAsync(player, scene, {
                 do: 'play', until: anm.C.STOPPED, timeout: 1.2,
-                then: function() { this.fail(); } // should not reach this code due to error
+                then: function() { this.fail('Should not reach this block due to error'); }
             });
 
             this.fail("NI");
@@ -64,7 +78,7 @@ describe("errors", function() {
 
             doAsync(player, scene, {
                 do: 'play', until: anm.C.STOPPED, timeout: 1.2,
-                then: function() { this.fail(); } // should not reach this code due to error
+                then: function() { this.fail('Should not reach this block due to error'); } // should not reach this code due to error
                 // TODO: onerror: ensure if error was fired
             });
 
@@ -91,7 +105,7 @@ describe("errors", function() {
 
             // doAsync(player, scene, {
             //     do: 'play', until: anm.C.STOPPED, timeout: 1.2,
-            //     then: function() { this.fail(); } // should not reach here due to errors
+            //     then: function() { this.fail('Should not reach this block due to error'); } // should not reach here due to errors
             //     // TODO: onerror: check if it was fired only once
             // });
 
@@ -114,7 +128,7 @@ describe("errors", function() {
             // PlayerErr
             try {
                 player.play();
-                this.fail();
+                this.fail('Should throw an error');
             } catch(e) { console.log(e); expect(player.state.happens).toBe(anm.C.STOPPED); }
 
             // SysErr
@@ -189,16 +203,68 @@ describe("errors", function() {
 
         describe("mute errors option", function() {
 
-            it("mutes player-related errors", function() {
-                this.fail("NI");
+            describe("when enabled (by default)", function() {
+
+                it("mutes player-related errors", function() {
+                    this.fail("NI");
+                });
+
+                it("mutes animation-related errors", function() {
+                    this.fail("NI");
+                });
+
+                it("do not mutes system errors", function() {
+                    this.fail("NI");
+                });
+
+                describe("passes errors to onerror handler anyway", function() {
+
+                    it("works for player-related errors", function() {
+                        this.fail("NI");
+                    });
+
+                    it("works for animation-related errors", function() {
+                        this.fail("NI");
+                    });
+
+                    it("works for system errors", function() {
+                        this.fail("NI");
+                    });
+
+                });
+
             });
 
-            it("mutes animation-related errors", function() {
-                this.fail("NI");
-            });
+            describe("when disable", function() {
 
-            it("do not mutes system errors", function() {
-                this.fail("NI");
+                it("do not mutes player-related errors", function() {
+                    this.fail("NI");
+                });
+
+                it("do not mutes animation-related errors", function() {
+                    this.fail("NI");
+                });
+
+                it("do not mutes system errors", function() {
+                    this.fail("NI");
+                });
+
+                describe("passes errors to onerror handler anyway", function() {
+
+                    it("works for player-related errors", function() {
+                        this.fail("NI");
+                    });
+
+                    it("works for animation-related errors", function() {
+                        this.fail("NI");
+                    });
+
+                    it("works for system errors", function() {
+                        this.fail("NI");
+                    });
+
+                });
+
             });
 
         });
