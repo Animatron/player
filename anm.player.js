@@ -242,10 +242,9 @@ function prepareImage(url, callback) {
             }
             loader.callbacks = [];
         };
-        try { loader.image.src = url; }
-        catch(e) { throw new Error('Image at ' + url + ' is not accessible');}
     } else 
     if (anm.cache[url].image.isReady === true) {
+        console.log("url: ", url);
         if (callback) callback(self);
     } 
     else {

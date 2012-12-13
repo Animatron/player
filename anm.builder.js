@@ -161,9 +161,12 @@ Builder.prototype.image = function(pt, src, callback) {
         var b = this;
         this.x.image =
            // width/height olny will be known when image will be loaded
-           Element.imgFromUrl(src, function(img) { 
-               if (callback) callback(src);
-           });
+           Element.imgFromUrl(src);
+        if (callback) 
+        if (this.x.image.isReady) callback(src);
+        else Element.imgFromUrl(src, callback);
+        try { this.x.image.src = src; }
+        catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
     }
     return this;
 }
@@ -178,7 +181,10 @@ Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
         var b = this;
         this.x.image =
             // width/height olny will be known when image will be loaded
-            Element.imgFromUrl(src, function(img) {
+            Element.imgFromUrl(src);
+        if (callback) 
+        if (this.x.image.isReady) callback(src);
+        else Element.imgFromUrl(src, function(img) {
                 var w, h;
                 if (sheet instanceof Array) {
                     w = sheet[0];
@@ -187,8 +193,10 @@ Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
                 b.x.$.state.dimen = [w, h];
                 b.x.$.state.ratio = 1;
                 b.v.prepare();
-                if (callback) callback(this);
+                //if (callback) callback(this);
             });
+        try { this.x.image.src = src; }
+        catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
     }
     return this;
 }
