@@ -155,17 +155,19 @@ Builder.prototype.circle = function(pt, radius) {
 }
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
-Builder.prototype.image = function(pt, src) {
+Builder.prototype.image = function(pt, src, callback) {
     this.x.pos = pt;
     if (src) {
         var b = this;
         this.x.image =
            // width/height olny will be known when image will be loaded
-           Element.imgFromUrl(src, function(img) { });
+           Element.imgFromUrl(src, function(img) { 
+               if (callback) callback(src);
+           });
     }
     return this;
 }
-Builder.prototype.sprite = function(pt, src, sheet, frame) {
+Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
     this.x.pos = pt;
     this.v.sheet = sheet;
     this.v.sprite = true;
@@ -185,6 +187,7 @@ Builder.prototype.sprite = function(pt, src, sheet, frame) {
                 b.x.$.state.dimen = [w, h];
                 b.x.$.state.ratio = 1;
                 b.v.prepare();
+                if (callback) callback(this);
             });
     }
     return this;

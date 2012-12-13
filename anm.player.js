@@ -228,16 +228,30 @@ function newCanvas(dimen, ratio) {
 }
 
 function prepareImage(url, callback) {
-    var _img = new Image();
-    _img.onload = function() {
-        this.isReady = true; // FIXME: use 'image.complete' and
-                             // '...' (network exist) combination,
-                             // 'complete' fails on Firefox
-        if (callback) callback(this);
-    };
-    try { _img.src = url; }
-    catch(e) { throw new SysErr('Image at ' + url + ' is not accessible'); }
-    return _img;
+    var self = this;
+    if (anm.cache === undefined) anm.cache = {};
+    if (anm.cache[url] === undefined) {
+        var loader = {image: new Image(), callbacks:[]};
+        if (callback) loader.callbacks.push(callback);
+        anm.cache[url] = loader;
+        loader.image.onload = function() {
+            anm.cache[url].image.isReady = true;
+            var i;
+            for (i = 0; i < loader.callbacks.length; i ++) {
+                loader.callbacks[i](self);
+            }
+            loader.callbacks = [];
+        };
+        try { loader.image.src = url; }
+        catch(e) { throw new Error('Image at ' + url + ' is not accessible');}
+    } else 
+    if (anm.cache[url].image.isReady === true) {
+        if (callback) callback(self);
+    } 
+    else {
+        if (callback) anm.cache[url].callbacks.push(callback);
+    }
+    return anm.cache[url].image;
 }
 
 // HELPERS
@@ -2190,7 +2204,8 @@ Element.prototype._addChildren = function(elms) {
         this._addChild(elms[ei]);
     }
 }
-Element.prototype._drawToCache = function() {
+Element.prototype._drawToCache = function(a) {
+    console.log(a,this);
     var dim = this.state.dimen;
     if (this.sheet) dim = [this.xdata.image.width, this.xdata.image.height];
     var _canvas = newCanvas(dim, this.state.ratio);
