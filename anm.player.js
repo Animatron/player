@@ -244,7 +244,6 @@ function prepareImage(url, callback) {
         };
     } else 
     if (anm.cache[url].image.isReady === true) {
-        console.log("url: ", url);
         if (callback) callback(self);
     } 
     else {
@@ -2204,7 +2203,6 @@ Element.prototype._addChildren = function(elms) {
     }
 }
 Element.prototype._drawToCache = function(a) {
-    console.log(a,this);
     var dim = this.state.dimen;
     if (this.sheet) dim = [this.xdata.image.width, this.xdata.image.height];
     var _canvas = newCanvas(dim, this.state.ratio);
