@@ -21,6 +21,41 @@ describe("errors", function() {
 
     afterEach(function() { _FrameGen.disable(); });
 
+    /* var scenes = { // TODO: include error test in each scene
+        withInternalError: function() {
+            var elm = new anm.Element();
+            elm.addModifier(function(t, duration) {
+                if (t > .5) {
+                    some_undefined_var.foo = 'bar';
+                }
+            });
+
+            var scene = new anm.Scene();
+            scene.duration = 1;
+            scene.add(elm);
+
+            return scene;
+        },
+        withManualError: function() {
+            var elm = new anm.Element();
+            elm.addModifier(function(t) {
+                if (t > .5) {
+                    throw new Error('foo');
+                }
+            });
+
+            var scene = new anm.Scene();
+            scene.duration = 1;
+            scene.add(elm);
+
+            return scene;
+        },
+    } */
+
+    it("muteErrors should be off by default", function() {
+        expect(player.state.muteErrors).toBeFalsy();
+    });
+
     describe("throwing errors and their types", function() {
 
         it("throws an error if modifier or painter code is incorrect (internal errors)", function() {
@@ -39,7 +74,7 @@ describe("errors", function() {
 
             (function(spec) {
                 doAsync(player, scene, {
-                    do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                    do: 'play', until: anm.C.STOPPED,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(Error));
                                              expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
@@ -170,7 +205,35 @@ describe("errors", function() {
             describe("getting errors", function() {
 
                 it("gets internal errors", function() {
-                    this.fail("NI");
+                    player.state.muteErrors = false;
+
+                    var elm = new anm.Element();
+                    elm.addModifier(function(t, duration) {
+                        if (t > .5) {
+                            some_undefined_var.foo = 'bar';
+                        }
+                    });
+
+                    var scene = new anm.Scene();
+                    scene.duration = 1;
+                    scene.add(elm);
+
+                    var onerrorSpy = jasmine.createSpy().andCallFake(function(err) {
+                        expect(err).toEqual(jasmine.any(Error));
+                        expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
+                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                    });
+
+                    player.onerror(onerrorSpy);
+
+                    (function(spec) {
+                        doAsync(player, scene, {
+                            do: 'play', until: anm.C.STOPPED,
+                            then: function() { spec.fail('Should not reach this block due to error'); },
+                            onerror: function(err) { expect(onerrorSpy).toHaveBeenCalledOnce();
+                                                     onerrorSpy.reset(); }
+                        });
+                    })(this);
                 });
 
                 it("gets manually-fired errors", function() {
