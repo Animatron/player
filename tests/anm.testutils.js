@@ -194,9 +194,12 @@ function doAsync(player, conf) {
         conf = arguments[1];
     } else throw new Error('Not enough arguments');
 
+    var _errors = [];
+
     function reportOrThrow(err) {
-        if (conf.onerror) { conf.onerror(err); } else throw err;
+        if (conf.onerror) { conf.onerror(err); _errors.push(err); } else throw err;
     }
+    function thereWereErrors() { return _errors.length > 0; }
 
     try {
         if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
@@ -207,6 +210,7 @@ function doAsync(player, conf) {
     } catch(err) { reportOrThrow(err); }
 
     runs(function() {
+        if (thereWereErrors()) return;
         try {
             if (conf.do) player[conf.do]();
             else if (conf.run) conf.run.call(player);
@@ -216,6 +220,7 @@ function doAsync(player, conf) {
 
     if (conf.waitFor) {
         waitsFor(function() {
+            if (thereWereErrors()) return true;
             try {
                return conf.waitFor.call(player);
             } catch(err) { reportOrThrow(err); }
@@ -223,6 +228,7 @@ function doAsync(player, conf) {
     } else {
         var expectedState = (typeof conf.until !== 'undefined') ? conf.until : anm.C.STOPPED;
         waitsFor(function() {
+            if (thereWereErrors()) return true;
             try {
                 var finished = (player.state.happens === expectedState);
                 if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
@@ -231,16 +237,21 @@ function doAsync(player, conf) {
         }, _timeout);
     }
 
-    try {
-        if (conf.afterThat) conf.afterThat.call(player);
-    } catch(err) { reportOrThrow(err); }
+    runs(function() {
+        if (thereWereErrors()) return;
+        try {
+            if (conf.afterThat) conf.afterThat.call(player);
+        } catch(err) { reportOrThrow(err); }
+    });
 
     runs(function() {
+        if (thereWereErrors()) return;
         try {
             if (conf.then) conf.then.call(player);
             player.stop();
         } catch(err) { reportOrThrow(err); }
     });
+
 }
 
 // FIMXE: in doAsync, if you specify both scene as argument and conf.prepare, conf.prepare

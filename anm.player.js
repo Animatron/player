@@ -273,6 +273,16 @@ function __errorAs(name, _constructor) {
   return _constructor;
 }
 
+function _strf(str, subst) {
+  var args = subst;
+  return this.replace(/{(\d+)}/g, function(match, number) {
+    return typeof args[number] != 'undefined'
+      ? args[number]
+      : match
+    ;
+  });
+};
+
 function mrg_obj(src, backup) {
     var res = {};
     for (prop in backup) {
@@ -689,7 +699,7 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
-        if (!this.canvas) throw new PlayerErr(Errors.P.NO_CANVAS_WITH_ID + cvs);
+        if (!this.canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [cvs]));
         this.id = cvs;
     } else {
         if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
@@ -792,9 +802,9 @@ Player.prototype.configureMeta = function(info) {
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw new PlayerErr('Given time is not allowed, it is treated as no-time');
+    if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
     if ((time < 0) || (time > this.state.duration)) {
-        throw new PlayerErr(Errors.P.PASSED_TIME_NOT_IN_RANGE);
+        throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     var ctx = this.ctx,
         state = this.state;
@@ -921,7 +931,7 @@ Player.prototype.drawLoadingSplash = function(text) {
     ctx.save();
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
-    ctx.fillText(text || "Loading...", 20, 25);
+    ctx.fillText(text || Strings.LOADING, 20, 25);
     ctx.restore();
 }
 Player.prototype.toString = function() {
@@ -1057,7 +1067,7 @@ Player.prototype.__onerror = function(err) {
 
     player.anim = null;
     /*if (player.state)*/ player.__unsafe_stop();
-  } catch(e) { throw new SysErr('Error-handling mechanics were broken with error ' + err); }
+  } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
 
   doMute = doMute || (this.__err_handler && this.__err_handler(err));
 
@@ -1074,7 +1084,7 @@ Player.prototype.__makeSafe = function(methods) {
   var player = this;
   for (var i = 0, il = methods.length; i < il; i++) {
     var method = methods[i];
-    if (!player[method]) throw new SysErr('There is no such method \'' + method + '\' for player');
+    if (!player[method]) throw new SysErr(_strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
     player['__unsafe_'+method] = player[method];
     player[method] = (function(method_f) {
       return function() {
@@ -1286,7 +1296,7 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
     // error will be thrown in _unregister method
-    //if (!this.hash[elm.id]) throw new AnimErr(Errors.S.ELEMENT_IS_NOT_REGISTERED);
+    //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -1409,7 +1419,7 @@ Scene.prototype._addToTree = function(elm) {
     }
 }*/
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new AnimErr(Errors.S.ELEMENT_IS_REGISTERED);
+    if (this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
@@ -1419,7 +1429,7 @@ Scene.prototype._register = function(elm) {
     });
 }
 Scene.prototype._unregister = function(elm) {
-    if (!elm.registered) throw new AnimErr(Errors.S.ELEMENT_IS_NOT_REGISTERED);
+    if (!elm.registered) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
@@ -1745,7 +1755,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new AnimErr(Errors.E.UNSAFE_TO_REMOVE);
+            if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -1759,19 +1769,19 @@ Element.prototype.__safeDetach = function(what, _cnt) {
 }
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
-    if (!elm) throw new AnimErr('Pass an element or use detach() method');
-    if (this.__safeDetach(elm) == 0) throw new AnimErr('No such element found');
+    if (!elm) throw new AnimErr(Errors.A.NO_ELEMENT_TO_REMOVE);
+    if (this.__safeDetach(elm) == 0) throw new AnimErr(Errors.A.NO_ELEMENT);
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new AnimErr(Errors.E.UNSAFE_TO_REMOVE);
+        this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.scene) this.scene._unregister(this);
     // this.scene should be null after unregistering
 }
 // > Element.detach % ()
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) == 0) throw new AnimErr('Not attached');
+    if (this.parent.__safeDetach(this) == 0) throw new AnimErr(Errors.A.ELEMENT_NOT_ATTACHED);
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
@@ -1938,7 +1948,7 @@ Element.prototype.__performDetach = function() {
     this.__detachQueue = [];
 }
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new AnimErr(Errors.E.UNSAFE_TO_REMOVE);
+    if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -2742,17 +2752,16 @@ DU.qDraw = function(ctx, stroke, fill, func) {
 var L = {}; // means "Loading/Loader"
 
 L.loadFromUrl = function(player, url, importer, callback) {
-    if (!JSON) throw new SysErr('JSON parser is not accessible');
+    if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
-    player.drawLoadingSplash('Loading ' + url.substring(0, 50) + '...');
+    player.drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
 
     ajax(url, function(req) {
         L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
     });
 }
 L.loadFromObj = function(player, object, importer, callback) {
-    if (!importer) throw new PlayerErr('Cannot load project without importer. ' +
-                                       'Please define it');
+    if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
     if (importer.configureAnim) {
         player.configureAnim(importer.configureAnim(object));
     }
@@ -4183,16 +4192,27 @@ InfoBlock.prototype.changeColors = function(front, back) {
     this.div.style.backgroundColor = back;
 }
 
+// ==== STRINGS ================================================================
+
+var Strings = {};
+
+Strings.LOADING = 'Loading...';
+Strings.LOADING_ANIMATION = 'Loading {0}...';
+
 // ==== ERRORS =================================================================
 
 // TODO: Move Scene and Element errors here ?
 
 var Errors = {};
+Errors.S = {}; // System Errors
 Errors.P = {}; // Player Errors
-Errors.S = {}; // Scene Errors
-Errors.E = {}; // Element Errors
+Errors.A = {}; // Animation Errors
 
-Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: ';
+Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
+Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
+Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player.';
+Errors.P.NO_IMPORTER_TO_LOAD_WITH = 'Cannot load project without importer. Please define it';
+Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: {0}';
 Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
 Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
 Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
@@ -4208,12 +4228,16 @@ Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
 Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
                     'please stop player before loading';
 Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
-Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time is not in scene range';
+Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
+Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
 Errors.P.INIT_TWICE = 'Initialization was called twice';
 Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
-Errors.S.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
-Errors.S.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
-Errors.E.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
+Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
+Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
+Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
+Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method';
+Errors.A.NO_ELEMENT = 'No such element found';
+Errors.A.ELEMENT_NOT_ATTACHED = 'Element is not attached to something at all';
 
 // =============================================================================
 // === EXPORTS =================================================================

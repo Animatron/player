@@ -42,8 +42,8 @@ describe("errors", function() {
                     do: 'play', until: anm.C.STOPPED, timeout: 1.2,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(Error));
-                                             expect(player.state.happens).toBe(anm.C.STOPPED);
-                                             _FrameGen.disable(); }
+                                             expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
+                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
                 });
             })(this);
         });
@@ -67,8 +67,8 @@ describe("errors", function() {
                     do: 'play', until: anm.C.STOPPED, timeout: 1.2,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(Error));
-                                             expect(player.state.happens).toBe(anm.C.STOPPED);
-                                             _FrameGen.disable(); }
+                                             expect(err.message).toBe('foo');
+                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
                 });
             })(this);
         });
@@ -79,21 +79,24 @@ describe("errors", function() {
             try {
                 player.play();
                 this.fail('Should throw an error');
-            } catch(e) { expect(e).toEqual(jasmine.any(anm.PlayerError));
-                         expect(player.state.happens).toBe(anm.C.NOTHING); }
+            } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
+                           expect(err.message).toBe(anm.Errors.P.NO_SCENE);
+                           expect(player.state.happens).toBe(anm.C.NOTHING); }
 
             try {
                 player.load();
                 this.fail('Should throw an error');
-            } catch(e) { expect(e).toEqual(jasmine.any(anm.PlayerError));
-                         expect(player.state.happens).toBe(anm.C.NOTHING); }
+            } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
+                           expect(err.message).toBe(anm.Errors.P.NO_SCENE_PASSED);
+                           expect(player.state.happens).toBe(anm.C.NOTHING); }
 
             try {
                 player.load(new anm.Scene());
                 player.drawAt(anm.Player.NO_TIME);
                 this.fail('Should throw an error');
-            } catch(e) { expect(e).toEqual(jasmine.any(anm.PlayerError));
-                         expect(player.state.happens).toBe(anm.C.STOPPED); }
+            } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
+                           expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
+                           expect(player.state.happens).toBe(anm.C.STOPPED); }
         });
 
         it("throws errors related to animations (animation errors)", function() {
@@ -123,8 +126,8 @@ describe("errors", function() {
                     do: 'play', until: anm.C.STOPPED, timeout: 1.2,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(anm.AnimationError));
-                                             expect(player.state.happens).toBe(anm.C.STOPPED);
-                                             _FrameGen.disable(); }
+                                             expect(err.message).toBe(anm.Errors.A.NO_ELEMENT_TO_REMOVE);
+                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
                 });
             })(this);
 
@@ -139,20 +142,21 @@ describe("errors", function() {
             // this is in purpose of emulation)
             elm.addModifier(function(t) {
                 if (t > .2) {
-                    throw new SystemError('foo');
+                    throw new anm.SystemError('foo');
                 }
             });
 
             var scene = new anm.Scene();
             scene.duration = 1;
+            scene.add(elm);
 
             (function(spec) {
                 doAsync(player, scene, {
                     do: 'play', until: anm.C.STOPPED, timeout: 1.2,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(anm.SystemError));
-                                             expect(player.state.happens).toBe(anm.C.STOPPED);
-                                             _FrameGen.disable(); }
+                                             expect(err.message).toBe('foo');
+                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
                 });
             })(this);
         });
