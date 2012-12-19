@@ -588,11 +588,12 @@ Player.prototype.play = function(from, speed, stopAfter) {
     scene.reset();
     player.setDuration(scene.duration);
 
-    state.__firstReq = D.drawNext(player.ctx,
+    state.__firstReq = player.__callSafe(function() {
+      return D.drawNext(player.ctx,
                                   state, scene,
                                   player.__beforeFrame(scene),
-                                  player.__afterFrame(scene),
-                                  function(f) { player.__callSafe(f); });
+                                  player.__afterFrame(scene));
+    });
 
     player.fire(C.S_PLAY, state.from);
 
@@ -2649,51 +2650,47 @@ var D = {}; // means "Drawing"
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, before, after, call_safe) {
+D.drawNext = function(ctx, state, scene, before, after) {
     // NB: state here is a player state, not an element state
 
-    return call_safe(function() {
+    if (state.happens !== C.PLAYING) return;
 
-      if (state.happens !== C.PLAYING) return;
+    var msec = (Date.now() - state.__startTime);
+    var sec = msec / 1000;
 
-      var msec = (Date.now() - state.__startTime);
-      var sec = msec / 1000;
+    var time = (sec * state.speed) + state.from;
+    state.time = time;
 
-      var time = (sec * state.speed) + state.from;
-      state.time = time;
+    if (before) {
+        if (!before(time)) return;
+    }
 
-      if (before) {
-          if (!before(time)) return;
-      }
+    if (state.__rsec === 0) state.__rsec = msec;
+    if ((msec - state.__rsec) >= 1000) {
+        state.afps = state.__redraws;
+        state.__rsec = msec;
+        state.__redraws = 0;
+    }
+    state.__redraws++;
 
-      if (state.__rsec === 0) state.__rsec = msec;
-      if ((msec - state.__rsec) >= 1000) {
-          state.afps = state.__redraws;
-          state.__rsec = msec;
-          state.__redraws = 0;
-      }
-      state.__redraws++;
+    ctx.clearRect(0, 0, state.width * state.ratio,
+                        state.height * state.ratio);
 
-      ctx.clearRect(0, 0, state.width * state.ratio,
-                          state.height * state.ratio);
+    scene.render(ctx, time, state.zoom * state.ratio, state.afps);
 
-      scene.render(ctx, time, state.zoom * state.ratio, state.afps);
+    // show fps
+    if (state.debug) { // TODO: move to player.onrender
+        D.drawFPS(ctx, state.afps);
+    }
 
-      // show fps
-      if (state.debug) { // TODO: move to player.onrender
-          D.drawFPS(ctx, state.afps);
-      }
+    if (after) {
+        if (!after(time)) return;
+    }
 
-      if (after) {
-          if (!after(time)) return;
-      }
+    if (state.__supressFrames) return;
 
-      if (state.__supressFrames) return;
-
-      return __nextFrame(function() {
-          D.drawNext(ctx, state, scene, before, after, call_safe);
-      });
-
+    return __nextFrame(function() {
+        D.drawNext(ctx, state, scene, before, after);
     });
 
 }
