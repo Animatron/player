@@ -63,6 +63,7 @@ describe("errors", function() {
             player.state.muteErrors = false;
 
             var elm = new anm.Element();
+            elm.setBand([0, 1]);
             elm.addModifier(function(t, duration) {
                 if (t > .5) {
                     some_undefined_var.foo = 'bar';
@@ -71,7 +72,6 @@ describe("errors", function() {
 
             var scene = new anm.Scene();
             scene.add(elm);
-            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
@@ -88,6 +88,7 @@ describe("errors", function() {
             player.state.muteErrors = false;
 
             var elm = new anm.Element();
+            elm.setBand([0, 1]);
             elm.addModifier(function(t) {
                 if (t > .5) {
                     throw new Error('foo');
@@ -96,7 +97,6 @@ describe("errors", function() {
 
             var scene = new anm.Scene();
             scene.add(elm);
-            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
@@ -149,6 +149,7 @@ describe("errors", function() {
             }
 
             var elm = new anm.Element();
+            elm.setBand([0, 1]);
             elm.addModifier(function(t, duration) {
                 if (t > .5) {
                     elm.remove();
@@ -157,7 +158,6 @@ describe("errors", function() {
 
             var scene = new anm.Scene();
             scene.add(elm);
-            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
@@ -175,6 +175,7 @@ describe("errors", function() {
             player.state.muteErrors = false;
 
             var elm = new anm.Element();
+            elm.setBand([0, 1]);
             // since all system errors are hard-to-force, we throw one manually
             // directly from animation (this is not like we thrown some for manual errors test,
             // this is in purpose of emulation)
@@ -186,7 +187,6 @@ describe("errors", function() {
 
             var scene = new anm.Scene();
             scene.add(elm);
-            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
@@ -211,6 +211,7 @@ describe("errors", function() {
                     player.state.muteErrors = false;
 
                     var elm = new anm.Element();
+                    elm.setBand([0, 1]);
                     elm.addModifier(function(t, duration) {
                         if (t > .5) {
                             some_undefined_var.foo = 'bar';
@@ -219,7 +220,6 @@ describe("errors", function() {
 
                     var scene = new anm.Scene();
                     scene.add(elm);
-                    scene.duration = 1;
 
                     var onerrorSpy = jasmine.createSpy('undefined-var-handler')
                                             .andCallFake(function(err) {
@@ -244,6 +244,7 @@ describe("errors", function() {
                     player.state.muteErrors = false;
 
                     var elm = new anm.Element();
+                    elm.setBand([0, 1]);
                     elm.addModifier(function(t) {
                         if (t > .5) {
                             throw new Error('foo');
@@ -252,7 +253,6 @@ describe("errors", function() {
 
                     var scene = new anm.Scene();
                     scene.add(elm);
-                    scene.duration = 1;
 
                     var onerrorSpy = jasmine.createSpy('foo-handler')
                                             .andCallFake(function(err) {
@@ -340,6 +340,7 @@ describe("errors", function() {
                     player.onerror(removeNothingOnerrorSpy);
 
                     var elm = new anm.Element();
+                    elm.setBand([0, 1]);
                     elm.addModifier(function(t, duration) {
                         if (t > .5) {
                             elm.remove();
@@ -348,7 +349,6 @@ describe("errors", function() {
 
                     var scene = new anm.Scene();
                     scene.add(elm);
-                    scene.duration = 1;
 
                     (function(spec) {
                         doAsync(player, scene, {
@@ -373,6 +373,7 @@ describe("errors", function() {
                     player.onerror(onerrorSpy);
 
                     var elm = new anm.Element();
+                    elm.setBand([0, 1]);
                     // since all system errors are hard-to-force, we throw one manually
                     // directly from animation (this is not like we thrown some for manual errors test,
                     // this is in purpose of emulation)
@@ -384,7 +385,6 @@ describe("errors", function() {
 
                     var scene = new anm.Scene();
                     scene.add(elm);
-                    scene.duration = 1;
 
                     (function(spec) {
                         doAsync(player, scene, {
@@ -404,6 +404,7 @@ describe("errors", function() {
                     player.state.muteErrors = false;
 
                     var elm = new anm.Element();
+                    elm.setBand([0, 1]);
                     elm.addModifier(function(t, duration) {
                         if (t > .5) {
                             some_undefined_var.foo = 'bar';
@@ -412,7 +413,6 @@ describe("errors", function() {
 
                     var scene = new anm.Scene();
                     scene.add(elm);
-                    scene.duration = 1;
 
                     var onerrorSpy = jasmine.createSpy('undefined-var-handler')
                                             .andCallFake(function(err) {
