@@ -450,7 +450,6 @@ function Player() {
     this.info = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
-    this.__err_stack_lvl = 0;
     this.__makeSafe(Player._SAFE_METHODS);
 }
 Player.__instances = 0;
@@ -1076,17 +1075,17 @@ Player.prototype.__onerror = function(err) {
   if (!doMute) throw err;
 }
 Player.prototype.__callSafe = function(f) {
-  this.__err_stack_lvl++;
-  console.log('before, ++ ->' + this.__err_stack_lvl);
   try {
-    var ret_val = f.call(this);
-    this.__err_stack_lvl--;
-    console.log('passed call, -- ->' + this.__err_stack_lvl);
-    return ret_val;
+    return f.call(this);
   } catch(err) {
-    this.__err_stack_lvl--;
-    console.log('error, check stack -- ->' + this.__err_stack_lvl, this.__err_stack_lvl === 0);
-    if (this.__err_stack_lvl === 0) this.__onerror(err);
+    console.log('-------');
+    console.log(err);
+    console.log('was fired:', err.__anm_fired);
+    if (!err.__anm_fired) {
+      err.__anm_fired = true;
+      console.log('firing', err)
+      this.__onerror(err);
+    }
   }
 }
 Player.prototype.__makeSafe = function(methods) {
