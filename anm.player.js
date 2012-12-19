@@ -588,12 +588,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
     scene.reset();
     player.setDuration(scene.duration);
 
-    state.__firstReq = player.__callSafe(function() {
-      return D.drawNext(player.ctx,
+    state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
                                   player.__beforeFrame(scene),
                                   player.__afterFrame(scene));
-    });
 
     player.fire(C.S_PLAY, state.from);
 
