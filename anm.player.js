@@ -1078,14 +1078,7 @@ Player.prototype.__callSafe = function(f) {
   try {
     return f.call(this);
   } catch(err) {
-    console.log('-------');
-    console.log(err);
-    console.log('was fired:', err.__anm_fired);
-    if (!err.__anm_fired) {
-      err.__anm_fired = true;
-      console.log('firing', err)
-      this.__onerror(err);
-    }
+    this.__onerror(err);
   }
 }
 Player.prototype.__makeSafe = function(methods) {
@@ -1097,9 +1090,21 @@ Player.prototype.__makeSafe = function(methods) {
     player[method] = (function(method_f) {
       return function() {
         var args = arguments;
-        return player.__callSafe(function() {
+        if (!this.__safe_ctx) {
+          this.__safe_ctx = true;
+          try {
+            var ret_val = player.__callSafe(function() {
+              return method_f.apply(player, args);
+            });
+            this.__safe_ctx = false;
+            return ret_val;
+          } catch(err) {
+            this.__safe_ctx = false;
+            throw err;
+          }
+        } else {
           return method_f.apply(player, args);
-        });
+        }
       };
     })(player[method]);
   }
