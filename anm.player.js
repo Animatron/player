@@ -1674,7 +1674,7 @@ Element.prototype.addTModifier = function(band, modifier, easing, data, priority
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
-    if (!modifier.__m_ids) throw new AnimErr('Modifier wasn\'t applied to anything');
+    if (!modifier.__m_ids) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
     var id = modifier.__m_ids[this.id];
     if (!id) throw new AnimErr('Modifier wasn\'t applied to this element');
@@ -4238,6 +4238,7 @@ Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping
 Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method';
 Errors.A.NO_ELEMENT = 'No such element found';
 Errors.A.ELEMENT_NOT_ATTACHED = 'Element is not attached to something at all';
+Errors.A.MODIFIER_NOT_ATTACHED = 'Modifier wasn\'t applied to anything';
 
 // =============================================================================
 // === EXPORTS =================================================================
