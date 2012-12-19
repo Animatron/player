@@ -275,7 +275,7 @@ function __errorAs(name, _constructor) {
 
 function _strf(str, subst) {
   var args = subst;
-  return this.replace(/{(\d+)}/g, function(match, number) {
+  return str.replace(/{(\d+)}/g, function(match, number) {
     return typeof args[number] != 'undefined'
       ? args[number]
       : match
@@ -488,7 +488,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 // which way of handling/suppressing errors is current one for this player
 // and act with catched errors basing on this way
 
-Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause' ];
+Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
 // TODO: add load/play/pause/stop events
 
@@ -627,7 +627,7 @@ Player.prototype.stop = function() {
         }
     } else {
         state.happens = C.NOTHING;
-        player.drawSplash();
+        player._drawSplash();
     }
 
     player.fire(C.S_STOP);
@@ -886,7 +886,7 @@ Player.prototype.setDuration = function(value) {
     this.state.duration = value;
     if (this.info) this.info.setDuration(value);
 }
-Player.prototype.drawSplash = function() {
+Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
         w = this.state.width,
         h = this.state.height,
@@ -924,8 +924,8 @@ Player.prototype.drawSplash = function() {
 
     ctx.restore();
 }
-Player.prototype.drawLoadingSplash = function(text) {
-    this.drawSplash();
+Player.prototype._drawLoadingSplash = function(text) {
+    this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
     ctx.fillStyle = '#006';
@@ -2761,7 +2761,7 @@ var L = {}; // means "Loading/Loader"
 L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
-    player.drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
+    player._drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
 
     ajax(url, function(req) {
         L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
@@ -4275,9 +4275,10 @@ var exports = {
 
     '_typecheck': { builder: __builder,
                     array: __array,
-                    num: __num }
+                    num: __num },
 
-    //'__dev': { 'Controls': Controls, 'Info': InfoBlock  },
+    '__dev': { 'strf': _strf/*,
+               'Controls': Controls, 'Info': InfoBlock*/ },
 
 };
 

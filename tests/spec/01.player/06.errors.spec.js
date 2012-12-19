@@ -1,6 +1,7 @@
 // TODO: errors, thrown in playing process (from modifiers), should be supressed (?), but passed to onerror handler
 // TODO: errors, thrown in player creating process, should be shown in the console.
 // TODO: errors should be thrown only once
+// TODO: special error state for player?
 
 describe("errors", function() {
 
@@ -31,8 +32,8 @@ describe("errors", function() {
             });
 
             var scene = new anm.Scene();
-            scene.duration = 1;
             scene.add(elm);
+            scene.duration = 1;
 
             return scene;
         },
@@ -45,8 +46,8 @@ describe("errors", function() {
             });
 
             var scene = new anm.Scene();
-            scene.duration = 1;
             scene.add(elm);
+            scene.duration = 1;
 
             return scene;
         },
@@ -69,8 +70,8 @@ describe("errors", function() {
             });
 
             var scene = new anm.Scene();
-            scene.duration = 1;
             scene.add(elm);
+            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
@@ -94,12 +95,12 @@ describe("errors", function() {
             });
 
             var scene = new anm.Scene();
-            scene.duration = 1;
             scene.add(elm);
+            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
-                    do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                    do: 'play', until: anm.C.STOPPED,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(Error));
                                              expect(err.message).toBe('foo');
@@ -131,7 +132,7 @@ describe("errors", function() {
                 this.fail('Should throw an error');
             } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
                            expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-                           expect(player.state.happens).toBe(anm.C.STOPPED); }
+                           expect(player.state.happens).toBe(anm.C.NOTHING); }
         });
 
         it("throws errors related to animations (animation errors)", function() {
@@ -155,12 +156,12 @@ describe("errors", function() {
             });
 
             var scene = new anm.Scene();
-            scene.duration = 1;
             scene.add(elm);
+            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
-                    do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                    do: 'play', until: anm.C.STOPPED,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(anm.AnimationError));
                                              expect(err.message).toBe(anm.Errors.A.NO_ELEMENT_TO_REMOVE);
@@ -184,12 +185,12 @@ describe("errors", function() {
             });
 
             var scene = new anm.Scene();
-            scene.duration = 1;
             scene.add(elm);
+            scene.duration = 1;
 
             (function(spec) {
                 doAsync(player, scene, {
-                    do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                    do: 'play', until: anm.C.STOPPED,
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(anm.SystemError));
                                              expect(err.message).toBe('foo');
@@ -204,7 +205,7 @@ describe("errors", function() {
 
         describe("onerror handler", function() {
 
-            describe("getting errors", function() {
+            describe("gets an error and raises it anyaway", function() {
 
                 it("gets internal errors", function() {
                     player.state.muteErrors = false;
@@ -217,8 +218,8 @@ describe("errors", function() {
                     });
 
                     var scene = new anm.Scene();
-                    scene.duration = 1;
                     scene.add(elm);
+                    scene.duration = 1;
 
                     var onerrorSpy = jasmine.createSpy('undefined-var-handler')
                                             .andCallFake(function(err) {
@@ -250,8 +251,8 @@ describe("errors", function() {
                     });
 
                     var scene = new anm.Scene();
-                    scene.duration = 1;
                     scene.add(elm);
+                    scene.duration = 1;
 
                     var onerrorSpy = jasmine.createSpy('foo-handler')
                                             .andCallFake(function(err) {
@@ -264,7 +265,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                            do: 'play', until: anm.C.STOPPED,
                             then: function() { spec.fail('Should not reach this block due to error'); },
                             onerror: function(err) { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                      onerrorSpy.reset(); }
@@ -309,7 +310,7 @@ describe("errors", function() {
                                                         .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-                        expect(player.state.happens).toBe(anm.C.STOPPED);
+                        expect(player.state.happens).toBe(anm.C.NOTHING);
                     });
 
                     player.onerror(drawAtNoTimeOnerrorSpy);
@@ -329,24 +330,6 @@ describe("errors", function() {
                 it("gets animation-related errors", function() {
                     player.state.muteErrors = false;
 
-                    var removeModifierOnerrorSpy = jasmine.createSpy('remove-modifier')
-                                                          .andCallFake(function(err) {
-                        expect(err).toEqual(jasmine.any(anm.AnimationError));
-                        expect(err.message).toBe(anm.Errors.A.MODIFIER_NOT_ATTACHED);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
-                    });
-
-                    player.onerror(removeModifierOnerrorSpy);
-
-                    try {
-                        var elm = new anm.Element();
-                        elm.removeModifier(function(t) {});
-                        this.fail('Should throw an error');
-                    } catch(err) {
-                        expect(removeModifierOnerrorSpy).toHaveBeenCalledOnce();
-                        removeModifierOnerrorSpy.reset();
-                    }
-
                     var removeNothingOnerrorSpy = jasmine.createSpy('remove-nothing')
                                                          .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.AnimationError));
@@ -364,12 +347,12 @@ describe("errors", function() {
                     });
 
                     var scene = new anm.Scene();
-                    scene.duration = 1;
                     scene.add(elm);
+                    scene.duration = 1;
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                            do: 'play', until: anm.C.STOPPED,
                             then: function() { spec.fail('Should not reach this block due to error'); },
                             onerror: function(err) { expect(removeNothingOnerrorSpy).toHaveBeenCalledOnce();
                                                      removeNothingOnerrorSpy.reset(); }
@@ -400,12 +383,12 @@ describe("errors", function() {
                     });
 
                     var scene = new anm.Scene();
-                    scene.duration = 1;
                     scene.add(elm);
+                    scene.duration = 1;
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.STOPPED, timeout: 1.2,
+                            do: 'play', until: anm.C.NOTHING,
                             then: function() { spec.fail('Should not reach this block due to error'); },
                             onerror: function(err) { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                      onerrorSpy.reset(); }
@@ -415,10 +398,40 @@ describe("errors", function() {
 
             });
 
-            describe("suppressing errors", function() {
+            describe("suppressing errors (with returning true)", function() {
 
                 it("suppresses internal errors", function() {
-                    this.fail("NI");
+                    player.state.muteErrors = false;
+
+                    var elm = new anm.Element();
+                    elm.addModifier(function(t, duration) {
+                        if (t > .5) {
+                            some_undefined_var.foo = 'bar';
+                        }
+                    });
+
+                    var scene = new anm.Scene();
+                    scene.add(elm);
+                    scene.duration = 1;
+
+                    var onerrorSpy = jasmine.createSpy('undefined-var-handler')
+                                            .andCallFake(function(err) {
+                        expect(err).toEqual(jasmine.any(Error));
+                        expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
+                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        return true;
+                    });
+
+                    player.onerror(onerrorSpy);
+
+                    (function(spec) {
+                        doAsync(player, scene, {
+                            do: 'play', until: anm.C.STOPPED,
+                            then: function() { expect(onerrorSpy).toHaveBeenCalledOnce();
+                                               onerrorSpy.reset(); },
+                            onerror: function(err) { spec.fail('Error should be supressed'); }
+                        });
+                    })(this);
                 });
 
                 it("suppresses manually-fired errors", function() {
@@ -434,30 +447,6 @@ describe("errors", function() {
                 });
 
                 it("supresses even system errors by default", function() {
-                    this.fail("NI");
-                });
-
-            });
-
-            describe("forcing errors to raise (with returning true)", function() {
-
-                it("works for internal errors", function() {
-                    this.fail("NI");
-                });
-
-                it("works for manually-fired errors", function() {
-                    this.fail("NI");
-                });
-
-                it("works for player-related errors", function() {
-                    this.fail("NI");
-                });
-
-                it("works for animation-related errors", function() {
-                    this.fail("NI");
-                });
-
-                it("works for system errors", function() {
                     this.fail("NI");
                 });
 

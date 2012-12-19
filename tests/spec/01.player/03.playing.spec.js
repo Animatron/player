@@ -8,7 +8,8 @@
 describe("player, when speaking about playing,", function() {
 
     var player,
-        C = anm.C;
+        C = anm.C,
+        strf = anm.__dev.strf;
 
     var _instances = 0;
 
@@ -582,25 +583,25 @@ describe("player, when speaking about playing,", function() {
             try {
                 player.drawAt(duration + 0.05);
             } catch(e) {
-                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
+                expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [duration+0.05]));
             }
 
             try {
                 player.drawAt(duration + 10);
             } catch(e) {
-                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
+                expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [duration+10]));
             }
 
             try {
                 player.drawAt(-0.05);
             } catch(e) {
-                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
+                expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [-0.05]));
             }
 
             try {
                 player.drawAt(-10);
             } catch(e) {
-                expect(e.message).toBe(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE);
+                expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [-10]));
             }
 
         });
