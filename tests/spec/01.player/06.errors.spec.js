@@ -508,6 +508,7 @@ describe("errors", function() {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
                         expect(player.state.happens).toBe(anm.C.NOTHING);
+                        return true;
                     });
 
                     player.onerror(drawAtNoTimeOnerrorSpy);
@@ -599,6 +600,53 @@ describe("errors", function() {
                             onerror: function(err) { spec.fail('Error should be supressed'); }
                         });
                     })(this);
+                });
+
+                it("errors come in order", function() {
+                    player.state.muteErrors = false;
+
+                    var spec = this;
+
+                    var receivedFooError = false,
+                        receivedBarError = false;
+
+                    var onerrorSpy = jasmine.createSpy('onerror-handler')
+                                            .andCallFake(function(err) {
+                        expect(err).toEqual(jasmine.any(anm.SystemError));
+                        if (!receivedFooError && !receivedBarError) {
+                            expect(err.message).toBe('foo');
+                            receivedFooError = true;
+                        } else if (!receivedBarError) {
+                            expect(err.message).toBe('bar');
+                            receivedBarError = true;
+                        } else {
+                            spec.fail('Foo-error should be received before Bar-error');
+                        }
+                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        return true;
+                    });
+
+                    player.onerror(onerrorSpy);
+
+                    var elm = new anm.Element();
+                    elm.setBand([0, 1]);
+                    elm.addModifier(function(t) {
+                        if (t > .4) {
+                            throw new anm.SystemError('foo');
+                        }
+                        if (t > .6) {
+                            throw new anm.SystemError('bar');
+                        }
+                    });
+
+                    var scene = new anm.Scene();
+                    scene.add(elm);
+
+                    doAsync(player, scene, {
+                        do: 'play', until: anm.C.NOTHING,
+                        then: function() { expect(onerrorSpy.callCount).toBe(2);
+                                           onerrorSpy.reset(); },
+                        onerror: function(err) { spec.fail('Any error should be supressed'); } });
                 });
 
             });
