@@ -577,7 +577,13 @@ describe("errors", function() {
                     // directly from animation (this is not like we thrown some for manual errors test,
                     // this is in purpose of emulation)
                     elm.addModifier(function(t) {
-                        if (t > .2) {
+                        // if we will use .2, then a callback to fire after load()
+                        // will sequentially call stop(), and than drawAt() to draw
+                        // a still frame after loading, "foo" will be fired since
+                        // it matches 1/3 of the scene for the preview, and then
+                        // (since error is supressed) play() will be called when
+                        // there is no scene at all
+                        if (t > .5) {
                             throw new anm.SystemError('foo');
                         }
                     });
