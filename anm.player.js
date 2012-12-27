@@ -1068,7 +1068,7 @@ Player.prototype.__onerror = function(err) {
     /*if (player.state)*/ player.__unsafe_stop();
   } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
 
-  doMute = doMute || (this.__err_handler && this.__err_handler(err));
+  doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
   if (!doMute) throw err;
 }
