@@ -27,7 +27,7 @@ describe("as for known bugs,", function() {
 
             var duration = 10;
 
-            var player = createPlayer('foo', { mode: C.M_DYNAMIC });
+            var player = createPlayer('foo'/*, { mode: C.M_DYNAMIC }*/);
             var rect1 = b().rect([50, 50], 70);
             var rect2 = b().rect([100, 100], 70);
             var rect3 = b().rect([150, 150], 70);
@@ -127,7 +127,7 @@ describe("as for known bugs,", function() {
 
             var duration = 10;
 
-            var player = createPlayer('foo', { mode: C.M_DYNAMIC }); // TODO: varyAll with mode?
+            var player = createPlayer('foo'/*, { mode: C.M_DYNAMIC }*/); // TODO: varyAll with mode?
             var rect1 = b().rect([10, 10], 70);
             var rect2 = b().rect([20, 20], 70);
             var rect3 = b().rect([30, 30], 70);
@@ -257,7 +257,7 @@ describe("as for known bugs,", function() {
 
     it('#35304529 should work as expected (events happened while an element was disabled should not fire when it was re-enabled)', function() {
 
-        var player = createPlayer('foo', { mode: C.M_DYNAMIC });
+        var player = createPlayer('foo'/*, { mode: C.M_DYNAMIC }*/);
 
         var enabledB1AndWaitedABit = false;
 
