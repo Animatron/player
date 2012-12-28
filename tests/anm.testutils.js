@@ -33,12 +33,15 @@ function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mock
 var _FrameGen = (function() {
 
     var realDateNow = Date.now;
+    //var forcedOff;
 
     var requestSpy, cancelSpy;
 
     var clock = jasmine.Clock;
 
     function _enable(fps) {
+
+        forcedOff = false;
 
         if (_window) {
 
@@ -51,6 +54,7 @@ var _FrameGen = (function() {
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
                 clock.tick(period);
+                //if (forcedOff) return;
                 callback();
                 // return _window.setTimeout(callback, period);
             };
@@ -76,6 +80,7 @@ var _FrameGen = (function() {
                 //if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
                 //clock.reset();
                 //return _window.clearTimeout(id);
+                //forcedOff = true;
             };
 
             if (_window.cancelAnimationFrame) {
@@ -92,7 +97,7 @@ var _FrameGen = (function() {
                 _window.__anm__frameRem = stubFrameRem;
                 requestSpy = spyOn(_window, '__anm__frameRem').andCallThrough();
             } else {
-                cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameGen);
+                cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameRem);
             }
 
         } else throw new Error('No window object');
