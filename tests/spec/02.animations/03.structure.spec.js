@@ -25,7 +25,7 @@ describe("structure", function() {
             scene.add(root2);
             this.fail('No exception was thrown');
         } catch(e) {
-            expect(e.message).toBe(anm.Errors.S.ELEMENT_IS_REGISTERED); // TODO: include element name in error
+            expect(e.message).toBe(anm.Errors.A.ELEMENT_IS_REGISTERED); // TODO: include element name in error
         };
 
         try {
@@ -33,7 +33,7 @@ describe("structure", function() {
             // should throw an exception because its child is already registered in scene
             this.fail('No exception was thrown');
         } catch(e) {
-            expect(e.message).toBe(anm.Errors.S.ELEMENT_IS_REGISTERED); // TODO: include element name in error
+            expect(e.message).toBe(anm.Errors.A.ELEMENT_IS_REGISTERED); // TODO: include element name in error
         };
 
         try {
@@ -41,7 +41,7 @@ describe("structure", function() {
             // should throw an exception because its child is already registered in scene
             this.fail('No exception was thrown');
         } catch(e) {
-            expect(e.message).toBe(anm.Errors.S.ELEMENT_IS_REGISTERED); // TODO: include element name in error
+            expect(e.message).toBe(anm.Errors.A.ELEMENT_IS_REGISTERED); // TODO: include element name in error
         };
 
         test_elm.remove(test_child);
@@ -64,7 +64,7 @@ describe("structure", function() {
             scene.remove(subj);
             this.fail('No exception was thrown');
         } catch(e) {
-            expect(e.message).toBe(anm.Errors.S.ELEMENT_IS_NOT_REGISTERED); // TODO: include element name in error
+            expect(e.message).toBe(anm.Errors.A.ELEMENT_IS_NOT_REGISTERED); // TODO: include element name in error
         }
     });
 

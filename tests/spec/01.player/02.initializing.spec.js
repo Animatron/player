@@ -37,7 +37,7 @@ describe("player, when speaking about initialization,", function() {
     });
 
     it("should show splash screen when initialized", function() {
-        var splashSpy = spyOn(player, 'drawSplash');
+        var splashSpy = spyOn(player, '_drawSplash');
         player.init('test-id');
         expect(splashSpy).toHaveBeenCalledOnce();
     });
