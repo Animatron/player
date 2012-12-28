@@ -33,12 +33,15 @@ function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mock
 var _FrameGen = (function() {
 
     var realDateNow = Date.now;
+    //var forcedOff;
 
     var requestSpy, cancelSpy;
 
     var clock = jasmine.Clock;
 
     function _enable(fps) {
+
+        forcedOff = false;
 
         if (_window) {
 
@@ -51,6 +54,7 @@ var _FrameGen = (function() {
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
                 clock.tick(period);
+                //if (forcedOff) return;
                 callback();
                 // return _window.setTimeout(callback, period);
             };
@@ -76,6 +80,7 @@ var _FrameGen = (function() {
                 //if (!clock.isInstalled()) throw new Error('Clock mock is not installed');
                 //clock.reset();
                 //return _window.clearTimeout(id);
+                //forcedOff = true;
             };
 
             if (_window.cancelAnimationFrame) {
@@ -92,7 +97,7 @@ var _FrameGen = (function() {
                 _window.__anm__frameRem = stubFrameRem;
                 requestSpy = spyOn(_window, '__anm__frameRem').andCallThrough();
             } else {
-                cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameGen);
+                cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameRem);
             }
 
         } else throw new Error('No window object');
@@ -179,7 +184,8 @@ function __num(n) {
     [ beforeEnd: function() {...}, ]
     ( until: <state>[, timeout: 2],
       | waitFor: function() {}[, timeout: 2], )
-    [ then: function() {} ]
+    [ then: function() {} ],
+    [ onerror: function(err) {} ]
 }; */
 function doAsync(player, conf) {
     var conf,
@@ -193,37 +199,64 @@ function doAsync(player, conf) {
         conf = arguments[1];
     } else throw new Error('Not enough arguments');
 
-    if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
+    var _errors = [];
 
-    if (_scene) player.load(_scene);
-    _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
-    _timeout *= 1000;
+    function reportOrThrow(err) {
+        if (conf.onerror) { conf.onerror(err); _errors.push(err); } else throw err;
+    }
+    function thereWereErrors() { return _errors.length > 0; }
+
+    try {
+        if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
+
+        if (_scene) player.load(_scene);
+        _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
+        _timeout *= 1000;
+    } catch(err) { reportOrThrow(err); }
 
     runs(function() {
-        if (conf.do) player[conf.do]();
-        else if (conf.run) conf.run.call(player);
-        else player.play();
+        if (thereWereErrors()) return;
+        try {
+            if (conf.do) player[conf.do]();
+            else if (conf.run) conf.run.call(player);
+            else player.play();
+        } catch(err) { reportOrThrow(err); }
     });
 
     if (conf.waitFor) {
         waitsFor(function() {
-            return conf.waitFor.call(player);
+            if (thereWereErrors()) return true;
+            try {
+               return conf.waitFor.call(player);
+            } catch(err) { reportOrThrow(err); }
         }, _timeout);
     } else {
         var expectedState = (typeof conf.until !== 'undefined') ? conf.until : anm.C.STOPPED;
         waitsFor(function() {
-            var finished = (player.state.happens === expectedState);
-            if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
-            return finished;
+            if (thereWereErrors()) return true;
+            try {
+                var finished = (player.state.happens === expectedState);
+                if (finished && conf.beforeEnd) conf.beforeEnd.call(player);
+                return finished;
+            } catch(err) { reportOrThrow(err); }
         }, _timeout);
     }
 
-    if (conf.afterThat) conf.afterThat.call(player);
+    runs(function() {
+        if (thereWereErrors()) return;
+        try {
+            if (conf.afterThat) conf.afterThat.call(player);
+        } catch(err) { reportOrThrow(err); }
+    });
 
     runs(function() {
-        if (conf.then) conf.then.call(player);
-        player.stop();
+        if (thereWereErrors()) return;
+        try {
+            if (conf.then) conf.then.call(player);
+            player.stop();
+        } catch(err) { reportOrThrow(err); }
     });
+
 }
 
 // FIMXE: in doAsync, if you specify both scene as argument and conf.prepare, conf.prepare

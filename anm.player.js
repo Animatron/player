@@ -54,6 +54,20 @@ var __stopAnim = function(requestId) {
     __clearFrameFunc()(requestId);
 };
 
+// ERRORS
+
+var SystemError = __errorAs('SystemError',
+                            function(msg) { this.message = msg || ''; });
+var SysErr = SystemError;
+
+var PlayerError = __errorAs('PlayerError',
+                            function(msg) { this.message = msg || ''; });
+var PlayerErr = PlayerError;
+
+var AnimationError = __errorAs('AnimationError',
+                               function(msg) { this.message = msg || ''; });
+var AnimErr = AnimationError;
+
 // OTHER
 
 // collects all characters from string
@@ -61,7 +75,7 @@ var __stopAnim = function(requestId) {
 function __collect_to(str, start, ch) {
     var result = '';
     for (var i = start; str[i] !== ch; i++) {
-        if (i === str.length) throw new Error('Reached end of string');
+        if (i === str.length) throw new SysErr('Reached end of string');
         result += str[i];
     }
     return result;
@@ -153,7 +167,7 @@ function ajax(url, callback/*, errback*/) {
             try {
                 req = new ActiveXObject("Microsoft.XMLHTTP");
             } catch (e2) {
-                throw new Error('No AJAX/XMLHttp support');
+                throw new SysErr('No AJAX/XMLHttp support');
             }
         }
     }
@@ -163,7 +177,7 @@ function ajax(url, callback/*, errback*/) {
     //}
 
     if (!req) {
-      throw new Error('Failed to create XMLHttp instance');
+      throw new SysErr('Failed to create XMLHttp instance');
     }
 
     var whenDone = function() {
@@ -171,9 +185,9 @@ function ajax(url, callback/*, errback*/) {
             if (req.status == 200) {
                 if (callback) callback(req);
             } else {
-                throw new Error('AJAX request for ' + url +
-                                ' returned ' + req.status +
-                                ' instead of 200');
+                throw new SysErr('AJAX request for ' + url +
+                                 ' returned ' + req.status +
+                                 ' instead of 200');
             }
         }
     };
@@ -222,7 +236,7 @@ function prepareImage(url, callback) {
         if (callback) callback(this);
     };
     try { _img.src = url; }
-    catch(e) { throw new Error('Image at ' + url + ' is not accessible'); }
+    catch(e) { throw new SysErr('Image at ' + url + ' is not accessible'); }
     return _img;
 }
 
@@ -249,6 +263,25 @@ function __close(n1, n2, precision) {
     return Math.round(n1 * multiplier) ==
            Math.round(n2 * multiplier);
 }
+
+function __errorAs(name, _constructor) {
+  //var _constructor = function(msg) { this.message = msg; }
+  _constructor.prototype = new Error();
+  //_constructor.prototype.constructor = _constructor;
+  _constructor.prototype.name = name || 'Unknown';
+  _constructor.prototype.toString = function() { return name + (this.message ? ': ' + this.message : ''); }
+  return _constructor;
+}
+
+function _strf(str, subst) {
+  var args = subst;
+  return str.replace(/{(\d+)}/g, function(match, number) {
+    return typeof args[number] != 'undefined'
+      ? args[number]
+      : match
+    ;
+  });
+};
 
 function mrg_obj(src, backup) {
     var res = {};
@@ -391,7 +424,7 @@ var FPS_FALLBACK = 60,
  options format:
   { "debug": false,
     "inParent": false,
-    "muteErrors": true,
+    "muteErrors": false,
     "mode": C.M_VIDEO,
     "zoom": 1.0,
     "meta": { "title": "Default",
@@ -417,6 +450,7 @@ function Player() {
     this.info = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
+    this.__makeSafe(Player._SAFE_METHODS);
 }
 Player.__instances = 0;
 
@@ -450,11 +484,17 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 // === PLAYING CONTROL API =====================================================
 // =============================================================================
 
+// methods listed below are directly wrapped with try/catch to check
+// which way of handling/suppressing errors is current one for this player
+// and act with catched errors basing on this way
+
+Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
+
 // TODO: add load/play/pause/stop events
 
 Player.prototype.init = function(cvs, opts) {
-    if (this.canvas) throw new Error(Errors.P.INIT_TWICE);
-    if (this.anim) throw new Error(Errors.P.INIT_AFTER_LOAD);
+    if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
+    if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); // TODO: make automatic
     this._prepare(cvs);
     this._loadOpts(opts);
@@ -469,15 +509,15 @@ Player.prototype.load = function(object, importer, callback) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new Error(Errors.P.NO_SCENE_PASSED);
+        throw new PlayerErr(Errors.P.NO_SCENE_PASSED);
     }
 
     if ((player.state.happens === C.PLAYING) ||
         (player.state.happens === C.PAUSED)) {
-        throw new Error(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
+        throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
-    if (!player.__canvasPrepared) throw new Error(Errors.P.CANVAS_NOT_PREPARED);
+    if (!player.__canvasPrepared) throw new PlayerErr(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
@@ -517,7 +557,7 @@ Player.prototype.load = function(object, importer, callback) {
 
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.ALREADY_PLAYING);
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.ALREADY_PLAYING);
 
     var player = this;
 
@@ -551,8 +591,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__firstReq = D.drawNext(player.ctx,
                                   state, scene,
                                   player.__beforeFrame(scene),
-                                  player.__afterFrame(scene),
-                                  player.__originateErrors());
+                                  player.__afterFrame(scene));
 
     player.fire(C.S_PLAY, state.from);
 
@@ -588,7 +627,7 @@ Player.prototype.stop = function() {
         }
     } else {
         state.happens = C.NOTHING;
-        player.drawSplash();
+        player._drawSplash();
     }
 
     player.fire(C.S_STOP);
@@ -605,7 +644,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new Error(Errors.P.PAUSING_WHEN_STOPPED);
+        throw new PlayerErr(Errors.P.PAUSING_WHEN_STOPPED);
     }
 
     if (state.happens === C.PLAYING) {
@@ -633,12 +672,12 @@ Player.prototype.pause = function() {
 }*/
 
 Player.prototype.onerror = function(callback) {
-    this.on(C.S_ERROR, callback);
+    this.__err_handler = callback;
 
     return this;
 }
 
-Player.prototype._fireError = function(err) {
+/*Player.prototype._fireError = function(err) {
     var player = this;
 
     player.fire(C.S_ERROR, err);
@@ -650,7 +689,7 @@ Player.prototype._fireError = function(err) {
     // TODO: test if handlers not supressed the error
 
     return false; // do not throw error
-}
+}*/
 
 // === INITIALIZATION ==========================================================
 // =============================================================================
@@ -659,10 +698,10 @@ provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
-        if (!this.canvas) throw new Error(Errors.P.NO_CANVAS_WITH_ID + cvs);
+        if (!this.canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [cvs]));
         this.id = cvs;
     } else {
-        if (!cvs) throw new Error(Errors.P.NO_CANVAS_PASSED);
+        if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
         this.id = cvs.id;
         this.canvas = cvs;
     }
@@ -686,9 +725,6 @@ Player.prototype._loadOpts = function(opts) {
     this._checkMode();
 
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
-
-    if (!opts.muteErrors) this.on(C.S_ERROR, function(err) { throw err; });
-
 }
 // initial state of the player, called from conctuctor
 Player.prototype._postInit = function() {
@@ -765,9 +801,9 @@ Player.prototype.configureMeta = function(info) {
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw new Error('Given time is not allowed, it is treated as no-time');
+    if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
     if ((time < 0) || (time > this.state.duration)) {
-        throw new Error(Errors.P.PASSED_TIME_NOT_IN_RANGE);
+        throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     var ctx = this.ctx,
         state = this.state;
@@ -780,7 +816,7 @@ Player.prototype.drawAt = function(time) {
     }
 }
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new Error(Errors.P.AFTERFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
 }
 Player.prototype.detach = function() {
@@ -850,7 +886,7 @@ Player.prototype.setDuration = function(value) {
     this.state.duration = value;
     if (this.info) this.info.setDuration(value);
 }
-Player.prototype.drawSplash = function() {
+Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
         w = this.state.width,
         h = this.state.height,
@@ -888,13 +924,13 @@ Player.prototype.drawSplash = function() {
 
     ctx.restore();
 }
-Player.prototype.drawLoadingSplash = function(text) {
-    this.drawSplash();
+Player.prototype._drawLoadingSplash = function(text) {
+    this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
-    ctx.fillText(text || "Loading...", 20, 25);
+    ctx.fillText(text || Strings.LOADING, 20, 25);
     ctx.restore();
 }
 Player.prototype.toString = function() {
@@ -981,10 +1017,10 @@ Player.prototype.__subscribeDynamicEvents = function(scene) {
     }
 }
 Player.prototype._ensureHasState = function() {
-    if (!this.state) throw new Error(Errors.P.NO_STATE);
+    if (!this.state) throw new PlayerErr(Errors.P.NO_STATE);
 }
 Player.prototype._ensureHasAnim = function() {
-    if (!this.anim) throw new Error(Errors.P.NO_SCENE);
+    if (!this.anim) throw new PlayerErr(Errors.P.NO_SCENE);
 }
 Player.prototype.__beforeFrame = function(scene) {
     return (function(player, state, scene) {
@@ -1017,11 +1053,66 @@ Player.prototype.__afterFrame = function(scene) {
     })(this, this.state, scene, this.__userAfterFrame);
 }
 
-Player.prototype.__originateErrors = function() {
+// Called when any error happens during player initialization or animation
+// Player should mute all non-system errors by default, and if it got a system error, it may show
+// this error over itself
+Player.prototype.__onerror = function(err) {
+  var player = this;
+  var doMute = (player.state && player.state.muteErrors);
+      doMute = doMute && !(err instanceof SysErr);
+
+  try {
+    player.fire(C.S_ERROR, err);
+
+    player.anim = null;
+    /*if (player.state)*/ player.__unsafe_stop();
+  } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
+
+  doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
+
+  if (!doMute) throw err;
+}
+Player.prototype.__callSafe = function(f) {
+  try {
+    return f.call(this);
+  } catch(err) {
+    this.__onerror(err);
+  }
+}
+Player.prototype.__makeSafe = function(methods) {
+  var player = this;
+  for (var i = 0, il = methods.length; i < il; i++) {
+    var method = methods[i];
+    if (!player[method]) throw new SysErr(_strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
+    player['__unsafe_'+method] = player[method];
+    player[method] = (function(method_f) {
+      return function() {
+        var args = arguments;
+        if (!this.__safe_ctx) {
+          this.__safe_ctx = true;
+          try {
+            var ret_val = player.__callSafe(function() {
+              return method_f.apply(player, args);
+            });
+            this.__safe_ctx = false;
+            return ret_val;
+          } catch(err) {
+            this.__safe_ctx = false;
+            throw err;
+          }
+        } else {
+          return method_f.apply(player, args);
+        }
+      };
+    })(player[method]);
+  }
+}
+
+/* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
         return player._fireError(err);
     }})(this);
-}
+} */
 Player._saveCanvasPos = function(cvs) {
     var gcs = (document.defaultView &&
                document.defaultView.getComputedStyle); // last is assigned
@@ -1096,7 +1187,7 @@ Player._optsFromCvsAttrs = function(canvas) {
         pxRatio = getPxRatio();
     return { 'debug': __attrOr(canvas, 'data-debug', undefined),
              'inParent': undefined,
-             'muteErrors': __attrOr(canvas, 'data-mute-errors', undefined),
+             'muteErrors': __attrOr(canvas, 'data-mute-errors', false),
              'repeat': __attrOr(canvas, 'data-repeat', undefined),
              'mode': __attrOr(canvas, 'data-mode', undefined),
              'zoom': __attrOr(canvas, 'data-zoom', undefined),
@@ -1120,7 +1211,7 @@ Player._optsFromCvsAttrs = function(canvas) {
 Player._optsFromURLParams = function(attrs/* as json */) {
     return { 'debug': attrs.debug,
              'inParent': undefined,
-             'muteErrors': undefined,
+             'muteErrors': false,
              'repeat': attrs.r,
              'mode': attrs.m,
              'zoom': attrs.z,
@@ -1216,7 +1307,7 @@ Scene.prototype.addS = function(dimen, draw, onframe, transform) {
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
     // error will be thrown in _unregister method
-    //if (!this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
+    //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -1325,7 +1416,7 @@ Scene.prototype.subscribeEvents = function(canvas) {
 }
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
-        throw new Error('It appears that it is not a clip object or element that you pass');
+        throw new AnimErr('It appears that it is not a clip object or element that you pass');
     }
     this._register(elm);
     //if (elm.children) this._addElems(elm.children);
@@ -1339,7 +1430,7 @@ Scene.prototype._addToTree = function(elm) {
     }
 }*/
 Scene.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new Error(Errors.S.ELEMENT_IS_REGISTERED);
+    if (this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
     elm.scene = this;
     this.hash[elm.id] = elm;
@@ -1349,7 +1440,7 @@ Scene.prototype._register = function(elm) {
     });
 }
 Scene.prototype._unregister = function(elm) {
-    if (!elm.registered) throw new Error(Errors.S.ELEMENT_IS_NOT_REGISTERED);
+    if (!elm.registered) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
@@ -1614,10 +1705,10 @@ Element.prototype.addTModifier = function(band, modifier, easing, data, priority
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
-    if (!modifier.__m_ids) throw new Error('Modifier wasn\'t applied to anything');
-    //if (this.__modifying) throw new Error("Can't remove modifiers while modifying");
+    if (!modifier.__m_ids) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
+    //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
     var id = modifier.__m_ids[this.id];
-    if (!id) throw new Error('Modifier wasn\'t applied to this element');
+    if (!id) throw new AnimErr('Modifier wasn\'t applied to this element');
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
@@ -1632,8 +1723,8 @@ Element.prototype.addPainter = function(painter, data, priority) {
 }
 // > Element.removePainter % (painter: Function)
 Element.prototype.removePainter = function(painter) {
-    if (!painter.__p_ids) throw new Error('Painter wasn\'t applied to anything');
-    //if (this.__painting) throw new Error("Can't remove painters while painting");
+    if (!painter.__p_ids) throw new AnimErr('Painter wasn\'t applied to anything');
+    //if (this.__painting) throw new AnimErr("Can't remove painters while painting");
     var id = painter.__p_ids[this.id];
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
@@ -1695,7 +1786,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
+            if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -1709,19 +1800,19 @@ Element.prototype.__safeDetach = function(what, _cnt) {
 }
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
-    if (!elm) throw new Error('Pass an element or use detach() method');
-    if (this.__safeDetach(elm) == 0) throw new Error('No such element found');
+    if (!elm) throw new AnimErr(Errors.A.NO_ELEMENT_TO_REMOVE);
+    if (this.__safeDetach(elm) == 0) throw new AnimErr(Errors.A.NO_ELEMENT);
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
+        this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.scene) this.scene._unregister(this);
     // this.scene should be null after unregistering
 }
 // > Element.detach % ()
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) == 0) throw new Error('Not attached');
+    if (this.parent.__safeDetach(this) == 0) throw new AnimErr(Errors.A.ELEMENT_NOT_ATTACHED);
 }
 // make element band fit all children bands
 Element.prototype.makeBandFit = function() {
@@ -1888,7 +1979,7 @@ Element.prototype.__performDetach = function() {
     this.__detachQueue = [];
 }
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new Error(Errors.E.UNSAFE_TO_REMOVE);
+    if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -1911,7 +2002,6 @@ Element.prototype.unlock = function() {
     return result;
 }
 Element.prototype.stateAt = function(t) { // FIXME: test
-    //throw new Error('not implemented');
     this.lock();
     var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
@@ -1960,14 +2050,14 @@ Element.prototype.lrect = function() {
              b[2], b[3], b[0], b[3] ];
 }
 Element.prototype.setMask = function(elm) {
-    if (!elm) throw new Error('No valid masking element was passed');
+    if (!elm) throw new AnimErr('No valid masking element was passed');
     if (this.scene) this.__ensureHasMaskCanvas();
     this.__mask = elm;
 }
 Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
-    if (!scene) throw new Error('Element to be masked should be attached to scene when rendering');
+    if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
     this.__maskCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
     this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
@@ -2229,7 +2319,7 @@ Element.prototype.__addTypedModifier = function(type, priority, band, modifier, 
     var modifiers = this._modifiers;
     var priority = priority || 0;
     if (!modifier.__m_ids) modifier.__m_ids = {};
-    else if (modifier.__m_ids[this.id]) throw new Error('Modifier was already added to this element');
+    else if (modifier.__m_ids[this.id]) throw new AnimErr('Modifier was already added to this element');
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
     modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing), data]);
@@ -2267,7 +2357,7 @@ Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
     var painters = this._painters;
     var priority = priority || 0;
     if (!painter.__p_ids) painter.__p_ids = {};
-    else if (painter.__p_ids[this.id]) throw new Error('Painter was already added to this element');
+    else if (painter.__p_ids[this.id]) throw new AnimErr('Painter was already added to this element');
     if (!painters[type]) painters[type] = [];
     if (!painters[type][priority]) painters[type][priority] = [];
     painters[type][priority].push([painter, data]);
@@ -2333,7 +2423,7 @@ Element.prototype.__checkJump = function(at) {
         : t;
     if (t !== null) {
         if ((t < 0) || (t > duration)) {
-            throw new Error('failed to calculate jump');
+            throw new AnimErr('failed to calculate jump');
         }
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
@@ -2519,16 +2609,16 @@ function provideEvents(subj, events) {
         };
     })(events);
     subj.prototype.on = function(event, handler) {
-        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
-                                                   '\' not provided by ' + this);
-        if (!handler) throw new Error('You are trying to assign ' +
-                                       'undefined handler for event ' + event);
+        if (!this.provides(event)) throw new AnimErr('Event \'' + C.__enmap[event] +
+                                                     '\' not provided by ' + this);
+        if (!handler) throw new AnimErr('You are trying to assign ' +
+                                        'undefined handler for event ' + event);
         this.handlers[event].push(handler);
         return (this.handlers[event].length - 1);
     };
     subj.prototype.fire = function(event, evtobj) {
-        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
-                                                   '\' not provided by ' + this);
+        if (!this.provides(event)) throw new AnimErr('Event \'' + C.__enmap[event] +
+                                                     '\' not provided by ' + this);
         if (this.disabled) return;
         if (this.handle__x && !(this.handle__x(event, evtobj))) return;
         var name = C.__enmap[event];
@@ -2545,12 +2635,12 @@ function provideEvents(subj, events) {
         }
     })(events);
     subj.prototype.unbind = function(event, idx) {
-        if (!this.provides(event)) throw new Error('Event ' + event +
-                                                   ' not provided by ' + this);
+        if (!this.provides(event)) throw new AnimErr('Event ' + event +
+                                                     ' not provided by ' + this);
         if (this.handlers[event][idx]) {
             this.handlers[event].splice(idx, 1);
         } else {
-            throw new Error('No such handler ' + idx + ' for event ' + event);
+            throw new AnimErr('No such handler ' + idx + ' for event ' + event);
         }
     };
     subj.prototype.disposeHandlers = function() {
@@ -2593,64 +2683,48 @@ var D = {}; // means "Drawing"
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, before, after, errback) {
+D.drawNext = function(ctx, state, scene, before, after) {
     // NB: state here is a player state, not an element state
 
-    try {
+    if (state.happens !== C.PLAYING) return;
 
-        var thrown_e = null;
+    var msec = (Date.now() - state.__startTime);
+    var sec = msec / 1000;
 
-        if (state.happens !== C.PLAYING) return;
+    var time = (sec * state.speed) + state.from;
+    state.time = time;
 
-        var msec = (Date.now() - state.__startTime);
-        var sec = msec / 1000;
-
-        var time = (sec * state.speed) + state.from;
-        state.time = time;
-
-        if (before) {
-            if (!before(time)) return;
-        }
-
-        if (state.__rsec === 0) state.__rsec = msec;
-        if ((msec - state.__rsec) >= 1000) {
-            state.afps = state.__redraws;
-            state.__rsec = msec;
-            state.__redraws = 0;
-        }
-        state.__redraws++;
-
-        ctx.clearRect(0, 0, state.width * state.ratio,
-                            state.height * state.ratio);
-
-        scene.render(ctx, time, state.zoom * state.ratio, state.afps);
-
-        // show fps
-        if (state.debug) { // TODO: move to player.onrender
-            D.drawFPS(ctx, state.afps);
-        }
-
-        if (after) {
-            if (!after(time)) return;
-        }
-
-        if (state.__supressFrames) return;
-
-        return __nextFrame(function() {
-           try {
-              D.drawNext(ctx, state, scene, before, after, errback);
-           } catch(e) {
-              if (e === thrown_e) return;
-              thrown_e = e;
-              throw e;
-           };
-        });
-
-    } catch(e) {
-        if (e === thrown_e) return;
-        if (!errback) throw e;
-        if (errback && errback(e)) throw e;
+    if (before) {
+        if (!before(time)) return;
     }
+
+    if (state.__rsec === 0) state.__rsec = msec;
+    if ((msec - state.__rsec) >= 1000) {
+        state.afps = state.__redraws;
+        state.__rsec = msec;
+        state.__redraws = 0;
+    }
+    state.__redraws++;
+
+    ctx.clearRect(0, 0, state.width * state.ratio,
+                        state.height * state.ratio);
+
+    scene.render(ctx, time, state.zoom * state.ratio, state.afps);
+
+    // show fps
+    if (state.debug) { // TODO: move to player.onrender
+        D.drawFPS(ctx, state.afps);
+    }
+
+    if (after) {
+        if (!after(time)) return;
+    }
+
+    if (state.__supressFrames) return;
+
+    return __nextFrame(function() {
+        D.drawNext(ctx, state, scene, before, after);
+    });
 
 }
 /* D.drawAt = function(ctx, state, scene, time) {
@@ -2708,17 +2782,16 @@ DU.qDraw = function(ctx, stroke, fill, func) {
 var L = {}; // means "Loading/Loader"
 
 L.loadFromUrl = function(player, url, importer, callback) {
-    if (!JSON) throw new Error('JSON parser is not accessible');
+    if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
-    player.drawLoadingSplash('Loading ' + url.substring(0, 50) + '...');
+    player._drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
 
     ajax(url, function(req) {
         L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
     });
 }
 L.loadFromObj = function(player, object, importer, callback) {
-    if (!importer) throw new Error('Cannot load project without importer. ' +
-                                   'Please define it');
+    if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
     if (importer.configureAnim) {
         player.configureAnim(importer.configureAnim(object));
     }
@@ -3698,7 +3771,7 @@ Text.prototype.apply = function(ctx, point) {
 }
 Text.prototype.dimen = function() {
     if (this._dimen) return this._dimen;
-    if (!Text.__buff) throw new Error('no Text buffer, bounds call failed');
+    if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
     buff.innerText = this.lines;
@@ -4149,16 +4222,27 @@ InfoBlock.prototype.changeColors = function(front, back) {
     this.div.style.backgroundColor = back;
 }
 
+// ==== STRINGS ================================================================
+
+var Strings = {};
+
+Strings.LOADING = 'Loading...';
+Strings.LOADING_ANIMATION = 'Loading {0}...';
+
 // ==== ERRORS =================================================================
 
 // TODO: Move Scene and Element errors here ?
 
 var Errors = {};
+Errors.S = {}; // System Errors
 Errors.P = {}; // Player Errors
-Errors.S = {}; // Scene Errors
-Errors.E = {}; // Element Errors
+Errors.A = {}; // Animation Errors
 
-Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: ';
+Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
+Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
+Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player.';
+Errors.P.NO_IMPORTER_TO_LOAD_WITH = 'Cannot load project without importer. Please define it';
+Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: {0}';
 Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
 Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
 Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
@@ -4174,12 +4258,17 @@ Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
 Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
                     'please stop player before loading';
 Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
-Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time is not in scene range';
+Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
+Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
 Errors.P.INIT_TWICE = 'Initialization was called twice';
 Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
-Errors.S.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
-Errors.S.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
-Errors.E.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
+Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
+Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
+Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
+Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method';
+Errors.A.NO_ELEMENT = 'No such element found';
+Errors.A.ELEMENT_NOT_ATTACHED = 'Element is not attached to something at all';
+Errors.A.MODIFIER_NOT_ATTACHED = 'Modifier wasn\'t applied to anything';
 
 // =============================================================================
 // === EXPORTS =================================================================
@@ -4197,7 +4286,9 @@ var exports = {
     'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
     'DU': DU, // why DU class is visible to pulic?
-    'Errors': Errors,
+    'Errors': Errors, 'SystemError': SystemError,
+                      'PlayerError': PlayerError,
+                      'AnimationError': AnimationError,
     'MODULES': {},
 
     'obj_clone': obj_clone,
@@ -4207,9 +4298,10 @@ var exports = {
     'ajax': ajax,
     '_typecheck': { builder: __builder,
                     array: __array,
-                    num: __num }
+                    num: __num },
 
-    //'__dev': { 'Controls': Controls, 'Info': InfoBlock  },
+    '__dev': { 'strf': _strf/*,
+               'Controls': Controls, 'Info': InfoBlock*/ },
 
 };
 

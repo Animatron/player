@@ -9,6 +9,8 @@ describe("utils", function() {
         _FrameGen.disable();
     });*/
 
+// FIXME: frame generator fails with stack overflow if game is in infinite playing
+
     describe("vary all", function() {
 
         var externalBeforeEachSpy = jasmine.createSpy('external-before-each-spy');

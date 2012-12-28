@@ -26,6 +26,28 @@ describe("player, when speaking about loading scenes,", function() {
         }
     });
 
+    it("duration should be 0 when no scene loaded", function() {
+        expect(player.anim).toBe(null);
+        expect(player.state.duration).toBe(0);
+    });
+
+    it("should use duration that fits narrowest band of elements", function() {
+        var duration = 1.27;
+
+        var scene = new anm.Scene();
+        var elem = new anm.Element();
+        elem.setBand([0, duration]);
+        scene.add(elem);
+
+        expect(scene.duration).toBe(duration);
+
+        player.load(scene);
+
+        expect(player.state.duration).toBe(duration);
+
+        // TODO: test with different durations, while playing, and with different children
+    });
+
     // load event to be fired
     // loading different types of objects
     // loading is impossible while playing
