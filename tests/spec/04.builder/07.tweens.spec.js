@@ -243,18 +243,41 @@ describe("tweens", function() {
             });
         }
 
+        // TODO: test base state itself, when it will be implemented
+        // TODO: test with different base states, when it will be implemented
+
         describe("the way tweens apply, by type", function() {
+
+            var base_state = { x: 0, y: 0,
+                               sx: 1, sy: 1,
+                               angle: 0, alpha: 1 },
+                bs = base_state; // short alias
+
+            /*var base_state;
+
+            varyAll([ { description: "empty base state",
+                        prepare: function() {
+                            base_state = {
+                                x: 0, y: 0,
+                                sx: 1, sy: 1,
+                                angle: 0, alpha: 1
+                            };
+                        } } ], function() {
+
+
+
+            });*/
 
             it("keeps default values in state when there are no tweens", function() {
                 checkTweens([0, 1],
                             [ ],
                             function(s, at) {
-                                expect(s.x).toBe(0);
-                                expect(s.y).toBe(0);
-                                expect(s.sx).toBe(1);
-                                expect(s.sy).toBe(1);
-                                expect(s.angle).toBe(0);
-                                expect(s.alpha).toBe(1);
+                                expect(s.x).toBe(bs.x);
+                                expect(s.y).toBe(bs.y);
+                                expect(s.sx).toBe(bs.sx);
+                                expect(s.sy).toBe(bs.sy);
+                                expect(s.angle).toBe(bs.angle);
+                                expect(s.alpha).toBe(bs.alpha);
                             });
             });
 
@@ -268,8 +291,8 @@ describe("tweens", function() {
                             checkTweens([0, 1],
                                         [ [ 'trans', [ 0, 1 ], [[0, 0], [10, 10]] ] ],
                                         function(s, at) {
-                                            expect(s.x).toBeCloseTo(at * 10, CLOSE_FACTOR);
-                                            expect(s.y).toBeCloseTo(at * 10, CLOSE_FACTOR);
+                                            expect(s.x).toBeCloseTo(bs.x + at * 10, CLOSE_FACTOR);
+                                            expect(s.y).toBeCloseTo(bs.y + at * 10, CLOSE_FACTOR);
                                         });
                         });
 
@@ -277,8 +300,8 @@ describe("tweens", function() {
                             checkTweens([0, 1],
                                         [ [ 'trans', [ 0, 1 ], [[0, 11], [20, 0]] ] ],
                                         function(s, at) {
-                                            expect(s.x).toBeCloseTo( 0 + at * (20 -  0), CLOSE_FACTOR);
-                                            expect(s.y).toBeCloseTo(11 + at * ( 0 - 11), CLOSE_FACTOR);
+                                            expect(s.x).toBeCloseTo(bs.x +  0 + at * (20 -  0), CLOSE_FACTOR);
+                                            expect(s.y).toBeCloseTo(bs.y + 11 + at * ( 0 - 11), CLOSE_FACTOR);
                                         });
 
                             // both zero?
@@ -288,8 +311,8 @@ describe("tweens", function() {
                             checkTweens([0, 1],
                                         [ [ 'trans', [ 0, 1 ], [[12, 15], [8, -11]] ] ],
                                         function(s, at) {
-                                            expect(s.x).toBeCloseTo(12 + (at * (    8 - 12)), CLOSE_FACTOR);
-                                            expect(s.y).toBeCloseTo(15 + (at * ((-11) - 15)), CLOSE_FACTOR);
+                                            expect(s.x).toBeCloseTo(bs.x + 12 + (at * (    8 - 12)), CLOSE_FACTOR);
+                                            expect(s.y).toBeCloseTo(bs.y + 15 + (at * ((-11) - 15)), CLOSE_FACTOR);
                                         });
                         });
 
@@ -297,8 +320,8 @@ describe("tweens", function() {
                             checkTweens([0, 1],
                                         [ [ 'trans', [ 0, 1 ], [[13, -17.1], [8.5, -11]] ] ],
                                         function(s, at) {
-                                            expect(s.x).toBeCloseTo(     13 + (at * (  8.5 -      13)), CLOSE_FACTOR);
-                                            expect(s.y).toBeCloseTo((-17.1) + (at * ((-11) - (-17.1))), CLOSE_FACTOR);
+                                            expect(s.x).toBeCloseTo(bs.x +      13 + (at * (  8.5 -      13)), CLOSE_FACTOR);
+                                            expect(s.y).toBeCloseTo(bs.y + (-17.1) + (at * ((-11) - (-17.1))), CLOSE_FACTOR);
                                         });
                         });
 
@@ -308,19 +331,19 @@ describe("tweens", function() {
                                         function(s, at) {
                                             // before the tween
                                             if (at < (.2 + .1)) {
-                                                expect(s.x).toBe(5);
-                                                expect(s.y).toBe(10);
+                                                expect(s.x).toBe(bs.x);
+                                                expect(s.y).toBe(bs.y);
                                                 return true;
                                             }
                                             // after the tween
                                             if (at > (.2 + 1.65)) {
-                                                expect(s.x).toBe(16);
-                                                expect(s.y).toBe(17);
+                                                expect(s.x).toBe(bs.x);
+                                                expect(s.y).toBe(bs.y);
                                                 return true;
                                             }
                                             // during the tween
-                                            expect(s.x).toBeCloseTo( 5 + (((at - .2 - .1) / (1.65 - .1)) * (16 -  5)), CLOSE_FACTOR);
-                                            expect(s.y).toBeCloseTo(10 + (((at - .2 - .1) / (1.65 - .1)) * (17 - 10)), CLOSE_FACTOR);
+                                            expect(s.x).toBeCloseTo(bs.x +  5 + (((at - .2 - .1) / (1.65 - .1)) * (16 -  5)), CLOSE_FACTOR);
+                                            expect(s.y).toBeCloseTo(bs.y + 10 + (((at - .2 - .1) / (1.65 - .1)) * (17 - 10)), CLOSE_FACTOR);
                                         });
                         });
 
@@ -341,21 +364,33 @@ describe("tweens", function() {
                                                 [ [ 'trans', [  .3,   .9 ], [[6,  4], [9,    15]] ],
                                                   [ 'trans', [ 1.1, 1.85 ], [[3, 19], [8.4, -11]] ] ],
                                                 function(s, at) {
-                                                    // before last-added tween
+                                                    // before the first tween
+                                                    if (at < (.15 + .3)) {
+                                                        expect(s.x).toBe(bs.x);
+                                                        expect(s.y).toBe(bs.y);
+                                                        return true;
+                                                    }
+                                                    // during the first tween
+                                                    if (at < (.15 + .3)) {
+                                                        expect(s.x).toBeCloseTo(bs.x + 6 + (((at - .3 - .15) / (.9 - .3)) * ( 9 - 6)), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 4 + (((at - .3 - .15) / (.9 - .3)) * (15 - 4)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // between the both tweens
                                                     if (at < (.15 + 1.1)) {
-                                                        expect(s.x).toBe(3);
-                                                        expect(s.y).toBe(19);
+                                                        expect(s.x).toBe(bs.x);
+                                                        expect(s.y).toBe(bs.y);
                                                         return true;
                                                     }
-                                                    // during last-added tween
+                                                    // during the second tween
                                                     if (at < (.15 + 1.85)) {
-                                                        expect(s.x).toBeCloseTo( 3 + (((at - 1.1 - .15) / (1.85 - 1.1)) * (  8.4 -  3)), CLOSE_FACTOR);
-                                                        expect(s.y).toBeCloseTo(19 + (((at - 1.1 - .15) / (1.85 - 1.1)) * ((-11) - 19)), CLOSE_FACTOR);
+                                                        expect(s.x).toBeCloseTo(bs.x +  3 + (((at - 1.1 - .15) / (1.85 - 1.1)) * (  8.4 -  3)), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 19 + (((at - 1.1 - .15) / (1.85 - 1.1)) * ((-11) - 19)), CLOSE_FACTOR);
                                                         return true;
                                                     }
-                                                    // after last-added tween
-                                                    expect(s.x).toBe(8.4);
-                                                    expect(s.y).toBe(-11);
+                                                    // after the second tween
+                                                    expect(s.x).toBe(bs.x + 8.4);
+                                                    expect(s.y).toBe(bs.y + -11);
                                                 });
                                 });
 
@@ -364,21 +399,33 @@ describe("tweens", function() {
                                                 [ [ 'trans', [ 1.1, 1.85 ], [[3, 19], [8.4, -11]] ],
                                                   [ 'trans', [  .3,   .9 ], [[6,  4], [9,    15]] ] ],
                                                 function(s, at) {
-                                                    // before last-added tween
+                                                    // before the first tween
                                                     if (at < (.15 + .3)) {
-                                                        expect(s.x).toBe(6);
-                                                        expect(s.y).toBe(4);
+                                                        expect(s.x).toBe(bs.x);
+                                                        expect(s.y).toBe(bs.y);
                                                         return true;
                                                     }
-                                                    // during last-added tween
-                                                    if (at < (.15 + .9)) {
-                                                        expect(s.x).toBeCloseTo(6 + (((at - .3 - .15) / (.9 - .3)) * ( 9 - 6)), CLOSE_FACTOR);
-                                                        expect(s.y).toBeCloseTo(4 + (((at - .3 - .15) / (.9 - .3)) * (15 - 4)), CLOSE_FACTOR);
+                                                    // during the first tween
+                                                    if (at < (.15 + .3)) {
+                                                        expect(s.x).toBeCloseTo(bs.x + 6 + (((at - .3 - .15) / (.9 - .3)) * ( 9 - 6)), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 4 + (((at - .3 - .15) / (.9 - .3)) * (15 - 4)), CLOSE_FACTOR);
                                                         return true;
                                                     }
-                                                    // after last-added tween
-                                                    expect(s.x).toBe(9);
-                                                    expect(s.y).toBe(15);
+                                                    // between both tweens
+                                                    if (at < (.15 + 1.1)) {
+                                                        expect(s.x).toBe(bs.x);
+                                                        expect(s.y).toBe(bs.y);
+                                                        return true;
+                                                    }
+                                                    // during the second tween
+                                                    if (at < (.15 + 1.85)) {
+                                                        expect(s.x).toBeCloseTo(bs.x +  3 + (((at - 1.1 - .15) / (1.85 - 1.1)) * (  8.4 -  3)), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 19 + (((at - 1.1 - .15) / (1.85 - 1.1)) * ((-11) - 19)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // after the second tween
+                                                    expect(s.x).toBe(bs.x + 8.4);
+                                                    expect(s.y).toBe(bs.y + -11);
                                                 });
                                 });
 
@@ -391,21 +438,35 @@ describe("tweens", function() {
                                                 [ [ 'trans', [.12,    .9 ], [[ 5, 12], [3.2, 40]] ],
                                                   [ 'trans', [ .5,  1.56 ], [[-1,  9], [0,   16]] ] ],
                                                 function(s, at) {
-                                                    // before last-added tween
+                                                    // before the first tween
+                                                    if (at < (.2 + .12)) {
+                                                        expect(s.x).toBe(bs.x);
+                                                        expect(s.y).toBe(bs.y);
+                                                        return true;
+                                                    }
+                                                    // during the first tween, but before the second one
                                                     if (at < (.2 + .5)) {
-                                                        expect(s.x).toBe(-1);
-                                                        expect(s.y).toBe( 9);
+                                                        expect(s.x).toBeCloseTo(bs.x +  5 + (((at - .12 - .2) / (.9 - .12)) * (3.2 -  5)), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 12 + (((at - .12 - .2) / (.9 - .12)) * ( 40 - 12)), CLOSE_FACTOR);
                                                         return true;
                                                     }
-                                                    // during last-added tween
+                                                    // during both tweens
+                                                    if (at < (.2 + .9)) {
+                                                        expect(s.x).toBeCloseTo(bs.x +  5 + (((at - .12 - .2) / (  .9 - .12)) * (3.2 -    5))
+                                                                                     + -1 + (((at -  .5 - .2) / (1.56 -  .5)) * (  0 - (-1))), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 12 + (((at - .12 - .2) / (  .9 - .12)) * ( 40 -   12))
+                                                                                     +  9 + (((at -  .5 - .2) / (1.56 -  .5)) * ( 16 -    9)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // during the second tween, but after the first one
                                                     if (at < (.2 + 1.56)) {
-                                                        expect(s.x).toBeCloseTo(-1 + (((at - .5 - .2) / (1.56 - .5)) * ( 0 - (-1))), CLOSE_FACTOR);
-                                                        expect(s.y).toBeCloseTo( 9 + (((at - .5 - .2) / (1.56 - .5)) * (16 -    9)), CLOSE_FACTOR);
+                                                        expect(s.x).toBeCloseTo(bs.x + -1 + (((at - .5 - .2) / (1.56 - .5)) * ( 0 - (-1))), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y +  9 + (((at - .5 - .2) / (1.56 - .5)) * (16 -    9)), CLOSE_FACTOR);
                                                         return true;
                                                     }
-                                                    // after last-added tween
-                                                    expect(s.x).toBe( 0);
-                                                    expect(s.y).toBe(16);
+                                                    // after the second tween
+                                                    expect(s.x).toBe(bs.x);
+                                                    expect(s.y).toBe(bs.y);
                                                 });
                                 });
 
@@ -414,21 +475,35 @@ describe("tweens", function() {
                                                 [ [ 'trans', [ .5,  1.56 ], [[-1,  9], [0,   16]] ],
                                                   [ 'trans', [.12,    .9 ], [[ 5, 12], [3.2, 40]] ] ],
                                                 function(s, at) {
-                                                    // before last-added tween
+                                                    // before the first tween
                                                     if (at < (.2 + .12)) {
-                                                        expect(s.x).toBe(5);
-                                                        expect(s.y).toBe(12);
+                                                        expect(s.x).toBe(bs.x);
+                                                        expect(s.y).toBe(bs.y);
                                                         return true;
                                                     }
-                                                    // during last-added tween
+                                                    // during the first tween, but before the second one
+                                                    if (at < (.2 + .5)) {
+                                                        expect(s.x).toBeCloseTo(bs.x +  5 + (((at - .12 - .2) / (.9 - .12)) * (3.2 -  5)), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 12 + (((at - .12 - .2) / (.9 - .12)) * ( 40 - 12)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // during both tweens
                                                     if (at < (.2 + .9)) {
-                                                        expect(s.x).toBeCloseTo( 5 + (((at - .12 - .2) / (.9 - .12)) * (3.2 -  5)), CLOSE_FACTOR);
-                                                        expect(s.y).toBeCloseTo(12 + (((at - .12 - .2) / (.9 - .12)) * ( 40 - 12)), CLOSE_FACTOR);
+                                                        expect(s.x).toBeCloseTo(bs.x +  5 + (((at - .12 - .2) / (  .9 - .12)) * (3.2 -    5))
+                                                                                     + -1 + (((at -  .5 - .2) / (1.56 -  .5)) * (  0 - (-1))), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y + 12 + (((at - .12 - .2) / (  .9 - .12)) * ( 40 -   12))
+                                                                                     +  9 + (((at -  .5 - .2) / (1.56 -  .5)) * ( 16 -    9)), CLOSE_FACTOR);
                                                         return true;
                                                     }
-                                                    // after last-added tween
-                                                    expect(s.x).toBe(3.2);
-                                                    expect(s.y).toBe(40);
+                                                    // during the second tween, but after the first one
+                                                    if (at < (.2 + 1.56)) {
+                                                        expect(s.x).toBeCloseTo(bs.x + -1 + (((at - .5 - .2) / (1.56 - .5)) * ( 0 - (-1))), CLOSE_FACTOR);
+                                                        expect(s.y).toBeCloseTo(bs.y +  9 + (((at - .5 - .2) / (1.56 - .5)) * (16 -    9)), CLOSE_FACTOR);
+                                                        return true;
+                                                    }
+                                                    // after the second tween
+                                                    expect(s.x).toBe(bs.x);
+                                                    expect(s.y).toBe(bs.y);
                                                 });
                                 });
 
@@ -440,118 +515,47 @@ describe("tweens", function() {
                                               [ 'trans', [   1, 1.5 ], [[7, 7], [9,  11]] ],
                                               [ 'trans', [ 1.3,   2 ], [[9, 8], [11, 22]] ] ],
                                             function(s, at) {
-                                                // before the tween
+                                                // before the first tween
+                                                if (at < (.1 + 0)) {
+                                                    expect(s.x).toBe(bs.x);
+                                                    expect(s.y).toBe(bs.y);
+                                                    return true;
+                                                }
+                                                // during the first tween
+                                                if (at < (.1 + 1)) {
+                                                    expect(s.x).toBeCloseTo(bs.x +  5 + (((at - 0 - .1) / (1 - 0)) * (10 - 5)), CLOSE_FACTOR);
+                                                    expect(s.y).toBeCloseTo(bs.y + 12 + (((at - 0 - .1) / (1 - 0)) * (12 - 5)), CLOSE_FACTOR);
+                                                    return true;
+                                                }
+                                                // during the second tween, but before the third one
                                                 if (at < (.1 + 1.3)) {
-                                                    expect(s.x).toBe(9);
-                                                    expect(s.y).toBe(8);
+                                                    expect(s.x).toBeCloseTo(bs.x + 7 + (((at - 1 - .1) / (1.5 - 1)) * ( 9 - 7)), CLOSE_FACTOR);
+                                                    expect(s.y).toBeCloseTo(bs.y + 7 + (((at - 1 - .1) / (1.5 - 1)) * (11 - 7)), CLOSE_FACTOR);
                                                     return true;
                                                 }
-                                                // after the tween
-                                                if (at > (.1 + 2)) {
-                                                    expect(s.x).toBe(11);
-                                                    expect(s.y).toBe(22);
+                                                // during both the second and the third tweens
+                                                if (at < (.1 + 1.5)) {
+                                                    expect(s.x).toBeCloseTo(bs.x + 7 + (((at -   1 - .1) / (1.5 -   1)) * ( 9 - 7))
+                                                                                 + 9 + (((at - 1.3 - .1) / (  2 - 1.3)) * (11 - 9)), CLOSE_FACTOR);
+                                                    expect(s.y).toBeCloseTo(bs.y + 7 + (((at -   1 - .1) / (1.5 -   1)) * (11 - 7))
+                                                                                 + 8 + (((at - 1.3 - .1) / (  2 - 1.3)) * (22 - 8)), CLOSE_FACTOR);
                                                     return true;
                                                 }
-                                                // during the tween
-                                                expect(s.x).toBeCloseTo(9 + (((at - 1.3 - .1) / (2 - 1.3)) * (11 - 9)), CLOSE_FACTOR);
-                                                expect(s.y).toBeCloseTo(8 + (((at - 1.3 - .1) / (2 - 1.3)) * (22 - 8)), CLOSE_FACTOR);
+                                                // during the third tween, but after the secod one
+                                                if (at < (.1 + 2)) {
+                                                    expect(s.x).toBeCloseTo(bs.x + 9 + (((at - 1.3 - .1) / (2 - 1.3)) * (11 - 9)), CLOSE_FACTOR);
+                                                    expect(s.y).toBeCloseTo(bs.y + 8 + (((at - 1.3 - .1) / (2 - 1.3)) * (22 - 8)), CLOSE_FACTOR);
+                                                    return true;
+                                                }
+                                                // after the third tween
+                                                expect(s.x).toBe(bs.x);
+                                                expect(s.y).toBe(bs.y);
                                             });
                             });
 
                         });
 
                     });
-
-                    /* // TODO: implement smart technique
-                    xdescribe("smart implementation", function() {
-
-                        describe("should sum x/y values of the state according to given direction", function() {
-
-                            it("works with non-overlapping bands", function() {
-                                checkTweens([.15, 2],
-                                            [ [ 'trans', [  .3,   .9 ], [[6,  4], [9,    15]] ],
-                                              [ 'trans', [ 1.1, 1.85 ], [[3, 19], [8.4, -11]] ] ],
-                                            function(s, at) {
-                                                // before first tween
-                                                if (at < (.15 + .3)) {
-                                                    expect(s.x).toBe(6 +  3);
-                                                    expect(s.y).toBe(4 + 19);
-                                                    return true;
-                                                }
-                                                // during first tween
-                                                if (at < (.15 + .9)) {
-                                                    expect(s.x).toBeCloseTo( 3 + 6 + (((at - .3 - .15) / (.9 - .3)) * ( 9 - 6)),  CLOSE_FACTOR);
-                                                    expect(s.y).toBeCloseTo(19 + 4 + (((at - .3 - .15) / (.9 - .3)) * (15 - 4)), CLOSE_FACTOR);
-                                                    return true;
-                                                }
-                                                // after first tween, before second
-                                                if (at < (.15 + 1.1)) {
-                                                    expect(s.x).toBe( 9 +  3);
-                                                    expect(s.y).toBe(15 + 19);
-                                                    return true;
-                                                }
-                                                // during second tween
-                                                if (at < (.15 + 1.85)) {
-                                                    expect(s.x).toBeCloseTo( 9 +  3 + (((at - 1.1 - .15) / (1.85 - 1.1)) * (  8.4 -  3)), CLOSE_FACTOR);
-                                                    expect(s.y).toBeCloseTo(15 + 19 + (((at - 1.1 - .15) / (1.85 - 1.1)) * ((-11) - 19)), CLOSE_FACTOR);
-                                                    return true;
-                                                }
-                                                // after second tween
-                                                expect(s.x).toBe( 9 +   8.4);
-                                                expect(s.y).toBe(15 + (-11));
-                                            });
-                            });
-
-                            it("works with overlapping bands", function() {
-                                checkTweens([.2, 1.8],
-                                            [ [ 'trans', [.12,    .9 ], [[ 5, 12], [3.2, 40]] ],
-                                              [ 'trans', [ .5,  1.56 ], [[-1,  9], [0,   16]] ] ],
-                                            function(s, at) {
-                                                // before first tween
-                                                if (at < (.2 + .12)) {
-                                                    expect(s.x).toBe( 5 + (-1));
-                                                    expect(s.y).toBe(12 +    9);
-                                                    return true;
-                                                }
-                                                // during first tween, before overlap period
-                                                if (at < (.2 + .5)) {
-                                                    expect(s.x).toBeCloseTo((-1) +  5 + (((at - .12 - .2) / (.9 - .12)) * (3.2 -  5)), CLOSE_FACTOR);
-                                                    expect(s.y).toBeCloseTo(   9 + 12 + (((at - .12 - .2) / (.9 - .12)) * ( 40 - 12)), CLOSE_FACTOR);
-                                                    return true;
-                                                }
-                                                // during overlap period
-                                                if (at < (.2 + .9)) {
-                                                    expect(s.x).toBeCloseTo(   5 + (((at - .12 - .2) / (  .9 - .12)) * (3.2 -    5)) +
-                                                                            (-1) + (((at -  .5 - .2) / (1.56 -  .5)) * (  0 - (-1))), CLOSE_FACTOR);
-                                                    expect(s.y).toBeCloseTo(  12 + (((at - .12 - .2) / (  .9 - .12)) * ( 40 -   12)) +
-                                                                               9 + (((at -  .5 - .2) / (1.56 -  .5)) * ( 16 -    9)), CLOSE_FACTOR);
-                                                    return true;
-                                                }
-                                                // during second tween, after overlap period
-                                                if (at < (.2 + 1.56)) {
-                                                    expect(s.x).toBeCloseTo(3.2 + (-1) + (((at -  .5 - .2) / (1.56 -  .5)) * (  0 - (-1))), CLOSE_FACTOR);
-                                                    expect(s.y).toBeCloseTo( 40 +    9 + (((at -  .5 - .2) / (1.56 -  .5)) * ( 16 -    9)), CLOSE_FACTOR);
-                                                    return true;
-                                                }
-                                                // after second tween
-                                                expect(s.x).toBe(3.2 +  0);
-                                                expect(s.y).toBe( 40 + 16);
-                                            });
-                            });
-
-                            // it("works with more than two tweens", function() {
-                            //     checkTweens([0, 3],
-                            //                 [ [ 'trans', [   0,   1 ], [[5, 5], [10, 12]] ],
-                            //                   [ 'trans', [   1, 1.5 ], [[7, 7], [9,  11]] ],
-                            //                   [ 'trans', [ 1.5, 1.5 ], [[9, 8], [11, 22]] ] ],
-                            //                 function(s, at) {
-
-                            //                 });
-                            // });
-
-                        });
-
-                    }); */
 
                     // TODO: test among with move()
 
