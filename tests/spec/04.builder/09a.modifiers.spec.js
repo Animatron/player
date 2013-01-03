@@ -1368,6 +1368,7 @@ describe("builder, regarding modifiers,", function() {
 
     });
 
+    // TODO: test that all modifiers types work with exact both 0 and 1 values
     // TODO: test easing (all of the types, see EasingImpl)! (function, function with data, object with type/data, object with f/data, see Element.__convertEasing)
     //       also see Builder.easing[PCF]
     //       especially test easing with data
