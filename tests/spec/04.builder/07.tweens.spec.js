@@ -2312,8 +2312,8 @@ describe("tweens", function() {
                         checkTweens([0, 1],
                                     [ [ 'xscale', [ 0, 1 ], [0, .7], function(t) { return 1 - t; } ] ],
                                     function(s, at) {
-                                        expect(s.sx).toBeCloseTo((1 - at) * .7, CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo((1 - at) * .7, CLOSE_FACTOR);
+                                        expect(s.sx).toBeCloseTo(bs.sx + (1 - at) * .7, CLOSE_FACTOR);
+                                        expect(s.sy).toBeCloseTo(bs.sy + (1 - at) * .7, CLOSE_FACTOR);
                                     });
                     });
 
@@ -2323,20 +2323,20 @@ describe("tweens", function() {
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
-                                            expect(s.sx).toBe(2.1);
-                                            expect(s.sy).toBe(2.1);
+                                            expect(s.sx).toBe(bs.sx);
+                                            expect(s.sy).toBe(bs.sy);
                                             return true;
                                         }
                                         // after tween
                                         if (at > (.1 + 1)) {
-                                            expect(s.sx).toBe(.5);
-                                            expect(s.sy).toBe(.5);
+                                            expect(s.sx).toBe(bs.sx);
+                                            expect(s.sy).toBe(bs.sy);
                                             return true;
                                         }
                                         // during tween
                                         var adt = (at - .3 - .1) / (1 - .3);
-                                        expect(s.sx).toBeCloseTo(.5 + ((1 - adt) * (2.1 - .5)), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo(.5 + ((1 - adt) * (2.1 - .5)), CLOSE_FACTOR);
+                                        expect(s.sx).toBeCloseTo(bs.sx + .5 + ((1 - adt) * (2.1 - .5)), CLOSE_FACTOR);
+                                        expect(s.sy).toBeCloseTo(bs.sy + .5 + ((1 - adt) * (2.1 - .5)), CLOSE_FACTOR);
                                     });
                     });
 
@@ -2345,14 +2345,22 @@ describe("tweens", function() {
                         checkTweens([.1, 1.5],
                                     [ [ 'xscale', [ .3, 1 ], [.5, 2.1], anm.C.E_EIN ] ],
                                     function(s, at) {
-                                        var adt;
-                                        if (at < (.1 + .3)) adt = 0;
-                                        else if (at > (.1 + 1)) adt = 1;
-                                        else adt = (at - .3 - .1) / (1 - .3);
-                                        // return seg.atT([0, 0], t)[1];
-                                        var seg_t = seg.atT([0, 0], adt)[1];
-                                        expect(s.sx).toBeCloseTo(.5 + (seg_t * (2.1 - .5)), CLOSE_FACTOR);
-                                        expect(s.sy).toBeCloseTo(.5 + (seg_t * (2.1 - .5)), CLOSE_FACTOR);
+                                        // before tween
+                                        if (at < (.1 + .3)) {
+                                            expect(s.sx).toBe(bs.sx);
+                                            expect(s.sy).toBe(bs.sy);
+                                            return true;
+                                        }
+                                        // after tween
+                                        if (at > (.1 + 1)) {
+                                            expect(s.sx).toBe(bs.sx);
+                                            expect(s.sy).toBe(bs.sy);
+                                            return true;
+                                        }
+                                        // during tween
+                                        var seg_t = seg.atT([0, 0], (at - .3 - .1) / (1 - .3))[1];
+                                        expect(s.sx).toBeCloseTo(bs.sx + .5 + (seg_t * (2.1 - .5)), CLOSE_FACTOR);
+                                        expect(s.sy).toBeCloseTo(bs.sy + .5 + (seg_t * (2.1 - .5)), CLOSE_FACTOR);
                                     });
                     });
 
@@ -2364,7 +2372,7 @@ describe("tweens", function() {
                         checkTweens([0, 1],
                                     [ [ 'rotate', [ 0, 1 ], [0, Math.PI / 2], function(t) { return 1 - t; } ] ],
                                     function(s, at) {
-                                        expect(s.angle).toBeCloseTo((1 - at) * Math.PI / 2, CLOSE_FACTOR);
+                                        expect(s.angle).toBeCloseTo(bs.angle + (1 - at) * Math.PI / 2, CLOSE_FACTOR);
                                     });
                     });
 
@@ -2374,17 +2382,17 @@ describe("tweens", function() {
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
-                                            expect(s.angle).toBe(3 * Math.PI / 4);
+                                            expect(s.angle).toBe(bs.angle);
                                             return true;
                                         }
                                         // after tween
                                         if (at > (.1 + 1)) {
-                                            expect(s.angle).toBe(Math.PI / 2);
+                                            expect(s.angle).toBe(bs.angle);
                                             return true;
                                         }
                                         // during tween
                                         var adt = (at - .3 - .1) / (1 - .3);
-                                        expect(s.angle).toBeCloseTo((Math.PI / 2) +
+                                        expect(s.angle).toBeCloseTo(bs.angle + (Math.PI / 2) +
                                               ((1 - adt) * ((3 * Math.PI / 4) - (Math.PI / 2))), CLOSE_FACTOR);
                                     });
                     });
@@ -2394,14 +2402,20 @@ describe("tweens", function() {
                         checkTweens([.1, 1.5],
                                     [ [ 'rotate', [ .3, 1 ], [Math.PI / 2, 3 * Math.PI / 4], anm.C.E_EIN ] ],
                                     function(s, at) {
-                                        var adt;
-                                        if (at < (.1 + .3)) adt = 0;
-                                        else if (at > (.1 + 1)) adt = 1;
-                                        else adt = (at - .3 - .1) / (1 - .3);
-                                        // return seg.atT([0, 0], t)[1];
-                                        var seg_t = seg.atT([0, 0], adt)[1];
-                                        expect(s.angle).toBeCloseTo((Math.PI / 2) +
-                                              (seg_t * ((3 * Math.PI / 4) - (Math.PI / 2))), CLOSE_FACTOR);
+                                        // before tween
+                                        if (at < (.1 + .3)) {
+                                            expect(s.angle).toBe(bs.angle);
+                                            return true;
+                                        }
+                                        // after tween
+                                        if (at > (.1 + 1)) {
+                                            expect(s.angle).toBe(bs.angle);
+                                            return true;
+                                        }
+                                        // during tween
+                                        var seg_t = seg.atT([0, 0], (at - .3 - .1) / (1 - .3))[1];
+                                        expect(s.angle).toBeCloseTo(bs.angle + (Math.PI / 2) +
+                                                 (seg_t * ((3 * Math.PI / 4) - (Math.PI / 2))), CLOSE_FACTOR);
                                     });
                     });
 
@@ -2416,8 +2430,8 @@ describe("tweens", function() {
                                       [ 'trans', [.5, 1], [ [0, 0], [0, -10] ] ],
                                       [ 'rotateP', [ 0, 1 ], function(t) { return (t == 1) ? 0 : 1; } ] ],
                                     function(s, at) {
-                                        if (at > .5) expect(s.angle).toBeCloseTo(Math.PI / 4, CLOSE_FACTOR);
-                                        else expect(s.angle).toBeCloseTo(-(Math.PI / 2), CLOSE_FACTOR);
+                                        if (at > .5) expect(s.angle).toBeCloseTo(bs.angle + Math.PI / 4, CLOSE_FACTOR);
+                                        else expect(s.angle).toBeCloseTo(bs.angle + -(Math.PI / 2), CLOSE_FACTOR);
                                     });
                     }); */
 
@@ -2437,8 +2451,8 @@ describe("tweens", function() {
                                     [ [ 'trans', [ .3, 1 ], [ [0, 0], [0, -10] ] ],
                                       [ 'rotateP', [ .3, 1 ], function(t) { return (t == 1) ? 0 : 1; } ] ],
                                     function(s, at) {
-                                        if (at > (.1 + .3)) expect(s.angle).toBe(0, CLOSE_FACTOR);
-                                        else expect(s.angle).toBeCloseTo(-(Math.PI / 2), CLOSE_FACTOR);
+                                        if (at > (.1 + .3)) expect(s.angle).toBe(bs.angle + 0, CLOSE_FACTOR);
+                                        else expect(s.angle).toBeCloseTo(bs.angle + -(Math.PI / 2), CLOSE_FACTOR);
                                     });
                     }); */
 
@@ -2448,13 +2462,19 @@ describe("tweens", function() {
                         checkTweens([.1, 1.5],
                                     [ [ 'rotate', [ .3, 1 ], [Math.PI / 2, 3 * Math.PI / 4], anm.C.E_EIN ] ],
                                     function(s, at) {
-                                        var adt;
-                                        if (at < (.1 + .3)) adt = 0;
-                                        else if (at > (.1 + 1)) adt = 1;
-                                        else adt = (at - .3 - .1) / (1 - .3);
-                                        // return seg.atT([0, 0], t)[1];
-                                        var seg_t = seg.atT([0, 0], adt)[1];
-                                        expect(s.angle).toBeCloseTo((Math.PI / 2) +
+                                        // before tween
+                                        if (at < (.1 + .3)) {
+                                            expect(s.angle).toBe(bs.angle);
+                                            return true;
+                                        }
+                                        // after tween
+                                        if (at > (.1 + 1)) {
+                                            expect(s.angle).toBe(bs.angle);
+                                            return true;
+                                        }
+                                        // during tween
+                                        var seg_t = seg.atT([0, 0], (at - .3 - .1) / (1 - .3))[1];
+                                        expect(s.angle).toBeCloseTo(bs.angle + (Math.PI / 2) +
                                               (seg_t * ((3 * Math.PI / 4) - (Math.PI / 2))), CLOSE_FACTOR);
                                     });
                     }); */
@@ -2467,7 +2487,7 @@ describe("tweens", function() {
                         checkTweens([0, 1],
                                     [ [ 'alpha', [ 0, 1 ], [0, .4], function(t) { return 1 - t; } ] ],
                                     function(s, at) {
-                                        expect(s.alpha).toBeCloseTo((1 - at) * .4, CLOSE_FACTOR);
+                                        expect(s.alpha).toBeCloseTo(bs.alpha + (1 - at) * .4, CLOSE_FACTOR);
                                     });
                     });
 
@@ -2477,17 +2497,17 @@ describe("tweens", function() {
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
-                                            expect(s.alpha).toBe(1);
+                                            expect(s.alpha).toBe(bs.alpha);
                                             return true;
                                         }
                                         // after tween
                                         if (at > (.1 + 1)) {
-                                            expect(s.alpha).toBe(.3);
+                                            expect(s.alpha).toBe(bs.alpha);
                                             return true;
                                         }
                                         // during tween
                                         var adt = (at - .3 - .1) / (1 - .3);
-                                        expect(s.alpha).toBeCloseTo(.3 + ((1 - adt) * (1 - .3)), CLOSE_FACTOR);
+                                        expect(s.alpha).toBeCloseTo(bs.alpha + .3 + ((1 - adt) * (1 - .3)), CLOSE_FACTOR);
                                     });
                     });
 
@@ -2496,13 +2516,20 @@ describe("tweens", function() {
                         checkTweens([.1, 1.5],
                                     [ [ 'alpha', [ .3, 1 ], [.3, 1], anm.C.E_EIN ] ],
                                     function(s, at) {
-                                        var adt;
-                                        if (at < (.1 + .3)) adt = 0;
-                                        else if (at > (.1 + 1)) adt = 1;
-                                        else adt = (at - .3 - .1) / (1 - .3);
-                                        // return seg.atT([0, 0], t)[1];
-                                        var seg_t = seg.atT([0, 0], adt)[1];
-                                        expect(s.alpha).toBeCloseTo(.3 + (seg_t * (1 - .3)), CLOSE_FACTOR);
+
+                                        // before tween
+                                        if (at < (.1 + .3)) {
+                                            expect(s.alpha).toBe(bs.alpha);
+                                            return true;
+                                        }
+                                        // after tween
+                                        if (at > (.1 + 1)) {
+                                            expect(s.alpha).toBe(bs.alpha);
+                                            return true;
+                                        }
+                                        // during tween
+                                        var seg_t = seg.atT([0, 0], (at - .3 - .1) / (1 - .3))[1];
+                                        expect(s.alpha).toBeCloseTo(bs.alpha + .3 + (seg_t * (1 - .3)), CLOSE_FACTOR);
                                     });
                     });
 
