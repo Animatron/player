@@ -677,34 +677,33 @@ describe("builder, regarding modifiers,", function() {
 
                             describe("in favor of alignment,", function() {
 
-                                it("does not call modifier before the fact when its band has started", function() {
-                                    var spec = this;
+                                it("does not calls modifier before the fact when its band has started", function() {
+                                    if (mod_band[0] != trg_band[0]) {
+                                        var spec = this;
 
-                                    expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: function(t, duration) {
-                                            spec.fail('Should not be called');
-                                        },
-                                        time: ( (mod_band[0] > 0)
-                                               ? trg_band[0] + (mod_band[0] / 2)
-                                               : trg_band[0] ),
-                                        doNotExpectToCall: [ true ] });
+                                        expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: function(t, duration) {
+                                                spec.fail('Should not be called');
+                                            },
+                                            time: ( trg_band[0] + ((mod_band[0] > 0)
+                                                                 ? (mod_band[0] / 2)
+                                                                 : 0) ),
+                                            doNotExpectToCall: [ true ] });
+                                    }
                                 });
 
-                                it("does not call modifier after the fact when its band has finished", function() {
+                                it("passes time 0 at the exact start of the band", function() {
                                     var spec = this;
 
                                     var mod_duration = mod_band[1] - mod_band[0];
                                     expectAtTime({
                                         bands: mod_band,
                                         modifiers: function(t, duration) {
-                                            spec.fail('Should not be called');
+                                            expect(t).toBe(0);
+                                            expect(duration).toBe(mod_duration);
                                         },
-                                        time: ( (mod_duration < trg_duration)
-                                                ? trg_band[0] + mod_band[1] +
-                                                  ((trg_duration - mod_band[1]) / 2)
-                                                : trg_band[1] ),
-                                        doNotExpectToCall: [ true ] });
+                                        time: trg_band[0] + mod_band[0] });
                                 });
 
                                 it("passes the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
@@ -718,6 +717,37 @@ describe("builder, regarding modifiers,", function() {
                                             expect(duration).toBe(mod_duration);
                                         },
                                         time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+                                });
+
+                                it("passes time 1 at the exact end of the band", function() {
+                                    var spec = this;
+
+                                    var mod_duration = mod_band[1] - mod_band[0];
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t, duration) {
+                                            expect(t).toBe(1);
+                                            expect(duration).toBe(mod_duration);
+                                        },
+                                        time: trg_band[0] + mod_band[1] });
+                                });
+
+                                it("does not calls modifier after the fact when its band has finished", function() {
+                                    if (mod_band[1] != trg_band[1]) {
+                                        var spec = this;
+
+                                        var mod_duration = mod_band[1] - mod_band[0];
+                                        expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: function(t, duration) {
+                                                spec.fail('Should not be called');
+                                            },
+                                            time: ( (mod_duration < trg_duration)
+                                                    ? trg_band[0] + mod_band[1] +
+                                                      ((trg_duration - mod_band[1]) / 2)
+                                                    : trg_band[1] ),
+                                            doNotExpectToCall: [ true ] });
+                                    }
                                 });
 
                             });
@@ -763,8 +793,7 @@ describe("builder, regarding modifiers,", function() {
                                     modifiers: function(t) {
                                         expect(t).toBeCloseTo(1 - (diff / mod_duration), CLOSE_FACTOR);
                                     },
-                                    time: trg_band[1],
-                                    doNotExpectToCall: [ true ] });
+                                    time: trg_band[1] });
                             });
 
                         });
@@ -973,7 +1002,7 @@ describe("builder, regarding modifiers,", function() {
                                                           expect(t).toBeLessThan(1);
                                                           expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR); }
                                         ], time: trg_band[0] + (one_fifth * 2),
-                                        doNotExpectToCall: [ true, true ] });
+                                        doNotExpectToCall: [ true, false ] });
                                 });
 
                                 it("during the overlapping period, calls the first one with actual value and the next one also with actual value", function() {
@@ -1055,7 +1084,7 @@ describe("builder, regarding modifiers,", function() {
 
                     function timeBetween(parent_band, low, high) {
                         var parent_time = player.state.time - parent_band[0];
-                        return (parent_time >= low) &&
+                        return (parent_time > low) &&
                                (parent_time < high);
                     }
 

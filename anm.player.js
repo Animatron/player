@@ -2193,8 +2193,8 @@ Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing
   } else if (__array(band)) { // modifier is band-restricted
       //if ((ltime + band[0]) >= elm_duration) return ltime;
       var mod_duration = band[1] - band[0];
-      if (ltime < band[0]) _tpair = [ 0, mod_duration ];
-      else if (ltime > band[1]) _tpair = [ 1, mod_duration ];
+      if (ltime < band[0]) return false; //_tpair = [ 0, mod_duration ];
+      else if (ltime > band[1]) return false; // _tpair = [ 1, mod_duration ];
       else _tpair = [ (ltime - band[0]) / mod_duration, mod_duration ];
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
