@@ -594,10 +594,12 @@ describe("builder, regarding modifiers,", function() {
                                                   return scene; },
                             run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                             then: function() { _each(expectations, function(expectation) { expectation(); });
-                                               _each(spies, function(spy) { if (!conf.doNotExpectModCall) {
+                                               _each(spies, function(spy, i) { if (!conf.doNotExpectToCall || !conf.doNotExpectToCall[i]) {
                                                                                 expect(spy).toHaveBeenCalledOnce();
-                                                                            }
-                                                                            target.unmodify(spy); }); }
+                                                                              } else {
+                                                                                expect(spy).not.toHaveBeenCalled();
+                                                                              }
+                                                                              target.unmodify(spy); }); }
                         });
                     }
 
@@ -686,7 +688,7 @@ describe("builder, regarding modifiers,", function() {
                                         time: ( (mod_band[0] > 0)
                                                ? trg_band[0] + (mod_band[0] / 2)
                                                : trg_band[0] ),
-                                        doNotExpectModCall: true });
+                                        doNotExpectToCall: [ true ] });
                                 });
 
                                 it("does not call modifier after the fact when its band has finished", function() {
@@ -702,7 +704,7 @@ describe("builder, regarding modifiers,", function() {
                                                 ? trg_band[0] + mod_band[1] +
                                                   ((trg_duration - mod_band[1]) / 2)
                                                 : trg_band[1] ),
-                                        doNotExpectModCall: true });
+                                        doNotExpectToCall: [ true ] });
                                 });
 
                                 it("passes the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
@@ -741,7 +743,7 @@ describe("builder, regarding modifiers,", function() {
                                         spec.fail('Should not be called');
                                     },
                                     time: trg_band[0] + (trg_duration / 5),
-                                    doNotExpectModCall: true });
+                                    doNotExpectToCall: [ true ] });
                             });
 
                             it("passes actual local time value when intersection was not reached", function() {
@@ -762,7 +764,7 @@ describe("builder, regarding modifiers,", function() {
                                         expect(t).toBeCloseTo(1 - (diff / mod_duration), CLOSE_FACTOR);
                                     },
                                     time: trg_band[1],
-                                    doNotExpectModCall: true });
+                                    doNotExpectToCall: [ true ] });
                             });
 
                         });
@@ -805,7 +807,7 @@ describe("builder, regarding modifiers,", function() {
                                         spec.fail('Should not be called');
                                     },
                                     time: trg_band[0] + (trg_duration / 3),
-                                    doNotExpectModCall: true });
+                                    doNotExpectToCall: [ true ] });
                             });
 
                         });
@@ -873,53 +875,68 @@ describe("builder, regarding modifiers,", function() {
                                     band2_duration = band2[1] - band2[0];
                                 });
 
-                                it("in period before first, does not call first one with start value and next one also with start value", function() {
+                                it("in period before first, does not calls both of modifiers", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(0); },
-                                            function(t) { expect(t).toBe(0); }
-                                        ], time: trg_band[0] + (one_fifth / 2) });
+                                            function(t) { spec.fail('Should not be called'); },
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth / 2) },
+                                        doNotExpectToCall: [ true, true ]);
                                 });
 
-                                it("during the first one, should call first one with actual value and next one with start value", function() {
+                                it("during the first one, calls first one with actual value and does not calls the next one with start value", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { spec.fail('Should not be called'); },
                                             function(t) { expect(t).toBeGreaterThan(0);
                                                           expect(t).toBeLessThan(1);
                                                           expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR); }
-                                        ], time: trg_band[0] + (one_fifth * 1.5) });
+                                        ], time: trg_band[0] + (one_fifth * 1.5) },
+                                        doNotExpectToCall: [ true, false ]);
                                 });
 
-                                it("during the period between them, should call first one with end value and next one with start value", function() {
+                                it("during the period between them, does not calls both of modifiers", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(0); },
-                                            function(t) { expect(t).toBe(1); }
-                                        ], time: trg_band[0] + (one_fifth * 2.5) });
+                                            function(t) { spec.fail('Should not be called'); },
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth * 2.5),
+                                        doNotExpectToCall: [ true, true ] });
                                 });
 
-                                it("during the second one, should call first one with end value and next one with actual value", function() {
+                                it("during the second one, does not calls the first one and calls next one with actual value", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
                                                           expect(t).toBeLessThan(1);
                                                           expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR); },
-                                            function(t) { expect(t).toBe(1); }
-                                        ], time: trg_band[0] + (one_fifth * 3.5) });
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth * 3.5),
+                                        doNotExpectToCall: [ false, true ] });
                                 });
 
-                                it("after the second one, should call first one with end value and next one with end value", function() {
+                                it("after the second one, does not calls both of modifiers", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(1); },
-                                            function(t) { expect(t).toBe(1); }
-                                        ], time: trg_band[0] + (one_fifth * 4.5) });
+                                            function(t) { spec.fail('Should not be called'); },
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth * 4.5),
+                                        doNotExpectToCall: [ true, true ] });
                                 });
 
                             });
@@ -933,27 +950,33 @@ describe("builder, regarding modifiers,", function() {
                                     band2_duration = band2[1] - band2[0];
                                 });
 
-                                it("in period before first, should call first one with start value and next one also with start value", function() {
+                                it("in period before first, does not calls both of modifiers", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(0); },
-                                            function(t) { expect(t).toBe(0); }
-                                        ], time: trg_band[0] + (one_fifth / 2) });
+                                            function(t) { spec.fail('Should not be called'); },
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth / 2),
+                                        doNotExpectToCall: [ true, true ] });
                                 });
 
-                                it("during the first one, but not the overlapping period, should call first one with actual value and next one with start value", function() {
+                                it("during the first one, but not the overlapping period, calls the first one with actual value and does not calls the next one", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(0); },
+                                            function(t) { spec.fail('Should not be called'); },
                                             function(t) { expect(t).toBeGreaterThan(0);
                                                           expect(t).toBeLessThan(1);
                                                           expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR); }
-                                        ], time: trg_band[0] + (one_fifth * 2) });
+                                        ], time: trg_band[0] + (one_fifth * 2),
+                                        doNotExpectToCall: [ true, true ] });
                                 });
 
-                                it("during the overlapping period, should call first one with actual value and next one also with actual value", function() {
+                                it("during the overlapping period, calls the first one with actual value and the next one also with actual value", function() {
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
@@ -966,24 +989,30 @@ describe("builder, regarding modifiers,", function() {
                                         ], time: trg_band[0] + (one_fifth * 2.5) });
                                 });
 
-                                it("during the second one, but not the overlapping period, should call first one with end value and next one with actual value", function() {
+                                it("during the second one, but not the overlapping period, does not calls the first one and calls next one with actual value", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
                                             function(t) { expect(t).toBeGreaterThan(0);
                                                           expect(t).toBeLessThan(1);
                                                           expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR); },
-                                            function(t) { expect(t).toBe(1); }
-                                        ], time: trg_band[0] + (one_fifth * 3) });
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth * 3),
+                                        doNotExpectToCall: [ false, true ] });
                                 });
 
-                                it("after the second one, should call first one with end value and next one with end value", function() {
+                                it("after the second one, does not calls both of modifiers", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
-                                            function(t) { expect(t).toBe(1); },
-                                            function(t) { expect(t).toBe(1); }
-                                        ], time: trg_band[0] + (one_fifth * 4.5) });
+                                            function(t) { spec.fail('Should not be called'); },
+                                            function(t) { spec.fail('Should not be called'); }
+                                        ], time: trg_band[0] + (one_fifth * 4.5),
+                                        doNotExpectToCall: [ true, true ] });
                                 });
 
                             });
