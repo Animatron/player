@@ -594,7 +594,9 @@ describe("builder, regarding modifiers,", function() {
                                                   return scene; },
                             run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                             then: function() { _each(expectations, function(expectation) { expectation(); });
-                                               _each(spies, function(spy) { expect(spy).toHaveBeenCalledOnce();
+                                               _each(spies, function(spy) { if (!conf.doNotExpectModCall) {
+                                                                                expect(spy).toHaveBeenCalledOnce();
+                                                                            }
                                                                             target.unmodify(spy); }); }
                         });
                     }
@@ -673,33 +675,37 @@ describe("builder, regarding modifiers,", function() {
 
                             describe("in favor of alignment,", function() {
 
-                                it("should call modifier before the fact when its band has started and pass the starting time and modifier duration inside", function() {
+                                it("does not call modifier before the fact when its band has started", function() {
+                                    var spec = this;
+
                                     expectAtTime({
                                         bands: mod_band,
                                         modifiers: function(t, duration) {
-                                            expect(t).toBe(0);
-                                            expect(duration).toBe(mod_duration);
+                                            spec.fail('Should not be called');
                                         },
                                         time: ( (mod_band[0] > 0)
                                                ? trg_band[0] + (mod_band[0] / 2)
-                                               : trg_band[0] ) });
+                                               : trg_band[0] ),
+                                        doNotExpectModCall: true });
                                 });
 
-                                it("should call modifier after the fact when its band has finished and pass the ending time and modifier duration  inside", function() {
+                                it("does not call modifier after the fact when its band has finished", function() {
+                                    var spec = this;
+
                                     var mod_duration = mod_band[1] - mod_band[0];
                                     expectAtTime({
                                         bands: mod_band,
                                         modifiers: function(t, duration) {
-                                            expect(t).toBe(1);
-                                            expect(duration).toBe(mod_duration);
+                                            spec.fail('Should not be called');
                                         },
                                         time: ( (mod_duration < trg_duration)
                                                 ? trg_band[0] + mod_band[1] +
                                                   ((trg_duration - mod_band[1]) / 2)
-                                                : trg_band[1] ) });
+                                                : trg_band[1] ),
+                                        doNotExpectModCall: true });
                                 });
 
-                                it("should just pass the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
+                                it("passes the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
                                     var mod_duration = mod_band[1] - mod_band[0];
                                     expectAtTime({
                                         bands: mod_band,
@@ -726,16 +732,19 @@ describe("builder, regarding modifiers,", function() {
                                 diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
                             });
 
-                            it("should keep passing a starting time if when its band hasn't started", function() {
+                            it("does not call modifier if when its band hasn't started", function() {
+                                var spec = this;
+
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(0);
+                                        spec.fail('Should not be called');
                                     },
-                                    time: trg_band[0] + (trg_duration / 5) });
+                                    time: trg_band[0] + (trg_duration / 5),
+                                    doNotExpectModCall: true });
                             });
 
-                            it("should pass actual local time value when intersection was not reached", function() {
+                            it("passes actual local time value when intersection was not reached", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
@@ -746,13 +755,14 @@ describe("builder, regarding modifiers,", function() {
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
 
-                            it("should pass the intersection time in the end of wrapper band", function() {
+                            it("passes the intersection time in the end of wrapper band", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
                                         expect(t).toBeCloseTo(1 - (diff / mod_duration), CLOSE_FACTOR);
                                     },
-                                    time: trg_band[1] });
+                                    time: trg_band[1],
+                                    doNotExpectModCall: true });
                             });
 
                         });
@@ -766,7 +776,7 @@ describe("builder, regarding modifiers,", function() {
                                 mod_duration = mod_band[1] - mod_band[0];
                             });
 
-                            it("should pass intersection time when position is at start of the wrapper", function() {
+                            it("passes intersection time when position is at start of the wrapper", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
@@ -775,7 +785,7 @@ describe("builder, regarding modifiers,", function() {
                                     time: trg_band[0] });
                             });
 
-                            it("should pass actual local time value when intersection was passed", function() {
+                            it("passes actual local time value when intersection was passed", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
@@ -786,13 +796,16 @@ describe("builder, regarding modifiers,", function() {
                                     time: trg_band[0] + (trg_duration / 5) });
                             });
 
-                            it("should pass the end time when its band was finished", function() {
+                            it("does not call modifier when its band was finished", function() {
+                                var spec = this;
+
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
-                                        expect(t).toBe(1);
+                                        spec.fail('Should not be called');
                                     },
-                                    time: trg_band[0] + (trg_duration / 3) });
+                                    time: trg_band[0] + (trg_duration / 3),
+                                    doNotExpectModCall: true });
                             });
 
                         });
@@ -807,7 +820,7 @@ describe("builder, regarding modifiers,", function() {
                                 mod_duration = mod_band[1] - mod_band[0];
                             });
 
-                            it("should pass intersection time when position is at start of the wrapper", function() {
+                            it("passes intersection time when position is at start of the wrapper", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
@@ -816,7 +829,7 @@ describe("builder, regarding modifiers,", function() {
                                     time: trg_band[0] });
                             });
 
-                            it("should pass actual local time value when intersection was not reached", function() {
+                            it("passes actual local time value when intersection was not reached", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
@@ -827,7 +840,7 @@ describe("builder, regarding modifiers,", function() {
                                     time: trg_band[0] + (trg_duration / 3) });
                             });
 
-                            it("should pass the end-intersection time when position is at the end of the wrapper", function() {
+                            it("passes the end-intersection time when position is at the end of the wrapper", function() {
                                 expectAtTime({
                                     bands: mod_band,
                                     modifiers: function(t) {
@@ -860,7 +873,7 @@ describe("builder, regarding modifiers,", function() {
                                     band2_duration = band2[1] - band2[0];
                                 });
 
-                                it("in period before first, should call first one with start value and next one also with start value", function() {
+                                it("in period before first, does not call first one with start value and next one also with start value", function() {
                                     expectAtTime({
                                         bands: [ band1, band2 ],
                                         modifiers: [
@@ -1159,7 +1172,7 @@ describe("builder, regarding modifiers,", function() {
                             description: "and modifier time is at the exact end of the target" }
                         ], function() {
 
-                    it("should call a modifier exactly once", function() {
+                    it("calls a modifier exactly once", function() {
                         var modifierSpy = jasmine.createSpy('modifier-spy');
 
                         doAsync(player, {
@@ -1171,7 +1184,7 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    it("should pass target band duration inside the modifier", function() {
+                    it("passes target band duration inside the modifier", function() {
                         var expectedT = 0.7;
 
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
@@ -1186,7 +1199,7 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    it("should call a modifier at given time or a bit later", function() {
+                    it("calls a modifier at given time or a bit later", function() {
                         var calledAt = -1;
                         var expectedT = 0.7;
                         var FPS_ERR = 7 / 9;
@@ -1268,13 +1281,13 @@ describe("builder, regarding modifiers,", function() {
                             prepare: function() {} } */
                         ], function() {
 
-                        it("should call a modifier if current frame matches its time", function() {
+                        it("calls a modifier if current frame matches its time", function() {
                             expectToCall(function(t, duration) {
                                 expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
                             }, modifier_time, modifier_time);
                         });
 
-                        it("should not call a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
+                        it("does not calls a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
                             var calls = [];
                             for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
                                 var later_time = modifier_time + (mFPS * FPS_ERR) + delta;
@@ -1303,7 +1316,7 @@ describe("builder, regarding modifiers,", function() {
                             if (calls.length > 0) queue(calls);
                         });
 
-                        it("should call a modifier again and again if current frame matches its time", function() {
+                        it("calls a modifier again and again if current frame matches its time", function() {
                             var calls = [];
                             for (var i = 0; i < 10; i++) {
                                 calls.push(function() {
@@ -1317,12 +1330,9 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    it("should call a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
+                    it("calls a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
                         var calls = [];
                         var fraction = 4 / 5;
-                        /* console.log('===================');
-                        console.log('mFPS', mFPS);
-                        console.log('fraction', mFPS * fraction); */
                         for (var delta = fraction * mFPS; delta > 0; delta -= .005) {
                             var call_at = trg_band[0] + (modifier_time - delta);
                             if (call_at < 0) call_at = 0;
@@ -1331,14 +1341,8 @@ describe("builder, regarding modifiers,", function() {
                                 (function(call_at) {
                                     calls.push(function() {
                                         (function(next) {
-                                            /* console.log('------------------');
-                                            console.log('requested time is', call_at);
-                                            console.log('target band start is', trg_band[0]);
-                                            console.log('target band duration is', trg_duration);
-                                            console.log('modifier time is', modifier_time); */
                                             var modifierSpy = jasmine.createSpy('modifier-spy')
                                                 .andCallFake(function(t, duration) {
-                                                    //console.log('modifier was called at', t, 'value test:', playValueTest(t, modifier_time));
                                                     expect(playValueTest(t, duration, modifier_time)).toBeTruthy();
                                                 });
                                             doAsync(player, {
