@@ -2990,7 +2990,7 @@ Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;
-        this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 
