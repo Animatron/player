@@ -678,7 +678,7 @@ describe("builder, regarding modifiers,", function() {
                             describe("in favor of alignment,", function() {
 
                                 it("does not calls modifier before the fact when its band has started", function() {
-                                    if (mod_band[0] != trg_band[0]) {
+                                    if (mod_band[0] != 0) {
                                         var spec = this;
 
                                         expectAtTime({
@@ -686,9 +686,7 @@ describe("builder, regarding modifiers,", function() {
                                             modifiers: function(t, duration) {
                                                 spec.fail('Should not be called');
                                             },
-                                            time: ( trg_band[0] + ((mod_band[0] > 0)
-                                                                 ? (mod_band[0] / 2)
-                                                                 : 0) ),
+                                            time: trg_band[0] + (mod_band[0] / 2),
                                             doNotExpectToCall: [ true ] });
                                     }
                                 });
@@ -700,7 +698,7 @@ describe("builder, regarding modifiers,", function() {
                                     expectAtTime({
                                         bands: mod_band,
                                         modifiers: function(t, duration) {
-                                            expect(t).toBe(0);
+                                            expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
                                             expect(duration).toBe(mod_duration);
                                         },
                                         time: trg_band[0] + mod_band[0] });
@@ -726,14 +724,14 @@ describe("builder, regarding modifiers,", function() {
                                     expectAtTime({
                                         bands: mod_band,
                                         modifiers: function(t, duration) {
-                                            expect(t).toBe(1);
+                                            expect(t).toBeCloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
                                             expect(duration).toBe(mod_duration);
                                         },
                                         time: trg_band[0] + mod_band[1] });
                                 });
 
                                 it("does not calls modifier after the fact when its band has finished", function() {
-                                    if (mod_band[1] != trg_band[1]) {
+                                    if (mod_band[1] != trg_duration) {
                                         var spec = this;
 
                                         var mod_duration = mod_band[1] - mod_band[0];
@@ -742,10 +740,7 @@ describe("builder, regarding modifiers,", function() {
                                             modifiers: function(t, duration) {
                                                 spec.fail('Should not be called');
                                             },
-                                            time: ( (mod_duration < trg_duration)
-                                                    ? trg_band[0] + mod_band[1] +
-                                                      ((trg_duration - mod_band[1]) / 2)
-                                                    : trg_band[1] ),
+                                            time: trg_band[0] + mod_band[1] + ((trg_duration - mod_band[1]) / 2),
                                             doNotExpectToCall: [ true ] });
                                     }
                                 });
