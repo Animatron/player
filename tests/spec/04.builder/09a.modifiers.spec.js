@@ -883,8 +883,8 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: [
                                             function(t) { spec.fail('Should not be called'); },
                                             function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth / 2) },
-                                        doNotExpectToCall: [ true, true ]);
+                                        ], time: trg_band[0] + (one_fifth / 2),
+                                        doNotExpectToCall: [ true, true ] });
                                 });
 
                                 it("during the first one, calls first one with actual value and does not calls the next one with start value", function() {
@@ -897,8 +897,8 @@ describe("builder, regarding modifiers,", function() {
                                             function(t) { expect(t).toBeGreaterThan(0);
                                                           expect(t).toBeLessThan(1);
                                                           expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR); }
-                                        ], time: trg_band[0] + (one_fifth * 1.5) },
-                                        doNotExpectToCall: [ true, false ]);
+                                        ], time: trg_band[0] + (one_fifth * 1.5),
+                                        doNotExpectToCall: [ true, false ] });
                                 });
 
                                 it("during the period between them, does not calls both of modifiers", function() {
