@@ -1059,7 +1059,7 @@ describe("builder, regarding modifiers,", function() {
                                (parent_time < high);
                     }
 
-                    function checkWithBands(bands) {
+                    function checkWithBands(spec, bands) {
                         var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands);
                         var modifiers = [];
                         _each(bands, function(band) {
@@ -1068,7 +1068,7 @@ describe("builder, regarding modifiers,", function() {
                                     _end = band[1],
                                     _band_duration = _end - _start;
                                 if (timeBetween(trg_band, 0, _start)) {
-                                    expect(t).toBe(0);
+                                    spec.fail('Should not be called');
                                 }
                                 if (timeBetween(trg_band, _start, _end)) {
                                     expect(t).toBeGreaterThanOrEqual(0);
@@ -1076,7 +1076,7 @@ describe("builder, regarding modifiers,", function() {
                                     expect(t).toEqual(localTime(trg_band, band) / _band_duration);
                                 }
                                 if (timeBetween(trg_band, _end, trg_duration)) {
-                                    expect(t).toBe(1);
+                                    spec.fail('Should not be called');
                                 }
                                 expect(duration).toBe(band[1] - band[0]);
                             });
@@ -1089,23 +1089,23 @@ describe("builder, regarding modifiers,", function() {
                     describe("same rules should apply with a single modifier, independently of position, it", function() {
 
                         it("may be just somewhere inside of the wrapper band", function() {
-                            checkWithBand([ one_fifth * 1.5, one_fifth * 4 ]);
+                            checkWithBand(this, [ one_fifth * 1.5, one_fifth * 4 ]);
                         });
 
                         it("may be aligned to start of the wrapper band", function() {
-                            checkWithBand([ 0, one_fifth * 3 ]);
+                            checkWithBand(this, [ 0, one_fifth * 3 ]);
                         });
 
                         it("may be aligned to end of the wrapper band", function() {
-                           checkWithBand([ one_fifth * 2, trg_duration ]);
+                           checkWithBand(this, [ one_fifth * 2, trg_duration ]);
                         });
 
                         it("may be equal to wrapper band", function() {
-                            checkWithBand([ 0, trg_duration ]);
+                            checkWithBand(this, [ 0, trg_duration ]);
                         });
 
                         it("may exceed the wrapper band", function() {
-                            checkWithBand([ -1, trg_duration + 1 ]);
+                            checkWithBand(this, [ -1, trg_duration + 1 ]);
                         });
 
                     });
@@ -1113,18 +1113,18 @@ describe("builder, regarding modifiers,", function() {
                     describe("and a sequence of them", function() {
 
                         it("if they follow one another", function() {
-                            checkWithBands([ [ one_fifth * 3, one_fifth * 4 ],
-                                             [ one_fifth * 1, one_fifth * 2 ] ]);
+                            checkWithBands(this, [ [ one_fifth * 3, one_fifth * 4 ],
+                                                   [ one_fifth * 1, one_fifth * 2 ] ]);
                         });
 
                         it("or if they overlap", function() {
-                            checkWithBands([ [ one_fifth * 2, one_fifth * 4 ],
-                                             [ one_fifth * 1, one_fifth * 3 ] ]);
+                            checkWithBands(this, [ [ one_fifth * 2, one_fifth * 4 ],
+                                                   [ one_fifth * 1, one_fifth * 3 ] ]);
                         });
 
                         it("or if they overlap with exceeding", function() {
-                            checkWithBands([ [ one_fifth * 2, one_fifth * 6 ],
-                                             [ -one_fifth, one_fifth * 2.999 ] ]); // failed with one_fifth * 3 due to
+                            checkWithBands(this, [ [ one_fifth * 2, one_fifth * 6 ],
+                                                   [ -one_fifth, one_fifth * 2.999 ] ]); // failed with one_fifth * 3 due to
                                                                                    // float point arithmetics in timeBetween
                         });
 
