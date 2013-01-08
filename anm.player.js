@@ -5,7 +5,7 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-// Player
+// Player Core
 // =============================================================================
 
 var _define;
@@ -410,8 +410,8 @@ var M = {};
 
 C.MOD_PLAYER = 'player';
 
-// Options
-// -----------------------------------------------------------------------------
+// ### Options
+/* ----------- */
 
 var global_opts = { 'liveDebug': false,
                     'autoFocus': true,
