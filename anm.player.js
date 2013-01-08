@@ -8,6 +8,47 @@
 // Player Core
 // =============================================================================
 
+// This file contains only the Animatron Player core source code, without _Builder_ or any _modules_
+// included. The player is written with as minimum publicily-visible classes as possible, but
+// its internal structure hides more things, of course. Code in the file goes in
+// natural order, mostly from general things to internal ones. However, to make
+// code work properly it is not always possible to keep this principle.
+//
+// Here I'll give the actual order of things with few notes on each thing to make you have a good _view
+// from above_.
+//
+// - **Utils** —
+// - **Constants** —
+// - **Modules** —
+// - **Player** —
+//     - _Player Control API_ —
+// - **Scene** —
+// - **Element** —
+// - **Import** —
+// - **Drawing** —
+// - **Custom Rendering** —
+// - **Bands** —
+// - **Tweens** —
+// - **Easings** —
+// - **Path** —
+//     - _Segments_ —
+// - **Text** —
+// - **Controls** —
+// - **Info Block** —
+// - **Strings** —
+// - **Exports** —
+//
+// > While doing future refactorings, I may change this order a bit accidently or rename some sections and
+// > forget to update this list (blame me), so please do not consider it to be the very strict
+// > and representing something more than a general feel of file.
+//
+// > NB: Comments are in very early progress
+
+// So, let's start
+
+// This function allows to define a namespace for something and injects this namespace
+// into the global `Window` object (since we work with browser, our global object
+// is always the `Window`)
 var _define;
 if (typeof define !== "function") {
    this.define = function(name, func) {
