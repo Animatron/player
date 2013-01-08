@@ -55,7 +55,7 @@ Here's the documentation on using Animatron Player to load external scenes and p
 Sandbox
 -------
 
-To get the feel on how player works, you may want to play with it at [Sandbox](animatron.com/player/sandbox/sandbox.html) section. There are several examples you may observe in action there. If you want to create some animation on your own, please follow the [Builder](#builder) section, it is the general and the single class that gives you the real power over the moving scenes.
+To get the feel on how player works, you may want to play with it at [Sandbox](http://animatron.com/player/sandbox/sandbox.html) section. There are several examples you may observe in action there. If you want to create some animation on your own, please follow the [Builder](#builder) section, it is the general and the single class that gives you the real power over the moving scenes.
 
 You'll find a lot of checkboxes and radio buttons there, feel free to check and uncheck them. In fact, _Debug_ checkbox turns player in the mode where it shows additional info on current animation for developer (such as FPS, elements' names and their registration points), _Interactive/Non-Interactive_ button (it is not a checkbox, because an additional option may appear in future) enables/disables capturing mouse/keyboard events by canvas.
 

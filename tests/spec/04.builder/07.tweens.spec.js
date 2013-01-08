@@ -378,7 +378,6 @@ describe("tweens", function() {
                                                     }
                                                     // between the both tweens
                                                     if (at < (.15 + 1.1)) {
-                                                        console.log(s.x, s.y);
                                                         expect(s.x).toBe(bs.x);
                                                         expect(s.y).toBe(bs.y);
                                                         return true;
@@ -520,7 +519,6 @@ describe("tweens", function() {
                                                 }
                                                 // during the first tween
                                                 if (at < (.1 + 1)) {
-                                                    console.log(at, (at - 0 - .1), s.x, s.y);
                                                     expect(s.x).toBeCloseTo(bs.x + 5 + (((at - 0 - .1) / (1 - 0)) * (10 - 5)), CLOSE_FACTOR);
                                                     expect(s.y).toBeCloseTo(bs.y + 5 + (((at - 0 - .1) / (1 - 0)) * (12 - 5)), CLOSE_FACTOR);
                                                     return true;
