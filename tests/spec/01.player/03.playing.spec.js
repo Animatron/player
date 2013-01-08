@@ -13,7 +13,7 @@ describe("player, when speaking about playing,", function() {
 
     var _instances = 0;
 
-    // var FPS = 60;
+    var FPS = 60, _fg;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
@@ -21,12 +21,12 @@ describe("player, when speaking about playing,", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        // _FrameGen.enable(FPS);
+        _fg = _FrameGen.spawn().run(FPS);
 
         player = createPlayer('test-id-' + _instances++);
     });
 
-    // afterEach(function() { _FrameGen.disable(); });
+    afterEach(function() { _fg.stop(); });
 
     it("should not play anything just after loading a scene", function() {
         var playSpy = spyOn(player, 'play');

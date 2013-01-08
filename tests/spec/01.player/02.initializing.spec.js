@@ -9,14 +9,20 @@ describe("player, when speaking about initialization,", function() {
 
     var player;
 
+    var FPS = 40, _fg;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
+        _fg = _FrameGen.spawn().run(FPS);
+
         player = new anm.Player();
     });
+
+    afterEach(function() { _fg.stop(); });
 
     it("should be stopped at start", function() {
         var stopSpy = spyOn(player, 'stop');
