@@ -55,7 +55,7 @@ Here's the documentation on using Animatron Player to load external scenes and p
 Sandbox
 -------
 
-To get the feel on how player works, you may want to play with it at [Sandbox](animatron.com/player/sandbox/sandbox.html) section. There are several examples you may observe in action there. If you want to create some animation on your own, please follow the [Builder](#builder) section, it is the general and the single class that gives you the real power over the moving scenes.
+To get the feel on how player works, you may want to play with it at [Sandbox](http://animatron.com/player/sandbox/sandbox.html) section. There are several examples you may observe in action there. If you want to create some animation on your own, please follow the [Builder](#builder) section, it is the general and the single class that gives you the real power over the moving scenes.
 
 You'll find a lot of checkboxes and radio buttons there, feel free to check and uncheck them. In fact, _Debug_ checkbox turns player in the mode where it shows additional info on current animation for developer (such as FPS, elements' names and their registration points), _Interactive/Non-Interactive_ button (it is not a checkbox, because an additional option may appear in future) enables/disables capturing mouse/keyboard events by canvas.
 
@@ -839,6 +839,8 @@ It takes type of the tween, its time-band (relatively to the band of its owner),
        .tween(C.T_ROTATE, [1.5, 3],
               [ Math.PI/2, Math.PI ], C.E_QINOUT);
 
+Time bands for tweens act the same way as band-restricted [modifiers](#modifiers--painters).
+
 Now, the methods for concrete tweens:
 
 > ♦ `builder.trans % (band: Array[2,Float], points: Array[2,Array[2, Float]], [easing: C.E_* | Object]) => Builder`
@@ -894,7 +896,7 @@ Changes the opacity value of the shape through time. The acceptable values are f
     b().alpha([8, 16], [.5, 1]);
     b().alpha([1.2, 3], [0, 1], C.E_COUT);
 
-The order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the *same type* do matters if their time frames overlap.
+The order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the *same type* do matters if their time frames overlap — the corresponding state value is alwasy overwritten with the last-added tween.
 
 ### Tween Easings
 
@@ -982,23 +984,23 @@ See [The Flow](#the-flow) section for more detailed description.
 
 __Modifier__ is the function that gets current local time and changes shape's `state` conforming to it. It may even substitute this time. And any shape may have any number of such functions, they will be applied to this shape one by one on every frame before drawing. Tweens are also modifiers. In fact, they are prepared when you load your scene into player. One modifier checks if element band fits current time. If any of modifiers fail, the element will not be drawn.
 
-> ♦ `builder.modify % (modifier: Function(time: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+> ♦ `builder.modify % (modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range); its `this` pointer points to the shape's `state`, so you may freely *modify* it.
+To add modifier function to a shape, use `modify()` method. This function gets local time in range of `[0..1]`, relatively to the element's own band (it is not guaranteed to get exact 0 or 1 everytime, because rendering calls may skip these frames due to low FPS); Second argument for this function is the duration of element's band, so you may calculate the actual local time in any moment; its `this` pointer points to the shape's `state`, so you may freely *modify* it.
 
 Every such function returns `null` by default (when you return nothing) and it means "do not stop execution, continue", the same as `return true`. It is done to let you forget to return something, so all modifiers do pass by default. If you will manually return `false` (treat it as "please stop execution, I don't need this element now"), the execution will stop. So it is optional to return something from modifier while you want to see it, but if you return `false` and only `false` (not `0`, `null`, empty string or something), element will not be rendered this time; any other return values or omitting return statement are considered as `true`, do render.
 
 <!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
 
     b().modify(function(t) {
-        this.x = 10 * t;
-        this.sy = t / 15;
+        this.x = 100 * t;
+        this.sy = t / .1;
     });
 
     // adding prepared modifier to several shapes
     // and passing some data to it
     var m_prepared = function(t, value) {
-        this.angle = Math.PI / (t * value);
+        this.angle = Math.PI / (t * 10 * value);
     };
     b().modify(m_prepared, .1);
     b().modify(m_prepared, .5);
@@ -1009,12 +1011,12 @@ Every such function returns `null` by default (when you return nothing) and it m
     var my_shape = b();
     my_shape.modify(m_prepared, .6);
     my_shape.modify(function(t) {
-        this.alpha = t / my_shape.v.duration();
+        this.alpha = t;
     });
 
     // returning false if this element must not be visible
-    b().modify(function(t) {
-        return (t > 4);
+    b().modify(function(t, duration) {
+        return ((t * duration) > 4);
     });
 
 In fact, when you change the `state` in any modifier, you change not the current element `.state`, but the cloned state, which will be applied only when all modifiers passed successfully. It gives you the ability to safely get previous (from last render) element state with `b().v.state` (there is no meaning in modifying it, it is the _previous_ state). Inside the modifier, previous state is also accessible through `this._` (`this._.x`, `this._.angle`, `this._.alpha`, ....). Also, there is a link to current element (modifier owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases. Anyway, you may wrap `this.$` with `b()` (like `b(this.$)`), and you will get the same builder you use outside from cache (if it wasn't created, it will be created).
@@ -1031,7 +1033,7 @@ It is ok to have a number of modifiers that check some flag and return `false` (
     for (var i = 0; i < 10; i++) {
         b().rect([10, 10], 5)
            .modify((function(i) { // closure for i
-              return function(t, ctx) {
+              return function(t, duration, ctx) {
                  return ctx.show[i];
               }
             })(i), ctx);
@@ -1051,6 +1053,14 @@ If you want to call a modifier once at a single moment (or a bit later), there i
                  }));
 
 It will wrap your modifier with another modifier, and every time when the last will be called, it will always check if current time is equal or larger than given time, and when it does, it will execute the function and immediately destroy itself — so you are ensured that your function will be called only a single time, say "at 3 seconds or a bit later". And it will also pass the actual time to a function.
+
+In last versions of player there were several new methods to control modifier time introduced:
+
+* `b().modify(function(t, duration) { ... })` — is the one described above, it longs through all the element's band and gets this band duration as a `duration` argument;
+* `b().modify([x, y], function(t, duration) { ... })` — restict modifier with its own band, `t` will be relative to this band and `duration` will be a duration of this band; so, in case of modifier defined like this: `b().band([2, 9]).modify([1, 3], some_func);`, `some_func` will be called at a global period of `[2+1..2+3] = [3..5]` and will always receive a `duration` of `3-1 = 2`;
+* `b().modify(z, function(t, duration) { ... })` — guarantees to call a modifier at the time `z` of element's band (of course, if it fits the band), `duration` will be the element's band duration and `t` will be the actual time when modifier was called, relatively to this band; in case of modifier defined like this: `b().band([2, 9]).modify(3.5, some_func);`, `some_func` will be called somewhere very near to a global time of `2+3.5 = 5.5` and will always receive a `duration` of `9-2 = 7`;
+
+**NB:** In near future there also will be an additional useful method to restrict modifiers to time, also defined relative to their parent's band, with the help of `rmodify` method: so `b().modify(function() { ... })` will always be equal to `b().rmodify([0, 1], function() { ... })` and `b().rmodify(1, function() { ... })` will always call modifier at the end of element's band.
 
 #### Painters
 
