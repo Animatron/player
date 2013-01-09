@@ -28,7 +28,7 @@ describe("player, when speaking about playing,", function() {
 
     afterEach(function() { _fg.stop().destroy(); });
 
-    it("should not play anything just after loading a scene", function() {
+    /*it("should not play anything just after loading a scene", function() {
         var playSpy = spyOn(player, 'play');
         player.load(new anm.Scene());
         expect(playSpy).not.toHaveBeenCalled();
@@ -125,21 +125,27 @@ describe("player, when speaking about playing,", function() {
             scene.add(new anm.Element());
             player.load(scene);
             expect(player.anim).not.toBe(null);
-            player.play();
-            expect(player.state.happens).toBe(C.PLAYING);
-            player.stop();
-            player.play(2);
-            expect(player.state.happens).toBe(C.PLAYING);
-            player.stop();
+            runs(function() {
+                player.play();
+                expect(player.state.happens).toBe(C.PLAYING);
+                player.stop();
+            });
+            runs(function() {
+                player.play(2);
+                expect(player.state.happens).toBe(C.PLAYING);
+                player.stop();
+            });
         });
 
         it("should have state.happens equal to stopped, " +
            "if requested time exceeds scene duration when asking to play", function() {
             player.load(new anm.Scene());
             expect(player.anim).not.toBe(null);
-            player.play();
-            expect(player.state.happens).toBe(C.PLAYING);
-            player.stop();
+            runs(function() {
+                player.play();
+                expect(player.state.happens).toBe(C.PLAYING);
+                player.stop();
+            });
             player.play(2);
             expect(player.state.happens).toBe(C.STOPPED);
             player.stop();
@@ -178,20 +184,22 @@ describe("player, when speaking about playing,", function() {
             expect(e.message).toBe(anm.Errors.P.PAUSING_WHEN_STOPPED);
             player.stop();
         }
-    });
+    }); */
 
     it("should pause at a time where pause was called", function() {
 
         var scene = new anm.Scene();
         scene.add(new anm.Element());
+        scene.duration = 10;
 
         doAsync(player, scene, {
             run: function() {
                 player.play();
+                expect(player.state.duration).toBe(10);
                 expect(player.state.from).toBe(0);
 
                 setTimeout(function() {
-                    player.pause();
+                   player.pause();
                 }, 600);
             },
             until: C.PAUSED,
@@ -203,7 +211,7 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    it("should allow to play from other point after a pause was called", function() {
+    /*it("should allow to play from other point after a pause was called", function() {
 
         var scene = new anm.Scene();
         scene.add(new anm.Element());
@@ -215,6 +223,18 @@ describe("player, when speaking about playing,", function() {
             run: function() {
                 player.play();
                 expect(player.state.from).toBe(0);
+
+                //waits(600);
+
+                //player.pause();
+                //player.play(.2);
+                //expect(player.state.from).toBe(.2);
+
+                //_fg.delay(600, function() {
+                //    player.pause();
+                //    player.play(.2);
+                //    expect(player.state.from).toBe(.2);
+                //});
 
                 setTimeout(function() {
                     player.pause();
@@ -235,7 +255,7 @@ describe("player, when speaking about playing,", function() {
                 expect(player.state.from).toBe(0.2);
             }
         });
-    });
+    });*/
 
     it("should stop at no-time when stop was called", function() {
 
@@ -257,7 +277,7 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    it("should call modifiers and painters through all playing cycle", function() {
+    /*it("should call modifiers and painters through all playing cycle", function() {
         var modifierSpy = jasmine.createSpy('modifier-spy');
         var painterSpy = jasmine.createSpy('painter-spy');
 
@@ -318,9 +338,9 @@ describe("player, when speaking about playing,", function() {
                 expect(midFPS).toBeGreaterThan(0);
                 expect(mCalls).toBeEpsilonyCloseTo(midFPS * duration, 3);
                 expect(pCalls).toBeEpsilonyCloseTo(midFPS * duration, 3);
-                /*expect(player.state.afps).toEqual(FPS);
-                expect(mCalls).toEqual(FPS * duration, 10);
-                expect(pCalls).toEqual(FPS * duration, 10);*/
+                //expect(player.state.afps).toEqual(FPS);
+                //expect(mCalls).toEqual(FPS * duration, 10);
+                //expect(pCalls).toEqual(FPS * duration, 10);
             }
         });
 
@@ -394,7 +414,7 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    describe("events handling, concretely", function() {
+    /*describe("events handling, concretely", function() {
 
         it("should fire playing event when started playing", function() {
             var playCallbackSpy = jasmine.createSpy('play-cb');
@@ -569,9 +589,9 @@ describe("player, when speaking about playing,", function() {
         //       is changed, new version is used.
 
 
-    });
+    });*/
 
-    describe("drawAt method, concretely", function() {
+    /*describe("drawAt method, concretely", function() {
 
         it("should not allow to be called out of scene bounds", function() {
 
@@ -650,9 +670,9 @@ describe("player, when speaking about playing,", function() {
 
         // TODO: test resetting state after drawAt and stuff
 
-    });
+    });*/
 
-    var DEFAULT_VIDEO_DURATION = anm.Scene.DEFAULT_VIDEO_DURATION;
+    /*var DEFAULT_VIDEO_DURATION = anm.Scene.DEFAULT_VIDEO_DURATION;
     var DEFAULT_ELEMENT_LENGTH = anm.Element.DEFAULT_LEN;
 
     describe("scene duration", function() {
@@ -888,7 +908,7 @@ describe("player, when speaking about playing,", function() {
 
         });
 
-    });
+    });*/
 
     // ensure drawAt and playing are the similar calls and produce the same results
     // test passing stopAt value to play() method (state.stop)

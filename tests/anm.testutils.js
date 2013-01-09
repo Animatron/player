@@ -84,8 +84,10 @@ var _FrameGen = (function() {
 
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error(ID_STR + ': Clock mock is not installed');
-                clock.tick(period);
-                callback();
+                runs(function() {
+                    clock.tick(period);
+                    callback()
+                });
                 // return _window.setTimeout(callback, period);
             };
 
