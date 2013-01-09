@@ -26,7 +26,7 @@ describe("player, when speaking about playing,", function() {
         player = createPlayer('test-id-' + _instances++);
     });
 
-    afterEach(function() { _fg.stop(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     it("should not play anything just after loading a scene", function() {
         var playSpy = spyOn(player, 'play');
@@ -90,7 +90,9 @@ describe("player, when speaking about playing,", function() {
         player.load(scene);
         expect(player.anim).toBe(scene);
 
-        try { player.load(null); } catch(e) {};
+        try { player.load(null);
+              this.fail('Should throw an error');
+            } catch(e) {};
         expect(player.anim).toBe(null);
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
@@ -111,7 +113,9 @@ describe("player, when speaking about playing,", function() {
             expect(player.state.happens).toBe(C.NOTHING);
             player.load(new anm.Scene());
             expect(player.state.happens).toBe(C.STOPPED);
-            try { player.load(null); } catch(e) {};
+            try { player.load(null);
+                  this.fail('Should throw an error');
+            } catch(e) {};
             expect(player.anim).toBe(null);
             expect(player.state.happens).toBe(C.NOTHING);
         });
@@ -138,6 +142,7 @@ describe("player, when speaking about playing,", function() {
             player.stop();
             player.play(2);
             expect(player.state.happens).toBe(C.STOPPED);
+            player.stop();
         });
 
         it("should have state.happens equal to stopped, if started playing and then stopped", function() {
@@ -168,6 +173,7 @@ describe("player, when speaking about playing,", function() {
         expect(player.state.happens).toBe(C.STOPPED);
         try {
             player.pause();
+            this.fail('Should throw an error');
         } catch(e) {
             expect(e.message).toBe(anm.Errors.P.PAUSING_WHEN_STOPPED);
             player.stop();
@@ -469,19 +475,15 @@ describe("player, when speaking about playing,", function() {
     describe("calling something after every frame, concretely", function() {
 
         it("should allow to set callback for it when not playing", function() {
-            try {
-                player.afterFrame(function() {});
-                player.load(new anm.Scene());
-                player.afterFrame(function() {});
-                player.play();
-                player.pause();
-                player.afterFrame(function() {});
-                player.play();
-                player.stop();
-                player.afterFrame(function() {});
-            } catch(e) {
-                this.fail('Should not throw exceptions, but thrown: ' + (e.message || e));
-            }
+            player.afterFrame(function() {});
+            player.load(new anm.Scene());
+            player.afterFrame(function() {});
+            player.play();
+            player.pause();
+            player.afterFrame(function() {});
+            player.play();
+            player.stop();
+            player.afterFrame(function() {});
         });
 
         it("should not allow seting callback like this while playing", function() {
@@ -489,6 +491,7 @@ describe("player, when speaking about playing,", function() {
                 player.load(new anm.Scene());
                 player.play();
                 player.afterFrame(function() {});
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(anm.Errors.P.AFTERFRAME_BEFORE_PLAY);
                 player.stop();
@@ -498,6 +501,7 @@ describe("player, when speaking about playing,", function() {
                 player.load(new anm.Scene());
                 player.play(1);
                 player.afterFrame(function() {});
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(anm.Errors.P.AFTERFRAME_BEFORE_PLAY);
                 player.stop();
@@ -582,24 +586,28 @@ describe("player, when speaking about playing,", function() {
 
             try {
                 player.drawAt(duration + 0.05);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [duration+0.05]));
             }
 
             try {
                 player.drawAt(duration + 10);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [duration+10]));
             }
 
             try {
                 player.drawAt(-0.05);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [-0.05]));
             }
 
             try {
                 player.drawAt(-10);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [-10]));
             }

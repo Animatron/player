@@ -199,7 +199,7 @@ describe("tweens", function() {
 
         var player;
 
-        var FPS = 40; //40; // 120; // 200;
+        var FPS = 40, _fg; //40; // 120; // 200;
 
         var CLOSE_FACTOR = 11;
 
@@ -208,14 +208,14 @@ describe("tweens", function() {
             spyOn(document, 'getElementById').andReturn(_mocks.canvas);
             _fake(_Fake.CVS_POS);
 
-            _FrameGen.enable(FPS);
+            _fg = _FrameGen.spawn().run(FPS);
 
             // preview mode is enabled not to mess with still-preview used for video-mode
             // (it calls drawAt and causes modifiers to be called once more before starting playing)
             player = createPlayer('test-id', { mode: anm.C.M_PREVIEW });
         });
 
-        afterEach(function() { _FrameGen.disable(); });
+        afterEach(function() { _fg.stop().destroy(); });
 
         var _duration = 2;
 

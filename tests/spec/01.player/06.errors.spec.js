@@ -7,7 +7,7 @@ describe("errors", function() {
 
     var player;
 
-    var FPS = 15;
+    var FPS = 15, _fg;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
@@ -15,12 +15,12 @@ describe("errors", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        _FrameGen.enable(FPS);
+        _fg = _FrameGen.spawn().run(FPS);
 
         player = createPlayer('test-id');
     });
 
-    afterEach(function() { _FrameGen.disable(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     /* var scenes = { // TODO: include error test in each scene
         withInternalError: function() {

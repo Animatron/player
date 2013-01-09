@@ -156,6 +156,19 @@ var _FrameGen = (function() {
         return INSTANCE;
     }
 
+    function _destroy(id) {
+        var ID_STR = __id_str(id);
+        var INSTANCE = _registry[id];
+
+        // console.log('Destroying ' + ID_STR);
+
+        if (INSTANCE.running) throw new Error(ID_STR + ' is running, cannot destroy!');
+
+        _registry[id] = null;
+
+        return INSTANCE;
+    }
+
     function _create(id) {
         var ID_STR = __id_str(id);
         // console.log('Creating ' + ID_STR);
@@ -165,7 +178,8 @@ var _FrameGen = (function() {
             id: id,
             running: false,
             run: function(fps) { return _run(id, fps); },
-            stop: function() { return _stop(id); }
+            stop: function() { return _stop(id); },
+            destroy: function() { return _destroy(id); }
         };
         _registry[id] = instance;
         return instance;
@@ -262,6 +276,7 @@ function doAsync(player, conf) {
     var _errors = [];
 
     function reportOrThrow(err) {
+        player.stop();
         if (conf.onerror) { conf.onerror(err); _errors.push(err); } else throw err;
     }
     function thereWereErrors() { return _errors.length > 0; }
@@ -318,6 +333,14 @@ function doAsync(player, conf) {
     });
 
 }
+
+/*function asyncSeq() {
+    var fs = arguments,
+        player = fs[0],
+
+    if (!player) throw new Error('Please pass error');
+
+}*/
 
 // FIMXE: in doAsync, if you specify both scene as argument and conf.prepare, conf.prepare
 //        will be silently not called
