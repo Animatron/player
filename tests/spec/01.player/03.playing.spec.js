@@ -211,51 +211,46 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    /*it("should allow to play from other point after a pause was called", function() {
+    it("should allow to play from other point after a pause was called", function() {
 
         var scene = new anm.Scene();
         scene.add(new anm.Element());
         scene.duration = 1;
 
-        var wasAtEnd = false;
-
-        doAsync(player, scene, {
-            run: function() {
-                player.play();
-                expect(player.state.from).toBe(0);
-
-                //waits(600);
-
-                //player.pause();
-                //player.play(.2);
-                //expect(player.state.from).toBe(.2);
-
-                //_fg.delay(600, function() {
-                //    player.pause();
-                //    player.play(.2);
-                //    expect(player.state.from).toBe(.2);
-                //});
-
-                setTimeout(function() {
-                    player.pause();
-                    player.play(.2);
-                    expect(player.state.from).toBe(.2);
-                }, 600);
-            },
-            waitFor: function() {
-                var t = player.state.time;
-                if (!wasAtEnd && (t > .51)) wasAtEnd = true;
-                return wasAtEnd && (t > .2)
-                                && (t < .5);
-            }, timeout: 0.8,
-            then: function() {
+        var afterPauseSpy = jasmine.createSpy("after-frame")
+                                   .andCallFake(function(t) {
                 expect(player.state.happens).toBe(C.PLAYING);
-                expect(player.state.time).toBeGreaterThan(0.2);
+                expect(player.state.time).toBeGreaterThanOrEqual(0.2);
                 expect(player.state.time).toBeLessThan(0.5);
                 expect(player.state.from).toBe(0.2);
+                player.stop();
+            });
+
+        var wasPaused = false;
+
+        player.load(scene);
+
+        player.afterFrame(function(t) {
+            if (wasPaused) {
+                afterPauseSpy(t);
             }
         });
-    });*/
+
+        player.play();
+        expect(player.state.from).toBe(0);
+
+        setTimeout(function() {
+            player.pause();
+
+            wasPaused = true;
+
+            player.play(.2);
+
+            expect(afterPauseSpy).toHaveBeenCalled();
+            expect(wasPaused).toBeTruthy();
+        }, 600);
+
+    });
 
     it("should stop at no-time when stop was called", function() {
 
@@ -514,7 +509,6 @@ describe("player, when speaking about playing,", function() {
                 scene.duration = 1;
                 player.load(scene);
                 player.play(.5);
-                console.log(player.state.happens, C.PLAYING);
                 player.afterFrame(function() {});
                 this.fail('Should throw an error');
             } catch(e) {
