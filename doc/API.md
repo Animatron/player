@@ -751,6 +751,7 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.S_PAUSE` — Playing paused
         * `C.S_STOP` — Playing stopped
         * `C.S_LOAD` — Scene loaded
+        * `C.S_REPEAT` — Auto-repeat was called
         * `C.S_ERROR` — Error happened
     * Element
         * Mouse `C.X_M*`, `C.XT_MOUSE`

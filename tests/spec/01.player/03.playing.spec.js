@@ -28,7 +28,7 @@ describe("player, when speaking about playing,", function() {
 
     afterEach(function() { _fg.stop().destroy(); });
 
-    /*it("should not play anything just after loading a scene", function() {
+    it("should not play anything just after loading a scene", function() {
         var playSpy = spyOn(player, 'play');
         player.load(new anm.Scene());
         expect(playSpy).not.toHaveBeenCalled();
@@ -184,7 +184,7 @@ describe("player, when speaking about playing,", function() {
             expect(e.message).toBe(anm.Errors.P.PAUSING_WHEN_STOPPED);
             player.stop();
         }
-    }); */
+    });
 
     it("should pause at a time where pause was called", function() {
 
@@ -277,7 +277,7 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    /*it("should call modifiers and painters through all playing cycle", function() {
+    it("should call modifiers and painters through all playing cycle", function() {
         var modifierSpy = jasmine.createSpy('modifier-spy');
         var painterSpy = jasmine.createSpy('painter-spy');
 
@@ -373,48 +373,39 @@ describe("player, when speaking about playing,", function() {
             var playSpy = spyOn(player, 'play').andCallThrough(),
                 stopSpy = spyOn(player, 'stop').andCallThrough();
 
-            var wasAtEnd = false;
+            var repeatEvtSpy = jasmine.createSpy('repeat-spy');
 
-            doAsync(player, {
-                prepare: function() {
-                    var scene = new anm.Scene();
-                    scene.add(new anm.Element());
-                    scene.duration = 1;
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            scene.duration = 1;
 
-                    player.state.repeat = true;
+            player.state.repeat = true;
 
-                    return scene;
-                },
-                run: function() {
-                    player.play();
+            player.load(scene);
 
-                    expect(player.state.from).toBe(0);
-                    expect(player.state.happens).toBe(C.PLAYING);
+            player.play(.5);
 
-                    playSpy.reset();
-                    stopSpy.reset();
-                },
-                waitFor: function() {
-                    var t = player.state.time;
-                    if (!wasAtEnd && (t > .6)) wasAtEnd = true;
-                    return wasAtEnd && (t > .1)
-                                    && (t < .5);
-                },
-                then: function() {
-                    expect(stopSpy).toHaveBeenCalledOnce();
-                    expect(playSpy).toHaveBeenCalledOnce();
-                    expect(player.state.happens).toBe(C.PLAYING);
-                    expect(player.state.time).toBeGreaterThan(0);
-                    expect(player.state.time).toBeLessThan(1);
-                    expect(player.state.from).toBe(0);
-                }
-            });
+            expect(player.state.from).toBe(0.5);
+            expect(player.state.happens).toBe(C.PLAYING);
+
+            playSpy.reset();
+            stopSpy.reset();
+
+            player.on(anm.C.S_REPEAT, repeatEvtSpy.andCallFake(function() {
+                expect(stopSpy).toHaveBeenCalledOnce();
+                expect(playSpy).toHaveBeenCalledOnce();
+                expect(player.state.happens).toBe(C.PLAYING);
+                expect(player.state.time).toBeGreaterThanOrEqual(0);
+                expect(player.state.time).toBeLessThan(0.5);
+                expect(player.state.from).toBe(0);
+                player.stop();
+            }));
 
         });
 
     });
 
-    /*describe("events handling, concretely", function() {
+    describe("events handling, concretely", function() {
 
         it("should fire playing event when started playing", function() {
             var playCallbackSpy = jasmine.createSpy('play-cb');
@@ -518,8 +509,12 @@ describe("player, when speaking about playing,", function() {
             }
 
             try {
-                player.load(new anm.Scene());
-                player.play(1);
+                var scene = new anm.Scene();
+                scene.add(new anm.Element());
+                scene.duration = 1;
+                player.load(scene);
+                player.play(.5);
+                console.log(player.state.happens, C.PLAYING);
                 player.afterFrame(function() {});
                 this.fail('Should throw an error');
             } catch(e) {
@@ -589,9 +584,9 @@ describe("player, when speaking about playing,", function() {
         //       is changed, new version is used.
 
 
-    });*/
+    });
 
-    /*describe("drawAt method, concretely", function() {
+    describe("drawAt method, concretely", function() {
 
         it("should not allow to be called out of scene bounds", function() {
 
@@ -670,9 +665,9 @@ describe("player, when speaking about playing,", function() {
 
         // TODO: test resetting state after drawAt and stuff
 
-    });*/
+    });
 
-    /*var DEFAULT_VIDEO_DURATION = anm.Scene.DEFAULT_VIDEO_DURATION;
+    var DEFAULT_VIDEO_DURATION = anm.Scene.DEFAULT_VIDEO_DURATION;
     var DEFAULT_ELEMENT_LENGTH = anm.Element.DEFAULT_LEN;
 
     describe("scene duration", function() {
@@ -908,7 +903,7 @@ describe("player, when speaking about playing,", function() {
 
         });
 
-    });*/
+    });
 
     // ensure drawAt and playing are the similar calls and produce the same results
     // test passing stopAt value to play() method (state.stop)
