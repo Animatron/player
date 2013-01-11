@@ -67,6 +67,8 @@ var _FrameGen = (function() {
 
         // // console.log('Running ' + ID_STR + ' with FPS ' + fps);
 
+        var consoleMode = false;
+
         if (INSTANCE.running) throw new Error(ID_STR + ' is already running!');
 
         if (_window) {
@@ -84,10 +86,23 @@ var _FrameGen = (function() {
 
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error(ID_STR + ': Clock mock is not installed');
-                runs(function() {
-                    clock.tick(period);
-                    callback()
-                });
+                var errors = [];
+                var f = function() {
+                    try {
+                        clock.tick(period);
+                        callback();
+                    } catch (e) { /* console.log(e); */ throw e; /*errors.push(e);*/ }
+                };
+                if (!consoleMode) { f(); }
+                else {
+                    try {
+                        runs(f);
+                    } catch(e) {
+                        console.log(e);
+                        throw e;
+                    }
+                }
+                console.log(errors);
                 // return _window.setTimeout(callback, period);
             };
 
@@ -100,10 +115,11 @@ var _FrameGen = (function() {
                 // console.log(ID_STR + ': no browser generator found, but anm namespace exists, subscribing __anm__frameGen');
                 _window.__anm__frameGen = stubFrameGen;
                 requestSpy = spyOn(_window, '__anm__frameGen').andCallThrough();
-            } else {
+                consoleMode = true;
+            } else throw new Error(ID_STR + ': no native generator found to attach spy to'); /*{
                 // console.log(ID_STR + ': no generator found at all, creating own spy');
                 requestSpy = jasmine.createSpy('request-frame-spy').andCallFake(stubFrameGen);
-            }
+            }*/
             requestSpy.__fg_id = id;
 
             function stubFrameRem(id) {
@@ -122,10 +138,10 @@ var _FrameGen = (function() {
                 // console.log(ID_STR + ': no browser stopper found, but anm namespace exists, subscribing __anm__frameRem');
                 _window.__anm__frameRem = stubFrameRem;
                 cancelSpy = spyOn(_window, '__anm__frameRem').andCallThrough();
-            } else {
+            } else throw new Error(ID_STR + ': no native frame-remover found to attach spy to'); /* {
                 // console.log(ID_STR + ': no stopper found at all, creating own spy');
                 cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameRem);
-            }
+            } */
             cancelSpy.__fg_id = id;
 
             INSTANCE.running = true;
@@ -278,8 +294,12 @@ function doAsync(player, conf) {
     var _errors = [];
 
     function reportOrThrow(err) {
-        player.stop();
-        if (conf.onerror) { conf.onerror(err); _errors.push(err); } else throw err;
+        if (conf.onerror) { conf.onerror(err);
+                            _errors.push(err); }
+        else { try {
+                 player.stop();
+               } catch(a) {};
+               throw err; };
     }
     function thereWereErrors() { return _errors.length > 0; }
 
