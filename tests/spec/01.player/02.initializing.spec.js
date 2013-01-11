@@ -22,7 +22,7 @@ describe("player, when speaking about initialization,", function() {
         player = new anm.Player();
     });
 
-    afterEach(function() { _fg.stop(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     it("should be stopped at start", function() {
         var stopSpy = spyOn(player, 'stop');

@@ -10,6 +10,8 @@ describe("player, when speaking about modes,", function() {
     var player,
         C = anm.C;
 
+    var FPS = 20, _fg;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
@@ -17,8 +19,12 @@ describe("player, when speaking about modes,", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
+        _fg = _FrameGen.spawn().run(FPS);
+
         player = new anm.Player();
     });
+
+    afterEach(function() { _fg.stop().destroy(); });
 
     describe("controls/info block and subscribing events, especially", function() {
 
@@ -250,6 +256,7 @@ describe("player, when speaking about modes,", function() {
                 player.play();
                 expect(scene.duration).toBe(Number.MAX_VALUE);
                 expect(player.state.duration).toBe(Number.MAX_VALUE);
+                player.stop();
             });
 
             it("should be finite in video mode", function() {
@@ -264,6 +271,7 @@ describe("player, when speaking about modes,", function() {
                 player.play();
                 expect(scene.duration).toBe(12);
                 expect(player.state.duration).toBe(12);
+                player.stop();
             });
 
             it("should be finite in preview mode", function() {
@@ -278,6 +286,7 @@ describe("player, when speaking about modes,", function() {
                 player.play();
                 expect(scene.duration).toBe(12);
                 expect(player.state.duration).toBe(12);
+                player.stop();
             });
 
         });

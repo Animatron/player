@@ -65,7 +65,11 @@ var _FrameGen = (function() {
         var ID_STR = __id_str(id);
         var INSTANCE = _registry[id];
 
+        var opts = INSTANCE.opts;
+
         // // console.log('Running ' + ID_STR + ' with FPS ' + fps);
+
+        var consoleMode = false;
 
         if (INSTANCE.running) throw new Error(ID_STR + ' is already running!');
 
@@ -84,9 +88,15 @@ var _FrameGen = (function() {
 
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error(ID_STR + ': Clock mock is not installed');
-                clock.tick(period);
-                callback();
-                // return _window.setTimeout(callback, period);
+                if (opts.synchronous) {
+                    clock.tick(period);
+                    callback();
+                } else {
+                    runs(function() {
+                        clock.tick(period);
+                        callback();
+                    });
+                }
             };
 
             var sequencerName = __findBrowserFrameSequencerName(_window);
@@ -98,10 +108,11 @@ var _FrameGen = (function() {
                 // console.log(ID_STR + ': no browser generator found, but anm namespace exists, subscribing __anm__frameGen');
                 _window.__anm__frameGen = stubFrameGen;
                 requestSpy = spyOn(_window, '__anm__frameGen').andCallThrough();
-            } else {
+                consoleMode = true;
+            } else throw new Error(ID_STR + ': no native generator found to attach spy to'); /*{
                 // console.log(ID_STR + ': no generator found at all, creating own spy');
                 requestSpy = jasmine.createSpy('request-frame-spy').andCallFake(stubFrameGen);
-            }
+            }*/
             requestSpy.__fg_id = id;
 
             function stubFrameRem(id) {
@@ -120,10 +131,10 @@ var _FrameGen = (function() {
                 // console.log(ID_STR + ': no browser stopper found, but anm namespace exists, subscribing __anm__frameRem');
                 _window.__anm__frameRem = stubFrameRem;
                 cancelSpy = spyOn(_window, '__anm__frameRem').andCallThrough();
-            } else {
+            } else throw new Error(ID_STR + ': no native frame-remover found to attach spy to'); /* {
                 // console.log(ID_STR + ': no stopper found at all, creating own spy');
                 cancelSpy = jasmine.createSpy('cancel-frame-spy').andCallFake(stubFrameRem);
-            }
+            } */
             cancelSpy.__fg_id = id;
 
             INSTANCE.running = true;
@@ -156,24 +167,39 @@ var _FrameGen = (function() {
         return INSTANCE;
     }
 
-    function _create(id) {
+    function _destroy(id) {
+        var ID_STR = __id_str(id);
+        var INSTANCE = _registry[id];
+
+        // console.log('Destroying ' + ID_STR);
+
+        if (INSTANCE.running) throw new Error(ID_STR + ' is running, cannot destroy!');
+
+        _registry[id] = null;
+
+        return INSTANCE;
+    }
+
+    function _create(id, opts) {
         var ID_STR = __id_str(id);
         // console.log('Creating ' + ID_STR);
 
         if (_registry[id]) throw new Error(ID_STR + ' already exists');
         var instance = {
             id: id,
+            opts: opts || {},
             running: false,
             run: function(fps) { return _run(id, fps); },
-            stop: function() { return _stop(id); }
+            stop: function() { return _stop(id); },
+            destroy: function() { return _destroy(id); }
         };
         _registry[id] = instance;
         return instance;
     }
 
     return {
-        spawn: function() {
-            return _create(guid());
+        spawn: function(opts) {
+            return _create(guid(), opts);
         }
     }
 
@@ -262,7 +288,8 @@ function doAsync(player, conf) {
     var _errors = [];
 
     function reportOrThrow(err) {
-        if (conf.onerror) { conf.onerror(err); _errors.push(err); } else throw err;
+        if (conf.onerror) { conf.onerror(err); _errors.push(err); }
+        else { throw err; };
     }
     function thereWereErrors() { return _errors.length > 0; }
 
@@ -318,6 +345,14 @@ function doAsync(player, conf) {
     });
 
 }
+
+/*function asyncSeq() {
+    var fs = arguments,
+        player = fs[0],
+
+    if (!player) throw new Error('Please pass error');
+
+}*/
 
 // FIMXE: in doAsync, if you specify both scene as argument and conf.prepare, conf.prepare
 //        will be silently not called
