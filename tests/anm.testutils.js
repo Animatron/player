@@ -88,10 +88,7 @@ var _FrameGen = (function() {
 
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error(ID_STR + ': Clock mock is not installed');
-                //if (!consoleMode) {
-                var doSyncWay = (consoleMode && opts.console && opts.console.synchronous) ||
-                                (!consoleMode && opts.browser && opts.browser.synchronous);
-                if (doSyncWay) {
+                if (opts.synchronous) {
                     clock.tick(period);
                     callback();
                 } else {
@@ -100,22 +97,6 @@ var _FrameGen = (function() {
                         callback();
                     });
                 }
-                /*} else {
-                    var finished, error;
-                    runs(function() {
-                        try {
-                            clock.tick(period);
-                            callback();
-                            finished = true;
-                        } catch(e) {
-                            //console.log(e);
-                            error = e;
-                        }
-                    });
-                    //waitsFor(function() { return finished || error }, 1000);
-                    //runs(function() { if (error) throw error; });
-                }*/
-                // return _window.setTimeout(callback, period);
             };
 
             var sequencerName = __findBrowserFrameSequencerName(_window);

@@ -15,8 +15,7 @@ describe("errors", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        _fg = _FrameGen.spawn({ console: { synchronous: true },
-                                browser: { synchronous: true }}).run(FPS);
+        _fg = _FrameGen.spawn({ synchronous: true }).run(FPS);
 
         player = createPlayer('test-id');
     });
