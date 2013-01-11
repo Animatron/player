@@ -383,6 +383,7 @@ __reg_event('S_PLAY', 'play', 'play');
 __reg_event('S_PAUSE', 'pause', 'pause');
 __reg_event('S_STOP', 'stop', 'stop');
 __reg_event('S_LOAD', 'load', 'load');
+__reg_event('S_REPEAT', 'repeat', 'repeat');
 __reg_event('S_ERROR', 'error', 'error');
 
 // X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events
@@ -694,7 +695,7 @@ Player.prototype.onerror = function(callback) {
 // === INITIALIZATION ==========================================================
 // =============================================================================
 
-provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_ERROR]);
+provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (typeof cvs === 'string') {
         this.canvas = document.getElementById(cvs);
@@ -1034,6 +1035,7 @@ Player.prototype.__beforeFrame = function(scene) {
                 player.stop();
                 if (state.repeat) {
                    player.play();
+                   player.fire(C.S_REPEAT);
                 }
                 return false;
             }

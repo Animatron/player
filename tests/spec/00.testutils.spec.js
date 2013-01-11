@@ -119,7 +119,7 @@ describe("utils", function() {
 
     });
 
-    // TODO: test doAsync
+    // TODO: test doAsync (+ always stop player if waitFor failed)
     // TODO: test it-variant of varyAll
 
     // TODO: test matchers
