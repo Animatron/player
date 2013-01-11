@@ -15,7 +15,8 @@ describe("errors", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        _fg = _FrameGen.spawn().run(FPS);
+        _fg = _FrameGen.spawn({ console: { synchronous: true },
+                                browser: { synchronous: true }}).run(FPS);
 
         player = createPlayer('test-id');
     });
@@ -1051,4 +1052,5 @@ describe("errors", function() {
 
 });
 
+// TODO: change try { ... this.fail(...); } catch (e) ( expect(e).toBe(...) ) to expect(fn).toThrow()?
 // TODO: show errors over the player or alert them, if not muted?

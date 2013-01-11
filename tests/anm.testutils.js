@@ -65,6 +65,8 @@ var _FrameGen = (function() {
         var ID_STR = __id_str(id);
         var INSTANCE = _registry[id];
 
+        var opts = INSTANCE.opts;
+
         // // console.log('Running ' + ID_STR + ' with FPS ' + fps);
 
         var consoleMode = false;
@@ -86,23 +88,33 @@ var _FrameGen = (function() {
 
             function stubFrameGen(callback) {
                 if (!clock.isInstalled()) throw new Error(ID_STR + ': Clock mock is not installed');
-                var errors = [];
-                var f = function() {
-                    try {
+                //if (!consoleMode) {
+                var doSyncWay = (consoleMode && opts.console && opts.console.synchronous) ||
+                                (!consoleMode && opts.browser && opts.browser.synchronous);
+                if (doSyncWay) {
+                    clock.tick(period);
+                    callback();
+                } else {
+                    runs(function() {
                         clock.tick(period);
                         callback();
-                    } catch (e) { /* console.log(e); */ throw e; /*errors.push(e);*/ }
-                };
-                if (!consoleMode) { f(); }
-                else {
-                    try {
-                        runs(f);
-                    } catch(e) {
-                        console.log(e);
-                        throw e;
-                    }
+                    });
                 }
-                console.log(errors);
+                /*} else {
+                    var finished, error;
+                    runs(function() {
+                        try {
+                            clock.tick(period);
+                            callback();
+                            finished = true;
+                        } catch(e) {
+                            //console.log(e);
+                            error = e;
+                        }
+                    });
+                    //waitsFor(function() { return finished || error }, 1000);
+                    //runs(function() { if (error) throw error; });
+                }*/
                 // return _window.setTimeout(callback, period);
             };
 
@@ -187,13 +199,14 @@ var _FrameGen = (function() {
         return INSTANCE;
     }
 
-    function _create(id) {
+    function _create(id, opts) {
         var ID_STR = __id_str(id);
         // console.log('Creating ' + ID_STR);
 
         if (_registry[id]) throw new Error(ID_STR + ' already exists');
         var instance = {
             id: id,
+            opts: opts || {},
             running: false,
             run: function(fps) { return _run(id, fps); },
             stop: function() { return _stop(id); },
@@ -204,8 +217,8 @@ var _FrameGen = (function() {
     }
 
     return {
-        spawn: function() {
-            return _create(guid());
+        spawn: function(opts) {
+            return _create(guid(), opts);
         }
     }
 
@@ -294,12 +307,8 @@ function doAsync(player, conf) {
     var _errors = [];
 
     function reportOrThrow(err) {
-        if (conf.onerror) { conf.onerror(err);
-                            _errors.push(err); }
-        else { try {
-                 player.stop();
-               } catch(a) {};
-               throw err; };
+        if (conf.onerror) { conf.onerror(err); _errors.push(err); }
+        else { throw err; };
     }
     function thereWereErrors() { return _errors.length > 0; }
 
