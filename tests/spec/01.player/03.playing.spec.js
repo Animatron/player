@@ -13,7 +13,7 @@ describe("player, when speaking about playing,", function() {
 
     var _instances = 0;
 
-    // var FPS = 60;
+    var FPS = 60, _fg;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
@@ -21,12 +21,12 @@ describe("player, when speaking about playing,", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        // _FrameGen.enable(FPS);
+        _fg = _FrameGen.spawn().run(FPS);
 
         player = createPlayer('test-id-' + _instances++);
     });
 
-    // afterEach(function() { _FrameGen.disable(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     it("should not play anything just after loading a scene", function() {
         var playSpy = spyOn(player, 'play');
@@ -90,7 +90,9 @@ describe("player, when speaking about playing,", function() {
         player.load(scene);
         expect(player.anim).toBe(scene);
 
-        try { player.load(null); } catch(e) {};
+        try { player.load(null);
+              this.fail('Should throw an error');
+            } catch(e) {};
         expect(player.anim).toBe(null);
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
@@ -111,7 +113,9 @@ describe("player, when speaking about playing,", function() {
             expect(player.state.happens).toBe(C.NOTHING);
             player.load(new anm.Scene());
             expect(player.state.happens).toBe(C.STOPPED);
-            try { player.load(null); } catch(e) {};
+            try { player.load(null);
+                  this.fail('Should throw an error');
+            } catch(e) {};
             expect(player.anim).toBe(null);
             expect(player.state.happens).toBe(C.NOTHING);
         });
@@ -121,23 +125,30 @@ describe("player, when speaking about playing,", function() {
             scene.add(new anm.Element());
             player.load(scene);
             expect(player.anim).not.toBe(null);
-            player.play();
-            expect(player.state.happens).toBe(C.PLAYING);
-            player.stop();
-            player.play(2);
-            expect(player.state.happens).toBe(C.PLAYING);
-            player.stop();
+            runs(function() {
+                player.play();
+                expect(player.state.happens).toBe(C.PLAYING);
+                player.stop();
+            });
+            runs(function() {
+                player.play(2);
+                expect(player.state.happens).toBe(C.PLAYING);
+                player.stop();
+            });
         });
 
         it("should have state.happens equal to stopped, " +
            "if requested time exceeds scene duration when asking to play", function() {
             player.load(new anm.Scene());
             expect(player.anim).not.toBe(null);
-            player.play();
-            expect(player.state.happens).toBe(C.PLAYING);
-            player.stop();
+            runs(function() {
+                player.play();
+                expect(player.state.happens).toBe(C.PLAYING);
+                player.stop();
+            });
             player.play(2);
             expect(player.state.happens).toBe(C.STOPPED);
+            player.stop();
         });
 
         it("should have state.happens equal to stopped, if started playing and then stopped", function() {
@@ -168,6 +179,7 @@ describe("player, when speaking about playing,", function() {
         expect(player.state.happens).toBe(C.STOPPED);
         try {
             player.pause();
+            this.fail('Should throw an error');
         } catch(e) {
             expect(e.message).toBe(anm.Errors.P.PAUSING_WHEN_STOPPED);
             player.stop();
@@ -178,14 +190,16 @@ describe("player, when speaking about playing,", function() {
 
         var scene = new anm.Scene();
         scene.add(new anm.Element());
+        scene.duration = 10;
 
         doAsync(player, scene, {
             run: function() {
                 player.play();
+                expect(player.state.duration).toBe(10);
                 expect(player.state.from).toBe(0);
 
                 setTimeout(function() {
-                    player.pause();
+                   player.pause();
                 }, 600);
             },
             until: C.PAUSED,
@@ -203,32 +217,39 @@ describe("player, when speaking about playing,", function() {
         scene.add(new anm.Element());
         scene.duration = 1;
 
-        var wasAtEnd = false;
-
-        doAsync(player, scene, {
-            run: function() {
-                player.play();
-                expect(player.state.from).toBe(0);
-
-                setTimeout(function() {
-                    player.pause();
-                    player.play(.2);
-                    expect(player.state.from).toBe(.2);
-                }, 600);
-            },
-            waitFor: function() {
-                var t = player.state.time;
-                if (!wasAtEnd && (t > .51)) wasAtEnd = true;
-                return wasAtEnd && (t > .2)
-                                && (t < .5);
-            }, timeout: 0.8,
-            then: function() {
+        var afterPauseSpy = jasmine.createSpy("after-frame")
+                                   .andCallFake(function(t) {
                 expect(player.state.happens).toBe(C.PLAYING);
-                expect(player.state.time).toBeGreaterThan(0.2);
+                expect(player.state.time).toBeGreaterThanOrEqual(0.2);
                 expect(player.state.time).toBeLessThan(0.5);
                 expect(player.state.from).toBe(0.2);
+                player.stop();
+            });
+
+        var wasPaused = false;
+
+        player.load(scene);
+
+        player.afterFrame(function(t) {
+            if (wasPaused) {
+                afterPauseSpy(t);
             }
         });
+
+        player.play();
+        expect(player.state.from).toBe(0);
+
+        setTimeout(function() {
+            player.pause();
+
+            wasPaused = true;
+
+            player.play(.2);
+
+            expect(afterPauseSpy).toHaveBeenCalled();
+            expect(wasPaused).toBeTruthy();
+        }, 600);
+
     });
 
     it("should stop at no-time when stop was called", function() {
@@ -312,9 +333,9 @@ describe("player, when speaking about playing,", function() {
                 expect(midFPS).toBeGreaterThan(0);
                 expect(mCalls).toBeEpsilonyCloseTo(midFPS * duration, 3);
                 expect(pCalls).toBeEpsilonyCloseTo(midFPS * duration, 3);
-                /*expect(player.state.afps).toEqual(FPS);
-                expect(mCalls).toEqual(FPS * duration, 10);
-                expect(pCalls).toEqual(FPS * duration, 10);*/
+                //expect(player.state.afps).toEqual(FPS);
+                //expect(mCalls).toEqual(FPS * duration, 10);
+                //expect(pCalls).toEqual(FPS * duration, 10);
             }
         });
 
@@ -347,42 +368,33 @@ describe("player, when speaking about playing,", function() {
             var playSpy = spyOn(player, 'play').andCallThrough(),
                 stopSpy = spyOn(player, 'stop').andCallThrough();
 
-            var wasAtEnd = false;
+            var repeatEvtSpy = jasmine.createSpy('repeat-spy');
 
-            doAsync(player, {
-                prepare: function() {
-                    var scene = new anm.Scene();
-                    scene.add(new anm.Element());
-                    scene.duration = 1;
+            var scene = new anm.Scene();
+            scene.add(new anm.Element());
+            scene.duration = 1;
 
-                    player.state.repeat = true;
+            player.state.repeat = true;
 
-                    return scene;
-                },
-                run: function() {
-                    player.play();
+            player.load(scene);
 
-                    expect(player.state.from).toBe(0);
-                    expect(player.state.happens).toBe(C.PLAYING);
+            player.play(.5);
 
-                    playSpy.reset();
-                    stopSpy.reset();
-                },
-                waitFor: function() {
-                    var t = player.state.time;
-                    if (!wasAtEnd && (t > .6)) wasAtEnd = true;
-                    return wasAtEnd && (t > .1)
-                                    && (t < .5);
-                },
-                then: function() {
-                    expect(stopSpy).toHaveBeenCalledOnce();
-                    expect(playSpy).toHaveBeenCalledOnce();
-                    expect(player.state.happens).toBe(C.PLAYING);
-                    expect(player.state.time).toBeGreaterThan(0);
-                    expect(player.state.time).toBeLessThan(1);
-                    expect(player.state.from).toBe(0);
-                }
-            });
+            expect(player.state.from).toBe(0.5);
+            expect(player.state.happens).toBe(C.PLAYING);
+
+            playSpy.reset();
+            stopSpy.reset();
+
+            player.on(anm.C.S_REPEAT, repeatEvtSpy.andCallFake(function() {
+                expect(stopSpy).toHaveBeenCalledOnce();
+                expect(playSpy).toHaveBeenCalledOnce();
+                expect(player.state.happens).toBe(C.PLAYING);
+                expect(player.state.time).toBeGreaterThanOrEqual(0);
+                expect(player.state.time).toBeLessThan(0.5);
+                expect(player.state.from).toBe(0);
+                player.stop();
+            }));
 
         });
 
@@ -469,19 +481,15 @@ describe("player, when speaking about playing,", function() {
     describe("calling something after every frame, concretely", function() {
 
         it("should allow to set callback for it when not playing", function() {
-            try {
-                player.afterFrame(function() {});
-                player.load(new anm.Scene());
-                player.afterFrame(function() {});
-                player.play();
-                player.pause();
-                player.afterFrame(function() {});
-                player.play();
-                player.stop();
-                player.afterFrame(function() {});
-            } catch(e) {
-                this.fail('Should not throw exceptions, but thrown: ' + (e.message || e));
-            }
+            player.afterFrame(function() {});
+            player.load(new anm.Scene());
+            player.afterFrame(function() {});
+            player.play();
+            player.pause();
+            player.afterFrame(function() {});
+            player.play();
+            player.stop();
+            player.afterFrame(function() {});
         });
 
         it("should not allow seting callback like this while playing", function() {
@@ -489,15 +497,20 @@ describe("player, when speaking about playing,", function() {
                 player.load(new anm.Scene());
                 player.play();
                 player.afterFrame(function() {});
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(anm.Errors.P.AFTERFRAME_BEFORE_PLAY);
                 player.stop();
             }
 
             try {
-                player.load(new anm.Scene());
-                player.play(1);
+                var scene = new anm.Scene();
+                scene.add(new anm.Element());
+                scene.duration = 1;
+                player.load(scene);
+                player.play(.5);
                 player.afterFrame(function() {});
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(anm.Errors.P.AFTERFRAME_BEFORE_PLAY);
                 player.stop();
@@ -582,24 +595,28 @@ describe("player, when speaking about playing,", function() {
 
             try {
                 player.drawAt(duration + 0.05);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [duration+0.05]));
             }
 
             try {
                 player.drawAt(duration + 10);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [duration+10]));
             }
 
             try {
                 player.drawAt(-0.05);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [-0.05]));
             }
 
             try {
                 player.drawAt(-10);
+                this.fail('Should throw an error');
             } catch(e) {
                 expect(e.message).toBe(strf(anm.Errors.P.PASSED_TIME_NOT_IN_RANGE, [-10]));
             }

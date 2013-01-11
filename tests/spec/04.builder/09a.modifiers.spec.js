@@ -14,7 +14,8 @@ describe("builder, regarding modifiers,", function() {
         B = Builder;
 
     var FPS = 10,
-        mFPS = 1 / FPS;
+        mFPS = 1 / FPS,
+        _fg;
 
     var CLOSE_FACTOR = 14; // digits following floating point
 
@@ -26,14 +27,14 @@ describe("builder, regarding modifiers,", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
 
-        _FrameGen.enable(FPS);
+        _fg = _FrameGen.spawn().run(FPS);
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
         player = createPlayer('test-id', { mode: C.M_PREVIEW });
     });
 
-    afterEach(function() { _FrameGen.disable(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     describe("independently of modifier class,", function() {
 

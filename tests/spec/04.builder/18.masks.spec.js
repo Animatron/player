@@ -6,17 +6,20 @@ describe("builder, regarding masks", function() {
     var b = Builder._$,
         B = Builder;
 
+    var FPS = 20, _fg;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
-        _FrameGen.enable(20);
+
+        _fg = _FrameGen.spawn().run(FPS);
 
         player = createPlayer('test-id');
     });
 
-    afterEach(function() { _FrameGen.disable(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     it("mask drawing sequence should be right", function() {
 

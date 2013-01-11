@@ -12,14 +12,17 @@ describe("as for known bugs,", function() {
     var b = Builder._$,
         C = anm.C;
 
+    var FPS = 20, _fg;
+
     beforeEach(function() {
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         this.addMatchers(_matchers);
         _fake(_Fake.CVS_POS);
-        _FrameGen.enable(20);
+
+        _fg = _FrameGen.spawn().run(FPS);
     });
 
-    afterEach(function() { _FrameGen.disable(); });
+    afterEach(function() { _fg.stop().destroy(); });
 
     describe('#34591729 should work as expected:', function() {
 
