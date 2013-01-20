@@ -249,9 +249,11 @@ describe("builder, regarding modifiers,", function() {
                         modifierSpies.push(jasmine.createSpy('modifier-spy-'+i));
                     };
 
+                    var methodName = relative ? 'rmodify' : 'modify';
+
                     doAsync(player, {
                         prepare: function() { for (var i = 0; i < spiesCount; i++) {
-                                                  scene.modify.apply(scene, curClass(modifierSpies[i]));
+                                                  scene[methodName].apply(scene, curClass(modifierSpies[i]));
                                               }
                                               return scene; },
                         run: _run, until: C.STOPPED, timeout: _timeout,
@@ -280,10 +282,11 @@ describe("builder, regarding modifiers,", function() {
                     });
 
                     var paintSpy = jasmine.createSpy('paint-spy');
+                    var methodName = relative ? 'rmodify' : 'modify';
 
                     doAsync(player, {
                         prepare: function() {
-                            scene.modify.apply(scene, curClass(modifierSpy));
+                            scene[methodName].apply(scene, curClass(modifierSpy));
                             scene.paint(paintSpy);
                             return scene;
                         },
@@ -310,13 +313,15 @@ describe("builder, regarding modifiers,", function() {
                         childSpies.push(jasmine.createSpy('child-spy-'+i));
                     }
 
+                    var methodName = relative ? 'rmodify' : 'modify';
+
                     doAsync(player, {
                         prepare: function() {
 
                             scene.modify(sceneSpy);
 
                             var parent = b();
-                            parent.modify.apply(parent, curClass(disablingSpy));
+                            parent[methodName].apply(parent, curClass(disablingSpy));
                             scene.add(parent);
 
                             for (var i = 0; i < spiesCount; i++) {
@@ -353,844 +358,267 @@ describe("builder, regarding modifiers,", function() {
 
     describe("their class-dependent stuff:", function() {
 
-        describe("default modifiers,", function() {
+        var relative;
 
-            // FIXME: use varyAll to test also in drawAt and after a time-jump
-            // TODO: test timing (localTime) in more cases (with varyAll)
-            // TODO: move doAsync similar calls to some function
+        var _modify;
 
-            describe("adding them and the way it affects their bands", function() {
+        varyAll([ { description: "non-relative modifiers",
+                    prepare: function() { relative = false;
+                                          _modify = function(what) {
+                                            var args = _arrayFrom(arguments).splice(1);
+                                            what.modify.apply(what, args);
+                                          };
+                                        } },
+                  { description: "relative modifiers",
+                    prepare: function() { relative = false;
+                                          _modify = function(what) {
+                                            var args = _arrayFrom(arguments).splice(1);
+                                            what.rmodify.apply(what, args);
+                                          };
+                                        } } ], function() {
 
-                it("should add modifier and call it", function() {
-                    scene = b('scene').band([0, 3]);
+            describe("default modifiers,", function() {
 
-                    var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                        expect(t).toBeGreaterThanOrEqual(0);
-                        expect(t).toBeLessThanOrEqual(1);
+                // FIXME: use varyAll to test also in drawAt and after a time-jump
+                // TODO: test timing (localTime) in more cases (with varyAll)
+                // TODO: move doAsync similar calls to some function
+
+                describe("adding them and the way it affects their bands", function() {
+
+                    it("should add modifier and call it", function() {
+                        scene = b('scene').band([0, 3]);
+
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                            expect(t).toBeGreaterThanOrEqual(0);
+                            expect(t).toBeLessThanOrEqual(3);
+                        });
+
+                        doAsync(player, {
+                            prepare: function() { _modify(scene, modifierSpy);
+                                                  return scene; },
+                            do: 'play', until: C.STOPPED, timeout: 3.2,
+                            then: function() { expect(modifierSpy).toHaveBeenCalled(); }
+                        });
+
                     });
 
-                    doAsync(player, {
-                        prepare: function() { scene.modify(modifierSpy);
-                                              return scene; },
-                        do: 'play', until: C.STOPPED, timeout: 1.2,
-                        then: function() { expect(modifierSpy).toHaveBeenCalled(); }
-                    });
+                    it("should add modifier and call it inside its local band", function() {
+                        scene = b('scene').band([0, 4]);
 
-                });
+                        var target = b().band([.3, 3.7]);
 
-                it("should add modifier and call it inside its local band", function() {
-                    scene = b('scene').band([0, 2]);
+                        scene.add(b().add(b().add(target)));
 
-                    var target = b().band([.3, 1.5]);
-
-                    scene.add(b().add(b().add(target)));
-
-                    var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                        expect(t * (1.5 - .3)).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
-                        expect(t).toBeGreaterThanOrEqual(0);
-                        expect(t).toBeLessThanOrEqual(1);
-                    });
-
-                    doAsync(player, {
-                        prepare: function() { target.modify(modifierSpy);
-                                              return scene; },
-                        do: 'play', until: C.STOPPED, timeout: 2.2,
-                        then: function() { expect(modifierSpy).toHaveBeenCalled(); }
-                    });
-
-                });
-
-                it("should add modifier to a child and call it", function() {
-                    scene = b('scene').band([0, 1]);
-
-                    var target = b();
-
-                    scene.add(b().add(b().add(target)));
-
-                    var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                        expect(t).toBeGreaterThanOrEqual(0);
-                        expect(t).toBeLessThanOrEqual(1);
-                    });
-
-                    doAsync(player, {
-                        prepare: function() { target.modify(modifierSpy);
-                                              return scene; },
-                        do: 'play', until: C.STOPPED, timeout: 1.2,
-                        then: function() { expect(modifierSpy).toHaveBeenCalled(); }
-                    });
-
-                });
-
-                it("child modifier local time should be in local band", function() {
-
-                    scene = b('scene').band([0, 1]);
-
-                    var parent = b().band([.2, .75]);
-
-                    var target = b().band([.11, .42]);
-                    parent.add(target)
-
-                    scene.add(b().add(parent));
-
-                    var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                        expect(t * (.42 - .11)).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
-                        expect(t).toBeGreaterThanOrEqual(0);
-                        expect(t).toBeLessThanOrEqual(1);
-                    });
-
-                    doAsync(player, {
-                        prepare: function() { target.modify(modifierSpy);
-                                              return scene; },
-                        do: 'play', until: C.STOPPED, timeout: 1.2,
-                        then: function() { expect(modifierSpy).toHaveBeenCalled(); }
-                    });
-
-                });
-
-                it("should pass element's band duration inside", function() {
-                    scene = b('scene').band([2, 5]);
-
-                    var bands = [ [ 0.5, 1.2 ],
-                                  [ 0.9, 1.0 ],
-                                  [ 0.9, 1.3 ],
-                                  [ 1.5, 2.6 ],
-                                  [ 2.3, 3.0 ] ];
-
-                    var spiesCount = bands.length;
-
-                    var spies = [];
-
-                    for (var i = 0, sc = spiesCount; i < sc; i++) {
-                        spies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
-                            return function(t, duration) {
-                                expect(duration).toBe(bands[i][1] - bands[i][0]);
-                            }
-                        })(i)));
-                    }
-
-                    doAsync(player, {
-                        prepare: function() {
-                            _each(spies, function(spy, idx) {
-                                scene.add(b().band(bands[idx]).modify(spy));
-                            });
-                            return scene;
-                        },
-                        do: 'play', until: C.STOPPED, timeout: 5.2,
-                        then: function() { _each(spies, function(spy) { expect(spy).toHaveBeenCalled(); } ); }
-                    });
-
-                });
-
-                it("should add several modifiers and call all of them", function() {
-                    scene = b('scene').band([0, 1]);
-
-                    var modifierSpies = [];
-                    var spiesCount = 10;
-
-                    for (var i = 0; i < spiesCount; i++) {
-                        modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake(
-                            function(t) {
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                            if (relative) {
+                                expect(t * (3.7 - .3)).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 expect(t).toBeLessThanOrEqual(1);
-                            }
-                        ));
-                    }
-
-                    doAsync(player, {
-                        prepare: function() { for (var i = 0; i < spiesCount; i++) {
-                                                  scene.modify(modifierSpies[i]);
-                                              }
-                                              return scene; },
-                        do: 'play', until: C.STOPPED, timeout: 1.2,
-                        then: function() { for (var i = 0; i < spiesCount; i++) {
-                                               expect(modifierSpies[i]).toHaveBeenCalled();
-                                           } }
-                    });
-
-                });
-
-            });
-
-            describe("removing them while executing them", function() {
-
-                it("should support removing modifiers while executing them", function() {
-                    scene = b('scene').band([0, 1]);
-
-                    var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                        expect(t).toBeGreaterThanOrEqual(0);
-                        // remove modifier after .5
-                        if (t > .5) {
-                            expect(modifierSpy).toHaveBeenCalled();
-                            scene.unmodify(modifierSpy);
-                            modifierSpy.reset();
-                            return;
-                        }
-                        // if modifier wasn't self-removed, time should be less than .5
-                        expect(t).toBeLessThanOrEqual(.5);
-                    });
-
-                    doAsync(player, {
-                        prepare: function() {
-                            scene.modify(modifierSpy);
-                            return scene;
-                        },
-                        do: 'play', until: C.STOPPED, timeout: 1.2,
-                        then: function() { expect(modifierSpy).not.toHaveBeenCalled(); }
-                    });
-
-                });
-
-                it("should remove several modifiers in random order and in proper time", function() {
-                    scene = b('scene').band([0, 1]);
-
-                    var modifierSpies = [];
-                    var spiesCount = 10;
-
-                    for (var i = 0; i < spiesCount; i++) {
-                        modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
-                            return function(t, duration, removeTime) {
+                            } else {
+                                expect(t).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
-                                if (t > removeTime) {
-                                    var modifier = modifierSpies[i];
-                                    expect(removeTime).toEqual(i !== 0 ? ((1 / i) - .1) : 0);
-                                    expect(modifier).toHaveBeenCalled();
-                                    scene.unmodify(modifier);
-                                    modifierSpies[i].reset();
-                                    return;
-                                }
-                                // if modifier wasn't self-removed, time should be less than .5
-                                expect(t).toBeLessThanOrEqual(removeTime);
-                            } })(i)));
-                    };
-
-                    doAsync(player, {
-                        prepare: function() {
-                            for (var i = (spiesCount - 1); i >= 0; i--) {
-                                scene.modify(modifierSpies[i],
-                                             i !== 0 ? ((1 / i) - .1) : 0);
+                                expect(t).toBeLessThanOrEqual(3.7 - .3);
                             }
-                            return scene;
-                        },
-                        do: 'play', until: C.STOPPED, timeout: 1.2,
-                        then: function() {
-                            for (var i = 0; i < spiesCount; i++) {
-                                expect(modifierSpies[i]).not.toHaveBeenCalled();
-                            }
-                        }
-                    });
+                        });
 
-                });
-
-            });
-
-        });
-
-        describe("band-restricted modifiers,", function() {
-
-            var target,
-                trg_band, // band of the target element
-                trg_duration; // duration of the target band
-
-            var _duration = 1,
-                _timeout = _duration + .2;
-
-            var scene = b();
-
-            // FIXME: test that 0-duration throws error
-            // TODO: ensure duration() method of the element is accessible in such modifier
-
-            varyAll([ {
-                    description: "when assigned to the scene",
-                    prepare: function() { target = scene;
-                                          trg_band = [ 0, _duration ];
-                                          trg_duration = _duration;
-                                          target.band(trg_band); }
-                }, {
-                    description: "when assigned to the child whose band is narrower than scene band",
-                    prepare: function() { trg_band = [ _duration / 6, (_duration / 6) * 5 ];
-                                          trg_duration = trg_band[1] - trg_band[0];
-                                          target = b().band(trg_band);
-                                          scene.add(b().add(b().add(target))); }
-                }, {
-                    description: "when assigned to the grand-child whose parent band is narrower than scene band",
-                    prepare: function() { trg_band = [ _duration / 7, (_duration / 7) * 4 ];
-                                          trg_duration = trg_band[1] - trg_band[0];
-                                          target = b();
-                                          scene.add(b().add(b().add(target)).band(trg_band)); }
-                } ], function() {
-
-                describe("and when a frame requested", function() {
-
-                    var _whatToRun,
-                        _waitFor;
-
-                    function expectAtTime(conf) {
-                        var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
-                            modifiers = _arrayFrom(conf.modifiers),
-                            expectations = _arrayFrom(conf.expectations),
-                            spies = [];
-                        _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                         doAsync(player, {
-                            prepare: function() { _each(spies, function(spy, idx) { target.modify(bands[idx], spy); });
+                            prepare: function() { _modify(target, modifierSpy);
                                                   return scene; },
-                            run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
-                            then: function() { _each(expectations, function(expectation) { expectation(); });
-                                               _each(spies, function(spy, i) { if (!conf.doNotExpectToCall || !conf.doNotExpectToCall[i]) {
-                                                                                expect(spy).toHaveBeenCalledOnce();
-                                                                              } else {
-                                                                                expect(spy).not.toHaveBeenCalled();
-                                                                              }
-                                                                              target.unmodify(spy); }); }
-                        });
-                    }
-
-                    varyAll([ { description: "while just momentary playing,", prepare: function() {
-                                    _whatToRun = function(t) {
-                                        return function() {
-                                            player.play(t, 1, 0.1);
-                                        }
-                                    };
-                                    _waitFor = function() { return player.state.happens === C.STOPPED; }
-                                } },
-                              { description: "when particular frame was requested,", prepare: function() {
-                                    var drawAtSpy = spyOn(player, 'drawAt').andCallThrough();
-                                    _whatToRun = function(t) {
-                                        return function() {
-                                            player.drawAt(t);
-                                        };
-                                    };
-                                    _waitFor = function() { return true; }
-                                } },
-                              /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
-
-                        var mod_band, // band of the modifier itself
-                            mod_duration; // duration of the modifier band
-
-                        varyAll([ { description: "and modifier band is equal to parent band",
-                                    prepare: function() { mod_band = [ 0, trg_duration ];
-                                                          mod_duration = trg_duration; } },
-                                  { description: "and modifier band is at the start of parent band",
-                                    prepare: function() { mod_band = [ 0, trg_duration / 3 ];
-                                                          mod_duration = mod_band[1] - mod_band[0]; } },
-                                  { description: "and modifier band is at the end of parent band",
-                                    prepare: function() { mod_band = [ (trg_duration / 3) * 2, trg_duration ];
-                                                          mod_duration = mod_band[1] - mod_band[0]; } },
-                                  { description: "and modifier band is somewhere in the middle of parent band",
-                                    prepare: function() { mod_band = [ trg_duration / 4, trg_duration / 3 ];
-                                                          mod_duration = mod_band[1] - mod_band[0]; } } ], function() {
-
-                            /* it("should pass modifier band duration inside, independently of alignment", function() {
-                                function m_checkDuration() {
-                                    return function(t, duration) {
-                                        expect(duration).toBe(mod_duration);
-                                    }
-                                };
-
-                                expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: m_checkDuration(),
-                                        time: trg_band[0] + (mod_band[0] / 3) });
-
-                                expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: m_checkDuration(),
-                                        time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
-
-                                expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: m_checkDuration(),
-                                        time: trg_band[0] + (mod_band[0] >=0 ? mod_band[0] : 0) });
-
-                                expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: m_checkDuration(),
-                                        time: trg_band[0] + mod_band[0] + mod_duration });
-
-                                expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: m_checkDuration(),
-                                        time: (mod_duration < trg_duration)
-                                                ? trg_band[0] + mod_band[1] +
-                                                  ((trg_duration - mod_band[1]) / 2)
-                                                : trg_band[1] });
-
-                            }); */
-
-                            describe("in favor of alignment,", function() {
-
-                                it("does not calls modifier before the fact when its band has started", function() {
-                                    if (mod_band[0] != 0) {
-                                        var spec = this;
-
-                                        expectAtTime({
-                                            bands: mod_band,
-                                            modifiers: function(t, duration) {
-                                                spec.fail('Should not be called');
-                                            },
-                                            time: trg_band[0] + (mod_band[0] / 2),
-                                            doNotExpectToCall: [ true ] });
-                                    }
-                                });
-
-                                it("passes time 0 at the exact start of the band", function() {
-                                    var spec = this;
-
-                                    var mod_duration = mod_band[1] - mod_band[0];
-                                    expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: function(t, duration) {
-                                            expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
-                                            expect(duration).toBe(mod_duration);
-                                        },
-                                        time: trg_band[0] + mod_band[0] });
-                                });
-
-                                it("passes the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
-                                    var mod_duration = mod_band[1] - mod_band[0];
-                                    expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: function(t, duration) {
-                                            expect(t).toBeGreaterThan(0);
-                                            expect(t).toBeLessThan(1);
-                                            expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
-                                            expect(duration).toBe(mod_duration);
-                                        },
-                                        time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
-                                });
-
-                                it("passes time 1 at the exact end of the band", function() {
-                                    var spec = this;
-
-                                    var mod_duration = mod_band[1] - mod_band[0];
-                                    expectAtTime({
-                                        bands: mod_band,
-                                        modifiers: function(t, duration) {
-                                            expect(t).toBeCloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
-                                            expect(duration).toBe(mod_duration);
-                                        },
-                                        time: trg_band[0] + mod_band[1] });
-                                });
-
-                                it("does not calls modifier after the fact when its band has finished", function() {
-                                    if (mod_band[1] != trg_duration) {
-                                        var spec = this;
-
-                                        var mod_duration = mod_band[1] - mod_band[0];
-                                        expectAtTime({
-                                            bands: mod_band,
-                                            modifiers: function(t, duration) {
-                                                spec.fail('Should not be called');
-                                            },
-                                            time: trg_band[0] + mod_band[1] + ((trg_duration - mod_band[1]) / 2),
-                                            doNotExpectToCall: [ true ] });
-                                    }
-                                });
-
-                            });
-
-                        });
-
-                        describe("if band exceeds the wrapper after the end,", function() {
-
-                            var diff;
-
-                            beforeEach(function() {
-                                mod_band = [ trg_duration / 4, trg_duration + 1 ];
-                                mod_duration = mod_band[1] - mod_band[0];
-                                diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
-                            });
-
-                            it("does not call modifier if when its band hasn't started", function() {
-                                var spec = this;
-
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        spec.fail('Should not be called');
-                                    },
-                                    time: trg_band[0] + (trg_duration / 5),
-                                    doNotExpectToCall: [ true ] });
-                            });
-
-                            it("passes actual local time value when intersection was not reached", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(0);
-                                        expect(t).toBeLessThan(1 - (diff / mod_duration));
-                                        expect(t).toBeCloseTo(((trg_duration / 3) - mod_band[0]) / mod_duration, CLOSE_FACTOR);
-                                    },
-                                    time: trg_band[0] + (trg_duration / 3) });
-                            });
-
-                            it("passes the intersection time in the end of wrapper band", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        expect(t).toBeCloseTo(1 - (diff / mod_duration), CLOSE_FACTOR);
-                                    },
-                                    time: trg_band[1] });
-                            });
-
-                        });
-
-                        describe("if band exceeds the wrapper before the start,", function() {
-
-                            var start_diff = 1;
-
-                            beforeEach(function() {
-                                mod_band = [ -start_diff, trg_duration / 4 ];
-                                mod_duration = mod_band[1] - mod_band[0];
-                            });
-
-                            it("passes intersection time when position is at start of the wrapper", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        expect(t).toBe(start_diff / mod_duration);
-                                    },
-                                    time: trg_band[0] });
-                            });
-
-                            it("passes actual local time value when intersection was passed", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(start_diff / mod_duration);
-                                        expect(t).toBeLessThan(1);
-                                        expect(t).toBeCloseTo(((trg_duration / 5) + start_diff) / mod_duration, CLOSE_FACTOR);
-                                    },
-                                    time: trg_band[0] + (trg_duration / 5) });
-                            });
-
-                            it("does not call modifier when its band was finished", function() {
-                                var spec = this;
-
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        spec.fail('Should not be called');
-                                    },
-                                    time: trg_band[0] + (trg_duration / 3),
-                                    doNotExpectToCall: [ true ] });
-                            });
-
-                        });
-
-                        describe("if band exceeds the wrapper from both ends,", function() {
-
-                            var start_diff = 1.2,
-                                end_diff = 1;
-
-                            beforeEach(function() {
-                                mod_band = [ -start_diff, trg_duration + end_diff ];
-                                mod_duration = mod_band[1] - mod_band[0];
-                            });
-
-                            it("passes intersection time when position is at start of the wrapper", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        expect(t).toBe(start_diff / mod_duration);
-                                    },
-                                    time: trg_band[0] });
-                            });
-
-                            it("passes actual local time value when intersection was not reached", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        expect(t).toBeGreaterThan(start_diff / mod_duration);
-                                        expect(t).toBeLessThan(1 - (end_diff / mod_duration));
-                                        expect(t).toBeCloseTo(((trg_duration / 3) + start_diff) / mod_duration, CLOSE_FACTOR);
-                                    },
-                                    time: trg_band[0] + (trg_duration / 3) });
-                            });
-
-                            it("passes the end-intersection time when position is at the end of the wrapper", function() {
-                                expectAtTime({
-                                    bands: mod_band,
-                                    modifiers: function(t) {
-                                        // FIXME: (mod_duration - end_diff) fails here due to rounding problem
-                                        expect(t).toBe((start_diff + trg_duration) / mod_duration);
-                                    },
-                                    time: trg_band[1] });
-                            });
-
-                        });
-
-                        describe("in favor of sequences,", function() {
-
-                            var one_fifth;
-
-                            beforeEach(function() { one_fifth = trg_duration / 5; });
-
-                            var band1, band2,
-                                band1_duration, band2_duration;
-
-                            // NB: modifiers added in reverse order to ensure order do not affects sequencing,
-                            //     so band2 goes before band1 and so the expectations are also swapped
-
-                            describe("if other modifier goes a bit after the current one,", function() {
-
-                                beforeEach(function() {
-                                    band1 = [ one_fifth * 3, one_fifth * 4 ],
-                                    band2 = [ one_fifth, one_fifth * 2 ],
-                                    band1_duration = band1[1] - band1[0],
-                                    band2_duration = band2[1] - band2[0];
-                                });
-
-                                it("in period before first, does not calls both of modifiers", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth / 2),
-                                        doNotExpectToCall: [ true, true ] });
-                                });
-
-                                it("during the first one, calls first one with actual value and does not calls the next one with start value", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(1);
-                                                          expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR); }
-                                        ], time: trg_band[0] + (one_fifth * 1.5),
-                                        doNotExpectToCall: [ true, false ] });
-                                });
-
-                                it("during the period between them, does not calls both of modifiers", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth * 2.5),
-                                        doNotExpectToCall: [ true, true ] });
-                                });
-
-                                it("during the second one, does not calls the first one and calls next one with actual value", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(1);
-                                                          expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth * 3.5),
-                                        doNotExpectToCall: [ false, true ] });
-                                });
-
-                                it("after the second one, does not calls both of modifiers", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth * 4.5),
-                                        doNotExpectToCall: [ true, true ] });
-                                });
-
-                            });
-
-                            describe("if next modifier overlaps the end of the current one,", function() {
-
-                                beforeEach(function() {
-                                    band1 = [ one_fifth * 2.3, one_fifth * 4 ],
-                                    band2 = [ one_fifth, one_fifth * 2.7 ],
-                                    band1_duration = band1[1] - band1[0],
-                                    band2_duration = band2[1] - band2[0];
-                                });
-
-                                it("in period before first, does not calls both of modifiers", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth / 2),
-                                        doNotExpectToCall: [ true, true ] });
-                                });
-
-                                it("during the first one, but not the overlapping period, calls the first one with actual value and does not calls the next one", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(1);
-                                                          expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR); }
-                                        ], time: trg_band[0] + (one_fifth * 2),
-                                        doNotExpectToCall: [ true, false ] });
-                                });
-
-                                it("during the overlapping period, calls the first one with actual value and the next one also with actual value", function() {
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(1);
-                                                          expect(t).toBeCloseTo((one_fifth * 0.2) / band1_duration, CLOSE_FACTOR); },
-                                            function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(1);
-                                                          expect(t).toBeCloseTo((one_fifth * 1.5) / band2_duration, CLOSE_FACTOR); }
-                                        ], time: trg_band[0] + (one_fifth * 2.5) });
-                                });
-
-                                it("during the second one, but not the overlapping period, does not calls the first one and calls next one with actual value", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { expect(t).toBeGreaterThan(0);
-                                                          expect(t).toBeLessThan(1);
-                                                          expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth * 3),
-                                        doNotExpectToCall: [ false, true ] });
-                                });
-
-                                it("after the second one, does not calls both of modifiers", function() {
-                                    var spec = this;
-
-                                    expectAtTime({
-                                        bands: [ band1, band2 ],
-                                        modifiers: [
-                                            function(t) { spec.fail('Should not be called'); },
-                                            function(t) { spec.fail('Should not be called'); }
-                                        ], time: trg_band[0] + (one_fifth * 4.5),
-                                        doNotExpectToCall: [ true, true ] });
-                                });
-
-                            });
-
-                            // TODO: test exceeding bands
-
+                            do: 'play', until: C.STOPPED, timeout: 4.2,
+                            then: function() { expect(modifierSpy).toHaveBeenCalled(); }
                         });
 
                     });
 
-                });
+                    it("should add modifier to a child and call it", function() {
+                        scene = b('scene').band([0, 1]);
 
-                describe("during playing process,", function() {
+                        var target = b();
 
-                    var one_fifth;
+                        scene.add(b().add(b().add(target)));
 
-                    beforeEach(function() { one_fifth = trg_duration / 5; });
-
-                    function whilePlaying(bands, modifiers) {
-                        var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands),
-                            modifiers = _arrayFrom(modifiers),
-                            spies = [];
-                        _each(modifiers, function(modifier, idx) {
-                            spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier));
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                            expect(t).toBeGreaterThanOrEqual(0);
+                            expect(t).toBeLessThanOrEqual(1);
                         });
+
                         doAsync(player, {
-                            prepare: function() { _each(spies, function(spy, idx) {
-                                                      target.modify(bands[idx], spy);
-                                                  }); return scene; },
-                            do: 'play', until: C.STOPPED, timeout: _timeout,
-                            then: function() { /*_each(expectations, function(expectation) { expectation(); });*/
-                                               _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
-                                                                            target.unmodify(spy); }); }
-                        });
-                    }
-
-                    function localTime(parent_band, band) {
-                        return player.state.time - parent_band[0] - band[0];
-                    }
-
-                    function timeBetween(parent_band, low, high) {
-                        var parent_time = player.state.time - parent_band[0];
-                        return (parent_time > low) &&
-                               (parent_time < high);
-                    }
-
-                    function checkWithBands(spec, bands) {
-                        var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands);
-                        var modifiers = [];
-                        _each(bands, function(band) {
-                            modifiers.push(function(t, duration) {
-                                var _start = band[0],
-                                    _end = band[1],
-                                    _band_duration = _end - _start;
-                                if (timeBetween(trg_band, 0, _start)) {
-                                    spec.fail('Should not be called');
-                                }
-                                if (timeBetween(trg_band, _start, _end)) {
-                                    expect(t).toBeGreaterThanOrEqual(0);
-                                    expect(t).toBeLessThan(1);
-                                    expect(t).toEqual(localTime(trg_band, band) / _band_duration);
-                                }
-                                if (timeBetween(trg_band, _end, trg_duration)) {
-                                    spec.fail('Should not be called');
-                                }
-                                expect(duration).toBe(band[1] - band[0]);
-                            });
-                        });
-                        whilePlaying(bands, modifiers);
-                    }
-
-                    var checkWithBand = checkWithBands;
-
-                    describe("same rules should apply with a single modifier, independently of position, it", function() {
-
-                        it("may be just somewhere inside of the wrapper band", function() {
-                            checkWithBand(this, [ one_fifth * 1.5, one_fifth * 4 ]);
-                        });
-
-                        it("may be aligned to start of the wrapper band", function() {
-                            checkWithBand(this, [ 0, one_fifth * 3 ]);
-                        });
-
-                        it("may be aligned to end of the wrapper band", function() {
-                           checkWithBand(this, [ one_fifth * 2, trg_duration ]);
-                        });
-
-                        it("may be equal to wrapper band", function() {
-                            checkWithBand(this, [ 0, trg_duration ]);
-                        });
-
-                        it("may exceed the wrapper band", function() {
-                            checkWithBand(this, [ -1, trg_duration + 1 ]);
+                            prepare: function() { _modify(target, modifierSpy);
+                                                  return scene; },
+                            do: 'play', until: C.STOPPED, timeout: 1.2,
+                            then: function() { expect(modifierSpy).toHaveBeenCalled(); }
                         });
 
                     });
 
-                    describe("and a sequence of them", function() {
+                    it("child modifier local time should be in local band", function() {
 
-                        it("if they follow one another", function() {
-                            checkWithBands(this, [ [ one_fifth * 3, one_fifth * 4 ],
-                                                   [ one_fifth * 1, one_fifth * 2 ] ]);
+                        scene = b('scene').band([0, 1]);
+
+                        var parent = b().band([.2, .75]);
+
+                        var target = b().band([.11, .42]);
+                        parent.add(target)
+
+                        scene.add(b().add(parent));
+
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                            if (relative) {
+                                expect(t * (.42 - .11)).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
+                                expect(t).toBeGreaterThanOrEqual(0);
+                                expect(t).toBeLessThanOrEqual(1);
+                            } else {
+                                expect(t).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
+                                expect(t).toBeGreaterThanOrEqual(0);
+                                expect(t).toBeLessThanOrEqual(.42 - .11);
+                            }
                         });
 
-                        it("or if they overlap", function() {
-                            checkWithBands(this, [ [ one_fifth * 2, one_fifth * 4 ],
-                                                   [ one_fifth * 1, one_fifth * 3 ] ]);
+                        doAsync(player, {
+                            prepare: function() { _modify(target, modifierSpy);
+                                                  return scene; },
+                            do: 'play', until: C.STOPPED, timeout: 1.2,
+                            then: function() { expect(modifierSpy).toHaveBeenCalled(); }
                         });
 
-                        it("or if they overlap with exceeding", function() {
-                            checkWithBands(this, [ [ one_fifth * 2, one_fifth * 6 ],
-                                                   [ -one_fifth, one_fifth * 2.999 ] ]); // failed with one_fifth * 3 due to
-                                                                                   // float point arithmetics in timeBetween
+                    });
+
+                    it("should pass element's band duration inside relative modifiers and not to pass it in non-relative once", function() {
+                        scene = b('scene').band([2, 5]);
+
+                        var bands = [ [ 0.5, 1.2 ],
+                                      [ 0.9, 1.0 ],
+                                      [ 0.9, 1.3 ],
+                                      [ 1.5, 2.6 ],
+                                      [ 2.3, 3.0 ] ];
+
+                        var spiesCount = bands.length;
+
+                        var spies = [];
+
+                        for (var i = 0, sc = spiesCount; i < sc; i++) {
+                            spies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
+                                return function(t, duration) {
+                                     if (relative) {
+                                        expect(duration).toBe(bands[i][1] - bands[i][0]);
+                                     } else {
+                                        expect(duration).toBe(jasmine.undefined);
+                                     }
+                                }
+                            })(i)));
+                        }
+
+                        doAsync(player, {
+                            prepare: function() {
+                                _each(spies, function(spy, idx) {
+                                    var elm = b().band(bands[idx]);
+                                    _modify(elm, spy);
+                                    scene.add(elm);
+                                });
+                                return scene;
+                            },
+                            do: 'play', until: C.STOPPED, timeout: 5.2,
+                            then: function() { _each(spies, function(spy) { expect(spy).toHaveBeenCalled(); } ); }
+                        });
+
+                    });
+
+                    it("should add several modifiers and call all of them", function() {
+                        scene = b('scene').band([0, 1]);
+
+                        var modifierSpies = [];
+                        var spiesCount = 10;
+
+                        for (var i = 0; i < spiesCount; i++) {
+                            modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake(
+                                function(t) {
+                                    expect(t).toBeGreaterThanOrEqual(0);
+                                    expect(t).toBeLessThanOrEqual(1);
+                                }
+                            ));
+                        }
+
+                        doAsync(player, {
+                            prepare: function() { for (var i = 0; i < spiesCount; i++) {
+                                                      _modify(scene, modifierSpies[i]);
+                                                  }
+                                                  return scene; },
+                            do: 'play', until: C.STOPPED, timeout: 1.2,
+                            then: function() { for (var i = 0; i < spiesCount; i++) {
+                                                   expect(modifierSpies[i]).toHaveBeenCalled();
+                                               } }
+                        });
+
+                    });
+
+                });
+
+                describe("removing them while executing them", function() {
+
+                    it("should support removing modifiers while executing them", function() {
+                        scene = b('scene').band([0, 1]);
+
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                            expect(t).toBeGreaterThanOrEqual(0);
+                            // remove modifier after .5
+                            if (t > .5) {
+                                expect(modifierSpy).toHaveBeenCalled();
+                                scene.unmodify(modifierSpy);
+                                modifierSpy.reset();
+                                return;
+                            }
+                            // if modifier wasn't self-removed, time should be less than .5
+                            expect(t).toBeLessThanOrEqual(.5);
+                        });
+
+                        doAsync(player, {
+                            prepare: function() {
+                                _modify(scene, modifierSpy);
+                                return scene;
+                            },
+                            do: 'play', until: C.STOPPED, timeout: 1.2,
+                            then: function() { expect(modifierSpy).not.toHaveBeenCalled(); }
+                        });
+
+                    });
+
+                    it("should remove several modifiers in random order and in proper time", function() {
+                        scene = b('scene').band([0, 1]);
+
+                        var modifierSpies = [];
+                        var spiesCount = 10;
+
+                        for (var i = 0; i < spiesCount; i++) {
+                            modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
+                                return function(t, duration, removeTime) {
+                                    expect(t).toBeGreaterThanOrEqual(0);
+                                    if (t > removeTime) {
+                                        var modifier = modifierSpies[i];
+                                        expect(removeTime).toEqual(i !== 0 ? ((1 / i) - .1) : 0);
+                                        expect(modifier).toHaveBeenCalled();
+                                        scene.unmodify(modifier);
+                                        modifierSpies[i].reset();
+                                        return;
+                                    }
+                                    // if modifier wasn't self-removed, time should be less than .5
+                                    expect(t).toBeLessThanOrEqual(removeTime);
+                                } })(i)));
+                        };
+
+                        doAsync(player, {
+                            prepare: function() {
+                                for (var i = (spiesCount - 1); i >= 0; i--) {
+                                    _modify(scene, modifierSpies[i],
+                                                   i !== 0 ? ((1 / i) - .1) : 0);
+                                }
+                                return scene;
+                            },
+                            do: 'play', until: C.STOPPED, timeout: 1.2,
+                            then: function() {
+                                for (var i = 0; i < spiesCount; i++) {
+                                    expect(modifierSpies[i]).not.toHaveBeenCalled();
+                                }
+                            }
                         });
 
                     });
@@ -1198,266 +626,915 @@ describe("builder, regarding modifiers,", function() {
                 });
 
             });
-        });
 
-        describe("trigger-like modifiers,", function() {
+            describe("band-restricted modifiers,", function() {
 
-            it("`at` method should call `modify` method", function() {
-                var trg = b();
-                var modifier = _mocks.nop;
-                var data = { foo: 'bar' };
-                var priority = 7;
-                var modifySpy = spyOn(trg, 'modify');
-                trg.at(2.2, modifier, data, priority);
-                expect(modifySpy).toHaveBeenCalledOnce();
-                expect(modifySpy).toHaveBeenCalledWith(2.2, modifier, data, priority);
-            })
+                var target,
+                    trg_band, // band of the target element
+                    trg_duration; // duration of the target band
 
-            var scene,
-                target;
+                var _duration = 1,
+                    _timeout = _duration + .2;
 
-            var trg_band,
-                trg_duration;
+                var scene = b();
 
-            var _duration = 2.5,
-                _timeout = 1.7;
+                // FIXME: test that 0-duration throws error
+                // TODO: ensure duration() method of the element is accessible in such modifier
 
-            beforeEach(function() {
-                scene = b('scene').band([0, _duration]);
-                scene.duration = _duration;
-                player.load(scene);
-            });
-
-            var modifier_time;
-
-            varyAll([ { description: "when target is a scene,",
+                varyAll([ {
+                        description: "when assigned to the scene",
                         prepare: function() { target = scene;
                                               trg_band = [ 0, _duration ];
-                                              trg_duration = _duration; } },
-                      { description: "if target is an inner element,",
-                        prepare: function() { target = b();
-                                              trg_band = [ _duration / 4, (_duration / 4) * 3 ];
+                                              trg_duration = _duration;
+                                              target.band(trg_band); }
+                    }, {
+                        description: "when assigned to the child whose band is narrower than scene band",
+                        prepare: function() { trg_band = [ _duration / 6, (_duration / 6) * 5 ];
                                               trg_duration = trg_band[1] - trg_band[0];
-                                              target.band(trg_band);
-                                              scene.add(b().add(target)); } } ],
-                    function() {
+                                              target = b().band(trg_band);
+                                              scene.add(b().add(b().add(target))); }
+                    }, {
+                        description: "when assigned to the grand-child whose parent band is narrower than scene band",
+                        prepare: function() { trg_band = [ _duration / 7, (_duration / 7) * 4 ];
+                                              trg_duration = trg_band[1] - trg_band[0];
+                                              target = b();
+                                              scene.add(b().add(b().add(target)).band(trg_band)); }
+                    } ], function() {
 
-                varyAll([ { prepare: function() { modifier_time = 0; },
-                            description: "and modifier time is at the exact start of the target" },
-                          { prepare: function() { modifier_time = (1 / 15) * trg_duration; },
-                            description: "and modifier time is very-very close to the start of the target" },
-                          { prepare: function() { modifier_time = (1 / 14) * trg_duration; },
-                            description: "and modifier time is very close to the start of the target" },
-                          { prepare: function() { modifier_time = (1 / 10) * trg_duration; },
-                            description: "and modifier time is close to the start of the target" },
-                          { prepare: function() { modifier_time = (1 / 4)   * trg_duration; },
-                            description: "and modifier time is near to the start of the target" },
-                          { prepare: function() { modifier_time = (1 / 2)   * trg_duration; },
-                            description: "and modifier time is in the middle of the target" },
-                          { prepare: function() { modifier_time = (3 / 4)   * trg_duration; },
-                            description: "and modifier time is near to the end of the target" },
-                          { prepare: function() { modifier_time = (9 / 10) * trg_duration; },
-                            description: "and modifier time is close to the end of the target" },
-                          { prepare: function() { modifier_time = (13 / 14) * trg_duration; },
-                            description: "and modifier time is very close to the end of the target" },
-                          { prepare: function() { modifier_time = (14 / 15) * trg_duration; },
-                            description: "and modifier time is even closer to the end of the target" },
-                          { prepare: function() { modifier_time = trg_duration; },
-                            description: "and modifier time is at the exact end of the target" }
-                        ], function() {
+                    describe("and when a frame requested", function() {
 
-                    it("calls a modifier exactly once", function() {
-                        var modifierSpy = jasmine.createSpy('modifier-spy');
+                        var _whatToRun,
+                            _waitFor;
 
-                        doAsync(player, {
-                            prepare: function() { target.modify(0.3, modifierSpy); },
-                            do: 'play', until: C.STOPPED, timeout: _timeout,
-                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                               target.unmodify(modifierSpy); }
-                        });
+                        function expectAtTime(conf) {
+                            var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
+                                modifiers = _arrayFrom(conf.modifiers),
+                                expectations = _arrayFrom(conf.expectations),
+                                spies = [];
+                            _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
+                            doAsync(player, {
+                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, bands[idx], spy); });
+                                                      return scene; },
+                                run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
+                                then: function() { _each(expectations, function(expectation) { expectation(); });
+                                                   _each(spies, function(spy, i) { if (!conf.doNotExpectToCall || !conf.doNotExpectToCall[i]) {
+                                                                                    expect(spy).toHaveBeenCalledOnce();
+                                                                                  } else {
+                                                                                    expect(spy).not.toHaveBeenCalled();
+                                                                                  }
+                                                                                  target.unmodify(spy); }); }
+                            });
+                        }
 
-                    });
+                        varyAll([ { description: "while just momentary playing,", prepare: function() {
+                                        _whatToRun = function(t) {
+                                            return function() {
+                                                player.play(t, 1, 0.1);
+                                            }
+                                        };
+                                        _waitFor = function() { return player.state.happens === C.STOPPED; }
+                                    } },
+                                  { description: "when particular frame was requested,", prepare: function() {
+                                        var drawAtSpy = spyOn(player, 'drawAt').andCallThrough();
+                                        _whatToRun = function(t) {
+                                            return function() {
+                                                player.drawAt(t);
+                                            };
+                                        };
+                                        _waitFor = function() { return true; }
+                                    } },
+                                  /* TODO: { description: "when inner time-jump was preformed," , prepare: function() {} } */ ], function() {
 
-                    it("passes target band duration inside the modifier", function() {
-                        var expectedT = 0.7;
+                            var mod_band, // band of the modifier itself
+                                mod_rband, // band of the modifier, specified relatively to parent element
+                                mod_duration; // duration of the modifier band
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
-                            expect(duration).toEqual(trg_duration);
-                        });
+                            varyAll([ { description: "and modifier band is equal to parent band",
+                                        prepare: function() { mod_band = [ 0, trg_duration ];
+                                                              mod_rband = [ 0, 1 ];
+                                                              mod_duration = trg_duration; } },
+                                      { description: "and modifier band is at the start of parent band",
+                                        prepare: function() { mod_band = [ 0, trg_duration / 3 ];
+                                                              mod_rband = [ 0, 1 / 3 ];
+                                                              mod_duration = mod_band[1] - mod_band[0]; } },
+                                      { description: "and modifier band is at the end of parent band",
+                                        prepare: function() { mod_band = [ (trg_duration / 3) * 2, trg_duration ];
+                                                              mod_rband = [ 2 / 3, 1 ];
+                                                              mod_duration = mod_band[1] - mod_band[0]; } },
+                                      { description: "and modifier band is somewhere in the middle of parent band",
+                                        prepare: function() { mod_band = [ trg_duration / 4, trg_duration / 3 ];
+                                                              mod_rband = [ 1 / 4, 1 / 3 ];
+                                                              mod_duration = mod_band[1] - mod_band[0]; } } ], function() {
 
-                        doAsync(player, {
-                            prepare: function() { target.modify(expectedT, modifierSpy); },
-                            do: 'play', until: C.STOPPED, timeout: _timeout,
-                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
-                        });
-
-                    });
-
-                    it("calls a modifier at given time or a bit later", function() {
-                        var calledAt = -1;
-                        var expectedT = 0.7;
-                        var FPS_ERR = 7 / 9;
-
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
-                            expect(t).toBeGreaterThanOrEqual(expectedT / duration);
-                            expect(t * duration).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
-                            expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
-                            calledAt = t * trg_duration;
-                        });
-
-                        doAsync(player, {
-                            prepare: function() { target.modify(expectedT, modifierSpy); },
-                            do: 'play', until: C.STOPPED, timeout: _timeout,
-                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                               expect(calledAt).toBeGreaterThanOrEqual(expectedT);
-                                               expect(calledAt).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS); }
-                        });
-
-                    });
-
-                    var _whatToRun,
-                        _valueTest;
-
-                    function expectToCall(modifier, modTime, playTime, callback) {
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
-                        doAsync(player, {
-                            prepare: function() { target.modify(modTime, modifierSpy); },
-                            run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
-                            then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                               target.unmodify(modifierSpy);
-                                               if (callback) callback(); }
-                        });
-                    };
-
-                    function expectNotToCall(modifier, modTime, playTime, callback) {
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
-                        doAsync(player, {
-                            prepare: function() { target.modify(modTime, modifierSpy); },
-                            run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
-                            then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce();
-                                               target.unmodify(modifierSpy);
-                                               if (callback) callback(); }
-                        });
-                    };
-
-                    var FPS_ERR = anm.Element._FPS_ERROR;
-
-                    function playValueTest(t, duration, time) {
-                        return (duration === trg_duration) &&
-                               ((t >= 0) && (t <= 1)) &&
-                               ((((t * duration) >= time) && ((t * duration) <= time + (mFPS * FPS_ERR))) ||
-                                (((t * duration) < time)  && __close(t * duration, time, 10))); }
-                    function drawValueTest(t, duration, time) {
-                        return (duration === trg_duration) &&
-                               ((t >= 0) && (t <= 1)) &&
-                               ( Math.round((t * duration) * Math.pow(10, CLOSE_FACTOR)) ==
-                                 Math.round(time           * Math.pow(10, CLOSE_FACTOR)) ); }
-                    function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
-
-                    varyAll( [
-                          { description: "short-playing-period",
-                            prepare: function() {
-                                _whatToRun = function(time) {
-                                    return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
-                                                        player.play(trg_band[0] + time, 1, mFPS * 3); }
-                                };
-                                _valueTest = playValueTest;
-                            } },
-                          { description: "if rendering was requested",
-                            prepare: function() {
-                                _whatToRun = function(time) {
-                                    return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
-                                                        player.drawAt(trg_band[0] + time); }
-                                };
-                                _valueTest = drawValueTest;
-                            } }
-                          /* TODO: { description: "if time-jump was performed",
-                            prepare: function() {} } */
-                        ], function() {
-
-                        it("calls a modifier if current frame matches its time", function() {
-                            expectToCall(function(t, duration) {
-                                expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
-                            }, modifier_time, modifier_time);
-                        });
-
-                        it("does not calls a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
-                            var calls = [];
-                            for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
-                                var later_time = modifier_time + (mFPS * FPS_ERR) + delta;
-                                if (fitsScene(later_time)) {
-                                    (function(later_time) {
-                                        if ((modifier_time <= (trg_duration - mFPS)) ||
-                                            (later_time <= (trg_band[0] + trg_duration - mFPS)) ||
-                                            ((later_time >= (trg_band[0] + trg_duration + mFPS)) && fitsScene(later_time))) {
-                                            calls.push(function() {
-                                                expectNotToCall(_mocks.nop, modifier_time,
-                                                                later_time, this.next);
-                                            });
-                                        } else if (fitsScene(later_time)) {
-                                            calls.push(function() {
-                                                expectToCall(function(t, duration) {
-                                                    expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
-                                                }, modifier_time, later_time, this.next);
-                                            });
+                                /* it("should pass modifier band duration inside, independently of alignment", function() {
+                                    function m_checkDuration() {
+                                        return function(t, duration) {
+                                            expect(duration).toBe(mod_duration);
                                         }
-                                    }(later_time));
+                                    };
+
+                                    expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: m_checkDuration(),
+                                            time: trg_band[0] + (mod_band[0] / 3) });
+
+                                    expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: m_checkDuration(),
+                                            time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+
+                                    expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: m_checkDuration(),
+                                            time: trg_band[0] + (mod_band[0] >=0 ? mod_band[0] : 0) });
+
+                                    expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: m_checkDuration(),
+                                            time: trg_band[0] + mod_band[0] + mod_duration });
+
+                                    expectAtTime({
+                                            bands: mod_band,
+                                            modifiers: m_checkDuration(),
+                                            time: (mod_duration < trg_duration)
+                                                    ? trg_band[0] + mod_band[1] +
+                                                      ((trg_duration - mod_band[1]) / 2)
+                                                    : trg_band[1] });
+
+                                }); */
+
+                                describe("in favor of alignment,", function() {
+
+                                    it("does not calls modifier before the fact when its band has started", function() {
+                                        if (mod_band[0] != 0) {
+                                            var spec = this;
+
+                                            expectAtTime({
+                                                bands: relative ? mod_rband : mod_band,
+                                                modifiers: function(t, duration) {
+                                                    spec.fail('Should not be called');
+                                                },
+                                                time: trg_band[0] + (mod_band[0] / 2),
+                                                doNotExpectToCall: [ true ] });
+                                        }
+                                    });
+
+                                    it("passes time 0 at the exact start of the band", function() {
+                                        var spec = this;
+
+                                        //var mod_duration = mod_band[1] - mod_band[0];
+                                        expectAtTime({
+                                            bands: relative ? mod_rband : mod_band,
+                                            modifiers: function(t, duration) {
+                                                if (relative) {
+                                                    expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
+                                                    expect(duration).toBe(mod_duration);
+                                                } else {
+                                                    expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
+                                                    expect(duration).toBe(jasmine.undefined);
+                                                }
+                                            },
+                                            time: trg_band[0] + mod_band[0] });
+                                    });
+
+                                    it("passes the local time and its duration to modifier (and, for sure, call it), if its band is within current time", function() {
+                                        //var mod_duration = mod_band[1] - mod_band[0];
+                                        expectAtTime({
+                                            bands: relative ? mod_rband : mod_band,
+                                            modifiers: function(t, duration) {
+                                                if (relative) {
+                                                    expect(t).toBeGreaterThanOrEqual(0);
+                                                    expect(t).toBeLessThan(1);
+                                                    expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
+                                                    expect(duration).toBe(mod_duration);
+                                                } else {
+                                                    expect(t).toBeGreaterThanOrEqual(0);
+                                                    expect(t).toBeLessThan(mod_duration);
+                                                    expect(t).toBeCloseTo(mod_duration/3, CLOSE_FACTOR);
+                                                    expect(duration).toBe(jasmine.undefined);
+                                                }
+                                            },
+                                            time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
+                                    });
+
+                                    it("passes time 1 at the exact end of the band", function() {
+                                        var spec = this;
+
+                                        //var mod_duration = mod_band[1] - mod_band[0];
+                                        expectAtTime({
+                                            bands: relative ? mod_rband : mod_band,
+                                            modifiers: function(t, duration) {
+                                                if (relative) {
+                                                    expect(t).toBeCloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
+                                                    expect(duration).toBe(mod_duration);
+                                                } else {
+                                                    expect(t).toBeCloseTo(mod_duration, CLOSE_FACTOR); //FIXME: expect(t).toBe(mod_duration);
+                                                    expect(duration).toBe(jasmine.undefined);
+                                                }
+                                            },
+                                            time: trg_band[0] + mod_band[1] });
+                                    });
+
+                                    it("does not calls modifier after the fact when its band has finished", function() {
+                                        if (mod_band[1] != trg_duration) {
+                                            var spec = this;
+
+                                            //var mod_duration = mod_band[1] - mod_band[0];
+                                            expectAtTime({
+                                                bands: relative ? mod_rband : mod_band,
+                                                modifiers: function(t, duration) {
+                                                    spec.fail('Should not be called');
+                                                },
+                                                time: trg_band[0] + mod_band[1] + ((trg_duration - mod_band[1]) / 2),
+                                                doNotExpectToCall: [ true ] });
+                                        }
+                                    });
+
+                                });
+
+                            });
+
+                            describe("if band exceeds the wrapper after the end,", function() {
+
+                                var end_diff;
+
+                                beforeEach(function() {
+                                    mod_band = [ trg_duration / 4, trg_duration + 1 ];
+                                    mod_rband = [ 1 / 4, (trg_duration + 1) / trg_duration ];
+                                    mod_duration = mod_band[1] - mod_band[0];
+                                    end_diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
+                                });
+
+                                it("does not call modifier if when its band hasn't started", function() {
+                                    var spec = this;
+
+                                    expectAtTime({
+                                        bands: relative ? mod_rband : mod_band,
+                                        modifiers: function(t) {
+                                            spec.fail('Should not be called');
+                                        },
+                                        time: trg_band[0] + (trg_duration / 5),
+                                        doNotExpectToCall: [ true ] });
+                                });
+
+                                it("passes actual local time value when intersection was not reached", function() {
+                                    expectAtTime({
+                                        bands: relative ? mod_rband : mod_band,
+                                        modifiers: function(t) {
+                                            if (relative) {
+                                                expect(t).toBeGreaterThan(0);
+                                                expect(t).toBeLessThan(1 - (end_diff / mod_duration));
+                                                expect(t).toBeCloseTo(((trg_duration / 3) - mod_band[0]) / mod_duration, CLOSE_FACTOR);
+                                            } else {
+                                                expect(t).toBeGreaterThan(0);
+                                                expect(t).toBeLessThan(mod_duration - end_diff);
+                                                expect(t).toBeCloseTo((trg_duration / 3) - mod_band[0], CLOSE_FACTOR);
+                                            }
+                                        },
+                                        time: trg_band[0] + (trg_duration / 3) });
+                                });
+
+                                it("passes the intersection time in the end of wrapper band", function() {
+                                    expectAtTime({
+                                        bands: relative ? mod_rband : mod_band,
+                                        modifiers: function(t) {
+                                            if (relative) {
+                                                expect(t).toBeCloseTo(1 - (end_diff / mod_duration), CLOSE_FACTOR);
+                                            } else {
+                                                expect(t).toBeCloseTo(mod_duration - end_diff, CLOSE_FACTOR);
+                                            }
+                                        },
+                                        time: trg_band[1] });
+                                });
+
+                            });
+
+                            describe("if band exceeds the wrapper before the start,", function() {
+
+                                var start_diff = 1;
+
+                                beforeEach(function() {
+                                    mod_band = [ -start_diff, trg_duration / 4 ];
+                                    mod_duration = mod_band[1] - mod_band[0];
+                                });
+
+                                it("passes intersection time when position is at start of the wrapper", function() {
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBe(start_diff / mod_duration);
+                                        },
+                                        time: trg_band[0] });
+                                });
+
+                                it("passes actual local time value when intersection was passed", function() {
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                            expect(t).toBeLessThan(1);
+                                            expect(t).toBeCloseTo(((trg_duration / 5) + start_diff) / mod_duration, CLOSE_FACTOR);
+                                        },
+                                        time: trg_band[0] + (trg_duration / 5) });
+                                });
+
+                                it("does not call modifier when its band was finished", function() {
+                                    var spec = this;
+
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            spec.fail('Should not be called');
+                                        },
+                                        time: trg_band[0] + (trg_duration / 3),
+                                        doNotExpectToCall: [ true ] });
+                                });
+
+                            });
+
+                            describe("if band exceeds the wrapper from both ends,", function() {
+
+                                var start_diff = 1.2,
+                                    end_diff = 1;
+
+                                beforeEach(function() {
+                                    mod_band = [ -start_diff, trg_duration + end_diff ];
+                                    mod_duration = mod_band[1] - mod_band[0];
+                                });
+
+                                it("passes intersection time when position is at start of the wrapper", function() {
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBe(start_diff / mod_duration);
+                                        },
+                                        time: trg_band[0] });
+                                });
+
+                                it("passes actual local time value when intersection was not reached", function() {
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                            expect(t).toBeLessThan(1 - (end_diff / mod_duration));
+                                            expect(t).toBeCloseTo(((trg_duration / 3) + start_diff) / mod_duration, CLOSE_FACTOR);
+                                        },
+                                        time: trg_band[0] + (trg_duration / 3) });
+                                });
+
+                                it("passes the end-intersection time when position is at the end of the wrapper", function() {
+                                    expectAtTime({
+                                        bands: mod_band,
+                                        modifiers: function(t) {
+                                            // FIXME: (mod_duration - end_diff) fails here due to rounding problem
+                                            expect(t).toBe((start_diff + trg_duration) / mod_duration);
+                                        },
+                                        time: trg_band[1] });
+                                });
+
+                            });
+
+                            describe("in favor of sequences,", function() {
+
+                                var one_fifth;
+
+                                beforeEach(function() { one_fifth = trg_duration / 5; });
+
+                                var band1, band2,
+                                    band1_duration, band2_duration;
+
+                                // NB: modifiers added in reverse order to ensure order do not affects sequencing,
+                                //     so band2 goes before band1 and so the expectations are also swapped
+
+                                describe("if other modifier goes a bit after the current one,", function() {
+
+                                    beforeEach(function() {
+                                        band1 = [ one_fifth * 3, one_fifth * 4 ],
+                                        band2 = [ one_fifth, one_fifth * 2 ],
+                                        band1_duration = band1[1] - band1[0],
+                                        band2_duration = band2[1] - band2[0];
+                                    });
+
+                                    it("in period before first, does not calls both of modifiers", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth / 2),
+                                            doNotExpectToCall: [ true, true ] });
+                                    });
+
+                                    it("during the first one, calls first one with actual value and does not calls the next one with start value", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { expect(t).toBeGreaterThan(0);
+                                                              expect(t).toBeLessThan(1);
+                                                              expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR); }
+                                            ], time: trg_band[0] + (one_fifth * 1.5),
+                                            doNotExpectToCall: [ true, false ] });
+                                    });
+
+                                    it("during the period between them, does not calls both of modifiers", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth * 2.5),
+                                            doNotExpectToCall: [ true, true ] });
+                                    });
+
+                                    it("during the second one, does not calls the first one and calls next one with actual value", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { expect(t).toBeGreaterThan(0);
+                                                              expect(t).toBeLessThan(1);
+                                                              expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth * 3.5),
+                                            doNotExpectToCall: [ false, true ] });
+                                    });
+
+                                    it("after the second one, does not calls both of modifiers", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth * 4.5),
+                                            doNotExpectToCall: [ true, true ] });
+                                    });
+
+                                });
+
+                                describe("if next modifier overlaps the end of the current one,", function() {
+
+                                    beforeEach(function() {
+                                        band1 = [ one_fifth * 2.3, one_fifth * 4 ],
+                                        band2 = [ one_fifth, one_fifth * 2.7 ],
+                                        band1_duration = band1[1] - band1[0],
+                                        band2_duration = band2[1] - band2[0];
+                                    });
+
+                                    it("in period before first, does not calls both of modifiers", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth / 2),
+                                            doNotExpectToCall: [ true, true ] });
+                                    });
+
+                                    it("during the first one, but not the overlapping period, calls the first one with actual value and does not calls the next one", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { expect(t).toBeGreaterThan(0);
+                                                              expect(t).toBeLessThan(1);
+                                                              expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR); }
+                                            ], time: trg_band[0] + (one_fifth * 2),
+                                            doNotExpectToCall: [ true, false ] });
+                                    });
+
+                                    it("during the overlapping period, calls the first one with actual value and the next one also with actual value", function() {
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { expect(t).toBeGreaterThan(0);
+                                                              expect(t).toBeLessThan(1);
+                                                              expect(t).toBeCloseTo((one_fifth * 0.2) / band1_duration, CLOSE_FACTOR); },
+                                                function(t) { expect(t).toBeGreaterThan(0);
+                                                              expect(t).toBeLessThan(1);
+                                                              expect(t).toBeCloseTo((one_fifth * 1.5) / band2_duration, CLOSE_FACTOR); }
+                                            ], time: trg_band[0] + (one_fifth * 2.5) });
+                                    });
+
+                                    it("during the second one, but not the overlapping period, does not calls the first one and calls next one with actual value", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { expect(t).toBeGreaterThan(0);
+                                                              expect(t).toBeLessThan(1);
+                                                              expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth * 3),
+                                            doNotExpectToCall: [ false, true ] });
+                                    });
+
+                                    it("after the second one, does not calls both of modifiers", function() {
+                                        var spec = this;
+
+                                        expectAtTime({
+                                            bands: [ band1, band2 ],
+                                            modifiers: [
+                                                function(t) { spec.fail('Should not be called'); },
+                                                function(t) { spec.fail('Should not be called'); }
+                                            ], time: trg_band[0] + (one_fifth * 4.5),
+                                            doNotExpectToCall: [ true, true ] });
+                                    });
+
+                                });
+
+                                // TODO: test exceeding bands
+
+                            });
+
+                        });
+
+                    });
+
+                    describe("during playing process,", function() {
+
+                        var one_fifth;
+
+                        beforeEach(function() { one_fifth = trg_duration / 5; });
+
+                        function whilePlaying(bands, modifiers) {
+                            var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands),
+                                modifiers = _arrayFrom(modifiers),
+                                spies = [];
+                            _each(modifiers, function(modifier, idx) {
+                                spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier));
+                            });
+                            doAsync(player, {
+                                prepare: function() { _each(spies, function(spy, idx) {
+                                                          target.modify(bands[idx], spy);
+                                                      }); return scene; },
+                                do: 'play', until: C.STOPPED, timeout: _timeout,
+                                then: function() { /*_each(expectations, function(expectation) { expectation(); });*/
+                                                   _each(spies, function(spy) { expect(spy).toHaveBeenCalled();
+                                                                                target.unmodify(spy); }); }
+                            });
+                        }
+
+                        function localTime(parent_band, band) {
+                            return player.state.time - parent_band[0] - band[0];
+                        }
+
+                        function timeBetween(parent_band, low, high) {
+                            var parent_time = player.state.time - parent_band[0];
+                            return (parent_time > low) &&
+                                   (parent_time < high);
+                        }
+
+                        function checkWithBands(spec, bands) {
+                            var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands);
+                            var modifiers = [];
+                            _each(bands, function(band) {
+                                modifiers.push(function(t, duration) {
+                                    var _start = band[0],
+                                        _end = band[1],
+                                        _band_duration = _end - _start;
+                                    if (timeBetween(trg_band, 0, _start)) {
+                                        spec.fail('Should not be called');
+                                    }
+                                    if (timeBetween(trg_band, _start, _end)) {
+                                        expect(t).toBeGreaterThanOrEqual(0);
+                                        expect(t).toBeLessThan(1);
+                                        expect(t).toEqual(localTime(trg_band, band) / _band_duration);
+                                    }
+                                    if (timeBetween(trg_band, _end, trg_duration)) {
+                                        spec.fail('Should not be called');
+                                    }
+                                    expect(duration).toBe(band[1] - band[0]);
+                                });
+                            });
+                            whilePlaying(bands, modifiers);
+                        }
+
+                        var checkWithBand = checkWithBands;
+
+                        describe("same rules should apply with a single modifier, independently of position, it", function() {
+
+                            it("may be just somewhere inside of the wrapper band", function() {
+                                checkWithBand(this, [ one_fifth * 1.5, one_fifth * 4 ]);
+                            });
+
+                            it("may be aligned to start of the wrapper band", function() {
+                                checkWithBand(this, [ 0, one_fifth * 3 ]);
+                            });
+
+                            it("may be aligned to end of the wrapper band", function() {
+                               checkWithBand(this, [ one_fifth * 2, trg_duration ]);
+                            });
+
+                            it("may be equal to wrapper band", function() {
+                                checkWithBand(this, [ 0, trg_duration ]);
+                            });
+
+                            it("may exceed the wrapper band", function() {
+                                checkWithBand(this, [ -1, trg_duration + 1 ]);
+                            });
+
+                        });
+
+                        describe("and a sequence of them", function() {
+
+                            it("if they follow one another", function() {
+                                checkWithBands(this, [ [ one_fifth * 3, one_fifth * 4 ],
+                                                       [ one_fifth * 1, one_fifth * 2 ] ]);
+                            });
+
+                            it("or if they overlap", function() {
+                                checkWithBands(this, [ [ one_fifth * 2, one_fifth * 4 ],
+                                                       [ one_fifth * 1, one_fifth * 3 ] ]);
+                            });
+
+                            it("or if they overlap with exceeding", function() {
+                                checkWithBands(this, [ [ one_fifth * 2, one_fifth * 6 ],
+                                                       [ -one_fifth, one_fifth * 2.999 ] ]); // failed with one_fifth * 3 due to
+                                                                                       // float point arithmetics in timeBetween
+                            });
+
+                        });
+
+                    });
+
+                });
+            });
+
+            describe("trigger-like modifiers,", function() {
+
+                it("`at` method should call `modify` method", function() {
+                    var trg = b();
+                    var modifier = _mocks.nop;
+                    var data = { foo: 'bar' };
+                    var priority = 7;
+                    var modifySpy = spyOn(trg, 'modify');
+                    trg.at(2.2, modifier, data, priority);
+                    expect(modifySpy).toHaveBeenCalledOnce();
+                    expect(modifySpy).toHaveBeenCalledWith(2.2, modifier, data, priority);
+                })
+
+                var scene,
+                    target;
+
+                var trg_band,
+                    trg_duration;
+
+                var _duration = 2.5,
+                    _timeout = 1.7;
+
+                beforeEach(function() {
+                    scene = b('scene').band([0, _duration]);
+                    scene.duration = _duration;
+                    player.load(scene);
+                });
+
+                var modifier_time;
+
+                varyAll([ { description: "when target is a scene,",
+                            prepare: function() { target = scene;
+                                                  trg_band = [ 0, _duration ];
+                                                  trg_duration = _duration; } },
+                          { description: "if target is an inner element,",
+                            prepare: function() { target = b();
+                                                  trg_band = [ _duration / 4, (_duration / 4) * 3 ];
+                                                  trg_duration = trg_band[1] - trg_band[0];
+                                                  target.band(trg_band);
+                                                  scene.add(b().add(target)); } } ],
+                        function() {
+
+                    varyAll([ { prepare: function() { modifier_time = 0; },
+                                description: "and modifier time is at the exact start of the target" },
+                              { prepare: function() { modifier_time = (1 / 15) * trg_duration; },
+                                description: "and modifier time is very-very close to the start of the target" },
+                              { prepare: function() { modifier_time = (1 / 14) * trg_duration; },
+                                description: "and modifier time is very close to the start of the target" },
+                              { prepare: function() { modifier_time = (1 / 10) * trg_duration; },
+                                description: "and modifier time is close to the start of the target" },
+                              { prepare: function() { modifier_time = (1 / 4)  * trg_duration; },
+                                description: "and modifier time is near to the start of the target" },
+                              { prepare: function() { modifier_time = (1 / 2)  * trg_duration; },
+                                description: "and modifier time is in the middle of the target" },
+                              { prepare: function() { modifier_time = (3 / 4)  * trg_duration; },
+                                description: "and modifier time is near to the end of the target" },
+                              { prepare: function() { modifier_time = (9 / 10) * trg_duration; },
+                                description: "and modifier time is close to the end of the target" },
+                              { prepare: function() { modifier_time = (13 / 14) * trg_duration; },
+                                description: "and modifier time is very close to the end of the target" },
+                              { prepare: function() { modifier_time = (14 / 15) * trg_duration; },
+                                description: "and modifier time is even closer to the end of the target" },
+                              { prepare: function() { modifier_time = trg_duration; },
+                                description: "and modifier time is at the exact end of the target" }
+                            ], function() {
+
+                        it("calls a modifier exactly once", function() {
+                            var modifierSpy = jasmine.createSpy('modifier-spy');
+
+                            doAsync(player, {
+                                prepare: function() { target.modify(0.3, modifierSpy); },
+                                do: 'play', until: C.STOPPED, timeout: _timeout,
+                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                   target.unmodify(modifierSpy); }
+                            });
+
+                        });
+
+                        it("passes target band duration inside the modifier", function() {
+                            var expectedT = 0.7;
+
+                            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                                expect(duration).toEqual(trg_duration);
+                            });
+
+                            doAsync(player, {
+                                prepare: function() { target.modify(expectedT, modifierSpy); },
+                                do: 'play', until: C.STOPPED, timeout: _timeout,
+                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                            });
+
+                        });
+
+                        it("calls a modifier at given time or a bit later", function() {
+                            var calledAt = -1;
+                            var expectedT = 0.7;
+                            var FPS_ERR = 7 / 9;
+
+                            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                                expect(t).toBeGreaterThanOrEqual(expectedT / duration);
+                                expect(t * duration).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
+                                expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
+                                calledAt = t * trg_duration;
+                            });
+
+                            doAsync(player, {
+                                prepare: function() { target.modify(expectedT, modifierSpy); },
+                                do: 'play', until: C.STOPPED, timeout: _timeout,
+                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                   expect(calledAt).toBeGreaterThanOrEqual(expectedT);
+                                                   expect(calledAt).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS); }
+                            });
+
+                        });
+
+                        var _whatToRun,
+                            _valueTest;
+
+                        function expectToCall(modifier, modTime, playTime, callback) {
+                            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
+                            doAsync(player, {
+                                prepare: function() { target.modify(modTime, modifierSpy); },
+                                run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
+                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                   target.unmodify(modifierSpy);
+                                                   if (callback) callback(); }
+                            });
+                        };
+
+                        function expectNotToCall(modifier, modTime, playTime, callback) {
+                            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
+                            doAsync(player, {
+                                prepare: function() { target.modify(modTime, modifierSpy); },
+                                run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
+                                then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce();
+                                                   target.unmodify(modifierSpy);
+                                                   if (callback) callback(); }
+                            });
+                        };
+
+                        var FPS_ERR = anm.Element._FPS_ERROR;
+
+                        function playValueTest(t, duration, time) {
+                            return (duration === trg_duration) &&
+                                   ((t >= 0) && (t <= 1)) &&
+                                   ((((t * duration) >= time) && ((t * duration) <= time + (mFPS * FPS_ERR))) ||
+                                    (((t * duration) < time)  && __close(t * duration, time, 10))); }
+                        function drawValueTest(t, duration, time) {
+                            return (duration === trg_duration) &&
+                                   ((t >= 0) && (t <= 1)) &&
+                                   ( Math.round((t * duration) * Math.pow(10, CLOSE_FACTOR)) ==
+                                     Math.round(time           * Math.pow(10, CLOSE_FACTOR)) ); }
+                        function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
+
+                        varyAll( [
+                              { description: "short-playing-period",
+                                prepare: function() {
+                                    _whatToRun = function(time) {
+                                        return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
+                                                            player.play(trg_band[0] + time, 1, mFPS * 3); }
+                                    };
+                                    _valueTest = playValueTest;
+                                } },
+                              { description: "if rendering was requested",
+                                prepare: function() {
+                                    _whatToRun = function(time) {
+                                        return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
+                                                            player.drawAt(trg_band[0] + time); }
+                                    };
+                                    _valueTest = drawValueTest;
+                                } }
+                              /* TODO: { description: "if time-jump was performed",
+                                prepare: function() {} } */
+                            ], function() {
+
+                            it("calls a modifier if current frame matches its time", function() {
+                                expectToCall(function(t, duration) {
+                                    expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
+                                }, modifier_time, modifier_time);
+                            });
+
+                            it("does not calls a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
+                                var calls = [];
+                                for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
+                                    var later_time = modifier_time + (mFPS * FPS_ERR) + delta;
+                                    if (fitsScene(later_time)) {
+                                        (function(later_time) {
+                                            if ((modifier_time <= (trg_duration - mFPS)) ||
+                                                (later_time <= (trg_band[0] + trg_duration - mFPS)) ||
+                                                ((later_time >= (trg_band[0] + trg_duration + mFPS)) && fitsScene(later_time))) {
+                                                calls.push(function() {
+                                                    expectNotToCall(_mocks.nop, modifier_time,
+                                                                    later_time, this.next);
+                                                });
+                                            } else if (fitsScene(later_time)) {
+                                                calls.push(function() {
+                                                    expectToCall(function(t, duration) {
+                                                        expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
+                                                    }, modifier_time, later_time, this.next);
+                                                });
+                                            }
+                                        }(later_time));
+                                    }
                                 }
-                            }
-                            if ((trg_band[0] + modifier_time + (mFPS * FPS_ERR) + 0.01) <= _duration) {
-                                expect(calls.length).toBeGreaterThan(0);
+                                if ((trg_band[0] + modifier_time + (mFPS * FPS_ERR) + 0.01) <= _duration) {
+                                    expect(calls.length).toBeGreaterThan(0);
+                                }
+                                if (calls.length > 0) queue(calls);
+                            });
+
+                            it("calls a modifier again and again if current frame matches its time", function() {
+                                var calls = [];
+                                for (var i = 0; i < 10; i++) {
+                                    calls.push(function() {
+                                        expectToCall(function(t, duration) {
+                                            expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
+                                        }, modifier_time, modifier_time, this.next);
+                                    });
+                                }
+                                queue(calls);
+                            });
+
+                        });
+
+                        it("calls a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
+                            var calls = [];
+                            var fraction = 4 / 5;
+                            for (var delta = fraction * mFPS; delta > 0; delta -= .005) {
+                                var call_at = trg_band[0] + (modifier_time - delta);
+                                if (call_at < 0) call_at = 0;
+                                if ((call_at >= trg_band[0]) &&
+                                    (call_at + mFPS) <= (trg_band[0] + trg_duration)) {
+                                    (function(call_at) {
+                                        calls.push(function() {
+                                            (function(next) {
+                                                var modifierSpy = jasmine.createSpy('modifier-spy')
+                                                    .andCallFake(function(t, duration) {
+                                                        expect(playValueTest(t, duration, modifier_time)).toBeTruthy();
+                                                    });
+                                                doAsync(player, {
+                                                    prepare: function() { target.modify(modifier_time, modifierSpy); },
+                                                    run: function() { player.play(call_at, 1, mFPS * 3); },
+                                                    until: C.STOPPED, timeout: call_at + mFPS * 5,
+                                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                                       target.unmodify(modifierSpy);
+                                                                       if (next) next();
+                                                                     } });
+                                            })(this.next);
+                                        });
+                                    })(call_at);
+                                }
                             }
                             if (calls.length > 0) queue(calls);
                         });
 
-                        it("calls a modifier again and again if current frame matches its time", function() {
-                            var calls = [];
-                            for (var i = 0; i < 10; i++) {
-                                calls.push(function() {
-                                    expectToCall(function(t, duration) {
-                                        expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
-                                    }, modifier_time, modifier_time, this.next);
-                                });
-                            }
-                            queue(calls);
-                        });
-
+                        // TODO: test enabling/disabling elements
+                        // TODO: test adding same trigger-modifier to different elements and calling it from one,
+                        //       does not affects its playing at other elements
                     });
 
-                    it("calls a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
-                        var calls = [];
-                        var fraction = 4 / 5;
-                        for (var delta = fraction * mFPS; delta > 0; delta -= .005) {
-                            var call_at = trg_band[0] + (modifier_time - delta);
-                            if (call_at < 0) call_at = 0;
-                            if ((call_at >= trg_band[0]) &&
-                                (call_at + mFPS) <= (trg_band[0] + trg_duration)) {
-                                (function(call_at) {
-                                    calls.push(function() {
-                                        (function(next) {
-                                            var modifierSpy = jasmine.createSpy('modifier-spy')
-                                                .andCallFake(function(t, duration) {
-                                                    expect(playValueTest(t, duration, modifier_time)).toBeTruthy();
-                                                });
-                                            doAsync(player, {
-                                                prepare: function() { target.modify(modifier_time, modifierSpy); },
-                                                run: function() { player.play(call_at, 1, mFPS * 3); },
-                                                until: C.STOPPED, timeout: call_at + mFPS * 5,
-                                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                                                   target.unmodify(modifierSpy);
-                                                                   if (next) next();
-                                                                 } });
-                                        })(this.next);
-                                    });
-                                })(call_at);
-                            }
-                        }
-                        if (calls.length > 0) queue(calls);
-                    });
-
-                    // TODO: test enabling/disabling elements
-                    // TODO: test adding same trigger-modifier to different elements and calling it from one,
-                    //       does not affects its playing at other elements
                 });
 
             });
