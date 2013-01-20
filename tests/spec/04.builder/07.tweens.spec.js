@@ -17,9 +17,11 @@ describe("tweens", function() {
             var addTweenSpy,
                 addModifierSpy;
 
+            var relative;
+
             var band = [1, 4],
                 duration = band[1] - band[0],
-                tween_band = [ duration / 4, 3 / 4 * duration ]; // try different bands?
+                tween_band;
 
             beforeEach(function() {
                 bld = b().band(band);
@@ -39,15 +41,45 @@ describe("tweens", function() {
                 var tween_type;
 
                 varyAll([ { description: "translate tween",
-                            prepare: function() { tween_type = anm.C.T_TRANSLATE; } },
+                            prepare: function() { tween_type = anm.C.T_TRANSLATE;
+                                                  tween_band = [ duration / 4, 3 / 4 * duration ];
+                                                  relative = false; } },
                           { description: "scale tween",
-                            prepare: function() { tween_type = anm.C.T_SCALE; } },
+                            prepare: function() { tween_type = anm.C.T_SCALE;
+                                                  tween_band = [ duration / 4, 3 / 4 * duration ];
+                                                  relative = false; } },
                           { description: "rotate tween",
-                            prepare: function() { tween_type = anm.C.T_ROTATE; } },
+                            prepare: function() { tween_type = anm.C.T_ROTATE;
+                                                  tween_band = [ duration / 4, 3 / 4 * duration ];
+                                                  relative = false; } },
                           { description: "rotate-to-path tween",
-                            prepare: function() { tween_type = anm.C.T_ROT_TO_PATH; } },
-                          { description: "or alpha tween",
-                            prepare: function() { tween_type = anm.C.T_ALPHA; } }
+                            prepare: function() { tween_type = anm.C.T_ROT_TO_PATH;
+                                                  tween_band = [ duration / 4, 3 / 4 * duration ];
+                                                  relative = false; } },
+                          { description: "alpha tween",
+                            prepare: function() { tween_type = anm.C.T_ALPHA;
+                                                  tween_band = [ duration / 4, 3 / 4 * duration ];
+                                                  relative = false; } },
+                          { description: "relative translate tween",
+                            prepare: function() { tween_type = anm.C.T_RTRANSLATE;
+                                                  tween_band = [ 1 / 4, 3 / 4 ];
+                                                  relative = true; } },
+                          { description: "relative scale tween",
+                            prepare: function() { tween_type = anm.C.T_RSCALE;
+                                                  tween_band = [ 1 / 4, 3 / 4 ];
+                                                  relative = true; } },
+                          { description: "rrelative rotate tween",
+                            prepare: function() { tween_type = anm.C.T_RROTATE;
+                                                  tween_band = [ 1 / 4, 3 / 4 ];
+                                                  relative = true; } },
+                          { description: "relative rotate-to-path tween",
+                            prepare: function() { tween_type = anm.C.T_RROT_TO_PATH;
+                                                  tween_band = [ 1 / 4, 3 / 4 ];
+                                                  relative = true; } },
+                          { description: "or relative alpha tween",
+                            prepare: function() { tween_type = anm.C.T_RALPHA;
+                                                  tween_band = [ 1 / 4, 3 / 4 ];
+                                                  relative = true; } }
                     ], function() {
 
                         it("should pass null band if band is not specified", function() {
@@ -58,12 +90,13 @@ describe("tweens", function() {
                                                                        data: jasmine.undefined,
                                                                        easing: jasmine.undefined });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        jasmine.undefined,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        jasmine.undefined,
-                                                                        jasmine.undefined);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: jasmine.undefined,
+                                                                          relative: relative,
+                                                                          easing: jasmine.undefined,
+                                                                          data: jasmine.undefined },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]());
                         });
 
                         it("should apply a band, at least", function() {
@@ -74,12 +107,13 @@ describe("tweens", function() {
                                                                        data: jasmine.undefined,
                                                                        easing: jasmine.undefined });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        tween_band,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        jasmine.undefined,
-                                                                        jasmine.undefined);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: tween_band,
+                                                                          relative: relative,
+                                                                          easing: jasmine.undefined,
+                                                                          data: jasine.undefined },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]()
 
                         });
 
@@ -95,12 +129,13 @@ describe("tweens", function() {
                                                                        data: data,
                                                                        easing: jasmine.undefined });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        tween_band,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        jasmine.undefined,
-                                                                        data);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: tween_band,
+                                                                          relative: relative,
+                                                                          easing: jasmine.undefined,
+                                                                          data: data },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]()
                         });
 
                         it("should apply predefined easing to a tween", function() {
@@ -112,12 +147,13 @@ describe("tweens", function() {
                                                                        data: null,
                                                                        easing: easing });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        tween_band,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        easing,
-                                                                        null);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: tween_band,
+                                                                          relative: relative,
+                                                                          easing: easing,
+                                                                          data: null },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]()
                         });
 
                         it("should apply function-based easing to a tween", function() {
@@ -132,12 +168,13 @@ describe("tweens", function() {
                                                                        data: null,
                                                                        easing: easing });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        tween_band,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        easing,
-                                                                        null);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: tween_band,
+                                                                          relative: relative,
+                                                                          easing: easing,
+                                                                          data: null },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]()
 
                         });
 
@@ -152,12 +189,13 @@ describe("tweens", function() {
                                                                        data: null,
                                                                        easing: built_easing });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        tween_band,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        built_easing,
-                                                                        null);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: tween_band,
+                                                                          relative: relative,
+                                                                          easing: built_easing,
+                                                                          data: null },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]()
                         });
 
                         it("should apply function-based easing with data to a tween", function() {
@@ -174,12 +212,13 @@ describe("tweens", function() {
                                                                        data: null,
                                                                        easing: built_easing });
 
-                            expect(addModifierSpy).toHaveBeenCalledWith(anm.Element.TWEEN_MOD,
-                                                                        anm.Tween.TWEENS_PRIORITY[tween_type],
-                                                                        tween_band,
-                                                                        jasmine.any(Function), // anm.Tweens[tween_type]()
-                                                                        built_easing,
-                                                                        null);
+                            expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
+                                                                          priority: anm.Tween.TWEENS_PRIORITY[tween_type],
+                                                                          time: tween_band,
+                                                                          relative: relative,
+                                                                          easing: built_easing,
+                                                                          data: null },
+                                                                        jasmine.any(Function)); // anm.Tweens[tween_type]()
 
                         });
 

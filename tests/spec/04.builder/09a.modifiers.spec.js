@@ -46,23 +46,45 @@ describe("builder, regarding modifiers,", function() {
             _run = function() { player.play(); };
 
         var _band_val;
+        var relative = false; // 0..1, or secondsBased
 
         // FIXME: test duration is accessible inside of the modifier
         // FIXME: test easings and priority
+        // FIXME: replace modifiers data object with array for faster access and
+        //        change elements id's not to guids, but to some random numbers
 
         varyAll([ {
-                    description: "either it is a default modifier (band is equal to element's band),",
+                    description: "if it is a default modifier (band is equal to element's band),",
                     prepare: function() { _band_val = null;
+                                          relative = false;
                                           curClass = function(spy) { return [ spy ] }; }
                   }, {
-                    description: "either it is a band-restricted modifier,",
+                    description: "or it is a band-restricted modifier,",
                     prepare: function() { _band_val = [ 0, _duration ];
+                                          relative = false;
                                           curClass = function(spy) { return [ _band_val, spy ] } }
                   }, {
                     description: "or it is a trigger-like modifier,",
                     prepare: function() { _band_val = _duration / 4;
+                                          relative = false;
                                           curClass = function(spy) { return [ _band_val, spy ] };
                                           _run = function() { player.play(_band_val, 1, 1 / (FPS * 2)); }; }
+                  }, {
+                    description: "or it is a relatively-defined simple modifier (band is equal to element's band),",
+                    prepare: function() { _band_val = null;
+                                          relative = true;
+                                          curClass = function(spy) { return [ spy ] }; }
+                  }, {
+                    description: "or it is a relatively-defined band-restricted modifier,",
+                    prepare: function() { _band_val = [ 0, 1 ];
+                                          relative = true;
+                                          curClass = function(spy) { return [ _band_val, spy ] } }
+                  }, {
+                    description: "or it is a relatively-defined trigger-like modifier,",
+                    prepare: function() { _band_val = 1 / 4;
+                                          relative = true;
+                                          curClass = function(spy) { return [ _band_val, spy ] };
+                                          _run = function() { player.play(duration / 4, 1, 1 / (FPS * 2)); }; }
                   } ],  function() {
 
             it("calls an inner __modify function to add modifier", function() {
@@ -78,53 +100,58 @@ describe("builder, regarding modifiers,", function() {
 
                 scene.add(elm);
 
-                elm.modify.apply(elm, curClass(modifierSpy));
+                var methodName = relative ? 'rmodify' : 'modify';
+                elm[methodName].apply(elm, curClass(modifierSpy));
 
                 expect(__modifySpy).toHaveBeenCalled();
-                expect(__modifySpy).toHaveBeenCalledWith(anm.Element.USER_MOD,
-                                                         0,
-                                                         _band_val,
-                                                         modifierSpy,
-                                                         jasmine.undefined, // undefined
-                                                         jasmine.undefined);
+                expect(__modifySpy).toHaveBeenCalledWith({ type: anm.Element.USER_MOD,
+                                                           priority: 0,
+                                                           time: _band_val,
+                                                           relative: relative,
+                                                           easing: jasmine.undefined,
+                                                           data: jasmine.undefined },
+                                                         modifierSpy);
             });
 
-            it("should call given modifier", function() {
+            it("calls given modifier when it is attached to a scene", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
 
                 doAsync(player, {
-                    prepare: function() { scene.modify.apply(scene, curClass(modifierSpy));
+                    prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
                     then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
                 });
             });
 
-            it("should call modifier given to a child", function() {
+            it("calls given modifier when it is attached to a child", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
 
                 var target = b();
                 scene.add(b().add(b().add(target)));
 
                 doAsync(player, {
-                    prepare: function() { target.modify.apply(target, curClass(modifierSpy));
+                    prepare: function() { target[methodName].apply(target, curClass(modifierSpy));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
                     then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
                 });
             });
 
-            it("should allow removing given modifier", function() {
+            it("allows removing given modifier", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
 
                 doAsync(player, {
-                    prepare: function() { scene.modify.apply(scene, curClass(modifierSpy));
+                    prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
                                           scene.unmodify(modifierSpy);
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
@@ -132,16 +159,17 @@ describe("builder, regarding modifiers,", function() {
                 });
             });
 
-            it("should allow removing given modifier from a child", function() {
+            it("allows removing given modifier from a child", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
 
                 var target = b();
                 scene.add(b().add(b().add(target)));
 
                 doAsync(player, {
-                    prepare: function() { target.modify.apply(target, curClass(modifierSpy));
+                    prepare: function() { target[methodName].apply(target, curClass(modifierSpy));
                                           target.unmodify(modifierSpy);
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
@@ -149,20 +177,31 @@ describe("builder, regarding modifiers,", function() {
                 });
             });
 
-            it("should pass data to the modifier", function() {
+            it("passes data to the modifier, if it is specified", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var expectedData = { 'foo': 42 };
 
-                var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration, data) {
-                    expect(data).toBeDefined();
-                    expect(data).toBe(expectedData);
-                    expect(data.foo).toBeDefined();
-                    expect(data.foo).toBe(42);
-                });
+                var expectation =
+                    relative ? function(t, duration, data) {
+                                   expect(data).toBeDefined();
+                                   expect(data).toBe(expectedData);
+                                   expect(data.foo).toBeDefined();
+                                   expect(data.foo).toBe(42);
+                               }
+                             : function(t, data) {
+                                   expect(data).toBeDefined();
+                                   expect(data).toBe(expectedData);
+                                   expect(data.foo).toBeDefined();
+                                   expect(data.foo).toBe(42);
+                               };
+
+
+                var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(expectation);
+                var methodName = relative ? 'rmodify' : 'modify';
 
                 doAsync(player, {
-                    prepare: function() { scene.modify.apply(scene, curClass(modifierSpy).concat([expectedData]));
+                    prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy).concat([expectedData]));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
                     then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
@@ -170,15 +209,16 @@ describe("builder, regarding modifiers,", function() {
 
             });
 
-            it("should set `this` in modifier to element's temporary state", function() {
+            it("sets `this` in modifier to point to   element's temporary state", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
                     expect(this).toBe(scene.v._state);
                 });
+                var methodName = relative ? 'rmodify' : 'modify';
 
                 doAsync(player, {
-                    prepare: function() { scene.modify.apply(scene, curClass(modifierSpy));
+                    prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout
                 });
