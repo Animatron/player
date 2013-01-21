@@ -1028,6 +1028,7 @@ describe("builder, regarding modifiers,", function() {
                                 beforeEach(function() { one_fifth = trg_duration / 5; });
 
                                 var band1, band2,
+                                    rband1, rband2,
                                     band1_duration, band2_duration;
 
                                 // NB: modifiers added in reverse order to ensure order do not affects sequencing,
@@ -1038,6 +1039,8 @@ describe("builder, regarding modifiers,", function() {
                                     beforeEach(function() {
                                         band1 = [ one_fifth * 3, one_fifth * 4 ],
                                         band2 = [ one_fifth, one_fifth * 2 ],
+                                        rband1 = [ 3 / 5, 4 / 5 ],
+                                        rband2 = [ 1 / 5, 2 / 5 ],
                                         band1_duration = band1[1] - band1[0],
                                         band2_duration = band2[1] - band2[0];
                                     });
@@ -1046,7 +1049,8 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
                                                 function(t) { spec.fail('Should not be called'); }
@@ -1058,12 +1062,19 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
-                                                function(t) { expect(t).toBeGreaterThan(0);
-                                                              expect(t).toBeLessThan(1);
-                                                              expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR); }
+                                                function(t) { if (relative) {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(1);
+                                                                expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR);
+                                                              } else {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(band2_duration);
+                                                                expect(t).toBeCloseTo(one_fifth * 0.5, CLOSE_FACTOR);
+                                                              } }
                                             ], time: trg_band[0] + (one_fifth * 1.5),
                                             doNotExpectToCall: [ true, false ] });
                                     });
@@ -1072,7 +1083,8 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
                                                 function(t) { spec.fail('Should not be called'); }
@@ -1084,11 +1096,18 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
-                                                function(t) { expect(t).toBeGreaterThan(0);
-                                                              expect(t).toBeLessThan(1);
-                                                              expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR); },
+                                                function(t) { if (relative) {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(1);
+                                                                expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR);
+                                                              } else {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(band1_duration);
+                                                                expect(t).toBeCloseTo(one_fifth * 0.5, CLOSE_FACTOR);
+                                                              } },
                                                 function(t) { spec.fail('Should not be called'); }
                                             ], time: trg_band[0] + (one_fifth * 3.5),
                                             doNotExpectToCall: [ false, true ] });
@@ -1098,7 +1117,8 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
                                                 function(t) { spec.fail('Should not be called'); }
@@ -1113,6 +1133,8 @@ describe("builder, regarding modifiers,", function() {
                                     beforeEach(function() {
                                         band1 = [ one_fifth * 2.3, one_fifth * 4 ],
                                         band2 = [ one_fifth, one_fifth * 2.7 ],
+                                        rband1 = [ 2.3 / 5, 4 / 5 ],
+                                        rband2 = [ 1 / 5, 2.7 / 5 ],
                                         band1_duration = band1[1] - band1[0],
                                         band2_duration = band2[1] - band2[0];
                                     });
@@ -1121,7 +1143,8 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
                                                 function(t) { spec.fail('Should not be called'); }
@@ -1133,26 +1156,46 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
-                                                function(t) { expect(t).toBeGreaterThan(0);
-                                                              expect(t).toBeLessThan(1);
-                                                              expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR); }
+                                                function(t) { if (relative) {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(1);
+                                                                expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR);
+                                                              } else {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(band2_duration);
+                                                                expect(t).toBeCloseTo(one_fifth, CLOSE_FACTOR);
+                                                              } }
                                             ], time: trg_band[0] + (one_fifth * 2),
                                             doNotExpectToCall: [ true, false ] });
                                     });
 
                                     it("during the overlapping period, calls the first one with actual value and the next one also with actual value", function() {
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
-                                                function(t) { expect(t).toBeGreaterThan(0);
-                                                              expect(t).toBeLessThan(1);
-                                                              expect(t).toBeCloseTo((one_fifth * 0.2) / band1_duration, CLOSE_FACTOR); },
-                                                function(t) { expect(t).toBeGreaterThan(0);
-                                                              expect(t).toBeLessThan(1);
-                                                              expect(t).toBeCloseTo((one_fifth * 1.5) / band2_duration, CLOSE_FACTOR); }
+                                                function(t) { if (relative) {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(1);
+                                                                expect(t).toBeCloseTo((one_fifth * 0.2) / band1_duration, CLOSE_FACTOR);
+                                                              } else {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(band1_duration);
+                                                                expect(t).toBeCloseTo(one_fifth * 0.2, CLOSE_FACTOR);
+                                                              } },
+                                                function(t) { if (relative) {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(1);
+                                                                expect(t).toBeCloseTo((one_fifth * 1.5) / band2_duration, CLOSE_FACTOR);
+                                                              } else {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(band2_duration);
+                                                                expect(t).toBeCloseTo(one_fifth * 1.5, CLOSE_FACTOR);
+                                                              } }
                                             ], time: trg_band[0] + (one_fifth * 2.5) });
                                     });
 
@@ -1160,11 +1203,18 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
-                                                function(t) { expect(t).toBeGreaterThan(0);
-                                                              expect(t).toBeLessThan(1);
-                                                              expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR); },
+                                                function(t) { if (relative) {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(1);
+                                                                expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR);
+                                                              } else {
+                                                                expect(t).toBeGreaterThan(0);
+                                                                expect(t).toBeLessThan(band1_duration);
+                                                                expect(t).toBeCloseTo(one_fifth * 0.7, CLOSE_FACTOR);
+                                                              } },
                                                 function(t) { spec.fail('Should not be called'); }
                                             ], time: trg_band[0] + (one_fifth * 3),
                                             doNotExpectToCall: [ false, true ] });
@@ -1174,7 +1224,8 @@ describe("builder, regarding modifiers,", function() {
                                         var spec = this;
 
                                         expectAtTime({
-                                            bands: [ band1, band2 ],
+                                            bands: relative ? [ rband1, rband2 ]
+                                                            : [ band1, band2 ],
                                             modifiers: [
                                                 function(t) { spec.fail('Should not be called'); },
                                                 function(t) { spec.fail('Should not be called'); }
