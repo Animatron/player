@@ -856,13 +856,13 @@ describe("builder, regarding modifiers,", function() {
 
                             describe("if band exceeds the wrapper after the end,", function() {
 
-                                var end_diff;
+                                var end_diff = 1;
 
                                 beforeEach(function() {
-                                    mod_band = [ trg_duration / 4, trg_duration + 1 ];
-                                    mod_rband = [ 1 / 4, (trg_duration + 1) / trg_duration ];
+                                    mod_band = [ trg_duration / 4, trg_duration + end_diff ];
+                                    mod_rband = [ 1 / 4, (trg_duration + end_diff) / trg_duration ];
                                     mod_duration = mod_band[1] - mod_band[0];
-                                    end_diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
+                                    //end_diff = (trg_band[0] + mod_band[0] + mod_duration) - trg_band[1];
                                 });
 
                                 it("does not call modifier if when its band hasn't started", function() {
@@ -915,25 +915,36 @@ describe("builder, regarding modifiers,", function() {
 
                                 beforeEach(function() {
                                     mod_band = [ -start_diff, trg_duration / 4 ];
+                                    mod_rband = [ -(start_diff / trg_duration), 1 / 4 ];
                                     mod_duration = mod_band[1] - mod_band[0];
                                 });
 
                                 it("passes intersection time when position is at start of the wrapper", function() {
                                     expectAtTime({
-                                        bands: mod_band,
+                                        bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
-                                            expect(t).toBe(start_diff / mod_duration);
+                                            if (relative) {
+                                                expect(t).toBe(start_diff / mod_duration);
+                                            } else {
+                                                expect(t).toBe(start_diff);
+                                            }
                                         },
                                         time: trg_band[0] });
                                 });
 
                                 it("passes actual local time value when intersection was passed", function() {
                                     expectAtTime({
-                                        bands: mod_band,
+                                        bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
-                                            expect(t).toBeGreaterThan(start_diff / mod_duration);
-                                            expect(t).toBeLessThan(1);
-                                            expect(t).toBeCloseTo(((trg_duration / 5) + start_diff) / mod_duration, CLOSE_FACTOR);
+                                            if (relative) {
+                                                expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                                expect(t).toBeLessThan(1);
+                                                expect(t).toBeCloseTo((start_diff + (trg_duration / 5)) / mod_duration, CLOSE_FACTOR);
+                                            } else {
+                                                expect(t).toBeGreaterThan(start_diff);
+                                                expect(t).toBeLessThan(mod_duration);
+                                                expect(t).toBeCloseTo(start_diff + (trg_duration / 5), CLOSE_FACTOR);
+                                            }
                                         },
                                         time: trg_band[0] + (trg_duration / 5) });
                                 });
@@ -942,7 +953,7 @@ describe("builder, regarding modifiers,", function() {
                                     var spec = this;
 
                                     expectAtTime({
-                                        bands: mod_band,
+                                        bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             spec.fail('Should not be called');
                                         },
@@ -959,35 +970,51 @@ describe("builder, regarding modifiers,", function() {
 
                                 beforeEach(function() {
                                     mod_band = [ -start_diff, trg_duration + end_diff ];
+                                    mod_rband = [ -(start_diff / trg_duration),
+                                                 (trg_duration + end_diff) / trg_duration ];
                                     mod_duration = mod_band[1] - mod_band[0];
                                 });
 
                                 it("passes intersection time when position is at start of the wrapper", function() {
                                     expectAtTime({
-                                        bands: mod_band,
+                                        bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
-                                            expect(t).toBe(start_diff / mod_duration);
+                                            if (relative) {
+                                                expect(t).toBe(start_diff / mod_duration);
+                                            } else {
+                                                expect(t).toBe(start_diff);
+                                            }
                                         },
                                         time: trg_band[0] });
                                 });
 
                                 it("passes actual local time value when intersection was not reached", function() {
                                     expectAtTime({
-                                        bands: mod_band,
+                                        bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
-                                            expect(t).toBeGreaterThan(start_diff / mod_duration);
-                                            expect(t).toBeLessThan(1 - (end_diff / mod_duration));
-                                            expect(t).toBeCloseTo(((trg_duration / 3) + start_diff) / mod_duration, CLOSE_FACTOR);
+                                            if (relative) {
+                                                expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                                expect(t).toBeLessThan(1 - (end_diff / mod_duration));
+                                                expect(t).toBeCloseTo((start_diff + (trg_duration / 3)) / mod_duration, CLOSE_FACTOR);
+                                            } else {
+                                                expect(t).toBeGreaterThan(start_diff);
+                                                expect(t).toBeLessThan(mod_duration - end_diff);
+                                                expect(t).toBeCloseTo(start_diff + (trg_duration / 3), CLOSE_FACTOR);
+                                            }
                                         },
                                         time: trg_band[0] + (trg_duration / 3) });
                                 });
 
                                 it("passes the end-intersection time when position is at the end of the wrapper", function() {
                                     expectAtTime({
-                                        bands: mod_band,
+                                        bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             // FIXME: (mod_duration - end_diff) fails here due to rounding problem
-                                            expect(t).toBe((start_diff + trg_duration) / mod_duration);
+                                            if (relative) {
+                                                expect(t).toBe((start_diff + trg_duration) / mod_duration);
+                                            } else {
+                                                expect(t).toBe(start_diff + trg_duration);
+                                            }
                                         },
                                         time: trg_band[1] });
                                 });
