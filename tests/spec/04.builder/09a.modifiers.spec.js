@@ -1249,7 +1249,7 @@ describe("builder, regarding modifiers,", function() {
 
                         beforeEach(function() { one_fifth = trg_duration / 5; });
 
-                        function whilePlaying(bands, modifiers) {
+                        function _whilePlaying(bands, modifiers) {
                             var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands),
                                 modifiers = _arrayFrom(modifiers),
                                 spies = [];
@@ -1258,7 +1258,7 @@ describe("builder, regarding modifiers,", function() {
                             });
                             doAsync(player, {
                                 prepare: function() { _each(spies, function(spy, idx) {
-                                                          target.modify(bands[idx], spy);
+                                                          _modify(target, bands[idx], spy);
                                                       }); return scene; },
                                 do: 'play', until: C.STOPPED, timeout: _timeout,
                                 then: function() { /*_each(expectations, function(expectation) { expectation(); });*/
@@ -1277,29 +1277,53 @@ describe("builder, regarding modifiers,", function() {
                                    (parent_time < high);
                         }
 
-                        function checkWithBands(spec, bands) {
+                        function checkAbsolutely(band) {
+                            return function(t, duration) {
+                                var _start = band[0],
+                                    _end = band[1],
+                                    _band_duration = _end - _start;
+                                if (timeBetween(trg_band, 0, _start)) {
+                                    spec.fail('Should not be called');
+                                }
+                                if (timeBetween(trg_band, _start, _end)) {
+                                    expect(t).toBeGreaterThanOrEqual(0);
+                                    expect(t).toBeLessThan(_band_duration);
+                                    expect(t).toEqual(localTime(trg_band, band));
+                                }
+                                if (timeBetween(trg_band, _end, trg_duration)) {
+                                    spec.fail('Should not be called');
+                                }
+                                expect(duration).toBe(jasmine.undefined);
+                            }
+                        }
+
+                        function checkRelatively(band) {
+                            return function(t, duration) {
+                                var _start = band[0] * trg_duration,
+                                    _end = band[1] * trg_duration,
+                                    _band_duration = _end - _start;
+                                if (timeBetween(trg_band, 0, _start)) {
+                                    spec.fail('Should not be called');
+                                }
+                                if (timeBetween(trg_band, _start, _end)) {
+                                    expect(t).toBeGreaterThanOrEqual(0);
+                                    expect(t).toBeLessThan(1);
+                                    expect(t).toEqual(localTime(trg_band, band) / _band_duration);
+                                }
+                                if (timeBetween(trg_band, _end, trg_duration)) {
+                                    spec.fail('Should not be called');
+                                }
+                                expect(duration).toBe(band[1] - band[0]);
+                            }
+                        }
+
+                        function checkWithBands(spec, bands, check_f) {
                             var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands);
                             var modifiers = [];
                             _each(bands, function(band) {
-                                modifiers.push(function(t, duration) {
-                                    var _start = band[0],
-                                        _end = band[1],
-                                        _band_duration = _end - _start;
-                                    if (timeBetween(trg_band, 0, _start)) {
-                                        spec.fail('Should not be called');
-                                    }
-                                    if (timeBetween(trg_band, _start, _end)) {
-                                        expect(t).toBeGreaterThanOrEqual(0);
-                                        expect(t).toBeLessThan(1);
-                                        expect(t).toEqual(localTime(trg_band, band) / _band_duration);
-                                    }
-                                    if (timeBetween(trg_band, _end, trg_duration)) {
-                                        spec.fail('Should not be called');
-                                    }
-                                    expect(duration).toBe(band[1] - band[0]);
-                                });
+                                modifiers.push(check_f(band));
                             });
-                            whilePlaying(bands, modifiers);
+                            _whilePlaying(bands, modifiers);
                         }
 
                         var checkWithBand = checkWithBands;
@@ -1307,23 +1331,33 @@ describe("builder, regarding modifiers,", function() {
                         describe("same rules should apply with a single modifier, independently of position, it", function() {
 
                             it("may be just somewhere inside of the wrapper band", function() {
-                                checkWithBand(this, [ one_fifth * 1.5, one_fifth * 4 ]);
+                                checkWithBand(this, relative ? [ 1.5 / 5, 4 / 5 ]
+                                                             : [ one_fifth * 1.5, one_fifth * 4 ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                             it("may be aligned to start of the wrapper band", function() {
-                                checkWithBand(this, [ 0, one_fifth * 3 ]);
+                                checkWithBand(this, relative ? [ 0, 3 / 5 ]
+                                                             : [ 0, one_fifth * 3 ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                             it("may be aligned to end of the wrapper band", function() {
-                               checkWithBand(this, [ one_fifth * 2, trg_duration ]);
+                                checkWithBand(this, relative ? [ 2 / 5, 1 ]
+                                                             : [ one_fifth * 2, trg_duration ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                             it("may be equal to wrapper band", function() {
-                                checkWithBand(this, [ 0, trg_duration ]);
+                                checkWithBand(this, relative ? [ 0, 1 ]
+                                                             : [ 0, trg_duration ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                             it("may exceed the wrapper band", function() {
-                                checkWithBand(this, [ -1, trg_duration + 1 ]);
+                                checkWithBand(this, relative ? [ -(1 / trg_duration), 1 + (1 / trg_duration) ]
+                                                             : [ -1, trg_duration + 1 ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                         });
@@ -1331,18 +1365,27 @@ describe("builder, regarding modifiers,", function() {
                         describe("and a sequence of them", function() {
 
                             it("if they follow one another", function() {
-                                checkWithBands(this, [ [ one_fifth * 3, one_fifth * 4 ],
-                                                       [ one_fifth * 1, one_fifth * 2 ] ]);
+                                checkWithBand(this, relative ? [ [ 3 / 5, 4 / 5 ],
+                                                                 [ 1 / 5, 2 / 5 ] ]
+                                                             : [ [ one_fifth * 3, one_fifth * 4 ],
+                                                                 [ one_fifth * 1, one_fifth * 2 ] ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                             it("or if they overlap", function() {
-                                checkWithBands(this, [ [ one_fifth * 2, one_fifth * 4 ],
-                                                       [ one_fifth * 1, one_fifth * 3 ] ]);
+                                checkWithBand(this, relative ? [ [ 2 / 5, 4 / 5 ],
+                                                                 [ 1 / 5, 3 / 5 ] ]
+                                                             : [ [ one_fifth * 2, one_fifth * 4 ],
+                                                                 [ one_fifth * 1, one_fifth * 3 ] ],
+                                                    relative ? checkRelatively : checkAbsolutely);
                             });
 
                             it("or if they overlap with exceeding", function() {
-                                checkWithBands(this, [ [ one_fifth * 2, one_fifth * 6 ],
-                                                       [ -one_fifth, one_fifth * 2.999 ] ]); // failed with one_fifth * 3 due to
+                                checkWithBand(this, relative ? [ [ 2 / 5, 6 / 5 ],
+                                                                 [ -(1 / 5), 2.999 / 5 ] ]
+                                                             : [ [ one_fifth * 2, one_fifth * 6 ],
+                                                                 [ -one_fifth, one_fifth * 2.999 ] ],
+                                                    relative ? checkRelatively : checkAbsolutely); // failed with one_fifth * 3 due to
                                                                                        // float point arithmetics in timeBetween
                             });
 
@@ -1360,10 +1403,16 @@ describe("builder, regarding modifiers,", function() {
                     var modifier = _mocks.nop;
                     var data = { foo: 'bar' };
                     var priority = 7;
+
                     var modifySpy = spyOn(trg, 'modify');
                     trg.at(2.2, modifier, data, priority);
                     expect(modifySpy).toHaveBeenCalledOnce();
                     expect(modifySpy).toHaveBeenCalledWith(2.2, modifier, data, priority);
+
+                    var rmodifySpy = spyOn(trg, 'rmodify');
+                    trg.rat(.7, modifier, data, priority);
+                    expect(rmodifySpy).toHaveBeenCalledOnce();
+                    expect(rmodifySpy).toHaveBeenCalledWith(.7, modifier, data, priority);
                 })
 
                 var scene,
@@ -1381,7 +1430,8 @@ describe("builder, regarding modifiers,", function() {
                     player.load(scene);
                 });
 
-                var modifier_time;
+                var modifier_time,
+                    modifier_rtime;
 
                 varyAll([ { description: "when target is a scene,",
                             prepare: function() { target = scene;
@@ -1395,44 +1445,66 @@ describe("builder, regarding modifiers,", function() {
                                                   scene.add(b().add(target)); } } ],
                         function() {
 
-                    varyAll([ { prepare: function() { modifier_time = 0; },
+                    varyAll([ { prepare: function() { modifier_time  = 0;
+                                                      modifier_rtime = 0; },
                                 description: "and modifier time is at the exact start of the target" },
-                              { prepare: function() { modifier_time = (1 / 15) * trg_duration; },
+                              { prepare: function() { modifier_time  = (1 / 15) * trg_duration;
+                                                      modifier_rtime = (1 / 15); },
                                 description: "and modifier time is very-very close to the start of the target" },
-                              { prepare: function() { modifier_time = (1 / 14) * trg_duration; },
+                              { prepare: function() { modifier_time  = (1 / 14) * trg_duration;
+                                                      modifier_rtime = (1 / 14); },
                                 description: "and modifier time is very close to the start of the target" },
-                              { prepare: function() { modifier_time = (1 / 10) * trg_duration; },
+                              { prepare: function() { modifier_time  = (1 / 10) * trg_duration;
+                                                      modifier_rtime = (1 / 10); },
                                 description: "and modifier time is close to the start of the target" },
-                              { prepare: function() { modifier_time = (1 / 4)  * trg_duration; },
+                              { prepare: function() { modifier_time  = (1 / 4)  * trg_duration;
+                                                      modifier_rtime = (1 / 4); },
                                 description: "and modifier time is near to the start of the target" },
-                              { prepare: function() { modifier_time = (1 / 2)  * trg_duration; },
+                              { prepare: function() { modifier_time  = (1 / 2)  * trg_duration;
+                                                      modifier_rtime = (1 / 2); },
                                 description: "and modifier time is in the middle of the target" },
-                              { prepare: function() { modifier_time = (3 / 4)  * trg_duration; },
+                              { prepare: function() { modifier_time  = (3 / 4)  * trg_duration;
+                                                      modifier_rtime = (3 / 4); },
                                 description: "and modifier time is near to the end of the target" },
-                              { prepare: function() { modifier_time = (9 / 10) * trg_duration; },
+                              { prepare: function() { modifier_time  = (9 / 10) * trg_duration;
+                                                      modifier_rtime = (9 / 10); },
                                 description: "and modifier time is close to the end of the target" },
-                              { prepare: function() { modifier_time = (13 / 14) * trg_duration; },
+                              { prepare: function() { modifier_time  = (13 / 14) * trg_duration;
+                                                      modifier_rtime = (13 / 14); },
                                 description: "and modifier time is very close to the end of the target" },
-                              { prepare: function() { modifier_time = (14 / 15) * trg_duration; },
+                              { prepare: function() { modifier_time  = (14 / 15) * trg_duration;
+                                                      modifier_rtime = (14 / 15); },
                                 description: "and modifier time is even closer to the end of the target" },
-                              { prepare: function() { modifier_time = trg_duration; },
+                              { prepare: function() { modifier_time  = trg_duration;
+                                                      modifier_rtime = 1; },
                                 description: "and modifier time is at the exact end of the target" }
                             ], function() {
 
                         it("calls a modifier exactly once", function() {
-                            var modifierSpy = jasmine.createSpy('modifier-spy');
+                            if (relative) {
+                                var rmodifierSpy = jasmine.createSpy('rmodifier-spy');
 
-                            doAsync(player, {
-                                prepare: function() { target.modify(0.3, modifierSpy); },
-                                do: 'play', until: C.STOPPED, timeout: _timeout,
-                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                                   target.unmodify(modifierSpy); }
-                            });
+                                doAsync(player, {
+                                    prepare: function() { target.rmodify(0.3 / trg_duration, modifierSpy); },
+                                    do: 'play', until: C.STOPPED, timeout: _timeout,
+                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                       target.unmodify(modifierSpy); }
+                                });
+                            } else {
+                                var modifierSpy = jasmine.createSpy('modifier-spy');
+
+                                doAsync(player, {
+                                    prepare: function() { target.modify(0.3, modifierSpy); },
+                                    do: 'play', until: C.STOPPED, timeout: _timeout,
+                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                       target.unmodify(modifierSpy); }
+                                });
+                            }
 
                         });
 
                         it("passes target band duration inside the modifier", function() {
-                            var expectedT = 0.7;
+                            var expectedT = relative ? .7 / trg_duration : 0.7;
 
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                                 expect(duration).toEqual(trg_duration);
