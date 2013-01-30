@@ -1404,16 +1404,18 @@ describe("builder, regarding modifiers,", function() {
                     var data = { foo: 'bar' };
                     var priority = 7;
 
-                    var modifySpy = spyOn(trg, 'modify');
-                    trg.at(2.2, modifier, data, priority);
-                    expect(modifySpy).toHaveBeenCalledOnce();
-                    expect(modifySpy).toHaveBeenCalledWith(2.2, modifier, data, priority);
-
-                    var rmodifySpy = spyOn(trg, 'rmodify');
-                    trg.rat(.7, modifier, data, priority);
-                    expect(rmodifySpy).toHaveBeenCalledOnce();
-                    expect(rmodifySpy).toHaveBeenCalledWith(.7, modifier, data, priority);
-                })
+                    if (relative) {
+                        var rmodifySpy = spyOn(trg, 'rmodify');
+                        trg.rat(.7, modifier, data, priority);
+                        expect(rmodifySpy).toHaveBeenCalledOnce();
+                        expect(rmodifySpy).toHaveBeenCalledWith(.7, modifier, data, priority);
+                    } else {
+                        var modifySpy = spyOn(trg, 'modify');
+                        trg.at(2.2, modifier, data, priority);
+                        expect(modifySpy).toHaveBeenCalledOnce();
+                        expect(modifySpy).toHaveBeenCalledWith(2.2, modifier, data, priority);
+                    }
+                });
 
                 var scene,
                     target;
@@ -1480,58 +1482,69 @@ describe("builder, regarding modifiers,", function() {
                                 description: "and modifier time is at the exact end of the target" }
                             ], function() {
 
+                        // some tests below do not use modifier_time, but t
+
                         it("calls a modifier exactly once", function() {
-                            if (relative) {
-                                var rmodifierSpy = jasmine.createSpy('rmodifier-spy');
-
-                                doAsync(player, {
-                                    prepare: function() { target.rmodify(0.3 / trg_duration, modifierSpy); },
-                                    do: 'play', until: C.STOPPED, timeout: _timeout,
-                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                                       target.unmodify(modifierSpy); }
-                                });
-                            } else {
-                                var modifierSpy = jasmine.createSpy('modifier-spy');
-
-                                doAsync(player, {
-                                    prepare: function() { target.modify(0.3, modifierSpy); },
-                                    do: 'play', until: C.STOPPED, timeout: _timeout,
-                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
-                                                       target.unmodify(modifierSpy); }
-                                });
-                            }
-
-                        });
-
-                        it("passes target band duration inside the modifier", function() {
-                            var expectedT = relative ? .7 / trg_duration : 0.7;
-
-                            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
-                                expect(duration).toEqual(trg_duration);
-                            });
+                            var modifierSpy = jasmine.createSpy('modifier-spy');
 
                             doAsync(player, {
-                                prepare: function() { target.modify(expectedT, modifierSpy); },
+                                prepare: function() { _modify(target, relative ? modifier_rtime
+                                                                               : rmodifie_time, modifierSpy); },
                                 do: 'play', until: C.STOPPED, timeout: _timeout,
-                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
+                                                   target.unmodify(modifierSpy); }
                             });
+                        });
 
+                        it("passes (or not, if it is a relative modifier) target band duration inside the modifier", function() {
+                            if (relative) {
+                                var expectedT = modifier_rtime;
+
+                                var rmodifierSpy = jasmine.createSpy('rmodifier-spy').andCallFake(function(t, duration) {
+                                    expect(duration).toBe(jasmine.undefined);
+                                });
+
+                                doAsync(player, {
+                                    prepare: function() { target.rmodify(expectedT, rmodifierSpy); },
+                                    do: 'play', until: C.STOPPED, timeout: _timeout,
+                                    then: function() { expect(rmodifierSpy).toHaveBeenCalledOnce(); }
+                                });
+                            } else {
+                                var expectedT = modifier_time;
+
+                                var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                                    expect(duration).toEqual(trg_duration);
+                                });
+
+                                doAsync(player, {
+                                    prepare: function() { target.modify(expectedT, modifierSpy); },
+                                    do: 'play', until: C.STOPPED, timeout: _timeout,
+                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                                });
+                            }
                         });
 
                         it("calls a modifier at given time or a bit later", function() {
                             var calledAt = -1;
-                            var expectedT = 0.7;
+                            var expectedT = relative ? modifier_rtime : modifier_time;
                             var FPS_ERR = 7 / 9;
 
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
-                                expect(t).toBeGreaterThanOrEqual(expectedT / duration);
-                                expect(t * duration).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
-                                expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
-                                calledAt = t * trg_duration;
+                                if (relative) {
+                                    expect(t).toBeGreaterThanOrEqual(expectedT / duration);
+                                    expect(t * duration).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
+                                    expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
+                                    calledAt = t * trg_duration;
+                                } else {
+                                    expect(t).toBeGreaterThanOrEqual(expectedT);
+                                    expect(t).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
+                                    expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
+                                    calledAt = t;
+                                }
                             });
 
                             doAsync(player, {
-                                prepare: function() { target.modify(expectedT, modifierSpy); },
+                                prepare: function() { _modify(target, expectedT, modifierSpy); },
                                 do: 'play', until: C.STOPPED, timeout: _timeout,
                                 then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
                                                    expect(calledAt).toBeGreaterThanOrEqual(expectedT);
@@ -1546,7 +1559,7 @@ describe("builder, regarding modifiers,", function() {
                         function expectToCall(modifier, modTime, playTime, callback) {
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
                             doAsync(player, {
-                                prepare: function() { target.modify(modTime, modifierSpy); },
+                                prepare: function() { _modify(target, modTime, modifierSpy); },
                                 run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
                                 then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
                                                    target.unmodify(modifierSpy);
@@ -1557,7 +1570,7 @@ describe("builder, regarding modifiers,", function() {
                         function expectNotToCall(modifier, modTime, playTime, callback) {
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
                             doAsync(player, {
-                                prepare: function() { target.modify(modTime, modifierSpy); },
+                                prepare: function() { _modify(target, modTime, modifierSpy); },
                                 run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
                                 then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce();
                                                    target.unmodify(modifierSpy);
@@ -1568,11 +1581,21 @@ describe("builder, regarding modifiers,", function() {
                         var FPS_ERR = anm.Element._FPS_ERROR;
 
                         function playValueTest(t, duration, time) {
+                            return (duration === jasmine.undefined) &&
+                                   ((t >= 0) && (t <= trg_duration)) &&
+                                   (((t >= time) && (t <= time + (mFPS * FPS_ERR))) ||
+                                    ((t <  time) && __close(t, time, 10))); }
+                        function rplayValueTest(t, duration, time) {
                             return (duration === trg_duration) &&
                                    ((t >= 0) && (t <= 1)) &&
                                    ((((t * duration) >= time) && ((t * duration) <= time + (mFPS * FPS_ERR))) ||
                                     (((t * duration) < time)  && __close(t * duration, time, 10))); }
                         function drawValueTest(t, duration, time) {
+                            return (duration === jasmine.undefined) &&
+                                   ((t >= 0) && (t <= trg_duration)) &&
+                                   ( Math.round(t  * Math.pow(10, CLOSE_FACTOR)) ==
+                                     Math.round(time * Math.pow(10, CLOSE_FACTOR)) ); }
+                        function rdrawValueTest(t, duration, time) {
                             return (duration === trg_duration) &&
                                    ((t >= 0) && (t <= 1)) &&
                                    ( Math.round((t * duration) * Math.pow(10, CLOSE_FACTOR)) ==
@@ -1586,7 +1609,7 @@ describe("builder, regarding modifiers,", function() {
                                         return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
                                                             player.play(trg_band[0] + time, 1, mFPS * 3); }
                                     };
-                                    _valueTest = playValueTest;
+                                    _valueTest = relative ? rplayValueTest : playValueTest;
                                 } },
                               { description: "if rendering was requested",
                                 prepare: function() {
@@ -1594,7 +1617,7 @@ describe("builder, regarding modifiers,", function() {
                                         return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
                                                             player.drawAt(trg_band[0] + time); }
                                     };
-                                    _valueTest = drawValueTest;
+                                    _valueTest = relative ? rdrawValueTest : drawValueTest;
                                 } }
                               /* TODO: { description: "if time-jump was performed",
                                 prepare: function() {} } */
