@@ -1604,7 +1604,7 @@ function Element(draw, onframe) {
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.NO_BAND = null;
-Element.DEFAULT_LEN = 10;
+Element.DEFAULT_LEN = Number.POSITIVE_INFINITY;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
