@@ -58,8 +58,8 @@ describe("as for known bugs,", function() {
             var m_removeRectSpy;
             var m_selfRemoveSpy;
 
-            var removeAt = 1 / 20;
-            var selfRemoveAt = 1 / 24;
+            var removeAt = 1 / 3;
+            var selfRemoveAt = 1 / 4;
 
             expect(selfRemoveAt).toBeLessThan(removeAt);
 
@@ -152,7 +152,7 @@ describe("as for known bugs,", function() {
 
             var m_disableRectSpy;
 
-            var disableAt = 1 / 20;
+            var disableAt = 1 / 4;
 
             doAsync(player, {
                 prepare: function() {
