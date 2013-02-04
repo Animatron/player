@@ -128,11 +128,9 @@ function __collect_to(str, start, ch) {
     return result;
 }
 
-function _s4() {
-   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-}
 function guid() {
-   return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
+   return Math.random().toString(36).substring(2, 10) +
+          Math.random().toString(36).substring(2, 10);
 }
 /*function _strhash() {
   var hash = 0;
@@ -1583,8 +1581,8 @@ function Element(draw, onframe) {
     this.__data = null;
     this._modifiers = [];
     this._painters = [];
-    if (onframe) this.__modify(Element.USER_MOD, 0, null, onframe);
-    if (draw) this.__paint(Element.USER_PNT, 0, draw);
+    if (onframe) this.__modify({ type: Element.USER_MOD }, onframe);
+    if (draw) this.__paint({ type: Element.USER_PNT }, draw);
     this.__lastJump = null;
     this.__jumpLock = false;
     this.__modifying = null; // current modifiers class, if modifying
@@ -1604,7 +1602,7 @@ function Element(draw, onframe) {
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.NO_BAND = null;
-Element.DEFAULT_LEN = Number.POSITIVE_INFINITY;
+Element.DEFAULT_LEN = 10;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -1720,17 +1718,20 @@ Element.prototype.render = function(ctx, gtime, afps) {
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-// > Element.addModifier % ([restriction: Array[Float, 2] | Float],
-//                          modifier: Function(time: Float,
+// > Element.addModifier % (modifier: Function(time: Float,
 //                                             data: Any) => Boolean,
 //                          [easing: Function()],
 //                          [data: Any],
 //                          [priority: Int]
 //                         ) => Integer
 Element.prototype.addModifier = function(modifier, easing, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, null, modifier, easing, data);
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           relative: false,
+                           easing: easing,
+                           data: data }, modifier);
 }
-// > Element.addTModifier % ([restriction: Array[Float, 2] | Float],
+// > Element.addTModifier % (restriction: Array[Float, 2] | Float,
 //                           modifier: Function(time: Float,
 //                                              data: Any) => Boolean,
 //                           [easing: Function()],
@@ -1738,7 +1739,27 @@ Element.prototype.addModifier = function(modifier, easing, data, priority) {
 //                           [priority: Int]
 //                          ) => Integer
 Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, easing, data);
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           band: band,
+                           relative: false,
+                           easing: easing,
+                           data: data }, modifier);
+}
+// > Element.addRModifier % (restriction: Array[Float, 2] | Float,
+//                           modifier: Function(time: Float,
+//                                              data: Any) => Boolean,
+//                           [easing: Function()],
+//                           [data: Any],
+//                           [priority: Int]
+//                          ) => Integer
+Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           band: band,
+                           relative: true,
+                           easing: easing,
+                           data: data }, modifier);
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -1756,7 +1777,9 @@ Element.prototype.removeModifier = function(modifier) {
 // > Element.addPainter % (painter: Function(ctx: Context))
 //                         => Integer
 Element.prototype.addPainter = function(painter, data, priority) {
-    return this.__paint(Element.USER_PNT, priority || 0, painter, data);
+    return this.__paint({ type: Element.USER_PNT,
+                          priority: priority,
+                          data: data }, painter);
 }
 // > Element.removePainter % (painter: Function)
 Element.prototype.removePainter = function(painter) {
@@ -1928,13 +1951,14 @@ Element.prototype.ltime = function(gtime) {
     }
 }
 Element.prototype.m_on = function(type, handler) {
-    return this.__modify(Element.EVENT_MOD, 0, null, function(t) { /* FIXME: handlers must have priority? */
-      if (this.__evt_st & type) {
-        var evts = this.__evts[type];
-        for (var i = 0; i < evts.length; i++) {
-            if (handler.call(this,evts[i],t) === false) return false;
+    return this.__modify({ type: Element.EVENT_MOD },
+      function(t) { /* FIXME: handlers must have priority? */
+        if (this.__evt_st & type) {
+          var evts = this.__evts[type];
+          for (var i = 0; i < evts.length; i++) {
+              if (handler.call(this,evts[i],t) === false) return false;
+          }
         }
-      }
     });
 }
 /*Element.prototype.posAtStart = function(ctx) {
@@ -1966,7 +1990,7 @@ Element.prototype.reset = function() {
     if (this.__mask) this.__removeMaskCanvases();
     /*this.__clearEvtState();*/
     (function(elm) {
-        elm.__forAllModifiers(function(band, modifier) {
+        elm.__forAllModifiers(function(modifier) {
             if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
             if (modifier.__wasCalledAt) modifier.__wasCalledAt[elm.id] = -1;
         });
@@ -2245,9 +2269,13 @@ Element.prototype._stateStr = function() {
 }
 Element._FPS_FALLBACK = FPS_FALLBACK;
 Element._FPS_ERROR = FPS_ERROR;
-Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
+Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) {
+  //var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier, afps);
   var lband = this.xdata.lband,
-      elm_duration = lband[1] - lband[0];
+      elm_duration = lband[1] - lband[0],
+      easing = conf.easing,
+      band = conf.band,
+      relative = conf.relative;
   var _tpair = null;
   if (band == null) {
       _tpair = [ ltime / elm_duration, elm_duration ];
@@ -2300,15 +2328,15 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
         elm.__loadEvts(elm._state);
 
         if (!elm.__forAllModifiers(order,
-            function(band, modifier, easing, data) { /* each modifier */
+            function(modifier, conf) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, easing, afps);
+                var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier, afps);
                 // false will be returned from __adaptModTime
                 // for trigger-like modifier if it is required to skip current one
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime[0], lbtime[1], data);
+                return modifier.call(elm._state, lbtime[0], lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -2342,8 +2370,8 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
 Element.prototype.__callPainters = function(order, ctx) {
     (function(elm) {
         elm.__forAllPainters(order,
-            function(painter, data) { /* each painter */
-                painter.call(elm.xdata, ctx, data);
+            function(painter, conf) { /* each painter */
+                painter.call(elm.xdata, ctx, conf.data);
             }, function(type) { /* before each new type */
                 elm.__painting = type;
                 elm.__pbefore(ctx, type);
@@ -2353,17 +2381,21 @@ Element.prototype.__callPainters = function(order, ctx) {
         elm.__painting = null;
     })(this);
 }
-Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
-    if (!modifier) return; /* FIXME: throw some error? */
+//Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
+  Element.prototype.__addTypedModifier = function(conf, modifier) {
+    if (!modifier) throw new AnimErr(Errors.A.NO_MODIFIER_PASSED);
     var modifiers = this._modifiers;
-    var priority = priority || 0;
+    var elm_id = this.id;
     if (!modifier.__m_ids) modifier.__m_ids = {};
-    else if (modifier.__m_ids[this.id]) throw new AnimErr('Modifier was already added to this element');
+    else if (modifier.__m_ids[elm_id]) throw new AnimErr(Errors.A.MODIFIER_REGISTERED);
+    if (conf.easing) conf.easing = Element.__convertEasing(conf.easing);
+    var priority = conf.priority || 0,
+        type = conf.type;
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing), data]);
-    modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-                                (modifiers[type][priority].length - 1);
+    modifiers[type][priority].push([ modifier, conf ]);
+    modifier.__m_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                               (modifiers[type][priority].length - 1);
     return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
@@ -2381,7 +2413,7 @@ Element.prototype.__forAllModifiers = function(order, f, before_type, after_type
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 var modifier;
                 if (modifier = cur[ci]) {
-                  if (f(modifier[0], modifier[1], modifier[2], modifier[3]) === false) return false;
+                  if (f(modifier[0], modifier[1]) === false) return false;
                 } /* if cur[ci] */
               } /* for var ci */
             } /* if cur = seq[pi] */
@@ -2391,17 +2423,19 @@ Element.prototype.__forAllModifiers = function(order, f, before_type, after_type
     }
     return true;
 }
-Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
-    if (!painter) return; /* FIXME: throw some error? */
+Element.prototype.__addTypedPainter = function(conf, painter) {
+    if (!painter) throw new AnimErr(Errors.A.NO_PAINTER_PASSED);
     var painters = this._painters;
-    var priority = priority || 0;
+    var elm_id = this.id;
     if (!painter.__p_ids) painter.__p_ids = {};
-    else if (painter.__p_ids[this.id]) throw new AnimErr('Painter was already added to this element');
+    else if (painter.__p_ids[elm_id]) throw new AnimErr(Errors.A.PAINTER_REGISTERED);
+    var priority = conf.priority || 0,
+        type = conf.type;
     if (!painters[type]) painters[type] = [];
     if (!painters[type][priority]) painters[type][priority] = [];
-    painters[type][priority].push([painter, data]);
-    painter.__p_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-                               (painters[type][priority].length - 1);
+    painters[type][priority].push([ painter, conf ]);
+    painter.__p_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                              (painters[type][priority].length - 1);
     return painter;
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
@@ -2573,29 +2607,32 @@ Element.createXData = function(owner) {
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
     /* if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband); */
-    elm.__modify(Element.SYS_MOD, 0, null, Render.m_saveReg);
-    elm.__modify(Element.SYS_MOD, 0, null, Render.m_applyPos);
+    elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
+    elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
-    elm.__paint(Element.SYS_PNT, 0, Render.p_applyAComp);
-    elm.__paint(Element.SYS_PNT, 0, Render.p_drawPath);
-    elm.__paint(Element.SYS_PNT, 0, Render.p_drawImage);
-    elm.__paint(Element.SYS_PNT, 0, Render.p_drawText);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPath);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawImage);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawText);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawReg);
-    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawName);
-    /* elm.__paint(Element.DEBUG_PNT, 1, Render.p_drawMPath); */
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawReg);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
+    /* elm.__paint({ type: Element.DEBUG_PNT,
+                     priority: 1 },
+                   Render.p_drawMPath); */
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
 Element.__addTweenModifier = function(elm, tween) { /* FIXME: improve modify with adding object same way,
                                                        include easing in all modifiers */
     var m_tween = Tweens[tween.type]();
-    return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        tween.band, m_tween,
-                        tween.easing,
-                        tween.data);
+    return elm.__modify({ type: Element.TWEEN_MOD,
+                          priority: Tween.TWEENS_PRIORITY[tween.type],
+                          band: tween.band,
+                          easing: tween.easing,
+                          data: data }, m_tween);
 }
 Element.__convertEasing = function(easing, data) {
   if (!easing) return null;
@@ -4317,6 +4354,10 @@ Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method
 Errors.A.NO_ELEMENT = 'No such element found';
 Errors.A.ELEMENT_NOT_ATTACHED = 'Element is not attached to something at all';
 Errors.A.MODIFIER_NOT_ATTACHED = 'Modifier wasn\'t applied to anything';
+Errors.A.NO_MODIFIER_PASSED = 'No modifier was passed';
+Errors.A.NO_PAINTER_PASSED = 'No painter was passed';
+Errors.A.MODIFIER_REGISTERED = 'Modifier was already added to this element';
+Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
 
 // Exports
 // -----------------------------------------------------------------------------
