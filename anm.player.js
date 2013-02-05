@@ -1727,7 +1727,6 @@ Element.prototype.render = function(ctx, gtime, afps) {
 Element.prototype.addModifier = function(modifier, easing, data, priority) {
     return this.__modify({ type: Element.USER_MOD,
                            priority: priority,
-                           relative: false,
                            easing: easing,
                            data: data }, modifier);
 }
@@ -1738,11 +1737,10 @@ Element.prototype.addModifier = function(modifier, easing, data, priority) {
 //                           [data: Any],
 //                           [priority: Int]
 //                          ) => Integer
-Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
+Element.prototype.addTModifier = function(time, modifier, easing, data, priority) {
     return this.__modify({ type: Element.USER_MOD,
                            priority: priority,
-                           band: band,
-                           relative: false,
+                           time: time,
                            easing: easing,
                            data: data }, modifier);
 }
@@ -1753,10 +1751,10 @@ Element.prototype.addTModifier = function(band, modifier, easing, data, priority
 //                           [data: Any],
 //                           [priority: Int]
 //                          ) => Integer
-Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
+Element.prototype.addRModifier = function(time, modifier, easing, data, priority) {
     return this.__modify({ type: Element.USER_MOD,
                            priority: priority,
-                           band: band,
+                           time: time,
                            relative: true,
                            easing: easing,
                            data: data }, modifier);
@@ -2274,13 +2272,14 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
   var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0],
       easing = conf.easing,
-      band = conf.band,
+      time = conf.time,
       relative = conf.relative;
   var _tpair = null;
-  if (band == null) {
+  if (time == null) {
       _tpair = relative ? [ ltime / elm_duration, elm_duration ]
                         : [ ltime,                undefined    ];
-  } else if (__array(band)) { // modifier is band-restricted
+  } else if (__array(time)) { // modifier is band-restricted
+      var band = time;
       if (!relative) {
           var mod_duration = band[1] - band[0];
           if (ltime < band[0]) return false;
@@ -2294,13 +2293,13 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
           else if (ltime > abs_band[1]) return false;
           else _tpair = [ (ltime / mod_duration) - band[0], mod_duration ];
       }
-  } else if (__num(band)) {
+  } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
                       ? (1 / (ltime - state._._appliedAt))
                       : 0) || 0;
       /* FIXME: test if afps is not too big */
-      var tpos = relative ? (band * elm_duration) : band;
+      var tpos = relative ? (time * elm_duration) : time;
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
@@ -2399,12 +2398,16 @@ Element.prototype.__addTypedModifier = function(conf, modifier) {
     var elm_id = this.id;
     if (!modifier.__m_ids) modifier.__m_ids = {};
     else if (modifier.__m_ids[elm_id]) throw new AnimErr(Errors.A.MODIFIER_REGISTERED);
-    if (conf.easing) conf.easing = Element.__convertEasing(conf.easing);
     var priority = conf.priority || 0,
         type = conf.type;
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([ modifier, conf ]);
+    modifiers[type][priority].push([ modifier, { type: type, // configuration is cloned for safety
+                                                 priority: priority,
+                                                 time: conf.time,
+                                                 relative: conf.relative,
+                                                 easing: Element.__convertEasing(conf.easing),
+                                                 data: conf.data } ]);
     modifier.__m_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                (modifiers[type][priority].length - 1);
     return modifier;
@@ -2444,7 +2447,9 @@ Element.prototype.__addTypedPainter = function(conf, painter) {
         type = conf.type;
     if (!painters[type]) painters[type] = [];
     if (!painters[type][priority]) painters[type][priority] = [];
-    painters[type][priority].push([ painter, conf ]);
+    painters[type][priority].push([ painter, { type: type, // configuration is cloned for safety
+                                               priority: priority,
+                                               data: conf.data } ]);
     painter.__p_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                               (painters[type][priority].length - 1);
     return painter;
@@ -2636,14 +2641,16 @@ Element.__addDebugRender = function(elm) {
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
-Element.__addTweenModifier = function(elm, tween) { /* FIXME: improve modify with adding object same way,
+Element.__addTweenModifier = function(elm, conf) { /* FIXME: improve modify with adding object same way,
                                                        include easing in all modifiers */
-    var m_tween = Tweens[tween.type]();
+    //if (!conf.type) throw new AnimErr('Tween type is not defined');
+    var m_tween = Tweens[conf.type]();
     return elm.__modify({ type: Element.TWEEN_MOD,
-                          priority: Tween.TWEENS_PRIORITY[tween.type],
-                          band: tween.band,
-                          easing: tween.easing,
-                          data: data }, m_tween);
+                          priority: Tween.TWEENS_PRIORITY[conf.type],
+                          time: conf.time,
+                          relative: conf.relative,
+                          easing: conf.easing,
+                          data: conf.data }, m_tween);
 }
 Element.__convertEasing = function(easing, data) {
   if (!easing) return null;
@@ -3057,6 +3064,12 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 
+C.T_R_TRANSLATE   = 'R_TRANSLATE';
+C.T_R_SCALE       = 'R_SCALE';
+C.T_R_ROTATE      = 'R_ROTATE';
+C.T_R_ROT_TO_PATH = 'R_ROT_TO_PATH';
+C.T_R_ALPHA       = 'R_ALPHA';
+
 var Tween = {};
 var Easing = {};
 
@@ -3069,19 +3082,25 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 
+Tween.TWEENS_PRIORITY[C.T_R_TRANSLATE]   = 0;
+Tween.TWEENS_PRIORITY[C.T_R_SCALE]       = 1;
+Tween.TWEENS_PRIORITY[C.T_R_ROTATE]      = 2;
+Tween.TWEENS_PRIORITY[C.T_R_ROT_TO_PATH] = 3;
+Tween.TWEENS_PRIORITY[C.T_R_ALPHA]       = 4;
+
 Tween.TWEENS_COUNT = 5;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
-      return function(t, duration, data) {
+      return function(t, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
 Tweens[C.T_TRANSLATE] =
     function() {
-      return function(t, duration, data) {
+      return function(t, data) {
           var p = data.pointAt(t);
           this._mpath = data;
           this.x = p[0];
@@ -3090,18 +3109,55 @@ Tweens[C.T_TRANSLATE] =
     };
 Tweens[C.T_ALPHA] =
     function() {
-      return function(t, duration, data) {
+      return function(t, data) {
         this.alpha = data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
+    function() {
+      return function(t, data) {
+        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+      };
+    };
+Tweens[C.T_ROT_TO_PATH] =
+    function() {
+      return function(t, data) {
+        var path = this._mpath;
+        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+      };
+    };
+
+Tweens[C.T_R_ROTATE] =
+    function() {
+      return function(t, duration, data) {
+        this.angle = data[0] * (1 - t) + data[1] * t;
+        //state.angle = (Math.PI / 180) * 45;
+      };
+    };
+Tweens[C.T_R_TRANSLATE] =
+    function() {
+      return function(t, duration, data) {
+          var p = data.pointAt(t);
+          this._mpath = data;
+          this.x = p[0];
+          this.y = p[1];
+      };
+    };
+Tweens[C.T_R_ALPHA] =
+    function() {
+      return function(t, duration, data) {
+        this.alpha = data[0] * (1.0 - t) + data[1] * t;
+      };
+    };
+Tweens[C.T_R_SCALE] =
     function() {
       return function(t, duration, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_ROT_TO_PATH] =
+Tweens[C.T_R_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;

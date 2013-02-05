@@ -30,12 +30,6 @@ describe("tweens", function() {
                 addModifierSpy = spyOn(elm, '__modify').andCallThrough();
             });
 
-            // C.T_TRANSLATE   = 'TRANSLATE';
-            // C.T_SCALE       = 'SCALE';
-            // C.T_ROTATE      = 'ROTATE';
-            // C.T_ROT_TO_PATH = 'ROT_TO_PATH';
-            // C.T_ALPHA       = 'ALPHA';
-
             describe("the same should apply to tween method, no matter if it is", function() {
 
                 var tween_type;
@@ -61,23 +55,23 @@ describe("tweens", function() {
                                                   tween_band = [ duration / 4, 3 / 4 * duration ];
                                                   relative = false; } },
                           { description: "relative translate tween",
-                            prepare: function() { tween_type = anm.C.T_RTRANSLATE;
+                            prepare: function() { tween_type = anm.C.T_R_TRANSLATE;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "relative scale tween",
-                            prepare: function() { tween_type = anm.C.T_RSCALE;
+                            prepare: function() { tween_type = anm.C.T_R_SCALE;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "rrelative rotate tween",
-                            prepare: function() { tween_type = anm.C.T_RROTATE;
+                            prepare: function() { tween_type = anm.C.T_R_ROTATE;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "relative rotate-to-path tween",
-                            prepare: function() { tween_type = anm.C.T_RROT_TO_PATH;
+                            prepare: function() { tween_type = anm.C.T_R_ROT_TO_PATH;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "or relative alpha tween",
-                            prepare: function() { tween_type = anm.C.T_RALPHA;
+                            prepare: function() { tween_type = anm.C.T_R_ALPHA;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } }
                     ], function() {
@@ -86,14 +80,14 @@ describe("tweens", function() {
                             bld.tween(tween_type);
 
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: jasmine.undefined,
+                                                                       time: jasmine.undefined,
                                                                        data: jasmine.undefined,
                                                                        easing: jasmine.undefined });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: jasmine.undefined,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: jasmine.undefined,
                                                                           data: jasmine.undefined },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]());
@@ -103,16 +97,16 @@ describe("tweens", function() {
 
                             bld.tween(tween_type, tween_band);
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: tween_band,
+                                                                       time: tween_band,
                                                                        data: jasmine.undefined,
                                                                        easing: jasmine.undefined });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: tween_band,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: jasmine.undefined,
-                                                                          data: jasine.undefined },
+                                                                          data: jasmine.undefined },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]()
 
                         });
@@ -125,14 +119,14 @@ describe("tweens", function() {
 
                             bld.tween(tween_type, tween_band, data);
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: tween_band,
+                                                                       time: tween_band,
                                                                        data: data,
                                                                        easing: jasmine.undefined });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: tween_band,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: jasmine.undefined,
                                                                           data: data },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]()
@@ -143,14 +137,14 @@ describe("tweens", function() {
 
                             bld.tween(tween_type, tween_band, null, easing);
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: tween_band,
+                                                                       time: tween_band,
                                                                        data: null,
                                                                        easing: easing });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: tween_band,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: easing,
                                                                           data: null },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]()
@@ -164,14 +158,14 @@ describe("tweens", function() {
 
                             bld.tween(tween_type, tween_band, null, easing);
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: tween_band,
+                                                                       time: tween_band,
                                                                        data: null,
                                                                        easing: easing });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: tween_band,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: easing,
                                                                           data: null },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]()
@@ -185,14 +179,14 @@ describe("tweens", function() {
 
                             bld.tween(tween_type, tween_band, null, B.easingP(easing_path)); //, easing
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: tween_band,
+                                                                       time: tween_band,
                                                                        data: null,
                                                                        easing: built_easing });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: tween_band,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: built_easing,
                                                                           data: null },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]()
@@ -208,14 +202,14 @@ describe("tweens", function() {
 
                             bld.tween(tween_type, tween_band, null, built_easing); //, easing
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
-                                                                       band: tween_band,
+                                                                       time: tween_band,
                                                                        data: null,
                                                                        easing: built_easing });
 
                             expect(addModifierSpy).toHaveBeenCalledWith({ type: anm.Element.TWEEN_MOD,
                                                                           priority: anm.Tween.TWEENS_PRIORITY[tween_type],
                                                                           time: tween_band,
-                                                                          relative: relative,
+                                                                          relative: relative ? true : jasmine.undefined,
                                                                           easing: built_easing,
                                                                           data: null },
                                                                         jasmine.any(Function)); // anm.Tweens[tween_type]()
@@ -321,6 +315,8 @@ describe("tweens", function() {
             });
 
             describe("translate tween", function() {
+
+                // FIXME: add tests for relative tweens
 
                 describe("single one", function() {
 

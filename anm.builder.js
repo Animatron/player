@@ -320,9 +320,24 @@ Builder.prototype.band = function(band) {
 Builder.prototype.tween = function(type, band, data, easing) {
     this.v.addTween({
         type: type,
-        band: band,
+        time: band,
         data: data,
         easing: easing
+    });
+    return this;
+}
+// > builder.tween % (type: String, // (C.T_*)
+//                    band: Array[2,Float],
+//                    data: Any,
+//                    [easing: String (Easing.T_*) | Object | Function]) => Builder
+Builder.prototype.rtween = function(type, band, data, easing) {
+    // TODO: add relative tweens for all versions (+ include them in tests)
+    this.v.addTween({
+        type: type,
+        time: band,
+        data: data,
+        easing: easing,
+        relative: true
     });
     return this;
 }
