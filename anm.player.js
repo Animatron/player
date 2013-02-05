@@ -2278,20 +2278,29 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
       relative = conf.relative;
   var _tpair = null;
   if (band == null) {
-      _tpair = [ ltime / elm_duration, elm_duration ];
+      _tpair = relative ? [ ltime / elm_duration, elm_duration ]
+                        : [ ltime,                undefined    ];
   } else if (__array(band)) { // modifier is band-restricted
-      /* if ((ltime + band[0]) >= elm_duration) return ltime; */
-      var mod_duration = band[1] - band[0];
-      if (ltime < band[0]) return false; /* _tpair = [ 0, mod_duration ]; */
-      else if (ltime > band[1]) return false; /* _tpair = [ 1, mod_duration ]; */
-      else _tpair = [ (ltime - band[0]) / mod_duration, mod_duration ];
+      if (!relative) {
+          var mod_duration = band[1] - band[0];
+          if (ltime < band[0]) return false;
+          else if (ltime > band[1]) return false;
+          else _tpair = [ ltime - band[0], undefined ];
+      } else {
+          var abs_band = [ band[0] * elm_duration,
+                           band[1] * elm_duration ];
+          var mod_duration = (band[1] - band[0]) * elm_duration;
+          if (ltime < abs_band[0]) return false;
+          else if (ltime > abs_band[1]) return false;
+          else _tpair = [ (ltime / mod_duration) - band[0], mod_duration ];
+      }
   } else if (__num(band)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       afps = afps || (state._._appliedAt
                       ? (1 / (ltime - state._._appliedAt))
                       : 0) || 0;
       /* FIXME: test if afps is not too big */
-      var tpos = band;
+      var tpos = relative ? (band * elm_duration) : band;
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
@@ -2305,8 +2314,10 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
           modifier.__wasCalledAt[this.id] = ltime;
       }
       if (!doCall) return false;
-      _tpair = [ ltime / elm_duration, elm_duration ];
-  } else _tpair = [ ltime, elm_duration ];
+      _tpair = relative ? [ ltime / elm_duration, elm_duration ]
+                        : [ ltime,                undefined    ];
+  } else _tpair = relative ? [ ltime / elm_duration, elm_duration ]
+                           : [ ltime,                undefined    ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
@@ -2382,7 +2393,7 @@ Element.prototype.__callPainters = function(order, ctx) {
     })(this);
 }
 //Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
-  Element.prototype.__addTypedModifier = function(conf, modifier) {
+Element.prototype.__addTypedModifier = function(conf, modifier) {
     if (!modifier) throw new AnimErr(Errors.A.NO_MODIFIER_PASSED);
     var modifiers = this._modifiers;
     var elm_id = this.id;
