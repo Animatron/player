@@ -2276,15 +2276,15 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
       relative = conf.relative;
   var _tpair = null;
   if (time == null) {
-      _tpair = relative ? [ ltime / elm_duration, elm_duration ]
-                        : [ ltime,                undefined    ];
+      _tpair = [ relative ? ltime / elm_duration : ltime,
+                 elm_duration ];
   } else if (__array(time)) { // modifier is band-restricted
       var band = time;
       if (!relative) {
           var mod_duration = band[1] - band[0];
           if (ltime < band[0]) return false;
           else if (ltime > band[1]) return false;
-          else _tpair = [ ltime - band[0], undefined ];
+          else _tpair = [ ltime - band[0], mod_duration ];
       } else {
           var abs_band = [ band[0] * elm_duration,
                            band[1] * elm_duration ];
@@ -2313,10 +2313,10 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
           modifier.__wasCalledAt[this.id] = ltime;
       }
       if (!doCall) return false;
-      _tpair = relative ? [ ltime / elm_duration, elm_duration ]
-                        : [ ltime,                undefined    ];
-  } else _tpair = relative ? [ ltime / elm_duration, elm_duration ]
-                           : [ ltime,                undefined    ];
+      _tpair = [ relative ? ltime / elm_duration : ltime,
+                 elm_duration ];
+  } else _tpair = [ relative ? ltime / elm_duration : ltime,
+                    elm_duration ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
@@ -3064,12 +3064,6 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 
-C.T_R_TRANSLATE   = 'R_TRANSLATE';
-C.T_R_SCALE       = 'R_SCALE';
-C.T_R_ROTATE      = 'R_ROTATE';
-C.T_R_ROT_TO_PATH = 'R_ROT_TO_PATH';
-C.T_R_ALPHA       = 'R_ALPHA';
-
 var Tween = {};
 var Easing = {};
 
@@ -3082,25 +3076,19 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 
-Tween.TWEENS_PRIORITY[C.T_R_TRANSLATE]   = 0;
-Tween.TWEENS_PRIORITY[C.T_R_SCALE]       = 1;
-Tween.TWEENS_PRIORITY[C.T_R_ROTATE]      = 2;
-Tween.TWEENS_PRIORITY[C.T_R_ROT_TO_PATH] = 3;
-Tween.TWEENS_PRIORITY[C.T_R_ALPHA]       = 4;
-
 Tween.TWEENS_COUNT = 5;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
-      return function(t, data) {
+      return function(t, duration, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
 Tweens[C.T_TRANSLATE] =
     function() {
-      return function(t, data) {
+      return function(t, duration, data) {
           var p = data.pointAt(t);
           this._mpath = data;
           this.x = p[0];
@@ -3109,55 +3097,18 @@ Tweens[C.T_TRANSLATE] =
     };
 Tweens[C.T_ALPHA] =
     function() {
-      return function(t, data) {
+      return function(t, duration, data) {
         this.alpha = data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
     function() {
-      return function(t, data) {
+      return function(t, duration, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 Tweens[C.T_ROT_TO_PATH] =
-    function() {
-      return function(t, data) {
-        var path = this._mpath;
-        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
-      };
-    };
-
-Tweens[C.T_R_ROTATE] =
-    function() {
-      return function(t, duration, data) {
-        this.angle = data[0] * (1 - t) + data[1] * t;
-        //state.angle = (Math.PI / 180) * 45;
-      };
-    };
-Tweens[C.T_R_TRANSLATE] =
-    function() {
-      return function(t, duration, data) {
-          var p = data.pointAt(t);
-          this._mpath = data;
-          this.x = p[0];
-          this.y = p[1];
-      };
-    };
-Tweens[C.T_R_ALPHA] =
-    function() {
-      return function(t, duration, data) {
-        this.alpha = data[0] * (1.0 - t) + data[1] * t;
-      };
-    };
-Tweens[C.T_R_SCALE] =
-    function() {
-      return function(t, duration, data) {
-        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
-      };
-    };
-Tweens[C.T_R_ROT_TO_PATH] =
     function() {
       return function(t, duration, data) {
         var path = this._mpath;

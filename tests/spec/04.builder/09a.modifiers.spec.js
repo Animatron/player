@@ -499,11 +499,7 @@ describe("builder, regarding modifiers,", function() {
                         for (var i = 0, sc = spiesCount; i < sc; i++) {
                             spies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
                                 return function(t, duration) {
-                                     if (relative) {
-                                        expect(duration).toBe(bands[i][1] - bands[i][0]);
-                                     } else {
-                                        expect(duration).toBe(jasmine.undefined);
-                                     }
+                                     expect(duration).toBe(bands[i][1] - bands[i][0]);
                                 }
                             })(i)));
                         }
@@ -786,13 +782,8 @@ describe("builder, regarding modifiers,", function() {
                                         expectAtTime({
                                             bands: relative ? mod_rband : mod_band,
                                             modifiers: function(t, duration) {
-                                                if (relative) {
-                                                    expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
-                                                    expect(duration).toBe(mod_duration);
-                                                } else {
-                                                    expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
-                                                    expect(duration).toBe(jasmine.undefined);
-                                                }
+                                                expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
+                                                expect(duration).toBe(mod_duration);
                                             },
                                             time: trg_band[0] + mod_band[0] });
                                     });
@@ -806,13 +797,12 @@ describe("builder, regarding modifiers,", function() {
                                                     expect(t).toBeGreaterThanOrEqual(0);
                                                     expect(t).toBeLessThan(1);
                                                     expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
-                                                    expect(duration).toBe(mod_duration);
                                                 } else {
                                                     expect(t).toBeGreaterThanOrEqual(0);
                                                     expect(t).toBeLessThan(mod_duration);
                                                     expect(t).toBeCloseTo(mod_duration/3, CLOSE_FACTOR);
-                                                    expect(duration).toBe(jasmine.undefined);
                                                 }
+                                                expect(duration).toBe(mod_duration);
                                             },
                                             time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                                     });
@@ -826,11 +816,10 @@ describe("builder, regarding modifiers,", function() {
                                             modifiers: function(t, duration) {
                                                 if (relative) {
                                                     expect(t).toBeCloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
-                                                    expect(duration).toBe(mod_duration);
                                                 } else {
                                                     expect(t).toBeCloseTo(mod_duration, CLOSE_FACTOR); //FIXME: expect(t).toBe(mod_duration);
-                                                    expect(duration).toBe(jasmine.undefined);
                                                 }
+                                                expect(duration).toBe(mod_duration);
                                             },
                                             time: trg_band[0] + mod_band[1] });
                                     });
@@ -1293,7 +1282,7 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
                                 }
-                                expect(duration).toBe(jasmine.undefined);
+                                expect(duration).toBe(band_duration);
                             }
                         }
 
@@ -1313,7 +1302,7 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
                                 }
-                                expect(duration).toBe(band[1] - band[0]);
+                                expect(duration).toBe(band_duration);
                             }
                         }
 
@@ -1496,32 +1485,18 @@ describe("builder, regarding modifiers,", function() {
                             });
                         });
 
-                        it("passes (or not, if it is a relative modifier) target band duration inside the modifier", function() {
-                            if (relative) {
-                                var expectedT = modifier_rtime;
+                        it("passes target band duration inside the modifier", function() {
+                            var expectedT = relative ? modifier_rtime : modifier_time;
 
-                                var rmodifierSpy = jasmine.createSpy('rmodifier-spy').andCallFake(function(t, duration) {
-                                    expect(duration).toBe(jasmine.undefined);
-                                });
+                            var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                                expect(duration).toEqual(trg_duration);
+                            });
 
-                                doAsync(player, {
-                                    prepare: function() { target.rmodify(expectedT, rmodifierSpy); },
-                                    do: 'play', until: C.STOPPED, timeout: _timeout,
-                                    then: function() { expect(rmodifierSpy).toHaveBeenCalledOnce(); }
-                                });
-                            } else {
-                                var expectedT = modifier_time;
-
-                                var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
-                                    expect(duration).toEqual(trg_duration);
-                                });
-
-                                doAsync(player, {
-                                    prepare: function() { target.modify(expectedT, modifierSpy); },
-                                    do: 'play', until: C.STOPPED, timeout: _timeout,
-                                    then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
-                                });
-                            }
+                            doAsync(player, {
+                                prepare: function() { _modify(target, expectedT, modifierSpy); },
+                                do: 'play', until: C.STOPPED, timeout: _timeout,
+                                then: function() { expect(modifierSpy).toHaveBeenCalledOnce(); }
+                            });
                         });
 
                         it("calls a modifier at given time or a bit later", function() {
@@ -1581,7 +1556,7 @@ describe("builder, regarding modifiers,", function() {
                         var FPS_ERR = anm.Element._FPS_ERROR;
 
                         function playValueTest(t, duration, time) {
-                            return (duration === jasmine.undefined) &&
+                            return (duration === trg_duration) &&
                                    ((t >= 0) && (t <= trg_duration)) &&
                                    (((t >= time) && (t <= time + (mFPS * FPS_ERR))) ||
                                     ((t <  time) && __close(t, time, 10))); }
@@ -1591,7 +1566,7 @@ describe("builder, regarding modifiers,", function() {
                                    ((((t * duration) >= time) && ((t * duration) <= time + (mFPS * FPS_ERR))) ||
                                     (((t * duration) < time)  && __close(t * duration, time, 10))); }
                         function drawValueTest(t, duration, time) {
-                            return (duration === jasmine.undefined) &&
+                            return (duration === trg_duration) &&
                                    ((t >= 0) && (t <= trg_duration)) &&
                                    ( Math.round(t  * Math.pow(10, CLOSE_FACTOR)) ==
                                      Math.round(time * Math.pow(10, CLOSE_FACTOR)) ); }

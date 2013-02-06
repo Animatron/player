@@ -55,23 +55,23 @@ describe("tweens", function() {
                                                   tween_band = [ duration / 4, 3 / 4 * duration ];
                                                   relative = false; } },
                           { description: "relative translate tween",
-                            prepare: function() { tween_type = anm.C.T_R_TRANSLATE;
+                            prepare: function() { tween_type = anm.C.T_TRANSLATE;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "relative scale tween",
-                            prepare: function() { tween_type = anm.C.T_R_SCALE;
+                            prepare: function() { tween_type = anm.C.T_SCALE;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "rrelative rotate tween",
-                            prepare: function() { tween_type = anm.C.T_R_ROTATE;
+                            prepare: function() { tween_type = anm.C.T_ROTATE;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "relative rotate-to-path tween",
-                            prepare: function() { tween_type = anm.C.T_R_ROT_TO_PATH;
+                            prepare: function() { tween_type = anm.C.T_ROT_TO_PATH;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } },
                           { description: "or relative alpha tween",
-                            prepare: function() { tween_type = anm.C.T_R_ALPHA;
+                            prepare: function() { tween_type = anm.C.T_ALPHA;
                                                   tween_band = [ 1 / 4, 3 / 4 ];
                                                   relative = true; } }
                     ], function() {
