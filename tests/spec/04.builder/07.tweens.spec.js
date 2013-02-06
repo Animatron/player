@@ -77,10 +77,16 @@ describe("tweens", function() {
                     ], function() {
 
                         it("should pass null band if band is not specified", function() {
-                            bld.tween(tween_type);
+
+                            if (!relative){
+                                bld.tween(tween_type);
+                            } else {
+                                bld.rtween(tween_type);
+                            }
 
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: jasmine.undefined,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: jasmine.undefined,
                                                                        easing: jasmine.undefined });
 
@@ -95,9 +101,15 @@ describe("tweens", function() {
 
                         it("should apply a band, at least", function() {
 
-                            bld.tween(tween_type, tween_band);
+                            if (!relative){
+                                bld.tween(tween_type, tween_band);
+                            } else {
+                                bld.rtween(tween_type, tween_band);
+                            }
+
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: tween_band,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: jasmine.undefined,
                                                                        easing: jasmine.undefined });
 
@@ -117,9 +129,15 @@ describe("tweens", function() {
 
                             var data = { 'foo': 'bar' };
 
-                            bld.tween(tween_type, tween_band, data);
+                            if (!relative){
+                                bld.tween(tween_type, tween_band, data);
+                            } else {
+                                bld.rtween(tween_type, tween_band, data);
+                            }
+
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: tween_band,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: data,
                                                                        easing: jasmine.undefined });
 
@@ -135,9 +153,15 @@ describe("tweens", function() {
                         it("should apply predefined easing to a tween", function() {
                             var easing = anm.C.E_INOUT; // all of the types are tested in modifiers spec
 
-                            bld.tween(tween_type, tween_band, null, easing);
+                            if (!relative){
+                                bld.tween(tween_type, tween_band, null, easing);
+                            } else {
+                                bld.rtween(tween_type, tween_band, null, easing);
+                            }
+
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: tween_band,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: null,
                                                                        easing: easing });
 
@@ -156,9 +180,15 @@ describe("tweens", function() {
 
                             var easing = function(t) { };
 
-                            bld.tween(tween_type, tween_band, null, easing);
+                            if (!relative){
+                                bld.tween(tween_type, tween_band, null, easing);
+                            } else {
+                                bld.rtween(tween_type, tween_band, null, easing);
+                            }
+
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: tween_band,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: null,
                                                                        easing: easing });
 
@@ -177,9 +207,15 @@ describe("tweens", function() {
                             var easing_path = 'M10 10 L12 12 Z';
                             var built_easing = B.easingP(easing_path);
 
-                            bld.tween(tween_type, tween_band, null, B.easingP(easing_path)); //, easing
+                            if (!relative){
+                                bld.tween(tween_type, tween_band, null, B.easingP(easing_path));
+                            } else {
+                                bld.rtween(tween_type, tween_band, null, B.easingP(easing_path));
+                            }
+
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: tween_band,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: null,
                                                                        easing: built_easing });
 
@@ -200,9 +236,15 @@ describe("tweens", function() {
 
                             // TODO: add ability to pass function as easing
 
-                            bld.tween(tween_type, tween_band, null, built_easing); //, easing
+                            if (!relative){
+                                bld.tween(tween_type, tween_band, null, built_easing);
+                            } else {
+                                bld.rtween(tween_type, tween_band, null, built_easing);
+                            }
+
                             expect(addTweenSpy).toHaveBeenCalledWith({ type: tween_type,
                                                                        time: tween_band,
+                                                                       relative: relative ? true : jasmine.undefined,
                                                                        data: null,
                                                                        easing: built_easing });
 

@@ -2644,7 +2644,15 @@ Element.__addDebugRender = function(elm) {
 Element.__addTweenModifier = function(elm, conf) { /* FIXME: improve modify with adding object same way,
                                                        include easing in all modifiers */
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
-    var m_tween = Tweens[conf.type]();
+    var tween_f = Tweens[conf.type](),
+        m_tween;
+    if (conf.relative) {
+      m_tween = tween_f;
+    } else {
+      m_tween = function(t, duration, data) {
+          return tween_f(t / duration, duration, data);
+        };
+    }
     return elm.__modify({ type: Element.TWEEN_MOD,
                           priority: Tween.TWEENS_PRIORITY[conf.type],
                           time: conf.time,
