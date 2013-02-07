@@ -2169,6 +2169,7 @@ describe("tweens", function() {
                 var tween_type;
 
                 // TODO: test all types of easings? (easing should complexly be tested in modifiers, though)
+                // FIXME: easing functions are different for relative and not-relative tweens
 
                 describe("translate tween", function() {
 
@@ -2183,7 +2184,7 @@ describe("tweens", function() {
 
                     it("supports overriden easing in narrow band", function() {
                         checkTweens([.1, 1.5],
-                                    [ [ 'trans', [ .3, 1 ], [[50, 11], [10, 40]], function(t) { return 1 - t; } ] ],
+                                    [ [ 'trans', [ .3, 1 ], [[50, 11], [10, 40]], function(t, len) { return len - t; } ] ],
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
@@ -2199,8 +2200,8 @@ describe("tweens", function() {
                                         }
                                         // during tween
                                         var adt = (at - .3 - .1) / (1 - .3);
-                                        expect(s.x).toBeCloseTo(50 + ((1 - adt) * (10 - 50)), CLOSE_FACTOR);
-                                        expect(s.y).toBeCloseTo(11 + ((1 - adt) * (40 - 11)), CLOSE_FACTOR);
+                                        expect(s.x).toBeCloseTo(bs.x + 50 + ((1 - adt) * (10 - 50)), CLOSE_FACTOR);
+                                        expect(s.y).toBeCloseTo(bs.y + 11 + ((1 - adt) * (40 - 11)), CLOSE_FACTOR);
                                     });
                     });
 

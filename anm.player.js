@@ -2317,7 +2317,8 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
                  elm_duration ];
   } else _tpair = [ relative ? ltime / elm_duration : ltime,
                     elm_duration ];
-  return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
+  return !easing ? _tpair : [ easing(/*relative ? */_tpair[0]
+                                              /*: (_tpair[0] / _tpair[1])*/, _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
