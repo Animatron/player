@@ -2650,7 +2650,7 @@ Element.__addTweenModifier = function(elm, conf) { /* FIXME: improve modify with
       m_tween = tween_f;
     } else {
       m_tween = function(t, duration, data) {
-          return tween_f(t / duration, duration, data);
+          return tween_f.call(this, t / duration, duration, data);
         };
     }
     return elm.__modify({ type: Element.TWEEN_MOD,
