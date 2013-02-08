@@ -422,7 +422,10 @@ Builder.prototype.bounce = function() {
 Builder.prototype.modify = function(band, modifier, data, easing, priority) {
     if (is.array(band) || is.num(band)) {
         // NB: easing and data are currently "swapped" in `modify` method
-        this.v.addTModifier(band, modifier, easing, data, priority);
+        this.v.addModifier({ time: band,
+                             easing: easing,
+                             data: data,
+                             priority: priority }, modifier);
     } else {
         // match actual arguments, if band was omitted
         priority = easing;
@@ -430,7 +433,36 @@ Builder.prototype.modify = function(band, modifier, data, easing, priority) {
         data = modifier;
         modifier = band;
         // NB: easing and data are currently "swapped" in `modify` method
-        this.v.addModifier(modifier, easing, data, priority);
+        this.v.addModifier({ easing: easing,
+                             data: data,
+                             priority: priority }, modifier);
+    }
+    return this;
+}
+// > builder.rmodify % ([band: Array[2, Float],]
+//                      modifier: Function(time: Float,
+//                                         data: Any),
+//                      [data: Any, easing: Function(time),
+//                                  priority: Integer]) => Builder
+Builder.prototype.rmodify = function(band, modifier, data, easing, priority) {
+    if (is.array(band) || is.num(band)) {
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addModifier({ time: band,
+                             easing: easing,
+                             data: data,
+                             relative: true,
+                             priority: priority }, modifier);
+    } else {
+        // match actual arguments, if band was omitted
+        priority = easing;
+        easing = data;
+        data = modifier;
+        modifier = band;
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addModifier({ easing: easing,
+                             data: data,
+                             relative: true,
+                             priority: priority }, modifier);
     }
     return this;
 }

@@ -224,6 +224,10 @@ function _arrayFrom(val) {
     return [ val ];
 }
 
+function _argsToArray(val) {
+    return Array.prototype.slice.call(val);
+}
+
 function varyAll(conditions, tests) {
     for (var ci = 0, cl = conditions.length; ci < cl; ci++) {
         var condition = conditions[ci];

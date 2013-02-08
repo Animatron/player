@@ -305,6 +305,10 @@ function __num(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+function __obj(obj) {
+    return obj != null && typeof obj === 'object';
+}
+
 function __close(n1, n2, precision) {
     if (!(precision === 0)) {
         precision = precision || 2;
@@ -1718,17 +1722,26 @@ Element.prototype.render = function(ctx, gtime, afps) {
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-// > Element.addModifier % (modifier: Function(time: Float,
+// > Element.addModifier % (( configuration: Object,
+//                            modifier: Function(time: Float,
+//                                               data: Any) => Boolean)
+//                        | ( modifier: Function(time: Float,
 //                                             data: Any) => Boolean,
-//                          [easing: Function()],
-//                          [data: Any],
-//                          [priority: Int]
+//                            [easing: Function()],
+//                            [data: Any],
+//                            [priority: Int]
 //                         ) => Integer
 Element.prototype.addModifier = function(modifier, easing, data, priority) {
-    return this.__modify({ type: Element.USER_MOD,
-                           priority: priority,
-                           easing: easing,
-                           data: data }, modifier);
+    if (__obj(modifier)) {
+      // modifier is configuration here and easing is modifier factually
+      modifier.type = Element.USER_MOD; // here, type should always be user-modifier
+      return this.__modify(modifier, easing);
+    } else {
+      return this.__modify({ type: Element.USER_MOD,
+                             priority: priority,
+                             easing: easing,
+                             data: data }, modifier);
+    }
 }
 // > Element.addTModifier % (restriction: Array[Float, 2] | Float,
 //                           modifier: Function(time: Float,
@@ -1744,19 +1757,32 @@ Element.prototype.addTModifier = function(time, modifier, easing, data, priority
                            easing: easing,
                            data: data }, modifier);
 }
-// > Element.addRModifier % (restriction: Array[Float, 2] | Float,
-//                           modifier: Function(time: Float,
-//                                              data: Any) => Boolean,
+// > Element.addRModifier % (modifier: Function(time: Float,
+//                                             data: Any) => Boolean,
 //                           [easing: Function()],
 //                           [data: Any],
 //                           [priority: Int]
 //                          ) => Integer
-Element.prototype.addRModifier = function(time, modifier, easing, data, priority) {
+Element.prototype.addRModifier = function(modifier, easing, data, priority) {
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           easing: easing,
+                           relative: true,
+                           data: data }, modifier);
+}
+// > Element.addRTModifier % (restriction: Array[Float, 2] | Float,
+//                            modifier: Function(time: Float,
+//                                               data: Any) => Boolean,
+//                            [easing: Function()],
+//                            [data: Any],
+//                            [priority: Int]
+//                           ) => Integer
+Element.prototype.addRTModifier = function(time, modifier, easing, data, priority) {
     return this.__modify({ type: Element.USER_MOD,
                            priority: priority,
                            time: time,
-                           relative: true,
                            easing: easing,
+                           relative: true,
                            data: data }, modifier);
 }
 // > Element.removeModifier % (modifier: Function)

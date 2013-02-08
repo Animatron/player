@@ -41,7 +41,7 @@ describe("builder, regarding modifiers,", function() {
         var curClass; // function that creates first arguments for a 'modify' call, it is done
                       // to vary all of modifier types
 
-        var _duration = 1,
+        var _duration = 1.5,
             _timeout = _duration + .2,
             _run = function() { player.play(); };
 
@@ -55,7 +55,7 @@ describe("builder, regarding modifiers,", function() {
 
         varyAll([ {
                     description: "if it is a default modifier (band is equal to element's band),",
-                    prepare: function() { _band_val = null;
+                    prepare: function() { _band_val = jasmine.undefined;
                                           relative = false;
                                           curClass = function(spy) { return [ spy ] }; }
                   }, {
@@ -71,7 +71,7 @@ describe("builder, regarding modifiers,", function() {
                                           _run = function() { player.play(_band_val, 1, 1 / (FPS * 2)); }; }
                   }, {
                     description: "or it is a relatively-defined simple modifier (band is equal to element's band),",
-                    prepare: function() { _band_val = null;
+                    prepare: function() { _band_val = jasmine.undefined;
                                           relative = true;
                                           curClass = function(spy) { return [ spy ] }; }
                   }, {
@@ -84,7 +84,7 @@ describe("builder, regarding modifiers,", function() {
                     prepare: function() { _band_val = 1 / 4;
                                           relative = true;
                                           curClass = function(spy) { return [ _band_val, spy ] };
-                                          _run = function() { player.play(duration / 4, 1, 1 / (FPS * 2)); }; }
+                                          _run = function() { player.play(_duration / 4, 1, 1 / (FPS * 2)); }; }
                   } ],  function() {
 
             it("calls an inner __modify function to add modifier", function() {
@@ -105,9 +105,9 @@ describe("builder, regarding modifiers,", function() {
 
                 expect(__modifySpy).toHaveBeenCalled();
                 expect(__modifySpy).toHaveBeenCalledWith({ type: anm.Element.USER_MOD,
-                                                           priority: 0,
+                                                           priority: jasmine.undefined,
                                                            time: _band_val,
-                                                           relative: relative,
+                                                           relative: relative ? true : jasmine.undefined,
                                                            easing: jasmine.undefined,
                                                            data: jasmine.undefined },
                                                          modifierSpy);
@@ -118,6 +118,11 @@ describe("builder, regarding modifiers,", function() {
 
                 var modifierSpy = jasmine.createSpy('modifier-spy');
                 var methodName = relative ? 'rmodify' : 'modify';
+
+                console.log('class', curClass(modifierSpy));
+                spyOn(scene.v, '__modify').andCallFake(function() {
+                    console.log('args', arguments);
+                })
 
                 doAsync(player, {
                     prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
@@ -182,20 +187,12 @@ describe("builder, regarding modifiers,", function() {
 
                 var expectedData = { 'foo': 42 };
 
-                var expectation =
-                    relative ? function(t, duration, data) {
-                                   expect(data).toBeDefined();
-                                   expect(data).toBe(expectedData);
-                                   expect(data.foo).toBeDefined();
-                                   expect(data.foo).toBe(42);
-                               }
-                             : function(t, data) {
-                                   expect(data).toBeDefined();
-                                   expect(data).toBe(expectedData);
-                                   expect(data.foo).toBeDefined();
-                                   expect(data.foo).toBe(42);
-                               };
-
+                var expectation = function(t, duration, data) {
+                                      expect(data).toBeDefined();
+                                      expect(data).toBe(expectedData);
+                                      expect(data.foo).toBeDefined();
+                                      expect(data.foo).toBe(42);
+                                  };
 
                 var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(expectation);
                 var methodName = relative ? 'rmodify' : 'modify';
@@ -365,14 +362,14 @@ describe("builder, regarding modifiers,", function() {
         varyAll([ { description: "non-relative modifiers",
                     prepare: function() { relative = false;
                                           _modify = function(what) {
-                                            var args = _arrayFrom(arguments).splice(1);
+                                            var args = _argsToArray(arguments).splice(1);
                                             what.modify.apply(what, args);
                                           };
                                         } },
                   { description: "relative modifiers",
-                    prepare: function() { relative = false;
+                    prepare: function() { relative = true;
                                           _modify = function(what) {
-                                            var args = _arrayFrom(arguments).splice(1);
+                                            var args = _argsToArray(arguments).splice(1);
                                             what.rmodify.apply(what, args);
                                           };
                                         } } ], function() {
@@ -669,7 +666,7 @@ describe("builder, regarding modifiers,", function() {
                                 spies = [];
                             _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                             doAsync(player, {
-                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, bands[idx], spy); });
+                                prepare: function() { _each(spies, function(spy, idx) { console.log(target, _modify, bands[idx]); _modify(target, bands[idx], spy); });
                                                       return scene; },
                                 run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                                 then: function() { _each(expectations, function(expectation) { expectation(); });
