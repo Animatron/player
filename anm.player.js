@@ -2317,8 +2317,7 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
                  elm_duration ];
   } else _tpair = [ relative ? ltime / elm_duration : ltime,
                     elm_duration ];
-  return !easing ? _tpair : [ easing(/*relative ? */_tpair[0]
-                                              /*: (_tpair[0] / _tpair[1])*/, _tpair[1]), _tpair[1] ];
+  return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, afps) {
     return (function(elm) {
@@ -2407,7 +2406,7 @@ Element.prototype.__addTypedModifier = function(conf, modifier) {
                                                  priority: priority,
                                                  time: conf.time,
                                                  relative: conf.relative,
-                                                 easing: Element.__convertEasing(conf.easing),
+                                                 easing: Element.__convertEasing(conf.easing, null, conf.relative),
                                                  data: conf.data } ]);
     modifier.__m_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                                (modifiers[type][priority].length - 1);
@@ -2661,12 +2660,18 @@ Element.__addTweenModifier = function(elm, conf) { /* FIXME: improve modify with
                           easing: conf.easing,
                           data: conf.data }, m_tween);
 }
-Element.__convertEasing = function(easing, data) {
+Element.__convertEasing = function(easing, data, relative) {
   if (!easing) return null;
-  if (typeof easing === 'string') return EasingImpl[easing](data);
+  if (typeof easing === 'string') {
+      var f = EasingImpl[easing](data);
+      return relative ? f : function(t, len) { return f(t / len, len) * len; }
+  }
   if ((typeof easing === 'function') && !data) return easing;
   if ((typeof easing === 'function') && data) return easing(data);
-  if (easing.type) return EasingImpl[easing.type](easing.data || data);
+  if (easing.type) {
+    var f = EasingImpl[easing.type](easing.data || data);
+    return relative ? f : function(t, len) { return f(t / len, len) * len; }
+  }
   if (easing.f) return easing.f(easing.data || data);
 }
 

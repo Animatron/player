@@ -2244,7 +2244,7 @@ describe("tweens", function() {
 
                     it("supports overriden easing in narrow band", function() {
                         checkTweens([.1, 1.5],
-                                    [ [ 'transP', [ .3, 1 ], 'M50 11 L10 40 Z', function(t) { return 1 - t; } ] ],
+                                    [ [ 'transP', [ .3, 1 ], 'M50 11 L10 40 Z', function(t, len) { return len - t; } ] ],
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
@@ -2265,7 +2265,7 @@ describe("tweens", function() {
                                     });
                     });
 
-                    it("supports predefined in narrow band", function() {
+                    it("supports predefined easing in narrow band", function() {
                         var seg = anm.Easing.__SEGS['EIN'];
                         checkTweens([.1, 1.5],
                                     [ [ 'transP', [ .3, 1 ], 'M50 11 L10 40 Z', anm.C.E_EIN ] ],
@@ -2304,7 +2304,7 @@ describe("tweens", function() {
 
                     it("supports overriden easing in narrow band", function() {
                         checkTweens([.1, 1.5],
-                                    [ [ 'scale', [ .3, 1 ], [[.5, .11], [.25, 1]], function(t) { return 1 - t; } ] ],
+                                    [ [ 'scale', [ .3, 1 ], [[.5, .11], [.25, 1]], function(t, len) { return len - t; } ] ],
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
@@ -2325,7 +2325,7 @@ describe("tweens", function() {
                                     });
                     });
 
-                    it("supports predefined in narrow band", function() {
+                    it("supports predefined easing in narrow band", function() {
                         var seg = anm.Easing.__SEGS['EIN'];
                         checkTweens([.1, 1.5],
                                     [ [ 'scale', [ .3, 1 ], [[.5, .11], [.25, 1]], anm.C.E_EIN ] ],
@@ -2364,7 +2364,7 @@ describe("tweens", function() {
 
                     it("supports overriden easing in narrow band", function() {
                         checkTweens([.1, 1.5],
-                                    [ [ 'xscale', [ .3, 1 ], [.5, 2.1], function(t) { return 1 - t; } ] ],
+                                    [ [ 'xscale', [ .3, 1 ], [.5, 2.1], function(t, len) { return len - t; } ] ],
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
@@ -2385,7 +2385,7 @@ describe("tweens", function() {
                                     });
                     });
 
-                    it("supports predefined in narrow band", function() {
+                    it("supports predefined easing in narrow band", function() {
                         var seg = anm.Easing.__SEGS['EIN'];
                         checkTweens([.1, 1.5],
                                     [ [ 'xscale', [ .3, 1 ], [.5, 2.1], anm.C.E_EIN ] ],
@@ -2423,7 +2423,7 @@ describe("tweens", function() {
 
                     it("supports overriden easing in narrow band", function() {
                         checkTweens([.1, 1.5],
-                                    [ [ 'rotate', [ .3, 1 ], [Math.PI / 2, 3 * Math.PI / 4], function(t) { return 1 - t; } ] ],
+                                    [ [ 'rotate', [ .3, 1 ], [Math.PI / 2, 3 * Math.PI / 4], function(t, len) { return len - t; } ] ],
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
@@ -2538,7 +2538,7 @@ describe("tweens", function() {
 
                     it("supports overriden easing in narrow band", function() {
                         checkTweens([.1, 1.5],
-                                    [ [ 'alpha', [ .3, 1 ], [.3, 1], function(t) { return 1 - t; } ] ],
+                                    [ [ 'alpha', [ .3, 1 ], [.3, 1], function(t, len) { return len - t; } ] ],
                                     function(s, at) {
                                         // before tween
                                         if (at < (.1 + .3)) {
@@ -2556,7 +2556,7 @@ describe("tweens", function() {
                                     });
                     });
 
-                    it("supports predefined in narrow band", function() {
+                    it("supports predefined easing in narrow band", function() {
                         var seg = anm.Easing.__SEGS['EIN'];
                         checkTweens([.1, 1.5],
                                     [ [ 'alpha', [ .3, 1 ], [.3, 1], anm.C.E_EIN ] ],
