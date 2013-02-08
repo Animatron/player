@@ -42,10 +42,13 @@ describe("builder, regarding modifiers,", function() {
                       // to vary all of modifier types
 
         var _duration = 1.5,
-            _timeout = _duration + .2,
-            _run = function() { player.play(); };
+            _timeout = _duration + .2;
 
-        var _band_val;
+        var _justPlay = function() { player.play(); },
+            _playFrom = function(from) { return function() { player.play(from, 1, 1 / (FPS * 2)); } };
+
+        var _band_val,
+            _run; // which player action to perform: just play or smth different
         var relative = false; // 0..1, or secondsBased
 
         // FIXME: test duration is accessible inside of the modifier
@@ -57,34 +60,38 @@ describe("builder, regarding modifiers,", function() {
                     description: "if it is a default modifier (band is equal to element's band),",
                     prepare: function() { _band_val = jasmine.undefined;
                                           relative = false;
-                                          curClass = function(spy) { return [ spy ] }; }
+                                          curClass = function(spy) { return [ spy ] };
+                                          _run = _justPlay; }
                   }, {
                     description: "or it is a band-restricted modifier,",
                     prepare: function() { _band_val = [ 0, _duration ];
                                           relative = false;
-                                          curClass = function(spy) { return [ _band_val, spy ] } }
+                                          curClass = function(spy) { return [ _band_val, spy ] };
+                                          _run = _justPlay; }
                   }, {
                     description: "or it is a trigger-like modifier,",
                     prepare: function() { _band_val = _duration / 4;
                                           relative = false;
                                           curClass = function(spy) { return [ _band_val, spy ] };
-                                          _run = function() { player.play(_band_val, 1, 1 / (FPS * 2)); }; }
+                                          _run = _playFrom(_band_val); }
                   }, {
                     description: "or it is a relatively-defined simple modifier (band is equal to element's band),",
                     prepare: function() { _band_val = jasmine.undefined;
                                           relative = true;
-                                          curClass = function(spy) { return [ spy ] }; }
+                                          curClass = function(spy) { return [ spy ] };
+                                          _run = _justPlay; }
                   }, {
                     description: "or it is a relatively-defined band-restricted modifier,",
                     prepare: function() { _band_val = [ 0, 1 ];
                                           relative = true;
-                                          curClass = function(spy) { return [ _band_val, spy ] } }
+                                          curClass = function(spy) { return [ _band_val, spy ] }
+                                          _run = _justPlay; }
                   }, {
                     description: "or it is a relatively-defined trigger-like modifier,",
                     prepare: function() { _band_val = 1 / 4;
                                           relative = true;
                                           curClass = function(spy) { return [ _band_val, spy ] };
-                                          _run = function() { player.play(_duration / 4, 1, 1 / (FPS * 2)); }; }
+                                          _run = _playFrom(_duration / 4); }
                   } ],  function() {
 
             it("calls an inner __modify function to add modifier", function() {
@@ -118,11 +125,6 @@ describe("builder, regarding modifiers,", function() {
 
                 var modifierSpy = jasmine.createSpy('modifier-spy');
                 var methodName = relative ? 'rmodify' : 'modify';
-
-                console.log('class', curClass(modifierSpy));
-                spyOn(scene.v, '__modify').andCallFake(function() {
-                    console.log('args', arguments);
-                })
 
                 doAsync(player, {
                     prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
@@ -666,7 +668,7 @@ describe("builder, regarding modifiers,", function() {
                                 spies = [];
                             _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                             doAsync(player, {
-                                prepare: function() { _each(spies, function(spy, idx) { console.log(target, _modify, bands[idx]); _modify(target, bands[idx], spy); });
+                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, bands[idx], spy); });
                                                       return scene; },
                                 run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
                                 then: function() { _each(expectations, function(expectation) { expectation(); });
