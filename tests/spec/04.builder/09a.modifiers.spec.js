@@ -143,6 +143,8 @@ describe("builder, regarding modifiers,", function() {
                 var target = b();
                 scene.add(b().add(b().add(target)));
 
+                target.band([0, _duration]);
+
                 doAsync(player, {
                     prepare: function() { target[methodName].apply(target, curClass(modifierSpy));
                                           return scene; },
@@ -1281,7 +1283,7 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
                                 }
-                                expect(duration).toBe(band_duration);
+                                expect(duration).toBe(_band_duration);
                             }
                         }
 
