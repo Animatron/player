@@ -1303,7 +1303,7 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
                                 }
-                                expect(duration).toBe(band_duration);
+                                expect(duration).toBe(_band_duration);
                             }
                         }
 
@@ -1479,7 +1479,7 @@ describe("builder, regarding modifiers,", function() {
 
                             doAsync(player, {
                                 prepare: function() { _modify(target, relative ? modifier_rtime
-                                                                               : rmodifie_time, modifierSpy); },
+                                                                               : modifier_time, modifierSpy); },
                                 do: 'play', until: C.STOPPED, timeout: _timeout,
                                 then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
                                                    target.unmodify(modifierSpy); }
