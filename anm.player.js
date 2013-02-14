@@ -2294,7 +2294,6 @@ Element.prototype._stateStr = function() {
 Element._FPS_FALLBACK = FPS_FALLBACK;
 Element._FPS_ERROR = FPS_ERROR;
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) {
-  //var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier, afps);
   var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0],
       easing = conf.easing,
@@ -2326,10 +2325,14 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
                       : 0) || 0;
       /* FIXME: test if afps is not too big */
       var tpos = relative ? (time * elm_duration) : time;
+      console.log('ltime', ltime);
+                   // fps is known, so time position should fall between frames
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
                     (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
-                   ((afps <= 0) && __close(ltime, tpos, 10)) ||
+                   // fps is unknown or we are just at very start of playing
+                   ((afps <= 0) && __close(ltime, tpos, 7)) ||
+                   // close-test has failed, so we use fps fallback for the test
                    ((tpos > (lband[1] - (1 / (afps || FPS_FALLBACK)))) &&
                     ((ltime + (1 / (afps || FPS_FALLBACK))) > lband[1]));
       if (doCall) {
@@ -2341,6 +2344,7 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
       if (!doCall) return false;
       _tpair = [ relative ? ltime / elm_duration : ltime,
                  elm_duration ];
+      console.log('_tpair', _tpair);
   } else _tpair = [ relative ? ltime / elm_duration : ltime,
                     elm_duration ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
@@ -2667,8 +2671,7 @@ Element.__addDebugRender = function(elm) {
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
-Element.__addTweenModifier = function(elm, conf) { /* FIXME: improve modify with adding object same way,
-                                                       include easing in all modifiers */
+Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
     var tween_f = Tweens[conf.type](),
         m_tween;

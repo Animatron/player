@@ -341,6 +341,7 @@ Builder.prototype.rtween = function(type, band, data, easing) {
     });
     return this;
 }
+// FIXME: add rtrans, rscale, ralpha and s.o.
 // > builder.untween % (tween: Function) => Builder
 Builder.prototype.untween = Builder.prototype.unmodify;
 // > builder.rotate % (band: Array[2,Float],
