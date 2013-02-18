@@ -1485,6 +1485,7 @@ describe("builder, regarding modifiers,", function() {
                             ], function() {
 
                         // some tests below do not use modifier_time, but t
+                        // TODO: test with BOUNCE mode
 
                         it("calls a modifier exactly once", function() {
                             var modifierSpy = jasmine.createSpy('modifier-spy');

@@ -2320,28 +2320,13 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
       }
   } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
-      var afps = afps || (state._._appliedAt
-                         ? (1 / (ltime - state._._appliedAt))
-                         : 0) || 0;
-      /* FIXME: test if afps is not too big */
       var tpos = relative ? (time * elm_duration) : time;
-      console.log(ltime, time, tpos, afps);
-                   // fps is known, so time position should fall between frames
-      var doCall = ((afps > 0) &&
-                    (ltime >= tpos) &&
-                    (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
-                   // fps is unknown or we are just at very start of playing
-                   ((afps <= 0) && __close(ltime, tpos, 7)) ||
-                   // close-test has failed, so we use fps fallback for the test
-                   ((tpos > (lband[1] - (1 / (afps || FPS_FALLBACK)))) &&
-                    ((ltime + (1 / (afps || FPS_FALLBACK))) > lband[1]));
-      if (doCall) {
+      if (ltime >= tpos) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
-      }
-      if (!doCall) return false;
+      } else return false;
       _tpair = [ relative ? ltime / elm_duration : ltime,
                  elm_duration ];
       console.log('_tpair', _tpair);
