@@ -389,9 +389,15 @@ describe("builder, regarding modifiers,", function() {
                     it("should add modifier and call it", function() {
                         scene = b('scene').band([0, 3]);
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
-                            expect(t).toBeGreaterThanOrEqual(0);
-                            expect(t).toBeLessThanOrEqual(3);
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
+                            if (relative) {
+                                expect(t).toBeGreaterThanOrEqual(0);
+                                expect(t).toBeLessThanOrEqual(1);
+                            } else {
+                                expect(t).toBeGreaterThanOrEqual(0);
+                                expect(t).toBeLessThanOrEqual(3);
+                            }
+                            expect(duration).toBe(3);
                         });
 
                         doAsync(player, {
@@ -410,7 +416,7 @@ describe("builder, regarding modifiers,", function() {
 
                         scene.add(b().add(b().add(target)));
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             if (relative) {
                                 expect(t * (3.7 - .3)).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
@@ -420,6 +426,7 @@ describe("builder, regarding modifiers,", function() {
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 expect(t).toBeLessThanOrEqual(3.7 - .3);
                             }
+                            expect(duration).toBe(3.7 - .3);
                         });
 
                         doAsync(player, {
@@ -438,9 +445,10 @@ describe("builder, regarding modifiers,", function() {
 
                         scene.add(b().add(b().add(target)));
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             expect(t).toBeGreaterThanOrEqual(0);
                             expect(t).toBeLessThanOrEqual(1);
+                            expect(duration).toBe(1);
                         });
 
                         doAsync(player, {
@@ -473,6 +481,7 @@ describe("builder, regarding modifiers,", function() {
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 expect(t).toBeLessThanOrEqual(.42 - .11);
                             }
+                            expect(duration).toBe(.42 - .11);
                         });
 
                         doAsync(player, {
@@ -484,7 +493,7 @@ describe("builder, regarding modifiers,", function() {
 
                     });
 
-                    it("should pass element's band duration inside relative modifiers and not to pass it in non-relative once", function() {
+                    it("should pass element's band duration to modifiers", function() {
                         scene = b('scene').band([2, 5]);
 
                         var bands = [ [ 0.5, 1.2 ],
@@ -528,9 +537,10 @@ describe("builder, regarding modifiers,", function() {
 
                         for (var i = 0; i < spiesCount; i++) {
                             modifierSpies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake(
-                                function(t) {
+                                function(t, duration) {
                                     expect(t).toBeGreaterThanOrEqual(0);
                                     expect(t).toBeLessThanOrEqual(1);
+                                    expect(duration).toBe(1);
                                 }
                             ));
                         }
@@ -555,7 +565,7 @@ describe("builder, regarding modifiers,", function() {
                     it("should support removing modifiers while executing them", function() {
                         scene = b('scene').band([0, 1]);
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             expect(t).toBeGreaterThanOrEqual(0);
                             // remove modifier after .5
                             if (t > .5) {
@@ -566,6 +576,7 @@ describe("builder, regarding modifiers,", function() {
                             }
                             // if modifier wasn't self-removed, time should be less than .5
                             expect(t).toBeLessThanOrEqual(.5);
+                            expect(duration).toBe(1);
                         });
 
                         doAsync(player, {
@@ -599,6 +610,7 @@ describe("builder, regarding modifiers,", function() {
                                     }
                                     // if modifier wasn't self-removed, time should be less than .5
                                     expect(t).toBeLessThanOrEqual(removeTime);
+                                    expect(duration).toBe(1);
                                 } })(i)));
                         };
 
@@ -1476,6 +1488,8 @@ describe("builder, regarding modifiers,", function() {
 
                         it("calls a modifier exactly once", function() {
                             var modifierSpy = jasmine.createSpy('modifier-spy');
+
+                            console.log(relative, trg_band);
 
                             doAsync(player, {
                                 prepare: function() { _modify(target, relative ? modifier_rtime

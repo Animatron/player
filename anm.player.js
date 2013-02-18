@@ -2320,12 +2320,12 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
       }
   } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
-      afps = afps || (state._._appliedAt
-                      ? (1 / (ltime - state._._appliedAt))
-                      : 0) || 0;
+      var afps = afps || (state._._appliedAt
+                         ? (1 / (ltime - state._._appliedAt))
+                         : 0) || 0;
       /* FIXME: test if afps is not too big */
       var tpos = relative ? (time * elm_duration) : time;
-      console.log('ltime', ltime);
+      console.log(ltime, time, tpos, afps);
                    // fps is known, so time position should fall between frames
       var doCall = ((afps > 0) &&
                     (ltime >= tpos) &&
