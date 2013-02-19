@@ -463,13 +463,6 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
-// Internal Constants
-// -----------------------------------------------------------------------------
-
-// for the cases when it is impossible to determine FPS
-var FPS_FALLBACK = 60,
-    FPS_ERROR = 1.3;
-
 // Player
 // -----------------------------------------------------------------------------
 
@@ -1379,13 +1372,13 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.render = function(ctx, time, zoom, afps) {
+Scene.prototype.render = function(ctx, time, zoom) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
     this.visitRoots(function(elm) {
-        elm.render(ctx, time, afps);
+        elm.render(ctx, time);
     });
     ctx.restore();
     this.fire(C.X_DRAW,ctx);
@@ -1620,8 +1613,8 @@ Element.prototype.prepare = function() {
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
-Element.prototype.onframe = function(ltime, afps) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, afps);
+Element.prototype.onframe = function(ltime) {
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
@@ -1662,8 +1655,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= s.alpha;
     s._matrix.apply(ctx);
 }
-// > Element.render % (ctx: Context, gtime: Float[, afps: Float])
-Element.prototype.render = function(ctx, gtime, afps) {
+// > Element.render % (ctx: Context, gtime: Float)
+Element.prototype.render = function(ctx, gtime) {
     if (this.disabled) return;
     this.rendering = true;
     ctx.save();
@@ -1672,7 +1665,7 @@ Element.prototype.render = function(ctx, gtime, afps) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     if (wasDrawn = (this.fits(ltime)
-                    && this.onframe(ltime, afps)
+                    && this.onframe(ltime)
                     && this.prepare())) {
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
@@ -2291,9 +2284,7 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element._FPS_FALLBACK = FPS_FALLBACK;
-Element._FPS_ERROR = FPS_ERROR;
-Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) {
+Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
   var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0],
       easing = conf.easing,
@@ -2329,12 +2320,11 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier, afps) 
       } else return false;
       _tpair = [ relative ? ltime / elm_duration : ltime,
                  elm_duration ];
-      console.log('_tpair', _tpair);
   } else _tpair = [ relative ? ltime / elm_duration : ltime,
                     elm_duration ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
-Element.prototype.__callModifiers = function(order, ltime, afps) {
+Element.prototype.__callModifiers = function(order, ltime) {
     return (function(elm) {
 
         // save the previous state
@@ -2355,7 +2345,7 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
         if (!elm.__forAllModifiers(order,
             function(modifier, conf) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier, afps);
+                var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier);
                 // false will be returned from __adaptModTime
                 // for trigger-like modifier if it is required to skip current one
                 if (lbtime === false) return true;
@@ -2831,7 +2821,7 @@ D.drawNext = function(ctx, state, scene, before, after) {
     ctx.clearRect(0, 0, state.width * state.ratio,
                         state.height * state.ratio);
 
-    scene.render(ctx, time, state.zoom * state.ratio, state.afps);
+    scene.render(ctx, time, state.zoom * state.ratio/*, state.afps*/);
 
     // show fps
     if (state.debug) { // TODO: move to player.onrender

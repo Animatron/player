@@ -1485,12 +1485,9 @@ describe("builder, regarding modifiers,", function() {
                             ], function() {
 
                         // some tests below do not use modifier_time, but t
-                        // TODO: test with BOUNCE mode
 
                         it("calls a modifier exactly once", function() {
                             var modifierSpy = jasmine.createSpy('modifier-spy');
-
-                            console.log(relative, trg_band);
 
                             doAsync(player, {
                                 prepare: function() { _modify(target, relative ? modifier_rtime
@@ -1563,34 +1560,24 @@ describe("builder, regarding modifiers,", function() {
                             doAsync(player, {
                                 prepare: function() { _modify(target, modTime, modifierSpy); },
                                 run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
-                                then: function() { expect(modifierSpy).not.toHaveBeenCalledOnce();
+                                then: function() { expect(modifierSpy).not.toHaveBeenCalled();
                                                    target.unmodify(modifierSpy);
                                                    if (callback) callback(); }
                             });
                         };
 
-                        var FPS_ERR = anm.Element._FPS_ERROR;
-
-                        function playValueTest(t, duration, time) {
-                            return (duration === trg_duration) &&
-                                   ((t >= 0) && (t <= trg_duration)) &&
-                                   (((t >= time) && (t <= time + (mFPS * FPS_ERR))) ||
-                                    ((t <  time) && __close(t, time, 10))); }
-                        function rplayValueTest(t, duration, time) {
-                            return (duration === trg_duration) &&
-                                   ((t >= 0) && (t <= 1)) &&
-                                   ((((t * duration) >= time) && ((t * duration) <= time + (mFPS * FPS_ERR))) ||
-                                    (((t * duration) < time)  && __close(t * duration, time, 10))); }
-                        function drawValueTest(t, duration, time) {
-                            return (duration === trg_duration) &&
-                                   ((t >= 0) && (t <= trg_duration)) &&
-                                   ( Math.round(t  * Math.pow(10, CLOSE_FACTOR)) ==
-                                     Math.round(time * Math.pow(10, CLOSE_FACTOR)) ); }
-                        function rdrawValueTest(t, duration, time) {
-                            return (duration === trg_duration) &&
-                                   ((t >= 0) && (t <= 1)) &&
-                                   ( Math.round((t * duration) * Math.pow(10, CLOSE_FACTOR)) ==
-                                     Math.round(time           * Math.pow(10, CLOSE_FACTOR)) ); }
+                        function valueTest(spec, t, duration, time) {
+                            if (duration !== trg_duration) spec.fail('Received duration is not equal to target duration');
+                            if (!(t >= 0 && t <= trg_duration)) spec.fail('Time does not fits the target duration');
+                            if (t < time) spec.fail('Time of the call should be greater than or equal to requested time');
+                            return true;
+                        }
+                        function rvalueTest(spec, t, duration, time) {
+                            if (duration !== trg_duration) spec.fail('Received duration is not equal to target duration');
+                            if (!(t >= 0 && t <= 1)) spec.fail('Time does not fits the target duration');
+                            if (t * trg_duration < time) spec.fail('Time of the call should be greater than or equal to requested time');
+                            return true;
+                        }
                         function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
 
                         varyAll( [
@@ -1600,7 +1587,7 @@ describe("builder, regarding modifiers,", function() {
                                         return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
                                                             player.play(trg_band[0] + time, 1, mFPS * 3); }
                                     };
-                                    _valueTest = relative ? rplayValueTest : playValueTest;
+                                    _valueTest = relative ? rvalueTest : valueTest;
                                 } },
                               { description: "if rendering was requested",
                                 prepare: function() {
@@ -1608,20 +1595,47 @@ describe("builder, regarding modifiers,", function() {
                                         return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
                                                             player.drawAt(trg_band[0] + time); }
                                     };
-                                    _valueTest = relative ? rdrawValueTest : drawValueTest;
+                                    _valueTest = relative ? rvalueTest : valueTest;
                                 } }
-                              /* TODO: { description: "if time-jump was performed",
+                              /* FIXME: { description: "if time-jump was performed",
+                                prepare: function() {} } */
+                              /* FIXME: { description: "with BOUNCE mode",
                                 prepare: function() {} } */
                             ], function() {
 
+                            it("does not calls a modifier if frame requested is before its time", function() {
+                                var calls = [];
+                                var spec = this;
+                                console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
+                                for (var delta = 0, to = modifier_time; delta < to; delta += .01) {
+                                    var before_time = delta;
+                                    console.log('delta', delta);
+                                    if (fitsScene(before_time)) {
+                                        (function(before_time) {
+                                            calls.push(function() {
+                                                expectNotToCall(function(t, duration) {
+                                                    expect(_valueTest(spec, t, duration, modifier_time)).toBeTruthy();
+                                                }, modifier_time, before_time, this.next);
+                                            });
+                                        }(before_time));
+                                    }
+                                }
+                                if ((modifier_time > trg_band[0]) && (_duration > 0)) {
+                                    expect(calls.length).toBeGreaterThan(0);
+                                }
+                                console.log('calls count', calls.length);
+                                if (calls.length > 0) queue(calls);
+                            });
+
                             it("calls a modifier if current frame matches its time", function() {
+                                var spec = this;
                                 expectToCall(function(t, duration) {
-                                    expect(_valueTest(t, duration, modifier_time)).toBeTruthy();
+                                    expect(_valueTest(spec, t, duration, modifier_time)).toBeTruthy();
                                 }, modifier_time, modifier_time);
                             });
 
-                            it("does not calls a modifier if current frame requested is after (even a little bit) its time, except the cases when it predicts not to be fast enough to be called in the end of the bands", function() {
-                                var calls = [];
+                            it("still calls a modifier if frame requested happened after its time, but during element's life period", function() {
+                                /*var calls = [];
                                 for (var delta = .01, to = mFPS * 1.5; delta < to; delta += .01) {
                                     var later_time = modifier_time + (mFPS * FPS_ERR) + delta;
                                     if (fitsScene(later_time)) {
@@ -1646,11 +1660,11 @@ describe("builder, regarding modifiers,", function() {
                                 if ((trg_band[0] + modifier_time + (mFPS * FPS_ERR) + 0.01) <= _duration) {
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                if (calls.length > 0) queue(calls);
+                                if (calls.length > 0) queue(calls);*/
                             });
 
-                            it("calls a modifier again and again if current frame matches its time", function() {
-                                var calls = [];
+                            it("does not calls a modifier if frame requested happened after its time, but also after the element's life period", function() {
+                                /*var calls = [];
                                 for (var i = 0; i < 10; i++) {
                                     calls.push(function() {
                                         expectToCall(function(t, duration) {
@@ -1658,7 +1672,7 @@ describe("builder, regarding modifiers,", function() {
                                         }, modifier_time, modifier_time, this.next);
                                     });
                                 }
-                                queue(calls);
+                                queue(calls);*/
                             });
 
                         });
@@ -1666,6 +1680,7 @@ describe("builder, regarding modifiers,", function() {
                         it("calls a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
                             var calls = [];
                             var fraction = 4 / 5;
+                            var spec = this;
                             for (var delta = fraction * mFPS; delta > 0; delta -= .005) {
                                 var call_at = trg_band[0] + (modifier_time - delta);
                                 if (call_at < 0) call_at = 0;
@@ -1676,7 +1691,7 @@ describe("builder, regarding modifiers,", function() {
                                             (function(next) {
                                                 var modifierSpy = jasmine.createSpy('modifier-spy')
                                                     .andCallFake(function(t, duration) {
-                                                        expect(playValueTest(t, duration, modifier_time)).toBeTruthy();
+                                                        expect(valueTest(spec, t, duration, modifier_time)).toBeTruthy();
                                                     });
                                                 doAsync(player, {
                                                     prepare: function() { target.modify(modifier_time, modifierSpy); },
