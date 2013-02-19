@@ -476,9 +476,15 @@ Builder.prototype.paint = function(func, data, priority) {
 }
 // > builder.at % (t: time, modifier: Function(time: Float,
 //                                             data: Any),
-//                     [data: Any, priority: Integer]) => Builder
+//                 [data: Any, priority: Integer]) => Builder
 Builder.prototype.at = function(t, func, data, priority) {
     return this.modify(t, func, data, priority);
+}
+// > builder.rat % (t: time, modifier: Function(time: Float,
+//                                              data: Any),
+//                  [data: Any, priority: Integer]) => Builder
+Builder.prototype.rat = function(t, func, data, priority) {
+    return this.rmodify(t, func, data, priority);
 }
 // > builder.unmodify % (modifier: Function) => Builder
 Builder.prototype.unmodify = function(modifier) {
