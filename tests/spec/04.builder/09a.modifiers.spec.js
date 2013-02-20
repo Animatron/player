@@ -1518,17 +1518,13 @@ describe("builder, regarding modifiers,", function() {
                             var FPS_ERR = 7 / 9;
 
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
-                                if (relative) {
-                                    expect(t).toBeGreaterThanOrEqual(expectedT / duration);
-                                    expect(t * duration).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
-                                    expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
-                                    calledAt = t * trg_duration;
-                                } else {
-                                    expect(t).toBeGreaterThanOrEqual(expectedT);
-                                    expect(t).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS);
-                                    expect(calledAt).not.toBeGreaterThan(0); // ensure not called before
-                                    calledAt = t;
-                                }
+                                expect(duration).toEqual(trg_duration);
+                                expect(t).toBeGreaterThanOrEqual(expectedT);
+                                expect(t).toBeEpsilonyCloseTo(expectedT, relative
+                                                                         ? (mFPS + (mFPS * FPS_ERR)) / duration
+                                                                         :  mFPS + (mFPS * FPS_ERR));
+                                expect(calledAt).not.toBeGreaterThan(0); // ensure wasn't called before
+                                calledAt = t;
                             });
 
                             doAsync(player, {
@@ -1546,6 +1542,7 @@ describe("builder, regarding modifiers,", function() {
 
                         function expectToCall(modifier, modTime, playTime, callback) {
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
+                            console.log('modTime', modTime, 'playTime', playTime);
                             doAsync(player, {
                                 prepare: function() { _modify(target, modTime, modifierSpy); },
                                 run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
@@ -1578,21 +1575,20 @@ describe("builder, regarding modifiers,", function() {
                             if (t * trg_duration < time) spec.fail('Time of the call should be greater than or equal to requested time');
                             return true;
                         }
-                        function fitsScene(mod_time) { return (trg_band[0] + mod_time >= 0) && (trg_band[0] + mod_time <= _duration); }
 
                         varyAll( [
                               { description: "short-playing-period",
                                 prepare: function() {
                                     _whatToRun = function(time) {
-                                        return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
-                                                            player.play(trg_band[0] + time, 1, mFPS * 3); }
+                                        return function() { if (time > _duration) throw new Error('Time ' + time + ' doesn\'t fit the scene with duration ' + _duration);
+                                                            player.play(trg_band[0] + time, 1, mFPS * 1 / 2); }
                                     };
                                     _valueTest = relative ? rvalueTest : valueTest;
                                 } },
                               { description: "if rendering was requested",
                                 prepare: function() {
                                     _whatToRun = function(time) {
-                                        return function() { if (!fitsScene(time)) throw new Error('Time doesn\'t fit the scene');
+                                        return function() { if (time > _duration) throw new Error('Time ' + time + ' doesn\'t fit the scene with duration ' + _duration);
                                                             player.drawAt(trg_band[0] + time); }
                                     };
                                     _valueTest = relative ? rvalueTest : valueTest;
@@ -1606,76 +1602,78 @@ describe("builder, regarding modifiers,", function() {
                             it("does not calls a modifier if frame requested is before its time", function() {
                                 var calls = [];
                                 var spec = this;
-                                console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
+                                //console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
                                 for (var before_time = 0; before_time < modifier_time; before_time += .01) {
-                                    console.log('before_time', before_time);
-                                    if (fitsScene(before_time)) {
-                                        (function(before_time) {
-                                            calls.push(function() {
-                                                expectNotToCall(function(t, duration) {
-                                                    // should not be called, so nothing to test
-                                                }, modifier_time, before_time, this.next);
-                                            });
-                                        }(before_time));
-                                    }
+                                    //console.log('before_time', before_time);
+                                    (function(before_time) {
+                                        calls.push(function() {
+                                            expectNotToCall(function(t, duration) {
+                                                // should not be called, so nothing to test
+                                            }, relative ? modifier_rtime
+                                                        : modifier_time, trg_band[0] + before_time, this.next);
+                                        });
+                                    })(before_time);
                                 }
-                                if ((modifier_time > trg_band[0]) && (_duration > 0)) {
+                                if ((modifier_time > trg_band[0]) && (trg_duration > 0)) {
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                console.log('calls count', calls.length);
+                                //console.log('calls count', calls.length);
                                 if (calls.length > 0) queue(calls);
                             });
 
                             it("calls a modifier if current frame matches its time", function() {
                                 var spec = this;
+
                                 expectToCall(function(t, duration) {
                                     expect(_valueTest(spec, t, duration, modifier_time)).toBeTruthy();
-                                }, modifier_time, modifier_time);
+                                }, relative ? modifier_rtime
+                                            : modifier_time, trg_band[0] + modifier_time);
                             });
 
                             it("still calls a modifier if frame requested happened after its time, but during element's life period", function() {
                                 var calls = [];
                                 var spec = this;
                                 console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
-                                for (var later_time = modifier_time; later_time <= trg_band[1]; later_time += .01) {
-                                    console.log('later_time', later_time);
-                                    if (fitsScene(later_time)) {
-                                        (function(later_time) {
-                                            calls.push(function() {
-                                                expectToCall(function(t, duration) {
-                                                    expect(_valueTest(spec, t, duration, modifier_time)).toBeTruthy();
-                                                }, modifier_time, later_time, this.next);
-                                            });
-                                        }(later_time));
-                                    }
+                                for (var later_time = modifier_time; later_time <= trg_duration; later_time += .01) {
+                                    console.log('later_time', later_time, trg_band[0] + later_time);
+                                    (function(later_time) {
+                                        calls.push(function() {
+                                            expectToCall(function(t, duration) {
+                                                expect(_valueTest(spec, t, duration, modifier_time)).toBeTruthy();
+                                            }, relative ? modifier_rtime
+                                                        : modifier_time, trg_band[0] + later_time, this.next);
+                                        });
+                                    })(later_time);
                                 }
-                                if ((modifier_time > trg_band[0]) && (_duration > 0)) {
+                                if ((modifier_time >= trg_band[0]) && (trg_duration > 0)) {
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                console.log('calls count', calls.length);
+                                //console.log('calls count', calls.length);
                                 if (calls.length > 0) queue(calls);
                             });
 
                             it("does not calls a modifier if frame requested happened after its time, but also after the element's life period", function() {
                                 var calls = [];
                                 var spec = this;
-                                console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
+                                console.log(trg_band[1] + 0.01, _duration);
+                                //console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
                                 for (var after_time = trg_band[1] + 0.01; after_time <= _duration; after_time += .01) {
                                     console.log('after_time', after_time);
-                                    if (fitsScene(after_time)) {
-                                        (function(after_time) {
-                                            calls.push(function() {
-                                                expectNotToCall(function(t, duration) {
-                                                    expect(_valueTest(spec, t, duration, after_time)).toBeTruthy();
-                                                }, modifier_time, after_time, this.next);
-                                            });
-                                        }(after_time));
-                                    }
+                                    (function(after_time) {
+                                        calls.push(function() {
+                                            expectNotToCall(function(t, duration) {
+                                                // should not be called, so nothing to test
+                                            }, relative ? modifier_rtime
+                                                        : modifier_time, after_time, this.next);
+                                        });
+                                    }(after_time));
                                 }
-                                if ((modifier_time > trg_band[0]) && (_duration > 0)) {
+                                if ((trg_band[1] < _duration) && (_duration > 0)) {
+                                    console.log('check calls', calls.length > 0);
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                console.log('calls count', calls.length);
+                                console.log(trg_band, _duration);
+                                console.log('!!!! calls count', calls.length);
                                 if (calls.length > 0) queue(calls);
                             });
 
