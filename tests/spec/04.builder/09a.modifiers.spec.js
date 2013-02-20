@@ -1542,7 +1542,6 @@ describe("builder, regarding modifiers,", function() {
 
                         function expectToCall(modifier, modTime, playTime, callback) {
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(modifier);
-                            console.log('modTime', modTime, 'playTime', playTime);
                             doAsync(player, {
                                 prepare: function() { _modify(target, modTime, modifierSpy); },
                                 run: _whatToRun(playTime), until: C.STOPPED, timeout: _timeout,
@@ -1581,7 +1580,7 @@ describe("builder, regarding modifiers,", function() {
                                 prepare: function() {
                                     _whatToRun = function(time) {
                                         return function() { if (time > _duration) throw new Error('Time ' + time + ' doesn\'t fit the scene with duration ' + _duration);
-                                                            player.play(trg_band[0] + time, 1, mFPS * 1 / 2); }
+                                                            player.play(time, 1, mFPS * 1 / 2); }
                                     };
                                     _valueTest = relative ? rvalueTest : valueTest;
                                 } },
@@ -1589,7 +1588,7 @@ describe("builder, regarding modifiers,", function() {
                                 prepare: function() {
                                     _whatToRun = function(time) {
                                         return function() { if (time > _duration) throw new Error('Time ' + time + ' doesn\'t fit the scene with duration ' + _duration);
-                                                            player.drawAt(trg_band[0] + time); }
+                                                            player.drawAt(time); }
                                     };
                                     _valueTest = relative ? rvalueTest : valueTest;
                                 } }
@@ -1602,9 +1601,7 @@ describe("builder, regarding modifiers,", function() {
                             it("does not calls a modifier if frame requested is before its time", function() {
                                 var calls = [];
                                 var spec = this;
-                                //console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
                                 for (var before_time = 0; before_time < modifier_time; before_time += .01) {
-                                    //console.log('before_time', before_time);
                                     (function(before_time) {
                                         calls.push(function() {
                                             expectNotToCall(function(t, duration) {
@@ -1617,7 +1614,6 @@ describe("builder, regarding modifiers,", function() {
                                 if ((modifier_time > trg_band[0]) && (trg_duration > 0)) {
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                //console.log('calls count', calls.length);
                                 if (calls.length > 0) queue(calls);
                             });
 
@@ -1633,9 +1629,7 @@ describe("builder, regarding modifiers,", function() {
                             it("still calls a modifier if frame requested happened after its time, but during element's life period", function() {
                                 var calls = [];
                                 var spec = this;
-                                console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
                                 for (var later_time = modifier_time; later_time <= trg_duration; later_time += .01) {
-                                    console.log('later_time', later_time, trg_band[0] + later_time);
                                     (function(later_time) {
                                         calls.push(function() {
                                             expectToCall(function(t, duration) {
@@ -1648,17 +1642,13 @@ describe("builder, regarding modifiers,", function() {
                                 if ((modifier_time >= trg_band[0]) && (trg_duration > 0)) {
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                //console.log('calls count', calls.length);
                                 if (calls.length > 0) queue(calls);
                             });
 
                             it("does not calls a modifier if frame requested happened after its time, but also after the element's life period", function() {
                                 var calls = [];
                                 var spec = this;
-                                console.log(trg_band[1] + 0.01, _duration);
-                                //console.log('trg_band', trg_band, 'modifier_time', modifier_time, '_duration', _duration);
                                 for (var after_time = trg_band[1] + 0.01; after_time <= _duration; after_time += .01) {
-                                    console.log('after_time', after_time);
                                     (function(after_time) {
                                         calls.push(function() {
                                             expectNotToCall(function(t, duration) {
@@ -1669,17 +1659,15 @@ describe("builder, regarding modifiers,", function() {
                                     }(after_time));
                                 }
                                 if ((trg_band[1] < _duration) && (_duration > 0)) {
-                                    console.log('check calls', calls.length > 0);
                                     expect(calls.length).toBeGreaterThan(0);
                                 }
-                                console.log(trg_band, _duration);
-                                console.log('!!!! calls count', calls.length);
                                 if (calls.length > 0) queue(calls);
                             });
 
                         });
 
                         it("calls a modifier if frame-time wasn't fit to actual time while playing (from earlier point), but was fit to a time a bit later.", function() {
+                            // FIXME: not ensures if calls were not empty
                             var calls = [];
                             var fraction = 4 / 5;
                             var spec = this;
@@ -1708,6 +1696,9 @@ describe("builder, regarding modifiers,", function() {
                                     })(call_at);
                                 }
                             }
+                            /* if ((_duration > 0) && ()) {
+                                expect(calls.length).toBeGreaterThan(0);
+                            } */
                             if (calls.length > 0) queue(calls);
                         });
 
