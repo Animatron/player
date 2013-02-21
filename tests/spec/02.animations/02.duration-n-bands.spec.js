@@ -19,6 +19,18 @@ describe("regarding elements' duration and bands in animations,", function() {
         player = createPlayer('test-id');
     });
 
+    describe("internal test length", function() {
+
+        // FIXME: it's not so right to test it, however it helps to ensure
+        //        in constants consistency if tests below are written not
+        //        in the right way
+
+        it("equal to element's constant", function() {
+            expect(DEFAULT_ELEMENT_LENGTH).toEqual(anm.Element.DEFAULT_LEN);
+        });
+
+    });
+
     describe("element duration", function() {
 
         it("should be equal to default length if band is not specified", function() {

@@ -17,6 +17,8 @@ describe("builder, regarding modifiers,", function() {
         mFPS = 1 / FPS,
         _fg;
 
+    var DEFAULT_ELM_LEN = anm.Element.DEFAULT_LEN;
+
     var CLOSE_FACTOR = 14; // digits following floating point
 
     var scene;
@@ -90,6 +92,7 @@ describe("builder, regarding modifiers,", function() {
                     description: "or it is a relatively-defined trigger-like modifier,",
                     prepare: function() { _band_val = 1 / 4;
                                           relative = true;
+                                          console.log(_duration, _duration / 4);
                                           curClass = function(spy) { return [ _band_val, spy ] };
                                           _run = _playFrom(_duration / 4); }
                   } ],  function() {
@@ -307,7 +310,7 @@ describe("builder, regarding modifiers,", function() {
                     var sceneSpy = jasmine.createSpy('scene-modifier-spy');
 
                     var disablingSpy = jasmine.createSpy('disabling-modifier-spy').andCallFake(
-                        function(t) { return false; }
+                        function(t) { console.log('called', t); return false; }
                     );
 
                     for (var i = 0; i < spiesCount; i++) {
@@ -322,6 +325,8 @@ describe("builder, regarding modifiers,", function() {
                             scene.modify(sceneSpy);
 
                             var parent = b();
+                            console.log(methodName, curClass(disablingSpy));
+                            console.log(_run);
                             parent[methodName].apply(parent, curClass(disablingSpy));
                             scene.add(parent);
 
@@ -447,8 +452,8 @@ describe("builder, regarding modifiers,", function() {
 
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             expect(t).toBeGreaterThanOrEqual(0);
-                            expect(t).toBeLessThanOrEqual(1);
-                            expect(duration).toBe(1);
+                            expect(t).toBeLessThanOrEqual(relative ? 1 : DEFAULT_ELM_LEN);
+                            expect(duration).toBe(DEFAULT_ELM_LEN);
                         });
 
                         doAsync(player, {
@@ -471,7 +476,7 @@ describe("builder, regarding modifiers,", function() {
 
                         scene.add(b().add(parent));
 
-                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {
+                        var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             if (relative) {
                                 expect(t * (.42 - .11)).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
