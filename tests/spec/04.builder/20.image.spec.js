@@ -1,6 +1,6 @@
+/*global Image: true, expect: true */
 describe("image", function() {
-    var b = Builder._$,
-        B = Builder;
+    var b = Builder._$;
     describe("preloading", function() {
          it("callbacks on image loaded", function() {
              var done = false;
@@ -12,7 +12,7 @@ describe("image", function() {
              runs(function() {
                  b().image([0,0], "test.png", function() {done = true;});
              });
-             waitsFor(function() {return done}, "The callback should fire", 800);
+             waitsFor(function() {return done;}, "The callback should fire", 800);
              runs(function() {
                 expect( done ).toBeTruthy();
                 Image = oldImage;
