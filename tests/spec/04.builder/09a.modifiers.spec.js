@@ -1299,7 +1299,7 @@ describe("builder, regarding modifiers,", function() {
                                    (parent_time < high);
                         }
 
-                        function checkAbsolutely(band) {
+                        function checkAbsolutely(spec, band) {
                             return function(t, duration) {
                                 var _start = band[0],
                                     _end = band[1],
@@ -1319,7 +1319,7 @@ describe("builder, regarding modifiers,", function() {
                             }
                         }
 
-                        function checkRelatively(band) {
+                        function checkRelatively(spec, band) {
                             return function(t, duration) {
                                 var _start = band[0] * trg_duration,
                                     _end = band[1] * trg_duration,
@@ -1343,7 +1343,7 @@ describe("builder, regarding modifiers,", function() {
                             var bands = __num(bands[0]) ? [ bands ] : _arrayFrom(bands);
                             var modifiers = [];
                             _each(bands, function(band) {
-                                modifiers.push(check_f(band));
+                                modifiers.push(check_f(spec, band));
                             });
                             _whilePlaying(bands, modifiers);
                         }
