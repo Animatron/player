@@ -92,7 +92,6 @@ describe("builder, regarding modifiers,", function() {
                     description: "or it is a relatively-defined trigger-like modifier,",
                     prepare: function() { _band_val = 1 / 4;
                                           relative = true;
-                                          console.log(_duration, _duration / 4);
                                           curClass = function(spy) { return [ _band_val, spy ] };
                                           _run = _playFrom(_duration / 4); }
                   } ],  function() {
@@ -302,7 +301,7 @@ describe("builder, regarding modifiers,", function() {
                 });
 
                 it("disabling should disable child elements", function() {
-                    var scene = b('scene').band([0, 1]);
+                    var scene = b('scene').band([0, _duration]);
 
                     var childSpies = [];
                     var spiesCount = 4;
@@ -310,7 +309,7 @@ describe("builder, regarding modifiers,", function() {
                     var sceneSpy = jasmine.createSpy('scene-modifier-spy');
 
                     var disablingSpy = jasmine.createSpy('disabling-modifier-spy').andCallFake(
-                        function(t) { console.log('called', t); return false; }
+                        function(t) { return false; }
                     );
 
                     for (var i = 0; i < spiesCount; i++) {
@@ -324,9 +323,7 @@ describe("builder, regarding modifiers,", function() {
 
                             scene.modify(sceneSpy);
 
-                            var parent = b();
-                            console.log(methodName, curClass(disablingSpy));
-                            console.log(_run);
+                            var parent = b().band([0, _duration]);
                             parent[methodName].apply(parent, curClass(disablingSpy));
                             scene.add(parent);
 
@@ -647,10 +644,12 @@ describe("builder, regarding modifiers,", function() {
                     trg_band, // band of the target element
                     trg_duration; // duration of the target band
 
-                var _duration = 1,
+                var _duration = 1.5,
                     _timeout = _duration + .2;
 
-                var scene = b();
+                var scene = b('scene');
+
+                var _t_shift;
 
                 // FIXME: test that 0-duration throws error
                 // TODO: ensure duration() method of the element is accessible in such modifier
@@ -660,19 +659,33 @@ describe("builder, regarding modifiers,", function() {
                         prepare: function() { target = scene;
                                               trg_band = [ 0, _duration ];
                                               trg_duration = _duration;
-                                              target.band(trg_band); }
+                                              target.band(trg_band);
+                                              _t_shift = 0; }
                     }, {
                         description: "when assigned to the child whose band is narrower than scene band",
                         prepare: function() { trg_band = [ _duration / 6, (_duration / 6) * 5 ];
                                               trg_duration = trg_band[1] - trg_band[0];
-                                              target = b().band(trg_band);
-                                              scene.add(b().add(b().add(target))); }
+                                              target = b('target').band(trg_band);
+                                              scene.add(b('child').add(b('grand-child').add(target)));
+                                              _t_shift = 0; }
                     }, {
                         description: "when assigned to the grand-child whose parent band is narrower than scene band",
-                        prepare: function() { trg_band = [ _duration / 7, (_duration / 7) * 4 ];
+                        prepare: function() { var child_band = [ _duration / 7, (_duration / 7) * 4 ];
+                                              var child_duration = child_band[1] - child_band[0];
+                                              trg_band = [ 0, child_duration ];
+                                              trg_duration = child_duration;
+                                              target = b('target').band(trg_band);
+                                              scene.add(b('child').add(b('grand-child').add(target)).band(child_band));
+                                              _t_shift = child_band[0]; }
+                    }, {
+                        description: "when assigned to the grand-child whose parent band is narrower than scene band and by itself it has its own narrow band",
+                        prepare: function() { var child_band = [ _duration / 7, (_duration / 7) * 4 ];
+                                              var child_duration = child_band[1] - child_band[0];
+                                              trg_band = [ child_duration / 3, child_duration / 2 ];
                                               trg_duration = trg_band[1] - trg_band[0];
-                                              target = b();
-                                              scene.add(b().add(b().add(target)).band(trg_band)); }
+                                              target = b('target').band(trg_band);
+                                              scene.add(b('child').add(b('grand-child').add(target)).band(child_band));
+                                              _t_shift = child_band[0]; }
                     } ], function() {
 
                     describe("and when a frame requested", function() {
@@ -689,7 +702,7 @@ describe("builder, regarding modifiers,", function() {
                             doAsync(player, {
                                 prepare: function() { _each(spies, function(spy, idx) { _modify(target, bands[idx], spy); });
                                                       return scene; },
-                                run: _whatToRun(conf.time), waitFor: _waitFor, timeout: _timeout,
+                                run: _whatToRun(_t_shift + conf.time), waitFor: _waitFor, timeout: _timeout,
                                 then: function() { _each(expectations, function(expectation) { expectation(); });
                                                    _each(spies, function(spy, i) { if (!conf.doNotExpectToCall || !conf.doNotExpectToCall[i]) {
                                                                                     expect(spy).toHaveBeenCalledOnce();
@@ -703,7 +716,7 @@ describe("builder, regarding modifiers,", function() {
                         varyAll([ { description: "while just momentary playing,", prepare: function() {
                                         _whatToRun = function(t) {
                                             return function() {
-                                                player.play(t, 1, 0.1);
+                                                player.play(t, 1, mFPS);
                                             }
                                         };
                                         _waitFor = function() { return player.state.happens === C.STOPPED; }
@@ -801,7 +814,7 @@ describe("builder, regarding modifiers,", function() {
                                             bands: relative ? mod_rband : mod_band,
                                             modifiers: function(t, duration) {
                                                 expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
-                                                expect(duration).toBe(mod_duration);
+                                                expect(duration).toBeCloseTo(mod_duration, CLOSE_FACTOR);
                                             },
                                             time: trg_band[0] + mod_band[0] });
                                     });
@@ -820,13 +833,15 @@ describe("builder, regarding modifiers,", function() {
                                                     expect(t).toBeLessThan(mod_duration);
                                                     expect(t).toBeCloseTo(mod_duration/3, CLOSE_FACTOR);
                                                 }
-                                                expect(duration).toBe(mod_duration);
+                                                expect(duration).toBeCloseTo(mod_duration, CLOSE_FACTOR);
                                             },
                                             time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                                     });
 
                                     it("passes time 1 at the exact end of the band", function() {
                                         var spec = this;
+
+                                        //console.log(__builderInfo(scene));
 
                                         //var mod_duration = mod_band[1] - mod_band[0];
                                         expectAtTime({
@@ -837,7 +852,7 @@ describe("builder, regarding modifiers,", function() {
                                                 } else {
                                                     expect(t).toBeCloseTo(mod_duration, CLOSE_FACTOR); //FIXME: expect(t).toBe(mod_duration);
                                                 }
-                                                expect(duration).toBe(mod_duration);
+                                                expect(duration).toBeCloseTo(mod_duration, CLOSE_FACTOR);
                                             },
                                             time: trg_band[0] + mod_band[1] });
                                     });

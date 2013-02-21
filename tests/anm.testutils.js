@@ -396,3 +396,26 @@ function __close(n1, n2, precision) { // matches player implementation
     return Math.round(n1 * multiplier) ==
            Math.round(n2 * multiplier);
 }
+
+function __elmInfo(elm) {
+    return (elm.name ? elm.name + ': ' : '') +
+           '{' + elm.id + '} ' +
+           '[' + elm.xdata.lband[0] + ', ' + elm.xdata.lband[1] + '] / ' +
+           '[' + elm.xdata.gband[0] + ', ' + elm.xdata.gband[1] + '] ' +
+           '(' + elm.duration() + ')';
+}
+
+function __deepInfo(elm, level) {
+    var result = '\n';
+    var prefix = '', level = level || 0, i = level;
+    while (i--) prefix += '__';
+    result += prefix + ' ' + __elmInfo(elm);
+    elm.visitChildren(function(ielm) {
+        result += __deepInfo(ielm, level + 1);
+    });
+    return result;
+}
+
+function __builderInfo(bld) {
+    return __deepInfo(bld.v);
+}
