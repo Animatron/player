@@ -2299,15 +2299,15 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
       if (!relative) {
           var mod_duration = band[1] - band[0];
           if (ltime < band[0]) return false;
-          else if (ltime > band[1]) return false;
-          else _tpair = [ ltime - band[0], mod_duration ];
+          if (ltime > band[1]) return false;
+          _tpair = [ ltime - band[0], mod_duration ];
       } else {
           var abs_band = [ band[0] * elm_duration,
                            band[1] * elm_duration ];
           var mod_duration = abs_band[1] - abs_band[0];
           if (ltime < abs_band[0]) return false;
-          else if (ltime > abs_band[1]) return false;
-          else _tpair = [ (ltime - abs_band[0]) / mod_duration, mod_duration ];
+          if (ltime > abs_band[1]) return false;
+          _tpair = [ (ltime - abs_band[0]) / mod_duration, mod_duration ];
       }
   } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
