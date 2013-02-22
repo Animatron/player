@@ -694,16 +694,31 @@ describe("builder, regarding modifiers,", function() {
                         var _whatToRun,
                             _waitFor;
 
+                        function __bandFixHack(elm, band) {
+                            // FIXME: this function seems to be very pointless on the first sight,
+                            //        but if you'll try to output the result, you'll see the minor
+                            //        differences, actually somewhere between very negative powers of 10.
+                            //        Yes, it's the good old floating point rounding problems,
+                            //        but rather than using special BigDecimal library or something
+                            //        for player, I've decided to hack tests a bit for now, because probably
+                            //        you will rarely meet this problem in real life (I hope).
+                            //        Anyway, there is a test for it in bugs.spec (search for "floating point")
+                            //        which represents the required situation
+                            return [ elm.xdata.gband[0] + band[0] - elm.xdata.gband[0],
+                                     elm.xdata.gband[0] + band[1] - elm.xdata.gband[0] ];
+                        }
+
                         function expectAtTime(conf) {
                             var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
                                 modifiers = _arrayFrom(conf.modifiers),
                                 expectations = _arrayFrom(conf.expectations),
-                                spies = [];
+                                spies = [],
+                                callAt = _t_shift + conf.time;
                             _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                             doAsync(player, {
-                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, bands[idx], spy); });
+                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, __bandFixHack(target.v, bands[idx]), spy); });
                                                       return scene; },
-                                run: _whatToRun(_t_shift + conf.time), waitFor: _waitFor, timeout: _timeout,
+                                run: _whatToRun(callAt), waitFor: _waitFor, timeout: _timeout,
                                 then: function() { _each(expectations, function(expectation) { expectation(); });
                                                    _each(spies, function(spy, i) { if (!conf.doNotExpectToCall || !conf.doNotExpectToCall[i]) {
                                                                                     expect(spy).toHaveBeenCalledOnce();
@@ -736,20 +751,6 @@ describe("builder, regarding modifiers,", function() {
                             var mod_band, // band of the modifier itself
                                 mod_rband, // band of the modifier, specified relatively to parent element
                                 mod_duration; // duration of the modifier band
-
-                            /* function _correct_band_hack(elm, band) {
-                                // FIXME: this function seems to be very reasonless on the first sight,
-                                //        but if you'll try to output the result, you'll see the minor
-                                //        differences, actually somewhere between very negative powers of 10.
-                                //        Yes, it's the good old floating point rounding problems,
-                                //        but rather than using special BigDecimal library or something
-                                //        for player, I've decided to hack tests a bit for now, because probably
-                                //        you will rarely meet this problem in real life (I hope).
-                                //        Anyway, there is a test for it in bugs.spec (search for "floating point")
-                                //        which represents the required situation
-                                return [ elm.xdata.gband[0] + band[0] - elm.xdata.gband[0],
-                                         elm.xdata.gband[0] + band[1] - elm.xdata.gband[0] ];
-                            } */
 
                             varyAll([ { description: "and modifier band is equal to parent band",
                                         prepare: function() { mod_band = [ 0, trg_duration ];
