@@ -1562,14 +1562,15 @@ describe("builder, regarding modifiers,", function() {
                         it("calls a modifier at given time or a bit later", function() {
                             var calledAt = -1;
                             var expectedT = relative ? modifier_rtime : modifier_time;
-                            var FPS_ERR = 7 / 9;
+                            var FPS_ERR = 14 / 15,
+                                eps_err = mFPS * FPS_ERR; // (mFPS + (mFPS * FPS_ERR));
 
                             var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                                 expect(duration).toEqual(trg_duration);
                                 expect(t).toBeGreaterThanOrEqual(expectedT);
                                 expect(t).toBeEpsilonyCloseTo(expectedT, relative
-                                                                         ? (mFPS + (mFPS * FPS_ERR)) / duration
-                                                                         :  mFPS + (mFPS * FPS_ERR));
+                                                                         ? eps_err / duration
+                                                                         : eps_err);
                                 expect(calledAt).not.toBeGreaterThan(0); // ensure wasn't called before
                                 calledAt = t;
                             });
@@ -1579,7 +1580,7 @@ describe("builder, regarding modifiers,", function() {
                                 do: 'play', until: C.STOPPED, timeout: _timeout,
                                 then: function() { expect(modifierSpy).toHaveBeenCalledOnce();
                                                    expect(calledAt).toBeGreaterThanOrEqual(expectedT);
-                                                   expect(calledAt).toBeEpsilonyCloseTo(expectedT, FPS_ERR * mFPS); }
+                                                   expect(calledAt).toBeEpsilonyCloseTo(expectedT, eps_err); }
                             });
 
                         });
