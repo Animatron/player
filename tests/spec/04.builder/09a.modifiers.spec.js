@@ -1316,11 +1316,11 @@ describe("builder, regarding modifiers,", function() {
                         }
 
                         function localTime(parent_band, band) {
-                            return player.state.time - parent_band[0] - band[0];
+                            return player.state.time - _t_shift - parent_band[0] - band[0];
                         }
 
                         function timeBetween(parent_band, low, high) {
-                            var parent_time = player.state.time - parent_band[0];
+                            var parent_time = player.state.time - _t_shift - parent_band[0];
                             return (parent_time > low) &&
                                    (parent_time < high);
                         }
