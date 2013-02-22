@@ -644,7 +644,7 @@ describe("builder, regarding modifiers,", function() {
                     trg_band, // band of the target element
                     trg_duration; // duration of the target band
 
-                var _duration = 1.5,
+                var _duration = 1.4,
                     _timeout = _duration + .2;
 
                 var scene = b('scene');
@@ -737,6 +737,20 @@ describe("builder, regarding modifiers,", function() {
                                 mod_rband, // band of the modifier, specified relatively to parent element
                                 mod_duration; // duration of the modifier band
 
+                            /* function _correct_band_hack(elm, band) {
+                                // FIXME: this function seems to be very reasonless on the first sight,
+                                //        but if you'll try to output the result, you'll see the minor
+                                //        differences, actually somewhere between very negative powers of 10.
+                                //        Yes, it's the good old floating point rounding problems,
+                                //        but rather than using special BigDecimal library or something
+                                //        for player, I've decided to hack tests a bit for now, because probably
+                                //        you will rarely meet this problem in real life (I hope).
+                                //        Anyway, there is a test for it in bugs.spec (search for "floating point")
+                                //        which represents the required situation
+                                return [ elm.xdata.gband[0] + band[0] - elm.xdata.gband[0],
+                                         elm.xdata.gband[0] + band[1] - elm.xdata.gband[0] ];
+                            } */
+
                             varyAll([ { description: "and modifier band is equal to parent band",
                                         prepare: function() { mod_band = [ 0, trg_duration ];
                                                               mod_rband = [ 0, 1 ];
@@ -810,11 +824,6 @@ describe("builder, regarding modifiers,", function() {
                                     it("passes time 0 at the exact start of the band", function() {
                                         var spec = this;
 
-                                        //console.log(relative);
-                                        //console.log(__builderInfo(scene));
-                                        //console.log(trg_band, mod_band, mod_duration);
-                                        //console.log(_t_shift, _t_shift + trg_band[0] + mod_band[0]);
-
                                         //var mod_duration = mod_band[1] - mod_band[0];
                                         expectAtTime({
                                             bands: relative ? mod_rband : mod_band,
@@ -846,6 +855,11 @@ describe("builder, regarding modifiers,", function() {
 
                                     it("passes time 1 at the exact end of the band", function() {
                                         var spec = this;
+
+                                        //console.log(relative);
+                                        //console.log(__builderInfo(scene));
+                                        //console.log(mod_band, mod_duration);
+                                        //console.log(_t_shift, _t_shift + trg_band[0] + mod_band[1]);
 
                                         //var mod_duration = mod_band[1] - mod_band[0];
                                         expectAtTime({
