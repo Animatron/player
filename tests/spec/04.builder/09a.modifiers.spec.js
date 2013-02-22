@@ -644,7 +644,7 @@ describe("builder, regarding modifiers,", function() {
                     trg_band, // band of the target element
                     trg_duration; // duration of the target band
 
-                var _duration = 1.4,
+                var _duration = 8, // FIXME: test with duration higher that 10 and DEFAULT_ELM_LEN == 10
                     _timeout = _duration + .2;
 
                 var scene = b('scene');
@@ -703,9 +703,16 @@ describe("builder, regarding modifiers,", function() {
                             //        for player, I've decided to hack tests a bit for now, because probably
                             //        you will rarely meet this problem in real life (I hope).
                             //        Anyway, there is a test for it in bugs.spec (search for "floating point")
-                            //        which represents the required situation
-                            return [ elm.xdata.gband[0] + band[0] - elm.xdata.gband[0],
-                                     elm.xdata.gband[0] + band[1] - elm.xdata.gband[0] ];
+                            //        which represents one of the cases for required situation
+                            if (relative) return band;
+                            var band = band;
+                            var e = elm;
+                            while (e) {
+                                band = [ e.xdata.gband[0] + band[0] - e.xdata.gband[0],
+                                         e.xdata.gband[0] + band[1] - e.xdata.gband[0] ];
+                                e = e.parent;
+                            }
+                            return band;
                         }
 
                         function expectAtTime(conf) {
