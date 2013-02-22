@@ -1473,7 +1473,7 @@ describe("builder, regarding modifiers,", function() {
                     trg_duration;
 
                 var _duration = 2.5,
-                    _timeout = 1.7;
+                    _timeout = _duration + .2;
 
                 beforeEach(function() {
                     scene = b('scene').band([0, _duration]);

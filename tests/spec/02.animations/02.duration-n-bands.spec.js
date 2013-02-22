@@ -9,7 +9,7 @@ describe("regarding elements' duration and bands in animations,", function() {
 
     var player;
 
-    var DEFAULT_ELEMENT_LENGTH = Number.POSITIVE_INFINITY;
+    var DEFAULT_ELEMENT_LENGTH = 10; // Number.POSITIVE_INFINITY;
     var DEFAULT_ELEMENT_BAND = [ 0, DEFAULT_ELEMENT_LENGTH ];
 
     beforeEach(function() {
