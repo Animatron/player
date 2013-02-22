@@ -1356,7 +1356,8 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _start, _end)) {
                                     expect(t).toBeGreaterThanOrEqual(0);
                                     expect(t).toBeLessThan(1);
-                                    expect(t).toEqual(localTime(trg_band, band) / _band_duration);
+                                    expect(t * _band_duration)
+                                          .toBeCloseTo(localTime(trg_band, [ _start, _end ]), CLOSE_FACTOR);
                                 }
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
