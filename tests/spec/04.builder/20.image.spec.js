@@ -25,7 +25,6 @@ describe("image", function() {
             var oldImage = window.Image;
             var called = false;
             window.Image = function(s) {
-                console.log("1");
                 var self = this;
                 setTimeout(function() {self.onload();}, 500);
             };
@@ -35,7 +34,6 @@ describe("image", function() {
             waitsFor(function() {return done;}, "The callback should fire", 800);
             runs(function() {
                 window.Image = function(s) {
-                    console.log("2");
                     called = true;
                 };
                 done = false;
