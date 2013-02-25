@@ -1466,6 +1466,12 @@ describe("builder, regarding modifiers,", function() {
                     }
                 });
 
+                /* =============================================================================== */
+                /* =========================== TEMPORARY DISABLED SECTION ======================== */
+                /* =============================================================================== */
+
+                /*
+
                 var scene,
                     target;
 
@@ -1640,10 +1646,10 @@ describe("builder, regarding modifiers,", function() {
                                     };
                                     _valueTest = relative ? rvalueTest : valueTest;
                                 } }
-                              /* FIXME: { description: "if time-jump was performed",
-                                prepare: function() {} } */
-                              /* FIXME: { description: "with BOUNCE mode",
-                                prepare: function() {} } */
+                              // FIXME: { description: "if time-jump was performed",
+                              //  prepare: function() {} }
+                              // FIXME: { description: "with BOUNCE mode",
+                              //  prepare: function() {} }
                             ], function() {
 
                             it("does not calls a modifier if frame requested is before its time", function() {
@@ -1744,9 +1750,9 @@ describe("builder, regarding modifiers,", function() {
                                     })(call_at);
                                 }
                             }
-                            /* if ((_duration > 0) && ()) {
-                                expect(calls.length).toBeGreaterThan(0);
-                            } */
+                            // if ((_duration > 0) && ()) {
+                            //    expect(calls.length).toBeGreaterThan(0);
+                            // }
                             if (calls.length > 0) queue(calls);
                         });
 
@@ -1755,7 +1761,7 @@ describe("builder, regarding modifiers,", function() {
                         //       does not affects its playing at other elements
                     });
 
-                });
+                }); */
 
             });
 
