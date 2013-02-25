@@ -318,6 +318,13 @@ function __close(n1, n2, precision) {
            Math.round(n2 * multiplier);
 }
 
+function __toPrecision(n, precision) {
+    if (!precision) return Math.round(n);
+    return n.toPrecision(precision);
+    /* var multiplier = Math.pow(10, precision);
+    return Math.round(n * multiplier) / multiplier; */
+}
+
 function __errorAs(name, _constructor) {
   /* var _constructor = function(msg) { this.message = msg; } */
   _constructor.prototype = new Error();
@@ -355,6 +362,14 @@ function disposeElm(domElm) {
     trashBin.appendChild(domElm);
     trashBin.innerHTML = '';
 }
+
+
+// Internal Constants
+// -----------------------------------------------------------------------------
+
+var TIME_PRECISION = 6; // the number of digits after the floating point
+                        // to round the time when comparing with bands and so on;
+                        // used to get rid of floating point-conversion issues
 
 // Constants
 // -----------------------------------------------------------------------------
@@ -1919,19 +1934,20 @@ Element.prototype._max_tpos = function() {
 } */
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
-    return (ltime <= (this.xdata.lband[1]
-                      - this.xdata.lband[0]));
+    return (__toPrecision(ltime, TIME_PRECISION)
+            <= (this.xdata.lband[1] - this.xdata.lband[0]));
 }
 Element.prototype.gtime = function(ltime) {
     return this.xdata.gband[0] + ltime;
 }
 Element.prototype.ltime = function(gtime) {
-    var x = this.xdata;
+    var x = this.xdata,
+        cgtime = __toPrecision(gtime, TIME_PRECISION); // used for comparison
     switch (x.mode) {
         case C.R_ONCE:
             return this.__checkGJump(gtime);
         case C.R_STAY:
-            return (gtime <= x.gband[1])
+            return (cgtime <= x.gband[1])
                    ? (gtime - x.gband[0])
                    : (x.lband[1] - x.lband[0]);
         case C.R_LOOP: {
@@ -2285,10 +2301,11 @@ Element.prototype._stateStr = function() {
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
-  var lband = this.xdata.lband,
+  var cltime = __toPrecision(ltime, TIME_PRECISION), // time, that used only for comparison
+      lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0],
       easing = conf.easing,
-      time = conf.time,
+      time = conf.time, // time or band of the modifier, if set
       relative = conf.relative;
   var _tpair = null;
   if (time == null) {
@@ -2298,15 +2315,15 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
       var band = time;
       if (!relative) {
           var mod_duration = band[1] - band[0];
-          if (ltime < band[0]) return false;
-          if (ltime > band[1]) return false;
+          if (cltime < band[0]) return false;
+          if (cltime > band[1]) return false;
           _tpair = [ ltime - band[0], mod_duration ];
       } else {
           var abs_band = [ band[0] * elm_duration,
                            band[1] * elm_duration ];
           var mod_duration = abs_band[1] - abs_band[0];
-          if (ltime < abs_band[0]) return false;
-          if (ltime > abs_band[1]) return false;
+          if (cltime < abs_band[0]) return false;
+          if (cltime > abs_band[1]) return false;
           _tpair = [ (ltime - abs_band[0]) / mod_duration, mod_duration ];
       }
   } else if (__num(time)) {
@@ -2346,8 +2363,11 @@ Element.prototype.__callModifiers = function(order, ltime) {
             function(modifier, conf) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
                 var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier);
-                // false will be returned from __adaptModTime
-                // for trigger-like modifier if it is required to skip current one
+                // `false` will be returned from `__adaptModTime`
+                // for trigger-like modifier if it is required to skip current one,
+                // on the other hand `true` in `forAllModifiers` means
+                // "skip this one, but not finish the whole process",
+                // FIXME: this unobvious line
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
@@ -2500,6 +2520,7 @@ Element.prototype.__checkGJump = function(gtime) {
     return this.__checkJump(gtime - this.xdata.gband[0]);
 }
 Element.prototype.__checkJump = function(at) {
+    // FIXME: test if jumping do not fails with floating points problems
     var x = this.xdata,
         s = this.state;
     if (x.tf) return x.tf(at);

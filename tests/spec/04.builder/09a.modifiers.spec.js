@@ -694,27 +694,6 @@ describe("builder, regarding modifiers,", function() {
                         var _whatToRun,
                             _waitFor;
 
-                        function __bandFixHack(elm, band) {
-                            // FIXME: this function seems to be very pointless on the first sight,
-                            //        but if you'll try to output the result, you'll see the minor
-                            //        differences, actually somewhere between very negative powers of 10.
-                            //        Yes, it's the good old floating point rounding problems,
-                            //        but rather than using special BigDecimal library or something
-                            //        for player, I've decided to hack tests a bit for now, because probably
-                            //        you will rarely meet this problem in real life (I hope).
-                            //        Anyway, there is a test for it in bugs.spec (search for "floating point")
-                            //        which represents one of the cases for required situation
-                            if (relative) return band;
-                            var band = band;
-                            var e = elm;
-                            while (e) {
-                                band = [ e.xdata.gband[0] + band[0] - e.xdata.gband[0],
-                                         e.xdata.gband[0] + band[1] - e.xdata.gband[0] ];
-                                e = e.parent;
-                            }
-                            return band;
-                        }
-
                         function expectAtTime(conf) {
                             var bands = __num(conf.bands[0]) ? [ conf.bands ] : _arrayFrom(conf.bands),
                                 modifiers = _arrayFrom(conf.modifiers),
@@ -723,7 +702,7 @@ describe("builder, regarding modifiers,", function() {
                                 callAt = _t_shift + conf.time;
                             _each(modifiers, function(modifier, idx) { spies.push(jasmine.createSpy('mod-'+idx).andCallFake(modifier)); });
                             doAsync(player, {
-                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, __bandFixHack(target.v, bands[idx]), spy); });
+                                prepare: function() { _each(spies, function(spy, idx) { _modify(target, bands[idx], spy); });
                                                       return scene; },
                                 run: _whatToRun(callAt), waitFor: _waitFor, timeout: _timeout,
                                 then: function() { _each(expectations, function(expectation) { expectation(); });
