@@ -318,11 +318,11 @@ function __close(n1, n2, precision) {
            Math.round(n2 * multiplier);
 }
 
-function __toPrecision(n, precision) {
+function __roundTo(n, precision) {
     if (!precision) return Math.round(n);
-    return n.toPrecision(precision);
-    /* var multiplier = Math.pow(10, precision);
-    return Math.round(n * multiplier) / multiplier; */
+    //return n.toPrecision(precision);
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n * multiplier) / multiplier;
 }
 
 function __errorAs(name, _constructor) {
@@ -367,9 +367,19 @@ function disposeElm(domElm) {
 // Internal Constants
 // -----------------------------------------------------------------------------
 
-var TIME_PRECISION = 6; // the number of digits after the floating point
+var TIME_PRECISION = 7; // the number of digits after the floating point
                         // to round the time when comparing with bands and so on;
                         // used to get rid of floating point-conversion issues
+
+function __adjust(t) {
+  return __roundTo(t, TIME_PRECISION);
+}
+
+function __t_cmp(t0, t1) {
+  if (__adjust(t0) > __adjust(t1)) return 1;
+  if (__adjust(t0) < __adjust(t1)) return -1;
+  return 0;
+}
 
 // Constants
 // -----------------------------------------------------------------------------
@@ -1934,20 +1944,18 @@ Element.prototype._max_tpos = function() {
 } */
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
-    return (__toPrecision(ltime, TIME_PRECISION)
-            <= (this.xdata.lband[1] - this.xdata.lband[0]));
+    return __t_cmp(ltime, this.xdata.lband[1] - this.xdata.lband[0]) <= 0;
 }
 Element.prototype.gtime = function(ltime) {
     return this.xdata.gband[0] + ltime;
 }
 Element.prototype.ltime = function(gtime) {
-    var x = this.xdata,
-        cgtime = __toPrecision(gtime, TIME_PRECISION); // used for comparison
+    var x = this.xdata;
     switch (x.mode) {
         case C.R_ONCE:
             return this.__checkGJump(gtime);
         case C.R_STAY:
-            return (cgtime <= x.gband[1])
+            return (__t_cmp(gtime, x.gband[1]) <= 0)
                    ? (gtime - x.gband[0])
                    : (x.lband[1] - x.lband[0]);
         case C.R_LOOP: {
@@ -2301,8 +2309,7 @@ Element.prototype._stateStr = function() {
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
-  var cltime = __toPrecision(ltime, TIME_PRECISION), // time, that used only for comparison
-      lband = this.xdata.lband,
+  var lband = this.xdata.lband,
       elm_duration = lband[1] - lband[0],
       easing = conf.easing,
       time = conf.time, // time or band of the modifier, if set
@@ -2315,21 +2322,21 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
       var band = time;
       if (!relative) {
           var mod_duration = band[1] - band[0];
-          if (cltime < band[0]) return false;
-          if (cltime > band[1]) return false;
+          if (__t_cmp(ltime, band[0]) < 0) return false;
+          if (__t_cmp(ltime, band[1]) > 0) return false;
           _tpair = [ ltime - band[0], mod_duration ];
       } else {
           var abs_band = [ band[0] * elm_duration,
                            band[1] * elm_duration ];
           var mod_duration = abs_band[1] - abs_band[0];
-          if (cltime < abs_band[0]) return false;
-          if (cltime > abs_band[1]) return false;
+          if (__t_cmp(ltime, abs_band[0]) < 0) return false;
+          if (__t_cmp(ltime, abs_band[1]) > 0) return false;
           _tpair = [ (ltime - abs_band[0]) / mod_duration, mod_duration ];
       }
   } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
       var tpos = relative ? (time * elm_duration) : time;
-      if (ltime >= tpos) {
+      if (__t_cmp(ltime, tpos) >= 0) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
           modifier.__wasCalled[this.id] = true;
@@ -2371,7 +2378,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime[0], lbtime[1], conf.data);
+                return modifier.call(elm._state, __adjust(lbtime[0]), lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -4446,7 +4453,9 @@ var exports = {
                     array: __array,
                     num: __num },
 
-    '__dev': { 'strf': _strf/*,
+    '__dev': { 'strf': _strf,
+               'adjust': __adjust,
+               't_cmp': __t_cmp/*,
                'Controls': Controls, 'Info': InfoBlock*/ },
 
 };
