@@ -1647,7 +1647,9 @@ Element.prototype.draw = function(ctx) {
                 }
                 var sy = Math.floor( this.xdata.frame / w ) * tw;
                 var sx = this.xdata.frame % w * th;
-                ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
+                try {
+                    ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
+                } catch (e) {};
             }
             else ctx.drawImage(this.xdata.canvas, 0, 0);
         }
