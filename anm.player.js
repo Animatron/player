@@ -2378,7 +2378,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, __adjust(lbtime[0]), lbtime[1], conf.data);
+                return modifier.call(elm._state, __adjust(lbtime[0]), __adjust(lbtime[1]), conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
