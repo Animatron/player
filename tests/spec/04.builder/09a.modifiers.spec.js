@@ -21,10 +21,26 @@ describe("builder, regarding modifiers,", function() {
 
     var CLOSE_FACTOR = 14; // digits following floating point
 
+    var _t = anm.__dev.adjust;
+
     var scene;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
+
+        /* this.addMatchers({
+            'toBeAdjusted': function(expected) {
+                var actual = this.actual;
+                var notText = this.isNot ? " not" : "";
+
+                this.message = function () {
+                    return "Expected " + actual + notText + " to be, adjusted, " +
+                           _t(expected) + "(initial value was: " + expected + ")";
+                };
+
+                return (actual === _t(expected));
+            }
+        }); */
 
         spyOn(document, 'getElementById').andReturn(_mocks.canvas);
         _fake(_Fake.CVS_POS);
@@ -420,15 +436,15 @@ describe("builder, regarding modifiers,", function() {
 
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             if (relative) {
-                                expect(t * (3.7 - .3)).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
+                                expect(t * (3.7 - .3)).toBeCloseTo(_t(player.state.time - .3), CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 expect(t).toBeLessThanOrEqual(1);
                             } else {
-                                expect(t).toBeCloseTo(player.state.time - .3, CLOSE_FACTOR);
+                                expect(t).toBeCloseTo(_t(player.state.time - .3), CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
-                                expect(t).toBeLessThanOrEqual(3.7 - .3);
+                                expect(t).toBeLessThanOrEqual(_t(3.7 - .3));
                             }
-                            expect(duration).toBe(3.7 - .3);
+                            expect(duration).toBe(_t(3.7 - .3));
                         });
 
                         doAsync(player, {
@@ -475,15 +491,15 @@ describe("builder, regarding modifiers,", function() {
 
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             if (relative) {
-                                expect(t * (.42 - .11)).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
+                                expect(t * (.42 - .11)).toBeCloseTo(_t(player.state.time - .2 - .11), CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 expect(t).toBeLessThanOrEqual(1);
                             } else {
-                                expect(t).toBeCloseTo(player.state.time - .2 - .11, CLOSE_FACTOR);
+                                expect(t).toBeCloseTo(_t(player.state.time - .2 - .11), CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
-                                expect(t).toBeLessThanOrEqual(.42 - .11);
+                                expect(t).toBeLessThanOrEqual(_t(.42 - .11));
                             }
-                            expect(duration).toBe(.42 - .11);
+                            expect(duration).toBe(_t(.42 - .11));
                         });
 
                         doAsync(player, {
@@ -511,7 +527,7 @@ describe("builder, regarding modifiers,", function() {
                         for (var i = 0, sc = spiesCount; i < sc; i++) {
                             spies.push(jasmine.createSpy('modifier-spy-'+i).andCallFake((function(i) {
                                 return function(t, duration) {
-                                     expect(duration).toBe(bands[i][1] - bands[i][0]);
+                                     expect(duration).toBe(_t(bands[i][1] - bands[i][0]));
                                 }
                             })(i)));
                         }
@@ -816,7 +832,7 @@ describe("builder, regarding modifiers,", function() {
                                             bands: relative ? mod_rband : mod_band,
                                             modifiers: function(t, duration) {
                                                 expect(t).toBeCloseTo(0, CLOSE_FACTOR); //FIXME: expect(t).toBe(0);
-                                                expect(duration).toBeCloseTo(mod_duration, CLOSE_FACTOR);
+                                                expect(duration).toBeCloseTo(_t(mod_duration), CLOSE_FACTOR);
                                             },
                                             time: trg_band[0] + mod_band[0] });
                                     });
@@ -832,10 +848,10 @@ describe("builder, regarding modifiers,", function() {
                                                     expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
                                                 } else {
                                                     expect(t).toBeGreaterThanOrEqual(0);
-                                                    expect(t).toBeLessThan(mod_duration);
-                                                    expect(t).toBeCloseTo(mod_duration/3, CLOSE_FACTOR);
+                                                    expect(t).toBeLessThan(_t(mod_duration));
+                                                    expect(t).toBeCloseTo(_t(mod_duration/3), CLOSE_FACTOR);
                                                 }
-                                                expect(duration).toBeCloseTo(mod_duration, CLOSE_FACTOR);
+                                                expect(duration).toBeCloseTo(_t(mod_duration), CLOSE_FACTOR);
                                             },
                                             time: trg_band[0] + mod_band[0] + (mod_duration / 3) });
                                     });
@@ -855,9 +871,9 @@ describe("builder, regarding modifiers,", function() {
                                                 if (relative) {
                                                     expect(t).toBeCloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
                                                 } else {
-                                                    expect(t).toBeCloseTo(mod_duration, CLOSE_FACTOR); //FIXME: expect(t).toBe(mod_duration);
+                                                    expect(t).toBeCloseTo(_t(mod_duration), CLOSE_FACTOR); //FIXME: expect(t).toBe(mod_duration);
                                                 }
-                                                expect(duration).toBeCloseTo(mod_duration, CLOSE_FACTOR);
+                                                expect(duration).toBeCloseTo(_t(mod_duration), CLOSE_FACTOR);
                                             },
                                             time: trg_band[0] + mod_band[1] });
                                     });
@@ -910,12 +926,12 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: function(t) {
                                             if (relative) {
                                                 expect(t).toBeGreaterThan(0);
-                                                expect(t).toBeLessThan(1 - (end_diff / mod_duration));
-                                                expect(t).toBeCloseTo(((trg_duration / 3) - mod_band[0]) / mod_duration, CLOSE_FACTOR);
+                                                expect(t).toBeLessThan(_t(1 - (end_diff / mod_duration)));
+                                                expect(t).toBeCloseTo(_t((trg_duration / 3) - mod_band[0]) / _t(mod_duration), CLOSE_FACTOR);
                                             } else {
                                                 expect(t).toBeGreaterThan(0);
-                                                expect(t).toBeLessThan(mod_duration - end_diff);
-                                                expect(t).toBeCloseTo((trg_duration / 3) - mod_band[0], CLOSE_FACTOR);
+                                                expect(t).toBeLessThan(_t(mod_duration - end_diff));
+                                                expect(t).toBeCloseTo(_t((trg_duration / 3) - mod_band[0]), CLOSE_FACTOR);
                                             }
                                         },
                                         time: trg_band[0] + (trg_duration / 3) });
@@ -926,9 +942,9 @@ describe("builder, regarding modifiers,", function() {
                                         bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             if (relative) {
-                                                expect(t).toBeCloseTo(1 - (end_diff / mod_duration), CLOSE_FACTOR);
+                                                expect(t).toBeCloseTo(_t(1 - (end_diff / mod_duration)), CLOSE_FACTOR);
                                             } else {
-                                                expect(t).toBeCloseTo(mod_duration - end_diff, CLOSE_FACTOR);
+                                                expect(t).toBeCloseTo(_t(mod_duration - end_diff), CLOSE_FACTOR);
                                             }
                                         },
                                         time: trg_band[1] });
@@ -951,9 +967,9 @@ describe("builder, regarding modifiers,", function() {
                                         bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             if (relative) {
-                                                expect(t).toBe(start_diff / mod_duration);
+                                                expect(t).toBe(_t(start_diff) / _t(mod_duration));
                                             } else {
-                                                expect(t).toBe(start_diff);
+                                                expect(t).toBe(_t(start_diff));
                                             }
                                         },
                                         time: trg_band[0] });
@@ -964,13 +980,13 @@ describe("builder, regarding modifiers,", function() {
                                         bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             if (relative) {
-                                                expect(t).toBeGreaterThan(start_diff / mod_duration);
+                                                expect(t).toBeGreaterThan(_t(start_diff) / _t(mod_duration));
                                                 expect(t).toBeLessThan(1);
-                                                expect(t).toBeCloseTo((start_diff + (trg_duration / 5)) / mod_duration, CLOSE_FACTOR);
+                                                expect(t).toBeCloseTo(_t(start_diff + (trg_duration / 5)) / _t(mod_duration), CLOSE_FACTOR);
                                             } else {
                                                 expect(t).toBeGreaterThan(start_diff);
-                                                expect(t).toBeLessThan(mod_duration);
-                                                expect(t).toBeCloseTo(start_diff + (trg_duration / 5), CLOSE_FACTOR);
+                                                expect(t).toBeLessThan(_t(mod_duration));
+                                                expect(t).toBeCloseTo(_t(start_diff + (trg_duration / 5)), CLOSE_FACTOR);
                                             }
                                         },
                                         time: trg_band[0] + (trg_duration / 5) });
@@ -1007,9 +1023,9 @@ describe("builder, regarding modifiers,", function() {
                                         bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             if (relative) {
-                                                expect(t).toBe(start_diff / mod_duration);
+                                                expect(t).toBe(_t(start_diff) / _t(mod_duration));
                                             } else {
-                                                expect(t).toBe(start_diff);
+                                                expect(t).toBe(_t(start_diff));
                                             }
                                         },
                                         time: trg_band[0] });
@@ -1020,13 +1036,13 @@ describe("builder, regarding modifiers,", function() {
                                         bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             if (relative) {
-                                                expect(t).toBeGreaterThan(start_diff / mod_duration);
-                                                expect(t).toBeLessThan(1 - (end_diff / mod_duration));
-                                                expect(t).toBeCloseTo((start_diff + (trg_duration / 3)) / mod_duration, CLOSE_FACTOR);
+                                                expect(t).toBeGreaterThan(_t(start_diff / mod_duration));
+                                                expect(t).toBeLessThan(_t(1 - (end_diff / mod_duration)));
+                                                expect(t).toBeCloseTo(_t(start_diff + (trg_duration / 3)) / _t(mod_duration), CLOSE_FACTOR);
                                             } else {
-                                                expect(t).toBeGreaterThan(start_diff);
-                                                expect(t).toBeLessThan(mod_duration - end_diff);
-                                                expect(t).toBeCloseTo(start_diff + (trg_duration / 3), CLOSE_FACTOR);
+                                                expect(t).toBeGreaterThan(_t(start_diff));
+                                                expect(t).toBeLessThan(_t(mod_duration - end_diff));
+                                                expect(t).toBeCloseTo(_t(start_diff + (trg_duration / 3)), CLOSE_FACTOR);
                                             }
                                         },
                                         time: trg_band[0] + (trg_duration / 3) });
@@ -1040,7 +1056,7 @@ describe("builder, regarding modifiers,", function() {
                                             if (relative) {
                                                 expect(t).toBe((start_diff + trg_duration) / mod_duration);
                                             } else {
-                                                expect(t).toBe(start_diff + trg_duration);
+                                                expect(t).toBe(_t(start_diff + trg_duration));
                                             }
                                         },
                                         time: trg_band[1] });
@@ -1096,11 +1112,11 @@ describe("builder, regarding modifiers,", function() {
                                                 function(t) { if (relative) {
                                                                 expect(t).toBeGreaterThan(0);
                                                                 expect(t).toBeLessThan(1);
-                                                                expect(t).toBeCloseTo((one_fifth * 0.5) / band2_duration, CLOSE_FACTOR);
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.5) / _t(band2_duration), CLOSE_FACTOR);
                                                               } else {
                                                                 expect(t).toBeGreaterThan(0);
-                                                                expect(t).toBeLessThan(band2_duration);
-                                                                expect(t).toBeCloseTo(one_fifth * 0.5, CLOSE_FACTOR);
+                                                                expect(t).toBeLessThan(_t(band2_duration));
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.5), CLOSE_FACTOR);
                                                               } }
                                             ], time: trg_band[0] + (one_fifth * 1.5),
                                             doNotExpectToCall: [ true, false ] });
@@ -1129,11 +1145,11 @@ describe("builder, regarding modifiers,", function() {
                                                 function(t) { if (relative) {
                                                                 expect(t).toBeGreaterThan(0);
                                                                 expect(t).toBeLessThan(1);
-                                                                expect(t).toBeCloseTo((one_fifth * 0.5) / band1_duration, CLOSE_FACTOR);
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.5) / _t(band1_duration), CLOSE_FACTOR);
                                                               } else {
                                                                 expect(t).toBeGreaterThan(0);
-                                                                expect(t).toBeLessThan(band1_duration);
-                                                                expect(t).toBeCloseTo(one_fifth * 0.5, CLOSE_FACTOR);
+                                                                expect(t).toBeLessThan(_t(band1_duration));
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.5), CLOSE_FACTOR);
                                                               } },
                                                 function(t) { spec.fail('Should not be called'); }
                                             ], time: trg_band[0] + (one_fifth * 3.5),
@@ -1190,11 +1206,11 @@ describe("builder, regarding modifiers,", function() {
                                                 function(t) { if (relative) {
                                                                 expect(t).toBeGreaterThan(0);
                                                                 expect(t).toBeLessThan(1);
-                                                                expect(t).toBeCloseTo(one_fifth / band2_duration, CLOSE_FACTOR);
+                                                                expect(t).toBeCloseTo(_t(one_fifth) / _t(band2_duration), CLOSE_FACTOR);
                                                               } else {
                                                                 expect(t).toBeGreaterThan(0);
-                                                                expect(t).toBeLessThan(band2_duration);
-                                                                expect(t).toBeCloseTo(one_fifth, CLOSE_FACTOR);
+                                                                expect(t).toBeLessThan(_t(band2_duration));
+                                                                expect(t).toBeCloseTo(_t(one_fifth), CLOSE_FACTOR);
                                                               } }
                                             ], time: trg_band[0] + (one_fifth * 2),
                                             doNotExpectToCall: [ true, false ] });
@@ -1208,20 +1224,20 @@ describe("builder, regarding modifiers,", function() {
                                                 function(t) { if (relative) {
                                                                 expect(t).toBeGreaterThan(0);
                                                                 expect(t).toBeLessThan(1);
-                                                                expect(t).toBeCloseTo((one_fifth * 0.2) / band1_duration, CLOSE_FACTOR);
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.2) / _t(band1_duration), CLOSE_FACTOR);
                                                               } else {
                                                                 expect(t).toBeGreaterThan(0);
-                                                                expect(t).toBeLessThan(band1_duration);
-                                                                expect(t).toBeCloseTo(one_fifth * 0.2, CLOSE_FACTOR);
+                                                                expect(t).toBeLessThan(_t(band1_duration));
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.2), CLOSE_FACTOR);
                                                               } },
                                                 function(t) { if (relative) {
                                                                 expect(t).toBeGreaterThan(0);
                                                                 expect(t).toBeLessThan(1);
-                                                                expect(t).toBeCloseTo((one_fifth * 1.5) / band2_duration, CLOSE_FACTOR);
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 1.5) / _t(band2_duration), CLOSE_FACTOR);
                                                               } else {
                                                                 expect(t).toBeGreaterThan(0);
-                                                                expect(t).toBeLessThan(band2_duration);
-                                                                expect(t).toBeCloseTo(one_fifth * 1.5, CLOSE_FACTOR);
+                                                                expect(t).toBeLessThan(_t(band2_duration));
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 1.5), CLOSE_FACTOR);
                                                               } }
                                             ], time: trg_band[0] + (one_fifth * 2.5) });
                                     });
@@ -1236,11 +1252,11 @@ describe("builder, regarding modifiers,", function() {
                                                 function(t) { if (relative) {
                                                                 expect(t).toBeGreaterThan(0);
                                                                 expect(t).toBeLessThan(1);
-                                                                expect(t).toBeCloseTo((one_fifth * 0.7) / band1_duration, CLOSE_FACTOR);
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.7) / _t(band1_duration), CLOSE_FACTOR);
                                                               } else {
                                                                 expect(t).toBeGreaterThan(0);
-                                                                expect(t).toBeLessThan(band1_duration);
-                                                                expect(t).toBeCloseTo(one_fifth * 0.7, CLOSE_FACTOR);
+                                                                expect(t).toBeLessThan(_t(band1_duration));
+                                                                expect(t).toBeCloseTo(_t(one_fifth * 0.7), CLOSE_FACTOR);
                                                               } },
                                                 function(t) { spec.fail('Should not be called'); }
                                             ], time: trg_band[0] + (one_fifth * 3),
@@ -1300,8 +1316,8 @@ describe("builder, regarding modifiers,", function() {
 
                         function timeBetween(parent_band, low, high) {
                             var parent_time = player.state.time - _t_shift - parent_band[0];
-                            return (parent_time > low) &&
-                                   (parent_time < high);
+                            return (_t(parent_time) > _t(low)) &&
+                                   (_t(parent_time) < _t(high));
                         }
 
                         function checkAbsolutely(spec, band) {
@@ -1314,13 +1330,13 @@ describe("builder, regarding modifiers,", function() {
                                 }
                                 if (timeBetween(trg_band, _start, _end)) {
                                     expect(t).toBeGreaterThanOrEqual(0);
-                                    expect(t).toBeLessThan(_band_duration);
-                                    expect(t).toEqual(localTime(trg_band, band));
+                                    expect(t).toBeLessThan(_t(_band_duration));
+                                    expect(t).toEqual(_t(localTime(trg_band, band)));
                                 }
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
                                 }
-                                expect(duration).toBe(_band_duration);
+                                expect(duration).toBe(_t(_band_duration));
                             }
                         }
 
@@ -1335,13 +1351,13 @@ describe("builder, regarding modifiers,", function() {
                                 if (timeBetween(trg_band, _start, _end)) {
                                     expect(t).toBeGreaterThanOrEqual(0);
                                     expect(t).toBeLessThan(1);
-                                    expect(t * _band_duration)
-                                          .toBeCloseTo(localTime(trg_band, [ _start, _end ]), CLOSE_FACTOR);
+                                    expect(t * _t(_band_duration))
+                                          .toBeCloseTo(_t(localTime(trg_band, [ _start, _end ])), CLOSE_FACTOR);
                                 }
                                 if (timeBetween(trg_band, _end, trg_duration)) {
                                     spec.fail('Should not be called');
                                 }
-                                expect(duration).toBe(_band_duration);
+                                expect(duration).toBe(_t(_band_duration));
                             }
                         }
 
