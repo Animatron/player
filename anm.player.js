@@ -2316,22 +2316,26 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
       relative = conf.relative;
   var _tpair = null;
   if (time == null) {
-      _tpair = [ relative ? ltime / elm_duration : ltime,
-                 elm_duration ];
+      _tpair = [ relative
+                     ? __adjust(ltime) / __adjust(elm_duration)
+                     : __adjust(ltime),
+                 __adjust(elm_duration) ];
   } else if (__array(time)) { // modifier is band-restricted
       var band = time;
       if (!relative) {
           var mod_duration = band[1] - band[0];
           if (__t_cmp(ltime, band[0]) < 0) return false;
           if (__t_cmp(ltime, band[1]) > 0) return false;
-          _tpair = [ ltime - band[0], mod_duration ];
+          _tpair = [ __adjust(ltime - band[0]),
+                     __adjust(mod_duration) ];
       } else {
           var abs_band = [ band[0] * elm_duration,
                            band[1] * elm_duration ];
           var mod_duration = abs_band[1] - abs_band[0];
           if (__t_cmp(ltime, abs_band[0]) < 0) return false;
           if (__t_cmp(ltime, abs_band[1]) > 0) return false;
-          _tpair = [ (ltime - abs_band[0]) / mod_duration, mod_duration ];
+          _tpair = [ __adjust(ltime - abs_band[0]) / __adjust(mod_duration),
+                     __adjust(mod_duration) ];
       }
   } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
@@ -2342,12 +2346,14 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       } else return false;
-      _tpair = [ relative ? ltime / elm_duration : ltime,
-                 elm_duration ];
-  } else _tpair = [ relative ? ltime / elm_duration : ltime,
-                    elm_duration ];
-  // adjust _tpair to global rounding technique
-  _tpair = [ __adjust(_tpair[0]), __adjust(_tpair[1]) ];
+      _tpair = [ relative
+                     ? __adjust(ltime) / __adjust(elm_duration)
+                     : __adjust(ltime),
+                 __adjust(elm_duration) ];
+  } else _tpair = [ relative
+                        ? __adjust(ltime) / __adjust(elm_duration)
+                        : __adjust(ltime),
+                    __adjust(elm_duration) ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime) {

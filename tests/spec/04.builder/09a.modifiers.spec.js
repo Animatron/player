@@ -436,7 +436,7 @@ describe("builder, regarding modifiers,", function() {
 
                         var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t, duration) {
                             if (relative) {
-                                expect(t * (3.7 - .3)).toBeCloseTo(_t(player.state.time - .3), CLOSE_FACTOR);
+                                expect(t * (3.7 - .3)).toBeCloseTo(_t(player.state.time) - .3, CLOSE_FACTOR);
                                 expect(t).toBeGreaterThanOrEqual(0);
                                 expect(t).toBeLessThanOrEqual(1);
                             } else {
