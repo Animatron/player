@@ -4463,7 +4463,8 @@ var exports = {
 
     '__dev': { 'strf': _strf,
                'adjust': __adjust,
-               't_cmp': __t_cmp/*,
+               't_cmp': __t_cmp,
+               'TIME_PRECISION': TIME_PRECISION/*,
                'Controls': Controls, 'Info': InfoBlock*/ },
 
 };

@@ -19,7 +19,9 @@ describe("builder, regarding modifiers,", function() {
 
     var DEFAULT_ELM_LEN = anm.Element.DEFAULT_LEN;
 
-    var CLOSE_FACTOR = 14; // digits following floating point
+    var CLOSE_FACTOR = 14,
+        T_PRECISION = anm.__dev.TIME_PRECISION - 1; // 14; // digits following floating point
+    // TODO: change all toBeCloseTo with _t to use T_CLOSE_FACTOR
 
     var _t = anm.__dev.adjust;
 
@@ -845,7 +847,7 @@ describe("builder, regarding modifiers,", function() {
                                                 if (relative) {
                                                     expect(t).toBeGreaterThanOrEqual(0);
                                                     expect(t).toBeLessThan(1);
-                                                    expect(t).toBeCloseTo(1/3, CLOSE_FACTOR);
+                                                    expect(t).toBeCloseTo(1/3, T_PRECISION);
                                                 } else {
                                                     expect(t).toBeGreaterThanOrEqual(0);
                                                     expect(t).toBeLessThan(_t(mod_duration));
@@ -869,7 +871,7 @@ describe("builder, regarding modifiers,", function() {
                                             bands: relative ? mod_rband : mod_band,
                                             modifiers: function(t, duration) {
                                                 if (relative) {
-                                                    expect(t).toBeCloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
+                                                    expect(t).toBe(1); //CloseTo(1, CLOSE_FACTOR); //FIXME: expect(t).toBe(1);
                                                 } else {
                                                     expect(t).toBeCloseTo(_t(mod_duration), CLOSE_FACTOR); //FIXME: expect(t).toBe(mod_duration);
                                                 }
@@ -942,7 +944,7 @@ describe("builder, regarding modifiers,", function() {
                                         bands: relative ? mod_rband : mod_band,
                                         modifiers: function(t) {
                                             if (relative) {
-                                                expect(t).toBeCloseTo(_t(1 - (end_diff / mod_duration)), CLOSE_FACTOR);
+                                                expect(t).toBeCloseTo(_t(1 - (end_diff / mod_duration)), T_PRECISION);
                                             } else {
                                                 expect(t).toBeCloseTo(_t(mod_duration - end_diff), CLOSE_FACTOR);
                                             }
@@ -1054,7 +1056,7 @@ describe("builder, regarding modifiers,", function() {
                                         modifiers: function(t) {
                                             // FIXME: (mod_duration - end_diff) fails here due to rounding problem
                                             if (relative) {
-                                                expect(t).toBe((start_diff + trg_duration) / mod_duration);
+                                                expect(t).toBeCloseTo((start_diff + trg_duration) / mod_duration, T_PRECISION);
                                             } else {
                                                 expect(t).toBe(_t(start_diff + trg_duration));
                                             }
