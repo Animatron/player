@@ -2346,6 +2346,8 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
                  elm_duration ];
   } else _tpair = [ relative ? ltime / elm_duration : ltime,
                     elm_duration ];
+  // adjust _tpair to global rounding technique
+  _tpair = [ __adjust(_tpair[0]), __adjust(_tpair[1]) ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime) {
@@ -2378,7 +2380,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, __adjust(lbtime[0]), __adjust(lbtime[1]), conf.data);
+                return modifier.call(elm._state, lbtime[0], lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);

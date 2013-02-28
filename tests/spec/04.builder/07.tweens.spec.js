@@ -3,7 +3,7 @@ describe("tweens", function() {
     var b = Builder._$,
         B = Builder;
 
-    var t_adj = anm.__dev.adjust;
+    var t_adjust = anm.__dev.adjust;
 
     var t_cmp = anm.__dev.t_cmp; // FIXME: test t_cmp separately
 
@@ -2241,7 +2241,7 @@ describe("tweens", function() {
                                             return true;
                                         }
                                         // during tween
-                                        var seg_t = seg.atT([0, 0], (at - .3 - .1) / (1 - .3))[1];
+                                        var seg_t = seg.atT([0, 0], t_adjust(at - .3 - .1) / t_adjust(1 - .3))[1];
                                         expect(s.x).toBeCloseTo(bs.x + 50 + (seg_t * (10 - 50)), CLOSE_FACTOR);
                                         expect(s.y).toBeCloseTo(bs.y + 11 + (seg_t * (40 - 11)), CLOSE_FACTOR);
                                     });
