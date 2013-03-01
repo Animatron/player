@@ -9,7 +9,7 @@ describe("regarding elements' duration and bands in animations,", function() {
 
     var player;
 
-    var DEFAULT_ELEMENT_LENGTH = anm.Element.DEFAULT_LEN;
+    var DEFAULT_ELEMENT_LENGTH = 10; // Number.POSITIVE_INFINITY;
     var DEFAULT_ELEMENT_BAND = [ 0, DEFAULT_ELEMENT_LENGTH ];
 
     beforeEach(function() {
@@ -17,6 +17,18 @@ describe("regarding elements' duration and bands in animations,", function() {
         _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id');
+    });
+
+    describe("internal test length", function() {
+
+        // FIXME: it's not so right to test it, however it helps to ensure
+        //        in constants consistency if tests below are written not
+        //        in the right way
+
+        it("equal to element's constant", function() {
+            expect(DEFAULT_ELEMENT_LENGTH).toEqual(anm.Element.DEFAULT_LEN);
+        });
+
     });
 
     describe("element duration", function() {

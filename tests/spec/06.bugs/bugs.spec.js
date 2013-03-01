@@ -58,8 +58,8 @@ describe("as for known bugs,", function() {
             var m_removeRectSpy;
             var m_selfRemoveSpy;
 
-            var removeAt = 1 / 20;
-            var selfRemoveAt = 1 / 24;
+            var removeAt = 1 / 3;
+            var selfRemoveAt = 1 / 4;
 
             expect(selfRemoveAt).toBeLessThan(removeAt);
 
@@ -152,7 +152,7 @@ describe("as for known bugs,", function() {
 
             var m_disableRectSpy;
 
-            var disableAt = 1 / 20;
+            var disableAt = 1 / 4;
 
             doAsync(player, {
                 prepare: function() {
@@ -318,6 +318,54 @@ describe("as for known bugs,", function() {
             then: function() { expect(b1ClickSpy).not.toHaveBeenCalled(); }
         });
 
+    });
+
+    // TODO: enable, if it is important
+    xit('floating point rounding error and inconsistence', function() {
+        var _duration = 1.5;
+
+        var player = createPlayer('foo', { mode: C.M_DYNAMIC });
+
+        var child_band = [ _duration / 8, (_duration / 8) * 5 ];
+        var child_duration = child_band[1] - child_band[0];
+        var trg_band = [ 0, child_duration ];
+        var trg_duration = child_duration;
+
+        var target = b('target').band(trg_band);
+        var scene = b('scene');
+        scene.add(b('child').add(b('grand-child').add(target)).band(child_band));
+
+        var mod_band = [ 0, trg_duration / 5 ];
+        // If you will change mod_band to target
+        var mod_duration = mod_band[1] - mod_band[0];
+
+        var spy = jasmine.createSpy('mod-spy').andCallFake(function() { /* ... */ });
+
+        var timeToPlay = child_band[0] + trg_band[0] + mod_band[1];
+        console.log('bebebe', mod_band, target.v.xdata.gband, timeToPlay);
+        // modifier should be called, because it is the last moment of it's own band,
+        // but it is not, since 0.3375 - 0.1875 === 0.15000000000000002, and not 0.15,
+        // where 0.3375 is global time (timeToPlay), 0.1875 is the start point of the target's global band,
+        // and 0.15 is the modifier's band end point.
+        //
+        // this example, of course is not, the single one, it may fail on recent variants of
+        // floating points, due to this subtraction, you may try to replace numbers with different ones
+        // and relatively recently you'll get the same bug, if they are fractions.
+        //
+        // it will be ok, however, if _duration will be 1, 1.1, 1.2...
+
+        // NB: mod_band = [ 0, timeToPlay + mod_band[1] - timeToPlay ];
+        //     and this trick will solve the problem, though
+
+        doAsync(player, {
+            prepare: function() { target.modify(mod_band, spy);
+                                  console.log(__builderInfo(scene));
+                                  return scene; },
+            run: function() { player.play(timeToPlay, 1, 1 / FPS); },
+            until: anm.C.STOPPED, timeout: _duration + .2,
+            then: function() { expect(spy).toHaveBeenCalled();
+                               target.unmodify(spy); }
+        });
     });
 
     xit('#34641967 should work as expected (controls should allow to jump while playing)', function() {
