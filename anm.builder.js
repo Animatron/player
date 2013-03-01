@@ -155,17 +155,22 @@ Builder.prototype.circle = function(pt, radius) {
 }
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
-Builder.prototype.image = function(pt, src) {
+Builder.prototype.image = function(pt, src, callback) {
     this.x.pos = pt;
     if (src) {
         var b = this;
         this.x.image =
            // width/height olny will be known when image will be loaded
-           Element.imgFromUrl(src, function(img) { });
+           Element.imgFromUrl(src);
+        if (callback) 
+        if (this.x.image.isReady) callback(src);
+        else Element.imgFromUrl(src, callback);
+        try { this.x.image.src = src; }
+        catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
     }
     return this;
 }
-Builder.prototype.sprite = function(pt, src, sheet, frame) {
+Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
     this.x.pos = pt;
     this.v.sheet = sheet;
     this.v.sprite = true;
@@ -176,7 +181,10 @@ Builder.prototype.sprite = function(pt, src, sheet, frame) {
         var b = this;
         this.x.image =
             // width/height olny will be known when image will be loaded
-            Element.imgFromUrl(src, function(img) {
+            Element.imgFromUrl(src);
+        if (callback) 
+        if (this.x.image.isReady) callback(src);
+        else Element.imgFromUrl(src, function(img) {
                 var w, h;
                 if (sheet instanceof Array) {
                     w = sheet[0];
@@ -185,7 +193,10 @@ Builder.prototype.sprite = function(pt, src, sheet, frame) {
                 b.x.$.state.dimen = [w, h];
                 b.x.$.state.ratio = 1;
                 b.v.prepare();
+                //if (callback) callback(this);
             });
+        try { this.x.image.src = src; }
+        catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
     }
     return this;
 }
