@@ -5,6 +5,50 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
+// Player Core
+// =============================================================================
+
+// This file contains only the Animatron Player core source code, without _Builder_ or any _modules_
+// included. The player is written with as minimum publicily-visible classes as possible, but
+// its internal structure hides more things, of course. Code in the file goes in
+// natural order, mostly from general things to internal ones. However, to make
+// code work properly it is not always possible to keep this principle.
+//
+// Here I'll give the actual order of things with few notes on each thing to make you have a good _view
+// from above_.
+//
+// - **Utils** —
+// - **Constants** —
+// - **Modules** —
+// - **Player** —
+//     - _Player Control API_ —
+// - **Scene** —
+// - **Element** —
+// - **Import** —
+// - **Drawing** —
+// - **Custom Rendering** —
+// - **Bands** —
+// - **Tweens** —
+// - **Easings** —
+// - **Path** —
+//     - _Segments_ —
+// - **Text** —
+// - **Controls** —
+// - **Info Block** —
+// - **Strings** —
+// - **Exports** —
+//
+// > While doing future refactorings, I may change this order a bit accidently or rename some sections and
+// > forget to update this list (blame me), so please do not consider it to be the very strict
+// > and representing something more than a general feel of file.
+//
+// > NB: Comments are in very early progress
+
+// So, let's start
+
+// This function allows to define a namespace for something and injects this namespace
+// into the global `Window` object (since we work with browser, our global object
+// is always the `Window`)
 var _define;
 if (typeof define !== "function") {
    this.define = function(name, func) {
@@ -14,14 +58,15 @@ if (typeof define !== "function") {
 
 define("anm", function() {
 
-// === UTILS ===================================================================
-// =============================================================================
+// Utils
+// -----------------------------------------------------------------------------
 
-// FRAMING
+// ### Framing
+/* ----------- */
 
-// http://www.html5canvastutorials.com/advanced/html5-canvas-start-and-stop-an-animation/
-// http://www.w3.org/TR/animation-timing/
-// https://gist.github.com/1579671
+/* http://www.html5canvastutorials.com/advanced/html5-canvas-start-and-stop-an-animation/
+   http://www.w3.org/TR/animation-timing/
+   https://gist.github.com/1579671 */
 
 var __frameFunc = function() {
            return window.requestAnimationFrame ||
@@ -49,12 +94,13 @@ var __clearFrameFunc = function() {
 var __nextFrame;
 
 // stops the animation
-// FIXME: remove, not used, __supressFrames is used
+/* FIXME: remove, not used, __supressFrames is used */
 var __stopAnim = function(requestId) {
     __clearFrameFunc()(requestId);
 };
 
-// ERRORS
+// ### Errors
+/* ---------- */
 
 var SystemError = __errorAs('SystemError',
                             function(msg) { this.message = msg || ''; });
@@ -68,7 +114,8 @@ var AnimationError = __errorAs('AnimationError',
                                function(msg) { this.message = msg || ''; });
 var AnimErr = AnimationError;
 
-// OTHER
+// ### Internal utilities
+/* ---------------------- */
 
 // collects all characters from string
 // before specified char, starting from start
@@ -81,11 +128,9 @@ function __collect_to(str, start, ch) {
     return result;
 }
 
-function _s4() {
-   return (((1+Math.random())*0x10000)|0).toString(16).substring(1);
-}
 function guid() {
-   return (_s4()+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+'-'+_s4()+_s4()+_s4());
+   return Math.random().toString(36).substring(2, 10) +
+          Math.random().toString(36).substring(2, 10);
 }
 /*function _strhash() {
   var hash = 0;
@@ -98,7 +143,8 @@ function guid() {
   return hash;
 }*/
 
-// ARRAYS
+// ### Arrays
+/* ---------- */
 
 function StopIteration() {}
 
@@ -130,7 +176,8 @@ function iter(a) {
     });
 }
 
-// DOM
+// ### DOM
+/* ------- */
 
 // for one-level objects, so no hasOwnProperty check
 function obj_clone(what) {
@@ -141,8 +188,8 @@ function obj_clone(what) {
     return dest;
 }
 
-// FIXME: replace with elm.getBoundingClientRect();
-// see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll
+/* FIXME: replace with elm.getBoundingClientRect();
+   see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
 function find_pos(elm) {
     var curleft = 0,
         curtop = 0;
@@ -153,7 +200,8 @@ function find_pos(elm) {
     return [ curleft, curtop ];
 }
 
-// AJAX
+// ### AJAX
+/* -------- */
 
 function ajax(url, callback/*, errback*/) {
     var req = false;
@@ -172,9 +220,9 @@ function ajax(url, callback/*, errback*/) {
         }
     }
 
-    //if (req.overrideMimeType) { // optional
-    //  req.overrideMimeType('text/xml');
-    //}
+    /*if (req.overrideMimeType) {
+        req.overrideMimeType('text/xml');
+      } */
 
     if (!req) {
       throw new SysErr('Failed to create XMLHttp instance');
@@ -197,7 +245,8 @@ function ajax(url, callback/*, errback*/) {
     req.send(null);
 }
 
-// CANVAS-RELATED
+// ### Canvas-related Utilities
+/* ---------------------------- */
 
 function getPxRatio() { return window.devicePixelRatio || 1; }
 
@@ -210,7 +259,7 @@ function canvasOpts(canvas, opts, ratio) {
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
     if (isObj) {
-        if (opts.bgfill) { // TODO: support other fill types
+        if (opts.bgfill) { /* TODO: support other fill types */
             canvas.style.backgroundColor = opts.bgfill.color;
         }
     }
@@ -242,17 +291,18 @@ function prepareImage(url, callback) {
             }
             loader.callbacks = [];
         };
-    } else 
+    } else
     if (anm.cache[url].image.isReady === true) {
         if (callback) callback(self);
-    } 
+    }
     else {
         if (callback) anm.cache[url].callbacks.push(callback);
     }
     return anm.cache[url].image;
 }
 
-// HELPERS
+// ### Internal Helpers
+/* -------------------- */
 
 function __builder(obj) {
     return (typeof Builder !== 'undefined') &&
@@ -267,6 +317,10 @@ function __num(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+function __obj(obj) {
+    return obj != null && typeof obj === 'object';
+}
+
 function __close(n1, n2, precision) {
     if (!(precision === 0)) {
         precision = precision || 2;
@@ -276,10 +330,17 @@ function __close(n1, n2, precision) {
            Math.round(n2 * multiplier);
 }
 
+function __roundTo(n, precision) {
+    if (!precision) return Math.round(n);
+    //return n.toPrecision(precision);
+    var multiplier = Math.pow(10, precision);
+    return Math.round(n * multiplier) / multiplier;
+}
+
 function __errorAs(name, _constructor) {
-  //var _constructor = function(msg) { this.message = msg; }
+  /* var _constructor = function(msg) { this.message = msg; } */
   _constructor.prototype = new Error();
-  //_constructor.prototype.constructor = _constructor;
+  /* _constructor.prototype.constructor = _constructor; */
   _constructor.prototype.name = name || 'Unknown';
   _constructor.prototype.toString = function() { return name + (this.message ? ': ' + this.message : ''); }
   return _constructor;
@@ -314,12 +375,31 @@ function disposeElm(domElm) {
     trashBin.innerHTML = '';
 }
 
-// === CONSTANTS ==================================================================
-// ================================================================================
+
+// Internal Constants
+// -----------------------------------------------------------------------------
+
+var TIME_PRECISION = 9; // the number of digits after the floating point
+                        // to round the time when comparing with bands and so on;
+                        // used to get rid of floating point-conversion issues
+
+function __adjust(t) {
+  return __roundTo(t, TIME_PRECISION);
+}
+
+function __t_cmp(t0, t1) {
+  if (__adjust(t0) > __adjust(t1)) return 1;
+  if (__adjust(t0) < __adjust(t1)) return -1;
+  return 0;
+}
+
+// Constants
+// -----------------------------------------------------------------------------
 
 var C = {};
 
-// Player states
+// ### Player states
+/* ----------------- */
 
 C.NOTHING = -1;
 C.STOPPED = 0;
@@ -329,7 +409,8 @@ C.PAUSED = 2;
 // public constants below are also appended to C object, but with `X_`-like prefix
 // to indicate their scope, see through all file
 
-// Player Modes constants
+// ### Player Modes constants
+/* -------------------------- */
 
 C.M_CONTROLS_DISABLED = 0;
 C.M_CONTROLS_ENABLED = 1;
@@ -353,7 +434,8 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_DRAW_STILL;
 
 
-// EVENTS
+// ### Events
+/* ---------- */
 
 C.__enmap = {};
 
@@ -364,7 +446,7 @@ function __reg_event(id, name, value) {
 
 // NB: All of the events must have different values, or the flow will be broken
 
-// mouse
+// * mouse
 __reg_event('X_MCLICK', 'mclick', 1);
 __reg_event('X_MDCLICK', 'mdclick', 2);
 __reg_event('X_MUP', 'mup', 4);
@@ -376,7 +458,7 @@ __reg_event('X_MOUT', 'mout', 64);
 __reg_event('XT_MOUSE', 'mouse',
   (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
 
-// keyboard
+// * keyboard
 __reg_event('X_KPRESS', 'kpress', 128);
 __reg_event('X_KUP', 'kup', 256);
 __reg_event('X_KDOWN', 'kdown', 1024);
@@ -384,13 +466,13 @@ __reg_event('X_KDOWN', 'kdown', 1024);
 __reg_event('XT_KEYBOARD', 'keyboard',
   (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
 
-// controllers
+// * controllers
 __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
-// draw
+// * draw
 __reg_event('X_DRAW', 'draw', 2048);
 
-// playing
+// * playing
 __reg_event('S_PLAY', 'play', 'play');
 __reg_event('S_PAUSE', 'pause', 'pause');
 __reg_event('S_STOP', 'stop', 'stop');
@@ -398,19 +480,19 @@ __reg_event('S_LOAD', 'load', 'load');
 __reg_event('S_REPEAT', 'repeat', 'repeat');
 __reg_event('S_ERROR', 'error', 'error');
 
-// X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events
+/* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
-// TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick'
+/* TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick' */
 
-// === MODULES ====================================================================
-// ================================================================================
+// Modules
+// -----------------------------------------------------------------------------
 
 var M = {};
 
 C.MOD_PLAYER = 'player';
 
-// === OPTIONS ====================================================================
-// ================================================================================
+// ### Options
+/* ----------- */
 
 var global_opts = { 'liveDebug': false,
                     'autoFocus': true,
@@ -418,41 +500,9 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
-// === INTERNAL CONSTANTS =========================================================
-// ================================================================================
+// Player
+// -----------------------------------------------------------------------------
 
-// for the cases when it is impossible to determine FPS
-var FPS_FALLBACK = 60,
-    FPS_ERROR = 1.3;
-
-// === PLAYER =====================================================================
-// ================================================================================
-
-/*
- `id` is canvas id
-
- you may pass null for options, but if you provide them, at least `mode` is required
- to be set (all other are optional).
-
- options format:
-  { "debug": false,
-    "inParent": false,
-    "muteErrors": false,
-    "mode": C.M_VIDEO,
-    "zoom": 1.0,
-    "meta": { "title": "Default",
-              "author": "Anonymous",
-              "copyright": "© NaN",
-              "version": -1.0,
-              "description":
-                      "Default project description",
-              [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
-    "anim": { "fps": 30,
-              "width": 400,
-              "height": 250,
-              "bgfill": { color: "#fff" },
-              "duration": 0 } }
-*/
 function Player() {
     this.id = '';
     this.state = null;
@@ -494,8 +544,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'duration': 0 }
                                };
 
-// === PLAYING CONTROL API =====================================================
-// =============================================================================
+// ### Playing Control API
+/* ----------------------- */
 
 // methods listed below are directly wrapped with try/catch to check
 // which way of handling/suppressing errors is current one for this player
@@ -503,16 +553,41 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 
 Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
-// TODO: add load/play/pause/stop events
+/* TODO: add load/play/pause/stop events */
+
+// `id` is canvas id
+
+// you may pass null for options, but if you provide them, at least `mode` is required
+// to be set (all other are optional).
+//
+// options format:
+//
+//     { "debug": false,
+//       "inParent": false,
+//       "muteErrors": false,
+//       "mode": C.M_VIDEO,
+//       "zoom": 1.0,
+//       "meta": { "title": "Default",
+//                 "author": "Anonymous",
+//                 "copyright": "© NaN",
+//                 "version": -1.0,
+//                 "description":
+//                         "Default project description",
+//                 [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
+//       "anim": { "fps": 30,
+//                 "width": 400,
+//                 "height": 250,
+//                 "bgfill": { color: "#fff" },
+//                 "duration": 0 } }
 
 Player.prototype.init = function(cvs, opts) {
     if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
-    this._initHandlers(); // TODO: make automatic
+    this._initHandlers(); /* TODO: make automatic */
     this._prepare(cvs);
     this._loadOpts(opts);
     this._postInit();
-    // TODO: if (this.canvas.hasAttribute('data-url'))
+    /* TODO: if (this.canvas.hasAttribute('data-url')) */
     return this;
 }
 Player.prototype.load = function(object, importer, callback) {
@@ -543,7 +618,7 @@ Player.prototype.load = function(object, importer, callback) {
         if (callback) callback();
     };
 
-    // TODO: configure canvas using clips bounds
+    /* TODO: configure canvas using clips bounds */
 
     if (object) {
 
@@ -562,8 +637,6 @@ Player.prototype.load = function(object, importer, callback) {
     } else {
         player.anim = new Scene();
     }
-
-    //console.log('load', player.id, player.state);
 
     return player;
 }
@@ -612,7 +685,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 }
 
 Player.prototype.stop = function() {
-    //if (state.happens === C.STOPPED) return;
+    /* if (state.happens === C.STOPPED) return; */
 
     var player = this;
 
@@ -644,7 +717,6 @@ Player.prototype.stop = function() {
     }
 
     player.fire(C.S_STOP);
-    //console.log('stop', player.id, state);
 
     return player;
 }
@@ -675,7 +747,6 @@ Player.prototype.pause = function() {
     player.drawAt(state.time);
 
     player.fire(C.S_PAUSE, state.time);
-    //console.log('pause', player.id, state);
 
     return player;
 }
@@ -690,22 +761,8 @@ Player.prototype.onerror = function(callback) {
     return this;
 }
 
-/*Player.prototype._fireError = function(err) {
-    var player = this;
-
-    player.fire(C.S_ERROR, err);
-    //console.log('onerror', player.id, player);
-
-    player.anim = null;
-    player.stop();
-
-    // TODO: test if handlers not supressed the error
-
-    return false; // do not throw error
-}*/
-
-// === INITIALIZATION ==========================================================
-// =============================================================================
+// ### Inititalization
+/* ------------------- */
 
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
@@ -739,11 +796,11 @@ Player.prototype._loadOpts = function(opts) {
 
     this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
 }
-// initial state of the player, called from conctuctor
+// initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
     this.stop();
-    // TODO: load some default information into player
-    if (!Text.__buff) Text.__buff = Text._createBuffer(); // so it will be performed onload
+    /* TODO: load some default information into player */
+    if (!Text.__buff) Text.__buff = Text._createBuffer(); /* so it will be performed onload */
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
@@ -777,13 +834,15 @@ Player.prototype.changeZoom = function(ratio) {
 // update player state with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
 // author/copyright, fps and width/height of the player
+//
 // Anim-info format:
-// { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
-//   "width": 640,
-//   "height": 480,
-//   ["bgfill": { color: "#f00" },] // in canvas-friendly format
-//   ["duration": 10.0] // in seconds
-// }
+//
+//     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
+//       "width": 640,
+//       "height": 480,
+//       ["bgfill": { color: "#f00" },] // in canvas-friendly format
+//       ["duration": 10.0] // in seconds
+//     }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cnvs = this.canvas;
@@ -800,14 +859,16 @@ Player.prototype.configureAnim = function(conf) {
 // update player information block with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
 // author/copyright, version.
+//
 // Meta-info format:
-// { ["id": "......",]
-//   "title": "Default",
-//   "author": "Anonymous",
-//   "copyright": "© 2011",
-//   "version": 0.1,
-//   "description": "Default project description"
-// }
+//
+//     { ["id": "......",]
+//       "title": "Default",
+//       "author": "Anonymous",
+//       "copyright": "© 2011",
+//       "version": 0.1,
+//       "description": "Default project description"
+//     }
 Player.prototype.configureMeta = function(info) {
     this._metaInfo = info;
     if (this.info) this.info.inject(info, this._animInfo);
@@ -859,8 +920,8 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    //window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
-    //window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
+    /*window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);*/
+    /*window.addEventListener('resize', Player.__getPosAndRedraw(this), false);*/
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -956,13 +1017,13 @@ Player.prototype._reset = function() {
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
-    //state.zoom = 1; // do not override the zoom
+    /*state.zoom = 1;*/ // do not override the zoom
     state.duration = 0;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, state.width * state.ratio,
                              state.height * state.ratio);
-    //this.stop();
+    /*this.stop();*/
 }
 // update player's canvas with configuration
 Player.prototype._applyConfToCanvas = function(opts) {
@@ -1162,9 +1223,9 @@ Player._saveCanvasPos = function(cvs) {
     ol += cpl + cbl + htol;
     ot += cpt + cbt + htot;
 
-    // FIXME: find a method with no injection of custom properties
-    //        (data-xxx attributes are stored as strings and may work
-    //         a bit slower for events)
+    /* FIXME: find a method with no injection of custom properties
+              (data-xxx attributes are stored as strings and may work
+               a bit slower for events) */
     cvs.__rOffsetLeft = ol;
     cvs.__rOffsetTop = ot;
 }
@@ -1174,14 +1235,14 @@ Player.createState = function(player) {
         'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
         'speed': 1, 'fps': 30, 'afps': 0, 'duration': 0,
         'debug': false, 'iactive': false,
-        // TODO: use iactive to determine if controls/info should be init-zed
+        /* TODO: use iactive to determine if controls/info should be init-zed */
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
         'zoom': 1.0, 'bgfill': null,
         'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
-        //'__drawInterval': null
+        /*'__drawInterval': null*/
     };
 }
 
@@ -1256,13 +1317,8 @@ Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, import
     return player;
 }
 
-// the dynamic method subsribes player itself to
-/* Player.subscribeEvents = function(canvas, anim) {
-
-} */
-
-// === SCENE ===================================================================
-// =============================================================================
+// Scene
+// -----------------------------------------------------------------------------
 
 // > Scene % ()
 function Scene() {
@@ -1275,12 +1331,13 @@ function Scene() {
 
 Scene.DEFAULT_VIDEO_DURATION = 10;
 
-// mouse/keyboard events are assigned in L.loadScene, TODO: move them into scene
+// mouse/keyboard events are assigned in L.loadScene
+/* TODO: move them into scene */
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW ]);
-// TODO: add chaining to all external Scene methods?
+/* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
 // > Scene.add % (elems: Array[Element]) => Clip
 // > Scene.add % (draw: Function(ctx: Context),
@@ -1352,13 +1409,13 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.render = function(ctx, time, zoom, afps) {
+Scene.prototype.render = function(ctx, time, zoom) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
     }
     this.visitRoots(function(elm) {
-        elm.render(ctx, time, afps);
+        elm.render(ctx, time);
     });
     ctx.restore();
     this.fire(C.X_DRAW,ctx);
@@ -1386,7 +1443,7 @@ Scene.prototype.reset = function() {
 Scene.prototype.dispose = function() {
     this.disposeHandlers();
     var me = this;
-    // FIXME: unregistering removes from tree, ensure it is safe
+    /* FIXME: unregistering removes from tree, ensure it is safe */
     this.visitRoots(function(elm) {
         me._unregister(elm);
         elm.dispose();
@@ -1433,7 +1490,7 @@ Scene.prototype._addToTree = function(elm) {
         throw new AnimErr('It appears that it is not a clip object or element that you pass');
     }
     this._register(elm);
-    //if (elm.children) this._addElems(elm.children);
+    /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
     this.updateDuration();
 }
@@ -1470,8 +1527,8 @@ Scene.prototype._unregister = function(elm) {
     //elm.parent = null;
 }
 
-// === ELEMENTS ================================================================
-// =============================================================================
+// Element
+// -----------------------------------------------------------------------------
 
 // repeat mode
 C.R_ONCE = 0;
@@ -1516,7 +1573,7 @@ Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
 Element.SYS_MOD = 0;
 Element.TWEEN_MOD = 1;
 Element.USER_MOD = 2;
-// TODO: JUMP_MOD ?
+/* TODO: JUMP_MOD */
 Element.EVENT_MOD = 3;
 // these two simplify checking in __mafter/__mbefore
 Element.FIRST_MOD = Element.SYS_MOD;
@@ -1542,8 +1599,6 @@ Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 
 // > Element % (draw: Function(ctx: Context),
 //               onframe: Function(time: Float))
-// FIXME: Underscore here is to prevent conflicts with other libraries.
-//        Find another shorter name that will also fit the meaning
 function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
@@ -1560,8 +1615,8 @@ function Element(draw, onframe) {
     this.__data = null;
     this._modifiers = [];
     this._painters = [];
-    if (onframe) this.__modify(Element.USER_MOD, 0, null, onframe);
-    if (draw) this.__paint(Element.USER_PNT, 0, draw);
+    if (onframe) this.__modify({ type: Element.USER_MOD }, onframe);
+    if (draw) this.__paint({ type: Element.USER_PNT }, draw);
     this.__lastJump = null;
     this.__jumpLock = false;
     this.__modifying = null; // current modifiers class, if modifying
@@ -1595,8 +1650,8 @@ Element.prototype.prepare = function() {
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
-Element.prototype.onframe = function(ltime, afps) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, afps);
+Element.prototype.onframe = function(ltime) {
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
 }
 // > Element.drawTo % (ctx: Context)
 Element.prototype.drawTo = function(ctx) {
@@ -1624,7 +1679,9 @@ Element.prototype.draw = function(ctx) {
                 }
                 var sy = Math.floor( this.xdata.frame / w ) * tw;
                 var sx = this.xdata.frame % w * th;
-                ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
+                try {
+                    ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
+                } catch (e) {};
             }
             else ctx.drawImage(this.xdata.canvas, 0, 0);
         }
@@ -1637,8 +1694,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= s.alpha;
     s._matrix.apply(ctx);
 }
-// > Element.render % (ctx: Context, gtime: Float[, afps: Float])
-Element.prototype.render = function(ctx, gtime, afps) {
+// > Element.render % (ctx: Context, gtime: Float)
+Element.prototype.render = function(ctx, gtime) {
     if (this.disabled) return;
     this.rendering = true;
     ctx.save();
@@ -1647,7 +1704,7 @@ Element.prototype.render = function(ctx, gtime, afps) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     if (wasDrawn = (this.fits(ltime)
-                    && this.onframe(ltime, afps)
+                    && this.onframe(ltime)
                     && this.prepare())) {
         // update gtime, if it was changed by ltime()
         gtime = this.gtime(ltime);
@@ -1697,25 +1754,68 @@ Element.prototype.render = function(ctx, gtime, afps) {
     this.rendering = false;
     if (wasDrawn) this.fire(C.X_DRAW,ctx);
 }
-// > Element.addModifier % ([restriction: Array[Float, 2] | Float],
-//                          modifier: Function(time: Float,
+// > Element.addModifier % (( configuration: Object,
+//                            modifier: Function(time: Float,
+//                                               data: Any) => Boolean)
+//                        | ( modifier: Function(time: Float,
 //                                             data: Any) => Boolean,
-//                          [easing: Function()],
-//                          [data: Any],
-//                          [priority: Int]
+//                            [easing: Function()],
+//                            [data: Any],
+//                            [priority: Int]
 //                         ) => Integer
 Element.prototype.addModifier = function(modifier, easing, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, null, modifier, easing, data);
+    if (__obj(modifier)) {
+      // modifier is configuration here and easing is modifier factually
+      modifier.type = Element.USER_MOD; // here, type should always be user-modifier
+      return this.__modify(modifier, easing);
+    } else {
+      return this.__modify({ type: Element.USER_MOD,
+                             priority: priority,
+                             easing: easing,
+                             data: data }, modifier);
+    }
 }
-// > Element.addTModifier % ([restriction: Array[Float, 2] | Float],
+// > Element.addTModifier % (restriction: Array[Float, 2] | Float,
 //                           modifier: Function(time: Float,
 //                                              data: Any) => Boolean,
 //                           [easing: Function()],
 //                           [data: Any],
 //                           [priority: Int]
 //                          ) => Integer
-Element.prototype.addTModifier = function(band, modifier, easing, data, priority) {
-    return this.__modify(Element.USER_MOD, priority || 0, band, modifier, easing, data);
+Element.prototype.addTModifier = function(time, modifier, easing, data, priority) {
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           time: time,
+                           easing: easing,
+                           data: data }, modifier);
+}
+// > Element.addRModifier % (modifier: Function(time: Float,
+//                                             data: Any) => Boolean,
+//                           [easing: Function()],
+//                           [data: Any],
+//                           [priority: Int]
+//                          ) => Integer
+Element.prototype.addRModifier = function(modifier, easing, data, priority) {
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           easing: easing,
+                           relative: true,
+                           data: data }, modifier);
+}
+// > Element.addRTModifier % (restriction: Array[Float, 2] | Float,
+//                            modifier: Function(time: Float,
+//                                               data: Any) => Boolean,
+//                            [easing: Function()],
+//                            [data: Any],
+//                            [priority: Int]
+//                           ) => Integer
+Element.prototype.addRTModifier = function(time, modifier, easing, data, priority) {
+    return this.__modify({ type: Element.USER_MOD,
+                           priority: priority,
+                           time: time,
+                           easing: easing,
+                           relative: true,
+                           data: data }, modifier);
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -1733,7 +1833,9 @@ Element.prototype.removeModifier = function(modifier) {
 // > Element.addPainter % (painter: Function(ctx: Context))
 //                         => Integer
 Element.prototype.addPainter = function(painter, data, priority) {
-    return this.__paint(Element.USER_PNT, priority || 0, painter, data);
+    return this.__paint({ type: Element.USER_PNT,
+                          priority: priority,
+                          data: data }, painter);
 }
 // > Element.removePainter % (painter: Function)
 Element.prototype.removePainter = function(painter) {
@@ -1842,7 +1944,8 @@ Element.prototype.setBand = function(band) {
 Element.prototype.duration = function() {
     return this.xdata.lband[1] - this.xdata.lband[0];
 }
-/* Element.prototype.rel_duration = function() { // TODO: duration cut with global band
+/* TODO: duration cut with global band */
+/* Element.prototype.rel_duration = function() {
     return
 } */
 Element.prototype._max_tpos = function() {
@@ -1855,8 +1958,7 @@ Element.prototype._max_tpos = function() {
 } */
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
-    return (ltime <= (this.xdata.lband[1]
-                      - this.xdata.lband[0]));
+    return __t_cmp(ltime, this.xdata.lband[1] - this.xdata.lband[0]) <= 0;
 }
 Element.prototype.gtime = function(ltime) {
     return this.xdata.gband[0] + ltime;
@@ -1867,7 +1969,7 @@ Element.prototype.ltime = function(gtime) {
         case C.R_ONCE:
             return this.__checkGJump(gtime);
         case C.R_STAY:
-            return (gtime <= x.gband[1])
+            return (__t_cmp(gtime, x.gband[1]) <= 0)
                    ? (gtime - x.gband[0])
                    : (x.lband[1] - x.lband[0]);
         case C.R_LOOP: {
@@ -1904,13 +2006,14 @@ Element.prototype.ltime = function(gtime) {
     }
 }
 Element.prototype.m_on = function(type, handler) {
-    return this.__modify(Element.EVENT_MOD, 0, null, function(t) { // FIXME: handlers must have priority?
-      if (this.__evt_st & type) {
-        var evts = this.__evts[type];
-        for (var i = 0; i < evts.length; i++) {
-            if (handler.call(this,evts[i],t) === false) return false;
+    return this.__modify({ type: Element.EVENT_MOD },
+      function(t) { /* FIXME: handlers must have priority? */
+        if (this.__evt_st & type) {
+          var evts = this.__evts[type];
+          for (var i = 0; i < evts.length; i++) {
+              if (handler.call(this,evts[i],t) === false) return false;
+          }
         }
-      }
     });
 }
 /*Element.prototype.posAtStart = function(ctx) {
@@ -1920,7 +2023,7 @@ Element.prototype.m_on = function(type, handler) {
     ctx.rotate(s.angle);
 }*/
 // calculates band that fits all child elements, recursively
-// FIXME: test
+/* FIXME: test */
 Element.prototype.findWrapBand = function() {
     var children = this.children;
     if (children.length === 0) return this.xdata.gband;
@@ -1940,9 +2043,9 @@ Element.prototype.reset = function() {
     this.__resetState();
     this.__lastJump = null;
     if (this.__mask) this.__removeMaskCanvases();
-    //this.__clearEvtState();
+    /*this.__clearEvtState();*/
     (function(elm) {
-        elm.__forAllModifiers(function(band, modifier) {
+        elm.__forAllModifiers(function(modifier) {
             if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
             if (modifier.__wasCalledAt) modifier.__wasCalledAt[elm.id] = -1;
         });
@@ -2015,7 +2118,7 @@ Element.prototype.unlock = function() {
     this.__jumpLock = false;
     return result;
 }
-Element.prototype.stateAt = function(t) { // FIXME: test
+Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
     var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
@@ -2076,8 +2179,8 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     this.__maskCtx = this.__maskCvs.getContext('2d');
     this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
-    // document.body.appendChild(this.__maskCvs);
-    // document.body.appendChild(this.__backCvs);
+    /* document.body.appendChild(this.__maskCvs); */
+    /* document.body.appendChild(this.__backCvs); */
 }
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
@@ -2140,7 +2243,7 @@ Element.prototype.deepClone = function() {
         trg_children.push(cclone);
     }
     clone._modifiers = [];
-    // FIXME: use __forAllModifiers & __forAllPainters
+    /* FIXME: use __forAllModifiers & __forAllPainters */
     // loop through type
     for (var mti = 0, mtl = this._modifiers.length; mti < mtl; mti++) {
         var type_group = this._modifiers[mti];
@@ -2182,7 +2285,7 @@ Element.prototype.deepClone = function() {
     var src_x = this.xdata,
         trg_x = clone.xdata;
     if (src_x.path) trg_x.path = src_x.path.clone();
-    //if (src_x.image) trg_x.image = src_x.image.clone();
+    /* if (src_x.image) trg_x.image = src_x.image.clone(); */
     if (src_x.text) trg_x.text = src_x.text.clone();
     trg_x.pos = [].concat(src_x.pos);
     trg_x.reg = [].concat(src_x.reg);
@@ -2193,8 +2296,8 @@ Element.prototype.deepClone = function() {
 }
 Element.prototype._addChild = function(elm) {
     elm.parent = this;
-    this.children.push(elm); // or add elem.id?
-    if (this.scene) this.scene._register(elm); // TODO: rollback parent and child?
+    this.children.push(elm); /* or add elem.id? */
+    if (this.scene) this.scene._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
@@ -2219,45 +2322,55 @@ Element.prototype._stateStr = function() {
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
-Element._FPS_FALLBACK = FPS_FALLBACK;
-Element._FPS_ERROR = FPS_ERROR;
-Element.prototype.__adaptModTime = function(ltime, band, state, modifier, easing, afps) {
+Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
   var lband = this.xdata.lband,
-      elm_duration = lband[1] - lband[0];
+      elm_duration = lband[1] - lband[0],
+      easing = conf.easing,
+      time = conf.time, // time or band of the modifier, if set
+      relative = conf.relative;
   var _tpair = null;
-  if (band == null) {
-      _tpair = [ ltime / elm_duration, elm_duration ];
-  } else if (__array(band)) { // modifier is band-restricted
-      //if ((ltime + band[0]) >= elm_duration) return ltime;
-      var mod_duration = band[1] - band[0];
-      if (ltime < band[0]) return false; //_tpair = [ 0, mod_duration ];
-      else if (ltime > band[1]) return false; // _tpair = [ 1, mod_duration ];
-      else _tpair = [ (ltime - band[0]) / mod_duration, mod_duration ];
-  } else if (__num(band)) {
+  if (time == null) {
+      _tpair = [ relative
+                     ? __adjust(ltime) / __adjust(elm_duration)
+                     : __adjust(ltime),
+                 __adjust(elm_duration) ];
+  } else if (__array(time)) { // modifier is band-restricted
+      var band = time;
+      if (!relative) {
+          var mod_duration = band[1] - band[0];
+          if (__t_cmp(ltime, band[0]) < 0) return false;
+          if (__t_cmp(ltime, band[1]) > 0) return false;
+          _tpair = [ __adjust(ltime - band[0]),
+                     __adjust(mod_duration) ];
+      } else {
+          var abs_band = [ band[0] * elm_duration,
+                           band[1] * elm_duration ];
+          var mod_duration = abs_band[1] - abs_band[0];
+          if (__t_cmp(ltime, abs_band[0]) < 0) return false;
+          if (__t_cmp(ltime, abs_band[1]) > 0) return false;
+          _tpair = [ __adjust(ltime - abs_band[0]) / __adjust(mod_duration),
+                     __adjust(mod_duration) ];
+      }
+  } else if (__num(time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
-      afps = afps || (state._._appliedAt
-                      ? (1 / (ltime - state._._appliedAt))
-                      : 0) || 0;
-      // FIXME: test if afps is not too big
-      var tpos = band;
-      var doCall = ((afps > 0) &&
-                    (ltime >= tpos) &&
-                    (ltime <= tpos + ((1 / afps) * FPS_ERROR))) ||
-                   ((afps <= 0) && __close(ltime, tpos, 10)) ||
-                   ((tpos > (lband[1] - (1 / (afps || FPS_FALLBACK)))) &&
-                    ((ltime + (1 / (afps || FPS_FALLBACK))) > lband[1]));
-      if (doCall) {
+      var tpos = relative ? (time * elm_duration) : time;
+      if (__t_cmp(ltime, tpos) >= 0) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
-      }
-      if (!doCall) return false;
-      _tpair = [ ltime / elm_duration, elm_duration ];
-  } else _tpair = [ ltime, elm_duration ];
+      } else return false;
+      _tpair = [ relative
+                     ? __adjust(ltime) / __adjust(elm_duration)
+                     : __adjust(ltime),
+                 __adjust(elm_duration) ];
+  } else _tpair = [ relative
+                        ? __adjust(ltime) / __adjust(elm_duration)
+                        : __adjust(ltime),
+                    __adjust(elm_duration) ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
-Element.prototype.__callModifiers = function(order, ltime, afps) {
+Element.prototype.__callModifiers = function(order, ltime) {
     return (function(elm) {
 
         // save the previous state
@@ -2266,24 +2379,28 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
         elm._state._ = obj_clone(elm.state);
 
         // now it looks like:
-        // this.
-        //     .state -> state from the last modifiers call
-        //     ._state -> clone of the last state, it is passed to modifiers as `this`
-        //     ._state._ -> a pointer to the last state, so it will be accessible in
-        //                  modifiers as `this._`
+        //
+        //     this.
+        //         .state    -> state from the last modifiers call
+        //         ._state   -> clone of the last state, it is passed to modifiers as `this`
+        //         ._state._ -> a pointer to the last state, so it will be accessible in
+        //                      modifiers as `this._`
 
         elm.__loadEvts(elm._state);
 
         if (!elm.__forAllModifiers(order,
-            function(band, modifier, easing, data) { /* each modifier */
+            function(modifier, conf) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, band, elm._state, modifier, easing, afps);
-                // false will be returned from __adaptModTime
-                // for trigger-like modifier if it is required to skip current one
+                var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier);
+                // `false` will be returned from `__adaptModTime`
+                // for trigger-like modifier if it is required to skip current one,
+                // on the other hand `true` in `forAllModifiers` means
+                // "skip this one, but not finish the whole process",
+                // FIXME: this unobvious line
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime[0], lbtime[1], data);
+                return modifier.call(elm._state, lbtime[0], lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -2317,8 +2434,8 @@ Element.prototype.__callModifiers = function(order, ltime, afps) {
 Element.prototype.__callPainters = function(order, ctx) {
     (function(elm) {
         elm.__forAllPainters(order,
-            function(painter, data) { /* each painter */
-                painter.call(elm.xdata, ctx, data);
+            function(painter, conf) { /* each painter */
+                painter.call(elm.xdata, ctx, conf.data);
             }, function(type) { /* before each new type */
                 elm.__painting = type;
                 elm.__pbefore(ctx, type);
@@ -2328,17 +2445,25 @@ Element.prototype.__callPainters = function(order, ctx) {
         elm.__painting = null;
     })(this);
 }
-Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
-    if (!modifier) return; // FIXME: throw some error?
+//Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
+Element.prototype.__addTypedModifier = function(conf, modifier) {
+    if (!modifier) throw new AnimErr(Errors.A.NO_MODIFIER_PASSED);
     var modifiers = this._modifiers;
-    var priority = priority || 0;
+    var elm_id = this.id;
     if (!modifier.__m_ids) modifier.__m_ids = {};
-    else if (modifier.__m_ids[this.id]) throw new AnimErr('Modifier was already added to this element');
+    else if (modifier.__m_ids[elm_id]) throw new AnimErr(Errors.A.MODIFIER_REGISTERED);
+    var priority = conf.priority || 0,
+        type = conf.type;
     if (!modifiers[type]) modifiers[type] = [];
     if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([band, modifier, Element.__convertEasing(easing), data]);
-    modifier.__m_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-                                (modifiers[type][priority].length - 1);
+    modifiers[type][priority].push([ modifier, { type: type, // configuration is cloned for safety
+                                                 priority: priority,
+                                                 time: conf.time,
+                                                 relative: conf.relative,
+                                                 easing: Element.__convertEasing(conf.easing, null, conf.relative),
+                                                 data: conf.data } ]);
+    modifier.__m_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                               (modifiers[type][priority].length - 1);
     return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
@@ -2356,27 +2481,31 @@ Element.prototype.__forAllModifiers = function(order, f, before_type, after_type
               for (var ci = 0, cl = cur.length; ci < cl; ci++) {
                 var modifier;
                 if (modifier = cur[ci]) {
-                  if (f(modifier[0], modifier[1], modifier[2], modifier[3]) === false) return false;
-                } // if cur[ci]
-              } // for var ci
-            } // if cur = seq[pi]
-          } // for var pi
-        } // if seq
+                  if (f(modifier[0], modifier[1]) === false) return false;
+                } /* if cur[ci] */
+              } /* for var ci */
+            } /* if cur = seq[pi] */
+          } /* for var pi */
+        } /* if seq */
         if (after_type) after_type(type);
     }
     return true;
 }
-Element.prototype.__addTypedPainter = function(type, priority, painter, data) {
-    if (!painter) return; // FIXME: throw some error?
+Element.prototype.__addTypedPainter = function(conf, painter) {
+    if (!painter) throw new AnimErr(Errors.A.NO_PAINTER_PASSED);
     var painters = this._painters;
-    var priority = priority || 0;
+    var elm_id = this.id;
     if (!painter.__p_ids) painter.__p_ids = {};
-    else if (painter.__p_ids[this.id]) throw new AnimErr('Painter was already added to this element');
+    else if (painter.__p_ids[elm_id]) throw new AnimErr(Errors.A.PAINTER_REGISTERED);
+    var priority = conf.priority || 0,
+        type = conf.type;
     if (!painters[type]) painters[type] = [];
     if (!painters[type][priority]) painters[type][priority] = [];
-    painters[type][priority].push([painter, data]);
-    painter.__p_ids[this.id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-                               (painters[type][priority].length - 1);
+    painters[type][priority].push([ painter, { type: type, // configuration is cloned for safety
+                                               priority: priority,
+                                               data: conf.data } ]);
+    painter.__p_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
+                              (painters[type][priority].length - 1);
     return painter;
 }
 Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
@@ -2420,6 +2549,7 @@ Element.prototype.__checkGJump = function(gtime) {
     return this.__checkJump(gtime - this.xdata.gband[0]);
 }
 Element.prototype.__checkJump = function(at) {
+    // FIXME: test if jumping do not fails with floating points problems
     var x = this.xdata,
         s = this.state;
     if (x.tf) return x.tf(at);
@@ -2455,13 +2585,13 @@ Element.prototype.__checkJump = function(at) {
     // just set it to actual local time
     t = (t !== null) ? t : at;
     if (this.__lastJump !== null) {
-       // return (jump_pos + (t - jumped_at))
+       /* return (jump_pos + (t - jumped_at)) */
        return this.__lastJump[1] + (t - this.__lastJump[0]);
-       /* // overflow will be checked in fits() method,
+       // overflow will be checked in fits() method,
        // or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
        // it will be just ended there
-       return ((this.__lastJump + t) > x.gband[1])
+       /* return ((this.__lastJump + t) > x.gband[1])
              ? (this.__lastJump + t)
              : x.gband[1]; */
     }
@@ -2547,37 +2677,57 @@ Element.createXData = function(owner) {
 }
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
-    //if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband);
-    elm.__modify(Element.SYS_MOD, 0, null, Render.m_saveReg);
-    elm.__modify(Element.SYS_MOD, 0, null, Render.m_applyPos);
+    /* if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband); */
+    elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
+    elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
-    elm.__paint(Element.SYS_PNT, 0, Render.p_applyAComp);
-    elm.__paint(Element.SYS_PNT, 0, Render.p_drawPath);
-    elm.__paint(Element.SYS_PNT, 0, Render.p_drawImage);
-    elm.__paint(Element.SYS_PNT, 0, Render.p_drawText);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPath);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawImage);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawText);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawReg);
-    elm.__paint(Element.DEBUG_PNT, 0, Render.p_drawName);
-    //elm.__paint(Element.DEBUG_PNT, 1, Render.p_drawMPath);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawReg);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
+    /* elm.__paint({ type: Element.DEBUG_PNT,
+                     priority: 1 },
+                   Render.p_drawMPath); */
 
     elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
 }
-Element.__addTweenModifier = function(elm, tween) { // FIXME: improve modify with adding object same way,
-                                                    // include easing in all modifiers
-    var m_tween = Tweens[tween.type]();
-    return elm.__modify(Element.TWEEN_MOD, Tween.TWEENS_PRIORITY[tween.type],
-                        tween.band, m_tween,
-                        tween.easing,
-                        tween.data);
+Element.__addTweenModifier = function(elm, conf) {
+    //if (!conf.type) throw new AnimErr('Tween type is not defined');
+    var tween_f = Tweens[conf.type](),
+        m_tween;
+    // all tweens functions actually work with 0..1 parameter, but modifiers
+    // differ by 'relative' option
+    if (conf.relative) {
+      m_tween = tween_f;
+    } else {
+      m_tween = function(t, duration, data) {
+        return tween_f.call(this, t / duration, duration, data);
+      };
+    }
+    return elm.__modify({ type: Element.TWEEN_MOD,
+                          priority: Tween.TWEENS_PRIORITY[conf.type],
+                          time: conf.band || conf.time,
+                          relative: conf.relative,
+                          easing: conf.easing,
+                          data: conf.data }, m_tween);
 }
-Element.__convertEasing = function(easing, data) {
+Element.__convertEasing = function(easing, data, relative) {
   if (!easing) return null;
-  if (typeof easing === 'string') return EasingImpl[easing](data);
+  if (typeof easing === 'string') {
+      var f = EasingImpl[easing](data);
+      return relative ? f : function(t, len) { return f(t / len, len) * len; }
+  }
   if ((typeof easing === 'function') && !data) return easing;
   if ((typeof easing === 'function') && data) return easing(data);
-  if (easing.type) return EasingImpl[easing.type](easing.data || data);
+  if (easing.type) {
+    var f = EasingImpl[easing.type](easing.data || data);
+    return relative ? f : function(t, len) { return f(t / len, len) * len; }
+  }
   if (easing.f) return easing.f(easing.data || data);
 }
 
@@ -2600,8 +2750,8 @@ Element.imgFromUrl = prepareImage;
 
 var Clip = Element;
 
-// =============================================================================
-// === EVENTS ==================================================================
+// Events
+// -----------------------------------------------------------------------------
 
 // adds specified events support to the `subj` object. `subj` object receives
 // `handlers` property that keeps the listeners for each event. Also, it gets
@@ -2663,8 +2813,8 @@ function provideEvents(subj, events) {
             if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
         }
     }
-    // FIXME: call fire/e_-funcs only from inside of their providers,
-    // TODO: wrap them with event objects
+    /* FIXME: call fire/e_-funcs only from inside of their providers, */
+    /* TODO: wrap them with event objects */
     var _event;
     for (var ei = 0; ei < events.length; ei++) {
         _event = events[ei];
@@ -2674,9 +2824,9 @@ function provideEvents(subj, events) {
             };
         })(_event);
     }
-    // subj.prototype.before = function(event, handler) { }
-    // subj.prototype.after = function(event, handler) { }
-    // subj.prototype.provide = function(event, provider) { }
+    /* subj.prototype.before = function(event, handler) { } */
+    /* subj.prototype.after = function(event, handler) { } */
+    /* subj.prototype.provide = function(event, provider) { } */
 }
 
 function kevt(e) {
@@ -2689,8 +2839,8 @@ function mevt(e, cvs) {
                     e.pageY - cvs.__rOffsetTop ] };
 }
 
-// =============================================================================
-// === DRAWING =================================================================
+// Drawing
+// -----------------------------------------------------------------------------
 
 var D = {}; // means "Drawing"
 
@@ -2723,7 +2873,7 @@ D.drawNext = function(ctx, state, scene, before, after) {
     ctx.clearRect(0, 0, state.width * state.ratio,
                         state.height * state.ratio);
 
-    scene.render(ctx, time, state.zoom * state.ratio, state.afps);
+    scene.render(ctx, time, state.zoom * state.ratio/*, state.afps*/);
 
     // show fps
     if (state.debug) { // TODO: move to player.onrender
@@ -2751,11 +2901,12 @@ D.drawFPS = function(ctx, fps) {
     ctx.fillText(Math.floor(fps), 8, 20);
 }
 
-// === DRAWING: UTILS ==========================================================
+// ### Drawing: Utils
+/* ------------------ */
 
 var DU = {}; // means "Drawing Utils"
 
-// FIXME: move to `Path`?
+/* FIXME: move to `Path`? */
 DU.applyStroke = function(ctx, stroke) {
     if (!stroke) return;
     ctx.lineWidth = stroke.width;
@@ -2765,7 +2916,7 @@ DU.applyStroke = function(ctx, stroke) {
     ctx.lineJoin = stroke.join;
 }
 
-// FIXME: move to `Path`?
+/* FIXME: move to `Path`? */
 DU.applyFill = function(ctx, fill) {
     if (!fill) return;
     ctx.fillStyle = fill._style // calculated once for fill
@@ -2776,7 +2927,7 @@ DU._hasVal = function(fsval) {
     return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
-// FIXME: move to `Path`?
+/* FIXME: move to `Path`? */
 DU.qDraw = function(ctx, stroke, fill, func) {
     ctx.save();
     ctx.beginPath();
@@ -2790,8 +2941,8 @@ DU.qDraw = function(ctx, stroke, fill, func) {
     ctx.restore();
 }
 
-// =============================================================================
-// === IMPORT ==================================================================
+// Import
+// -----------------------------------------------------------------------------
 
 var L = {}; // means "Loading/Loader"
 
@@ -2842,8 +2993,8 @@ L.loadBuilder = function(player, builder, callback) {
     L.loadScene(player, _anim, callback);
 }
 
-// =============================================================================
-// === CUSTOM RENDERING ========================================================
+// Custom Rendering
+// -----------------------------------------------------------------------------
 
 var Render = {}; // means "Render", system modifiers & painters
 
@@ -2924,6 +3075,9 @@ Render.m_applyPos = function(time, duration, pos) {
     this.ly = pos[1];
 }
 
+// Bands
+// -----------------------------------------------------------------------------
+
 var Bands = {};
 
 // recalculate all global bands down to the very
@@ -2949,7 +3103,8 @@ Bands.wrap = function(outer, inner) {
               ? (outer[0] + inner[1])
               : outer[1]
             ];
-}// makes band maximum wide to fith both bands
+}
+// makes band maximum wide to fith both bands
 Bands.expand = function(from, to) {
     if (!from) return to;
     return [ ((to[0] < from[0])
@@ -2968,8 +3123,8 @@ Bands.reduce = function(from, to) {
            ];
 }
 
-// =============================================================================
-// === TWEENS ==================================================================
+// Tweens
+// -----------------------------------------------------------------------------
 
 // Tween constants
 
@@ -3031,21 +3186,24 @@ Tweens[C.T_ROT_TO_PATH] =
       };
     };
 
-// function-based easings
+// Easings
+// -----------------------------------------------------------------------------
 
 // Easings constants
 
 C.E_PATH = 'PATH'; // Path
 C.E_FUNC = 'FUNC'; // Function
 C.E_CSEG = 'CSEG'; // Function
-//C.E_CINOUT = 'CINOUT'; // Cubic InOut
-//....
+/*C.E_CINOUT = 'CINOUT'; // Cubic InOut*/
+/*....*/
+
+// function-based easings
 
 var EasingImpl = {};
 
 EasingImpl[C.E_PATH] =
     function(path) {
-        //var path = Path.parse(str);
+        /*var path = Path.parse(str);*/
         return function(t) {
             return path.pointAt(t)[1];
         }
@@ -3119,8 +3277,8 @@ __registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // B
 __registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
 __registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
-// =============================================================================
-// === PATHS ===================================================================
+// Paths
+// -----------------------------------------------------------------------------
 
 // M<X> <Y> - move to
 // L<X> <Y> - line to
@@ -3140,7 +3298,6 @@ __registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // B
 
 // Currently our format differs in a number format:
 // "M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z"
-// ======================================================
 
 // path constants
 C.P_MOVETO = 0;
@@ -3327,7 +3484,7 @@ Path.prototype.rect = function() {
           // maxX, maxY, minX, maxY
              b[2], b[3], b[0], b[3] ];
 }
-// TODO: rename to `modify`?
+/* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
         var pts = segment.pts;
@@ -3613,7 +3770,7 @@ function CSeg(pts) {
     this.count = pts.length;
 }
 CSeg.prototype.length = function(start) {
-    // FIXME: cache length data and points somewhere
+    /* FIXME: cache length data and points somewhere */
     var positions = this.pts;
     var p0x = start[0];
     var p0y = start[1];
@@ -3701,7 +3858,7 @@ CSeg.prototype.tangentAt = function(start, t) {
     var tt = t * t; // t^2
     var p = [ 3 * par[0] * tt + 2 * par[1] * t + par[2],
               3 * par[4] * tt + 2 * par[5] * t + par[6] ];
-    //var p = this.atT(start, t);
+    /*var p = this.atT(start, t);*/
     return Math.atan2(p[1], p[0]);
 }
 CSeg.prototype._ensure_params = function(start) {
@@ -3737,8 +3894,8 @@ CSeg.prototype._calc_params = function(start) {
     return params;
 }
 
-// =============================================================================
-// === TEXT ====================================================================
+// Text
+// -----------------------------------------------------------------------------
 
 Text.DEFAULT_CAP = C.PC_ROUND;
 Text.DEFAULT_JOIN = C.PC_ROUND;
@@ -3798,10 +3955,10 @@ Text.prototype.bounds = function() {
     return [ 0, 0, dimen[0], dimen[1] ];
 }
 Text.prototype.accent = function(height) {
-    return height; // FIXME
+    return height; /* FIXME */
 }
 Text._createBuffer = function() {
-    // FIXME: dispose buffer when text is removed from scene
+    /* FIXME: dispose buffer when text is removed from scene */
     var _div = document.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';
@@ -3846,8 +4003,8 @@ Text.prototype.clone = function() {
     return c;
 }
 
-// =============================================================================
-// === CONTROLS ================================================================
+// Controls
+// -----------------------------------------------------------------------------
 
 function Controls(player) {
     this.player = player;
@@ -3860,10 +4017,10 @@ function Controls(player) {
     this._time = -1000;
     this._ratio = 1;
     this._lhappens = C.NOTHING;
-    this._initHandlers(); // TODO: make automatic
+    this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
-// TODO: move these settings to default css rule?
+/* TODO: move these settings to default css rule? */
 Controls.HEIGHT = 40;
 Controls.MARGIN = 5;
 Controls.OPACITY = 0.8;
@@ -3907,7 +4064,7 @@ Controls.prototype.update = function(parent) {
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
-        // FIXME: a dirty hack?
+        /* FIXME: a dirty hack? */
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
         this.ready = true;
@@ -3947,7 +4104,7 @@ Controls.prototype.render = function(state, time) {
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
         _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
-    // TODO: update only progress if state not changed?
+    /* TODO: update only progress if state not changed? */
     ctx.clearRect(0, 0, _w, _h);
     ctx.save();
     if (_ratio != 1) ctx.scale(_ratio, _ratio);
@@ -3983,7 +4140,7 @@ Controls.prototype.render = function(state, time) {
 
     this.__force = false;
 }
-// TODO: take initial state from imported project
+/* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
     this.hidden = true;
     this.canvas.style.display = 'none';
@@ -4135,8 +4292,8 @@ Controls.__progress = function(ctx, _w, time, duration) {
     ctx.closePath();
 }
 
-// =============================================================================
-// === INFO BLOCK ==============================================================
+// Info Block
+// -----------------------------------------------------------------------------
 
 function InfoBlock(player) {
     this.div = null;
@@ -4144,7 +4301,7 @@ function InfoBlock(player) {
     this.hidden = false;
     this._inParent = player.inParent;
 }
-// TODO: move these settings to default css rule?
+/* TODO: move these settings to default css rule? */
 InfoBlock.DEF_BGCOLOR = '#fff';
 InfoBlock.DEF_FGCOLOR = '#000';
 InfoBlock.OPACITY = 0.85;
@@ -4185,7 +4342,7 @@ InfoBlock.prototype.update = function(parent) {
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
-        // FIXME: a dirty hack?
+        /* FIXME: a dirty hack */
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_div);
         this.ready = true;
@@ -4194,7 +4351,7 @@ InfoBlock.prototype.update = function(parent) {
     if (!_div.style.backgroundColor) _div.style.backgroundColor = InfoBlock.DEF_BGCOLOR;
 }
 InfoBlock.prototype.inject = function(meta, anim) {
-    // TODO: show speed
+    /* TODO: show speed */
     this.div.innerHTML = '<p><span class="title">'+(meta.title || '[No title]')+'</span>'+
             (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
             '<span class="duration">'+anim.duration+'sec</span>'+', '+
@@ -4236,16 +4393,18 @@ InfoBlock.prototype.changeColors = function(front, back) {
     this.div.style.backgroundColor = back;
 }
 
-// ==== STRINGS ================================================================
+// Strings
+// -----------------------------------------------------------------------------
 
 var Strings = {};
 
 Strings.LOADING = 'Loading...';
 Strings.LOADING_ANIMATION = 'Loading {0}...';
 
-// ==== ERRORS =================================================================
+// ### Errors Strings
+/* ------------------ */
 
-// TODO: Move Scene and Element errors here ?
+/* TODO: Move Scene and Element errors here */
 
 var Errors = {};
 Errors.S = {}; // System Errors
@@ -4283,9 +4442,13 @@ Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method
 Errors.A.NO_ELEMENT = 'No such element found';
 Errors.A.ELEMENT_NOT_ATTACHED = 'Element is not attached to something at all';
 Errors.A.MODIFIER_NOT_ATTACHED = 'Modifier wasn\'t applied to anything';
+Errors.A.NO_MODIFIER_PASSED = 'No modifier was passed';
+Errors.A.NO_PAINTER_PASSED = 'No painter was passed';
+Errors.A.MODIFIER_REGISTERED = 'Modifier was already added to this element';
+Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
 
-// =============================================================================
-// === EXPORTS =================================================================
+// Exports
+// -----------------------------------------------------------------------------
 
 var exports = {
 
@@ -4314,13 +4477,16 @@ var exports = {
                     array: __array,
                     num: __num },
 
-    '__dev': { 'strf': _strf/*,
+    '__dev': { 'strf': _strf,
+               'adjust': __adjust,
+               't_cmp': __t_cmp,
+               'TIME_PRECISION': TIME_PRECISION/*,
                'Controls': Controls, 'Info': InfoBlock*/ },
 
 };
 
 exports._$ = exports.createPlayer;
-//exports.__js_pl_all = this;
+/*exports.__js_pl_all = this;*/
 exports.__injectToWindow = function(as) {
           window[as] = exports;
           window.createPlayer = exports.createPlayer;
