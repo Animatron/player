@@ -682,7 +682,7 @@ This method changes the registration point position of the shape, this point aff
 
 <!-- TODO: regAt & its constants (not works for circle) -->
 
-    b().cilcle([ 20, 20 ], 60).reg([ -10, -10 ]);
+    b().circle([ 20, 20 ], 60).reg([ -10, -10 ]);
 
 > ♦ `builder.move % (pt: Array[2,Integer]) => Builder`
 
@@ -899,6 +899,14 @@ Changes the opacity value of the shape through time. The acceptable values are f
 
 The order in which different types of tweens are applied is fixed internally (`[ C.T_TRANSLATE, C.T_SCALE, C.T_ROTATE, C.T_ROT_TO_PATH, C.T_ALPHA ]`), so you may add them in any succession. However, order of the tweens of the *same type* do matters if their time frames overlap — the corresponding state value is alwasy overwritten with the last-added tween.
 
+#### Relativity
+
+Every tween has an ability to be specified in relative way (the same as modifiers, since tweens are in fact a special case of modifiers). You may add `r` in front of the name of any of described functions and it will give you a relative-time variant. It means that using these methods you may specify bands relatively to the owner's band with `0..1` range. For example, this:
+
+    b().band([2, 5]).rtrans([1/3, 0.5], [[12, 40], [50, 30]]);
+
+will mean that you want translation to start at `1/3` of the element's band and finish at the half of its band, without specifiying concrete seconds for the tween (in terms of usual _absolute time_ tweens, its band'd be `[ 2 + (1 / 3) * (5 - 2), 2 + 0.5 * (5 - 2) ] == [3, 3.5]`). It looks not so efficient with small band and a single tween example, but it will probably help you a lot, when you'll have a lot of tweens for some element with complex band and you'd want just to reduce/increase the element's band without affecting the _proportions_ of the tweens and requiring to change every band of each tween separately.
+
 ### Tween Easings
 
 Easing of the tween is the function that takes actual time of the tween animation and substitues it with another, returned to the tween. The function of time. In result you may get the effect of accelerating or slowing down or even bouncing animations. Every tween method has an optional possibility to use some provided easing function or any custom one:
@@ -985,39 +993,41 @@ See [The Flow](#the-flow) section for more detailed description.
 
 __Modifier__ is the function that gets current local time and changes shape's `state` conforming to it. It may even substitute this time. And any shape may have any number of such functions, they will be applied to this shape one by one on every frame before drawing. Tweens are also modifiers. In fact, they are prepared when you load your scene into player. One modifier checks if element band fits current time. If any of modifiers fail, the element will not be drawn.
 
+###### Usual Modifiers
+
 > ♦ `builder.modify % (modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-To add modifier function to a shape, use `modify()` method. This function gets local time in range of `[0..1]`, relatively to the element's own band (it is not guaranteed to get exact 0 or 1 everytime, because rendering calls may skip these frames due to low FPS); Second argument for this function is the duration of element's band, so you may calculate the actual local time in any moment; its `this` pointer points to the shape's `state`, so you may freely *modify* it.
+To add modifier function to a shape, use `modify()` method. This function gets local time (if band is `[2, 17]`, then this value will be in `[0..15]` range), which gives you the ability to freely modify state or change anything at the scene. Second argument for this function is the duration of modifier's band, so you may use it to get value in `[0..1]` range in any moment; its `this` pointer points to the shape's `state`, so you may freely *modify* it.
 
 Every such function returns `null` by default (when you return nothing) and it means "do not stop execution, continue", the same as `return true`. It is done to let you forget to return something, so all modifiers do pass by default. If you will manually return `false` (treat it as "please stop execution, I don't need this element now"), the execution will stop. So it is optional to return something from modifier while you want to see it, but if you return `false` and only `false` (not `0`, `null`, empty string or something), element will not be rendered this time; any other return values or omitting return statement are considered as `true`, do render.
 
 <!-- TODO: `rx` and `ry` are replaced on every frame, so user may not change the registration point during the animation. Is it ok? -->
 
-    b().modify(function(t) {
-        this.x = 100 * t;
-        this.sy = t / .1;
+    b().band([0, 15]).modify(function(t) {
+        this.x = 10 * t;
+        this.sy = t / 15;
     });
 
     // adding prepared modifier to several shapes
     // and passing some data to it
     var m_prepared = function(t, value) {
-        this.angle = Math.PI / (t * 10 * value);
+        this.angle = Math.PI / (t * value);
     };
-    b().modify(m_prepared, .1);
-    b().modify(m_prepared, .5);
-    b().modify(m_prepared, .7);
-    b().modify(m_prepared, 1);
+    b().band([0, 10]).modify(m_prepared, .1);
+    b().band([0, 10]).modify(m_prepared, .5);
+    b().band([0, 10]).modify(m_prepared, .7);
+    b().band([0, 10]).modify(m_prepared, 1);
 
     // you may add several modifiers to one shape
     var my_shape = b();
     my_shape.modify(m_prepared, .6);
-    my_shape.modify(function(t) {
-        this.alpha = t;
+    my_shape.modify(function(t, duration) {
+        this.alpha = t / duration;
     });
 
     // returning false if this element must not be visible
-    b().modify(function(t, duration) {
-        return ((t * duration) > 4);
+    b().band([0, 8]).modify(function(t) {
+        return (t > 4);
     });
 
 In fact, when you change the `state` in any modifier, you change not the current element `.state`, but the cloned state, which will be applied only when all modifiers passed successfully. It gives you the ability to safely get previous (from last render) element state with `b().v.state` (there is no meaning in modifying it, it is the _previous_ state). Inside the modifier, previous state is also accessible through `this._` (`this._.x`, `this._.angle`, `this._.alpha`, ....). Also, there is a link to current element (modifier owner) as `this.$`, but we hope (and we will try to make it so) you will need it only in rare cases. Anyway, you may wrap `this.$` with `b()` (like `b(this.$)`), and you will get the same builder you use outside from cache (if it wasn't created, it will be created).
@@ -1042,9 +1052,39 @@ It is ok to have a number of modifiers that check some flag and return `false` (
 
 However, please don't forget about [`data()` method](#elements-interactions). It will better fit you needs (and speed) in most cases.
 
+**Note:** Please note that `t` and `duration` values are not totally exact values of time, since due to the pitfalls of floating point operations they have no possibility to be such. These values are the result of operations with values rounded to some internal precision value (we keep it as maximum as we can, currently it is `10^-9`).
+
 <!-- TODO: priority -->
 
-If you want to call a modifier once at a single moment (or a bit later), there is a helper function for this case named `at`:
+###### Band-Restricted Modifiers
+
+> ♦ `builder.modify % (band: [Array, 2], modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+
+The modifiers specified above do act only during the time that exactly matches to element's lifetime. Sometimes it is not the only case you want to achieve and you probably want the modifier to have its own lifecycle somewhere inside of the element's band, like in case of tweens, and you actually have the ability to do it! Using the very same `modify` method you may specify the restricting band for the modifier:
+
+    b().band([2, 15]).modify([3, 7], function(t, duration) {
+        this.sx = this.sy = t / duration;
+    });
+
+This will call the modifier only during the global time of `[2 + 3, 2 + 7] == [5, 9]`, and it will pass not the duration of the element's band inside, but the duration of the modifier's band (`4`, in this case). The other things are the same as for usual modifiers.
+
+###### Triggering Modifiers
+
+> ♦ `builder.modify % (time: Float, modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+
+**NB:** Triggering modifiers are in beta state, they are not totally guaranteed to be actually called for now, i.e. the one will not be called if it's time was accidentally falled between browser-generated frames in the end of element's band.
+
+Again, with the very same `modify` method, you may emulate the 'event' to fire when some time position was reached with 'playhead', just pass the local time of the element:
+
+    b().band([2, 19]).modify(5, function(t) {
+        console.log("I've reached the time of 5, probably a bit lately, difference is: " + (t - 5));
+    });
+
+This modifier will be called at the global time of `2 + 5 == 7` or a bit later, if FPS was so low that this exact time was skipped or due to some other problems, but we intend to ensure you that this modifier will be called sooner or later, 'whatever happens' (in current version it may be not). The `t` value will be the actual time of the call, so you may use it to check the time delta between expected and actual time and use it in calculations. Again, other points are the same as in case of usual modifiers.
+
+> ♦ `builder.at % (time: Float, function: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+
+There is also an alias method for this case, named `at`:
 
     var scene = b();
     scene.add(b().rect([10, 10], 5)
@@ -1053,15 +1093,37 @@ If you want to call a modifier once at a single moment (or a bit later), there i
                     if (t < 1.2) throw new Error("You've lied to me!");
                  }));
 
-It will wrap your modifier with another modifier, and every time when the last will be called, it will always check if current time is equal or larger than given time, and when it does, it will execute the function and immediately destroy itself — so you are ensured that your function will be called only a single time, say "at 3 seconds or a bit later". And it will also pass the actual time to a function.
+**Note:** `duration` is duration of the element's band here.
 
-In last versions of player there were several new methods to control modifier time introduced:
+###### Relativity
 
-* `b().modify(function(t, duration) { ... })` — is the one described above, it longs through all the element's band and gets this band duration as a `duration` argument;
-* `b().modify([x, y], function(t, duration) { ... })` — restict modifier with its own band, `t` will be relative to this band and `duration` will be a duration of this band; so, in case of modifier defined like this: `b().band([2, 9]).modify([1, 3], some_func);`, `some_func` will be called at a global period of `[2+1..2+3] = [3..5]` and will always receive a `duration` of `3-1 = 2`;
-* `b().modify(z, function(t, duration) { ... })` — guarantees to call a modifier at the time `z` of element's band (of course, if it fits the band), `duration` will be the element's band duration and `t` will be the actual time when modifier was called, relatively to this band; in case of modifier defined like this: `b().band([2, 9]).modify(3.5, some_func);`, `some_func` will be called somewhere very near to a global time of `2+3.5 = 5.5` and will always receive a `duration` of `9-2 = 7`;
+> ♦ `builder.rmodify % (modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
-**NB:** In near future there also will be an additional useful method to restrict modifiers to time, also defined relative to their parent's band, with the help of `rmodify` method: so `b().modify(function() { ... })` will always be equal to `b().rmodify([0, 1], function() { ... })` and `b().rmodify(1, function() { ... })` will always call modifier at the end of element's band.
+> ♦ `builder.rmodify % (band: [Array, 2], modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+
+> ♦ `builder.rmodify % (time: Float, modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+
+> ♦ `builder.rat % (time: Float, function: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
+
+Sometimes you don't know or don't want to use the time values in seconds, but do want to specify and get them relatively to an element's lifecycle. There are the `rmodify` method variants for you. Despite time values they act the same way as the described ones, but now you have the ability to say "I want this modifier to be called at one third (1 / 3) of its element's band".
+
+Usual modifiers just differ in receiving the time value in range of `[0..1]` among with element's band `duration`:
+
+    b().band([2, 19]).rmodify(function(t, duration) {
+        console.log("This value is from 0 to 1: " + t, ". And this is the actual time: " + (t * duration));
+    });
+
+Band-restricted modifiers allow you to specify their band with relative time values (like "permorm this starting from 1 / 5 of element's band and end at the very end") and they receive `t` and `duration` values corresponding to modifier's band (other types of modifiers receive them relatively to containing element's band):
+
+    b().band([2, 19]).rmodify([1/3, 1], function(t, duration) {
+        console.log("Modifier position is: " + t + ". In terms of seconds it is " + (t * duration));
+    });
+
+Triggering modifiers also allow you to use relative values when defining them, this one will be called at approx. `2 + ((19 - 2) / 3)`. The `t` and `duration` values are relative to element's band:
+
+    b().band([2, 19]).rmodify(1 / 3, function(t, duration) {
+        console.log("I've reached the time of one third, local time is: " + (t * duration) + " now.");
+    });
 
 #### Painters
 
