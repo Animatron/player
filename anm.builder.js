@@ -320,12 +320,28 @@ Builder.prototype.band = function(band) {
 Builder.prototype.tween = function(type, band, data, easing) {
     this.v.addTween({
         type: type,
-        band: band,
+        time: band,
         data: data,
         easing: easing
     });
     return this;
 }
+// > builder.tween % (type: String, // (C.T_*)
+//                    band: Array[2,Float],
+//                    data: Any,
+//                    [easing: String (Easing.T_*) | Object | Function]) => Builder
+Builder.prototype.rtween = function(type, band, data, easing) {
+    // TODO: add relative tweens for all versions (+ include them in tests)
+    this.v.addTween({
+        type: type,
+        time: band,
+        data: data,
+        easing: easing,
+        relative: true
+    });
+    return this;
+}
+// FIXME: add rtrans, rscale, ralpha and s.o.
 // > builder.untween % (tween: Function) => Builder
 Builder.prototype.untween = Builder.prototype.unmodify;
 // > builder.rotate % (band: Array[2,Float],
@@ -407,7 +423,10 @@ Builder.prototype.bounce = function() {
 Builder.prototype.modify = function(band, modifier, data, easing, priority) {
     if (is.array(band) || is.num(band)) {
         // NB: easing and data are currently "swapped" in `modify` method
-        this.v.addTModifier(band, modifier, easing, data, priority);
+        this.v.addModifier({ time: band,
+                             easing: easing,
+                             data: data,
+                             priority: priority }, modifier);
     } else {
         // match actual arguments, if band was omitted
         priority = easing;
@@ -415,7 +434,36 @@ Builder.prototype.modify = function(band, modifier, data, easing, priority) {
         data = modifier;
         modifier = band;
         // NB: easing and data are currently "swapped" in `modify` method
-        this.v.addModifier(modifier, easing, data, priority);
+        this.v.addModifier({ easing: easing,
+                             data: data,
+                             priority: priority }, modifier);
+    }
+    return this;
+}
+// > builder.rmodify % ([band: Array[2, Float],]
+//                      modifier: Function(time: Float,
+//                                         data: Any),
+//                      [data: Any, easing: Function(time),
+//                                  priority: Integer]) => Builder
+Builder.prototype.rmodify = function(band, modifier, data, easing, priority) {
+    if (is.array(band) || is.num(band)) {
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addModifier({ time: band,
+                             easing: easing,
+                             data: data,
+                             relative: true,
+                             priority: priority }, modifier);
+    } else {
+        // match actual arguments, if band was omitted
+        priority = easing;
+        easing = data;
+        data = modifier;
+        modifier = band;
+        // NB: easing and data are currently "swapped" in `modify` method
+        this.v.addModifier({ easing: easing,
+                             data: data,
+                             relative: true,
+                             priority: priority }, modifier);
     }
     return this;
 }
@@ -428,9 +476,15 @@ Builder.prototype.paint = function(func, data, priority) {
 }
 // > builder.at % (t: time, modifier: Function(time: Float,
 //                                             data: Any),
-//                     [data: Any, priority: Integer]) => Builder
+//                 [data: Any, priority: Integer]) => Builder
 Builder.prototype.at = function(t, func, data, priority) {
     return this.modify(t, func, data, priority);
+}
+// > builder.rat % (t: time, modifier: Function(time: Float,
+//                                              data: Any),
+//                  [data: Any, priority: Integer]) => Builder
+Builder.prototype.rat = function(t, func, data, priority) {
+    return this.rmodify(t, func, data, priority);
 }
 // > builder.unmodify % (modifier: Function) => Builder
 Builder.prototype.unmodify = function(modifier) {
