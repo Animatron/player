@@ -993,7 +993,7 @@ See [The Flow](#the-flow) section for more detailed description.
 
 __Modifier__ is the function that gets current local time and changes shape's `state` conforming to it. It may even substitute this time. And any shape may have any number of such functions, they will be applied to this shape one by one on every frame before drawing. Tweens are also modifiers. In fact, they are prepared when you load your scene into player. One modifier checks if element band fits current time. If any of modifiers fail, the element will not be drawn.
 
-###### Usual Modifiers
+##### Usual Modifiers
 
 > ♦ `builder.modify % (modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
@@ -1056,7 +1056,7 @@ However, please don't forget about [`data()` method](#elements-interactions). It
 
 <!-- TODO: priority -->
 
-###### Band-Restricted Modifiers
+##### Band-Restricted Modifiers
 
 > ♦ `builder.modify % (band: [Array, 2], modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
@@ -1068,7 +1068,7 @@ The modifiers specified above do act only during the time that exactly matches t
 
 This will call the modifier only during the global time of `[2 + 3, 2 + 7] == [5, 9]`, and it will pass not the duration of the element's band inside, but the duration of the modifier's band (`4`, in this case). The other things are the same as for usual modifiers.
 
-###### Triggering Modifiers
+##### Triggering Modifiers
 
 > ♦ `builder.modify % (time: Float, modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
@@ -1095,7 +1095,7 @@ There is also an alias method for this case, named `at`:
 
 **Note:** `duration` is duration of the element's band here.
 
-###### Relativity
+##### Relativity
 
 > ♦ `builder.rmodify % (modifier: Function(time: Float, duration: Float, data: Any), [data: Any], [priority: Integer]) => Builder`
 
@@ -1124,6 +1124,28 @@ Triggering modifiers also allow you to use relative values when defining them, t
     b().band([2, 19]).rmodify(1 / 3, function(t, duration) {
         console.log("I've reached the time of one third, local time is: " + (t * duration) + " now.");
     });
+
+##### So, to sum up
+
+**Modifiers with seconds-based values** (_absolute time_ modifiers)
+
+* Type 1: __Usual ones__: `b().modify(function(t, duration, ...) { ... })` — modifiers, which are called while element is alive for every of its update-request (request for new frame, spawned by browser), receiving the time of this request; they receive `t` in seconds, which is relative to the owning element's band (lifetime), and `duration` is the duration (in seconds, for sure) of that band; it is also acceptable to say that they have their band equal to the lifetime of their owning element, so there is no need in specifying it;
+* Type 2: _Band-restricted_: `b().modify([a, b], function(t, duration, ...) { ... })` — they have their own sub-band (lifetime) inside of the owning element's band and they are just called during that sub-band (if sub-band is wider than element's band, it is temporary reduced to match it, same way it works with element's children bands); `a` and `b` are specified in seconds relatively to element's band, however `t` value (in seconds) they receive is relative to the modifier sub-band, and `duration` is the duration (in seconds) of that sub-band.
+* Type 3: _Time-restricted_ or _Trigger-like_: `b().modify(ct, function(t, duration, ...) { ... })` — they are guaranteed<sup>*</sup> to be called at specified time of element's life or a bit later (if they occasionally missed that time, say, due to low FPS), and receive actial time of the call as `t`; `ct` is specified in seconds relatively to owning element's band and `t` value (actual time of the call), in seconds, is relative to the very same band, and `duration` is the duration of that band, in seconds again.
+
+**Modifiers with relative values** (_relative time_ modifiers)
+
+* Type 1: _Usual ones_: `b().rmodify(function(t, duration, ...) { ... })` — modifiers, which are called while element is alive for every of its update-request (request for new frame, spawned by browser), receiving the time of this request; they receive `t` in range of `[0..1]`, relatively to the owning element's band (lifetime), and `duration` is the duration (in seconds, for sure) of that band; it is also acceptable to say that they have their band equal to the lifetime of their owning element, so there is no need in specifying it;
+* Type 2: _Band-restricted_: `b().rmodify([a, b], function(t, duration, ...) { ... })` — they have their own sub-band (lifetime) inside of the owning element's band and they are just called during that sub-band (if sub-band is wider than element's band, it is temporary reduced to match it, same way it works with element's children bands); `a` and `b` are specified in range of `[0..1]` relatively to element's band, however `t` value (in range of `[0..1]`) they receive is relative to the modifier sub-band, and `duration` is the duration (in seconds) of that sub-band, so you always may get time in seconds relatively to modifier's band with `t * duration`.
+* Type 3: _Time-restricted_ or _Trigger-like_: `b().rmodify(ct, function(t, duration, ...) { ... })` — they are guaranteed<sup>*</sup> to be called at specified time of element's life or a bit later (if they occasionally missed that time, say, due to low FPS), and receive actual time of the call as `t`; `ct` is specified in `[0..1]` range relatively to owning element's band and `t` value, in range of `[0..1]`, is relative to the very same band, and `duration` is the duration of that band, in seconds.
+
+<sup>*</sup> actually _not so_, in the current version
+
+Notes:
+
+- relative time modifiers give you the ability to specify fractions of bands (for band- and time-restricted ones), where, say, `0` will mean start of that band, `1/2` will mean half of that band and `1` will mean the end of that band; just if you haven't noticed
+- in case of `t` values you receive within `[0..1]` ranges, please do not expect to always get the exact `0` or `1` value in modifier, since it may never happen due to FPS.
+- time values are often the subject to fail in floating point operations, since then they are actually returned mathematically rounded to some internal precision (currently `10^-9`), so please take it in consideration if you plan to make models of Higgs Boson using the player API.
 
 #### Painters
 
