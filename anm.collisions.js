@@ -512,12 +512,12 @@ var prevAddDebugRender = E.__addDebugRender;
 E.__addDebugRender = function(elm) {
     prevAddDebugRender(elm);
 
-    elm.__paint(E.DEBUG_PNT, 0, p_drawCPath);
-    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedRect);
-    elm.__paint(E.DEBUG_PNT, 0, p_drawAdoptedPoints);
-    //elm.__paint(E.DEBUG_PNT, 0, p_drawPathAt);
-    elm.__paint(E.DEBUG_PNT, 0, p_drawGhost);
-    //elm.__paint(E.DEBUG_PNT, 0, p_drawGhostVec);
+    elm.__paint({ type: E.DEBUG_PNT }, p_drawCPath);
+    elm.__paint({ type: E.DEBUG_PNT }, p_drawAdoptedRect);
+    elm.__paint({ type: E.DEBUG_PNT }, p_drawAdoptedPoints);
+    //elm.__paint({ type: E.DEBUG_PNT }, 0, p_drawPathAt);
+    elm.__paint({ type: E.DEBUG_PNT }, p_drawGhost);
+    //elm.__paint({ type: E.DEBUG_PNT }, 0, p_drawGhostVec);
 }
 
 var prevMAfter = E.prototype.__mafter;

@@ -367,7 +367,7 @@ function disposeElm(domElm) {
 // Internal Constants
 // -----------------------------------------------------------------------------
 
-var TIME_PRECISION = 7; // the number of digits after the floating point
+var TIME_PRECISION = 9; // the number of digits after the floating point
                         // to round the time when comparing with bands and so on;
                         // used to get rid of floating point-conversion issues
 
@@ -2686,16 +2686,18 @@ Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
     var tween_f = Tweens[conf.type](),
         m_tween;
+    // all tweens functions actually work with 0..1 parameter, but modifiers
+    // differ by 'relative' option
     if (conf.relative) {
       m_tween = tween_f;
     } else {
       m_tween = function(t, duration, data) {
-          return tween_f.call(this, t / duration, duration, data);
-        };
+        return tween_f.call(this, t / duration, duration, data);
+      };
     }
     return elm.__modify({ type: Element.TWEEN_MOD,
                           priority: Tween.TWEENS_PRIORITY[conf.type],
-                          time: conf.time,
+                          time: conf.band || conf.time,
                           relative: conf.relative,
                           easing: conf.easing,
                           data: conf.data }, m_tween);
