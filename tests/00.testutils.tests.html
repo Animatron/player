@@ -15,13 +15,14 @@
 
   <script type="text/javascript" src="./vendor/require-2.1.4.min.js"></script>
 
-  <script type="text/javascript" src="./helpers.js"></script>
+  <script type="text/javascript" src="./running-helpers.js"></script>
   <script type="text/javascript" src="./require-files.js"></script>
 
   <script type="text/javascript" src="./spec/specs.js"></script>
 
   <script type="text/javascript">
-      require([ _files['jasmine'],
+      queue(require)(
+              [ _files['jasmine'],
                 _files['jasmine.html'],
                 _files['vnd.matrix'],
                 _files['anm.player'],
@@ -33,7 +34,6 @@
                               [ '00.testutils' ]);
         }
       );
-
   </script>
 
 </head>
