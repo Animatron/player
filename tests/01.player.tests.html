@@ -12,8 +12,10 @@
 
   <link rel="shortcut icon" type="image/png" href="./vendor/jasmine-1.2.0/jasmine_favicon.png">
   <link rel="stylesheet" type="text/css" href="./vendor/jasmine-1.2.0/jasmine.css">
+  <script type="text/javascript" src="./vendor/require-2.1.4.min.js"></script>
   <script type="text/javascript" src="./vendor/jasmine-1.2.0/jasmine.js"></script>
   <script type="text/javascript" src="./vendor/jasmine-1.2.0/jasmine-html.js"></script>
+  <script type="text/javascript" src="./helpers.js"></script>
 
   <!-- include source files here... -->
   <script type="text/javascript" src="../vendor/matrix.js"></script>
@@ -25,42 +27,10 @@
   <script type="text/javascript" src="./anm.mocks.js"></script>
   <script type="text/javascript" src="./anm.testutils.js"></script>
 
-  <!-- include spec files here... -->
-  <script type="text/javascript" src="./spec/01.player/01.formation.spec.js"></script>
-  <script type="text/javascript" src="./spec/01.player/02.initializing.spec.js"></script>
-  <script type="text/javascript" src="./spec/01.player/03.playing.spec.js"></script>
-  <script type="text/javascript" src="./spec/01.player/04.modes.spec.js"></script>
-  <script type="text/javascript" src="./spec/01.player/05.loading.spec.js"></script>
-  <script type="text/javascript" src="./spec/01.player/06.errors.spec.js"></script>
-  <script type="text/javascript" src="./spec/01.player/07.utils.spec.js"></script>
+  <script type="text/javascript" src="./spec/specs.js"></script>
 
   <script type="text/javascript">
-    (function() {
-      var jasmineEnv = jasmine.getEnv();
-      jasmineEnv.updateInterval = 1000;
-
-      var htmlReporter = new jasmine.HtmlReporter();
-
-      jasmineEnv.addReporter(htmlReporter);
-
-      jasmineEnv.specFilter = function(spec) {
-        return htmlReporter.specFilter(spec);
-      };
-
-      var currentWindowOnload = window.onload;
-
-      window.onload = function() {
-        if (currentWindowOnload) {
-          currentWindowOnload();
-        }
-        execJasmine();
-      };
-
-      function execJasmine() {
-        jasmineEnv.execute();
-      }
-
-    })();
+      loadJasmine(window, [ new jasmine.HtmlReporter() ], [ '01.player/*' ]);
   </script>
 
 </head>
