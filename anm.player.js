@@ -49,10 +49,9 @@
 // This function allows to define a namespace for something and injects this namespace
 // into the global `Window` object (since we work with browser, our global object
 // is always the `Window`)
-var _define;
 if (typeof define !== "function") {
    this.define = function(name, func) {
-      func.call({}).__injectToWindow(name);
+      func.call({}).__injectAsModule(name);
    };
 }
 
@@ -4450,7 +4449,7 @@ Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
 // Exports
 // -----------------------------------------------------------------------------
 
-var exports = {
+var to_export = {
 
     'C': C, // constants
     'M': M, // modules
@@ -4485,13 +4484,18 @@ var exports = {
 
 };
 
-exports._$ = exports.createPlayer;
-/*exports.__js_pl_all = this;*/
-exports.__injectToWindow = function(as) {
-          window[as] = exports;
-          window.createPlayer = exports.createPlayer;
-        };
+to_export._$ = exports.createPlayer;
+/*to_export.__js_pl_all = this;*/
+to_export.__injectAsModule = function(name) {
+  var isCommonJS = typeof window == "undefined";
+  if (!isCommonJS) {
+    window[name] = to_export;
+    window.createPlayer = to_export.createPlayer;
+  } else {
+    exports[name] = to_export;
+  }
+};
 
-return exports;
+return to_export;
 
 }); // end of anonymous wrapper
