@@ -47,15 +47,14 @@
 // So, let's start
 
 // This function allows to define a namespace for something and injects this namespace
-// into the global `Window` object (since we work with browser, our global object
-// is always the `Window`)
+// into the global `Window` object or exports object
 if (typeof define !== "function") {
-   this.define = function(name, func) {
+   this.define = function(name, deps, func) {
       func.call({}).__injectAsModule(name);
    };
 }
 
-define("anm", function() {
+define("anm", [], function(_) {
 
 // Utils
 // -----------------------------------------------------------------------------
