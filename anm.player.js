@@ -46,15 +46,11 @@
 
 // So, let's start
 
-// This function allows to define a namespace for something and injects this namespace
-// into the global `Window` object or exports object
-if (typeof define !== "function") {
-   this.define = function(name, deps, func) {
-      func.call({}).__injectAsModule(name);
-   };
-}
-
-define("anm", [], function(_) {
+// `anm` is a player namespace; the function next to it is just a huge closure which covers the whole file and
+// is executed immediately after defenition, it allows us to hold all private things inside and to turn
+// only the considered classes and methods in public. `to_export` object in the end of the file is the one
+// that collects public things and returned from closure in the end.
+var anm = (function() {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -4483,18 +4479,19 @@ var to_export = {
 
 };
 
-to_export._$ = exports.createPlayer;
+to_export._$ = to_export.createPlayer;
 /*to_export.__js_pl_all = this;*/
-to_export.__injectAsModule = function(name) {
-  var isCommonJS = typeof window == "undefined";
-  if (!isCommonJS) {
-    window[name] = to_export;
-    window.createPlayer = to_export.createPlayer;
-  } else {
-    exports[name] = to_export;
-  }
+to_export.__inject = function(as, to) {
+  to[as] = to_export;
+  to.createPlayer = to_export.createPlayer;
 };
 
 return to_export;
 
-}); // end of anonymous wrapper
+})();
+
+// We add all required public things as the child objects of given namespace (`anm`) to the given global object
+// (`window` or `exports`, it depends on platform, browser or some server-side JS like __node.js__)
+anm.__inject('anm', typeof window !== "undefined"
+                    ? window
+                    : exports);
