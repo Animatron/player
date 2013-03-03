@@ -1,3 +1,3 @@
-xdefine("importing tweens", function() {
+xdescribe("importing tweens", function() {
 
 });

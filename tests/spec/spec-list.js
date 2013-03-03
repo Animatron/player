@@ -31,7 +31,7 @@ var _specs = {
                    '12.take-n-use',
                    '13.enable-disable',
                    '14.iterations',
-                   '15.detach.n.clear',
+                   '15.detach-n-clear',
                    '16.data',
                    '17.compositing',
                    '18.masks',
