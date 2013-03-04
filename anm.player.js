@@ -46,17 +46,11 @@
 
 // So, let's start
 
-// This function allows to define a namespace for something and injects this namespace
-// into the global `Window` object (since we work with browser, our global object
-// is always the `Window`)
-var _define;
-if (typeof define !== "function") {
-   this.define = function(name, func) {
-      func.call({}).__injectToWindow(name);
-   };
-}
-
-define("anm", function() {
+// `anm` is a player namespace; the function next to it is just a huge closure which covers the whole file and
+// is executed immediately after defenition, it allows us to hold all private things inside and to turn
+// only the considered classes and methods in public. `to_export` object in the end of the file is the one
+// that collects public things and returned from closure in the end.
+var anm = (function() {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -4450,7 +4444,7 @@ Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
 // Exports
 // -----------------------------------------------------------------------------
 
-var exports = {
+var to_export = {
 
     'C': C, // constants
     'M': M, // modules
@@ -4485,13 +4479,19 @@ var exports = {
 
 };
 
-exports._$ = exports.createPlayer;
-/*exports.__js_pl_all = this;*/
-exports.__injectToWindow = function(as) {
-          window[as] = exports;
-          window.createPlayer = exports.createPlayer;
-        };
+to_export._$ = to_export.createPlayer;
+/*to_export.__js_pl_all = this;*/
+to_export.__inject = function(as, to) {
+  to[as] = to_export;
+  to.createPlayer = to_export.createPlayer;
+};
 
-return exports;
+return to_export;
 
-}); // end of anonymous wrapper
+})();
+
+// We add all required public things as the child objects of given namespace (`anm`) to the given global object
+// (`window` or `exports`, it depends on platform, browser or some server-side JS like __node.js__)
+anm.__inject('anm', typeof window !== "undefined"
+                    ? window
+                    : exports);
