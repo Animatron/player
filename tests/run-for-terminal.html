@@ -17,11 +17,11 @@
     <script type="text/javascript" src="./spec/spec-list.js"></script>
 
     <script type="text/javascript">
-      function run_tests(on_finish) {
+      function run_tests(on_finish, specs_to_run) {
         queue(require)(
                 [ _files['jasmine'],
                   // _files['jasmine.html'],
-                  _files['jasmine.terminal'],
+                  _files['jasmine.tap'],
                   _files['jasmine.phantom'],
                   _files['vnd.matrix'],
                   _files['anm.player'],
@@ -32,9 +32,9 @@
                   _files['tst.mocks'],
                   _files['tst.utils']
           ], function() {
-            loadJasmine(window, [ new jasmine.TerminalReporter(),
+            loadJasmine(window, [ new jasmine.TapReporter(),
                                   new jasmine.PhantomReporter({ onFinish: on_finish }) ],
-                                [ '05.collisions/*' ]);
+                                [ specs_to_run || '*' ]);
           }
         );
       }

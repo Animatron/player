@@ -25,19 +25,22 @@
 
 var fs = require("fs");
 var args, url, lengthOkay, appName, system;
+var specs_to_run;
 try {
     system = require("system");
     // if we got here, we are on PhantomJS 1.5+
     args = system.args;
-    lengthOkay = (args.length === 2);
+    lengthOkay = (args.length >= 2);
     appName = args[0];
     url = args[1];
+    specs_to_run = (args.length > 2) ? args[2] : '*';
 } catch (e) {
     // otherwise, assume PhantomJS 1.4
     args = phantom.args;
-    lengthOkay = (args.length === 1);
+    lengthOkay = (args.length >= 1);
     appName = 'phantom-jasmine.js'
     url = args[0];
+    specs_to_run = (args.length > 1) ? args[1] : '*';
 }
 
 if (!lengthOkay) {
@@ -50,6 +53,7 @@ function printError(message) {
 }
 
 var page = require("webpage").create();
+console.log('Specs to run: ' + specs_to_run);
 
 page.onConsoleMessage = function(message) {
     if (message == "__error__") {
@@ -68,7 +72,7 @@ page.open(url, function(success) {
     if (success === "success") {
         console.log('Opened ' + url);
 
-        page.evaluate(function() {
+        page.evaluate(function(s_t_r) {
             if (!run_tests) {
                 printError("Page should define run_tests function in a way: function run_tests(on_finish, phantom)");
                 console.log("__error__");
@@ -78,8 +82,8 @@ page.open(url, function(success) {
                 window.__jasmineResults = results;
                 console.log("__done__");
                 //_phantom.exit(0);
-            });
-        });
+            }, s_t_r);
+        }, specs_to_run);
 
         /*setInterval(function() {
             if (page.evaluate(function() {return window.phantomComplete;})) {

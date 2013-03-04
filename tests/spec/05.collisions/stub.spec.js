@@ -5,10 +5,11 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-xdescribe("stub spec", function() {
+describe("stub spec", function() {
 
-    xit("should be stubby", function() {
+    it("should be stubby", function() {
         expect(true).toBeTruthy();
+        spec.fail();
     });
 
 });

@@ -5,6 +5,7 @@ var _files = {
     'jasmine.teamcity': './vendor/jasmine.teamcity_reporter.js',
     'jasmine.terminal': './vendor/jasmine.terminal_reporter.js',
     'jasmine.phantom': './vendor/jasmine.phantom_reporter.js',
+    'jasmine.tap': './vendor/jasmine.tap_reporter.js',
 
     'vnd.matrix': '../vendor/matrix.js',
 
