@@ -1,11 +1,12 @@
-function execJasmineWithSpecs(jasmineEnv, specs) {
+function execJasmineWithSpecs(jasmineEnv, specs, then) {
   require(__getSpecsFiles('./spec', specs), function() {
     jasmineEnv.execute();
+    if (then) then();
   });
 }
 
 
-function loadJasmine(window, reporters, specs) {
+function loadJasmine(window, reporters, specs, then) {
 
   var jasmineEnv = jasmine.getEnv();
   jasmineEnv.updateInterval = 1000;
@@ -30,7 +31,7 @@ function loadJasmine(window, reporters, specs) {
     if (currentWindowOnload) {
       currentWindowOnload();
     }*/
-    execJasmineWithSpecs(jasmineEnv, specs);
+    execJasmineWithSpecs(jasmineEnv, specs, then);
   //};
 
 }
@@ -48,8 +49,11 @@ function __getSpecsFiles(prefix, conf) {
       if (!spec_group) { files.push(prefix + '/' + spec_group + '.spec.js'); }
       else {
         var _flist = _specs[spec_group];
-        for (var j = 0; j < _flist.length; j++) {
-          files.push(prefix + '/' + spec_group + '/' + _flist[j] + '.spec.js');
+        if (!_flist) { files.push(prefix + '/' + spec_group + '.spec.js'); }
+        else {
+          for (var j = 0; j < _flist.length; j++) {
+            files.push(prefix + '/' + spec_group + '/' + _flist[j] + '.spec.js');
+          }
         }
       }
 

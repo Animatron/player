@@ -2,79 +2,44 @@
 <html lang="en">
 <head>
     <meta charset="utf-8" />
-    <title>Console Reporter Spec</title>
+    <title>Animatron Player: All Tests In Terminal</title>
 
     <link rel="stylesheet" href="vendor/jasmine-1.2.0/jasmine.css" type="text/css" />
 
-    <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine.js"></script>
-    <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine-html.js"></script>
+    <link rel="shortcut icon" type="image/png" href="vendor/jasmine-1.2.0/jasmine_favicon.png">
+    <link rel="stylesheet" type="text/css" href="vendor/jasmine-1.2.0/jasmine.css">
 
-    <!-- include source files here... -->
-    <script type="text/javascript" src="../vendor/matrix.js"></script>
-    <script type="text/javascript" src="../anm.player.js"></script>
-    <script type="text/javascript" src="../anm.collisions.js"></script>
-    <script type="text/javascript" src="../anm.builder.js"></script>
-    <script type="text/javascript" src="../animatron_import.js"></script>
-    <!-- include json2 if it is not accessible in browser -->
+    <script type="text/javascript" src="./vendor/require-2.1.4.min.js"></script>
 
-    <!-- include test utils here... -->
-    <script type="text/javascript" src="./anm.matchers.js"></script>
-    <script type="text/javascript" src="./anm.mocks.js"></script>
-    <script type="text/javascript" src="./anm.testutils.js"></script>
+    <script type="text/javascript" src="./running-helpers.js"></script>
+    <script type="text/javascript" src="./require-files.js"></script>
 
-    <!-- include spec files here... -->
-    <script type="text/javascript" src="./spec/00.testutils.spec.js"></script>
+    <script type="text/javascript" src="./spec/spec-list.js"></script>
 
-    <script type="text/javascript" src="./spec/01.player/01.formation.spec.js"></script>
-    <script type="text/javascript" src="./spec/01.player/02.initializing.spec.js"></script>
-    <script type="text/javascript" src="./spec/01.player/03.playing.spec.js"></script>
-    <script type="text/javascript" src="./spec/01.player/04.modes.spec.js"></script>
-    <script type="text/javascript" src="./spec/01.player/05.loading.spec.js"></script>
-    <script type="text/javascript" src="./spec/01.player/06.errors.spec.js"></script>
-    <script type="text/javascript" src="./spec/01.player/07.utils.spec.js"></script>
-
-    <script type="text/javascript" src="./spec/02.animations/01.guids.spec.js"></script>
-    <script type="text/javascript" src="./spec/02.animations/02.duration-n-bands.spec.js"></script>
-    <script type="text/javascript" src="./spec/02.animations/03.structure.spec.js"></script>
-
-    <script type="text/javascript" src="./spec/03.anm-import/_utils.and.their.spec.js"></script>
-    <script type="text/javascript" src="./spec/03.anm-import/01.elements.spec.js"></script>
-    <script type="text/javascript" src="./spec/03.anm-import/02.bands.spec.js"></script>
-    <script type="text/javascript" src="./spec/03.anm-import/03.tweens.spec.js"></script>
-    <script type="text/javascript" src="./spec/03.anm-import/04.masks.spec.js"></script>
-    <script type="text/javascript" src="./spec/03.anm-import/05.layers.spec.js"></script>
-
-    <script type="text/javascript" src="./spec/04.builder/01.formation.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/02.structure.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/03.shapes.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/04.fill-n-stroke.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/05.statics.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/06.bands.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/07.tweens.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/08.repeat-modes.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/09a.modifiers.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/09b.painters.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/10.time-switch.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/11.events.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/12.take-n-use.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/13.enable-disable.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/14.iterations.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/15.detach-n-clear.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/16.data.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/17.compositing.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/18.masks.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/19.helpers.spec.js"></script>
-    <script type="text/javascript" src="./spec/04.builder/20.image.spec.js"></script>
-
-    <script type="text/javascript" src="./spec/06.bugs/bugs.spec.js"></script>
-
-    <script type="text/javascript" src="vendor/jasmine.teamcity_reporter.js"></script>
+    <script type="text/javascript">
+      function run_tests(on_finish, phantom) {
+        queue(require)(
+                [ _files['jasmine'],
+                  // _files['jasmine.html'],
+                  _files['jasmine.teamcity'],
+                  _files['jasmine.phantom'],
+                  _files['vnd.matrix'],
+                  _files['anm.player'],
+                  _files['anm.builder'],
+                  _files['anm.collisions'],
+                  _files['anm.import'],
+                  _files['tst.matchers'],
+                  _files['tst.mocks'],
+                  _files['tst.utils']
+          ], function() {
+            loadJasmine(window, [ new jasmine.TeamcityReporter(),
+                                  new jasmine.PhantomReporter({ onFinish: on_finish }) ],
+                                [ '01.player/*' ]);
+          }
+        );
+      }
+    </script>
 </head>
 <body>
-    <script type="text/javascript">
-        jasmine.getEnv().addReporter(new jasmine.TeamcityReporter());
-        jasmine.getEnv().addReporter(new jasmine.TrivialReporter());
-        jasmine.getEnv().execute();
-    </script>
 </body>
 </html>
