@@ -34,7 +34,7 @@
           ], function() {
             loadJasmine(window, [ new jasmine.TeamcityReporter(),
                                   new jasmine.PhantomReporter({ onFinish: on_finish }) ],
-                                [ '01.player/*' ]);
+                                [ '*' ]);
           }
         );
       }
