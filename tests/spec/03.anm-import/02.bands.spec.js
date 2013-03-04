@@ -1,3 +1,3 @@
-xdefine("importing bands", function() {
+xdescribe("importing bands", function() {
 
 });
