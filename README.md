@@ -71,11 +71,11 @@ Then, you'll just need to run:
 
 And you have all the variants of the files in `dist` folder.
 
-If you want to generate [doccoo](http://jashkenas.github.com/docco/) docs, run:
+If you want to generate [doccoo](http://jashkenas.github.com/docco/) (install it first) docs, run:
 
     jake docs
 
-If you want check if tests are failing, use:
+If you want check if tests are failing in CLI, use (you'll need [`phantomjs`](http://phantomjs.org/) installed for that):
 
     jake test
 
