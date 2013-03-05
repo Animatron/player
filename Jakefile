@@ -64,6 +64,8 @@ var TESTS_RUN_SCRIPT = TESTS_DIR + '/run-with-phantomjs.sh',
 var DOCS_DIR = 'doc',
     INCLUDE_IN_DOCS_PATTERN = 'anm.*.js';
 
+var DONE_MARKER = '.\n';
+
 // proposed structure:
 // /- version/
 //  |- ...
@@ -84,6 +86,7 @@ desc('Clean previous build artifacts');
 task('clean', function() {
     console.log('Clean previous build artifacts..');
     jake.rmRf(_loc(DIST_DIR));
+    console.log(DONE_MARKER);
 });
 
 desc('Create dist & dist/as-is folders');
@@ -92,6 +95,7 @@ task('_prepare', function() {
     jake.mkdirP(_loc(DIST_DIR));
     jake.mkdirP(_loc(MINIFIED_FILES_TARGET_DIR));
     jake.mkdirP(_loc(PLAIN_FILES_TARGET_DIR));
+    console.log(DONE_MARKER);
 });
 
 desc('Create bundles from existing sources and put them into dist/as-is folder');
@@ -107,6 +111,8 @@ task('_bundles', function() {
             console.log('.. ' + bundle_file + ' > ' + TRG_FILE);
         });
     });
+
+    console.log(DONE_MARKER);
 });
 
 desc('Copy source files to as-is folder');
@@ -132,6 +138,7 @@ task('_organize', function() {
         jake.cpR(_loc(importer_file), _loc(IMPORTERS_TRG_DIR));
     });
 
+    console.log(DONE_MARKER);
 });
 
 desc('Inject version in all dist/as-is files');
@@ -146,21 +153,31 @@ task('_versionize', function() {
         return jake.cat(_loc(file)).trim().replace(/@VERSION/g, VERSION);
     }
 
+    console.log('.. Main files');
+
     versionize(PLAIN_FILES_TARGET_DIR + '/' + PLAYER_FILE);
     versionize(PLAIN_FILES_TARGET_DIR + '/' + BUILDER_FILE);
+
+    console.log('.. Modules');
 
     MODULES_FILES.forEach(function(module_file) {
         versionize(_loc(MODULES_TRG_DIR + '/' + module_file));
     });
+
+    console.log('.. Importers');
 
     jake.mkdirP(_loc(IMPORTERS_TRG_DIR));
     IMPORTERS_FILES.forEach(function(importer_file) {
         versionize(_loc(IMPORTERS_TRG_DIR + '/' + importer_file));
     });
 
+    console.log('.. Bundles');
+
     Bundles.forEach(function(bundle) {
         versionize(_loc(BUNDLES_TRG_DIR + '/' + bundle.file + '.js'));
     });
+
+    console.log(DONE_MARKER);
 });
 
 desc('Create a minified copy of all the sources from dist/as-is folder and put them into dist folder root');
