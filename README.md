@@ -57,4 +57,6 @@ Run `examples/demo.html` to see it in action with some demos (they're not so goo
 
 Run one of the `tests/index.html` and run any of the tests to see if something is broken in your version of player.
 
+If you'd want to run them from terminal instead of browser, you'll need to have PhantomJS installation and then start `run-tests.sh[ spec]`
+
 (c) 2011-2013 by Animatron.
