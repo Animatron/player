@@ -47,12 +47,12 @@ var Bundles = [
       includes: VENDOR_FILES.concat([ PLAYER_FILE, BUILDER_FILE ]).concat(MODULES_FILES) }
 ];
 
-var BUNDLE_DEST_DIR = 'bundle',
+var BUNDLES_DEST_DIR = 'bundle',
     VENDOR_DEST_DIR = 'vendor',
     MODULES_DEST_DIR = 'mods',
     IMPORTERS_DEST_DIR = 'import';
 
-var BUNDLES_TRG_DIR   = PLAIN_FILES_TARGET_DIR + '/' + BUNDLE_DEST_DIR,
+var BUNDLES_TRG_DIR   = PLAIN_FILES_TARGET_DIR + '/' + BUNDLES_DEST_DIR,
     MODULES_TRG_DIR   = PLAIN_FILES_TARGET_DIR + '/' + MODULES_DEST_DIR,
     IMPORTERS_TRG_DIR = PLAIN_FILES_TARGET_DIR + '/' + IMPORTERS_DEST_DIR,
     VENDOR_TRG_DIR    = PLAIN_FILES_TARGET_DIR + '/' + VENDOR_DEST_DIR;
@@ -89,7 +89,7 @@ task('clean', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create dist & dist/as-is folders');
+desc('Create '+MINIFIED_FILES_TARGET_DIR+' & '+PLAIN_FILES_TARGET_DIR+' folders');
 task('_prepare', function() {
     console.log('Create required destination folders..');
     jake.mkdirP(_loc(DIST_DIR));
@@ -98,7 +98,7 @@ task('_prepare', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create bundles from existing sources and put them into dist/as-is folder');
+desc('Create bundles from existing sources and put them into '+PLAIN_FILES_TARGET_DIR+' folder');
 task('_bundles', function() {
     console.log('Create Bundles..')
 
@@ -115,7 +115,7 @@ task('_bundles', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Copy source files to as-is folder');
+desc('Copy source files to '+PLAIN_FILES_TARGET_DIR+' folder');
 task('_organize', function() {
 
     console.log('Copy files to ' + PLAIN_FILES_TARGET_DIR + '..');
@@ -141,22 +141,27 @@ task('_organize', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Inject version in all dist/as-is files');
+desc('Inject version in all '+PLAIN_FILES_TARGET_DIR+' files');
 task('_versionize', function() {
-    var BUNDLES_TRG_DIR = PLAIN_FILES_TARGET_DIR + '/' + BUNDLE_DEST_DIR;
+    var BUNDLES_TRG_DIR = PLAIN_FILES_TARGET_DIR + '/' + BUNDLES_DEST_DIR;
     var MODULES_TRG_DIR = PLAIN_FILES_TARGET_DIR + '/' + MODULES_DEST_DIR;
     var IMPORTERS_TRG_DIR = PLAIN_FILES_TARGET_DIR + '/' + IMPORTERS_DEST_DIR;
 
     console.log('Set proper VERSION to all player-originated files (including bundles) in ' + PLAIN_FILES_TARGET_DIR + '..');
 
     function versionize(file) {
-        return jake.cat(_loc(file)).trim().replace(/@VERSION/g, VERSION);
+        jake.echo(jake.cat(file).trim()
+                                .split('\n')
+                                .join('\n')
+                                .replace(/@VERSION/g, VERSION),
+                  file);
+        console.log('v -> ' + file);
     }
 
     console.log('.. Main files');
 
-    versionize(PLAIN_FILES_TARGET_DIR + '/' + PLAYER_FILE);
-    versionize(PLAIN_FILES_TARGET_DIR + '/' + BUILDER_FILE);
+    versionize(_loc(PLAIN_FILES_TARGET_DIR + '/' + PLAYER_FILE));
+    versionize(_loc(PLAIN_FILES_TARGET_DIR + '/' + BUILDER_FILE));
 
     console.log('.. Modules');
 
@@ -166,7 +171,6 @@ task('_versionize', function() {
 
     console.log('.. Importers');
 
-    jake.mkdirP(_loc(IMPORTERS_TRG_DIR));
     IMPORTERS_FILES.forEach(function(importer_file) {
         versionize(_loc(IMPORTERS_TRG_DIR + '/' + importer_file));
     });
@@ -180,9 +184,57 @@ task('_versionize', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create a minified copy of all the sources from dist/as-is folder and put them into dist folder root');
+desc('Create a minified copy of all the sources from '+PLAIN_FILES_TARGET_DIR+' folder and put them into '+MINIFIED_FILES_TARGET_DIR+' folder root');
 task('_minify', function() {
+    console.log('Minify all the files and put them in ' + MINIFIED_FILES_TARGET_DIR + ' folder');
 
+    function minify(src, dst) {
+        jake.exec([
+            [ Binaries.UGLIFYJS,
+              '--ascii',
+              '-o',
+              dst, src
+            ].join(' ')
+        ]);
+        console.log('min -> ' + src + ' -> ' + dst);
+    }
+
+    /* console.log('.. Vendor Files');
+
+    VENDOR_FILES.forEach(function(vendor_file) {
+        minify(_loc(VENDOR_TRG_DIR + '/' + vendor_file),
+               _loc(MINIFIED_FILES_TARGET_DIR + '/' + VENDOR_DEST_DIR + '/' + vendor_file));
+    }); */
+
+    console.log('.. Main files');
+
+    minify(_loc(PLAIN_FILES_TARGET_DIR + '/' + PLAYER_FILE),
+           _loc(MINIFIED_FILES_TARGET_DIR + '/' + PLAYER_FILE));
+    minify(_loc(PLAIN_FILES_TARGET_DIR + '/' + BUILDER_FILE),
+           _loc(MINIFIED_FILES_TARGET_DIR + '/' + BUILDER_FILE));
+
+    console.log('.. Bundles');
+
+    Bundles.forEach(function(bundle) {
+        minify(_loc(BUNDLES_TRG_DIR + '/' + bundle.file + '.js'),
+               _loc(MINIFIED_FILES_TARGET_DIR + '/' + BUNDLES_DEST_DIR + '/' + bundle.file + '.js'));
+    });
+
+    console.log('.. Modules');
+
+    MODULES_FILES.forEach(function(module_file) {
+        minify(_loc(MODULES_TRG_DIR + '/' + module_file),
+               _loc(MINIFIED_FILES_TARGET_DIR + '/' + MODULES_DEST_DIR + '/' + module_file));
+    });
+
+    console.log('.. Importers');
+
+    IMPORTERS_FILES.forEach(function(importer_file) {
+        minify(_loc(IMPORTERS_TRG_DIR + '/' + importer_file),
+               _loc(MINIFIED_FILES_TARGET_DIR + '/' + IMPORTERS_DEST_DIR + '/' + importer_file));
+    });
+
+    console.log(DONE_MARKER);
 });
 
 desc('Create bundles');
