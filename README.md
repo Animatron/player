@@ -8,11 +8,21 @@ See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) f
 
 **NB:** Development is in process. See [JS Player Pivotal Tracker page](https://www.pivotaltracker.com/projects/561405) to see what happens in project when you read this.
 
-Run `examples/demo.html` to see it in action.
+#### See in action
 
-Run `sandbox/sandbox.html` to try it yourself.
+Navigate to [corresponding Animatron site section](http://animatron.com/player), there are some useful links:
 
-Run one of the `tests/index.html` and run any of the tests to see if something broken in your version of player.
+* [Sandbox](http://animatron.com/player/sandbox/sandbox.html) to try it for yourself.
+* [Demos](http://animatron.com/player/examples/demo.html) to see it in action with some demos (they're not so good-looking for the moment).
+* [Tests](http://animatron.com/player/tests/index.html) to see what features are working for now.
+
+Run one of the `tests/index.html` and run any of the tests to see if something is broken in your version of player.
+
+#### Accessible from Cloud
+
+#### Locally
+
+Clone `git@github.com:Animatron/player.git` to get your own copy.
 
 To use JS player in current state, download or copy from the cloned repository:
 
@@ -25,4 +35,10 @@ To use JS player in current state, download or copy from the cloned repository:
 
 And add them in the same order to your page header. Don't forget the [`LICENSE`](https://github.com/Animatron/player/blob/master/LICENSE#files) :).
 
-(c) 2011-2012 by Animatron.
+Run `sandbox/sandbox.html` to try it for yourself.
+
+Run `examples/demo.html` to see it in action with some demos (they're not so good-looking for the moment).
+
+Run one of the `tests/index.html` and run any of the tests to see if something is broken in your version of player.
+
+(c) 2011-2013 by Animatron.
