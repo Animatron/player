@@ -69,9 +69,9 @@ var Bundles = [
         .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORT, [ Files.Main.ANM_IMPORT ])),
-        .concat(_in_dir(Dirs.SRC,                        [ Files.Main.PLAYER ])) },
+      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ]))
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ])) },
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
@@ -175,17 +175,20 @@ task('_organize', function() {
 
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        jake.cpR(_loc(vendorFile), _loc(vendorTargetDir));
+        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.VENDOR + '/' + vendorFile),
+                 _loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
     });
 
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
     Files.Ext.MODULES.forEach(function(moduleFile) {
-        jake.cpR(_loc(moduleFile), _loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
+        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.MODULES + '/' + moduleFile),
+                 _loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
     });
 
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
     Files.Ext.IMPORTERS.forEach(function(importerFile) {
-        jake.cpR(_loc(importerFile), _loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
+        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.IMPORTERS + '/' + importerFile),
+                 _loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
     });
 
     console.log(DONE_MARKER);
