@@ -1,4 +1,4 @@
-### JS Player for Animatron project (not yet released)
+### JS Player for Animatron project (not yet released, @VERSION)
 
 [![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player)
 
@@ -19,6 +19,22 @@ Navigate to [corresponding Animatron site section](http://animatron.com/player),
 Run one of the `tests/index.html` and run any of the tests to see if something is broken in your version of player.
 
 #### Accessible from Cloud
+
+The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what to take:
+
+* Standard Bundle (player only) is located at
+* Animatron Bundle (player + imprort) is located at
+* Develop Bundle
+* Hardcore Develop Bundle
+
+Include one of them as a script to your page, and you're done!
+
+Also, all files are accessible separately, if you want:
+
+*
+*
+*
+*
 
 #### Locally
 
