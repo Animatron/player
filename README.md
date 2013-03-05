@@ -59,4 +59,30 @@ Run one of the `tests/index.html` and run any of the tests to see if something i
 
 If you'd want to run them from terminal instead of browser, you'll need to have PhantomJS installation and then start `run-tests.sh[ spec]`
 
+#### Local Building
+
+To build locally, you'll need to have both [`jake`](https://github.com/mde/jake) and [`uglify-js` >= 2](https://github.com/mishoo/UglifyJS2) installed.
+
+Then, you'll just need to run:
+
+    jake
+    # or, the same
+    jake clean dist
+
+And you have all the variants of the files in `dist` folder.
+
+If you want to generate [doccoo](http://jashkenas.github.com/docco/) docs, run:
+
+    jake docs
+
+If you want check if tests are failing, use:
+
+    jake test
+
+Or, to check just a specific part of tests (see `./tests/spec/spec-list.js` for a list of all specs), use:
+
+    jake test 01.player/*
+    jake test 02.animations/01.guids
+
+If you want to
 (c) 2011-2013 by Animatron.

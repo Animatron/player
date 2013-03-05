@@ -1,5 +1,7 @@
 .idea
 idea-files.zip
 dist
+dev
 doc/anm.*.html
+doc/api.pdf
 doc/docco.css
