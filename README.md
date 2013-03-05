@@ -23,9 +23,9 @@ Run one of the `tests/index.html` and run any of the tests to see if something i
 The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what to take:
 
 * Standard Bundle (player only) is located at
-* Animatron Bundle (player + imprort) is located at
-* Develop Bundle
-* Hardcore Develop Bundle
+* Animatron Bundle (player + animatron improrter) is located at
+* Develop Bundle (player + builder) is located at
+* Hardcore Develop Bundle (player + builder + player additional modules, like collisions) is located at
 
 Include one of them as a script to your page, and you're done!
 

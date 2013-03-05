@@ -1,7 +1,7 @@
 DEST = ./dist
 DEV_TMP = ./dist/dev
 VERSION_FILE = `version`
-PEGJS_VERSION = `cat $(VERSION_FILE)`
+PLAYER_VERSION = `cat $(VERSION_FILE)`
 
 VENDOR_FILES = ./vendor/matrix.js #...
 PLAYER_FILE = ./anm.player.js
