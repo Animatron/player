@@ -62,6 +62,8 @@ You'll find a lot of checkboxes and radio buttons there, feel free to check and 
 Emdedding
 ---------
 
+<!-- FIXME: notice about a cloud -->
+
 ### Embedding Player ###
 
 You have an unbelievable option to include a player in your own page and to load there any animation you want. You may even [build your own scene](#builder) and show it at your site. This chapter is all you need to make this happen.
@@ -80,7 +82,7 @@ If you'd like to _customize_ things a bit more, or to have more control over the
 
 ##### 2a. #####
 
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`anm.player.js`](https://raw.github.com/Animatron/player/master/anm.player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`anm.player.js`](https://raw.github.com/Animatron/player/master/src/anm.player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>

@@ -39,7 +39,7 @@ var Binaries = {
 };
 
 var Dirs = {
-    SRC: '',
+    SRC: 'src',
     AS_IS: 'dist/as-is',
     MINIFIED: 'dist',
     TESTS: 'tests',
@@ -49,7 +49,7 @@ var Dirs = {
 var SubDirs = {
     VENDOR: 'vendor',
     BUNDLES: 'bundle',
-    MODULES: 'mods',
+    MODULES: 'module',
     IMPORTERS: 'import'
 };
 
@@ -70,8 +70,8 @@ var Bundles = [
     { name: 'Animatron',
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.ANM_IMPORT,
-                                                         Files.Main.PLAYER ])) },
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORT, [ Files.Main.ANM_IMPORT ])),
+        .concat(_in_dir(Dirs.SRC,                        [ Files.Main.PLAYER ])) },
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
