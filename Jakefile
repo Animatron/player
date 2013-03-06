@@ -28,7 +28,7 @@ var COPYRIGHT_COMMENT =
   ' * Animatron player is licensed under the MIT License.',
   ' * ',
   ' * ' + VERSION,
-  ' */'].join('\n');
+  ' */'].join('\n') + '\n';
 
 var Binaries = {
     JSHINT: 'jshint',
@@ -121,7 +121,7 @@ task('clean', function() {
 });
 
 desc('Create bundles');
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify', '_copyrightize'], function() {});
+task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify'], function() {});
 
 desc('Prepare distribution files');
 task('dist', ['build'], function() {});
@@ -253,6 +253,29 @@ task('_minify', function() {
         console.log('min -> ' + src + ' -> ' + dst);
     }
 
+    function copyrightize(file) {
+        var new_content = COPYRIGHT_COMMENT.concat(jake.cat(file).trim());
+        jake.rmRf(file);
+        jake.echo(new_content, file);
+        console.log('(c) -> ' + file);
+    }
+
+    function minifyWithCopyright(src, dst) {
+        var cmd = jake.createExec([
+            [ Binaries.UGLIFYJS,
+              '--ascii',
+              '-o',
+              dst, src
+            ].join(' ')
+        ]);
+        cmd.addListener('cmdEnd', function() {
+            console.log('min -> ' + src + ' -> ' + dst);
+            copyrightize(dst);
+            console.log(DONE_MARKER);
+        });
+        cmd.run();
+    }
+
     console.log('.. Vendor Files');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.VENDOR);
@@ -263,77 +286,36 @@ task('_minify', function() {
 
     console.log('.. Main files');
 
-    minify(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
-           _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
-    minify(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
-           _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
+    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
+                        _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
+    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
+                        _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
 
     console.log('.. Bundles');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.BUNDLES);
     Bundles.forEach(function(bundle) {
-        minify(_loc(Dirs.AS_IS +    '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'),
-               _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'),
+                            _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     console.log('.. Modules');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
     Files.Ext.MODULES.forEach(function(moduleFile) {
-        minify(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
-               _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
+        minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
+                            _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     console.log('.. Importers');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS);
     Files.Ext.IMPORTERS.forEach(function(importerFile) {
-        minify(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-               _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
+                            _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
-    console.log(DONE_MARKER);
-});
-
-desc('Inject copyright in all minified files');
-task('_copyrightize', function() {
-    console.log('Inject copyright in all minified files');
-
-    function copyrightize(file) {
-        //console.log(file);
-        //console.log(fs.statSync(file));
-        var new_content = COPYRIGHT_COMMENT.concat(jake.cat(file).trim().split('\n'))
-                                           .join('\n');
-        jake.rmRf(file);
-        jake.echo(new_content, file);
-        console.log('(c) -> ' + file);
-    }
-
-    console.log('.. Main files');
-
-    copyrightize(_loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
-    copyrightize(_loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
-
-    console.log('.. Modules');
-
-    Files.Ext.MODULES.forEach(function(moduleFile) {
-        copyrightize(_loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
-    });
-
-    console.log('.. Importers');
-
-    Files.Ext.IMPORTERS.forEach(function(importerFile) {
-        copyrightize(_loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
-    });
-
-    console.log('.. Bundles');
-
-    Bundles.forEach(function(bundle) {
-        copyrightize(_loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
-    });
-
-    console.log(DONE_MARKER);
-
+    console.log('\n(async)\n');
 });
 
 // UTILS
