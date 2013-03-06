@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2013 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 // TODO: errors, thrown in playing process (from modifiers), should be supressed (?), but passed to onerror handler
 // TODO: errors, thrown in player creating process, should be shown in the console.
 // TODO: errors should be thrown only once
