@@ -127,13 +127,19 @@ desc('Prepare distribution files');
 task('dist', ['build'], function() {});
 
 desc('Run tests'); // TODO: test minified version instead of plain
-task('test', function() {});
+task('test', function() {
+    // TODO
+});
 
 desc('Generate Docco docs');
-task('docs', function() {});
+task('docs', function() {
+    // TODO
+});
 
 desc('Run JSHint');
-task('hint', function() {});
+task('hint', function() {
+    // TODO
+});
 
 desc('Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders');
 task('_prepare', function() {
@@ -200,8 +206,6 @@ task('_versionize', function() {
 
     function versionize(file) {
         var new_content = jake.cat(file).trim()
-                                        .split('\n')
-                                        .join('\n')
                                         .replace(/@VERSION/g, VERSION);
         jake.rmRf(file);
         jake.echo(new_content, file);
@@ -291,7 +295,46 @@ task('_minify', function() {
     console.log(DONE_MARKER);
 });
 
-// TODO: add copyright
+desc('Inject copyright in all minified files');
+task('_copyrightize', function() {
+    console.log('Inject copyright in all minified files');
+
+    function copyrightize(file) {
+        //console.log(file);
+        //console.log(fs.statSync(file));
+        var new_content = COPYRIGHT_COMMENT.concat(jake.cat(file).trim().split('\n'))
+                                           .join('\n');
+        jake.rmRf(file);
+        jake.echo(new_content, file);
+        console.log('(c) -> ' + file);
+    }
+
+    console.log('.. Main files');
+
+    copyrightize(_loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
+    copyrightize(_loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
+
+    console.log('.. Modules');
+
+    Files.Ext.MODULES.forEach(function(moduleFile) {
+        copyrightize(_loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
+    });
+
+    console.log('.. Importers');
+
+    Files.Ext.IMPORTERS.forEach(function(importerFile) {
+        copyrightize(_loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+    });
+
+    console.log('.. Bundles');
+
+    Bundles.forEach(function(bundle) {
+        copyrightize(_loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+    });
+
+    console.log(DONE_MARKER);
+
+});
 
 // UTILS
 
