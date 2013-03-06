@@ -81,8 +81,8 @@ If you want check if tests are failing in CLI, use (you'll need [`phantomjs`](ht
 
 Or, to check just a specific part of tests (see `./tests/spec/spec-list.js` for a list of all specs), use:
 
-    jake test 01.player/*
-    jake test 02.animations/01.guids
+    jake test[01.player/*]
+    jake test[02.animations/01.guids]
 
 If you want to
 (c) 2011-2013 by Animatron.

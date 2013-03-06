@@ -43,7 +43,7 @@ var Dirs = {
     AS_IS: 'dist/as-is',
     MINIFIED: 'dist',
     TESTS: 'tests',
-    DOCS: 'docs'
+    DOCS: 'doc'
 };
 
 var SubDirs = {
@@ -85,27 +85,16 @@ var Bundles = [
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES )) }
 ];
 
-var TESTS_DIR = 'tests';
-var TESTS_RUN_SCRIPT = TESTS_DIR + '/run-with-phantomjs.sh',
-    TESTS_PAGE_FOR_CLI = TESTS_DIR + '/run-for-terminal.html';
+var Tests = {
+    RUN_SCRIPT: Dirs.TESTS + '/' + 'run-jasmine.phantom.js',
+    PAGE_FOR_CLI: Dirs.TESTS + '/' + 'run-for-terminal.html'
+};
 
-var DOCS_DIR = 'doc',
-    INCLUDE_IN_DOCS_PATTERN = 'anm.*.js';
+var Docs = {
+    INCLUDE: [ 'src/*.js' ]
+};
 
 var DONE_MARKER = '.\n';
-
-// proposed structure:
-// /- version/
-//  |- ...
-//  |- bundle/
-//  |- mods/
-//  |- import/
-//  |- as-is
-//   \- vendor/
-//   \- bundle/
-//   \- mods/
-//   \- import/
-//   \- ...
 
 // TASKS
 
@@ -127,19 +116,46 @@ desc('Prepare distribution files');
 task('dist', ['build'], function() {});
 
 desc('Run tests'); // TODO: test minified version instead of plain
-task('test', function() {
-    // TODO
+task('test', function(params) {
+    console.log('Running tests');
+    /* Usage:
+     *    run all specs: > jake test
+     *    run all specs: > jake test[*]
+     *    run testutils specs: > jake test[00.testutils\]
+     *    run all player's specs: > jake test[01.player/*]
+     *    run specific spec group: > jake test[04.builder/13.enable-disable]
+     */
+    var runTestsCmd = [ Binaries.PHANTOMJS,
+                        _loc(Tests.RUN_SCRIPT),
+                        _loc(Tests.PAGE_FOR_CLI),
+                        params || ''
+                      ].join(' ');
+
+    console.log(runTestsCmd);
+    jake.exec(runTestsCmd,
+              function() { console.log('Tests finished successfully');
+                           console.log(DONE_MARKER); },
+              {printStdout: true});
 });
 
 desc('Generate Docco docs');
 task('docs', function() {
-    // TODO
+    console.log('Generating docs');
+    jake.exec([ Binaries.DOCCO,
+                '-o',
+                _loc(Dirs.DOCS)
+              ].concat(Docs.INCLUDE)
+               .join(' '),
+              function() { console.log('Generated successfully');
+                           console.log(DONE_MARKER); });
 });
 
-desc('Run JSHint');
+/*desc('Run JSHint');
 task('hint', function() {
     // TODO
-});
+});*/
+
+// ======= SUBTASKS
 
 desc('Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders');
 task('_prepare', function() {
@@ -242,14 +258,14 @@ desc('Create a minified copy of all the sources from '+Dirs.AS_IS+' folder and p
 task('_minify', function() {
     console.log('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
 
-    function minify(src, dst) {
+    function minify(src, dst, cb) {
         jake.exec([
             [ Binaries.UGLIFYJS,
               '--ascii',
               '-o',
               dst, src
             ].join(' ')
-        ]);
+        ], cb);
         console.log('min -> ' + src + ' -> ' + dst);
     }
 
@@ -261,19 +277,10 @@ task('_minify', function() {
     }
 
     function minifyWithCopyright(src, dst) {
-        var cmd = jake.createExec([
-            [ Binaries.UGLIFYJS,
-              '--ascii',
-              '-o',
-              dst, src
-            ].join(' ')
-        ]);
-        cmd.addListener('cmdEnd', function() {
-            console.log('min -> ' + src + ' -> ' + dst);
+        minify(src, dst, function() {
             copyrightize(dst);
             console.log(DONE_MARKER);
-        });
-        cmd.run();
+        })
     }
 
     console.log('.. Vendor Files');
