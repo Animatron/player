@@ -5,14 +5,14 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
- describe("when importing", function() {
+xdescribe("when importing", function() {
 
-    it("project version and player version should match, if specified", function() {
+    xit("project version and player version should match, if specified", function() {
         this.fail();
     });
 
-    it("if version is not specified in project, player should accept any project", function() {
+    xit("if version is not specified in project, player should accept any project", function() {
         this.fail();
     });
 
- })
+});
