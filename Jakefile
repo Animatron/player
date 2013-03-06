@@ -54,12 +54,12 @@ var SubDirs = {
 };
 
 var Files = {
-    Main: { PLAYER: 'anm.player.js',
-            BUILDER: 'anm.builder.js',
+    Main: { PLAYER: 'player.js',
+            BUILDER: 'builder.js',
             ANM_IMPORT: 'animatron_import.js' },
     Ext: { VENDOR: [ 'matrix.js' ],
            IMPORTERS: [ 'animatron_import.js' ],
-           MODULES: [ 'anm.collisions.js' ] }
+           MODULES: [ 'collisions.js' ] }
 }
 
 var Bundles = [

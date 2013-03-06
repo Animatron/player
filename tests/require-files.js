@@ -16,9 +16,9 @@ var _files = {
 
     'vnd.matrix': '../src/vendor/matrix.js',
 
-    'anm.player': '../src/anm.player.js',
-    'anm.builder': '../src/anm.builder.js',
-    'anm.collisions': '../src/module/anm.collisions.js',
+    'anm.player': '../src/player.js',
+    'anm.builder': '../src/builder.js',
+    'anm.collisions': '../src/module/collisions.js',
     'anm.import': '../src/import/animatron_import.js',
 
     'tst.matchers': './anm.matchers.js',
