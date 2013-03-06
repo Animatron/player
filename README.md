@@ -84,5 +84,13 @@ Or, to check just a specific part of tests (see `./tests/spec/spec-list.js` for 
     jake test[01.player/*]
     jake test[02.animations/01.guids]
 
-If you want to
+##### Bundles
+
+When you build player with jake, it also creates several bundles, they are:
+
+1. __Standard__: just player merged with required vendor files — for quick uses of the player (when developer wants very lightweight version)
+1. __Animatron__: vendor files + player + importer from Animatron — exactly this one will be used in embedded player and in the Animatron tool
+1. __Develop__: vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM — it will work ok for developing some general (in terms of code complexity) games.
+1. __Hardcore__: vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games
+
 (c) 2011-2013 by Animatron.
