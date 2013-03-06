@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2013 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 var _specs = {
    '00.testutils': null,
    '01.player': [ '01.formation',
@@ -6,7 +13,8 @@ var _specs = {
                   '04.modes',
                   '05.loading',
                   '06.errors',
-                  '07.utils' ],
+                  '07.utils',
+                  '08.version' ],
    '02.animations': [ '01.guids',
                       '02.duration-n-bands',
                       '03.structure' ],
@@ -15,6 +23,7 @@ var _specs = {
                       '03.tweens',
                       '04.masks',
                       '05.layers',
+                      '06.versions',
                       '_utils.and.their' ],
    '04.builder': [ '01.formation',
                    '02.structure',

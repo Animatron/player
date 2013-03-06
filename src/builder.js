@@ -1,8 +1,10 @@
 /*
- * Copyright (c) 2011-2012 by Animatron.
+ * Copyright (c) 2011-2013 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
+ *
+ * @VERSION
  */
 
 (function() { // anonymous wrapper to exclude global context clash
@@ -162,7 +164,7 @@ Builder.prototype.image = function(pt, src, callback) {
         this.x.image =
            // width/height olny will be known when image will be loaded
            Element.imgFromUrl(src);
-        if (callback) 
+        if (callback)
         if (this.x.image.isReady) callback(src);
         else Element.imgFromUrl(src, callback);
         try { this.x.image.src = src; }
@@ -182,7 +184,7 @@ Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
         this.x.image =
             // width/height olny will be known when image will be loaded
             Element.imgFromUrl(src);
-        if (callback) 
+        if (callback)
         if (this.x.image.isReady) callback(src);
         else Element.imgFromUrl(src, function(img) {
                 var w, h;

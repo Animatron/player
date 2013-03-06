@@ -1,3 +1,10 @@
+<!--
+ ~ Copyright (c) 2011-2013 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -17,6 +24,19 @@
     <script type="text/javascript" src="./spec/spec-list.js"></script>
 
     <script type="text/javascript">
+      /* Usage:
+       *    run all specs: > run_tests()
+       *    run all specs: > run_tests(.., '*')
+       *    run testutils specs: > run_tests(.., '00.testutils')
+       *    run all player's specs: > run_tests(.., '01.player/*')
+       *    run specific spec group: > run_tests(.., '04.builder/13.enable-disable')
+
+       * Files:
+       * * spec/spec-list.js
+       * * require-files.js
+       * should be both complete for this script to work (or it will fail with scripterror from RequireJS)
+       */
+
       function run_tests(on_finish, specs_to_run) {
         queue(require)(
                 [ _files['jasmine'],
