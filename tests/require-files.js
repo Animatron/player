@@ -19,7 +19,7 @@ var _files = {
     'anm.player': '../src/player.js',
     'anm.builder': '../src/builder.js',
     'anm.collisions': '../src/module/collisions.js',
-    'anm.import': '../src/import/animatron_import.js',
+    'anm.import': '../src/import/animatron-importer.js',
 
     'tst.matchers': './anm.matchers.js',
     'tst.mocks': './anm.mocks.js',
