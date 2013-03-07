@@ -40,7 +40,7 @@ var Binaries = {
 
 var Dirs = {
     SRC: 'src',
-    AS_IS: 'dist/as-is',
+    AS_IS: 'dist/full',
     MINIFIED: 'dist',
     TESTS: 'tests',
     DOCS: 'doc'
@@ -57,7 +57,7 @@ var Files = {
     Main: { PLAYER: 'player.js',
             BUILDER: 'builder.js',
             ANM_IMPORT: 'animatron_import.js' },
-    Ext: { VENDOR: [ 'matrix.js' ],
+    Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: [ 'animatron_import.js' ],
            MODULES: [ 'collisions.js' ] }
 }

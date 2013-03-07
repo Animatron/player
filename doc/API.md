@@ -74,23 +74,29 @@ The first option is just to embed the player with some external scene to your si
 
         <iframe src="http://.../embed?4f97dd3de4b0fd8159a8df75"></iframe>
 
-(Customizing player style with embed code is planned)
+(Customizing player style with embed code is planned) <!-- FIXME: describe -->
 
 #### 2. From Source ####
 
 If you'd like to _customize_ things a bit more, or to have more control over the flow, or if you want to _import_ some custom scene in custom format (i.e. JSON), or if you plan to _build_ a scene on your own, you may want the second option: to include a player from the source.
 
-##### 2a. #####
+##### 2.1. Use Player from Cloud #####
 
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`anm.player.js`](https://raw.github.com/Animatron/player/master/src/anm.player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
+<!-- TODO: describe -->
+
+##### 2.2. Use Player from Local Copy #####
+
+###### 2.2.a. ######
+
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`anm.player.js`](https://raw.github.com/Animatron/player/master/src/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>
 
       <head>
         <title>My Great Page</title>
-     ➭  <script src="./matrix.js" type="text/javascript"></script>
-     ➭  <script src="./anm.player.js" type="text/javascript"></script>
+     ➭  <script src="./src/vendor/matrix.js" type="text/javascript"></script>
+     ➭  <script src="./src/player.js" type="text/javascript"></script>
      ➭  <!-- importer or scene files go here, if one required -->
      ➭  <script type="text/javascript">
      ➭     function startPlaying() {
@@ -109,7 +115,7 @@ If you are importing scene in some custom format, do not forget to include the i
 
 Then, you have a `Player` object.
 
-##### 2b. #####
+###### 2.2.b. ######
 
 Now you may easily create a player with either of two ways below, just provide us with correct id of the canvas to attach to, and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample):
 
@@ -119,7 +125,7 @@ Now you may easily create a player with either of two ways below, just provide u
     var player = new anm.Player();
         player.init('my-canvas');
 
-##### 2c. #####
+###### 2.2.c. ######
 
 And you may easily rule the flow by loading your own scene or importing one:
 
@@ -264,10 +270,10 @@ Loading code:
 
 #### c. building with Builder ####
 
-[`Builder`](#builder) is an easy way to build animations (scenes) in JQuery-like style. So you may pass the created scene to the player and have fun. Do not forget to include `Builder`, since it is not the required player file. You may get it in raw format the same way as player files: [`anm.builder.js`](https://raw.github.com/Animatron/player/master/anm.builder.js).
+[`Builder`](#builder) is an easy way to build animations (scenes) in JQuery-like style. So you may pass the created scene to the player and have fun. Do not forget to include `Builder`, since it is not the required player file. You may get it in raw format the same way as player files: [`builder.js`](https://raw.github.com/Animatron/player/master/src/builder.js).
 
     <!-- player files -->
-    <script src="./anm.builder.js" type="text/javascript"></script>
+    <script src="./src/builder.js" type="text/javascript"></script>
 
 Loading code:
 
@@ -358,6 +364,8 @@ Builder
 `Builder` is the best method for accelerated scene building. It is based on JQuery-like concept (the _State Monad_, if it says something to you), so the instance of `Builder` is the one single object you'll need to do anything you want. If you are not JQuery lover, name it "just useful chaining".
 
 Below is the reference for all of the `Builder` possibilities.
+
+(Don't forget to include its file in the page: `src/builder.js`, as desribed above in __Loading Scenes / c. building with Builder__)
 
 Let's give an example: this is how the typical complicated scene looks when constructed with `Builder`:
 
