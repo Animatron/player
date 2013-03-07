@@ -1,7 +1,8 @@
 .idea
 idea-files.zip
 dist
-doc/anm.*.html
+doc/player.html
+doc/builder.html
 doc/api.pdf
 doc/docco.css
 VERSIONS

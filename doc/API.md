@@ -82,7 +82,21 @@ If you'd like to _customize_ things a bit more, or to have more control over the
 
 ##### 2.1. Use Player from Cloud #####
 
-<!-- TODO: describe -->
+There is always a fresh copy of player's latest version lying in S3 cloud. To use it, just follow this guide:
+
+* All of the links are started with `http://player.animatron.com/latest/` for the latest version or, for concrete version, with `http://player.animatron.com/vX.X/`, where `X.X` is a version number, `0.9` for example. All files there are minified. If you want to use a not-minified version, add `full/` to the prefix.
+* There is an option to use prepared bundles, so you may inlude just one file in your page and don't bother yourself with deciding which sub-files to use and/or with adding them in proper order. Bundles are:
+    1. __Standard__ ([`bundle/standard.js`](http://player.animatron.com/latest/bundle/standard.js)): just player merged with required vendor files — for quick uses of the player (when you want a very lightweight version)
+    1. __Animatron__ ([`bundle/animatron.js`](http://player.animatron.com/latest/bundle/animatron.js)): vendor files + player + importer from Animatron — exactly this one is used in embedded player and in the Animatron tool
+    1. __Develop__ ([`bundle/develop.js`](http://player.animatron.com/latest/bundle/develop.js)): vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM (described below in [Builder](#builder) section) — it will work ok for developing any general (in terms of code complexity) games or script-based animations.
+    1. __Hardcore__ ([`bundle/hardcore.js`](http://player.animatron.com/latest/bundle/hardcore.js)): vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games
+* If you want to ensure in which files you do actually add, follow these steps:
+    * For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js) and [`player.js`](http://player.animatron.com/latest/player.js)
+    * If you plan to program animation in an easy way, include [`builder.js`](http://player.animatron.com/latest/builder.js) next to them.
+    * If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
+    * If you want to use collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) in the end. The same for other modules.
+
+See Local copy examples below on how to load scenes and play them, just replace there local paths with remote ones, if you want to use them.
 
 ##### 2.2. Use Player from Local Copy #####
 

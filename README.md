@@ -20,21 +20,29 @@ Run one of the `tests/index.html` and run any of the tests to see if something i
 
 #### Accessible from Cloud
 
-The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what to take:
+The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what you want to take:
 
-* Standard Bundle (player only) is located at
-* Animatron Bundle (player + animatron improrter) is located at
-* Develop Bundle (player + builder) is located at
-* Hardcore Develop Bundle (player + builder + player additional modules, like collisions) is located at
+* Standard Bundle (player only; a lightweight bundle) is located at `http://player.animatron.com/latest/bundle/standard.js`
+* Animatron Bundle (player + animatron improrter; a bundle for the Animatron tool and embedding Animatron preview) is located at `http://player.animatron.com/latest/bundle/animatron.js`
+* Develop Bundle (player + builder; a bundle for game or script-based animation developers) is located at `http://player.animatron.com/latest/bundle/develop.js`
+* Hardcore Develop Bundle (player + builder + player additional modules, like collisions; a bundle for those game developers who uses complex things like collisions) is located at `http://player.animatron.com/latest/bundle/hardcore.js`
 
 Include one of them as a script to your page, and you're done!
 
 Also, all files are accessible separately, if you want:
 
-*
-*
-*
-*
+* For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js) and [`player.js`](http://player.animatron.com/latest/player.js)
+* If you plan to program animation in an easy way, include [`builder.js`](http://player.animatron.com/latest/builder.js) next to them.
+* If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
+* If you want to use collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) in the end. The same for other modules.
+
+URLs scheme for all of them is:
+
+    http://player.animatron.com(/<version>|/latest)[/full][(/bundle|/vendor|/import|/module)]/<file>.js
+
+* `(/<version>|/latest)` — required; a version of the player you want to get files from (e.g. `v0.9`), or the latest version
+* `[/full]` — optional; specify if you want to gen not-minimized version
+* `[(/bundle|/vendor|/import|/module)]` — optional; bundles are located in `/bundle` folder, `/vendor` folder is for external files required for player, `/import` is for importers, `/module` is for modules; `/bundle` files are supposed to be added before any other files, if you need them separately and they are not included in the bundle themselves. `/vendor` files should appear before player files (`player.js`, `builder.js`, ...); `/import` and `/module` files should appear after player files (`player.js`, `builder.js`, ...).
 
 #### Locally
 

@@ -56,9 +56,9 @@ var SubDirs = {
 var Files = {
     Main: { PLAYER: 'player.js',
             BUILDER: 'builder.js',
-            ANM_IMPORT: 'animatron_import.js' },
+            ANM_IMPORT: 'animatron-importer.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
-           IMPORTERS: [ 'animatron_import.js' ],
+           IMPORTERS: [ 'animatron-importer.js' ],
            MODULES: [ 'collisions.js' ] }
 }
 
@@ -70,8 +70,8 @@ var Bundles = [
     { name: 'Animatron',
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ]))
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ])) },
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ])) },
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
