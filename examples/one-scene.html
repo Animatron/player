@@ -1,0 +1,48 @@
+<!--
+ ~ Copyright (c) 2011-2013 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The Animatron HTML5 Player Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="stylesheet" href="./demo.css" type="text/css" />
+
+    <script src="../src/vendor/matrix.js" type="text/javascript"></script>
+    <script src="../src/player.js" type="text/javascript"></script>
+    <script src="../src/builder.js" type="text/javascript"></script>
+    <script src="../src/import/animatron-importer.js" type="text/javascript"></script>
+    <!--<script src="../dist/bundle/animatron.js" type="text/javascript"></script>
+    <script src="../src/builder.js" type="text/javascript"></script>-->
+
+    <script src="./rel/tangencial_eccentric_static.js" type="text/javascript"></script>
+
+    <script type="text/javascript">
+      function start() {
+          var b = Builder._$, C = anm.C;
+
+          // canvas0
+          var importer = new AnimatronImporter();
+          var player = createPlayer('canvas');
+          player.debug = true;
+          player.load(tangencial_eccentric_static, importer);
+          player.play();
+
+      }
+    </script>
+  </head>
+
+  <body onload="start();">
+    <h1>The place to test one scene</h1>
+
+    <canvas id="canvas"></canvas>
+
+    <div id="copyright"><span>© 2011-2013 by Animatron.</span></div>
+
+  </body>
+
+</html>

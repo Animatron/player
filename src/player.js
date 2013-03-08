@@ -1722,24 +1722,30 @@ Element.prototype.render = function(ctx, gtime) {
             bctx.save();
             bctx.clearRect(0, 0,
                            mcvs.width, mcvs.height);
+
             bctx.save();
+            bctx.translate(mcvs.width / 2, mcvs.height / 2);
             this.transform(bctx);
-            this.draw(bctx);
             this.visitChildren(function(elm) {
                 elm.render(bctx, gtime);
             });
+            this.draw(bctx);
             bctx.restore();
             bctx.globalCompositeOperation = 'destination-in';
 
+            mctx.save();
             mctx.clearRect(0, 0,
                            mcvs.width, mcvs.height);
+            mctx.translate(mcvs.width / 2, mcvs.height / 2);
             this.__mask.render(mctx, gtime);
+            mctx.restore();
+
             bctx.drawImage(mcvs, 0, 0,
                            mcvs.width, mcvs.height);
             bctx.restore();
 
-            ctx.drawImage(bcvs, 0, 0,
-                          mcvs.width, mcvs.height);
+            ctx.drawImage(bcvs, -(mcvs.width / 2), -(mcvs.height / 2),
+                          bcvs.width, bcvs.height);
         }
     }
     // immediately when drawn, element becomes visible,
@@ -2171,9 +2177,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
+    this.__maskCvs = newCanvas([scene.awidth * 2, scene.aheight * 2], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
+    this.__backCvs = newCanvas([scene.awidth * 2, scene.aheight * 2], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     /* document.body.appendChild(this.__maskCvs); */
     /* document.body.appendChild(this.__backCvs); */
