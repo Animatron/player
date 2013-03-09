@@ -68,7 +68,7 @@ describe("importing masks", function() {
             try {
                 importer.load(project);
             } catch(e) {
-                expect(e.message).toBe('No layers colleted to apply mask');
+                expect(e.message).toBe('No layers collected to apply mask');
             }
         }
 

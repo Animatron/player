@@ -15,8 +15,7 @@ describe("player, when speaking about modes,", function() {
     beforeEach(function() {
         this.addMatchers(_matchers);
 
-        _mocks.canvas.__resetMock();
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);
