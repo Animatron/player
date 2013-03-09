@@ -54,6 +54,8 @@ describe("utils", function() {
             prepareThreeSpy.reset();
         };
 
+        // TODO: test 'after'
+
         varyAll([
             { description: "prepare one",   prepare: prepareOneSpy.andCallFake(function()
                             { prepareOneSpyCalled = true;   }) },

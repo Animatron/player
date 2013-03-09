@@ -7,6 +7,8 @@
 
 describe("player, when created,", function() {
 
+    var initialPixelRatio = window.devicePixelRatio;
+
     describe("regarding canvas size", function() {
 
         var canvas,
@@ -68,9 +70,12 @@ describe("player, when created,", function() {
 
         afterEach(function() { canvas.__resetMock(); });
 
-        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; } },
-                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; } },
-                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; } }],
+        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; },
+                                                         after:   function() { window.devicePixelRatio = initialPixelRatio; } },
+                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; },
+                                                       after: function() { window.devicePixelRatio = initialPixelRatio; } },
+                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; },
+                                                                 after: function() { window.devicePixelRatio = initialPixelRatio; } }],
                  function() {
 
             it("should use default canvas size, if there is no size specified either in element or in options", function() {
