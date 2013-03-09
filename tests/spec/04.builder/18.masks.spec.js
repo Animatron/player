@@ -15,11 +15,19 @@ describe("builder, regarding masks", function() {
 
     var FPS = 20, _fg;
 
+    var mainCanvas = _mocks.canvas;
+
+    var SCENE_WIDTH = 350;
+    var SCENE_HEIGHT = 275;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        spyOn(document, 'getElementById').andReturn(mainCanvas);
         _fake(_Fake.CVS_POS);
+
+        mainCanvas.setAttribute('width',  SCENE_WIDTH);
+        mainCanvas.setAttribute('height', SCENE_HEIGHT);
 
         _fg = _FrameGen.spawn().run(FPS);
 
@@ -39,7 +47,6 @@ describe("builder, regarding masks", function() {
         var backCanvas = _mocks.factory.canvas();
         var backContext = backCanvas.getContext('2d');
 
-        var mainCanvas = _mocks.canvas;
         var mainContext = mainCanvas.getContext('2d');
 
         expect(maskContext).not.toBe(mainContext);
@@ -115,10 +122,10 @@ describe("builder, regarding masks", function() {
             expect(masked.v.__maskCvs).toBe(maskCanvas);
             expect(masked.v.__maskCtx).toBe(maskContext);
 
-            expect(maskCanvas.width).toEqual(mainCanvas.width);
-            expect(maskCanvas.height).toEqual(mainCanvas.height);
-            expect(backCanvas.width).toEqual(mainCanvas.width);
-            expect(backCanvas.height).toEqual(mainCanvas.height);
+            expect(maskCanvas.getAttribute('width')).toEqual(SCENE_WIDTH * 2);
+            expect(maskCanvas.getAttribute('height')).toEqual(SCENE_HEIGHT * 2);
+            expect(backCanvas.getAttribute('width')).toEqual(SCENE_WIDTH * 2);
+            expect(backCanvas.getAttribute('height')).toEqual(SCENE_HEIGHT * 2);
 
             expect(mainContext.globalCompositeOperation).toEqual('source-over');
             expect(maskContext.globalCompositeOperation).toEqual('source-over');
@@ -172,8 +179,8 @@ describe("builder, regarding masks", function() {
             expect(mainCtxDrawImageSpy).toHaveBeenCalledOnce();
             expect(backCtxDrawImageSpy).toHaveBeenCalledOnce();
             // TODO: ensure backCtxDrawImageSpy was called before mainCtxDrawImageSpy
-            expect(backCtxDrawImageSpy).toHaveBeenCalledWith(maskCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
-            expect(mainCtxDrawImageSpy).toHaveBeenCalledWith(backCanvas, 0, 0, mainCanvas.width, mainCanvas.height);
+            expect(backCtxDrawImageSpy).toHaveBeenCalledWith(maskCanvas, 0, 0, SCENE_WIDTH * 2, SCENE_HEIGHT * 2);
+            expect(mainCtxDrawImageSpy).toHaveBeenCalledWith(backCanvas, -SCENE_WIDTH, -SCENE_HEIGHT, SCENE_WIDTH * 2, SCENE_HEIGHT * 2);
 
             mainCtxDrawImageSpy.reset();
             backCtxDrawImageSpy.reset();

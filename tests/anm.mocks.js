@@ -89,7 +89,8 @@ mocks.factory.linearGradient = function() {
 mocks.factory.element = function(id) {
     return {
         'id': id || 'some-id',
-        'style': mocks.factory.cssStyle()
+        'style': mocks.factory.cssStyle(),
+        'appendChild': _empty
     }
 }
 

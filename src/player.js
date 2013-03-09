@@ -1719,12 +1719,21 @@ Element.prototype.render = function(ctx, gtime) {
                 bcvs = this.__backCvs,
                 bctx = this.__backCtx;
 
-            bctx.save();
-            bctx.clearRect(0, 0,
-                           mcvs.width, mcvs.height);
+            var scene_width = this.scene.awidth,
+                scene_height = this.scene.aheight,
+                dbl_scene_width = scene_width * 2,
+                dbl_scene_height = scene_height * 2;
+
+            // at this point:
+            // mcvs.height is twice scene height
+            // mcvs.width  is twice scene width
 
             bctx.save();
-            bctx.translate(mcvs.width / 2, mcvs.height / 2);
+            bctx.clearRect(0, 0, dbl_scene_width,
+                                 dbl_scene_height);
+
+            bctx.save();
+            bctx.translate(scene_width, scene_height);
             this.transform(bctx);
             this.visitChildren(function(elm) {
                 elm.render(bctx, gtime);
@@ -1734,18 +1743,18 @@ Element.prototype.render = function(ctx, gtime) {
             bctx.globalCompositeOperation = 'destination-in';
 
             mctx.save();
-            mctx.clearRect(0, 0,
-                           mcvs.width, mcvs.height);
-            mctx.translate(mcvs.width / 2, mcvs.height / 2);
+            mctx.clearRect(0, 0, dbl_scene_width,
+                                 dbl_scene_height);
+            mctx.translate(scene_width, scene_height);
             this.__mask.render(mctx, gtime);
             mctx.restore();
 
-            bctx.drawImage(mcvs, 0, 0,
-                           mcvs.width, mcvs.height);
+            bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
+                                       dbl_scene_height);
             bctx.restore();
 
-            ctx.drawImage(bcvs, -(mcvs.width / 2), -(mcvs.height / 2),
-                          bcvs.width, bcvs.height);
+            ctx.drawImage(bcvs, -scene_width, -scene_height,
+                          dbl_scene_width, dbl_scene_height);
         }
     }
     // immediately when drawn, element becomes visible,
