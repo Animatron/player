@@ -12,7 +12,7 @@ describe("player, when speaking about loading scenes,", function() {
     beforeEach(function() {
         this.addMatchers(_matchers);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id');

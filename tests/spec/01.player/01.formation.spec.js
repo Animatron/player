@@ -66,6 +66,8 @@ describe("player, when created,", function() {
             })
         });
 
+        afterEach(function() { canvas.__resetMock(); });
+
         varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; } },
                  { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; } },
                  { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; } }],

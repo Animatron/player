@@ -15,13 +15,15 @@ describe("builder, regarding masks", function() {
 
     var FPS = 20, _fg;
 
-    var mainCanvas = _mocks.canvas;
+    var mainCanvas;
 
     var SCENE_WIDTH = 350;
     var SCENE_HEIGHT = 275;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
+
+        mainCanvas = _mocks.factory.canvas();
 
         spyOn(document, 'getElementById').andReturn(mainCanvas);
         _fake(_Fake.CVS_POS);

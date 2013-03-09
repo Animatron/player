@@ -26,8 +26,9 @@ mocks.factory.canvas = function(id) {
     return {
         '__mockId': mockId,
         '__attrs': {},
+        '__ctx2dMock': contextMock,
         'id': id || ('canvas-mock-'+mockId),
-        'getContext': function() { return contextMock; },
+        'getContext': function(which) { return which == '2d' ? contextMock : undefined; },
         'hasAttribute': function(attr) { return typeof this.__attrs[attr] !== 'undefined'; },
         'setAttribute': function(attr, val) { this.__attrs[attr] = val; },
         'getAttribute': function(attr) { return this.__attrs[attr]; },
@@ -104,9 +105,12 @@ mocks.factory.nop = function() {
 
 // TODO: attributes
 
+/*
+these mocks became accidentally reused among tests w/o resetting,
+so I decided to turn them off and prefer direct creation from factory
 mocks.canvas = mocks.factory.canvas();
 mocks.context2d = mocks.canvas.getContext('2d');
-mocks.canvasStyle = mocks.canvas.style;
+mocks.canvasStyle = mocks.canvas.style;*/
 
 mocks.gradient = mocks.factory.linearGradient();
 

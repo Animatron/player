@@ -10,16 +10,18 @@ describe("player, when speaking about playing,", function() {
     var player,
         C = anm.C,
         strf = anm.__dev.strf,
-        adjust = anm.__dev.adjust;;
+        adjust = anm.__dev.adjust;
 
     var _instances = 0;
 
     var FPS = 60, _fg;
 
+    var canvasMock = _mocks.factory.canvas();
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        spyOn(document, 'getElementById').andReturn(canvasMock);
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);
@@ -287,7 +289,7 @@ describe("player, when speaking about playing,", function() {
             expect(t).toBeLessThanOrEqual(duration + anm.Player.PEFF);
             if (t <= duration) {
                 expect(modifierSpy).toHaveBeenCalledWith(adjust(t), duration, undefined);
-                expect(painterSpy).toHaveBeenCalledWith(_mocks.context2d, undefined);
+                expect(painterSpy).toHaveBeenCalledWith(canvasMock.__ctx2dMock, undefined);
                 mCalls++; pCalls++;
                 modifierSpy.reset();
                 painterSpy.reset();
@@ -656,7 +658,7 @@ describe("player, when speaking about playing,", function() {
             expect(modifierSpy).toHaveBeenCalledOnce();
             expect(painterSpy).toHaveBeenCalledOnce();
             expect(modifierSpy).toHaveBeenCalledWith(adjust(testTime), duration, undefined);
-            expect(painterSpy).toHaveBeenCalledWith(_mocks.context2d, undefined);
+            expect(painterSpy).toHaveBeenCalledWith(canvasMock.__ctx2dMock, undefined);
 
         });
 

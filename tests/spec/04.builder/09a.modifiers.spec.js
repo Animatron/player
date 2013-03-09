@@ -44,7 +44,7 @@ describe("builder, regarding modifiers,", function() {
             }
         }); */
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);

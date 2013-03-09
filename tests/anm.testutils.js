@@ -8,8 +8,9 @@
 var _Fake = {};
 _Fake.SKIP_EVENTS = 0; // do not listen events
 _Fake.CVS_POS = 1; // canvas position
-//_Fake.JSM_CLOCK = 2; // disable jasmine clock
-//_Fake.FRAME_GEN = 3; // frame calls
+//_Fake.GET_CANVAS = 2; // asking for canvas
+//_Fake.JSM_CLOCK = 3; // disable jasmine clock
+//_Fake.FRAME_GEN = 4; // frame calls
 
 var _window = jasmine.getGlobal();
 
@@ -20,6 +21,8 @@ function _fake(what) {
         switch (option) {
             case _Fake.SKIP_EVENTS: __skipEvents(); break;
             case _Fake.CVS_POS: __stubSavePos(); break;
+            /* case _Fake.GET_CANVAS: if (what.length > 1) { __stubCanvas(); }
+                                      else { return __stubCanvas(); }; break; */
             //case _Fake.JSM_CLOCK: __disableJsmClock(); break;
             //case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
             default: throw new Error('Unknown option ' + option);
@@ -29,6 +32,10 @@ function _fake(what) {
 
 function __skipEvents() { if (_window) spyOn(_window, 'addEventListener').andCallFake(_mocks._empty); }
 function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mocks.saveCanvasFake); }
+// spying on getElementById should be direct not to get bugs like when you don't know where it fails
+/*function __stubCanvas() { var canvasStub = _mocks.factory.canvas();
+                            spyOn(document, 'getElementById').andReturn(canvasStub);
+                            return canvasStub; } */
 
 var _FrameGen = (function() {
 

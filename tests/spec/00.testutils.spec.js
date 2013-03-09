@@ -143,4 +143,8 @@ describe("utils", function() {
 
     // test mocks ?
 
+    xdescribe("canvas mock", function() {
+
+    });
+
 });
