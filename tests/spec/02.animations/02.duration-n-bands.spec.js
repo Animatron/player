@@ -13,7 +13,7 @@ describe("regarding elements' duration and bands in animations,", function() {
     var DEFAULT_ELEMENT_BAND = [ 0, DEFAULT_ELEMENT_LENGTH ];
 
     beforeEach(function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id');

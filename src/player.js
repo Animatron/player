@@ -1719,27 +1719,42 @@ Element.prototype.render = function(ctx, gtime) {
                 bcvs = this.__backCvs,
                 bctx = this.__backCtx;
 
+            var scene_width = this.scene.awidth,
+                scene_height = this.scene.aheight,
+                dbl_scene_width = scene_width * 2,
+                dbl_scene_height = scene_height * 2;
+
+            // at this point:
+            // mcvs.height is twice scene height
+            // mcvs.width  is twice scene width
+
             bctx.save();
-            bctx.clearRect(0, 0,
-                           mcvs.width, mcvs.height);
+            bctx.clearRect(0, 0, dbl_scene_width,
+                                 dbl_scene_height);
+
             bctx.save();
+            bctx.translate(scene_width, scene_height);
             this.transform(bctx);
-            this.draw(bctx);
             this.visitChildren(function(elm) {
                 elm.render(bctx, gtime);
             });
+            this.draw(bctx);
             bctx.restore();
             bctx.globalCompositeOperation = 'destination-in';
 
-            mctx.clearRect(0, 0,
-                           mcvs.width, mcvs.height);
+            mctx.save();
+            mctx.clearRect(0, 0, dbl_scene_width,
+                                 dbl_scene_height);
+            mctx.translate(scene_width, scene_height);
             this.__mask.render(mctx, gtime);
-            bctx.drawImage(mcvs, 0, 0,
-                           mcvs.width, mcvs.height);
+            mctx.restore();
+
+            bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
+                                       dbl_scene_height);
             bctx.restore();
 
-            ctx.drawImage(bcvs, 0, 0,
-                          mcvs.width, mcvs.height);
+            ctx.drawImage(bcvs, -scene_width, -scene_height,
+                          dbl_scene_width, dbl_scene_height);
         }
     }
     // immediately when drawn, element becomes visible,
@@ -2171,9 +2186,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
+    this.__maskCvs = newCanvas([scene.awidth * 2, scene.aheight * 2], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.awidth, scene.aheight], this.state.ratio);
+    this.__backCvs = newCanvas([scene.awidth * 2, scene.aheight * 2], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     /* document.body.appendChild(this.__maskCvs); */
     /* document.body.appendChild(this.__backCvs); */

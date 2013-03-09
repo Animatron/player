@@ -54,6 +54,8 @@ describe("utils", function() {
             prepareThreeSpy.reset();
         };
 
+        // TODO: test 'after'
+
         varyAll([
             { description: "prepare one",   prepare: prepareOneSpy.andCallFake(function()
                             { prepareOneSpyCalled = true;   }) },
@@ -142,5 +144,9 @@ describe("utils", function() {
     // TODO: test fake()
 
     // test mocks ?
+
+    xdescribe("canvas mock", function() {
+
+    });
 
 });

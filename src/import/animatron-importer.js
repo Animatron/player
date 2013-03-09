@@ -107,7 +107,7 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
                     maskedToGo = layer_src.masked, // layers below to apply mask
                     ltl = _layers_targets.length;
                 if (maskedToGo > ltl) {
-                    throw new Error('No layers colleted to apply mask')
+                    throw new Error('No layers collected to apply mask')
                 };
                 while (maskedToGo) {
                     var masked = _layers_targets[ltl-maskedToGo];
