@@ -191,15 +191,15 @@ Convert.tweenData = function(type, tween) {
 Convert.path = function(pathStr, stroke, fill) {
     // ()
     return new Path(pathStr,
-                    Convert.stroke(stroke),
-                    Convert.fill(fill));
+                    Convert.fill(fill),
+                    Convert.stroke(stroke));
 }
 Convert.text = function(lines, font,
                         stroke, fill) {
     // (lines, font, stroke, fill)
     return new Text(lines, font,
-                    Convert.stroke(stroke),
-                    Convert.fill(fill));
+                    Convert.fill(fill),
+                    Convert.stroke(stroke));
 }
 Convert.easing = function(from) {
     // (name, path?)
