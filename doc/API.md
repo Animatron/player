@@ -96,7 +96,7 @@ There is always a fresh copy of player's latest version lying in S3 cloud. To us
     * If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
     * If you want to use collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) in the end. The same for other modules.
 
-See Local copy examples below on how to load scenes and play them, just replace there local paths with remote ones, if you want to use them.
+See examples from Local Copy-related chapter below on how to load scenes and play them, just replace there local paths with remote ones, if you want to use them.
 
 ##### 2.2. Use Player from Local Copy #####
 
