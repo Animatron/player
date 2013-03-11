@@ -36,7 +36,6 @@ pre {
 }
 
 textarea, .CodeMirror {
-	width: 99%;
 	height: auto;
 	margin-bottom: 10px;
 	border: 1px solid #999;
@@ -47,7 +46,7 @@ textarea, .CodeMirror {
 	overflow-x: auto; overflow-y: hidden;
 }
 
-.CodeMirror-gutter-text {
+.CodeMirror-linenumber {
 	color: #ddd;
 }
 
