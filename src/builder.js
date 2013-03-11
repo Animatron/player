@@ -73,7 +73,8 @@ Builder.__path = function(val, join) {
               : Path.parse(val, join))
 }
 
-Builder.DEFAULT_STROKE = Path.BASE_STROKE;
+//Builder.DEFAULT_STROKE = Path.BASE_STROKE;
+Builder.DEFAULT_STROKE = Path.EMPTY_STROKE;
 Builder.DEFAULT_FILL = Path.BASE_FILL;
 Builder.DEFAULT_CAP = Path.DEFAULT_CAP;
 Builder.DEFAULT_JOIN = Path.DEFAULT_JOIN;
@@ -138,12 +139,15 @@ Builder.prototype.rect = function(pt, rect) {
                [0, 0]], pt);
     return this;
 }
-// > builder.circle % (pt: Array[2,Integer],
-//                     radius: Float) => Builder
+// TODO:
+/* Builder.prototype.oval = function(pt, radius, ratio) {
+// > builder.oval % (pt: Array[2,Integer],
+//                       radius: Float) => Builder
+} */
 Builder.prototype.circle = function(pt, radius) {
     this.x.pos = pt;
     this.x.reg = [ 0, 0 ];
-    this.x.__bounds = [ 0, 0, radius*2, radius*2];
+    this.x.__bounds = [ -radius, -radius, radius, radius];
     this.paint(function(ctx) {
             var b = this.$.__b$;
             DU.qDraw(ctx, b.s, b.f,

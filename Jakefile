@@ -80,9 +80,9 @@ var Bundles = [
     { name: 'Hardcore',
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER,
-                                                          Files.Main.BUILDER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES )) }
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER ],
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES ),
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
 ];
 
 var Tests = {

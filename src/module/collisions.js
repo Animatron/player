@@ -15,7 +15,7 @@ C.MOD_COLLISIONS = 'collisions';
 if (anm.M[C.MOD_COLLISIONS]) throw new Error('COLLISIONS module already enabled');
 
 var opts = {
-    'pathDriven': false,
+    'pathDriven': true,
     'useSnaps': false,
     'vectorSpan': 1, // seconds
     'predictSpan': 1, // seconds
