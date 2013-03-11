@@ -123,10 +123,10 @@ Builder.prototype.path = function(path, pt) {
     path.normalize();
     this.x.reg = [0, 0];
     this.x.pos = pt || [0, 0];
-    if (!path.stroke) { path.stroke = this.s; }
-    else { this.s = path.stroke; }
     if (!path.fill) { path.fill = this.f; }
     else { this.f = path.fill; }
+    if (!path.stroke) { path.stroke = this.s; }
+    else { this.s = path.stroke; }
     return this;
 }
 // > builder.rect % (pt: Array[2,Integer],
