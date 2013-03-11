@@ -38,7 +38,7 @@ function sandbox() {
               { mode: 'javascript',
                 indentUnit: 4,
                 lineNumbers: true,
-                gutter: true,
+                //gutters: ['cm-margin-gutter'],
                 matchBrackets: true,
                 wrapLines: true });
     this.cm.setValue(defaultCode);
