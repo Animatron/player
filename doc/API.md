@@ -94,7 +94,7 @@ There is always a fresh copy of player's latest version lying in S3 cloud. To us
     * For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js) and [`player.js`](http://player.animatron.com/latest/player.js)
     * If you plan to program animation in an easy way, include [`builder.js`](http://player.animatron.com/latest/builder.js) next to them.
     * If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
-    * If you want to use collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) in the end. The same for other modules.
+    * If you want to use some hardcore module, i.e. collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) __before__ the builder file (builder will add some features to itself depending on enabled modules), if it is used, or just in any place after player file, if it is not. The same for other modules.
 
 See examples from Local Copy-related chapter below on how to load scenes and play them, just replace there local paths with remote ones, if you want to use them.
 

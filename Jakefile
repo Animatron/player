@@ -80,9 +80,9 @@ var Bundles = [
     { name: 'Hardcore',
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER,
-                                                          Files.Main.BUILDER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES )) }
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES ))
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
 ];
 
 var Tests = {
@@ -116,7 +116,7 @@ desc('Prepare distribution files');
 task('dist', ['build'], function() {});
 
 desc('Run tests'); // TODO: test minified version instead of plain
-task('test', function(params) {
+task('test', function(param) {
     console.log('Running tests');
     /* Usage:
      *    run all specs: > jake test
@@ -128,7 +128,7 @@ task('test', function(params) {
     var runTestsCmd = [ Binaries.PHANTOMJS,
                         _loc(Tests.RUN_SCRIPT),
                         _loc(Tests.PAGE_FOR_CLI),
-                        params || ''
+                        param || ''
                       ].join(' ');
 
     console.log(runTestsCmd);
@@ -183,6 +183,24 @@ task('_bundles', function() {
     });
 
     console.log(DONE_MARKER);
+});
+
+desc('Create a single bundle file and put it into'+Dirs.AS_IS+' folder');
+task('_bundle', function(param) {
+    if (!param) throw new Error('This task requires a concrete bundle name to be specified');
+    var bundle;
+    Bundles.forEach(function(b) {
+        if (b.name == param) { bundle = b; }
+    });
+    if (!bundle) throw new Error('Bundle with name ' + param + ' was not found');
+    var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
+    jake.mkdirP(_loc(targetDir));
+    console.log('Package bundle \'' + bundle.name + '\'');
+    var targetFile = targetDir + '/' + bundle.file + '.js';
+    bundle.includes.forEach(function(bundleFile) {
+            jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n', _loc(targetFile));
+            console.log('.. ' + bundleFile + ' > ' + targetFile);
+        });
 });
 
 desc('Copy source files to '+Dirs.AS_IS+' folder');
