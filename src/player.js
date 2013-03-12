@@ -3334,7 +3334,7 @@ Path.DEFAULT_CAP = C.PC_ROUND;
 Path.DEFAULT_JOIN = C.PC_ROUND;
 Path.EMPTY_FILL = { 'color': 'transparent' };
 Path.DEFAULT_FILL = Path.EMPTY_FILL;
-Path.BASE_FILL = { 'color': '#dfdfdf' };
+Path.BASE_FILL = { 'color': '#fff666' };
 Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;
 Path.BASE_STROKE = { 'width': 1.0,
@@ -3954,7 +3954,11 @@ Text.prototype.dimen = function() {
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
-    buff.innerText = this.lines;
+    if (typeof this.lines == 'string') {
+        buff.textContent = this.lines;
+    } else {
+        buff.textContent = this.lines.join('<br/>');
+    }
     return (this._dimen = [ buff.offsetWidth,
                             buff.offsetHeight ]);
 
