@@ -10,21 +10,19 @@ html {
 }
 
 body {
-	background-color: #fefefe;
 	font-family: sans-serif;
 	margin: 2%;
 	margin-bottom: 10px;
-	color: #999;
 	height: 88%;
 }
 
 h1 {
-	border-bottom: 3px solid #eee;
+	border-bottom-width: 3px;
+	border-bottom-style: solid;
 	margin-right: 2%;
 	margin-bottom: 0.7em;
 	padding-bottom: 3px;
 	font-size: 1.55em;
-	color: #666;
 }
 
 @media screen and (max-width: 1024px) {
@@ -42,14 +40,15 @@ pre {
 	margin: 0;
 	margin-top: 10px;
 	margin-bottom: 20px;
-	border: 1px solid #eee;
-	/* background-color: #ccc; */
+	border-width: 1px;
+	border-style: solid;
 }
 
 textarea, .CodeMirror {
 	height: auto;
 	margin-bottom: 10px;
-	border: 1px solid #eee;
+	border-width: 1px;
+	border-style: solid;
 	min-height: 75%;
 	border-left-width: 3px;
 }
@@ -59,7 +58,6 @@ textarea, .CodeMirror {
 }
 
 .CodeMirror-linenumber {
-	color: #dedede;
 	font-size: .7em;
 	margin: 1px;
 	padding-top: 2px;
@@ -69,7 +67,6 @@ textarea, .CodeMirror {
 	padding-right: 5px;
 	margin-right: 10px;
 	border: none;
-	background: #fcfcfc;
 	left: -20px;
 }
 
@@ -145,22 +142,27 @@ textarea, .CodeMirror {
 
 #left-pane pre.locked {
 	/*font-weight: bold;*/
-	color: #88b;
-	background-color: #fafaff;
 	margin-bottom: 10px;
 	height: 2.5em;
 }
 
 #right-pane pre.locked {
-	color: #8b8;
-	background-color: #f6fff6;
 	margin-bottom: 10px;
 	line-height: .8em;
 	height: 2.5em;
 }
 
+select#examples-list {
+	margin: 0;
+	margin-top: 15px;
+	border-width: 1px;
+	border-style: solid;
+	font-family: monospace;
+	font-size: 12px;
+	width: 400px;
+}
+
 #copyright {
-	color: #666;
 	font-size: 0.8em;
 	position: fixed;
 	bottom: 5px;
@@ -170,20 +172,10 @@ textarea, .CodeMirror {
 #errors {
 	font-family: monospace;
 	padding: 5px;
-	border: 2px solid #600;
-	color: #600;
-	background-color: #fee;
+	border-width: 2px;
+	border-style: solid;
+	margin: 12px 0 0 0;
 	max-width: 386px; /* 400 - 5*2 - 2*2 */
-}
-
-select#examples-list {
-	margin: 0;
-	margin-top: 15px;
-	border: 1px solid #eee;
-	font-family: monospace;
-	font-size: 12px;
-	width: 400px;
-	color: #999;
 }
 
 #refresh-calc, #debug-options, #switch-mode-l, #switch-mode {
@@ -253,11 +245,133 @@ select#examples-list {
 	margin-right: 10px;
 }
 
+#csheet-link {
+	text-decoration: none;
+}
+
+/* colors, when CodeEditor is not focused */
+
+body {
+	background-color: #fefefe;
+	color: #333;
+}
+
+h1 {
+	border-color: #ccc;
+	color: #333;
+}
+
+#player-wrapper, textarea, .CodeMirror {
+	border-color: #ccc;
+	color: #8a8a8a;
+}
+
+.CodeMirror-linenumber {
+	color: #ccc;
+}
+
+.CodeMirror-gutters {
+	background: #fcfcfc;
+}
+
+#left-pane pre.locked {
+	color: #336;
+	background-color: #ddf;
+}
+
+#right-pane pre.locked {
+    color: #363;
+	background-color: #dfd;
+}
+
+select#examples-list {
+	border-color: #ccc;
+	color: #333;
+}
+
+#copyright {
+	color: #666;
+}
+
+#errors {
+	border-color: #600;
+	color: #600;
+	background-color: #fee;
+}
+
+#csheet-link {
+	color: #600;
+}
+
+#api-link {
+	color: #006;
+}
+
 a#csheet-link:hover, a#api-link:hover {
     background-color: #eee;
 }
 
-#csheet-link {
-	text-decoration: none;
+/* colors, when CodeEditor is focused */
+
+body.blur {
+	background-color: #fefefe;
+	color: #999;
+}
+
+body.blur h1 {
+	border-color: #eee;
+	color: #666;
+}
+
+body.blur #player-wrapper,
+body.blur textarea,
+body.blur .CodeMirror {
+	border-color: #eee;
+	color: #9a9a9a;
+}
+
+body.blur .CodeMirror-linenumber {
+	color: #dedede;
+}
+
+body.blur .CodeMirror-gutters {
+	background: #fcfcfc;
+}
+
+body.blur #left-pane pre.locked {
+	color: #88b;
+	background-color: #fafaff;
+}
+
+body.blur #right-pane pre.locked {
+    color: #8b8;
+	background-color: #f6fff6;
+}
+
+body.blur select#examples-list {
+	border-color: #eee;
+	color: #999;
+}
+
+body.blur #copyright {
+	color: #999;
+}
+
+body.blur #errors {
+	border-color: #600;
 	color: #600;
+	background-color: #fee;
+}
+
+body.blur #csheet-link {
+	color: #f66;
+}
+
+body.blur #api-link {
+	color: #99f;
+}
+
+body.blur a#csheet-link:hover,
+body.blur a#api-link:hover {
+    background-color: #eee;
 }

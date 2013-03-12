@@ -3322,18 +3322,19 @@ C.PC_SQUARE = 'square';
 C.PC_BEVEL = 'bevel';
 
 // > Path % (str: String)
-function Path(str, stroke, fill) {
+function Path(str, fill, stroke) {
     this.str = str;
-    this.stroke = stroke;
     this.fill = fill;
+    this.stroke = stroke;
     this.segs = [];
     this.parse(str);
 }
 
 Path.DEFAULT_CAP = C.PC_ROUND;
 Path.DEFAULT_JOIN = C.PC_ROUND;
-Path.DEFAULT_FILL = { 'color': 'transparent' };
-Path.BASE_FILL = { 'color': '#dfdfdf' };
+Path.EMPTY_FILL = { 'color': 'transparent' };
+Path.DEFAULT_FILL = Path.EMPTY_FILL;
+Path.BASE_FILL = { 'color': '#fff666' };
 Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
 Path.DEFAULT_STROKE = Path.EMPTY_STROKE;
 Path.BASE_STROKE = { 'width': 1.0,
@@ -3911,42 +3912,39 @@ CSeg.prototype._calc_params = function(start) {
 Text.DEFAULT_CAP = C.PC_ROUND;
 Text.DEFAULT_JOIN = C.PC_ROUND;
 Text.DEFAULT_FFACE = 'sans-serif';
-Text.DEFAULT_FSIZE = 12;
+Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.BASELINE_RULE = 'bottom';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 function Text(lines, font,
-              stroke, fill) {
+              fill, stroke) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
-    this.stroke = stroke || Text.DEFAULT_STROKE;
     this.fill = fill || Text.DEFAULT_FILL;
+    this.stroke = stroke || Text.DEFAULT_STROKE;
     this._bnds = null;
 }
 Text.prototype.apply = function(ctx, point) {
     ctx.save();
     var point = point || [0, 0],
         dimen = this.dimen(),
-        accent = this.accent(dimen[1]),
-        apt = [ point[0] - dimen[0]/2,
-                point[1] + accent - dimen[1]/2];
+        accent = this.accent(dimen[1]);
     ctx.font = this.font;
     ctx.textBaseline = Text.BASELINE_RULE;
+    ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
     if (this.fill) {
         DU.applyFill(ctx, this.fill);
-        var x = apt[0], y = apt[1];
         this.visitLines(function(line) {
-            ctx.fillText(line, x, y);
-            y += 1.2 * accent;
+            ctx.fillText(line, 0, accent);
+            ctx.translate(0, 1.2 * accent);
         });
     }
     if (this.stroke) {
         DU.applyStroke(ctx, this.stroke);
-        var x = apt[0], y = apt[1];
         this.visitLines(function(line) {
-            ctx.strokeText(line, x, y);
-            y += 1.2 * accent;
+            ctx.strokeText(line, 0, accent);
+            ctx.translate(0, 1.2 * accent);
         });
     }
     ctx.restore();
@@ -3956,7 +3954,11 @@ Text.prototype.dimen = function() {
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
-    buff.innerText = this.lines;
+    if (typeof this.lines == 'string') {
+        buff.textContent = this.lines;
+    } else {
+        buff.textContent = this.lines.join('<br/>');
+    }
     return (this._dimen = [ buff.offsetWidth,
                             buff.offsetHeight ]);
 
