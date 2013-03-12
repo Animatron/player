@@ -40,10 +40,17 @@ function sandbox() {
                 lineNumbers: true,
                 //gutters: ['cm-margin-gutter'],
                 matchBrackets: true,
-                wrapLines: true });
+                wrapLines: true,
+                autofocus: true });
     this.cm.setValue(defaultCode);
     //this.cm.setValue('return <your code here>;');
     this.cm.setSize(null, '66%');
+    this.cm.on('focus', function() {
+      document.body.className = 'blur';
+    });
+    this.cm.on('blur', function() {
+      document.body.className = '';
+    });
 
     var s = this;
     var curInterval = null;
