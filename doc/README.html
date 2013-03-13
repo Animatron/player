@@ -1,0 +1,80 @@
+<h3>JS Player for Animatron project (not yet released, @VERSION)</h3>
+<p><a href="https://travis-ci.org/Animatron/player"><img alt="Build Status" src="https://secure.travis-ci.org/Animatron/player.png?branch=master" /></a></p>
+<p>Licensed under MIT License, see <code>LICENSE</code> file.</p>
+<p>See <a href="https://github.com/Animatron/player/blob/master/doc/API.md#files">API.md</a> for description on current API state (be aware, it may appear not updated to the <em>real</em> current state).</p>
+<p><strong>NB:</strong> Development is in process. See <a href="https://www.pivotaltracker.com/projects/561405">JS Player Pivotal Tracker page</a> to see what happens in project when you read this.</p>
+<h4>See in action</h4>
+<p>Navigate to <a href="http://animatron.com/player">corresponding Animatron site section</a>, there are some useful links:</p>
+<ul>
+<li><a href="http://animatron.com/player/sandbox/sandbox.html">Sandbox</a> to try it for yourself.</li>
+<li><a href="http://animatron.com/player/examples/demo.html">Demos</a> to see it in action with some demos (they're not so good-looking for the moment).</li>
+<li><a href="http://animatron.com/player/tests/index.html">Tests</a> to see what features are working for now.</li>
+</ul>
+<p>Run one of the <code>tests/index.html</code> and run any of the tests to see if something is broken in your version of player.</p>
+<h4>Accessible from Cloud</h4>
+<p>The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what you want to take:</p>
+<ul>
+<li>Standard Bundle (player only; a lightweight bundle) is located at <code>http://player.animatron.com/latest/bundle/standard.js</code></li>
+<li>Animatron Bundle (player + animatron improrter; a bundle for the Animatron tool and embedding Animatron preview) is located at <code>http://player.animatron.com/latest/bundle/animatron.js</code></li>
+<li>Develop Bundle (player + builder; a bundle for game or script-based animation developers) is located at <code>http://player.animatron.com/latest/bundle/develop.js</code></li>
+<li>Hardcore Develop Bundle (player + builder + player additional modules, like collisions; a bundle for those game developers who uses complex things like collisions) is located at <code>http://player.animatron.com/latest/bundle/hardcore.js</code></li>
+</ul>
+<p>Include one of them as a script to your page, and you're done!</p>
+<p>Also, all files are accessible separately, if you want:</p>
+<ul>
+<li>For most of the cases you need just <a href="http://player.animatron.com/latest/vendor/matrix.js"><code>vendor/matrix.js</code></a> and <a href="http://player.animatron.com/latest/player.js"><code>player.js</code></a></li>
+<li>If you plan to program animation in an easy way, include <a href="http://player.animatron.com/latest/builder.js"><code>builder.js</code></a> next to them.</li>
+<li>If you want to import animations from Animatron tool, include <a href="http://player.animatron.com/latest/import/animatron-importer.js"><code>import/animatron-importer.js</code></a> then. The same for other importers.</li>
+<li>If you want to use some hardcore module, i.e. collisions module, include <a href="http://player.animatron.com/latest/module/collisions.js"><code>module/collisions.js</code></a> <strong>before</strong> the builder file (builder will add some features to itself depending on enabled modules), if it is used, or just in any place after player file, if it is not. The same for other modules.</li>
+</ul>
+<p>URLs scheme for all of them is:</p>
+<pre><code>http://player.animatron.com(/&lt;version&gt;|/latest)[/full][(/bundle|/vendor|/import|/module)]/&lt;file&gt;.js
+</code></pre>
+<ul>
+<li><code>(/&lt;version&gt;|/latest)</code> — required; a version of the player you want to get files from (e.g. <code>v0.9</code>), or the latest version</li>
+<li><code>[/full]</code> — optional; specify if you want to gen not-minimized version</li>
+<li><code>[(/bundle|/vendor|/import|/module)]</code> — optional; bundles are located in <code>/bundle</code> folder, <code>/vendor</code> folder is for external files required for player, <code>/import</code> is for importers, <code>/module</code> is for modules; <code>/bundle</code> files are supposed to be added before any other files, if you need them separately and they are not included in the bundle themselves. <code>/vendor</code> files should appear before player files (<code>player.js</code>, <code>builder.js</code>, ...); <code>/import</code> and <code>/module</code> files should appear after player files (<code>player.js</code>, <code>builder.js</code>, ...).</li>
+</ul>
+<h4>Locally</h4>
+<p>Clone <code>git@github.com:Animatron/player.git</code> to get your own copy.</p>
+<p>To use JS player in current state, download or copy from the cloned repository:</p>
+<ul>
+<li><code>src/vendor/matrix.js</code></li>
+<li><code>src/anm.player.js</code></li>
+<li>[Optional] <code>src/anm.builder.js</code> (allows to build animations in a functional way)</li>
+<li>[Optional] <code>src/module/anm.collisions.js</code> (if you plan to test collisions / point-contains / intersections with your shapes)</li>
+<li>[Optional] <code>src/import/animatron_import.js</code> (allows to load animations from Animatron tool)</li>
+<li>[Optional] <code>json2.js</code> (JSON parser, if target broswer not supports it (currently required only for Animatron Import))</li>
+</ul>
+<p>And add them in the same order to your page header. Don't forget the <a href="https://github.com/Animatron/player/blob/master/LICENSE#files"><code>LICENSE</code></a> :).</p>
+<p>Run <code>sandbox/sandbox.html</code> to try it for yourself.</p>
+<p>Run <code>examples/demo.html</code> to see it in action with some demos (they're not so good-looking for the moment).</p>
+<p>Run one of the <code>tests/index.html</code> and run any of the tests to see if something is broken in your version of player.</p>
+<p>If you'd want to run them from terminal instead of browser, you'll need to have PhantomJS installation and then start <code>run-tests.sh[ spec]</code></p>
+<h4>Local Building</h4>
+<p>To build locally, you'll need to have both <a href="https://github.com/mde/jake"><code>jake</code></a> and <a href="https://github.com/mishoo/UglifyJS2"><code>uglify-js</code> &gt;= 2</a> installed.</p>
+<p>Then, you'll just need to run:</p>
+<pre><code>jake
+# or, the same
+jake clean dist
+</code></pre>
+<p>And you have all the variants of the files in <code>dist</code> folder.</p>
+<p>If you want to generate <a href="http://jashkenas.github.com/docco/">doccoo</a> (install it first) docs, run:</p>
+<pre><code>jake docs
+</code></pre>
+<p>If you want check if tests are failing in CLI, use (you'll need <a href="http://phantomjs.org/"><code>phantomjs</code></a> installed for that):</p>
+<pre><code>jake test
+</code></pre>
+<p>Or, to check just a specific part of tests (see <code>./tests/spec/spec-list.js</code> for a list of all specs), use:</p>
+<pre><code>jake test[01.player/*]
+jake test[02.animations/01.guids]
+</code></pre>
+<h5>Bundles</h5>
+<p>When you build player with jake, it also creates several bundles, they are:</p>
+<ol>
+<li><strong>Standard</strong>: just player merged with required vendor files — for quick uses of the player (when developer wants very lightweight version)</li>
+<li><strong>Animatron</strong>: vendor files + player + importer from Animatron — exactly this one will be used in embedded player and in the Animatron tool</li>
+<li><strong>Develop</strong>: vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM — it will work ok for developing some general (in terms of code complexity) games.</li>
+<li><strong>Hardcore</strong>: vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games</li>
+</ol>
+<p>(c) 2011-2013 by Animatron.</p>

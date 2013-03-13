@@ -72,6 +72,11 @@ nav ul li {
 	list-style-type: circle;
 }
 
+nav ul .note {
+	font-size: .6em;
+	color: #999;
+}
+
 #copyright {
 	color: #666;
 	font-size: .8em;
