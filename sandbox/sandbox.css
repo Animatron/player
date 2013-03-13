@@ -1,22 +1,34 @@
 /*
- * Copyright (c) 2011-2012 by Animatron.
+ * Copyright (c) 2011-2013 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
+html {
+	height: 100%;
+}
+
 body {
-	background-color: #fefefe;
 	font-family: sans-serif;
-	margin-right: 5%;
-	margin-top: 4em;
-	margin-left: 5%;
+	margin: 2%;
+	margin-bottom: 10px;
+	height: 88%;
 }
 
 h1 {
-	border-bottom: 1px solid #ccc;
-	margin-bottom: 1.5em;
+	border-bottom-width: 3px;
+	border-bottom-style: solid;
+	margin-right: 2%;
+	margin-bottom: 0.7em;
 	padding-bottom: 3px;
+	font-size: 1.55em;
+}
+
+@media screen and (max-width: 1024px) {
+	h1 {
+		font-size: 1.3em;
+	}
 }
 
 pre {
@@ -28,15 +40,38 @@ pre {
 	margin: 0;
 	margin-top: 10px;
 	margin-bottom: 20px;
-	border: 1px solid #999;
-	/* background-color: #ccc; */
+	border-width: 1px;
+	border-style: solid;
 }
 
 textarea, .CodeMirror {
-	width: 99%;
+	height: auto;
 	margin-bottom: 10px;
-	min-height: 240px;
-	border: 1px solid #999;
+	border-width: 1px;
+	border-style: solid;
+	min-height: 75%;
+	border-left-width: 3px;
+}
+
+.CodeMirror-scroll {
+	overflow-x: auto; overflow-y: hidden;
+}
+
+.CodeMirror-linenumber {
+	font-size: .7em;
+	margin: 1px;
+	padding-top: 2px;
+}
+
+.CodeMirror-gutters {
+	padding-right: 5px;
+	margin-right: 10px;
+	border: none;
+	left: -20px;
+}
+
+.CodeMirror-lines {
+	padding: 5px;
 }
 
 #my-canvas {
@@ -46,39 +81,88 @@ textarea, .CodeMirror {
 
 #left-pane {
 	float: left;
-	min-width: 42%;
 	margin-bottom: 5em;
-}
-
-@media screen and (max-width: 1024px) {
-	#left-pane {
-		max-width: 42%;
-	}
+	max-width: 410px;
 }
 
 #right-pane {
 	float: left;
 	margin-left: 30px;
-	border-left: 1px solid #ccc;
-	padding-left: 30px;
-	margin-bottom: 5em;
+	margin-bottom: 10px;
+	height: 98%;
+}
+
+@media screen and (max-width: 870px) {
+	#right-pane {
+		display: none;
+	}
+}
+
+@media screen and (min-width: 870px) and (max-width: 1080px) {
+	#left-pane {
+		max-width: 200px;
+	}
+
+    select#examples-list {
+    	max-width: 200px;
+    }
+
+	#right-pane {
+		min-width: 68%;
+	}
+}
+
+@media screen and (min-width: 1080px) {
+	#right-pane {
+		min-width: 54%;
+	}
+}
+
+@media screen and (min-width: 1150px) {
+	#right-pane {
+		min-width: 56%;
+	}
+}
+
+@media screen and (min-width: 1235px) {
+	#right-pane {
+		min-width: 61%;
+	}
+}
+
+@media screen and (min-width: 1350px) {
+	#right-pane {
+		min-width: 64%;
+	}
+}
+
+#right-pane p {
+	margin-bottom: 0;
 }
 
 #left-pane pre.locked {
-	color: #030;
-	background-color: #ecffec;
+	/*font-weight: bold;*/
 	margin-bottom: 10px;
+	height: 2.5em;
 }
 
 #right-pane pre.locked {
-	font-weight: bold;
-	color: #006;
-	background-color: #ececff;
-	margin-bottom: 5px;
+	margin-bottom: 10px;
+	line-height: .8em;
+	height: 2.5em;
+}
+
+select#examples-list {
+	margin: 0;
+	margin-top: 15px;
+	border-width: 1px;
+	border-style: solid;
+	font-family: monospace;
+	font-size: 12px;
+	width: 400px;
 }
 
 #copyright {
-	color: #666;
 	font-size: 0.8em;
 	position: fixed;
 	bottom: 5px;
@@ -88,10 +172,24 @@ textarea, .CodeMirror {
 #errors {
 	font-family: monospace;
 	padding: 5px;
-	border: 2px solid #600;
-	color: #600;
-	background-color: #fee;
+	border-width: 2px;
+	border-style: solid;
+	margin: 12px 0 0 0;
 	max-width: 386px; /* 400 - 5*2 - 2*2 */
+}
+
+#refresh-calc, #debug-options, #switch-mode-l, #switch-mode {
+	font-size: .8em;
+}
+
+#debug-options {
+	margin-bottom: 4px;
+}
+
+#switch-mode-l {
+	float: left;
+	margin-top: 2px;
+	margin-bottom: 2px;
 }
 
 #csheet {
@@ -100,7 +198,7 @@ textarea, .CodeMirror {
     top: 10%;
     position: fixed;
     z-index: 100;
-    width: 630px;
+    width: 75%;
     font-size: .9em;
     padding: 15px;
     border: 2px solid #666;
@@ -147,34 +245,133 @@ textarea, .CodeMirror {
 	margin-right: 10px;
 }
 
+#csheet-link {
+	text-decoration: none;
+}
+
+/* colors, when CodeEditor is not focused */
+
+body {
+	background-color: #fefefe;
+	color: #333;
+}
+
+h1 {
+	border-color: #ccc;
+	color: #333;
+}
+
+#player-wrapper, textarea, .CodeMirror {
+	border-color: #ccc;
+	color: #8a8a8a;
+}
+
+.CodeMirror-linenumber {
+	color: #ccc;
+}
+
+.CodeMirror-gutters {
+	background: #fcfcfc;
+}
+
+#left-pane pre.locked {
+	color: #336;
+	background-color: #ddf;
+}
+
+#right-pane pre.locked {
+    color: #363;
+	background-color: #dfd;
+}
+
+select#examples-list {
+	border-color: #ccc;
+	color: #333;
+}
+
+#copyright {
+	color: #666;
+}
+
+#errors {
+	border-color: #600;
+	color: #600;
+	background-color: #fee;
+}
+
+#csheet-link {
+	color: #600;
+}
+
+#api-link {
+	color: #006;
+}
+
 a#csheet-link:hover, a#api-link:hover {
     background-color: #eee;
 }
 
-#csheet-link {
-	text-decoration: none;
+/* colors, when CodeEditor is focused */
+
+body.blur {
+	background-color: #fefefe;
+	color: #999;
+}
+
+body.blur h1 {
+	border-color: #eee;
+	color: #666;
+}
+
+body.blur #player-wrapper,
+body.blur textarea,
+body.blur .CodeMirror {
+	border-color: #eee;
+	color: #9a9a9a;
+}
+
+body.blur .CodeMirror-linenumber {
+	color: #dedede;
+}
+
+body.blur .CodeMirror-gutters {
+	background: #fcfcfc;
+}
+
+body.blur #left-pane pre.locked {
+	color: #88b;
+	background-color: #fafaff;
+}
+
+body.blur #right-pane pre.locked {
+    color: #8b8;
+	background-color: #f6fff6;
+}
+
+body.blur select#examples-list {
+	border-color: #eee;
+	color: #999;
+}
+
+body.blur #copyright {
+	color: #999;
+}
+
+body.blur #errors {
+	border-color: #600;
 	color: #600;
+	background-color: #fee;
 }
 
-select#examples-list {
-	margin: 0;
-	margin-top: 15px;
-	border: 1px solid #600;
-	font-family: monospace;
-	font-size: 12px;
-	width: 400px;
+body.blur #csheet-link {
+	color: #f66;
 }
 
-#refresh-calc, #debug-options, #switch-mode-l, #switch-mode {
-	font-size: .8em;
+body.blur #api-link {
+	color: #99f;
 }
 
-#debug-options {
-	margin-bottom: 4px;
-}
-
-#switch-mode-l {
-	float: left;
-	margin-top: 2px;
-	margin-bottom: 2px;
+body.blur a#csheet-link:hover,
+body.blur a#api-link:hover {
+    background-color: #eee;
 }
