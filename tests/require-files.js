@@ -14,12 +14,12 @@ var _files = {
     'jasmine.phantom': './vendor/jasmine.phantom_reporter.js',
     'jasmine.tap': './vendor/jasmine.tap_reporter.js',
 
-    'vnd.matrix': '../src/vendor/matrix.js',
+    'vnd.matrix': 'http://player.animatron.com/latest/vendor/matrix.js',
 
-    'anm.player': '../src/player.js',
-    'anm.builder': '../src/builder.js',
-    'anm.collisions': '../src/module/collisions.js',
-    'anm.import': '../src/import/animatron-importer.js',
+    'anm.player': 'http://player.animatron.com/latest/player.js',
+    'anm.builder': 'http://player.animatron.com/latest/builder.js',
+    'anm.collisions': 'http://player.animatron.com/latest/module/collisions.js',
+    'anm.import': 'http://player.animatron.com/latest/import/animatron-importer.js',
 
     'tst.matchers': './anm.matchers.js',
     'tst.mocks': './anm.mocks.js',
