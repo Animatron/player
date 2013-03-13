@@ -1,50 +1,40 @@
-<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN"
-  "http://www.w3.org/TR/html4/loose.dtd">
+<!--
+ ~ Copyright (c) 2011-2013 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
 <html>
 <head>
-  <title>Jasmine Spec Runner</title>
+  <title>Animatron Player: Builder Tests</title>
 
   <link rel="shortcut icon" type="image/png" href="vendor/jasmine-1.2.0/jasmine_favicon.png">
   <link rel="stylesheet" type="text/css" href="vendor/jasmine-1.2.0/jasmine.css">
-  <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine.js"></script>
-  <script type="text/javascript" src="vendor/jasmine-1.2.0/jasmine-html.js"></script>
 
-  <!-- include source files here... -->
-  <script type="text/javascript" src="../vendor/matrix.js"></script>
-  <script type="text/javascript" src="../anm.player.js"></script>
-  <script type="text/javascript" src="../anm.builder.js"></script>
-  <!-- include json2 if it is not accessible in browser -->
+  <script type="text/javascript" src="./vendor/require-2.1.4.min.js"></script>
 
-  <!-- include spec files here... -->
-  <script type="text/javascript" src="./spec/04.builder/stub.spec.js"></script>
+  <script type="text/javascript" src="./running-helpers.js"></script>
+  <script type="text/javascript" src="./require-files.js"></script>
+
+  <script type="text/javascript" src="./spec/spec-list.js"></script>
 
   <script type="text/javascript">
-    (function() {
-      var jasmineEnv = jasmine.getEnv();
-      jasmineEnv.updateInterval = 1000;
-
-      var htmlReporter = new jasmine.HtmlReporter();
-
-      jasmineEnv.addReporter(htmlReporter);
-
-      jasmineEnv.specFilter = function(spec) {
-        return htmlReporter.specFilter(spec);
-      };
-
-      var currentWindowOnload = window.onload;
-
-      window.onload = function() {
-        if (currentWindowOnload) {
-          currentWindowOnload();
+      queue(require)(
+              [ _files['jasmine'],
+                _files['jasmine.html'],
+                _files['vnd.matrix'],
+                _files['anm.player'],
+                _files['anm.builder'],
+                _files['tst.matchers'],
+                _files['tst.mocks'],
+                _files['tst.utils']
+        ], function() {
+          loadJasmine(window, [ new jasmine.HtmlReporter() ],
+                              [ '04.builder/*' ]);
         }
-        execJasmine();
-      };
-
-      function execJasmine() {
-        jasmineEnv.execute();
-      }
-
-    })();
+      );
   </script>
 
 </head>

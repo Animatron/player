@@ -1,15 +1,28 @@
+/*
+ * Copyright (c) 2011-2013 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 describe("player, when speaking about initialization,", function() {
 
     var player;
 
+    var FPS = 40, _fg;
+
     beforeEach(function() {
         this.addMatchers(_matchers);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
-        _fakeCallsForCanvasRelatedStuff();
+        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _fake(_Fake.CVS_POS);
+
+        _fg = _FrameGen.spawn().run(FPS);
 
         player = new anm.Player();
     });
+
+    afterEach(function() { _fg.stop().destroy(); });
 
     it("should be stopped at start", function() {
         var stopSpy = spyOn(player, 'stop');
@@ -30,7 +43,7 @@ describe("player, when speaking about initialization,", function() {
     });
 
     it("should show splash screen when initialized", function() {
-        var splashSpy = spyOn(player, 'drawSplash');
+        var splashSpy = spyOn(player, '_drawSplash');
         player.init('test-id');
         expect(splashSpy).toHaveBeenCalledOnce();
     });
@@ -52,7 +65,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.play();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -62,7 +75,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.pause();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -72,7 +85,7 @@ describe("player, when speaking about initialization,", function() {
         try {
             player.stop();
         } catch(e) {
-            expect(e.message).toBe(anm.Player.NO_SCENE_ERR);
+            expect(e.message).toBe(anm.Errors.P.NO_SCENE);
         }
     });
 
@@ -96,13 +109,40 @@ describe("player, when speaking about initialization,", function() {
         expect(player.state.zoom).toBe(1);
     });
 
+    it("player should throw errors by default", function() {
+        var test = this;
+
+        player.init('test-id');
+        var scene = new anm.Scene();
+        var elm = new anm.Element();
+        elm.addModifier(function(t) {
+            throw new Error('Boo');
+        });
+        scene.add(elm);
+
+        try {
+            doAsync(player, scene, {
+                do: 'play', until: anm.C.STOPPED, timeout: 1,
+                then: function() { test.fail('Should throw an error'); },
+            });
+        } catch(e) {
+            expect(e.message).toEqual('Boo');
+        }
+    });
+
+    xdescribe("configuration", function() {
+
+    });
+
     // test if configuration (options) correctly applied (including modules?)
+    // test configuration through data-attributes, including loop-mode
+    // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
+    // test that drawAt (scene preview) is only called for VIDEO mode
     // test createPlayer itself
     // test width and height behaviour
     // ensure checkMode is called once
     // test several player are correclty acting at one page
     // test canvas is always prepared in _init_ method, and calling new Player() is just constructor
     // test the order of applying options / preparing canvas / scene / showing controls / info blocks to look logical
-    // test configuration through data-attributes
 
 });

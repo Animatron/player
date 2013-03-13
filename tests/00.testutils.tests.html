@@ -8,10 +8,10 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Animatron Player: Import from Animatron Tests</title>
+  <title>Animatron Player: Test Utilities Tests</title>
 
-  <link rel="shortcut icon" type="image/png" href="vendor/jasmine-1.2.0/jasmine_favicon.png">
-  <link rel="stylesheet" type="text/css" href="vendor/jasmine-1.2.0/jasmine.css">
+  <link rel="shortcut icon" type="image/png" href="./vendor/jasmine-1.2.0/jasmine_favicon.png">
+  <link rel="stylesheet" type="text/css" href="./vendor/jasmine-1.2.0/jasmine.css">
 
   <script type="text/javascript" src="./vendor/require-2.1.4.min.js"></script>
 
@@ -26,13 +26,12 @@
                 _files['jasmine.html'],
                 _files['vnd.matrix'],
                 _files['anm.player'],
-                _files['anm.import'],
              /* _files['tst.matchers'],
                 _files['tst.mocks'], */
                 _files['tst.utils']
         ], function() {
           loadJasmine(window, [ new jasmine.HtmlReporter() ],
-                              [ '03.anm-import/*' ]);
+                              [ '00.testutils' ]);
         }
       );
   </script>

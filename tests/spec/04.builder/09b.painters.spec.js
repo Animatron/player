@@ -5,10 +5,5 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-xdescribe("stub spec", function() {
-
-    xit("should be stubby", function() {
-        expect(true).toBeTruthy();
-    });
-
-});
+// TODO: ensure save is always have a restore
+// TODO: check images in different states
