@@ -3,6 +3,8 @@ idea-files.zip
 dist
 doc/player.html
 doc/builder.html
+doc/API.html
+doc/README.html
 doc/api.pdf
 doc/docco.css
 VERSIONS
