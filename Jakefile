@@ -35,7 +35,10 @@ var Binaries = {
     UGLIFYJS: 'uglifyjs',
     JASMINE_NODE: 'jasmine-node',
     DOCCO: 'docco',
-    PHANTOMJS: 'phantomjs'
+    PHANTOMJS: 'phantomjs',
+    CAT: 'cat',
+    MV: 'mv',
+    MARKDOWN: 'python -m markdown'
 };
 
 var Dirs = {
@@ -59,7 +62,9 @@ var Files = {
             ANM_IMPORT: 'animatron-importer.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: [ 'animatron-importer.js' ],
-           MODULES: [ 'collisions.js' ] }
+           MODULES: [ 'collisions.js' ] },
+    Doc: { README: 'README.md',
+           API: 'API.md' }
 }
 
 var Bundles = [
@@ -91,7 +96,19 @@ var Tests = {
 };
 
 var Docs = {
-    INCLUDE: [ 'src/*.js' ]
+    FromSRC: { INCLUDE: [ Dirs.SRC + '/*.js' ] },
+    FromMD: {
+       Files: {
+         README_SRC: Files.Doc.README,
+         README_DST: Dirs.DOCS + '/README.html',
+         API_SRC: Dirs.DOCS + '/' + Files.Doc.API,
+         API_DST: Dirs.DOCS + '/API.html',
+       },
+       Parts: {
+         _head: Dirs.DOCS + '/_head.html',
+         _foot: Dirs.DOCS + '/_foot.html'
+       }
+    }
 };
 
 var DONE_MARKER = '.\n';
@@ -141,13 +158,57 @@ task('test', function(param) {
 desc('Generate Docco docs');
 task('docs', function() {
     console.log('Generating docs');
+    console.log('For sources');
     jake.exec([ Binaries.DOCCO,
                 '-o',
                 _loc(Dirs.DOCS)
-              ].concat(Docs.INCLUDE)
+              ].concat(Docs.FromSRC.INCLUDE)
                .join(' '),
-              function() { console.log('Generated successfully');
+              function() { console.log('Source docs were Generated successfully');
                            console.log(DONE_MARKER); });
+    console.log('For README/API');
+    jake.exec([ [ Binaries.MARKDOWN,
+                  _loc(Docs.FromMD.Files.API_SRC),
+                  '>', _loc(Docs.FromMD.Files.API_DST),
+                ].join(' '),
+                [ Binaries.CAT,
+                  _loc(Docs.FromMD.Parts._head),
+                  _loc(Docs.FromMD.Files.API_DST),
+                  _loc(Docs.FromMD.Parts._foot),
+                  '>', _loc(Docs.FromMD.Files.API_DST + '.tmp'),
+                ].join(' '),
+                [ Binaries.MV,
+                  _loc(Docs.FromMD.Files.API_DST + '.tmp'),
+                  _loc(Docs.FromMD.Files.API_DST)
+                ].join(' ')
+              ],
+              function() { console.log('API.html was Generated successfully');
+                           console.log(DONE_MARKER); });
+    jake.exec([ [ Binaries.MARKDOWN,
+                  _loc(Docs.FromMD.Files.README_SRC),
+                  '>', _loc(Docs.FromMD.Files.README_DST),
+                ].join(' '),
+                [ Binaries.CAT,
+                  _loc(Docs.FromMD.Parts._head),
+                  _loc(Docs.FromMD.Files.README_DST),
+                  _loc(Docs.FromMD.Parts._foot),
+                  '>', _loc(Docs.FromMD.Files.README_DST + '.tmp'),
+                ].join(' '),
+                [ Binaries.MV,
+                  _loc(Docs.FromMD.Files.README_DST + '.tmp'),
+                  _loc(Docs.FromMD.Files.README_DST)
+                ].join(' ')
+              ],
+              function() { console.log('README.html was Generated successfully');
+                           console.log(DONE_MARKER); });
+
+//sudo pip install markdown
+//python -m markdown doc/API.md > doc/API.html
+//cat doc/_head.html doc/API.html doc/_foot.html > doc/API.tmp.html
+//mv doc/API.tmp.html doc/API.html
+//python -m markdown doc/README.md > doc/README.html
+//cat doc/_head.html doc/README.html doc/_foot.html > doc/README.tmp.html
+//mv doc/README.tmp.html doc/README.html
 });
 
 /*desc('Run JSHint');
@@ -268,6 +329,11 @@ task('_versionize', function() {
     Bundles.forEach(function(bundle) {
         versionize(_loc(Dirs.AS_IS + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
+
+    console.log('..Docs');
+
+    versionize(_loc(Files.Doc.README));
+    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
 
     console.log(DONE_MARKER);
 });

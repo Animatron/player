@@ -1,4 +1,4 @@
-### JS Player for Animatron project (not yet released, @VERSION)
+### JS Player for Animatron project (not yet released, v0.9)
 
 [![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player)
 

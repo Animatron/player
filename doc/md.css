@@ -1,0 +1,15 @@
+body {
+    font-family: sans-serif;
+    margin: 5%;
+    color: #262626;
+}
+
+a {
+    color: #600;
+}
+
+pre {
+    background-color: #eee;
+    margin: 5px;
+    padding: 5px;
+}

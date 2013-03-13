@@ -5,7 +5,7 @@
  ~ Animatron player is licensed under the MIT License, see LICENSE.
  -->
 
-PLAYER API (@VERSION)
+PLAYER API (v0.9)
 ==========
 
 * [Intro](#intro)
@@ -1566,3 +1566,5 @@ Importers
 ---------
 
 ### Animatron
+
+(c) 2011-2013 by Animatron.
