@@ -115,7 +115,7 @@ a:visited {
 	}
 }
 
-@media screen and (max-width: 760px) {
+@media screen and (max-width: 810px) {
 	body {
 		font-size: 10px;
 		margin-left: 10%;
