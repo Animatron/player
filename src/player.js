@@ -371,6 +371,8 @@ function disposeElm(domElm) {
     trashBin.innerHTML = '';
 }
 
+/* TODO: Create custom `undefined`, consider changing Infinity to Number.POSITIVE_INIFINITY */
+
 
 // Internal Constants
 // -----------------------------------------------------------------------------
@@ -649,6 +651,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     player._ensureHasState();
 
     var state = player.state;
+
+    if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.from = from || state.from;
     state.speed = speed || state.speed;
@@ -1014,7 +1018,7 @@ Player.prototype._reset = function() {
     state.from = 0;
     state.time = Player.NO_TIME;
     /*state.zoom = 1;*/ // do not override the zoom
-    state.duration = 0;
+    state.duration = undefined;
     if (this.controls) this.controls.reset();
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, state.width * state.ratio,
@@ -1236,6 +1240,7 @@ Player.createState = function(player) {
         'height': player.canvas.offsetHeight,
         'zoom': 1.0, 'bgfill': null,
         'happens': C.NOTHING,
+        'duration': undefined,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
         /*'__drawInterval': null*/
@@ -1321,11 +1326,11 @@ function Scene() {
     this.tree = [];
     this.hash = {};
     this.name = '';
-    this.duration = 0;
+    this.duration = undefined;
     this._initHandlers(); // TODO: make automatic
 }
 
-Scene.DEFAULT_VIDEO_DURATION = 10;
+Scene.DEFAULT_LEN = 10;
 
 // mouse/keyboard events are assigned in L.loadScene
 /* TODO: move them into scene */
@@ -1333,6 +1338,9 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW ]);
+Scene.prototype.setDuration = function(val) {
+  this.duration = val;
+}
 /* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
 // > Scene.add % (elems: Array[Element]) => Clip
@@ -1422,14 +1430,15 @@ Scene.prototype.handle__x = function(type, evt) {
     });
     return true;
 }
-Scene.prototype.updateDuration = function() {
-    var max_pos = 0;
+// TODO: test
+Scene.prototype.getFittingDuration = function() {
+    var max_pos = -Infinity;
     var me = this;
     this.visitRoots(function(elm) {
         var elm_tpos = elm._max_tpos();
-        if (elm_tpos > me.duration) me.duration = elm_tpos;
+        if (elm_tpos > max_pos) max_pos = elm_tpos;
     });
-    return this.duration;
+    return max_pos;
 }
 Scene.prototype.reset = function() {
     this.visitRoots(function(elm) {
@@ -1444,6 +1453,9 @@ Scene.prototype.dispose = function() {
         me._unregister(elm);
         elm.dispose();
     });
+}
+Scene.prototype.isEmpty = function() {
+    return this.tree.length == 0;
 }
 Scene.prototype.toString = function() {
     return "[ Scene "+(this.name ? "'"+this.name+"'" : "")+"]";
@@ -1488,7 +1500,6 @@ Scene.prototype._addToTree = function(elm) {
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
-    this.updateDuration();
 }
 /*Scene.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
@@ -1517,7 +1528,6 @@ Scene.prototype._unregister = function(elm) {
       this.tree.splice(pos, 1);
     }
     delete this.hash[elm.id];
-    this.updateDuration();
     elm.registered = false;
     elm.scene = null;
     //elm.parent = null;
@@ -1632,7 +1642,7 @@ function Element(draw, onframe) {
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
 Element.NO_BAND = null;
-Element.DEFAULT_LEN = 10;
+Element.DEFAULT_LEN = Infinity;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -1941,7 +1951,7 @@ Element.prototype._unbind = function() {
 Element.prototype.detach = function() {
     if (this.parent.__safeDetach(this) == 0) throw new AnimErr(Errors.A.ELEMENT_NOT_ATTACHED);
 }
-// make element band fit all children bands
+/* make element band fit all children bands */
 Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
     this.xdata.gband = wband;
@@ -1950,7 +1960,6 @@ Element.prototype.makeBandFit = function() {
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
-    if (this.scene) this.scene.updateDuration();
 }
 Element.prototype.duration = function() {
     return this.xdata.lband[1] - this.xdata.lband[0];
@@ -2038,11 +2047,11 @@ Element.prototype.m_on = function(type, handler) {
 Element.prototype.findWrapBand = function() {
     var children = this.children;
     if (children.length === 0) return this.xdata.gband;
-    var result = [ Number.MAX_VALUE, 0 ];
+    var result = [ Infinity, 0 ];
     this.visitChildren(function(elm) {
         result = Bands.expand(result, elm.findWrapBand());
     });
-    return (result[0] !== Number.MAX_VALUE) ? result : null;
+    return (result[0] !== Infinity) ? result : null;
 }
 Element.prototype.dispose = function() {
     this.disposeHandlers();
@@ -2087,6 +2096,9 @@ Element.prototype.iterateChildren = function(func, rfunc) {
     this.__unsafeToRemove = true;
     iter(this.children).each(func, rfunc);
     this.__unsafeToRemove = false;
+}
+Element.prototype.hasChildren = function() {
+    return this.children.length > 0;
 }
 Element.prototype.deepIterateChildren = function(func, rfunc) {
     this.__unsafeToRemove = true;
@@ -2985,9 +2997,18 @@ L.loadScene = function(player, scene, callback) {
     // assign
     player.anim = scene;
     // update duration
-    if (!player.state.duration) {
-        if (player.mode & C.M_DYNAMIC) scene.duration = Number.MAX_VALUE;
-        player.setDuration(scene.duration);
+    if (player.state.duration == undefined) {
+        var _duration;
+        if (scene.duration !== undefined) { _duration = scene.duration; }
+        else {
+          if (player.mode & C.M_DYNAMIC) { _duration = Infinity; }
+          else {
+            if (scene.isEmpty()) { _duration = 0; }
+            else { _duration = Scene.DEFAULT_LEN; }
+          }
+        }
+        scene.setDuration(_duration);
+        player.setDuration(_duration);
     }
     scene.awidth = player.state.width;
     scene.aheight = player.state.height;
@@ -4446,6 +4467,7 @@ Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing 
 Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
 Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
 Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
+Errors.P.DURATION_IS_NOT_KNOWN = 'Duration is not known';
 Errors.P.INIT_TWICE = 'Initialization was called twice';
 Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
 Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';

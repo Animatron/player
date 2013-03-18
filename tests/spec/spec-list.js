@@ -30,7 +30,7 @@ var _specs = {
                    '03.shapes',
                    '04.fill-n-stroke',
                    '05.statics',
-                   '06.bands',
+                   '06.duration-n-bands',
                    '07.tweens',
                    '08.repeat-modes',
                    '09a.modifiers',

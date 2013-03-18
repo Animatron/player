@@ -46,7 +46,7 @@ describe("player, when speaking about playing,", function() {
         var scene = new anm.Scene();
         scene.add(new anm.Element());
         player.load(scene);
-        expect(player.state.duration).toBe(anm.Element.DEFAULT_LEN);
+        expect(player.state.duration).toBe(anm.Scene.DEFAULT_LEN);
     });
 
     it("should try to draw stop-frame of an empty scene at 0, " +
@@ -75,7 +75,7 @@ describe("player, when speaking about playing,", function() {
         expect(stopSpy).toHaveBeenCalledOnce();
         expect(drawSpy).toHaveBeenCalledOnce();
         // P.S. draws at PREVIEW_POS only in C.M_VIDEO mode
-        expect(drawSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_VIDEO_DURATION
+        expect(drawSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_LEN
                                            * anm.Player.PREVIEW_POS);
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
@@ -143,7 +143,7 @@ describe("player, when speaking about playing,", function() {
         it("should have state.happens equal to stopped, " +
            "if requested time exceeds scene duration when asking to play", function() {
             player.load(new anm.Scene());
-            expect(player.anim).not.toBe(null);
+            expect(player.anim).not.toBe(null); // 0 duration for an empty scene is checked above
             runs(function() {
                 player.play();
                 expect(player.state.happens).toBe(C.PLAYING);
@@ -316,10 +316,11 @@ describe("player, when speaking about playing,", function() {
                 elem.addPainter(painterSpy);
                 scene.add(elem);
 
+                scene.setDuration(duration);
+
                 return scene;
             },
             run: function() {
-                expect(scene.duration).toBe(duration); // FIXME: move to a separate test
                 expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
                 expect(painterSpy).toHaveBeenCalledOnce(); // for preview
                 modifierSpy.reset();
@@ -558,7 +559,7 @@ describe("player, when speaking about playing,", function() {
 
             doAsync(player, {
                 prepare: function() {
-                    player.load(scene);
+                    player.load(scene, duration);
 
                     modifierSpy.reset();
                     painterSpy.reset();
@@ -596,7 +597,7 @@ describe("player, when speaking about playing,", function() {
             elem.setBand([0, duration]);
             scene.add(elem);
 
-            player.load(scene);
+            player.load(scene, duration);
 
             try {
                 player.drawAt(duration + 0.05);
