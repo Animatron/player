@@ -50,7 +50,66 @@ describe("player, when speaking about loading scenes,", function() {
 
     describe("loading with importer", function() {
 
-        // TODO:
+        it("should accept importer", function() {
+            try {
+                player.load(new anm.Scene(), _mocks.factory.importer());
+            } catch(e) {
+                this.fail(e);
+            }
+        });
+
+        it("should accept both duration and importer", function() {
+            var scene = new anm.Scene();
+            var duration = 15.2;
+            try {
+                player.load(scene, duration, _mocks.factory.importer());
+            } catch(e) {
+                this.fail(e);
+            }
+            expect(player.state.duration).toBe(duration);
+        });
+
+        it("should call importer methods in both cases", function() {
+            var scene1 = new anm.Scene();
+            var importer1 = _mocks.factory.importer();
+            var duration = 20.3;
+
+            var confAnimSpy1 = spyOn(importer1, 'configureAnim').andReturn({ fps: 23, duration: 42 }),
+                confMetaSpy1 = spyOn(importer1, 'configureMeta').andReturn({ author: 'Mr. Foo' }),
+                loadSpy1     = spyOn(importer1, 'load'         ).andReturn(scene1),
+                callback1Spy = jasmine.createSpy('callback1');
+
+            player.load(new anm.Scene(), duration, importer1, callback1Spy);
+
+            expect(confAnimSpy1).toHaveBeenCalled();
+            expect(confMetaSpy1).toHaveBeenCalled();
+            expect(loadSpy1).toHaveBeenCalled();
+            expect(callback1Spy).toHaveBeenCalledWith(scene1);
+            expect(player.anim).toBe(scene1);
+            expect(player.state.fps).toBe(23);
+            expect(player.state.duration).toBe(duration);
+            expect(player._metaInfo.author).toBe('Mr. Foo');
+
+            var scene2 = new anm.Scene();
+            var importer2 = _mocks.factory.importer();
+
+            var confAnimSpy2 = spyOn(importer2, 'configureAnim').andReturn({ fps: 17, duration: 42 }),
+                confMetaSpy2 = spyOn(importer2, 'configureMeta').andReturn({ author: 'Mr. Bar' }),
+                loadSpy2     = spyOn(importer2, 'load'         ).andReturn(scene2),
+                callback2Spy = jasmine.createSpy('callback2');
+
+            player.load(new anm.Scene(), importer2, callback2Spy);
+
+            expect(confAnimSpy2).toHaveBeenCalled();
+            expect(confMetaSpy2).toHaveBeenCalled();
+            expect(loadSpy2).toHaveBeenCalled();
+            expect(callback2Spy).toHaveBeenCalledWith(scene2);
+            expect(player.anim).toBe(scene2);
+            expect(player.state.fps).toBe(17);
+            expect(player.state.duration).toBe(42);
+            expect(player._metaInfo.author).toBe('Mr. Bar');
+
+        });
 
     });
 

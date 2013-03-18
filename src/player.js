@@ -588,8 +588,13 @@ Player.prototype.init = function(cvs, opts) {
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
     return this;
 }
-Player.prototype.load = function(object, importer, callback) {
+Player.prototype.load = function(object, duration, importer, callback) {
     var player = this;
+
+    var durationPassed = __num(duration);
+    var callback = durationPassed ? callback : importer,
+        importer = durationPassed ? importer : duration,
+        duration = durationPassed ? duration : undefined;
 
     if (!object) {
         player.anim = null;

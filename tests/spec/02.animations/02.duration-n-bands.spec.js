@@ -154,59 +154,59 @@ describe("regarding elements' duration and bands in animations,", function() {
 
         describe("basing on element length", function() {
 
-        });
+            it("should be equal to default scene length if element length is below default scene length", function() {
+                var scene1 = new anm.Scene();
+                var elm = new anm.Element();
+                elm.setBand([0, DEFAULT_SCENE_LENGTH - 1]);
+                scene1.add(elm);
+                expect(scene1.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-        it("should be equal to default scene length if element length is below default scene length", function() {
-            var scene1 = new anm.Scene();
-            var elm = new anm.Element();
-            elm.setBand([0, DEFAULT_SCENE_LENGTH - 1]);
-            scene1.add(elm);
-            expect(scene1.duration).toBe(DEFAULT_SCENE_LENGTH);
+                player.load(scene1);
+                expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-            player.load(scene1);
-            expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
+                var scene2 = new anm.Scene();
+                var wrapElm = new anm.Element();
+                scene2.add(wrapElm);
+                scene2.add(elm);
+                expect(scene2.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-            var scene2 = new anm.Scene();
-            var wrapElm = new anm.Element();
-            scene2.add(wrapElm);
-            scene2.add(elm);
-            expect(scene2.duration).toBe(DEFAULT_SCENE_LENGTH);
+                player.load(scene2);
+                expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
+            });
 
-            player.load(scene2);
-            expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
-        });
+            it("should also be equal to default scene length if element length is above default scene length", function() {
+                var scene1 = new anm.Scene();
+                var elm = new anm.Element();
+                elm.setBand([0, DEFAULT_SCENE_LENGTH + 1]);
+                scene1.add(elm);
+                expect(scene1.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-        it("should also be equal to default scene length if element length is above default scene length", function() {
-            var scene1 = new anm.Scene();
-            var elm = new anm.Element();
-            elm.setBand([0, DEFAULT_SCENE_LENGTH + 1]);
-            scene1.add(elm);
-            expect(scene1.duration).toBe(DEFAULT_SCENE_LENGTH);
+                player.load(scene1);
+                expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-            player.load(scene1);
-            expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
+                var scene2 = new anm.Scene();
+                var wrapElm = new anm.Element();
+                scene2.add(wrapElm);
+                scene2.add(elm);
+                expect(scene2.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-            var scene2 = new anm.Scene();
-            var wrapElm = new anm.Element();
-            scene2.add(wrapElm);
-            scene2.add(elm);
-            expect(scene2.duration).toBe(DEFAULT_SCENE_LENGTH);
+                player.load(scene2);
+                expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
+            });
 
-            player.load(scene2);
-            expect(player.state.duration).toBe(DEFAULT_SCENE_LENGTH);
-        });
+            it("should allow to set new duration to a scene", function() {
+                var scene = new anm.Scene();
+                var elm = new anm.Element();
+                elm.setBand([0, DEFAULT_SCENE_LENGTH + 15]);
+                scene.add(elm);
+                expect(scene.duration).toBe(DEFAULT_SCENE_LENGTH);
 
-        it("should allow to set new duration to a scene", function() {
-            var scene = new anm.Scene();
-            var elm = new anm.Element();
-            elm.setBand([0, DEFAULT_SCENE_LENGTH + 15]);
-            scene.add(elm);
-            expect(scene.duration).toBe(DEFAULT_SCENE_LENGTH);
+                scene.duration = 15.3;
+                expect(scene.duration).toBe(15.3);
+                player.load(scene);
+                expect(player.state.duration).toBe(15.3);
+            });
 
-            scene.duration = 15.3;
-            expect(scene.duration).toBe(15.3);
-            player.load(scene);
-            expect(player.state.duration).toBe(15.3);
         });
 
     });
