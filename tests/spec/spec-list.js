@@ -24,6 +24,7 @@ var _specs = {
                       '04.masks',
                       '05.layers',
                       '06.versions',
+                      '07.meta',
                       '_utils.and.their' ],
    '04.builder': [ '01.formation',
                    '02.structure',
