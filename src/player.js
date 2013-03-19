@@ -3057,6 +3057,7 @@ L.loadClips = function(player, clips, callback) {
 L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
     _anim.add(builder.v);
+    if (builder.d != undefined) _anim.setDuration(builder.d);
     L.loadScene(player, _anim, callback);
 }
 
