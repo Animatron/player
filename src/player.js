@@ -313,6 +313,10 @@ function __num(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
 }
 
+function __fun(fun) {
+    return fun != null && typeof fun === 'function';
+}
+
 function __obj(obj) {
     return obj != null && typeof obj === 'object';
 }
@@ -588,13 +592,34 @@ Player.prototype.init = function(cvs, opts) {
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
     return this;
 }
-Player.prototype.load = function(object, duration, importer, callback) {
+Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     var player = this;
 
-    var durationPassed = __num(duration);
-    var callback = durationPassed ? callback : importer,
-        importer = durationPassed ? importer : duration,
-        duration = durationPassed ? duration : undefined;
+    /* object */
+    /* object, callback */
+    /* object, importer */
+    /* object, duration */
+    /* object, importer, callback */
+    /* object, duration, callback */
+    /* object, duration, importer, callback */
+
+    var object = arg1, duration, importer, callback;
+
+    var durationPassed = false;
+
+    if (__fun(arg2)) { callback = arg2 } /* object, callback */
+    else if (__num(arg2)) { /* object, duration[, ...] */
+        duration = arg2;
+        durationPassed = true;
+        if (__obj(arg3)) { /* object, duration, importer[, callback] */
+          importer = arg3; callback = arg4;
+        } else if (__fun(arg3)) { /* object, duration, callback */
+          callback = arg3;
+        }
+    } else if (__obj(arg2)) { /* object, importer[, ...] */
+        importer = arg2;
+        callback = arg3;
+    }
 
     if (!object) {
         player.anim = null;
@@ -612,18 +637,16 @@ Player.prototype.load = function(object, duration, importer, callback) {
 
     player._reset();
 
-    var whenDone = function() {
+    var whenDone = function(result) {
         if (player.mode & C.M_HANDLE_EVENTS) {
             player.__subscribeDynamicEvents(player.anim);
         }
         player.fire(C.S_LOAD);
         player.stop();
-        if (callback) callback();
+        if (callback) callback(result);
     };
 
     /* TODO: configure canvas using clips bounds */
-
-
 
     if (object) {
 

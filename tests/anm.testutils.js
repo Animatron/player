@@ -14,6 +14,8 @@ _Fake.CVS_POS = 1; // canvas position
 
 var _window = jasmine.getGlobal();
 
+var JSON = JSON || Json;
+
 function _fake(what) {
     if (!what) throw new Error('Please specify what to fake');
     what = _arrayFrom(what);
@@ -378,13 +380,13 @@ var AjaxFaker = (function() {
         var result = null;
         var _s = subscribers[this.lastURL];
         if (_s) {
-            for (var i = 0; i < _s.lengthl; i++) {
-                result = _s(this.lastURL);
+            for (var i = 0; i < _s.length; i++) {
+                result = _s[i](this.lastURL);
             }
         };
-        if (this.callback) this.callback({ responseText: result });
+        this.responseText = result;
+        if (this.onreadystatechange) this.onreadystatechange({ responseText: result });
     };
-    FakeXMLXttpRequest.prototype.onreadystatechange = function(f) { this.callback = f; };
 
     function __start() {
         if (started) throw new Error('Ajax Faker is already started!');
@@ -413,7 +415,7 @@ var AjaxFaker = (function() {
     } */
 
     return { start: __start,
-             subsribe: __subscribe,
+             subscribe: __subscribe,
              /* unsubscribe: __unsubscribe, */
              stop: __stop,
              isStarted: function() { return started; } }

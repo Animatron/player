@@ -58,17 +58,17 @@ describe("player, when speaking about loading scenes,", function() {
             _callback,
             _testScene;
 
-        varyAll([ { description: "a scene", prepare: function() {
+        varyAll([ { description: "a scene,", prepare: function() {
                         _toLoad = new anm.Scene();
                         _testScene = function(actual) {
                             expect(actual).toBe(_toLoad);
                         }
                     } },
-                  { description: "number of clips", prepare: function() {
+                  { description: "number of clips,", prepare: function() {
                         _toLoad = [ new anm.Element(), new anm.Element(),
                                     new anm.Element(), new anm.Element() ];
                         _testScene = function(actual) {
-                            expect(actual.children.length).toBe(4);
+                            expect(actual.tree[0].children.length).toBe(4);
                         }
                     } } ], function() {
 
@@ -132,18 +132,18 @@ describe("player, when speaking about loading scenes,", function() {
         var _source,
             _testResult;
 
-        varyAll([ { description: "some object", prepare: function() {
+        varyAll([ { description: "some object,", prepare: function() {
                         _source = {};
                         _testImportObject = function(importObj) {
                             expect(importObj).toBe(_source);
                         }
                     } },
-                  { description: "by URL", prepare: function() {
+                  { description: "by URL,", prepare: function() {
                         _source = 'http://fake.url';
                         var testHash = '54f3dfe3016de10c27a006f37fefb529af801f43';
                         _scene = { foo_: testHash };
                         AjaxFaker.subscribe('http://fake.url', function() {
-                            return "{ foo_: '" + testHash + "' }";
+                            return '{ "foo_": "' + testHash + '" }';
                         });
                         _testImportObject = function(importObj) {
                             expect(importObj.foo_).toBeDefined();
