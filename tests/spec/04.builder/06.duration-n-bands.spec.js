@@ -21,8 +21,7 @@ describe("scene duration", function() {
     var _mode;
     var _builder;
     var _durationValue = undefined,
-        _durationWasSetBeforeLoad = false,
-        _durationWasSetAfterLoad  = false;
+        _durationWasSet = false;
     var _player;
 
     varyAll([ { description: "when in standard mode", prepare: function() { _mode = anm.C.M_VIDEO;
@@ -58,38 +57,32 @@ describe("scene duration", function() {
             ], function() {
 
                 varyAll([ { description: "but duration is not set in any way",
-                            prepare: function() { _durationWasSetBeforeLoad = false;
-                                                  _durationWasSetAfterLoad  = false;
+                            prepare: function() { _durationWasSet = false;
                                                   _player.load(_builder); } },
                           { description: "duration was set with the help of a method",
-                            prepare: function() { _durationWasSetBeforeLoad = true;
-                                                  _durationWasSetAfterLoad  = false;
+                            prepare: function() { _durationWasSet = true;
                                                   _builder.duration(_durationValue);
                                                   _player.load(_builder); } },
                           { description: "duration was set with the help of a property",
-                            prepare: function() { _durationWasSetBeforeLoad = true;
-                                                  _durationWasSetAfterLoad  = false;
+                            prepare: function() { _durationWasSet = true;
                                                   _builder.d = _durationValue;
                                                   _player.load(_builder); } },
                           { description: "duration was set with the help of the method, but after loading",
-                            prepare: function() { _durationWasSetBeforeLoad = false;
-                                                  _durationWasSetAfterLoad  = true;
+                            prepare: function() { _durationWasSet = false;
                                                   _player.load(_builder);
                                                   _builder.duration(_durationValue); } },
                           { description: "duration was set with the help of a property, but after loading",
-                            prepare: function() { _durationWasSetBeforeLoad = false;
-                                                  _durationWasSetAfterLoad  = true;
+                            prepare: function() { _durationWasSet = false;
                                                   _player.load(_builder);
                                                   _builder.d = _durationValue; } },
                           { description: "duration was set with load method argument",
-                            prepare: function() { _durationWasSetBeforeLoad = true;
-                                                  _durationWasSetAfterLoad  = false;
+                            prepare: function() { _durationWasSet = true;
                                                   _player.load(_builder, _durationValue); } }
 
                 ], function() {
 
                     it("duration should be overriden, if it was defined", function() {
-                        if (_durationWasSetBeforeLoad) {
+                        if (_durationWasSet) {
                             expect(_builder.v.scene.duration).toBeDefined();
                             expect(_player.anim.duration)    .toBeDefined();
                             expect(_player.state.duration)   .toBeDefined();
@@ -97,7 +90,7 @@ describe("scene duration", function() {
                     });
 
                     it("duration should be default, or infinite for dynamic mode, if it was not especially set", function() {
-                        if (!_durationWasSetBeforeLoad) {
+                        if (!_durationWasSet) {
                             var notDynamic = (_mode != anm.C.M_DYNAMIC);
                             expect(_builder.v.scene.duration).toBe(notDynamic ? DEFAULT_SCENE_LENGTH : Infinity);
                             expect(_player.anim.duration)    .toBe(notDynamic ? DEFAULT_SCENE_LENGTH : Infinity);
@@ -106,7 +99,7 @@ describe("scene duration", function() {
                     });
 
                     it("if duration was set and is positive or 0, it should be equal to given value", function() {
-                        if (_durationWasSetBeforeLoad && (_durationValue >= 0)) {
+                        if (_durationWasSet && (_durationValue >= 0)) {
                             expect(_builder.v.scene.duration).toBe(_durationValue);
                             expect(_player.anim.duration)    .toBe(_durationValue);
                             expect(_player.state.duration)   .toBe(_durationValue);
@@ -114,21 +107,21 @@ describe("scene duration", function() {
                     });
 
                     it("negative duration should be converted to 0, if set", function() {
-                        if (_durationWasSetBeforeLoad && (_durationValue < 0)) {
+                        if (_durationWasSet && (_durationValue < 0)) {
                             expect(_builder.v.scene.duration).toBe(0);
                             expect(_player.anim.duration)    .toBe(0);
                             expect(_player.state.duration)   .toBe(0);
                         }
                     });
 
-                    it("duration property of builder should be set, if duration iself was defined", function() {
+                    /* it("duration property of builder should be set, if duration iself was defined", function() {
                         if (_durationWasSetBeforeLoad || _durationWasSetAfterLoad) {
                             expect(_builder.d).toBeDefined();
                             expect(_builder.d).toBe(_durationValue > 0 ? _durationValue : 0);
                         } else {
                             expect(_builder.d).not.toBeDefined();
                         }
-                    });
+                    }); */
 
                 });
 

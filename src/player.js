@@ -992,8 +992,8 @@ Player.prototype.subscribeEvents = function(canvas) {
                     })(this), false);
 }
 Player.prototype.setDuration = function(value) {
-    this.state.duration = value;
-    if (this.info) this.info.setDuration(value);
+    this.state.duration = (value >= 0) ? value : 0;
+    if (this.info) this.info.setDuration((value >= 0) ? value : 0);
 }
 Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
@@ -1374,7 +1374,7 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW ]);
 Scene.prototype.setDuration = function(val) {
-  this.duration = val;
+  this.duration = (val >= 0) ? val : 0;
 }
 /* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
