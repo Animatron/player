@@ -623,6 +623,8 @@ Player.prototype.load = function(object, duration, importer, callback) {
 
     /* TODO: configure canvas using clips bounds */
 
+
+
     if (object) {
 
         if (__builder(object)) {  // Builder instance
@@ -639,6 +641,11 @@ Player.prototype.load = function(object, duration, importer, callback) {
 
     } else {
         player.anim = new Scene();
+    }
+
+    if (durationPassed) {
+      player.anim.setDuration(duration);
+      player.setDuration(duration);
     }
 
     return player;
@@ -2998,7 +3005,7 @@ L.loadScene = function(player, scene, callback) {
     // add debug rendering
     if (player.state.debug
         && !global_opts.liveDebug)
-        scene.visitElems(Element.__addDebugRender);
+        scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
     // assign
     player.anim = scene;
     // update duration
@@ -3017,7 +3024,7 @@ L.loadScene = function(player, scene, callback) {
     }
     scene.awidth = player.state.width;
     scene.aheight = player.state.height;
-    if (callback) callback.call(player);
+    if (callback) callback.call(player, scene);
 }
 L.loadClips = function(player, clips, callback) {
     var _anim = new Scene();

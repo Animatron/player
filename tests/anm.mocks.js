@@ -95,8 +95,13 @@ mocks.factory.element = function(id) {
     }
 }
 
-
 mocks.factory.importer = function() {
+    return {
+        'load': __nop
+    }
+}
+
+mocks.factory.fullImporter = function() {
     return {
         'configureAnim': __nop,
         'configureMeta': __nop,

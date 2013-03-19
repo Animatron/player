@@ -357,6 +357,69 @@ function doAsync(player, conf) {
 
 }
 
+var AjaxFaker = (function() {
+
+    var started = false;
+
+    var subscribers = {};
+
+    var realXMLHttpRequest = _window.XMLHttpRequest,
+        realActiveXObject = _window.ActiveXObject;
+
+    function FakeXMLXttpRequest() {
+        this.lastURL = null;
+        this.readyState = 4;
+        this.status = 200;
+    }
+
+    FakeXMLXttpRequest.prototype.open = function(meth, url) { this.lastURL = url; };
+    FakeXMLXttpRequest.prototype.send = function() {
+        if (!this.lastURL) throw new Error('No request was opened');
+        var result = null;
+        var _s = subscribers[this.lastURL];
+        if (_s) {
+            for (var i = 0; i < _s.lengthl; i++) {
+                result = _s(this.lastURL);
+            }
+        };
+        if (this.callback) this.callback({ responseText: result });
+    };
+    FakeXMLXttpRequest.prototype.onreadystatechange = function(f) { this.callback = f; };
+
+    function __start() {
+        if (started) throw new Error('Ajax Faker is already started!');
+        started = true;
+
+        _window.ActiveXObject = null;
+
+        _window.XMLHttpRequest = FakeXMLXttpRequest;
+    }
+
+    function __stop() {
+        if (!started) throw new Error('Ajax Faker is already stopped!');
+        started = false;
+
+        _window.XMLHttpRequest = realXMLHttpRequest;
+        _window.ActiveXObject = realActiveXObject;
+    }
+
+    function __subscribe(url, f) {
+        if (!subscribers[url]) subscribers[url] = [];
+        subscribers[url].push(f);
+    }
+
+    /* function __unsubscribe(url) {
+        subscribers[url] = null;
+    } */
+
+    return { start: __start,
+             subsribe: __subscribe,
+             /* unsubscribe: __unsubscribe, */
+             stop: __stop,
+             isStarted: function() { return started; } }
+
+})();
+
 /*function asyncSeq() {
     var fs = arguments,
         player = fs[0],
