@@ -41,7 +41,8 @@ describe("regarding elements' duration and bands in animations,", function() {
             var _mode;
             var _scene;
             var _durationValue = undefined,
-                _durationWasSet = false;
+                _durationWasSetBeforeLoad = false,
+                _durationWasSetAfterLoad  = false;
             var _player;
 
             varyAll([ { description: "when in standard mode", prepare: function() { _mode = anm.C.M_VIDEO;
@@ -74,37 +75,48 @@ describe("regarding elements' duration and bands in animations,", function() {
                                                    _scene.add(wide); } }
                 ], function() {
 
-                    varyAll([ { description: "duration is 0", prepare: function() { _durationValue = 0; } },
-                              { description: "duration is some random value", prepare: function() { _durationValue = 27.3; } }, // Math.random() * 100
-                              { description: "duration is 10", prepare: function() { _durationValue = 10; } },
-                              { description: "duration is negative", prepare: function() { _durationValue = -17.2; } }
+                    varyAll([ { description: "duration is 0",                             prepare: function() { _durationValue = 0;     } },
+                              { description: "duration is some random value",             prepare: function() { _durationValue = 27.3;  } }, // Math.random() * 100
+                              { description: "duration is 10",                            prepare: function() { _durationValue = 10;    } },
+                              { description: "duration is negative",                      prepare: function() { _durationValue = -17.2; } },
+                              { description: "duration is equal to default scene length", prepare: function() { _durationValue = DEFAULT_SCENE_LENGTH; } }
 
                     ], function() {
 
                         varyAll([ { description: "but duration is not set in any way",
-                                    prepare: function() { _player.load(_scene); } },
+                                    prepare: function() { _durationWasSetBeforeLoad = false;
+                                                          _durationWasSetAfterLoad  = false;
+                                                          _player.load(_scene); } },
                                   { description: "duration was set with the help of a method",
-                                    prepare: function() { _durationWasSet = true;
+                                    prepare: function() { _durationWasSetBeforeLoad = true;
+                                                          _durationWasSetAfterLoad  = false;
                                                           _scene.setDuration(_durationValue);
                                                           _player.load(_scene); } },
                                   { description: "duration was set with the help of a property",
-                                    prepare: function() { _durationWasSet = true;
+                                    prepare: function() { _durationWasSetBeforeLoad = true;
+                                                          _durationWasSetAfterLoad  = false;
                                                           _scene.duration = _durationValue;
                                                           _player.load(_scene); } },
                                   { description: "duration was set with the help of the method, but after loading",
-                                    prepare: function() { _durationWasSet = false;
+                                    prepare: function() { _durationWasSetBeforeLoad = false;
+                                                          _durationWasSetAfterLoad  = true;
                                                           _player.load(_scene);
                                                           _scene.setDuration(_durationValue); } },
                                   { description: "duration was set with the help of a property, but after loading",
-                                    prepare: function() { _durationWasSet = false;
+                                    prepare: function() { _durationWasSetBeforeLoad = false;
+                                                          _durationWasSetAfterLoad  = true;
                                                           _player.load(_scene);
-                                                          _scene.duration = _durationValue; } }
+                                                          _scene.duration = _durationValue; } },
+                                  { description: "duration was set via load method argument",
+                                    prepare: function() { _durationWasSetBeforeLoad = true;
+                                                          _durationWasSetAfterLoad  = false;
+                                                          _player.load(_scene, _durationValue); } }
+
 
                         ], function() {
 
                             it("duration should be overriden, if it was defined", function() {
-                                if (_durationWasSet) {
-                                    expect(_durationValue).not.toEqual(DEFAULT_SCENE_DURATION);
+                                if (_durationWasSetBeforeLoad) {
                                     expect(_scene.duration).toBeDefined();
                                     expect(_player.anim.duration).toBeDefined();
                                     expect(_player.state.duration).toBeDefined();
@@ -112,16 +124,18 @@ describe("regarding elements' duration and bands in animations,", function() {
                             });
 
                             it("duration should be default, or infinite for dynamic mode, if it was not defined", function() {
-                                if (!_durationWasSet) {
+                                if (!_durationWasSetBeforeLoad) {
                                     var notDynamic = (_mode != anm.C.M_DYNAMIC);
-                                    expect(_scene.duration).toBe(notDynamic ? _durationValue : Infinity);
-                                    expect(_player.anim.duration).toBe(notDynamic ? _durationValue : Infinity);
-                                    expect(_player.state.duration).toBe(notDynamic ? _durationValue : Infinity);
+                                    if (!_durationWasSetAfterLoad) {
+                                        expect(_scene.duration).toBe(notDynamic ? (!_scene.isEmpty() ? DEFAULT_SCENE_LENGTH : 0) : Infinity);
+                                        expect(_player.anim.duration).toBe(notDynamic ? (!_scene.isEmpty() ? DEFAULT_SCENE_LENGTH : 0) : Infinity);
+                                    }
+                                    expect(_player.state.duration).toBe(notDynamic ? (!_scene.isEmpty() ? DEFAULT_SCENE_LENGTH : 0) : Infinity);
                                 }
                             });
 
                             it("if duration was set and is positive or 0, it should be equal to given value", function() {
-                                if (_durationWasSet && (_durationValue >= 0)) {
+                                if (_durationWasSetBeforeLoad && (_durationValue >= 0)) {
                                     expect(_scene.duration).toBe(_durationValue);
                                     expect(_player.anim.duration).toBe(_durationValue);
                                     expect(_player.state.duration).toBe(_durationValue);
@@ -129,7 +143,7 @@ describe("regarding elements' duration and bands in animations,", function() {
                             });
 
                             it("negative duration should be converted to 0, if set", function() {
-                                if (_durationWasSet && (_durationValue < 0)) {
+                                if (_durationWasSetBeforeLoad && (_durationValue < 0)) {
                                     expect(_scene.duration).toBe(0);
                                     expect(_player.anim.duration).toBe(0);
                                     expect(_player.state.duration).toBe(0);
@@ -137,11 +151,13 @@ describe("regarding elements' duration and bands in animations,", function() {
                             });
 
                             it("duration property of scene should be set, if duration iself was defined", function() {
-                                if (_durationWasSet) {
+                                if (_durationWasSetBeforeLoad || _durationWasSetAfterLoad) {
                                     expect(_scene.duration).toBeDefined();
                                     expect(_scene.duration).toBe(_durationValue > 0 ? _durationValue : 0);
                                 } else {
-                                    expect(_scene.duration).not.toBeDefined();
+                                    if (_mode != anm.C.M_DYNAMIC) {
+                                        expect(_scene.duration).toBe(!_scene.isEmpty() ? DEFAULT_SCENE_LENGTH : 0);
+                                    }
                                 }
                             });
 

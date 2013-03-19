@@ -75,7 +75,7 @@ describe("scene duration", function() {
                             prepare: function() { _durationWasSet = false;
                                                   _player.load(_builder);
                                                   _builder.d = _durationValue; } },
-                          { description: "duration was set with load method argument",
+                          { description: "duration was set via load method argument",
                             prepare: function() { _durationWasSet = true;
                                                   _player.load(_builder, _durationValue); } }
 
