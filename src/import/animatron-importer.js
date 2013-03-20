@@ -74,6 +74,7 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
             this._collectStaticData(target, inner);
         } else {
+            // FIXME: consider returning this element, but not adding it
             target.add(this.importElement(inner, source, target.xdata.gband));
         }
     } else if (clip.layers) {
@@ -118,7 +119,7 @@ AnimatronImporter.prototype.findElement = function(id, source) {
 AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     if (!to.name && clip.name) to.name = clip.name;
     var x = to.xdata;
-    x.lband = clip.band || [0, 10]; //FIMXE: remove, when it will be always set in project
+    x.lband = clip.band || [0, Infinity]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband)
                       : x.lband;
     x.reg = clip.reg || [0, 0];
@@ -258,7 +259,7 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return C.R_STAY;
+    if (!from) return C.R_ONCE;
     if (from === "STOP") return C.R_STAY; // C.R_ONCE?
     if (from === "LOOP") return C.R_LOOP;
     if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure

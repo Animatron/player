@@ -19,7 +19,8 @@
     <!--<script src="../dist/bundle/animatron.js" type="text/javascript"></script>
     <script src="../src/builder.js" type="text/javascript"></script>-->
 
-    <script src="./rel/tangencial_eccentric.js" type="text/javascript"></script>
+    <script src="./rel/failing_scene.js" type="text/javascript"></script>
+    <!-- <script src="./rel/tangencial_eccentric.js" type="text/javascript"></script> -->
 
     <script type="text/javascript">
       function start() {
@@ -29,7 +30,7 @@
           var importer = new AnimatronImporter();
           var player = createPlayer('canvas');
           player.debug = true;
-          player.load(tangencial_eccentric, importer);
+          player.load(failing_scene, importer);
           player.play();
 
       }
