@@ -2935,7 +2935,7 @@ D.drawNext = function(ctx, state, scene, before, after) {
 
     // show fps
     if (state.debug) { // TODO: move to player.onrender
-        D.drawFPS(ctx, state.afps);
+        D.drawFPS(ctx, state.afps, time);
     }
 
     if (after) {
@@ -2953,10 +2953,12 @@ D.drawNext = function(ctx, state, scene, before, after) {
     ctx.clearRect(0, 0, state.width, state.height);
     scene.render(ctx, time);
 } */
-D.drawFPS = function(ctx, fps) {
+D.drawFPS = function(ctx, fps, time) {
     ctx.fillStyle = '#999';
     ctx.font = '20px sans-serif';
     ctx.fillText(Math.floor(fps), 8, 20);
+    ctx.font = '10px sans-serif';
+    ctx.fillText(Math.floor(time * 100) / 100, 8, 35);
 }
 
 // ### Drawing: Utils
