@@ -243,49 +243,115 @@ describe("player, when speaking about modes,", function() {
 
         describe("scene duration, according to the mode", function() {
 
-            it("should be infinite in dynamic mode", function() {
-                var scene = new anm.Scene();
-                player.init('fake', { mode: C.M_DYNAMIC }).load(scene);
-                expect(scene.duration).toBe(Number.MAX_VALUE);
+            describe("in dynamic mode", function() {
 
-                var elm = new anm.Element();
-                elm.setBand([0, 12]);
-                scene.add(elm);
+                it("should be infinite if scene with element was loaded into a player", function() {
+                    var scene = new anm.Scene();
+                    player.init('fake', { mode: C.M_DYNAMIC });
+                    expect(scene.duration).not.toBeDefined();
 
-                player.play();
-                expect(scene.duration).toBe(Number.MAX_VALUE);
-                expect(player.state.duration).toBe(Number.MAX_VALUE);
-                player.stop();
+                    var elm = new anm.Element();
+                    elm.setBand([0, 12]);
+                    scene.add(elm);
+
+                    player.load(scene);
+                    expect(scene.duration).toBe(Infinity);
+                    expect(player.state.duration).toBe(Infinity);
+                    player.play();
+                    expect(scene.duration).toBe(Infinity);
+                    expect(player.state.duration).toBe(Infinity);
+                    player.stop();
+                });
+
+                it("should stay inifinite if empty scene was added to a player", function() {
+                    var scene = new anm.Scene();
+                    player.init('fake', { mode: C.M_DYNAMIC }).load(scene);
+                    expect(scene.duration).toBe(Infinity);
+
+                    var elm = new anm.Element();
+                    elm.setBand([0, 12]);
+                    scene.add(elm);
+
+                    player.play();
+                    expect(scene.duration).toBe(Infinity);
+                    expect(player.state.duration).toBe(Infinity);
+                    player.stop();
+                });
+
             });
 
-            it("should be finite in video mode", function() {
-                var scene = new anm.Scene();
-                player.init('fake', { mode: C.M_VIDEO }).load(scene);
-                expect(scene.duration).toBe(0);
+            describe("in video mode", function() {
 
-                var elm = new anm.Element();
-                elm.setBand([0, 12]);
-                scene.add(elm);
+                it("should be default if scene with element was loaded into a player", function() {
+                    var scene = new anm.Scene();
+                    player.init('fake', { mode: C.M_VIDEO });
+                    expect(scene.duration).not.toBeDefined();
 
-                player.play();
-                expect(scene.duration).toBe(12);
-                expect(player.state.duration).toBe(12);
-                player.stop();
+                    var elm = new anm.Element();
+                    elm.setBand([0, 12]);
+                    scene.add(elm);
+
+                    player.load(scene);
+                    expect(scene.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    expect(player.state.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    player.play();
+                    expect(scene.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    expect(player.state.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    player.stop();
+                });
+
+                it("should be 0 if empty scene was added to a player", function() {
+                    var scene = new anm.Scene();
+                    player.init('fake', { mode: C.M_VIDEO }).load(scene);
+                    expect(scene.duration).toBe(0);
+
+                    var elm = new anm.Element();
+                    elm.setBand([0, 12]);
+                    scene.add(elm);
+
+                    player.play();
+                    expect(scene.duration).toBe(0);
+                    expect(player.state.duration).toBe(0);
+                    player.stop();
+                });
+
             });
 
-            it("should be finite in preview mode", function() {
-                var scene = new anm.Scene();
-                player.init('fake', { mode: C.M_PREVIEW }).load(scene);
-                expect(scene.duration).toBe(0);
+            describe("in preview mode", function() {
 
-                var elm = new anm.Element();
-                elm.setBand([0, 12]);
-                scene.add(elm);
+                it("and be default if some element was added before loading scene into player", function() {
+                    var scene = new anm.Scene();
+                    player.init('fake', { mode: C.M_PREVIEW });
+                    expect(scene.duration).not.toBeDefined();
 
-                player.play();
-                expect(scene.duration).toBe(12);
-                expect(player.state.duration).toBe(12);
-                player.stop();
+                    var elm = new anm.Element();
+                    elm.setBand([0, 12]);
+                    scene.add(elm);
+
+                    player.load(scene);
+                    expect(scene.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    expect(player.state.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    player.play();
+                    expect(scene.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    expect(player.state.duration).toBe(anm.Scene.DEFAULT_LEN);
+                    player.stop();
+                });
+
+                it("should be 0 if empty scene was added to a player", function() {
+                    var scene = new anm.Scene();
+                    player.init('fake', { mode: C.M_PREVIEW }).load(scene);
+                    expect(scene.duration).toBe(0);
+
+                    var elm = new anm.Element();
+                    elm.setBand([0, 12]);
+                    scene.add(elm);
+
+                    player.play();
+                    expect(scene.duration).toBe(0);
+                    expect(player.state.duration).toBe(0);
+                    player.stop();
+                });
+
             });
 
         });

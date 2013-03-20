@@ -36,10 +36,7 @@ function createAnmProject(duration) {
 //   ... ]
 
 function injectAnmScene(project, data) {
-    var scene_id = guid();
-    project.anim.scenes.push(scene_id);
-    var scene = { "id": scene_id, name: "Scene", "layers": [] };
-    project.anim.elements.push(scene);
+    var scene = injectEmptyAnmScene(project);
     function __inspectDataLayer(parent, layer) {
         for (var li = 0, ll = layer.length; li < ll; li++) {
             var srcData = layer[li];
@@ -64,6 +61,14 @@ function injectAnmScene(project, data) {
         }
     }
     __inspectDataLayer(scene, data);
+}
+
+function injectEmptyAnmScene(project) {
+    var scene_id = guid();
+    project.anim.scenes.push(scene_id);
+    var scene = { "id": scene_id, name: "Scene", "layers": [] };
+    project.anim.elements.push(scene);
+    return scene;
 }
 
 anm.Scene.prototype.findByName = function(name) {

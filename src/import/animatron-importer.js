@@ -28,7 +28,8 @@ AnimatronImporter.prototype.configureMeta = function(prj) {
         'author': _m.author,
         'copyright': _m.copyright,
         'version': _m.version,
-        'description': _m.description
+        'description': _m.description,
+        'duration': _m.duration
     };
 };
 AnimatronImporter.prototype.configureAnim = function(prj) {
@@ -37,26 +38,10 @@ AnimatronImporter.prototype.configureAnim = function(prj) {
     var _a = prj.anim;
     return {
         'fps': _a.framerate,
-        'width': Math.floor(_a.dimension[0]),
-        'height': Math.floor(_a.dimension[1]),
+        'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
+        'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
         'bgfill': _a.background ? Convert.fill(_a.background) : null,
-        'duration': this.computeDuration(prj.anim.elements)
     }
-}
-AnimatronImporter.prototype.computeDuration = function(elms) {
-    // TODO: ensure this is the correct way to compute it
-    var max_left = 0;
-    for (var ei = 0; ei < elms.length; ei++) {
-        if (elms[ei].layers) {
-            var _layers = elms[ei].layers;
-            for (var li = 0; li < _layers.length; li++) {
-                if (_layers[li].band) {
-                    max_left = Math.max(max_left, _layers[li].band[1]);
-                }
-            }
-        }
-    }
-    return max_left;
 }
 
 // ** PROJECT **
@@ -65,8 +50,10 @@ AnimatronImporter.prototype.load = function(prj) {
     // ( framerate, dimension, background, duration,
     //   elements, scenes )
     // FIXME: allow importing several scenes
-    return this.importScene(prj.anim.scenes[0],
-                            prj.anim.elements);
+    var scene =  this.importScene(prj.anim.scenes[0],
+                                  prj.anim.elements);
+    if (prj.meta.duration != undefined) scene.setDuration(prj.meta.duration);
+    return scene;
 };
 
 // ** ELEMENTS **

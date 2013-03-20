@@ -13,7 +13,8 @@ var project_with_masks = {
         "author": "",
         "description": "",
         "name": "Mask test",
-        "copyright": ""
+        "copyright": "",
+        "duration": 10.0
     },
     "data": {
         "swatches": []
