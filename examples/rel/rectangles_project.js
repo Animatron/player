@@ -15,7 +15,8 @@ var rectangles_project =
     "copyright": "",
     "version": 0.1,
     "description": "",
-    "modificationTime": "2012-04-10T15:06:12.246Z"
+    "modificationTime": "2012-04-10T15:06:12.246Z",
+    "duration": 10.0
   },
   "anim": {
     "dimension": [

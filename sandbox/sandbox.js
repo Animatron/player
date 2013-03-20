@@ -7,8 +7,6 @@
 
 var DEFAULT_REFRESH_RATE = 3000;
 
-var uexamples = [];
-
 var _player = null;
 
 function sandbox() {
@@ -34,6 +32,9 @@ function sandbox() {
     this.player._checkMode();
     _player = this.player;
 
+    var lastCode = '';
+    if (localStorage) lastCode = load_last_code();
+
     this.cm = CodeMirror.fromTextArea(this.codeElm,
               { mode: 'javascript',
                 indentUnit: 4,
@@ -42,7 +43,7 @@ function sandbox() {
                 matchBrackets: true,
                 wrapLines: true,
                 autofocus: true });
-    this.cm.setValue(defaultCode);
+    this.cm.setValue((lastCode.length > 0) ? lastCode : defaultCode);
     //this.cm.setValue('return <your code here>;');
     this.cm.setSize(null, '66%');
     this.cm.on('focus', function() {
@@ -51,24 +52,51 @@ function sandbox() {
     this.cm.on('blur', function() {
       document.body.className = '';
     });
+    this.cm.on('change', function() {
+      refresh();
+    });
 
     var s = this;
-    var curInterval = null;
-    var refreshRate = DEFAULT_REFRESH_RATE;
+
+    var curInterval = null,
+        refreshRate = localStorage ? load_refresh_rate() : DEFAULT_REFRESH_RATE;
+    var lastRefresh = undefined,
+        lastPlayedFrom = undefined;
+
+    function resetTime() {
+        lastRefresh = undefined;
+        lastPlayedFrom = undefined;
+    }
+
+    function makeSafe(code) {
+        return ['(function(){',
+                '  '+code,
+                '})();'].join('\n');
+    }
+
     function refresh() {
+        var playFrom = 0;
+        var now = new Date();
+        if (lastRefresh != undefined) {
+            var t_diff = (now - lastRefresh),
+                playFrom = ((lastPlayedFrom || 0) + t_diff) % refreshRate;
+            lastPlayedFrom = playFrom;
+            playFrom /= 1000;
+        }
+        lastRefresh = now;
         s.errorsElm.style.display = 'none';
         try {
             s.player.stop();
-            var code = ['(function(){',
-                        '  '+s.cm.getValue(),
-                        '})();'].join('\n');
-            var scene = eval(code);
-            player.load(scene);
-            player.play();
+            var userCode = s.cm.getValue();
+            if (localStorage) save_current_code(userCode);
+            var safeCode = makeSafe(userCode);
+            var scene = eval(safeCode);
+            player.load(scene, refreshRate / 1000);
+            player.play(playFrom);
         } catch(e) {
             onerror(e);
         }
-    }
+    };
 
     function onerror(e) {
         var e2;
@@ -92,6 +120,8 @@ function sandbox() {
         if (curInterval) clearTimeout(curInterval);
         //setTimeout(function() {
             refreshRate = to;
+            save_refresh_rate(refreshRate);
+            resetTime();
             var refresher = function() {
               refresh();
               curInterval = setTimeout(refresher, to);
@@ -100,18 +130,23 @@ function sandbox() {
         //}, 1);
     }
 
-    setTimeout(function() {
-        store_examples(); // store current examples, it will skip if their versions match
-        load_examples(); // load new examples, it will skip the ones with matching versions
-        list_examples(s.selectElm); // list the examples in select element
-    }, 1);
+    if (localStorage) {
+        setTimeout(function() {
+            store_examples(); // store current examples, it will skip if their versions match
+            load_examples(); // load new examples, it will skip the ones with matching versions
+            list_examples(s.selectElm); // list the examples in select element
+        }, 1);
+    }
 
     this.selectElm.onchange = function() {
+        console.log('select fired onchange');
         s.cm.setValue(examples[this.selectedIndex][1]);
+        refresh();
     }
 
     this.debugElm.onchange = function() {
         s.player.debug = !s.player.debug;
+        refresh();
     }
 
     var tangleModel = {
@@ -127,6 +162,16 @@ function sandbox() {
     updateInterval(refreshRate);
 
     new Tangle(this.tangleElm, tangleModel);
+
+    function change_mode(radio) {
+      if (_player) {
+        _player.mode = C[radio.value];
+        _player._checkMode();
+        refresh();
+      }
+    }
+
+    window.change_mode = change_mode;
 
 }
 
@@ -151,13 +196,6 @@ function hide_csheet(csheetElmId, overlayElmId) {
     csheetElm.style.display = 'none';
     overlayElm.style.display = 'none';
 
-}
-
-function change_mode(radio) {
-  if (_player) {
-    _player.mode = C[radio.value];
-    _player._checkMode();
-  }
 }
 
 function store_examples() {
@@ -206,6 +244,26 @@ function save_example(code) {
     var pos = examples.length;
     examples[pos] = [ 0, code ];
     store_example(pos);
+}
+
+function save_current_code(code) {
+    if (!localStorage) throw new Error('Local storage support required');
+    localStorage.setItem('_current_code', code);
+}
+
+function load_last_code() {
+    if (!localStorage) throw new Error('Local storage support required');
+    return localStorage.getItem('_current_code') || '';
+}
+
+function save_refresh_rate(rate) {
+    if (!localStorage) throw new Error('Local storage support required');
+    localStorage.setItem('_current_rate', rate);
+}
+
+function load_refresh_rate() {
+    if (!localStorage) throw new Error('Local storage support required');
+    return localStorage.getItem('_current_rate') || DEFAULT_REFRESH_RATE;
 }
 
 function list_examples(selectElm) {

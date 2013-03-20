@@ -97,10 +97,10 @@ describe("player, when speaking about initialization,", function() {
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
-    it("duration should be 0 when no scene loaded", function() {
+    it("duration should not be defined when no scene loaded", function() {
         player.init('test-id');
         expect(player.anim).toBe(null);
-        expect(player.state.duration).toBe(0);
+        expect(player.state.duration).not.toBeDefined();
     });
 
     it("zoom should be 1 when no scene loaded", function() {
