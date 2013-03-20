@@ -320,11 +320,20 @@ Builder.prototype.bounds = function(bounds) {
     return this;
 }
 
-// * BANDS *
+// * BANDS & DURATION *
 
 // > builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
     this.v.setBand(band);
+    return this;
+}
+/* FIXME: duration specifies scene duration, but probably user expects it to set element's duration, find
+   some another nice name to set scene duration and make this method set element's duration */
+// > builder.duration % (val: Float) => Builder
+Builder.prototype.duration = function(value) {
+    if (this.v.parent) throw new Error('Please set duration only to the root element');
+    this.d = value;
+    //if (this.v.scene) this.v.scene.setDuration(value);
     return this;
 }
 

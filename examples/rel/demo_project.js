@@ -14,7 +14,8 @@ var demo_project =
     "author": "",
     "copyright": "",
     "version": 0.1,
-    "description": ""
+    "description": "",
+    "duration": 10.0
   },
   "anim": {
     "dimension": [

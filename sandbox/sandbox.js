@@ -51,11 +51,32 @@ function sandbox() {
     this.cm.on('blur', function() {
       document.body.className = '';
     });
+    this.cm.on('change', function() {
+      refresh();
+    });
 
     var s = this;
-    var curInterval = null;
-    var refreshRate = DEFAULT_REFRESH_RATE;
+
+    var curInterval = null,
+        refreshRate = DEFAULT_REFRESH_RATE;
+    var lastRefresh = undefined,
+        lastPlayedFrom = undefined;
+
+    function resetTime() {
+        lastRefresh = undefined;
+        lastPlayedFrom = undefined;
+    }
+
     function refresh() {
+        var playFrom = 0;
+        var now = new Date();
+        if (lastRefresh != undefined) {
+            var t_diff = (now - lastRefresh),
+                playFrom = ((lastPlayedFrom || 0) + t_diff) % refreshRate;
+            lastPlayedFrom = playFrom;
+            playFrom /= 1000;
+        }
+        lastRefresh = now;
         s.errorsElm.style.display = 'none';
         try {
             s.player.stop();
@@ -63,12 +84,12 @@ function sandbox() {
                         '  '+s.cm.getValue(),
                         '})();'].join('\n');
             var scene = eval(code);
-            player.load(scene);
-            player.play();
+            player.load(scene, refreshRate / 1000);
+            player.play(playFrom);
         } catch(e) {
             onerror(e);
         }
-    }
+    };
 
     function onerror(e) {
         var e2;
@@ -92,6 +113,7 @@ function sandbox() {
         if (curInterval) clearTimeout(curInterval);
         //setTimeout(function() {
             refreshRate = to;
+            resetTime();
             var refresher = function() {
               refresh();
               curInterval = setTimeout(refresher, to);
@@ -108,10 +130,12 @@ function sandbox() {
 
     this.selectElm.onchange = function() {
         s.cm.setValue(examples[this.selectedIndex][1]);
+        refresh();
     }
 
     this.debugElm.onchange = function() {
         s.player.debug = !s.player.debug;
+        refresh();
     }
 
     var tangleModel = {
@@ -127,6 +151,16 @@ function sandbox() {
     updateInterval(refreshRate);
 
     new Tangle(this.tangleElm, tangleModel);
+
+    function change_mode(radio) {
+      if (_player) {
+        _player.mode = C[radio.value];
+        _player._checkMode();
+        refresh();
+      }
+    }
+
+    window.change_mode = change_mode;
 
 }
 
@@ -151,13 +185,6 @@ function hide_csheet(csheetElmId, overlayElmId) {
     csheetElm.style.display = 'none';
     overlayElm.style.display = 'none';
 
-}
-
-function change_mode(radio) {
-  if (_player) {
-    _player.mode = C[radio.value];
-    _player._checkMode();
-  }
 }
 
 function store_examples() {
