@@ -40,7 +40,7 @@ AnimatronImporter.prototype.configureAnim = function(prj) {
         'fps': _a.framerate,
         'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
         'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgfill': _a.background ? Convert.fill(_a.background) : null,
+        'bgcolor': _a.background && _a.background.color ? _a.background.color : null,
     }
 }
 
@@ -53,6 +53,7 @@ AnimatronImporter.prototype.load = function(prj) {
     var scene =  this.importScene(prj.anim.scenes[0],
                                   prj.anim.elements);
     if (prj.meta.duration != undefined) scene.setDuration(prj.meta.duration);
+    if (prj.anim.background) scene.bgfill = Convert.fill(prj.anim.background);
     return scene;
 };
 
@@ -242,7 +243,7 @@ Convert.fill = function(fill) {
     return brush;
 }
 Convert.gradient = function(src) {
-    // (offsets, colors, x1, y1, r0?, r1?)
+    // (bounds, offsets, colors, x1, y1, r0?, r1?, alpha)
     var stops = [],
         offsets = src.offsets;
     for (var i = 0; i < offsets.length; i++) {
@@ -255,7 +256,8 @@ Convert.gradient = function(src) {
         r: (typeof src.r0 !== 'undefined') ? [ src.r0, src.r1 ] : null,
         dir: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
         stops: stops,
-        bounds: src.bounds
+        bounds: src.bounds,
+        alpha: src.alpha
     };
 }
 Convert.mode = function(from) {
