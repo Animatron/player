@@ -518,7 +518,7 @@ function Player() {
 Player.__instances = 0;
 
 Player.PREVIEW_POS = 0.33;
-Player.PEFF = 0.07; // seconds to play more when reached end of movie
+Player.PEFF = 0.05; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
 Player.URL_ATTR = 'data-url';
@@ -3963,17 +3963,21 @@ Text.prototype.apply = function(ctx, point) {
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
     if (this.fill) {
         DU.applyFill(ctx, this.fill);
+        ctx.save();
         this.visitLines(function(line) {
             ctx.fillText(line, 0, accent);
             ctx.translate(0, 1.2 * accent);
         });
+        ctx.restore();
     }
     if (this.stroke) {
         DU.applyStroke(ctx, this.stroke);
+        ctx.save();
         this.visitLines(function(line) {
             ctx.strokeText(line, 0, accent);
             ctx.translate(0, 1.2 * accent);
         });
+        ctx.restore();
     }
     ctx.restore();
 }
