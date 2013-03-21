@@ -40,7 +40,7 @@ AnimatronImporter.prototype.configureAnim = function(prj) {
         'fps': _a.framerate,
         'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
         'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgfill': _a.background ? Convert.fill(_a.background) : null,
+        'bgcolor': _a.background && _a.background.color ? _a.background.color : null,
     }
 }
 
@@ -53,6 +53,7 @@ AnimatronImporter.prototype.load = function(prj) {
     var scene =  this.importScene(prj.anim.scenes[0],
                                   prj.anim.elements);
     if (prj.meta.duration != undefined) scene.setDuration(prj.meta.duration);
+    if (prj.anim.background) scene.bgfill = Convert.fill(prj.anim.background);
     return scene;
 };
 
@@ -163,6 +164,7 @@ Convert.tweenType = function(from) {
     if (from === 'Alpha') return C.T_ALPHA;
     if (from === 'Scale') return C.T_SCALE;
     if (from === 'rotate-to-path') return C.T_ROT_TO_PATH;
+    if (from === 'Shear') return C.T_SHEAR;
 }
 Convert.tweenData = function(type, tween) {
     if (!tween.data) {
@@ -206,7 +208,8 @@ Convert.easingType = function(from) {
     if (from === 'Ease In Out') return C.E_INOUT;
 }
 Convert.stroke = function(stroke) {
-    // (width, paint (color | colors | r0, r1), cap, join, limit)
+    // (width, paint (color | colors | rgba | rgbas | r0, r1),
+    // cap, join, limit)
     if (!stroke) return stroke;
     var brush = {};
     brush.width = stroke.width;
@@ -214,8 +217,8 @@ Convert.stroke = function(stroke) {
     brush.join = stroke.join;
     if (stroke.paint) {
         var paint = stroke.paint;
-        if (paint.color) {
-            brush.color = paint.color;
+        if (paint.rgba || paint.color) {
+            brush.color = paint.rgba || paint.color;
         } else if ((typeof paint.r0 !== 'undefined')
                 && (typeof paint.r1 !== 'undefined')) {
             brush.rgrad = Convert.gradient(paint);
@@ -226,29 +229,29 @@ Convert.stroke = function(stroke) {
     return brush;
 }
 Convert.fill = function(fill) {
-    // (color | colors | r0, r1)
+    // (color | colors | rgba | rgbas | r0, r1)
     if (!fill) return null;
     var brush = {};
     if (!fill) {
         brush.color = "rgba(0,0,0,0)";
-    } else if (fill.color) {
-        brush.color = fill.color;
+    } else if (fill.rgba || fill.color) {
+        brush.color = fill.rgba || fill.color;
     } else if ((typeof fill.r0 !== 'undefined')
             && (typeof fill.r1 !== 'undefined')) {
         brush.rgrad = Convert.gradient(fill);
-    } else if (fill.colors) {
+    } else if (fill.rgbas || fill.colors) {
         brush.lgrad = Convert.gradient(fill);
     }
     return brush;
 }
 Convert.gradient = function(src) {
-    // (offsets, colors, x1, y1, r0?, r1?)
+    // (bounds, offsets, colors, x1, y1, r0?, r1?, alpha)
     var stops = [],
         offsets = src.offsets;
     for (var i = 0; i < offsets.length; i++) {
         stops.push([
             offsets[i],
-            src.colors[i]
+            src.rgbas[i] || src.colors[i]
         ]);
     }
     return {

@@ -254,10 +254,8 @@ function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
-    if (isObj) {
-        if (opts.bgfill) { /* TODO: support other fill types */
-            canvas.style.backgroundColor = opts.bgfill.color;
-        }
+    if (isObj && opts.bgcolor) {
+        canvas.style.backgroundColor = opts.bgcolor;
     }
     canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
@@ -520,14 +518,14 @@ function Player() {
 Player.__instances = 0;
 
 Player.PREVIEW_POS = 0.33;
-Player.PEFF = 0.07; // seconds to play more when reached end of movie
+Player.PEFF = 0.05; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
 Player.URL_ATTR = 'data-url';
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'height': DEF_CNVS_HEIGHT,
-                          'bgfill': null/*{ 'color': DEF_CNVS_BG }*/ };
+                          'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'muteErrors': false,
@@ -542,7 +540,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'anim': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
-                                           'bgfill': null,
+                                           'bgcolor': null,
                                            'duration': 0 }
                                };
 
@@ -579,7 +577,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       "anim": { "fps": 30,
 //                 "width": 400,
 //                 "height": 250,
-//                 "bgfill": { color: "#fff" },
+//                 "bgcolor": { color: "#fff" },
 //                 "duration": 0 } }
 
 Player.prototype.init = function(cvs, opts) {
@@ -841,12 +839,12 @@ Player.prototype._postInit = function() {
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
-    this._applyConfToCanvas({
+    this._reconfigureCanvas({
         width: rect.width,
         height: rect.height,
         x: rect.x,
         y: rect.y,
-        bgfill: this.state.bgfill
+        bgcolor: this.state.bgcolor
     });
     if (this.anim) this.forceRedraw();
 }
@@ -875,7 +873,7 @@ Player.prototype.changeZoom = function(ratio) {
 //     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
 //       "width": 640,
 //       "height": 480,
-//       ["bgfill": { color: "#f00" },] // in canvas-friendly format
+//       ["bgcolor": { color: "#f00" },] // in canvas-friendly format
 //       ["duration": 10.0] // in seconds
 //     }
 Player.prototype.configureAnim = function(conf) {
@@ -885,7 +883,9 @@ Player.prototype.configureAnim = function(conf) {
     if (!conf.width && cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
     if (!conf.height && cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
 
-    this._applyConfToCanvas(conf);
+    this._reconfigureCanvas(conf);
+
+    if (conf.bgcolor) this.state.bgcolor = conf.bgcolor;
 
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
@@ -1061,7 +1061,7 @@ Player.prototype._reset = function() {
     /*this.stop();*/
 }
 // update player's canvas with configuration
-Player.prototype._applyConfToCanvas = function(opts) {
+Player.prototype._reconfigureCanvas = function(opts) {
     var canvas = this.canvas;
     var pxRatio = getPxRatio();
     this._canvasConf = opts;
@@ -1072,7 +1072,7 @@ Player.prototype._applyConfToCanvas = function(opts) {
     this.state.width = _w;
     this.state.height = _h;
     this.state.ratio = pxRatio;
-    if (opts.bgfill) this.state.bgfill = opts.bgfill;
+    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
     canvasOpts(canvas, opts, pxRatio);
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
@@ -1273,7 +1273,7 @@ Player.createState = function(player) {
         /* TODO: use iactive to determine if controls/info should be init-zed */
         'width': player.canvas.offsetWidth,
         'height': player.canvas.offsetHeight,
-        'zoom': 1.0, 'bgfill': null,
+        'zoom': 1.0, 'bgcolor': null,
         'happens': C.NOTHING,
         'duration': undefined,
         '__startTime': -1,
@@ -1314,7 +1314,7 @@ Player._optsFromCvsAttrs = function(canvas) {
                        'height': (__attrOr(canvas, 'data-height',
                                  (height = __attrOr(canvas, 'height', undefined),
                                   height ? (height / pxRatio) : undefined))),
-                       'bgfill': canvas.hasAttribute('data-bgcolor')
+                       'bgcolor': canvas.hasAttribute('data-bgcolor')
                                  ? { 'color': canvas.getAttribute('data-bgcolor') }
                                  : undefined,
                        'duration': undefined } };
@@ -1329,7 +1329,7 @@ Player._optsFromURLParams = function(attrs/* as json */) {
              'anim': { 'fps': undefined,
                        'width': attrs.w,
                        'height': attrs.h,
-                       'bgfill': { color: "#" + attrs.bg },
+                       'bgcolor': { color: "#" + attrs.bg },
                        'duration': undefined } };
 }
 Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, importer) {
@@ -1343,7 +1343,7 @@ Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, import
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
-            player._applyConfToCanvas({ width: params.w, height: params.h });
+            player._reconfigureCanvas({ width: params.w, height: params.h });
         }
         if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
     }
@@ -1362,6 +1362,9 @@ function Scene() {
     this.hash = {};
     this.name = '';
     this.duration = undefined;
+    this.bgfill = null;
+    this.width = undefined;
+    this.height = undefined;
     this._initHandlers(); // TODO: make automatic
 }
 
@@ -1452,6 +1455,10 @@ Scene.prototype.render = function(ctx, time, zoom) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
+    }
+    if (this.bgfill) {
+        ctx.fillStyle = Brush.ccreate(ctx, this.bgfill);
+        ctx.fillRect(0, 0, this.width, this.height);
     }
     this.visitRoots(function(elm) {
         elm.render(ctx, time);
@@ -1764,8 +1771,8 @@ Element.prototype.render = function(ctx, gtime) {
                 bcvs = this.__backCvs,
                 bctx = this.__backCtx;
 
-            var scene_width = this.scene.awidth,
-                scene_height = this.scene.aheight,
+            var scene_width = this.scene.width,
+                scene_height = this.scene.height,
                 dbl_scene_width = scene_width * 2,
                 dbl_scene_height = scene_height * 2;
 
@@ -2233,9 +2240,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.awidth * 2, scene.aheight * 2], this.state.ratio);
+    this.__maskCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.awidth * 2, scene.aheight * 2], this.state.ratio);
+    this.__backCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     /* document.body.appendChild(this.__maskCvs); */
     /* document.body.appendChild(this.__backCvs); */
@@ -2928,8 +2935,8 @@ D.drawNext = function(ctx, state, scene, before, after) {
     }
     state.__redraws++;
 
-    ctx.clearRect(0, 0, state.width * state.ratio,
-                        state.height * state.ratio);
+    ctx.clearRect(0, 0, scene.width * state.ratio,
+                        scene.height * state.ratio);
 
     scene.render(ctx, time, state.zoom * state.ratio/*, state.afps*/);
 
@@ -2958,7 +2965,7 @@ D.drawFPS = function(ctx, fps, time) {
     ctx.font = '20px sans-serif';
     ctx.fillText(Math.floor(fps), 8, 20);
     ctx.font = '10px sans-serif';
-    ctx.fillText(Math.floor(time * 100) / 100, 8, 35);
+    ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
 }
 
 // ### Drawing: Utils
@@ -2970,8 +2977,7 @@ var DU = {}; // means "Drawing Utils"
 DU.applyStroke = function(ctx, stroke) {
     if (!stroke) return;
     ctx.lineWidth = stroke.width;
-    ctx.strokeStyle = stroke._style // calculated once for stroke
-                      || (stroke._style = Path.createStyle(ctx, stroke));
+    ctx.strokeStyle = Brush.ccreate(ctx, stroke);
     ctx.lineCap = stroke.cap;
     ctx.lineJoin = stroke.join;
 }
@@ -2979,8 +2985,7 @@ DU.applyStroke = function(ctx, stroke) {
 /* FIXME: move to `Path`? */
 DU.applyFill = function(ctx, fill) {
     if (!fill) return;
-    ctx.fillStyle = fill._style // calculated once for fill
-                  || (fill._style = Path.createStyle(ctx, fill));
+    ctx.fillStyle = Brush.ccreate(ctx, fill);
 }
 
 DU._hasVal = function(fsval) {
@@ -3047,8 +3052,12 @@ L.loadScene = function(player, scene, callback) {
         scene.setDuration(_duration);
         player.setDuration(_duration);
     }
-    scene.awidth = player.state.width;
-    scene.aheight = player.state.height;
+    if ((scene.width !== undefined) && (scene.height !== undefined)) {
+        player._reconfigureCanvas({ width: scene.width, height: scene.height });
+    } else {
+        scene.width = player.state.width;
+        scene.height = player.state.height;
+    }
     if (callback) callback.call(player, scene);
 }
 L.loadClips = function(player, clips, callback) {
@@ -3203,6 +3212,7 @@ C.T_SCALE       = 'SCALE';
 C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
+C.T_SHEAR       = 'SHEAR';
 
 var Tween = {};
 var Easing = {};
@@ -3215,8 +3225,9 @@ Tween.TWEENS_PRIORITY[C.T_SCALE]       = 1;
 Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
+Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
 
-Tween.TWEENS_COUNT = 5;
+Tween.TWEENS_COUNT = 6;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
@@ -3253,6 +3264,12 @@ Tweens[C.T_ROT_TO_PATH] =
       return function(t, duration, data) {
         var path = this._mpath;
         if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+      };
+    };
+Tweens[C.T_SHEAR] =
+    function() {
+      return function(t, duration, data) {
+        // TODO
       };
     };
 
@@ -3732,54 +3749,6 @@ Path.makeSeg = function(type, pts) {
     else if (type === C.P_LINETO) { return new LSeg(pts); }
     else if (type === C.P_CURVETO) { return new CSeg(pts); }
 }
-// create canvas-compatible style from brush
-Path.createStyle = function(ctx, brush) {
-    if (brush.color) return brush.color;
-    if (brush.lgrad) {
-        var src = brush.lgrad,
-            stops = src.stops,
-            dir = src.dir,
-            bounds = src.bounds;
-        var grad = bounds
-            ? ctx.createLinearGradient(
-                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
-                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
-                            bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
-            : ctx.createLinearGradient(
-                            dir[0][0], dir[0][1],  // x0, y0
-                            dir[1][0], dir[1][1]); // x1, y1
-        for (var i = 0, slen = stops.length; i < slen; i++) {
-            var stop = stops[i];
-            grad.addColorStop(stop[0], stop[1]);
-        }
-        return grad;
-    }
-    if (brush.rgrad) {
-        var src = brush.rgrad,
-            stops = src.stops,
-            dir = src.dir,
-            r = src.r,
-            bounds = src.bounds;
-        var grad = bounds
-            ? ctx.createRadialGradient(
-                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
-                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                            Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
-                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
-                            bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
-                            Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
-            : ctx.createRadialGradient(
-                           dir[0][0], dir[0][1], r[0],  // x0, y0, r0
-                           dir[1][0], dir[1][1], r[1]); // x1, y1, r1
-        for (var i = 0, slen = stops.length; i < slen; i++) {
-            var stop = stops[i];
-            grad.addColorStop(stop[0], stop[1]);
-        }
-        return grad;
-    }
-    return null;
-}
 
 function MSeg(pts) {
     this.type = C.P_MOVETO;
@@ -3994,17 +3963,21 @@ Text.prototype.apply = function(ctx, point) {
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
     if (this.fill) {
         DU.applyFill(ctx, this.fill);
+        ctx.save();
         this.visitLines(function(line) {
             ctx.fillText(line, 0, accent);
             ctx.translate(0, 1.2 * accent);
         });
+        ctx.restore();
     }
     if (this.stroke) {
         DU.applyStroke(ctx, this.stroke);
+        ctx.save();
         this.visitLines(function(line) {
             ctx.strokeText(line, 0, accent);
             ctx.translate(0, 1.2 * accent);
         });
+        ctx.restore();
     }
     ctx.restore();
 }
@@ -4073,6 +4046,63 @@ Text.prototype.clone = function() {
     if (this.stroke) c.stroke = obj_clone(this.stroke);
     if (this.fill) c.fill = obj_clone(this.fill);
     return c;
+}
+
+var Brush = {};
+// cached creation, returns previous result
+// if it was already created before
+Brush.ccreate = function(ctx, brush) {
+  if (brush._style) return brush._style;
+  brush._style = Brush.create(ctx, brush);
+  return brush._style;
+}
+// create canvas-compatible style from brush
+Brush.create = function(ctx, brush) {
+    if (brush.color) return brush.color;
+    if (brush.lgrad) {
+        var src = brush.lgrad,
+            stops = src.stops,
+            dir = src.dir,
+            bounds = src.bounds;
+        var grad = bounds
+            ? ctx.createLinearGradient(
+                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
+                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
+                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
+                            bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
+            : ctx.createLinearGradient(
+                            dir[0][0], dir[0][1],  // x0, y0
+                            dir[1][0], dir[1][1]); // x1, y1
+        for (var i = 0, slen = stops.length; i < slen; i++) {
+            var stop = stops[i];
+            grad.addColorStop(stop[0], stop[1]);
+        }
+        return grad;
+    }
+    if (brush.rgrad) {
+        var src = brush.rgrad,
+            stops = src.stops,
+            dir = src.dir,
+            r = src.r,
+            bounds = src.bounds;
+        var grad = bounds
+            ? ctx.createRadialGradient(
+                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
+                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
+                            Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
+                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
+                            bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
+                            Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
+            : ctx.createRadialGradient(
+                           dir[0][0], dir[0][1], r[0],  // x0, y0, r0
+                           dir[1][0], dir[1][1], r[1]); // x1, y1, r1
+        for (var i = 0, slen = stops.length; i < slen; i++) {
+            var stop = stops[i];
+            grad.addColorStop(stop[0], stop[1]);
+        }
+        return grad;
+    }
+    return null;
 }
 
 // Controls
