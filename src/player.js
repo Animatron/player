@@ -3212,6 +3212,7 @@ C.T_SCALE       = 'SCALE';
 C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
+C.T_SHEAR       = 'SHEAR';
 
 var Tween = {};
 var Easing = {};
@@ -3224,8 +3225,9 @@ Tween.TWEENS_PRIORITY[C.T_SCALE]       = 1;
 Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
+Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
 
-Tween.TWEENS_COUNT = 5;
+Tween.TWEENS_COUNT = 6;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
@@ -3262,6 +3264,12 @@ Tweens[C.T_ROT_TO_PATH] =
       return function(t, duration, data) {
         var path = this._mpath;
         if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+      };
+    };
+Tweens[C.T_SHEAR] =
+    function() {
+      return function(t, duration, data) {
+        // TODO
       };
     };
 

@@ -164,6 +164,7 @@ Convert.tweenType = function(from) {
     if (from === 'Alpha') return C.T_ALPHA;
     if (from === 'Scale') return C.T_SCALE;
     if (from === 'rotate-to-path') return C.T_ROT_TO_PATH;
+    if (from === 'Shear') return C.T_SHEAR;
 }
 Convert.tweenData = function(type, tween) {
     if (!tween.data) {
@@ -256,8 +257,7 @@ Convert.gradient = function(src) {
         r: (typeof src.r0 !== 'undefined') ? [ src.r0, src.r1 ] : null,
         dir: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
         stops: stops,
-        bounds: src.bounds,
-        alpha: src.alpha
+        bounds: src.bounds
     };
 }
 Convert.mode = function(from) {
