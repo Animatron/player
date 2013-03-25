@@ -1,0 +1,155 @@
+<!--
+
+    Copyright (c) 2011-2013 by Animatron.
+    All rights are reserved.
+
+-->
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>
+
+    <script type="text/javascript">
+
+        var _embed = (function() {
+
+            var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
+
+            function init() {
+
+                var defaultURL = '/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+
+                var _url = document.getElementById('url-val');
+                _url.value = defaultURL;
+
+                url_change(_url);
+            };
+
+            //var start = (function() {
+            function load(url, w, h) {
+
+                /* return function(url, width, height) {
+                    var width  = <%=width%>;
+                    var height = <%=height%>;
+                    var url    = '<%=contentUrl%>';
+                    anm.Player.forSnapshot('canvas1', url, <%=p%>, new AnimatronImporter());
+                } */
+
+                /* return function() {
+                    var width  = 550.0;
+                    var height = 450.0;
+                    var url    = 'http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+                    anm.Player.forSnapshot('canvas1', url, {
+                        "height": 450,
+                        "width": 550
+                    }, new AnimatronImporter());
+                } */
+
+                anm.Player.forSnapshot('canvas1', PREFIX + url, {
+                    "height": h,
+                    "width": w
+                }, new AnimatronImporter());
+
+            };
+
+            function url_change(_url) {
+                var _cur_url = document.getElementById('cur-url');
+                _cur_url.innerText = PREFIX + _url.value;
+            }
+
+            function load_click(_load) {
+                try {
+                    load(_load.value)
+                } catch(e) {
+                    var _error = document.getElementById('error-box');
+                    _error.innerText = 'Error: ' + e.message;
+                }
+            }
+
+            return {
+                'init': init, 'load': load,
+                'url_change': url_change, 'load_click': load_click
+            }
+
+        })();
+
+    </script>
+
+    <style type="text/css">
+      body {
+        font-size: 40px;
+        font-family: Tahoma, sans-serif;
+        color: #666;
+      }
+
+      p {
+        text-align: center;
+      }
+
+      input, button {
+        font-size: 1em;
+      }
+
+      #example, #preview {
+        font-size: .4em;
+      }
+
+      #options label {
+        padding: 5px;
+      }
+
+      canvas {
+        border: 2px dashed #333;
+      }
+
+      #canvas-holder {
+        margin: 30px 40%;
+      }
+
+      #url-val {
+        min-width: 80%;
+        color: #aaa;
+      }
+
+      #url-val:focus {
+        color: #000;
+      }
+
+      #url-val:blur {
+        color: #333;
+      }
+
+      #preview #cur-url {
+        color: #009;
+      }
+
+      #error-box {
+        color: #f00;
+      }
+    </style>
+
+</head>
+
+<!-- <body onload="start();"> -->
+
+<body onload="_embed.init();">
+<div id="options">
+    <p><label for="url-val">URL</label><input type="text" id="url-val" onkeyup="_embed.url_change(this)" onclick="_embed.url_change(this)" onblur="_embed.url_change(this)"></input><button onclick="_embed.load_click(this)">Load</button></p>
+    <p id="example">
+    <label for="example">Example</label>
+    <span class="prot">http</span><!--
+ --><span class="sep">://</span><!--
+ --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
+ --><span class="sep">/</span><!--
+ --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9<span><!--
+ --><span class="sep">?</span>
+</p>
+    <p id="preview"><label for="cur-url">Preview</label><span id="cur-url"></span></p>
+    <!--<p><label for="w-val">[W]</label><input type="text" id="w-val"></input></p>
+    <p><label for="h-val">[H]</label><input type="text" id="h-val"></input></p>-->
+</div>
+
+<div id="canvas-holder"><canvas id="canvas1"></canvas></div>
+<p id="error-box"></p>
+</body>
+</html>
