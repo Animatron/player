@@ -524,7 +524,7 @@ function Player() {
 }
 Player.__instances = 0;
 
-Player.PREVIEW_POS = 0;
+Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0.05; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
