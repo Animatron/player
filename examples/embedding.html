@@ -7,9 +7,14 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>
+    <!-- <script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script> -->
+    <script type="text/javascript" language="javascript" src="../dist/bundle/animatron.js"></script>
+
+    <link rel="stylesheet" href="./embedding.css" type="text/css" />
 
     <script type="text/javascript">
+
+        // Tangential Eccentric: http://animatron-snapshots.s3.amazonaws.com/fe970cb5-50dc-426e-b535-6b4e0aba217b
 
         var _embed = (function() {
 
@@ -54,8 +59,6 @@
                     }, new AnimatronImporter());
                 } */
 
-                console.log(PREFIX + url);
-
                 anm.Player.forSnapshot('canvas1', PREFIX + url, {
                     "height": h,
                     "width": w
@@ -87,75 +90,6 @@
 
     </script>
 
-    <style type="text/css">
-      body {
-        font-size: 40px;
-        font-family: Tahoma, sans-serif;
-        color: #666;
-      }
-
-      p {
-        text-align: center;
-      }
-
-      input, button {
-        font-size: 1em;
-      }
-
-      #example, #preview {
-        font-size: .4em;
-      }
-
-      #options label {
-        padding: 5px;
-      }
-
-      canvas {
-        border: 2px dashed #333;
-      }
-
-      #canvas-holder {
-        margin: 30px 40%;
-      }
-
-      #url-val {
-        min-width: 80%;
-        color: #aaa;
-      }
-
-      #url-val:focus {
-        color: #000;
-      }
-
-      #url-val:blur {
-        color: #333;
-      }
-
-      #preview #cur-url {
-        color: #009;
-      }
-
-      #error-box {
-        color: #f00;
-      }
-
-      /* #example .prot {
-        color: #c00;
-      }
-
-      #example .sep {
-        color: #00c;
-      }
-
-      #example .scene-hash {
-        color: #0c0;
-      }
-
-      #example .host {
-        color: #0cc;
-      } */
-    </style>
-
 </head>
 
 <!-- <body onload="start();"> -->
@@ -164,13 +98,42 @@
 <div id="options">
     <p><label for="url-val">URL</label><input type="text" id="url-val" onkeyup="_embed.url_change(this)" onclick="_embed.url_change(this)" onblur="_embed.url_change(this)"></input><button onclick="_embed.load_click(this)">Load</button></p>
     <p id="example">
-        <label for="example">Example</label>
-        <span class="prot">http</span><!--
+        <label for="example">Example</label><!--
+     --><span class="prot">http</span><!--
      --><span class="sep">://</span><!--
      --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
      --><span class="sep">/</span><!--
-     --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9<span><!--
-     --><span class="sep">?</span>
+     --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9</span><!--
+     --><span class="sep">?</span><!--
+     --><span class="param">w</span><sub>width</sub><span class="equals">=</span><span class="value">600</span><span class="sep">&amp;</span><!--
+     --><span class="param">h</span><sub>height</sub><span class="equals">=</span><span class="value">500</span><span class="sep">&amp;</span><!--
+     --><span class="param">bg</span><sub>background</sub><span class="equals">=</span><span class="value">f0fff0</span><span class="sep">&amp;</span><!--
+     --><span class="param">m</span><sub>mode</sub><span class="equals">=</span><span class="value">0</span><span class="sep">&amp;</span><!--
+     --><span class="param">r</span><sub>repeat</sub><span class="equals">=</span><span class="value">0</span><span class="sep">&amp;</span><!--
+     --><span class="param">z</span><sub>zoom</sub><span class="equals">=</span><span class="value">1</span><span class="sep">&amp;</span><!--
+     --><span class="param">t</span><sub>play-from</sub><span class="equals">=</span><span class="value">25</span><span class="sep">&amp;</span><!--
+     --><span class="param">p</span><sub>pause-at</sub><span class="equals">=</span><span class="value">37</span><span class="sep">&amp;</span><!--
+   --><span class="param">debug</span><sub>debug</sub><span class="equals">=</span><span class="value">0</span>
+
+    <!-- t and p are in hundreds of miliseconds -->
+
+    <!-- debug: 1 | 0 -->
+
+    <!-- repeat: 1 | 0 -->
+
+    <!-- mode: PREVIEW: 0, DYNAMIC: 4, VIDEO: 11 -->
+
+     <!--    return { 'debug': attrs.debug,
+             'inParent': undefined,
+             'muteErrors': false,
+             'repeat': attrs.r,
+             'mode': attrs.m,
+             'zoom': attrs.z,
+             'anim': { 'fps': undefined,
+                       'width': attrs.w,
+                       'height': attrs.h,
+                       'bgcolor': { color: "#" + attrs.bg },
+                       'duration': undefined } }; -->
     </p>
     <p id="preview"><label for="cur-url">Preview</label><span id="cur-url">x</span></p>
     <!--<p><label for="w-val">[W]</label><input type="text" id="w-val"></input></p>

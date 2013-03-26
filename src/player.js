@@ -809,6 +809,8 @@ Player.prototype._prepare = function(cvs) {
         this.canvas = cvs;
     }
     var canvas = this.canvas;
+    if (canvas.getAttribute('anm-player')) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+    canvas.setAttribute('anm-player', true);
     this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
     this.subscribeEvents(canvas);
@@ -4536,6 +4538,7 @@ Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before call
 Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
 Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
 Errors.P.DURATION_IS_NOT_KNOWN = 'Duration is not known';
+Errors.P.ALREADY_ATTACHED = 'Player is already attached to this canvas, please use another one';
 Errors.P.INIT_TWICE = 'Initialization was called twice';
 Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
 Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
