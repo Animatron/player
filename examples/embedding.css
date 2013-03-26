@@ -1,0 +1,92 @@
+body {
+  font-size: 40px;
+  font-family: Tahoma, sans-serif;
+  color: #666;
+}
+
+p {
+  text-align: center;
+}
+
+input, button {
+  font-size: 1em;
+}
+
+#example, #preview {
+  font-size: .4em;
+}
+
+#options label {
+  padding: 5px;
+}
+
+#canvas-holder > canvas {
+  border: 2px dashed #333;
+  margin: 0 auto;
+  display: block;
+}
+
+#canvas-holder {
+
+}
+
+#url-val {
+  min-width: 80%;
+  color: #aaa;
+}
+
+#url-val:focus {
+  color: #000;
+}
+
+#url-val:blur {
+  color: #333;
+}
+
+#preview #cur-url {
+  color: #009;
+}
+
+#error-box {
+  color: #f00;
+}
+
+#example {
+  position: relative;
+}
+
+#example .prot {
+  color: #a00;
+}
+
+#example .sep {
+  color: #33f;
+}
+
+#example .scene-hash {
+  color: #0a0;
+}
+
+#example .host {
+  color: #0aa;
+}
+
+#example .equals {
+  color: #aaa;
+}
+
+#example .param {
+  color: #a0a;
+}
+
+#example .value {
+  color: #aa0;
+}
+
+#example sub {
+  color: #aaa;
+  font-size: .6em;
+  position: absolute;
+  top: -1.2em;
+  z-index: 12;
+}

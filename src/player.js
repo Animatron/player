@@ -344,6 +344,12 @@ function __errorAs(name, _constructor) {
   return _constructor;
 }
 
+function __paramsToObj(pstr) {
+  var o = {}, ps = pstr.split('&'), i = ps.length, pair;
+  while (i--) { pair = ps[i].split('='); o[pair[0]] = pair[1]; }
+  return o;
+}
+
 function _strf(str, subst) {
   var args = subst;
   return str.replace(/{(\d+)}/g, function(match, number) {
@@ -354,7 +360,8 @@ function _strf(str, subst) {
   });
 };
 
-function mrg_obj(src, backup) {
+function _mrg_obj(src, backup) {
+    if (!backup) return src;
     var res = {};
     for (prop in backup) {
         res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
@@ -517,10 +524,11 @@ function Player() {
 }
 Player.__instances = 0;
 
-Player.PREVIEW_POS = 0.33;
+Player.PREVIEW_POS = 0;
 Player.PEFF = 0.05; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
+Player.MARKER_ATTR = 'anm-player'; // marks player existence on canvas element
 Player.URL_ATTR = 'data-url';
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
@@ -809,8 +817,8 @@ Player.prototype._prepare = function(cvs) {
         this.canvas = cvs;
     }
     var canvas = this.canvas;
-    if (canvas.getAttribute('anm-player')) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-    canvas.setAttribute('anm-player', true);
+    if (canvas.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+    canvas.setAttribute(Player.MARKER_ATTR, true);
     this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
     this.subscribeEvents(canvas);
@@ -933,7 +941,12 @@ Player.prototype.afterFrame = function(callback) {
 Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
     if (this.info) this.info.detach(this.canvas);
+    this.canvas.removeAttribute(Player.MARKER_ATTR);
     this._reset();
+}
+Player.attachedTo = function(canvas) {
+    return (canvas.getAttribute(Player.MARKER_ATTR) == null) ||
+           (canvas.getAttribute(Player.MARKER_ATTR) == undefined);
 }
 Player.__getPosAndRedraw = function(player) {
     return function(evt) {
@@ -1290,9 +1303,9 @@ function __attrOr(canvas, attr, _default) {
            : _default;
 }
 Player._mergeOpts = function(what, where) {
-    var res = mrg_obj(what, where);
-    res.meta = what.meta ? mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
-    res.anim = what.anim ? mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
+    var res = _mrg_obj(what, where);
+    res.meta = what.meta ? _mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
+    res.anim = what.anim ? _mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
     return res;
 }
 Player._optsFromCvsAttrs = function(canvas) {
@@ -1321,22 +1334,26 @@ Player._optsFromCvsAttrs = function(canvas) {
                                  : undefined,
                        'duration': undefined } };
 };
-Player._optsFromURLParams = function(attrs/* as json */) {
-    return { 'debug': attrs.debug,
+Player._optsFromUrlParams = function(params/* as object */) {
+    return { 'debug': params.debug,
              'inParent': undefined,
              'muteErrors': false,
-             'repeat': attrs.r,
-             'mode': attrs.m,
-             'zoom': attrs.z,
+             'repeat': params.r,
+             'mode': params.m,
+             'zoom': params.z,
              'anim': { 'fps': undefined,
-                       'width': attrs.w,
-                       'height': attrs.h,
-                       'bgcolor': { color: "#" + attrs.bg },
+                       'width': params.w,
+                       'height': params.h,
+                       'bgcolor': { color: "#" + params.bg },
                        'duration': undefined } };
 }
-Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, importer) {
-    var options = Player._optsFromURLParams(params);
-    var player = new Player();
+Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
+    var urlWithParams = snapshotUrl.split('?'),
+        snapshotUrl = urlWithParams[0],
+        urlParams = urlWithParams[1], // TODO: validate them?
+        params = (urlParams && urlParams.length > 0) ? __paramsToObj(urlParams) : {},
+        options = Player._optsFromUrlParams(params),
+        player = new Player();
     player.init(canvasId, options);
     function updateWithParams() {
         if (typeof params.t !== 'undefined') {
@@ -1350,7 +1367,7 @@ Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, import
         if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
     }
 
-    player.load(snapshotURL, importer, updateWithParams);
+    player.load(snapshotUrl, importer, updateWithParams);
 
     return player;
 }

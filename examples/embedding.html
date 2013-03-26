@@ -8,19 +8,23 @@
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
     <!-- <script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script> -->
-    <script type="text/javascript" language="javascript" src="../dist/bundle/animatron.js"></script>
+    <script type="text/javascript" language="javascript" src="../dist/full/bundle/animatron.js"></script>
 
     <link rel="stylesheet" href="./embedding.css" type="text/css" />
 
     <script type="text/javascript">
 
         // Tangential Eccentric: http://animatron-snapshots.s3.amazonaws.com/fe970cb5-50dc-426e-b535-6b4e0aba217b
+        // Olya's Movie: http://animatron-snapshots.s3.amazonaws.com/5a0959f1-074c-45a0-87b8-64cbbcd81ce0 (http://editor.animatron.com/#p=ed865051bb5b3ea45f31232b)
+        // /5a0959f1-074c-45a0-87b8-64cbbcd81ce0?w=500&h=500&t=50
 
         var _embed = (function() {
 
             var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
             //var PREFIX = 'http://128.0.0.1/examples/json';
             //var PREFIX = 'http://animatron-snapshots.s3-website-us-east-1.amazonaws.com';
+
+            var player = null;
 
             function init() {
 
@@ -59,10 +63,9 @@
                     }, new AnimatronImporter());
                 } */
 
-                anm.Player.forSnapshot('canvas1', PREFIX + url, {
-                    "height": h,
-                    "width": w
-                }, new AnimatronImporter());
+                if (player) player.detach();
+
+                player = anm.Player.forSnapshot('canvas1', PREFIX + url, new AnimatronImporter());
 
             };
 
