@@ -14,16 +14,25 @@
         var _embed = (function() {
 
             var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
+            //var PREFIX = 'http://128.0.0.1/examples/json';
+            //var PREFIX = 'http://animatron-snapshots.s3-website-us-east-1.amazonaws.com';
 
             function init() {
 
                 var defaultURL = '/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+                //var defaultURL = '/tangential_eccentric.json';
 
                 var _url = document.getElementById('url-val');
                 _url.value = defaultURL;
 
                 url_change(_url);
-            };
+            }
+
+            function on_error(e) {
+                var _error = document.getElementById('error-box');
+                _error.innerText = 'Error: ' + e.message;
+                _error.textContent = 'Error: ' + e.message;
+            }
 
             //var start = (function() {
             function load(url, w, h) {
@@ -45,6 +54,8 @@
                     }, new AnimatronImporter());
                 } */
 
+                console.log(PREFIX + url);
+
                 anm.Player.forSnapshot('canvas1', PREFIX + url, {
                     "height": h,
                     "width": w
@@ -55,14 +66,15 @@
             function url_change(_url) {
                 var _cur_url = document.getElementById('cur-url');
                 _cur_url.innerText = PREFIX + _url.value;
+                _cur_url.textContent = PREFIX + _url.value;
             }
 
             function load_click(_load) {
                 try {
-                    load(_load.value)
+                    var _url = document.getElementById('url-val');
+                    load(_url.value)
                 } catch(e) {
-                    var _error = document.getElementById('error-box');
-                    _error.innerText = 'Error: ' + e.message;
+                    on_error(e);
                 }
             }
 
@@ -126,6 +138,22 @@
       #error-box {
         color: #f00;
       }
+
+      /* #example .prot {
+        color: #c00;
+      }
+
+      #example .sep {
+        color: #00c;
+      }
+
+      #example .scene-hash {
+        color: #0c0;
+      }
+
+      #example .host {
+        color: #0cc;
+      } */
     </style>
 
 </head>
@@ -136,15 +164,15 @@
 <div id="options">
     <p><label for="url-val">URL</label><input type="text" id="url-val" onkeyup="_embed.url_change(this)" onclick="_embed.url_change(this)" onblur="_embed.url_change(this)"></input><button onclick="_embed.load_click(this)">Load</button></p>
     <p id="example">
-    <label for="example">Example</label>
-    <span class="prot">http</span><!--
- --><span class="sep">://</span><!--
- --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
- --><span class="sep">/</span><!--
- --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9<span><!--
- --><span class="sep">?</span>
-</p>
-    <p id="preview"><label for="cur-url">Preview</label><span id="cur-url"></span></p>
+        <label for="example">Example</label>
+        <span class="prot">http</span><!--
+     --><span class="sep">://</span><!--
+     --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
+     --><span class="sep">/</span><!--
+     --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9<span><!--
+     --><span class="sep">?</span>
+    </p>
+    <p id="preview"><label for="cur-url">Preview</label><span id="cur-url">x</span></p>
     <!--<p><label for="w-val">[W]</label><input type="text" id="w-val"></input></p>
     <p><label for="h-val">[H]</label><input type="text" id="h-val"></input></p>-->
 </div>
