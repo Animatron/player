@@ -92,15 +92,6 @@ Builder.prototype.add = function(what) {
     }
     return this;
 }
-// > builder.addS % (what: Element | Builder) => Builder
-Builder.prototype.addS = function(what) {
-    if (what instanceof Element) {
-        this.v.addS(what);
-    } else if (what instanceof Builder) {
-        this.v.addS(what.v);
-    }
-    return this;
-}
 // > builder.remove % (what: Element | Builder) => Builder
 Builder.prototype.remove = function(what) {
     if (what instanceof Element) {
@@ -165,17 +156,12 @@ Builder.prototype.image = function(pt, src, callback) {
     this.x.pos = pt;
     if (src) {
         var b = this;
-        this.x.image =
-           // width/height olny will be known when image will be loaded
-           Element.imgFromUrl(src);
-        if (callback)
-        if (this.x.image.isReady) callback(src);
-        else Element.imgFromUrl(src, callback);
-        try { this.x.image.src = src; }
-        catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
+        this.x.sheet =
+           new Image(src, null, callback);
     }
     return this;
 }
+// TODO: FIX THIS TO WORK PROPERLY
 Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
     this.x.pos = pt;
     this.v.sheet = sheet;

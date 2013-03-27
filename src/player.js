@@ -35,6 +35,8 @@
 // - **Path** —
 //     - _Segments_ —
 // - **Text** —
+// - **Sheet** -
+// - **Brush** -
 // - **Controls** —
 // - **Info Block** —
 // - **Strings** —
@@ -268,31 +270,6 @@ function newCanvas(dimen, ratio) {
     var _canvas = document.createElement('canvas');
     canvasOpts(_canvas, dimen, ratio);
     return _canvas;
-}
-
-function prepareImage(url, callback) {
-    var self = this;
-    if (anm.cache === undefined) anm.cache = {};
-    if (anm.cache[url] === undefined) {
-        var loader = {image: new Image(), callbacks:[]};
-        if (callback) loader.callbacks.push(callback);
-        anm.cache[url] = loader;
-        loader.image.onload = function() {
-            anm.cache[url].image.isReady = true;
-            var i;
-            for (i = 0; i < loader.callbacks.length; i ++) {
-                loader.callbacks[i](self);
-            }
-            loader.callbacks = [];
-        };
-    } else
-    if (anm.cache[url].image.isReady === true) {
-        if (callback) callback(self);
-    }
-    else {
-        if (callback) anm.cache[url].callbacks.push(callback);
-    }
-    return anm.cache[url].image;
 }
 
 // ### Internal Helpers
@@ -1424,18 +1401,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
         this._addToTree(arg1);
     }
 }
-// > Scene.addS % (dimen: Array[Int, 2],
-//                 draw: Function(ctx: Context),
-//                 onframe: Function(time: Float),
-//                 [ transform: Function(ctx: Context,
-//                                       prev: Function(Context)) ])
-//                 => Clip
-Scene.prototype.addS = function(dimen, draw, onframe, transform) {
-    var _clip = new Clip();
-    _clip.addS(dimen, draw, onframe, transform);
-    this.add(_clip);
-    return _clip;
-}
+/* addS allowed to add static element before, such as image, may be return it in some form? */
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
     // error will be thrown in _unregister method
@@ -1674,7 +1640,6 @@ function Element(draw, onframe) {
     this.children = [];
     this.parent = null;
     this.scene = null;
-    this.sprite = false;
     this.visible = false;
     this.registered = false;
     this.disabled = false;
@@ -1711,9 +1676,6 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
-    if (this.sprite && !this.xdata.canvas) {
-        this._drawToCache();
-    }
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
@@ -1725,35 +1687,7 @@ Element.prototype.drawTo = function(ctx) {
     return this.__callPainters(Element.ALL_PAINTERS, ctx);
 }
 // > Element.draw % (ctx: Context)
-Element.prototype.draw = function(ctx) {
-    if (!this.sprite) {
-        this.drawTo(ctx);
-    } else {
-        if (this.xdata.canvas.width > 0 && this.xdata.canvas.height > 0) {
-            if (this.sheet ) {
-                var tw;
-                var th;
-                var w = 1;
-                var h = 1;
-                if (this.sheet instanceof Array) {
-                    w = this.xdata.image.width / this.sheet[0];
-                    h = this.xdata.image.height / this.sheet[1];
-                    tw = this.sheet[0];
-                    th = this.sheet[1];
-                } else {
-                    w = this.xdata.image.width / this.sheet;
-                    tw = this.sheet;
-                }
-                var sy = Math.floor( this.xdata.frame / w ) * tw;
-                var sx = this.xdata.frame % w * th;
-                try {
-                    ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
-                } catch (e) {};
-            }
-            else ctx.drawImage(this.xdata.canvas, 0, 0);
-        }
-    }
-}
+Element.prototype.draw = Element.prototype.drawTo
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
     var s = this.state;
@@ -1964,18 +1898,6 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     } else { // element object mode
         this._addChild(arg1);
     }
-}
-// > Element.addS % (dimen: Array[Int, 2],
-//                   draw: Function(ctx: Context),
-//                   onframe: Function(time: Float),
-//                   [ transform: Function(ctx: Context,
-//                                         prev: Function(Context)) ])
-//                   => Element
-Element.prototype.addS = function(dimen, draw, onframe, transform) {
-    var _elm = this.add(draw, onframe, transform);
-    _elm.sprite = true;
-    _elm.state.dimen = dimen;
-    return _elm;
 }
 Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
@@ -2229,16 +2151,9 @@ Element.prototype.global = function(pt) {
 }*/
 Element.prototype.lbounds = function() {
     var x = this.xdata;
-    if (x.__bounds) return x.__bounds;
-    var bounds;
-    if (x.path) {
-        bounds = x.path.bounds();
-    } else if (x.image) {
-        bounds = [ 0, 0, x.image.width, x.image.height ];
-    } else if (x.text) {
-        bounds = x.text.bounds();
-    } else return null;
-    return bounds;
+    if (x.__bounds) return x.__bounds; // ? it is not saved
+    var subj = x.path || x.text || x.sheet;
+    if (subj) return subj.bounds();
 }
 Element.prototype.lrect = function() {
     var b = this.lbounds();
@@ -2306,8 +2221,6 @@ Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
     clone.children = [].concat(this.children);
-    clone.sprite = this.sprite;
-    clone.sheet = this.sheet;
     clone._modifiers = [].concat(this._modifiers);
     clone._painters = [].concat(this._painters);
     clone.xdata = obj_clone(this.xdata);
@@ -2369,8 +2282,8 @@ Element.prototype.deepClone = function() {
     var src_x = this.xdata,
         trg_x = clone.xdata;
     if (src_x.path) trg_x.path = src_x.path.clone();
-    /* if (src_x.image) trg_x.image = src_x.image.clone(); */
     if (src_x.text) trg_x.text = src_x.text.clone();
+    if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
     trg_x.pos = [].concat(src_x.pos);
     trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
@@ -2388,14 +2301,6 @@ Element.prototype._addChildren = function(elms) {
     for (var ei = 0, el = elms.length; ei < el; ei++) {
         this._addChild(elms[ei]);
     }
-}
-Element.prototype._drawToCache = function(a) {
-    var dim = this.state.dimen;
-    if (this.sheet) dim = [this.xdata.image.width, this.xdata.image.height];
-    var _canvas = newCanvas(dim, this.state.ratio);
-    var _ctx = _canvas.getContext('2d');
-    this.drawTo(_ctx);
-    this.xdata.canvas = _canvas;
 }
 Element.prototype._stateStr = function() {
     var state = this.state;
@@ -2745,14 +2650,12 @@ Element.createState = function(owner) {
 Element.createXData = function(owner) {
     return { 'pos': [0, 0],      // position in parent clip space
              'reg': [0, 0],      // registration point
-             'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
+             'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
              'mode': C.R_ONCE,            // playing mode
              'lband': [0, Element.DEFAULT_LEN], // local band
              'gband': [0, Element.DEFAULT_LEN], // global band
-             'canvas': null,   // own canvas for static (cached) elements
-             'dimen': null,    // dimensions for static (cached) elements
              'keys': {},
              'tf': null,
              'acomp': null,    // alpha composition
@@ -2767,9 +2670,7 @@ Element.__addSysModifiers = function(elm) {
 }
 Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPath);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawImage);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawText);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawReg);
@@ -2830,7 +2731,6 @@ Element._getIMatrixOf = function(s, m) {
     _t.invert();
     return _t;
 }
-Element.imgFromUrl = prepareImage;
 
 var Clip = Element;
 
@@ -3113,21 +3013,15 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.restore();
 }
 
-Render.p_drawPath = function(ctx, path) {
-    if (!(path = path || this.path)) return;
-    path.apply(ctx);
-}
+// FIXME: join three function below into one, taking one object and
+//        applying it
 
-Render.p_drawImage = function(ctx, image) {
-    if (!(image = image || this.image)) return;
+Render.p_drawXData = function(ctx, x) {
+    var subj = x.path || x.text || x.sheet;
+    if (!subj) return;
     ctx.save();
-    if (image.isReady) ctx.drawImage(image, 0, 0);
+    subj.apply(ctx);
     ctx.restore();
-}
-
-Render.p_drawText = function(ctx, text) {
-    if (!(text = text || this.text)) return;
-    text.apply(ctx);
 }
 
 Render.p_drawName = function(ctx, name) {
@@ -4067,6 +3961,9 @@ Text.prototype.clone = function() {
     return c;
 }
 
+// Brush
+// -----------------------------------------------------------------------------
+
 var Brush = {};
 // cached creation, returns previous result
 // if it was already created before
@@ -4123,6 +4020,75 @@ Brush.create = function(ctx, brush) {
     }
     return null;
 }
+
+// Sheet
+// -----------------------------------------------------------------------------
+
+/* TODO: rename to Static and take optional function as source? */
+function Sheet(src, /*dimen, regions, */callback) {
+    this.src = src;
+    this.dimen = /*dimen ||*/ [0, 0];
+    this.regions = regions || [ [ 1, 1 ] ]; // currently only one region is supported,
+                                            // which is equal to image width/height
+    // this.region_func
+    // this.aliases = {}; // map of names to regions (or regions ranges)
+    // this.cur_region = 0; // current region may be changed with modifier
+    this.ready = false;
+    this._image = null;
+    this._cvs_cache = null;
+    this.load(callback);
+}
+Sheet.cache = {};
+Sheet.prototype.load = function(callback) {
+    if (this._image) throw new Error('Already loaded'); // just skip loading?
+    var cache = Sheet.cache;
+    var me = this;
+    function whenDone(image) {
+        me._image = image;
+        // if (me.regions.length == 1) me._drawToCache();
+        me.dimen = [ image.width, image.height ];
+        me.ready = true;
+        if (callback) callback(me);
+    }
+    if (!cache[this.src]) {
+        var _img = new Image();
+        _img.onload = function() {
+            _img.isReady = true; /* FIXME: use 'image.complete' and
+                                  '...' (network exist) combination,
+                                  'complete' fails on Firefox */
+            try { _img.src = me.src; }
+            catch(e) { throw new SysErr('Image at ' + me.src + ' is not accessible'); }
+            whenDone(_img);
+        };
+    } else {
+        whenDone(cache[this.src]);
+    }
+}
+Sheet.prototype.apply = function(ctx) {
+    if (!this.ready) return;
+    // TODO: when using current_region, bounds will depend on that region
+    ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+}
+Sheet.prototype.bounds = function() {
+    // TODO: when using current_region, bounds will depend on that region
+    if (!this.ready) return [0, 0, 0, 0];
+    return [ 0, 0, this.dimen[0], this.dimen[1] ];
+}
+Sheet.prototype.clone = function() {
+    return new Sheet(this.src, this.regions);
+}
+/* Sheet.prototype._drawToCache = function() {
+    if (!this.ready) return;
+    // use dimen?
+    var _img = this.image;
+    // FIXME: check with different ratios
+    var _canvas = newCanvas([ _img.width, _img.height ], 1);
+    var _ctx = _canvas.getContext('2d');
+    _ctx.drawImage()
+    this._cvs_cache = _canvas;
+} */
+var Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] region
+
 
 // Controls
 // -----------------------------------------------------------------------------
@@ -4581,7 +4547,7 @@ var to_export = {
     'Scene': Scene,
     'Element': Element,
     'Clip': Clip,
-    'Path': Path, 'Text': Text,
+    'Path': Path, 'Text': Text, 'Sheet', Sheet, 'Image': Image,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
