@@ -118,6 +118,7 @@ examples.push([ 0 /*version*/, [
 ].join('\n') ]);
 
 examples.push([0 /*version*/, [
-  'return b().image([40, 40], \'./res/sprite.png\')',
-  '          .rotate([0, 3], [0, Math.PI]);'
+  'return b().image([-30, -30], \'./res/bender.jpg\')',
+  '           .rotate([0, 3], [0, Math.PI / 5])',
+  '           .xscale([0, 3], [.3, .1]);'
 ].join('\n') ]);
