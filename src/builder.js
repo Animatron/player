@@ -12,6 +12,9 @@
 var Path = anm.Path;
 var Element = anm.Element;
 var Text = anm.Text;
+var Image = anm.Image;
+var Sheet = anm.Sheet;
+
 var C = anm.C;
 var DU = anm.DU;
 
@@ -157,7 +160,7 @@ Builder.prototype.image = function(pt, src, callback) {
     if (src) {
         var b = this;
         this.x.sheet =
-           new Image(src, null, callback);
+           new Image(src, callback);
     }
     return this;
 }

@@ -3016,8 +3016,8 @@ Render.p_drawReg = function(ctx, reg) {
 // FIXME: join three function below into one, taking one object and
 //        applying it
 
-Render.p_drawXData = function(ctx, x) {
-    var subj = x.path || x.text || x.sheet;
+Render.p_drawXData = function(ctx) {
+    var subj = this.path || this.text || this.sheet;
     if (!subj) return;
     ctx.save();
     subj.apply(ctx);
@@ -4025,14 +4025,15 @@ Brush.create = function(ctx, brush) {
 // -----------------------------------------------------------------------------
 
 /* TODO: rename to Static and take optional function as source? */
-function Sheet(src, /*dimen, regions, */callback) {
+function Sheet(src, callback, start_region) {
     this.src = src;
     this.dimen = /*dimen ||*/ [0, 0];
-    this.regions = regions || [ [ 1, 1 ] ]; // currently only one region is supported,
-                                            // which is equal to image width/height
-    // this.region_func
+    this.regions = [ [ 0, 0, 1, 1 ] ]; // for image, sheet contains just one image
+    this.regions_f = null;
     // this.aliases = {}; // map of names to regions (or regions ranges)
-    // this.cur_region = 0; // current region may be changed with modifier
+    /* use state property for region num? or conform with state jumps/positions */
+    /* TODO: rename region to frame */
+    this.cur_region = start_region || 0; // current region may be changed with modifier
     this.ready = false;
     this._image = null;
     this._cvs_cache = null;
@@ -4048,6 +4049,8 @@ Sheet.prototype.load = function(callback) {
         // if (me.regions.length == 1) me._drawToCache();
         me.dimen = [ image.width, image.height ];
         me.ready = true;
+        console.log('image loaded');
+        me._drawToCache();
         if (callback) callback(me);
     }
     if (!cache[this.src]) {
@@ -4056,18 +4059,38 @@ Sheet.prototype.load = function(callback) {
             _img.isReady = true; /* FIXME: use 'image.complete' and
                                   '...' (network exist) combination,
                                   'complete' fails on Firefox */
-            try { _img.src = me.src; }
-            catch(e) { throw new SysErr('Image at ' + me.src + ' is not accessible'); }
             whenDone(_img);
         };
+        try { _img.src = me.src; }
+        catch(e) { throw new SysErr('Image at ' + me.src + ' is not accessible'); }
     } else {
         whenDone(cache[this.src]);
     }
 }
+Sheet.prototype._drawToCache = function() {
+    if (!this.ready) return;
+    var _canvas = newCanvas(this.dimen, 1 /* FIXME: use real ratio */);
+    var _ctx = _canvas.getContext('2d');
+    _ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+    this._cvs_cache = _canvas;
+    console.log('image drawn to cache', this.dimen);
+}
 Sheet.prototype.apply = function(ctx) {
     if (!this.ready) return;
+    if (this.cur_region < 0) return;
+    var region;
+    if (this.region_f) { region = region_f(this.cur_region); }
+    else {
+        var r = this.regions[this.cur_region],
+            d = this.dimen;
+        region = [ r[0] * d[0], r[1] * d[1],
+                   r[2] * d[0], r[3] * d[1] ];
+    }
+    console.log('applying image at', region);
     // TODO: when using current_region, bounds will depend on that region
-    ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+    ctx.drawImage(this._cvs_cache, region[0], region[1],
+                                   region[2], region[3], 0, 0, region[2], region[3]);
+    console.log('image applied');
 }
 Sheet.prototype.bounds = function() {
     // TODO: when using current_region, bounds will depend on that region
@@ -4077,18 +4100,9 @@ Sheet.prototype.bounds = function() {
 Sheet.prototype.clone = function() {
     return new Sheet(this.src, this.regions);
 }
-/* Sheet.prototype._drawToCache = function() {
-    if (!this.ready) return;
-    // use dimen?
-    var _img = this.image;
-    // FIXME: check with different ratios
-    var _canvas = newCanvas([ _img.width, _img.height ], 1);
-    var _ctx = _canvas.getContext('2d');
-    _ctx.drawImage()
-    this._cvs_cache = _canvas;
-} */
-var Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] region
-
+var _Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] region
+                    // it will be exported as `Image`, but renamed here not to confuse
+                    // with browser Image object
 
 // Controls
 // -----------------------------------------------------------------------------
@@ -4547,7 +4561,7 @@ var to_export = {
     'Scene': Scene,
     'Element': Element,
     'Clip': Clip,
-    'Path': Path, 'Text': Text, 'Sheet', Sheet, 'Image': Image,
+    'Path': Path, 'Text': Text, 'Sheet': Sheet, 'Image': _Image,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
