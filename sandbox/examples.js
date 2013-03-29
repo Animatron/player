@@ -116,3 +116,8 @@ examples.push([ 0 /*version*/, [
   '  .add(',
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
+
+examples.push([0 /*version*/, [
+  'return b().image([40, 40], \'./res/sprite.png\')',
+  '          .rotate([0, 3], [0, Math.PI]);'
+].join('\n') ]);

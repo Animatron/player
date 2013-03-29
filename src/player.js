@@ -4049,7 +4049,6 @@ Sheet.prototype.load = function(callback) {
         // if (me.regions.length == 1) me._drawToCache();
         me.dimen = [ image.width, image.height ];
         me.ready = true;
-        console.log('image loaded');
         me._drawToCache();
         if (callback) callback(me);
     }
@@ -4073,7 +4072,6 @@ Sheet.prototype._drawToCache = function() {
     var _ctx = _canvas.getContext('2d');
     _ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
     this._cvs_cache = _canvas;
-    console.log('image drawn to cache', this.dimen);
 }
 Sheet.prototype.apply = function(ctx) {
     if (!this.ready) return;
@@ -4086,11 +4084,8 @@ Sheet.prototype.apply = function(ctx) {
         region = [ r[0] * d[0], r[1] * d[1],
                    r[2] * d[0], r[3] * d[1] ];
     }
-    console.log('applying image at', region);
-    // TODO: when using current_region, bounds will depend on that region
     ctx.drawImage(this._cvs_cache, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
-    console.log('image applied');
 }
 Sheet.prototype.bounds = function() {
     // TODO: when using current_region, bounds will depend on that region
@@ -4098,7 +4093,7 @@ Sheet.prototype.bounds = function() {
     return [ 0, 0, this.dimen[0], this.dimen[1] ];
 }
 Sheet.prototype.clone = function() {
-    return new Sheet(this.src, this.regions);
+    return new Sheet(this.src);
 }
 var _Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] region
                     // it will be exported as `Image`, but renamed here not to confuse
