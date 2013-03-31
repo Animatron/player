@@ -2038,9 +2038,15 @@ Element.prototype.findWrapBand = function() {
 }
 Element.prototype.dispose = function() {
     this.disposeHandlers();
+    this.disposeXData();
     this.visitChildren(function(elm) {
         elm.dispose();
     });
+}
+Element.prototype.disposeXData = function() {
+    if (this.xdata.path) this.xdata.path.dispose();
+    if (this.xdata.text) this.xdata.text.dispose();
+    if (this.xdata.sheet) this.xdata.sheet.dispose();
 }
 Element.prototype.reset = function() {
     this.__resetState();
@@ -3551,6 +3557,7 @@ Path.prototype.clone = function() {
     if (this.fill) clone.fill = obj_clone(this.fill);
     return clone;
 }
+Path.prototype.dispose = function() { }
 
 
 // visits every chunk of path in string-form and calls
@@ -3960,6 +3967,7 @@ Text.prototype.clone = function() {
     if (this.fill) c.fill = obj_clone(this.fill);
     return c;
 }
+Text.prototype.dispose = function() { }
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -4024,8 +4032,10 @@ Brush.create = function(ctx, brush) {
 // Sheet
 // -----------------------------------------------------------------------------
 
+Sheet.instances = 0;
 /* TODO: rename to Static and take optional function as source? */
 function Sheet(src, callback, start_region) {
+    this.id = Sheet.instances++;
     this.src = src;
     this.dimen = /*dimen ||*/ [0, 0];
     this.regions = [ [ 0, 0, 1, 1 ] ]; // for image, sheet contains just one image
@@ -4052,25 +4062,39 @@ Sheet.prototype.load = function(callback) {
         me._drawToCache();
         if (callback) callback(me);
     }
-    if (!cache[this.src]) {
+    var _cached = cache[this.src];
+    if (!_cached) {
         var _img = new Image();
         _img.onload = function() {
+            _img.__anm_ready = true;
             _img.isReady = true; /* FIXME: use 'image.complete' and
                                   '...' (network exist) combination,
                                   'complete' fails on Firefox */
             whenDone(_img);
         };
-        try { _img.src = me.src; }
+        cache[this.src] = _img;
+        try { _img.src = this.src; }
         catch(e) { throw new SysErr('Image at ' + me.src + ' is not accessible'); }
     } else {
-        whenDone(cache[this.src]);
+        if (_cached.__anm_ready) { // image is completely loaded into cache
+            whenDone(_cached);
+        } else { // image is in cache, but not loaded completely, add our listener to queue
+            // (what if we are those who wait, add _img.__anm_requester?)
+            var cur_onload = _cached.onload;
+            _cached.onload = function() { whenDone(_cached); cur_onload(); }
+        }
     }
 }
 Sheet.prototype._drawToCache = function() {
     if (!this.ready) return;
+    if (this._image.__cvs) {
+        this._cvs_cache = this._image.__cvs;
+        return;
+    }
     var _canvas = newCanvas(this.dimen, 1 /* FIXME: use real ratio */);
     var _ctx = _canvas.getContext('2d');
     _ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+    this._image.__cvs = _canvas;
     this._cvs_cache = _canvas;
 }
 Sheet.prototype.apply = function(ctx) {
@@ -4095,6 +4119,10 @@ Sheet.prototype.bounds = function() {
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);
 }
+Sheet.prototype.dispose = function() {
+    this._cvs_cache = null;
+}
+// TODO: detach, dispose canvas
 var _Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] region
                     // it will be exported as `Image`, but renamed here not to confuse
                     // with browser Image object
