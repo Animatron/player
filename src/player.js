@@ -4080,6 +4080,7 @@ Sheet.prototype.load = function(callback) {
             whenDone(_cached);
         } else { // image is in cache, but not loaded completely, add our listener to queue
             // (what if we are those who wait, add _img.__anm_requester?)
+            // (but it should not happen if load is only called from constructor)
             var cur_onload = _cached.onload;
             _cached.onload = function() { whenDone(_cached); cur_onload(); }
         }
@@ -4601,7 +4602,9 @@ var to_export = {
     'ajax': ajax,
     '_typecheck': { builder: __builder,
                     array: __array,
-                    num: __num },
+                    num: __num,
+                    obj: __obj,
+                    fun: __fun },
 
     '__dev': { 'strf': _strf,
                'adjust': __adjust,

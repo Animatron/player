@@ -164,9 +164,37 @@ Builder.prototype.image = function(pt, src, callback) {
     }
     return this;
 }
-// TODO: FIX THIS TO WORK PROPERLY
-Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
+// > builder.text % (pt: Array[2,Integer],
+//                   lines: String | Array | Text,
+//                   [size: Float],
+//                   [font: String | Array]) => Builder
+Builder.prototype.text = function(pt, lines, size, font) {
     this.x.pos = pt;
+    var text = lines instanceof Text ? lines
+                     : new Text(lines, Builder.font(font, size));
+    this.x.text = text;
+    this.x.reg = [ 0, 0 ];
+    if (!text.stroke) { text.stroke = this.s; }
+    else { this.s = text.stroke; }
+    if (!text.fill) { text.fill = this.f; }
+    else { this.f = text.fill; }
+    return this;
+}
+// > builder.sprite % (pt: Array[2,Integer],
+//                     src: String | Sheet,
+//                     [size: Array[2,Integer]],
+//                     [frame: Integer],
+//                     [callback: Function(Image)]) => Builder
+Builder.prototype.sprite = function(pt, src, tile_size, frame, callback) {
+    this.x.pos = pt;
+    if (is.obj(src)) {
+        // animate and play
+    } else {
+        this.v.sheet = Builder.sheet(src/* ... */)
+    }
+
+
+    /* this.x.pos = pt;
     this.v.sheet = sheet;
     this.v.sprite = true;
     if (frame !== undefined) this.x.frame = frame;
@@ -193,23 +221,7 @@ Builder.prototype.sprite = function(pt, src, sheet, frame, callback) {
         try { this.x.image.src = src; }
         catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
     }
-    return this;
-}
-// > builder.text % (pt: Array[2,Integer],
-//                   lines: String | Array | Text,
-//                   [size: Float],
-//                   [font: String | Array]) => Builder
-Builder.prototype.text = function(pt, lines, size, font) {
-    this.x.pos = pt;
-    var text = lines instanceof Text ? lines
-                     : new Text(lines, Builder.font(font, size));
-    this.x.text = text;
-    this.x.reg = [ 0, 0 ];
-    if (!text.stroke) { text.stroke = this.s; }
-    else { this.s = text.stroke; }
-    if (!text.fill) { text.fill = this.f; }
-    else { this.f = text.fill; }
-    return this;
+    return this; */
 }
 
 // * FILL & STROKE *
@@ -768,6 +780,20 @@ Builder.font = function(name, size) {
         fface = (typeof fface === 'string') ? fface : fface.join(',');
     var fsize = (size != null) ? size : Builder.DEFAULT_FSIZE;
     return fsize + 'px ' + fface;
+}
+// > Builder.sheet % (src: String,
+//                    [tile_selector: Array[2,Integer] | Function(Integer) => Array[4,Integer]],
+//                    [frame_selector: Array[2,Integer] | Function(Float) => Integer],
+//                    [callback: Function(Image)]) => Builder
+Builder.sheet = function(src, tile_selector, frame_selector, callback) {
+
+    return {
+        // TODO: add switch('walk') / animate('walk')
+        switch: function(fps, frames) { },
+        animate: function(fps, frames) { }, // same as switch(fps, frames).run()
+        run: function() { }
+    }
+
 }
 // Thanks for Nek (github.com/Nek) for this function
 Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps){
