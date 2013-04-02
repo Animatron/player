@@ -633,9 +633,8 @@ describe("builder, regarding its formation techniques,", function() {
                 runs(function() {
                     to_clone = b().image([50, 50], fake_src, whenImgReady);
                 });
-                waitsFor(function() {
-                    return to_clone.x.sheet._image != null;
-                }, 500);
+                waitsFor(function() { return to_clone.x.sheet &&
+                                             to_clone.x.sheet.ready; }, 500);
                 runs(function() {
                     expect(whenImgReady).toHaveBeenCalled();
                 });
