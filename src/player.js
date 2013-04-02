@@ -2043,7 +2043,8 @@ Element.prototype.findWrapBand = function() {
     if (children.length === 0) return this.xdata.gband;
     var result = [ Infinity, 0 ];
     this.visitChildren(function(elm) {
-        result = Bands.expand(result, elm.findWrapBand());
+        result = Bands.expand(result, elm.xdata.gband);
+        //result = Bands.expand(result, elm.findWrapBand());
     });
     return (result[0] !== Infinity) ? result : null;
 }
