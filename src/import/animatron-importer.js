@@ -140,7 +140,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
-    to.xdata.image = src.url ? Element.imgFromUrl(src.url) : null;
+    to.xdata.sheet = src.url ? new anm.Sheet(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,

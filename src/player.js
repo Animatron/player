@@ -2746,6 +2746,10 @@ Element._getIMatrixOf = function(s, m) {
     _t.invert();
     return _t;
 }
+/* TODO: add createFromImgUrl?
+ Element.imgFromURL = function(url) {
+    return new Sheet(url);
+}*/
 
 var Clip = Element;
 
