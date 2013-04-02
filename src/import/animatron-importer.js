@@ -107,6 +107,12 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             }
         }
     }
+    // FIXME: it is a not good way to do it, ask tool developers to return band for such elements
+    if ((target.xdata.mode != C.R_ONCE) &&
+        (target.children.length > 0) &&
+        (!Number.isFinite(target.xdata.gband[1]))) {
+        target.makeBandFit();
+    }
     return target;
 }
 AnimatronImporter.prototype.findElement = function(id, source) {
