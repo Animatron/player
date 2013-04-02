@@ -190,7 +190,7 @@ Builder.prototype.sprite = function(pt, src, tile_size, frame, callback) {
     if (is.obj(src)) {
         // animate and play
     } else {
-        this.v.sheet = Builder.sheet(src/* ... */)
+        // this.v.sheet = Builder.sheet(src/* ... */)
     }
 
 
@@ -785,16 +785,16 @@ Builder.font = function(name, size) {
 //                    [tile_selector: Array[2,Integer] | Function(Integer) => Array[4,Integer]],
 //                    [frame_selector: Array[2,Integer] | Function(Float) => Integer],
 //                    [callback: Function(Image)]) => Builder
-Builder.sheet = function(src, tile_selector, frame_selector, callback) {
+/* Builder.sheet = function(src, tile_selector, frame_selector, callback) {
 
     return {
         // TODO: add switch('walk') / animate('walk')
         switch: function(fps, frames) { },
-        animate: function(fps, frames) { }, // same as switch(fps, frames).run()
-        run: function() { }
+        animate: function(t, fps, frames) { }, // same as switch(fps, frames).run(t)
+        run: function(t) { }
     }
 
-}
+} */
 // Thanks for Nek (github.com/Nek) for this function
 Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps){
     //

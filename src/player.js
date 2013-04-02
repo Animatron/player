@@ -275,14 +275,14 @@ function newCanvas(dimen, ratio) {
 // ### Internal Helpers
 /* -------------------- */
 
+// #### typecheck
+
 function __builder(obj) {
     return (typeof Builder !== 'undefined') &&
            (obj instanceof Builder);
 }
 
-function __array(obj) {
-    return Array.isArray(obj);
-}
+var __array = Array.isArray;
 
 function __num(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
@@ -295,6 +295,12 @@ function __fun(fun) {
 function __obj(obj) {
     return obj != null && typeof obj === 'object';
 }
+
+var __nan = Number.isNaN;
+
+var __finite = Number.isFinite;
+
+// #### mathematics
 
 function __close(n1, n2, precision) {
     if (!(precision === 0)) {
@@ -312,6 +318,8 @@ function __roundTo(n, precision) {
     return Math.round(n * multiplier) / multiplier;
 }
 
+// #### other
+
 function __errorAs(name, _constructor) {
   /* var _constructor = function(msg) { this.message = msg; } */
   _constructor.prototype = new Error();
@@ -327,6 +335,14 @@ function __paramsToObj(pstr) {
   return o;
 }
 
+function _mrg_obj(src, backup) {
+    if (!backup) return src;
+    var res = {};
+    for (prop in backup) {
+        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
+    return res;
+}
+
 function _strf(str, subst) {
   var args = subst;
   return str.replace(/{(\d+)}/g, function(match, number) {
@@ -336,14 +352,6 @@ function _strf(str, subst) {
     ;
   });
 };
-
-function _mrg_obj(src, backup) {
-    if (!backup) return src;
-    var res = {};
-    for (prop in backup) {
-        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
-    return res;
-}
 
 var trashBin = null;
 function disposeElm(domElm) {
@@ -1968,20 +1976,22 @@ Element.prototype.gtime = function(ltime) {
 }
 Element.prototype.ltime = function(gtime) {
     var x = this.xdata;
+    if (!__finite(x.lband[1])) return this.__checkJump(gtime - x.gband[0]);
     switch (x.mode) {
         case C.R_ONCE:
-            return this.__checkGJump(gtime);
+            return this.__checkJump(gtime - x.gband[0]);
         case C.R_STAY:
             return (__t_cmp(gtime, x.gband[1]) <= 0)
-                   ? (gtime - x.gband[0])
-                   : (x.lband[1] - x.lband[0]);
+                   ? this.__checkJump(gtime - x.gband[0])
+                   : this.__checkJump(x.lband[1] - x.lband[0]);
         case C.R_LOOP: {
-                var p = this.parent;
+                var p = this.parent,
+                    px = p ? p.xdata : null;
                 var durtn = x.lband[1] -
                             x.lband[0],
                     pdurtn = p
-                        ? (p.xdata.lband[1] -
-                           p.xdata.lband[0])
+                        ? (px.lband[1] -
+                           px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
                 var times = Math.floor(pdurtn / durtn),
@@ -1991,12 +2001,13 @@ Element.prototype.ltime = function(gtime) {
                 return (fits <= times) ? this.__checkJump(t) : -1;
             }
         case C.R_BOUNCE: {
-                var p = this.parent;
+                var p = this.parent,
+                    px = p ? p.xdata : null;
                 var durtn = x.lband[1] -
                             x.lband[0],
                     pdurtn = p
-                        ? (p.xdata.lband[1] -
-                           p.xdata.lband[0])
+                        ? (px.lband[1] -
+                           px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
                 var times = Math.floor(pdurtn / durtn),
@@ -2540,9 +2551,6 @@ Element.prototype.__mafter = function(t, type, result) {
 }
 Element.prototype.__pbefore = function(ctx, type) { }
 Element.prototype.__pafter = function(ctx, type) { }
-Element.prototype.__checkGJump = function(gtime) {
-    return this.__checkJump(gtime - this.xdata.gband[0]);
-}
 Element.prototype.__checkJump = function(at) {
     // FIXME: test if jumping do not fails with floating points problems
     var x = this.xdata,
