@@ -298,7 +298,7 @@ function __obj(obj) {
 
 var __nan = Number.isNaN;
 
-var __finite = Number.isFinite;
+var __finite = Number.isFinite || function(n) { return n !== Infinity; };
 
 // #### mathematics
 
