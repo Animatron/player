@@ -1976,7 +1976,7 @@ Element.prototype.gtime = function(ltime) {
 }
 Element.prototype.ltime = function(gtime) {
     var x = this.xdata;
-    if (!__finite(x.lband[1])) return this.__checkJump(gtime - x.gband[0]);
+    if (!__finite(x.gband[1])) return this.__checkJump(gtime - x.gband[0]);
     switch (x.mode) {
         case C.R_ONCE:
             return this.__checkJump(gtime - x.gband[0]);
