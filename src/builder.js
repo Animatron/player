@@ -772,6 +772,9 @@ Builder.font = function(name, size) {
     return fsize + 'px ' + fface;
 }
 
+// example:
+// return b().sprite([0, 0], './res/sprite_body.png', [50, 92])
+//           .animate(0, [0, 30, 1, true], 10);
 var __t = anm.__dev.adjust;
 if (!__t) throw new Error('adjust should be defined');
 function _get_frame(start, t, anim) {
