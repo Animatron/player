@@ -773,8 +773,8 @@ Builder.font = function(name, size) {
 }
 
 // example:
-// return b().sprite([0, 0], './res/sprite_body.png', [50, 92])
-//           .animate(0, [0, 30, 1, true], 10);
+// return b().sprite([0, 0], './res/sprite_sample.png', [144, 59])
+//           .animate(0, [0, 30, 1], 10);
 var __t = anm.__dev.adjust;
 if (!__t) throw new Error('adjust should be defined');
 function _get_frame(start, t, anim) {
@@ -831,9 +831,9 @@ Builder.sheet = function(src, tile_spec, callback) {
         if (is.arr(tile_spec)) {
             var tdimen = tile_spec,
                 sdimen = sheet.dimen,
-                h_factor = Math.ceil(sdimen[0] / tdimen[0]);
-            sheet.region_f = function(n) { var h_pos = Math.floor(n / h_factor),
-                                               v_pos = n % h_factor;
+                h_factor = Math.floor(sdimen[0] / tdimen[0]);
+            sheet.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
+                                               h_pos = n % h_factor;
                                            return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
         } else if (is.fun(tile_spec)) {
             sheet.region_f = tile_spec;
