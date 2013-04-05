@@ -256,8 +256,8 @@ function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor) {
-        canvas.style.backgroundColor = opts.bgcolor;
+    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+        canvas.style.backgroundColor = opts.bgcolor.color;
     }
     canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
@@ -845,7 +845,6 @@ Player.prototype.changeRect = function(rect) {
         y: rect.y,
         bgcolor: this.state.bgcolor
     });
-    if (this.anim) this.forceRedraw();
 }
 Player.prototype._rectChanged = function(rect) {
     var cur = this._canvasConf;
@@ -856,8 +855,9 @@ Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
-        case C.PAUSED: this.drawAt(this.state.time); break;
-        case C.PLAYING: this.play(this.state.time); break;
+        case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
+        case C.PLAYING: if (this.anim) this.play(this.state.time); break;
+        case C.NOTHING: this._drawSplash(); break;
     }
 }
 Player.prototype.changeZoom = function(ratio) {
@@ -968,6 +968,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                                 player.canvas) {
                                 player.canvas.focus();
                             }
+                            if (player.state.happens === C.NOTHING) return;
                             if (player.controls) {
                                 player.controls.show();
                                 player._renderControls();
@@ -983,6 +984,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                                 player.canvas) {
                                 player.canvas.blur();
                             }
+                            if (player.state.happens === C.NOTHING) return;
                             if (player.controls &&
                                 (!player.controls.evtInBounds(evt))) {
                                 player.controls.hide();
@@ -1082,6 +1084,7 @@ Player.prototype._reconfigureCanvas = function(opts) {
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
     this.__canvasPrepared = true;
+    this.forceRedraw();
     return this;
 }
 Player.prototype._enableControls = function() {
@@ -1333,7 +1336,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
              'anim': { 'fps': undefined,
                        'width': params.w,
                        'height': params.h,
-                       'bgcolor': { color: "#" + params.bg },
+                       'bgcolor': { color: params.bg ? "#" + params.bg : null },
                        'duration': undefined } };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
@@ -2934,20 +2937,6 @@ DU._hasVal = function(fsval) {
     return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
-/* FIXME: move to `Path`? */
-DU.qDraw = function(ctx, stroke, fill, func) {
-    ctx.save();
-    ctx.beginPath();
-    DU.applyFill(ctx, fill);
-    DU.applyStroke(ctx, stroke);
-    func();
-    ctx.closePath();
-
-    if (DU._hasVal(fill)) ctx.fill();
-    if (DU._hasVal(stroke)) ctx.stroke();
-    ctx.restore();
-}
-
 // Import
 // -----------------------------------------------------------------------------
 
@@ -3042,9 +3031,7 @@ Render.p_drawReg = function(ctx, reg) {
 Render.p_drawXData = function(ctx) {
     var subj = this.path || this.text || this.sheet;
     if (!subj) return;
-    ctx.save();
-    subj.apply(ctx);
-    ctx.restore();
+    subj.apply(ctx); // apply does ctx.save/ctx.restore by itself
 }
 
 Render.p_drawName = function(ctx, name) {
@@ -3384,21 +3371,19 @@ Path.prototype.add = function(seg) {
 }
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx) {
+    var fill = this.fill || Path.DEFAULT_FILL,
+        stroke = this.stroke || Path.DEFAULT_STROKE;
 
-    var p = this;
-    DU.qDraw(ctx, p.stroke || Path.DEFAULT_STROKE,
-                  p.fill || Path.DEFAULT_FILL,
-             function() { p.visit(Path._applyVisitor, ctx); });
-
-    /*ctx.beginPath();
-    DU.applyFill(ctx, this.fill || Path.DEFAULT_FILL);
-    DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
-    this.visit(this._applyVisitor,ctx);
+    ctx.save();
+    ctx.beginPath();
+    DU.applyFill(ctx, fill);
+    DU.applyStroke(ctx, stroke);
+    this.visit(Path._applyVisitor, ctx);
     ctx.closePath();
 
-    ctx.fill();
-    ctx.stroke();*/
-
+    if (DU._hasVal(fill)) ctx.fill();
+    if (DU._hasVal(stroke)) ctx.stroke();
+    ctx.restore();
 }
 Path.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -4233,6 +4218,8 @@ Controls.prototype.render = function(state, time) {
     if (this.hidden && !this.__force) return;
 
     var _s = state.happens;
+    if (_s == C.NOTHING) return;
+
     var time = (time > 0) ? time : 0;
     if (!this.__force &&
         (time === this._time) &&
@@ -4310,8 +4297,9 @@ Controls.prototype.handle_mdown = function(event) {
         _tw = Controls._TW,
         _w = this.bounds[2] - this.bounds[0],
         _ratio = this._ratio;
+    var _s = this.player.state.happens;
+    if (_s === C.NOTHING) return;
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
-        var _s = this.player.state.happens;
         if (_s === C.STOPPED) {
             this.player.play(0);
         } else if (_s === C.PAUSED) {
@@ -4320,8 +4308,6 @@ Controls.prototype.handle_mdown = function(event) {
             this.player.pause();
         }
     } else if (_lx < (_w - (_tw + _m))) { // progress area
-        var _s = this.player.state.happens;
-        if (_s === C.NOTHING) return;
         var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
@@ -4336,6 +4322,10 @@ Controls.prototype.handle_mdown = function(event) {
         }
     } else { // time area
         this.elapsed = !this.elapsed;
+        if (_s !== C.PLAYING) {
+            this.forceNextRedraw();
+            this.render(this.player.state, this._time);
+        };
     }
 }
 Controls.prototype.inBounds = function(point) {
