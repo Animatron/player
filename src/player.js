@@ -256,8 +256,8 @@ function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor) {
-        canvas.style.backgroundColor = opts.bgcolor;
+    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+        canvas.style.backgroundColor = opts.bgcolor.color;
     }
     canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
@@ -1332,7 +1332,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
              'anim': { 'fps': undefined,
                        'width': params.w,
                        'height': params.h,
-                       'bgcolor': { color: "#" + params.bg },
+                       'bgcolor': { color: params.bg ? "#" + params.bg : null },
                        'duration': undefined } };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
