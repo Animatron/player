@@ -282,7 +282,7 @@ function __builder(obj) {
            (obj instanceof Builder);
 }
 
-var __array = Array.isArray;
+var __arr = Array.isArray;
 
 function __num(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
@@ -294,6 +294,10 @@ function __fun(fun) {
 
 function __obj(obj) {
     return obj != null && typeof obj === 'object';
+}
+
+function __str(obj) {
+    return obj != null && typeof obj === 'string';
 }
 
 var __nan = Number.isNaN;
@@ -645,9 +649,9 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             L.loadBuilder(player, object, whenDone);
         } else if (object instanceof Scene) { // Scene instance
             L.loadScene(player, object, whenDone);
-        } else if (__array(object)) { // array of clips
+        } else if (__arr(object)) { // array of clips
             L.loadClips(player, object, whenDone);
-        } else if (typeof object === 'string') { // URL
+        } else if (__str(object)) { // URL
             L.loadFromUrl(player, object, importer, whenDone);
         } else { // any object with importer
             L.loadFromObj(player, object, importer, whenDone);
@@ -792,7 +796,7 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
-    if (typeof cvs === 'string') {
+    if (__str(cvs)) {
         this.canvas = document.getElementById(cvs);
         if (!this.canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [cvs]));
         this.id = cvs;
@@ -1401,7 +1405,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
         if (arg3) _elm.changeTransform(arg3);
         this._addToTree(_elm);
         return _elm;
-    } else if (__array(arg1)) { // elements array mode
+    } else if (__arr(arg1)) { // elements array mode
         var _clip = new Clip();
         _clip.add(arg1);
         this._addToTree(_clip);
@@ -1902,7 +1906,7 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         if (arg3) _elm.changeTransform(arg3);
         this._addChild(_elm);
         return _elm;
-    } else if (__array(arg1)) { // elements array mode
+    } else if (__arr(arg1)) { // elements array mode
         this._addChildren(arg1);
     } else if (__builder(arg1)) { // builder instance
         this._addChild(arg1.v);
@@ -2344,7 +2348,7 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
                      ? __adjust(ltime) / __adjust(elm_duration)
                      : __adjust(ltime),
                  __adjust(elm_duration) ];
-  } else if (__array(time)) { // modifier is band-restricted
+  } else if (__arr(time)) { // modifier is band-restricted
       var band = time;
       if (!relative) {
           var mod_duration = band[1] - band[0];
@@ -2721,12 +2725,12 @@ Element.__addTweenModifier = function(elm, conf) {
 }
 Element.__convertEasing = function(easing, data, relative) {
   if (!easing) return null;
-  if (typeof easing === 'string') {
+  if (__str(easing)) {
       var f = EasingImpl[easing](data);
       return relative ? f : function(t, len) { return f(t / len, len) * len; }
   }
-  if ((typeof easing === 'function') && !data) return easing;
-  if ((typeof easing === 'function') && data) return easing(data);
+  if (__fun(easing) && !data) return easing;
+  if (__fun(easing) && data) return easing(data);
   if (easing.type) {
     var f = EasingImpl[easing.type](easing.data || data);
     return relative ? f : function(t, len) { return f(t / len, len) * len; }
@@ -3904,7 +3908,7 @@ Text.prototype.dimen = function() {
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
-    if (typeof this.lines == 'string') {
+    if (__str(this.lines)) {
         buff.textContent = this.lines;
     } else {
         buff.textContent = this.lines.join('<br/>');
@@ -3945,7 +3949,7 @@ Text.prototype.cfill = function(color) {
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
-    if (typeof lines === 'string') {
+    if (__str(lines)) {
         func(lines, data);
     } else {
         var line;
@@ -4058,7 +4062,7 @@ Sheet.prototype.load = function(callback) {
         me.dimen = [ image.width, image.height ];
         me.ready = true;
         me._drawToCache();
-        if (callback) callback(me);
+        if (callback) callback(image, me);
     }
     var _cached = cache[this.src];
     if (!_cached) {
@@ -4100,20 +4104,22 @@ Sheet.prototype.apply = function(ctx) {
     if (!this.ready) return;
     if (this.cur_region < 0) return;
     var region;
-    if (this.region_f) { region = region_f(this.cur_region); }
+    if (this.region_f) { region = this.region_f(this.cur_region); }
     else {
         var r = this.regions[this.cur_region],
             d = this.dimen;
         region = [ r[0] * d[0], r[1] * d[1],
                    r[2] * d[0], r[3] * d[1] ];
     }
+    this._active_region = region;
     ctx.drawImage(this._cvs_cache, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
 Sheet.prototype.bounds = function() {
     // TODO: when using current_region, bounds will depend on that region
-    if (!this.ready) return [0, 0, 0, 0];
-    return [ 0, 0, this.dimen[0], this.dimen[1] ];
+    if (!this.ready || !this._active_region) return [0, 0, 0, 0];
+    var r = this._active_region;
+    return [ 0, 0, r[2], r[3] ];
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);
@@ -4604,10 +4610,11 @@ var to_export = {
                                           p.init(cvs, opts); return p; },
     'ajax': ajax,
     '_typecheck': { builder: __builder,
-                    array: __array,
+                    arr: __arr,
                     num: __num,
                     obj: __obj,
-                    fun: __fun },
+                    fun: __fun,
+                    str: __str },
 
     '__dev': { 'strf': _strf,
                'adjust': __adjust,
