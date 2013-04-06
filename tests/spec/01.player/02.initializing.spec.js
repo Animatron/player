@@ -45,7 +45,11 @@ describe("player, when speaking about initialization,", function() {
     it("should show splash screen when initialized", function() {
         var splashSpy = spyOn(player, '_drawSplash');
         player.init('test-id');
-        expect(splashSpy).toHaveBeenCalledOnce();
+        expect(splashSpy).toHaveBeenCalled/*Once*/();
+        // canvas may be resized or re-rendered several times,
+        // so splash may be drawn several times also
+        // for the moment first call is from forceRedraw when reconfiguring canvas at start
+        // and second one when stopping player in postInit()
     });
 
     it("should not draw anything except splash when intialized", function() {
