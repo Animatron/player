@@ -11,6 +11,7 @@ _Fake.CVS_POS = 1; // canvas position
 //_Fake.GET_CANVAS = 2; // asking for canvas
 //_Fake.JSM_CLOCK = 3; // disable jasmine clock
 //_Fake.FRAME_GEN = 4; // frame calls
+//_Fake.IMAGES = 5; // images objects
 
 var _window = jasmine.getGlobal();
 
@@ -27,6 +28,7 @@ function _fake(what) {
                                       else { return __stubCanvas(); }; break; */
             //case _Fake.JSM_CLOCK: __disableJsmClock(); break;
             //case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
+            //case _Fake.IMAGES: __stubImages(); break;
             default: throw new Error('Unknown option ' + option);
         }
     });
@@ -38,6 +40,7 @@ function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mock
 /*function __stubCanvas() { var canvasStub = _mocks.factory.canvas();
                             spyOn(document, 'getElementById').andReturn(canvasStub);
                             return canvasStub; } */
+/* function __stubImages() { spyOn(_window, 'Image').andCallFake(ImgFake); }*/
 
 var _FrameGen = (function() {
 
@@ -421,6 +424,35 @@ var AjaxFaker = (function() {
              isStarted: function() { return started; } }
 
 })();
+
+var _running_img_fakes = [];
+function ImgFake() {
+    this.src = null;
+    var me = this;
+    this.__anm_interval = setInterval(function() {
+        if (me.__anm_load_called) return;
+        if (me.src != null) {
+            me.__anm_load_called = true;
+            me.onload();
+        }
+    }, 200);
+    _running_img_fakes.push(this);
+    setTimeout(function() {
+        if (!me.stopped) {
+            clearInterval(me.__anm_interval);
+            throw new Error('Please stop ImgFake when you do not need it with ImgFake.__stopFakes static method');
+            if (me.src == null) throw new Error('Also, notice that you have not assigned anything to src of the image');
+        }
+    }, 5000);
+}
+ImgFake.prototype = Image.prototype;
+ImgFake.__stopFakes = function() {
+    var i = _running_img_fakes.length;
+    while (i--) { var fake = _running_img_fakes[i];
+                  clearInterval(fake.__anm_interval);
+                  fake.stopped = true; }
+
+}
 
 /*function asyncSeq() {
     var fs = arguments,

@@ -35,6 +35,8 @@
 // - **Path** —
 //     - _Segments_ —
 // - **Text** —
+// - **Sheet** -
+// - **Brush** -
 // - **Controls** —
 // - **Info Block** —
 // - **Strings** —
@@ -254,8 +256,8 @@ function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor) {
-        canvas.style.backgroundColor = opts.bgcolor;
+    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+        canvas.style.backgroundColor = opts.bgcolor.color;
     }
     canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
@@ -270,42 +272,17 @@ function newCanvas(dimen, ratio) {
     return _canvas;
 }
 
-function prepareImage(url, callback) {
-    var self = this;
-    if (anm.cache === undefined) anm.cache = {};
-    if (anm.cache[url] === undefined) {
-        var loader = {image: new Image(), callbacks:[]};
-        if (callback) loader.callbacks.push(callback);
-        anm.cache[url] = loader;
-        loader.image.onload = function() {
-            anm.cache[url].image.isReady = true;
-            var i;
-            for (i = 0; i < loader.callbacks.length; i ++) {
-                loader.callbacks[i](self);
-            }
-            loader.callbacks = [];
-        };
-    } else
-    if (anm.cache[url].image.isReady === true) {
-        if (callback) callback(self);
-    }
-    else {
-        if (callback) anm.cache[url].callbacks.push(callback);
-    }
-    return anm.cache[url].image;
-}
-
 // ### Internal Helpers
 /* -------------------- */
+
+// #### typecheck
 
 function __builder(obj) {
     return (typeof Builder !== 'undefined') &&
            (obj instanceof Builder);
 }
 
-function __array(obj) {
-    return Array.isArray(obj);
-}
+var __array = Array.isArray;
 
 function __num(n) {
     return !isNaN(parseFloat(n)) && isFinite(n);
@@ -318,6 +295,12 @@ function __fun(fun) {
 function __obj(obj) {
     return obj != null && typeof obj === 'object';
 }
+
+var __nan = Number.isNaN;
+
+var __finite = Number.isFinite || function(n) { return n !== Infinity; };
+
+// #### mathematics
 
 function __close(n1, n2, precision) {
     if (!(precision === 0)) {
@@ -335,6 +318,8 @@ function __roundTo(n, precision) {
     return Math.round(n * multiplier) / multiplier;
 }
 
+// #### other
+
 function __errorAs(name, _constructor) {
   /* var _constructor = function(msg) { this.message = msg; } */
   _constructor.prototype = new Error();
@@ -342,6 +327,20 @@ function __errorAs(name, _constructor) {
   _constructor.prototype.name = name || 'Unknown';
   _constructor.prototype.toString = function() { return name + (this.message ? ': ' + this.message : ''); }
   return _constructor;
+}
+
+function __paramsToObj(pstr) {
+  var o = {}, ps = pstr.split('&'), i = ps.length, pair;
+  while (i--) { pair = ps[i].split('='); o[pair[0]] = pair[1]; }
+  return o;
+}
+
+function _mrg_obj(src, backup) {
+    if (!backup) return src;
+    var res = {};
+    for (prop in backup) {
+        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
+    return res;
 }
 
 function _strf(str, subst) {
@@ -353,13 +352,6 @@ function _strf(str, subst) {
     ;
   });
 };
-
-function mrg_obj(src, backup) {
-    var res = {};
-    for (prop in backup) {
-        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
-    return res;
-}
 
 var trashBin = null;
 function disposeElm(domElm) {
@@ -517,10 +509,11 @@ function Player() {
 }
 Player.__instances = 0;
 
-Player.PREVIEW_POS = 0.33;
+Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0.05; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
+Player.MARKER_ATTR = 'anm-player'; // marks player existence on canvas element
 Player.URL_ATTR = 'data-url';
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
@@ -809,6 +802,8 @@ Player.prototype._prepare = function(cvs) {
         this.canvas = cvs;
     }
     var canvas = this.canvas;
+    if (canvas.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+    canvas.setAttribute(Player.MARKER_ATTR, true);
     this.ctx = canvas.getContext("2d");
     this.state = Player.createState(this);
     this.subscribeEvents(canvas);
@@ -846,7 +841,6 @@ Player.prototype.changeRect = function(rect) {
         y: rect.y,
         bgcolor: this.state.bgcolor
     });
-    if (this.anim) this.forceRedraw();
 }
 Player.prototype._rectChanged = function(rect) {
     var cur = this._canvasConf;
@@ -857,8 +851,9 @@ Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
-        case C.PAUSED: this.drawAt(this.state.time); break;
-        case C.PLAYING: this.play(this.state.time); break;
+        case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
+        case C.PLAYING: if (this.anim) this.play(this.state.time); break;
+        case C.NOTHING: this._drawSplash(); break;
     }
 }
 Player.prototype.changeZoom = function(ratio) {
@@ -931,7 +926,12 @@ Player.prototype.afterFrame = function(callback) {
 Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
     if (this.info) this.info.detach(this.canvas);
+    this.canvas.removeAttribute(Player.MARKER_ATTR);
     this._reset();
+}
+Player.attachedTo = function(canvas) {
+    return (canvas.getAttribute(Player.MARKER_ATTR) == null) ||
+           (canvas.getAttribute(Player.MARKER_ATTR) == undefined);
 }
 Player.__getPosAndRedraw = function(player) {
     return function(evt) {
@@ -964,6 +964,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                                 player.canvas) {
                                 player.canvas.focus();
                             }
+                            if (player.state.happens === C.NOTHING) return;
                             if (player.controls) {
                                 player.controls.show();
                                 player._renderControls();
@@ -979,6 +980,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                                 player.canvas) {
                                 player.canvas.blur();
                             }
+                            if (player.state.happens === C.NOTHING) return;
                             if (player.controls &&
                                 (!player.controls.evtInBounds(evt))) {
                                 player.controls.hide();
@@ -1078,6 +1080,7 @@ Player.prototype._reconfigureCanvas = function(opts) {
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
     this.__canvasPrepared = true;
+    this.forceRedraw();
     return this;
 }
 Player.prototype._enableControls = function() {
@@ -1288,9 +1291,9 @@ function __attrOr(canvas, attr, _default) {
            : _default;
 }
 Player._mergeOpts = function(what, where) {
-    var res = mrg_obj(what, where);
-    res.meta = what.meta ? mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
-    res.anim = what.anim ? mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
+    var res = _mrg_obj(what, where);
+    res.meta = what.meta ? _mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
+    res.anim = what.anim ? _mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
     return res;
 }
 Player._optsFromCvsAttrs = function(canvas) {
@@ -1319,22 +1322,26 @@ Player._optsFromCvsAttrs = function(canvas) {
                                  : undefined,
                        'duration': undefined } };
 };
-Player._optsFromURLParams = function(attrs/* as json */) {
-    return { 'debug': attrs.debug,
+Player._optsFromUrlParams = function(params/* as object */) {
+    return { 'debug': params.debug,
              'inParent': undefined,
              'muteErrors': false,
-             'repeat': attrs.r,
-             'mode': attrs.m,
-             'zoom': attrs.z,
+             'repeat': params.r,
+             'mode': params.m,
+             'zoom': params.z,
              'anim': { 'fps': undefined,
-                       'width': attrs.w,
-                       'height': attrs.h,
-                       'bgcolor': { color: "#" + attrs.bg },
+                       'width': params.w,
+                       'height': params.h,
+                       'bgcolor': { color: params.bg ? "#" + params.bg : null },
                        'duration': undefined } };
 }
-Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, importer) {
-    var options = Player._optsFromURLParams(params);
-    var player = new Player();
+Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
+    var urlWithParams = snapshotUrl.split('?'),
+        snapshotUrl = urlWithParams[0],
+        urlParams = urlWithParams[1], // TODO: validate them?
+        params = (urlParams && urlParams.length > 0) ? __paramsToObj(urlParams) : {},
+        options = Player._optsFromUrlParams(params),
+        player = new Player();
     player.init(canvasId, options);
     function updateWithParams() {
         if (typeof params.t !== 'undefined') {
@@ -1348,7 +1355,7 @@ Player.forSnapshot = function(canvasId, snapshotURL, params/* as json */, import
         if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
     }
 
-    player.load(snapshotURL, importer, updateWithParams);
+    player.load(snapshotUrl, importer, updateWithParams);
 
     return player;
 }
@@ -1405,18 +1412,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
         this._addToTree(arg1);
     }
 }
-// > Scene.addS % (dimen: Array[Int, 2],
-//                 draw: Function(ctx: Context),
-//                 onframe: Function(time: Float),
-//                 [ transform: Function(ctx: Context,
-//                                       prev: Function(Context)) ])
-//                 => Clip
-Scene.prototype.addS = function(dimen, draw, onframe, transform) {
-    var _clip = new Clip();
-    _clip.addS(dimen, draw, onframe, transform);
-    this.add(_clip);
-    return _clip;
-}
+/* addS allowed to add static element before, such as image, may be return it in some form? */
 // > Scene.remove % (elm: Element)
 Scene.prototype.remove = function(elm) {
     // error will be thrown in _unregister method
@@ -1655,7 +1651,6 @@ function Element(draw, onframe) {
     this.children = [];
     this.parent = null;
     this.scene = null;
-    this.sprite = false;
     this.visible = false;
     this.registered = false;
     this.disabled = false;
@@ -1692,9 +1687,6 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
-    if (this.sprite && !this.xdata.canvas) {
-        this._drawToCache();
-    }
     return true;
 }
 // > Element.onframe % (gtime: Float) => Boolean
@@ -1706,35 +1698,7 @@ Element.prototype.drawTo = function(ctx) {
     return this.__callPainters(Element.ALL_PAINTERS, ctx);
 }
 // > Element.draw % (ctx: Context)
-Element.prototype.draw = function(ctx) {
-    if (!this.sprite) {
-        this.drawTo(ctx);
-    } else {
-        if (this.xdata.canvas.width > 0 && this.xdata.canvas.height > 0) {
-            if (this.sheet ) {
-                var tw;
-                var th;
-                var w = 1;
-                var h = 1;
-                if (this.sheet instanceof Array) {
-                    w = this.xdata.image.width / this.sheet[0];
-                    h = this.xdata.image.height / this.sheet[1];
-                    tw = this.sheet[0];
-                    th = this.sheet[1];
-                } else {
-                    w = this.xdata.image.width / this.sheet;
-                    tw = this.sheet;
-                }
-                var sy = Math.floor( this.xdata.frame / w ) * tw;
-                var sx = this.xdata.frame % w * th;
-                try {
-                    ctx.drawImage(this.xdata.canvas, sx, sy, tw, th, 0, 0, tw, th);
-                } catch (e) {};
-            }
-            else ctx.drawImage(this.xdata.canvas, 0, 0);
-        }
-    }
-}
+Element.prototype.draw = Element.prototype.drawTo
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
     var s = this.state;
@@ -1946,18 +1910,6 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         this._addChild(arg1);
     }
 }
-// > Element.addS % (dimen: Array[Int, 2],
-//                   draw: Function(ctx: Context),
-//                   onframe: Function(time: Float),
-//                   [ transform: Function(ctx: Context,
-//                                         prev: Function(Context)) ])
-//                   => Element
-Element.prototype.addS = function(dimen, draw, onframe, transform) {
-    var _elm = this.add(draw, onframe, transform);
-    _elm.sprite = true;
-    _elm.state.dimen = dimen;
-    return _elm;
-}
 Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
     var children = this.children;
@@ -2027,20 +1979,22 @@ Element.prototype.gtime = function(ltime) {
 }
 Element.prototype.ltime = function(gtime) {
     var x = this.xdata;
+    if (!__finite(x.gband[1])) return this.__checkJump(gtime - x.gband[0]);
     switch (x.mode) {
         case C.R_ONCE:
-            return this.__checkGJump(gtime);
+            return this.__checkJump(gtime - x.gband[0]);
         case C.R_STAY:
             return (__t_cmp(gtime, x.gband[1]) <= 0)
-                   ? (gtime - x.gband[0])
-                   : (x.lband[1] - x.lband[0]);
+                   ? this.__checkJump(gtime - x.gband[0])
+                   : this.__checkJump(x.lband[1] - x.lband[0]);
         case C.R_LOOP: {
-                var p = this.parent;
+                var p = this.parent,
+                    px = p ? p.xdata : null;
                 var durtn = x.lband[1] -
                             x.lband[0],
                     pdurtn = p
-                        ? (p.xdata.lband[1] -
-                           p.xdata.lband[0])
+                        ? (px.lband[1] -
+                           px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
                 var times = Math.floor(pdurtn / durtn),
@@ -2050,12 +2004,13 @@ Element.prototype.ltime = function(gtime) {
                 return (fits <= times) ? this.__checkJump(t) : -1;
             }
         case C.R_BOUNCE: {
-                var p = this.parent;
+                var p = this.parent,
+                    px = p ? p.xdata : null;
                 var durtn = x.lband[1] -
                             x.lband[0],
                     pdurtn = p
-                        ? (p.xdata.lband[1] -
-                           p.xdata.lband[0])
+                        ? (px.lband[1] -
+                           px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
                 var times = Math.floor(pdurtn / durtn),
@@ -2091,15 +2046,22 @@ Element.prototype.findWrapBand = function() {
     if (children.length === 0) return this.xdata.gband;
     var result = [ Infinity, 0 ];
     this.visitChildren(function(elm) {
-        result = Bands.expand(result, elm.findWrapBand());
+        result = Bands.expand(result, elm.xdata.gband);
+        //result = Bands.expand(result, elm.findWrapBand());
     });
     return (result[0] !== Infinity) ? result : null;
 }
 Element.prototype.dispose = function() {
     this.disposeHandlers();
+    this.disposeXData();
     this.visitChildren(function(elm) {
         elm.dispose();
     });
+}
+Element.prototype.disposeXData = function() {
+    if (this.xdata.path) this.xdata.path.dispose();
+    if (this.xdata.text) this.xdata.text.dispose();
+    if (this.xdata.sheet) this.xdata.sheet.dispose();
 }
 Element.prototype.reset = function() {
     this.__resetState();
@@ -2210,16 +2172,9 @@ Element.prototype.global = function(pt) {
 }*/
 Element.prototype.lbounds = function() {
     var x = this.xdata;
-    if (x.__bounds) return x.__bounds;
-    var bounds;
-    if (x.path) {
-        bounds = x.path.bounds();
-    } else if (x.image) {
-        bounds = [ 0, 0, x.image.width, x.image.height ];
-    } else if (x.text) {
-        bounds = x.text.bounds();
-    } else return null;
-    return bounds;
+    if (x.__bounds) return x.__bounds; // ? it is not saved
+    var subj = x.path || x.text || x.sheet;
+    if (subj) return subj.bounds();
 }
 Element.prototype.lrect = function() {
     var b = this.lbounds();
@@ -2287,8 +2242,6 @@ Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
     clone.children = [].concat(this.children);
-    clone.sprite = this.sprite;
-    clone.sheet = this.sheet;
     clone._modifiers = [].concat(this._modifiers);
     clone._painters = [].concat(this._painters);
     clone.xdata = obj_clone(this.xdata);
@@ -2350,8 +2303,8 @@ Element.prototype.deepClone = function() {
     var src_x = this.xdata,
         trg_x = clone.xdata;
     if (src_x.path) trg_x.path = src_x.path.clone();
-    /* if (src_x.image) trg_x.image = src_x.image.clone(); */
     if (src_x.text) trg_x.text = src_x.text.clone();
+    if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
     trg_x.pos = [].concat(src_x.pos);
     trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
@@ -2369,14 +2322,6 @@ Element.prototype._addChildren = function(elms) {
     for (var ei = 0, el = elms.length; ei < el; ei++) {
         this._addChild(elms[ei]);
     }
-}
-Element.prototype._drawToCache = function(a) {
-    var dim = this.state.dimen;
-    if (this.sheet) dim = [this.xdata.image.width, this.xdata.image.height];
-    var _canvas = newCanvas(dim, this.state.ratio);
-    var _ctx = _canvas.getContext('2d');
-    this.drawTo(_ctx);
-    this.xdata.canvas = _canvas;
 }
 Element.prototype._stateStr = function() {
     var state = this.state;
@@ -2610,9 +2555,6 @@ Element.prototype.__mafter = function(t, type, result) {
 }
 Element.prototype.__pbefore = function(ctx, type) { }
 Element.prototype.__pafter = function(ctx, type) { }
-Element.prototype.__checkGJump = function(gtime) {
-    return this.__checkJump(gtime - this.xdata.gband[0]);
-}
 Element.prototype.__checkJump = function(at) {
     // FIXME: test if jumping do not fails with floating points problems
     var x = this.xdata,
@@ -2726,14 +2668,12 @@ Element.createState = function(owner) {
 Element.createXData = function(owner) {
     return { 'pos': [0, 0],      // position in parent clip space
              'reg': [0, 0],      // registration point
-             'image': null,    // cached Image instance, if it is an image
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
+             'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
              'mode': C.R_ONCE,            // playing mode
              'lband': [0, Element.DEFAULT_LEN], // local band
              'gband': [0, Element.DEFAULT_LEN], // global band
-             'canvas': null,   // own canvas for static (cached) elements
-             'dimen': null,    // dimensions for static (cached) elements
              'keys': {},
              'tf': null,
              'acomp': null,    // alpha composition
@@ -2748,9 +2688,7 @@ Element.__addSysModifiers = function(elm) {
 }
 Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPath);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawImage);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawText);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawReg);
@@ -2811,7 +2749,10 @@ Element._getIMatrixOf = function(s, m) {
     _t.invert();
     return _t;
 }
-Element.imgFromUrl = prepareImage;
+/* TODO: add createFromImgUrl?
+ Element.imgFromURL = function(url) {
+    return new Sheet(url);
+}*/
 
 var Clip = Element;
 
@@ -2992,20 +2933,6 @@ DU._hasVal = function(fsval) {
     return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
-/* FIXME: move to `Path`? */
-DU.qDraw = function(ctx, stroke, fill, func) {
-    ctx.save();
-    ctx.beginPath();
-    DU.applyFill(ctx, fill);
-    DU.applyStroke(ctx, stroke);
-    func();
-    ctx.closePath();
-
-    if (DU._hasVal(fill)) ctx.fill();
-    if (DU._hasVal(stroke)) ctx.stroke();
-    ctx.restore();
-}
-
 // Import
 // -----------------------------------------------------------------------------
 
@@ -3094,21 +3021,13 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.restore();
 }
 
-Render.p_drawPath = function(ctx, path) {
-    if (!(path = path || this.path)) return;
-    path.apply(ctx);
-}
+// FIXME: join three function below into one, taking one object and
+//        applying it
 
-Render.p_drawImage = function(ctx, image) {
-    if (!(image = image || this.image)) return;
-    ctx.save();
-    if (image.isReady) ctx.drawImage(image, 0, 0);
-    ctx.restore();
-}
-
-Render.p_drawText = function(ctx, text) {
-    if (!(text = text || this.text)) return;
-    text.apply(ctx);
+Render.p_drawXData = function(ctx) {
+    var subj = this.path || this.text || this.sheet;
+    if (!subj) return;
+    subj.apply(ctx); // apply does ctx.save/ctx.restore by itself
 }
 
 Render.p_drawName = function(ctx, name) {
@@ -3448,21 +3367,19 @@ Path.prototype.add = function(seg) {
 }
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx) {
+    var fill = this.fill || Path.DEFAULT_FILL,
+        stroke = this.stroke || Path.DEFAULT_STROKE;
 
-    var p = this;
-    DU.qDraw(ctx, p.stroke || Path.DEFAULT_STROKE,
-                  p.fill || Path.DEFAULT_FILL,
-             function() { p.visit(Path._applyVisitor, ctx); });
-
-    /*ctx.beginPath();
-    DU.applyFill(ctx, this.fill || Path.DEFAULT_FILL);
-    DU.applyStroke(ctx, this.stroke || Path.DEFAULT_STROKE);
-    this.visit(this._applyVisitor,ctx);
+    ctx.save();
+    ctx.beginPath();
+    DU.applyFill(ctx, fill);
+    DU.applyStroke(ctx, stroke);
+    this.visit(Path._applyVisitor, ctx);
     ctx.closePath();
 
-    ctx.fill();
-    ctx.stroke();*/
-
+    if (DU._hasVal(fill)) ctx.fill();
+    if (DU._hasVal(stroke)) ctx.stroke();
+    ctx.restore();
 }
 Path.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -3638,6 +3555,7 @@ Path.prototype.clone = function() {
     if (this.fill) clone.fill = obj_clone(this.fill);
     return clone;
 }
+Path.prototype.dispose = function() { }
 
 
 // visits every chunk of path in string-form and calls
@@ -4047,6 +3965,10 @@ Text.prototype.clone = function() {
     if (this.fill) c.fill = obj_clone(this.fill);
     return c;
 }
+Text.prototype.dispose = function() { }
+
+// Brush
+// -----------------------------------------------------------------------------
 
 var Brush = {};
 // cached creation, returns previous result
@@ -4104,6 +4026,105 @@ Brush.create = function(ctx, brush) {
     }
     return null;
 }
+
+// Sheet
+// -----------------------------------------------------------------------------
+
+Sheet.instances = 0;
+/* TODO: rename to Static and take optional function as source? */
+function Sheet(src, callback, start_region) {
+    this.id = Sheet.instances++;
+    this.src = src;
+    this.dimen = /*dimen ||*/ [0, 0];
+    this.regions = [ [ 0, 0, 1, 1 ] ]; // for image, sheet contains just one image
+    this.regions_f = null;
+    // this.aliases = {}; // map of names to regions (or regions ranges)
+    /* use state property for region num? or conform with state jumps/positions */
+    /* TODO: rename region to frame */
+    this.cur_region = start_region || 0; // current region may be changed with modifier
+    this.ready = false;
+    this._image = null;
+    this._cvs_cache = null;
+    this.load(callback);
+}
+Sheet.cache = {};
+Sheet.prototype.load = function(callback) {
+    if (this._image) throw new Error('Already loaded'); // just skip loading?
+    var cache = Sheet.cache;
+    var me = this;
+    function whenDone(image) {
+        me._image = image;
+        // if (me.regions.length == 1) me._drawToCache();
+        me.dimen = [ image.width, image.height ];
+        me.ready = true;
+        me._drawToCache();
+        if (callback) callback(me);
+    }
+    var _cached = cache[this.src];
+    if (!_cached) {
+        var _img = new Image();
+        _img.onload = function() {
+            _img.__anm_ready = true;
+            _img.isReady = true; /* FIXME: use 'image.complete' and
+                                  '...' (network exist) combination,
+                                  'complete' fails on Firefox */
+            whenDone(_img);
+        };
+        cache[this.src] = _img;
+        try { _img.src = this.src; }
+        catch(e) { throw new SysErr('Image at ' + me.src + ' is not accessible'); }
+    } else {
+        if (_cached.__anm_ready) { // image is completely loaded into cache
+            whenDone(_cached);
+        } else { // image is in cache, but not loaded completely, add our listener to queue
+            // (what if we are those who wait, add _img.__anm_requester?)
+            // (but it should not happen if load is only called from constructor)
+            var cur_onload = _cached.onload;
+            _cached.onload = function() { whenDone(_cached); cur_onload(); }
+        }
+    }
+}
+Sheet.prototype._drawToCache = function() {
+    if (!this.ready) return;
+    if (this._image.__cvs) {
+        this._cvs_cache = this._image.__cvs;
+        return;
+    }
+    var _canvas = newCanvas(this.dimen, 1 /* FIXME: use real ratio */);
+    var _ctx = _canvas.getContext('2d');
+    _ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+    this._image.__cvs = _canvas;
+    this._cvs_cache = _canvas;
+}
+Sheet.prototype.apply = function(ctx) {
+    if (!this.ready) return;
+    if (this.cur_region < 0) return;
+    var region;
+    if (this.region_f) { region = region_f(this.cur_region); }
+    else {
+        var r = this.regions[this.cur_region],
+            d = this.dimen;
+        region = [ r[0] * d[0], r[1] * d[1],
+                   r[2] * d[0], r[3] * d[1] ];
+    }
+    ctx.drawImage(this._cvs_cache, region[0], region[1],
+                                   region[2], region[3], 0, 0, region[2], region[3]);
+}
+Sheet.prototype.bounds = function() {
+    // TODO: when using current_region, bounds will depend on that region
+    if (!this.ready) return [0, 0, 0, 0];
+    return [ 0, 0, this.dimen[0], this.dimen[1] ];
+}
+Sheet.prototype.clone = function() {
+    return new Sheet(this.src);
+}
+Sheet.prototype.dispose = function() {
+    this._cvs_cache = null;
+}
+// TODO: detach, dispose canvas
+var _Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] region
+                    // it will be exported as `Image`, but renamed here not to confuse
+                    // with browser Image object
 
 // Controls
 // -----------------------------------------------------------------------------
@@ -4191,6 +4212,8 @@ Controls.prototype.render = function(state, time) {
     if (this.hidden && !this.__force) return;
 
     var _s = state.happens;
+    if (_s == C.NOTHING) return;
+
     var time = (time > 0) ? time : 0;
     if (!this.__force &&
         (time === this._time) &&
@@ -4268,8 +4291,9 @@ Controls.prototype.handle_mdown = function(event) {
         _tw = Controls._TW,
         _w = this.bounds[2] - this.bounds[0],
         _ratio = this._ratio;
+    var _s = this.player.state.happens;
+    if (_s === C.NOTHING) return;
     if (_lx < (_bh + _m + (_m / 2))) { // play button area
-        var _s = this.player.state.happens;
         if (_s === C.STOPPED) {
             this.player.play(0);
         } else if (_s === C.PAUSED) {
@@ -4278,8 +4302,6 @@ Controls.prototype.handle_mdown = function(event) {
             this.player.pause();
         }
     } else if (_lx < (_w - (_tw + _m))) { // progress area
-        var _s = this.player.state.happens;
-        if (_s === C.NOTHING) return;
         var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
             _px = _lx - (_bh + _m + _m), // progress leftmost x
             _d = this.player.state.duration;
@@ -4294,6 +4316,10 @@ Controls.prototype.handle_mdown = function(event) {
         }
     } else { // time area
         this.elapsed = !this.elapsed;
+        if (_s !== C.PLAYING) {
+            this.forceNextRedraw();
+            this.render(this.player.state, this._time);
+        };
     }
 }
 Controls.prototype.inBounds = function(point) {
@@ -4536,6 +4562,7 @@ Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before call
 Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
 Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
 Errors.P.DURATION_IS_NOT_KNOWN = 'Duration is not known';
+Errors.P.ALREADY_ATTACHED = 'Player is already attached to this canvas, please use another one';
 Errors.P.INIT_TWICE = 'Initialization was called twice';
 Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
 Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
@@ -4561,7 +4588,7 @@ var to_export = {
     'Scene': Scene,
     'Element': Element,
     'Clip': Clip,
-    'Path': Path, 'Text': Text,
+    'Path': Path, 'Text': Text, 'Sheet': Sheet, 'Image': _Image,
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
@@ -4578,7 +4605,9 @@ var to_export = {
     'ajax': ajax,
     '_typecheck': { builder: __builder,
                     array: __array,
-                    num: __num },
+                    num: __num,
+                    obj: __obj,
+                    fun: __fun },
 
     '__dev': { 'strf': _strf,
                'adjust': __adjust,

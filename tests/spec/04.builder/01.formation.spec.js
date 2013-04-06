@@ -614,16 +614,33 @@ describe("builder, regarding its formation techniques,", function() {
 
             it("should not clone image object in given builder's element, just copy", function() {
                 var fake_src = 'http://fake.img';
-                to_clone = b().image([50, 50], fake_src);
-                var image = to_clone.x.image;
-                instance = b(to_clone);
+                var whenImgReady = jasmine.createSpy('img-ready').andCallFake(function() {
+                    var created_image = to_clone.x.sheet._image;
+                    instance = b(to_clone);
 
-                expect(to_clone.x).toBe(to_clone.v.xdata);
-                expect(instance.x).toBe(instance.v.xdata);
-                expect(to_clone.x.image).toBe(image);
-                expect(instance.x.image).toBe(image);
-                expect(instance.x.image.src).toMatch(fake_src);
+                    var sample_image = to_clone.x.sheet._image,
+                        instance_image = instance.x.sheet._image;
+
+                    expect(to_clone.x).toBe(to_clone.v.xdata);
+                    expect(instance.x).toBe(instance.v.xdata);
+                    expect(sample_image).toBe(created_image);
+                    expect(instance_image).toBe(created_image);
+                    expect(instance_image.src).toMatch(fake_src);
+                    ImgFake.__stopFakes();
+                });
+                spyOn(document, 'createElement').andReturn(_mocks.factory.canvas());
+                spyOn(window, 'Image').andCallFake(ImgFake);
+                runs(function() {
+                    to_clone = b().image([50, 50], fake_src, whenImgReady);
+                });
+                waitsFor(function() { return to_clone.x.sheet &&
+                                             to_clone.x.sheet.ready; }, 500);
+                runs(function() {
+                    expect(whenImgReady).toHaveBeenCalled();
+                });
             });
+
+            // TODO: test images caching
 
         });
 

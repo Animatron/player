@@ -1,0 +1,149 @@
+<!--
+
+    Copyright (c) 2011-2013 by Animatron.
+    All rights are reserved.
+
+-->
+<html>
+<head>
+    <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <!--<script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>-->
+    <script type="text/javascript" language="javascript" src="../dist/full/bundle/animatron.js"></script>
+
+    <link rel="stylesheet" href="./embedding.css" type="text/css" />
+
+    <script type="text/javascript">
+
+        // Tangential Eccentric: http://animatron-snapshots.s3.amazonaws.com/fe970cb5-50dc-426e-b535-6b4e0aba217b
+        // Olya's Movie: http://animatron-snapshots.s3.amazonaws.com/5a0959f1-074c-45a0-87b8-64cbbcd81ce0 (http://editor.animatron.com/#p=ed865051bb5b3ea45f31232b)
+        // /5a0959f1-074c-45a0-87b8-64cbbcd81ce0?w=500&h=500&t=50
+
+        var _embed = (function() {
+
+            var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
+            //var PREFIX = 'http://128.0.0.1/examples/json';
+            //var PREFIX = 'http://animatron-snapshots.s3-website-us-east-1.amazonaws.com';
+
+            var player = null;
+
+            function init() {
+
+                var defaultURL = '/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+                //var defaultURL = '/tangential_eccentric.json';
+
+                var _url = document.getElementById('url-val');
+                _url.value = defaultURL;
+
+                url_change(_url);
+            }
+
+            function on_error(e) {
+                var _error = document.getElementById('error-box');
+                _error.innerText = 'Error: ' + e.message;
+                _error.textContent = 'Error: ' + e.message;
+            }
+
+            //var start = (function() {
+            function load(url, w, h) {
+
+                /* return function(url, width, height) {
+                    var width  = <%=width%>;
+                    var height = <%=height%>;
+                    var url    = '<%=contentUrl%>';
+                    anm.Player.forSnapshot('canvas1', url, <%=p%>, new AnimatronImporter());
+                } */
+
+                /* return function() {
+                    var width  = 550.0;
+                    var height = 450.0;
+                    var url    = 'http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+                    anm.Player.forSnapshot('canvas1', url, {
+                        "height": 450,
+                        "width": 550
+                    }, new AnimatronImporter());
+                } */
+
+                if (player) player.detach();
+
+                player = anm.Player.forSnapshot('canvas1', PREFIX + url, new AnimatronImporter());
+
+            };
+
+            function url_change(_url) {
+                var _cur_url = document.getElementById('cur-url');
+                _cur_url.innerText = PREFIX + _url.value;
+                _cur_url.textContent = PREFIX + _url.value;
+            }
+
+            function load_click(_load) {
+                try {
+                    var _url = document.getElementById('url-val');
+                    load(_url.value)
+                } catch(e) {
+                    on_error(e);
+                }
+            }
+
+            return {
+                'init': init, 'load': load,
+                'url_change': url_change, 'load_click': load_click
+            }
+
+        })();
+
+    </script>
+
+</head>
+
+<!-- <body onload="start();"> -->
+
+<body onload="_embed.init();">
+<div id="options">
+    <p><label for="url-val">URL</label><input type="text" id="url-val" onkeyup="_embed.url_change(this)" onclick="_embed.url_change(this)" onblur="_embed.url_change(this)"></input><button onclick="_embed.load_click(this)">Load</button></p>
+    <p id="example">
+        <label for="example">Example</label><!--
+     --><span class="prot">http</span><!--
+     --><span class="sep">://</span><!--
+     --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
+     --><span class="sep">/</span><!--
+     --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9</span><!--
+     --><span class="sep">?</span><!--
+     --><span class="param">w</span><sub>width</sub><span class="equals">=</span><span class="value">600</span><span class="sep">&amp;</span><!--
+     --><span class="param">h</span><sub>height</sub><span class="equals">=</span><span class="value">500</span><span class="sep">&amp;</span><!--
+     --><span class="param">bg</span><sub>background</sub><span class="equals">=</span><span class="value">f0fff0</span><span class="sep">&amp;</span><!--
+     --><span class="param">m</span><sub>mode</sub><span class="equals">=</span><span class="value">0</span><span class="sep">&amp;</span><!--
+     --><span class="param">r</span><sub>repeat</sub><span class="equals">=</span><span class="value">0</span><span class="sep">&amp;</span><!--
+     --><span class="param">z</span><sub>zoom</sub><span class="equals">=</span><span class="value">1</span><span class="sep">&amp;</span><!--
+     --><span class="param">t</span><sub>play-from</sub><span class="equals">=</span><span class="value">25</span><span class="sep">&amp;</span><!--
+     --><span class="param">p</span><sub>pause-at</sub><span class="equals">=</span><span class="value">37</span><span class="sep">&amp;</span><!--
+   --><span class="param">debug</span><sub>debug</sub><span class="equals">=</span><span class="value">0</span>
+
+    <!-- t and p are in hundreds of miliseconds -->
+
+    <!-- debug: 1 | 0 -->
+
+    <!-- repeat: 1 | 0 -->
+
+    <!-- mode: PREVIEW: 0, DYNAMIC: 4, VIDEO: 11 -->
+
+     <!--    return { 'debug': attrs.debug,
+             'inParent': undefined,
+             'muteErrors': false,
+             'repeat': attrs.r,
+             'mode': attrs.m,
+             'zoom': attrs.z,
+             'anim': { 'fps': undefined,
+                       'width': attrs.w,
+                       'height': attrs.h,
+                       'bgcolor': { color: "#" + attrs.bg },
+                       'duration': undefined } }; -->
+    </p>
+    <p id="preview"><label for="cur-url">Preview</label><span id="cur-url">x</span></p>
+    <!--<p><label for="w-val">[W]</label><input type="text" id="w-val"></input></p>
+    <p><label for="h-val">[H]</label><input type="text" id="h-val"></input></p>-->
+</div>
+
+<div id="canvas-holder"><canvas id="canvas1"></canvas></div>
+<p id="error-box"></p>
+</body>
+</html>

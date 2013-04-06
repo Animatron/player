@@ -16,10 +16,12 @@ describe("player, when speaking about playing,", function() {
 
     var FPS = 60, _fg;
 
-    var canvasMock = _mocks.factory.canvas();
+    var canvasMock;
 
     beforeEach(function() {
         this.addMatchers(_matchers);
+
+        canvasMock = _mocks.factory.canvas();
 
         spyOn(document, 'getElementById').andReturn(canvasMock);
         _fake(_Fake.CVS_POS);
