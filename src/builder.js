@@ -7,7 +7,7 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+window.Builder = (function() { // anonymous wrapper to exclude global context clash
 
 var Path = anm.Path;
 var Element = anm.Element;
@@ -49,7 +49,7 @@ function Builder(obj) {
         this.n = obj.name;
         this.v = obj;
         this.x = obj.xdata;
-    } else if (typeof obj === 'string') {
+    } else if (is.str(obj)) {
         this.n = obj;
         this.v = new Element();
         this.v.name = this.n;
@@ -58,6 +58,8 @@ function Builder(obj) {
     this.v.__b$ = this;
     this.f = this._extractFill(Builder.DEFAULT_FILL);
     this.s = this._extractStroke(Builder.DEFAULT_STROKE);
+    this.d = undefined; // duration
+    this.a = undefined; // animator
 }
 Builder._$ = function(obj) {
     if (obj && (obj instanceof Element)) {
@@ -70,7 +72,7 @@ Builder._$ = function(obj) {
 }
 
 Builder.__path = function(val, join) {
-    return is.array(val)
+    return is.arr(val)
            ? Builder.path(val)
            : ((val instanceof Path) ? val
               : Path.parse(val, join))
@@ -126,7 +128,7 @@ Builder.prototype.path = function(path, pt) {
 // > builder.rect % (pt: Array[2,Integer],
 //                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var rect = is.array(rect) ? rect : [ rect, rect ];
+    var rect = is.arr(rect) ? rect : [ rect, rect ];
     var w = rect[0], h = rect[1];
     this.path([[0, 0], [w, 0],
                [w, h], [0, h],
@@ -182,55 +184,43 @@ Builder.prototype.text = function(pt, lines, size, font) {
 }
 // > builder.sprite % (pt: Array[2,Integer],
 //                     src: String | Sheet,
-//                     [size: Array[2,Integer]],
-//                     [frame: Integer],
+//                     [tile_spec: Array[2,Integer] | Function],
 //                     [callback: Function(Image)]) => Builder
-Builder.prototype.sprite = function(pt, src, tile_size, frame, callback) {
+Builder.prototype.sprite = function(pt, src, tile_spec, callback) {
     this.x.pos = pt;
-    if (is.obj(src)) {
-        // animate and play
-    } else {
-        // this.v.sheet = Builder.sheet(src/* ... */)
-    }
-
-
-    /* this.x.pos = pt;
-    this.v.sheet = sheet;
-    this.v.sprite = true;
-    if (frame !== undefined) this.x.frame = frame;
-    else frame = 0;
-
-    if (src) {
-        var b = this;
-        this.x.image =
-            // width/height olny will be known when image will be loaded
-            Element.imgFromUrl(src);
-        if (callback)
-        if (this.x.image.isReady) callback(src);
-        else Element.imgFromUrl(src, function(img) {
-                var w, h;
-                if (sheet instanceof Array) {
-                    w = sheet[0];
-                    h = sheet[1];
-                } else w = sheet;
-                b.x.$.state.dimen = [w, h];
-                b.x.$.state.ratio = 1;
-                b.v.prepare();
-                //if (callback) callback(this);
-            });
-        try { this.x.image.src = src; }
-        catch(e) { throw new Error('Image at ' + src + ' is not accessible');}
-    }
-    return this; */
+    var animator;
+    if (is.str(src)) {
+        animator = Builder.sheet(src, tile_spec, callback)(this.v);
+    } else if (is.fun(src)) {
+        animator = src(this.v);
+    } else throw new Error('Incorrect source for sprite');
+    this.x.sheet = animator.sheet;
+    this.a = animator;
+    return this;
+}
+Builder.prototype.switch = function(frames, fps, repeat) {
+    if (!this.a) throw new Error('This builder has no animator, so no switch possible');
+    this.a.switch(frames, fps, repeat);
+    return this;
+}
+Builder.prototype.animate = function(t, frames, fps, repeat) {
+    if (!this.a) throw new Error('This builder has no animator, so no animation possible');
+    this.a.animate(t, frames, fps, repeat);
+    return this;
+}
+Builder.prototype.run = function(t) {
+    if (!this.a) throw new Error('This builder has no animator, so no running possible');
+    this.a.run(t);
+    return this;
 }
 
 // * FILL & STROKE *
 
 // > builder.fill % (color: String) => Builder
 Builder.prototype.fill = function(fval) {
-    this.f = ((typeof fval === 'string')
-              ? { color: fval }
-              : (fval.r ? { 'rgrad': fval } : { 'lgrad': fval }));
+    this.f = ( is.str(fval)
+               ? { color: fval }
+               : (fval.r ? { 'rgrad': fval } : { 'lgrad': fval }));
     if (this.x.path) this.x.path.fill = this.f;
     if (this.x.text) this.x.text.fill = this.f;
     return this;
@@ -239,7 +229,7 @@ Builder.prototype.fill = function(fval) {
 //                     cap: String, join: String]) // C.PC_*
 //                  => Builder
 Builder.prototype.stroke = function(sval, width, cap, join) {
-    this.s = ((typeof sval === 'string') ? {
+    this.s = (is.str(sval) ? {
         'width': (width != null) ? width
                  : Builder.DEFAULT_STROKE.width,
         'color': sval,
@@ -448,7 +438,7 @@ Builder.prototype.bounce = function() {
 //                     [data: Any, easing: Function(time),
 //                                 priority: Integer]) => Builder
 Builder.prototype.modify = function(band, modifier, data, easing, priority) {
-    if (is.array(band) || is.num(band)) {
+    if (is.arr(band) || is.num(band)) {
         // NB: easing and data are currently "swapped" in `modify` method
         this.v.addModifier({ time: band,
                              easing: easing,
@@ -473,7 +463,7 @@ Builder.prototype.modify = function(band, modifier, data, easing, priority) {
 //                      [data: Any, easing: Function(time),
 //                                  priority: Integer]) => Builder
 Builder.prototype.rmodify = function(band, modifier, data, easing, priority) {
-    if (is.array(band) || is.num(band)) {
+    if (is.arr(band) || is.num(band)) {
         // NB: easing and data are currently "swapped" in `modify` method
         this.v.addModifier({ time: band,
                              easing: easing,
@@ -777,24 +767,81 @@ Builder.tween = function() {
 }
 Builder.font = function(name, size) {
     var fface = name || Builder.DEFAULT_FFACE;
-        fface = (typeof fface === 'string') ? fface : fface.join(',');
+        fface = (is.str(fface)) ? fface : fface.join(',');
     var fsize = (size != null) ? size : Builder.DEFAULT_FSIZE;
     return fsize + 'px ' + fface;
 }
+
+// example:
+// return b().sprite([0, 0], './res/sprite_sample.png', [144, 59])
+//           .animate(0, [0, 30, 1], 10);
+var __t = anm.__dev.adjust;
+if (!__t) throw new Error('adjust should be defined');
+function _get_frame(start, t, anim) {
+    var frames = anim[0],
+        fps = anim[1],
+        step = (frames.length > 2) ? frames[2] : 1,
+        repeat = (frames.length > 3) ? frames[3] : false,
+        start_frame = frames[0],
+        end_frame = frames[1],
+        dt = __t(t - start);
+    var len = __t((end_frame + 1) - start_frame);
+    var tframe = Math.floor(dt * fps) * step;
+    if (tframe < 0) return -1;
+    if (!repeat && (tframe >= len)) return -1;
+    if (repeat) { tframe = tframe % len; }
+    return Math.floor(start_frame + tframe);
+}
+function _Animator(sheet, elm) {
+    this.sheet = sheet;
+    this.elm = elm;
+    //if (!(sheet === elm.xdata.sheet)) throw new Error('Element sheet is prepared wrong way');
+    this.cur_anim = null;
+    var me = this;
+    this.elm.addModifier(function(t) {
+        if (!me.cur_anim) return false;
+        var frame = _get_frame(me.start, t, me.cur_anim);
+        if (frame >= 0) {
+            sheet.cur_region = frame;
+
+        } else {
+            sheet.cur_region = -1; // FIXME: use default frame
+            me.cur_anim = null;
+            return false;
+        }
+    });
+}
+_Animator.prototype.switch = function(frames, fps, repeat) {
+    this._prepared_anim = [ frames, fps, repeat ];
+}
+_Animator.prototype.run = function(t) {
+    this.start = t;
+    this.cur_anim = this._prepared_anim;
+}
+_Animator.prototype.animate = function(t, frames, fps, repeat) {
+    this.switch(frames, fps, repeat);
+    this.run(t);
+}
+
 // > Builder.sheet % (src: String,
 //                    [tile_selector: Array[2,Integer] | Function(Integer) => Array[4,Integer]],
-//                    [frame_selector: Array[2,Integer] | Function(Float) => Integer],
 //                    [callback: Function(Image)]) => Builder
-/* Builder.sheet = function(src, tile_selector, frame_selector, callback) {
-
-    return {
-        // TODO: add switch('walk') / animate('walk')
-        switch: function(fps, frames) { },
-        animate: function(t, fps, frames) { }, // same as switch(fps, frames).run(t)
-        run: function(t) { }
-    }
-
-} */
+Builder.sheet = function(src, tile_spec, callback) {
+    var sheet = new Sheet(src, function(img, sheet) {
+        if (is.arr(tile_spec)) {
+            var tdimen = tile_spec,
+                sdimen = sheet.dimen,
+                h_factor = Math.floor(sdimen[0] / tdimen[0]);
+            sheet.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
+                                               h_pos = n % h_factor;
+                                           return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
+        } else if (is.fun(tile_spec)) {
+            sheet.region_f = tile_spec;
+        }
+        if (callback) callback();
+    });
+    return function(elm) { return new _Animator(sheet, elm); };
+}
 // Thanks for Nek (github.com/Nek) for this function
 Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps){
     //
@@ -836,6 +883,6 @@ Element.prototype.clone = function() {
     return clone;
 }
 
-window.Builder = Builder;
+return Builder;
 
 })(); // end of anonymous wrapper
