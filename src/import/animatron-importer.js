@@ -40,7 +40,7 @@ AnimatronImporter.prototype.configureAnim = function(prj) {
         'fps': _a.framerate,
         'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
         'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgcolor': _a.background && _a.background.color ? _a.background.color : null,
+        'bgcolor': _a.background ? Convert.fill(_a.background) : null,
     }
 }
 
@@ -107,6 +107,12 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             }
         }
     }
+    // FIXME: it is a not good way to do it, ask tool developers to return band for such elements
+    if ((target.xdata.mode != C.R_ONCE) &&
+        (target.children.length > 0) &&
+        (!Number.isFinite(target.xdata.gband[1]))) {
+        target.makeBandFit();
+    }
     return target;
 }
 AnimatronImporter.prototype.findElement = function(id, source) {
@@ -134,7 +140,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
-    to.xdata.image = src.url ? Element.imgFromUrl(src.url) : null;
+    to.xdata.sheet = src.url ? new anm.Sheet(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,
