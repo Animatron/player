@@ -27,7 +27,7 @@ var COPYRIGHT_COMMENT =
   ' * ',
   ' * Animatron player is licensed under the MIT License.',
   ' * ',
-  ' * ' + VERSION,
+  ' * ' + VERSION + ', built at @BUILD_TIME',
   ' */'].join('\n') + '\n';
 
 var Binaries = {
@@ -354,7 +354,10 @@ task('_minify', function() {
     }
 
     function copyrightize(file) {
-        var new_content = COPYRIGHT_COMMENT.concat(jake.cat(file).trim());
+        var now = new Date();
+        var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g,
+                                                    (now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')'))
+                                           .concat(jake.cat(file).trim());
         jake.rmRf(file);
         jake.echo(new_content, file);
         console.log('(c) -> ' + file);
