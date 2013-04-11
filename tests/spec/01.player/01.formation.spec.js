@@ -229,6 +229,8 @@ describe("player, when created,", function() {
     // TODO: ensure controls and info blocks are rendered properly for different ratios
     // TODO: data- attributes
     // TODO: player.forSnapshot
+    // canvas bg can use only solid colors or rgba and it should be transparent by default, overwritten only with options.
+    // project bg may be either any gradient or any type of color, it should be used only when rendering project itself
 
     xit("not passes", function() {
         this.fail();

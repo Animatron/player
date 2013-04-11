@@ -7,4 +7,6 @@
 
 xdescribe("importing elements", function() {
 
+    // TODO: test mode (ONCE/STAY/LOOP/BOUNCE)
+
 });
