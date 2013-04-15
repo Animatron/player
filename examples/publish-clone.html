@@ -1,23 +1,62 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
-    <!-- <script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/full/bundle/animatron.js"></script> -->
-    <script type="text/javascript" language="javascript" src="../dist/full/bundle/animatron.js"></script>
-
+    <style type="text/css">
+        html, body {
+            margin: 0;
+            padding: 0;
+        }
+    </style>
     <script type="text/javascript">
+
+        var WIDTH = 620.0,
+            HEIGHT = 620.0,
+            SNAPSHOT_ID = 'd4c38d2b-52d0-4feb-8014-f406861986bc';
 
         var start = (function() {
 
-            try {
-                return function() {
-                    var width  = 620.0;
-                    var height = 620.0;
-                    var url    = 'http://animatron-snapshots.s3.amazonaws.com/d4c38d2b-52d0-4feb-8014-f406861986bc';
-                    anm.Player.forSnapshot('canvas1', url + '?w=620&h=620', new AnimatronImporter());
+            return function() {
+                try {
+                    _forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
+                        var w = parseInt(WIDTH);
+                        var h = parseInt(HEIGHT);
+                        var qstring = '';
+                        if (w > 0 && h > 0) {
+                            qstring = '?w=' + w + '&h=' + h;
+                        }
+                        anm.Player.forSnapshot('canvas1', 'http://animatron-snapshots.s3.amazonaws.com/' + SNAPSHOT_ID + qstring, new AnimatronImporter());
+                    });
+                } catch(e) {
+                    if (console) console.error(e);
+                    else alert(e.message);
                 }
-            } catch(e) {
-                if (console) console.error(e);
-                else alert(e.message);
+            }
+
+            function _reportError(_e) {
+                if (console) console.error(_e);
+                else alert(_e.message);
+            }
+
+            function _forcedJS(_path, _then) {
+                var scriptElm = document.createElement('script');
+                scriptElm.type = 'text/javascript';
+                scriptElm.async = 'async';
+                scriptElm.src = _path + '?' + (new Date()).getTime();
+                scriptElm.onload = scriptElm.onreadystatechange = (function() {
+                    var _success = false;
+                    return function() {
+                        if ( !_success && (!this.readyState || (this.readyState == 'complete')) )
+                        {
+                            _success = true;
+                            _then();
+                        } else if (!_success) {
+                            _reportError(new Error('Request failed: ' + this.readyState));
+                        }
+                    }
+                })();
+                scriptElm.onerror = _reportError;
+                var headElm = document.head || document.getElementsByTagName('head')[0];
+                headElm.appendChild(scriptElm);
             }
 
         })();
