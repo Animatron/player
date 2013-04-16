@@ -16,7 +16,6 @@ var Image = anm.Image;
 var Sheet = anm.Sheet;
 
 var C = anm.C;
-var DU = anm.DU;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
@@ -146,7 +145,7 @@ Builder.prototype.circle = function(pt, radius) {
     this.x.__bounds = [ -radius, -radius, radius, radius];
     this.paint(function(ctx) {
             var b = this.$.__b$;
-            DU.qDraw(ctx, b.s, b.f,
+            Path.applyF(ctx, b.f, b.s,
                 function() {
                     ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                 });
