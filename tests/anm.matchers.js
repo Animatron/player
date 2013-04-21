@@ -110,6 +110,42 @@ matchers.toBeEpsilonyCloseTo = function(expected, epsilon) {
 
 }
 
+matchers.toHaveSizeDefined = function() {
+    var actual = this.actual;
+    var notText = this.isNot ? " not" : "";
+
+    var pxRatio = window.devicePixelRatio;
+
+    this.message = function () {
+        return "Expected " + actual + notText + " to have size defined";
+    }
+
+    return (typeof actual.width !== 'undefined') &&
+           (typeof actual.height !== 'undefined') &&
+           (typeof actual.getAttribute('width') !== 'undefined') &&
+           (typeof actual.getAttribute('height') !== 'undefined') &&
+           (typeof actual.style.width !== 'undefined') &&
+           (typeof actual.style.height !== 'undefined');
+}
+
+toHaveSize = function(expected) {
+    var actual = this.actual;
+    var notText = this.isNot ? " not" : "";
+
+    var pxRatio = window.devicePixelRatio || 1;
+
+    this.message = function () {
+        return "Expected " + actual + notText + " to have size equal to " + expected + ", " +
+               "but it has " + actual.getAttribute('width') + "x" + actual.getAttribute('height') + " " +
+               "and " + actual.style.width + ":" + actual.style.height + " in CSS";
+    }
+
+    return (actual.getAttribute('width')  == (expected[0] * pxRatio)) &&
+           (actual.getAttribute('height') == (expected[1] * pxRatio)) &&
+           (actual.style.width  == (expected[0] + 'px')) &&
+           (actual.style.height == (expected[1] + 'px'));
+}
+
 /* matchers.toBeCalledInOrder = function() {
     var actual = this.actual;
     var notText = this.isNot ? " not" : "";
