@@ -27,8 +27,7 @@
 // - **Scene** —
 // - **Element** —
 // - **Import** —
-// - **Drawing** —
-// - **Custom Rendering** —
+// - **Rendering** —
 // - **Bands** —
 // - **Tweens** —
 // - **Easings** —
@@ -913,12 +912,11 @@ Player.prototype.drawAt = function(time) {
     if ((time < 0) || (time > this.state.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
-    var ctx = this.ctx,
-        state = this.state;
-    ctx.clearRect(0, 0, state.width * state.ratio,
-                        state.height * state.ratio);
     this.anim.reset();
-    this.anim.render(ctx, time, state.zoom * state.ratio);
+    // __r_at is the alias for Render.at, but a bit more quickly-accessible,
+    // because it is a single function
+    __r_at(time, this.ctx, this.state, this.anim);
+
     if (this.controls) {
         this._renderControlsAt(time);
     }
@@ -2849,70 +2847,6 @@ function mevt(e, cvs) {
                     e.pageY - cvs.__rOffsetTop ] };
 }
 
-// Drawing
-// -----------------------------------------------------------------------------
-
-var D = {}; // means "Drawing"
-
-// draws current state of animation on canvas and postpones to call itself for
-// the next time period (so to start animation, you just need to call it once
-// when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, before, after) {
-    // NB: state here is a player state, not an element state
-
-    if (state.happens !== C.PLAYING) return;
-
-    var msec = (Date.now() - state.__startTime);
-    var sec = msec / 1000;
-
-    var time = (sec * state.speed) + state.from;
-    state.time = time;
-
-    if (before) {
-        if (!before(time)) return;
-    }
-
-    if (state.__rsec === 0) state.__rsec = msec;
-    if ((msec - state.__rsec) >= 1000) {
-        state.afps = state.__redraws;
-        state.__rsec = msec;
-        state.__redraws = 0;
-    }
-    state.__redraws++;
-
-    ctx.clearRect(0, 0, scene.width * state.ratio,
-                        scene.height * state.ratio);
-
-    scene.render(ctx, time, state.zoom * state.ratio/*, state.afps*/);
-
-    // show fps
-    if (state.debug) { // TODO: move to player.onrender
-        D.drawFPS(ctx, state.afps, time);
-    }
-
-    if (after) {
-        if (!after(time)) return;
-    }
-
-    if (state.__supressFrames) return;
-
-    return __nextFrame(function() {
-        D.drawNext(ctx, state, scene, before, after);
-    });
-
-}
-/* D.drawAt = function(ctx, state, scene, time) {
-    ctx.clearRect(0, 0, state.width, state.height);
-    scene.render(ctx, time);
-} */
-D.drawFPS = function(ctx, fps, time) {
-    ctx.fillStyle = '#999';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(Math.floor(fps), 8, 20);
-    ctx.font = '10px sans-serif';
-    ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
-}
-
 // Import
 // -----------------------------------------------------------------------------
 
@@ -2979,10 +2913,73 @@ L.loadBuilder = function(player, builder, callback) {
     L.loadScene(player, _anim, callback);
 }
 
-// Custom Rendering
+// Rendering
 // -----------------------------------------------------------------------------
 
-var Render = {}; // means "Render", system modifiers & painters
+var Render = {}; // means "Render", render loop + system modifiers & painters
+
+// functions below, the ones named in a way like `__r_*` are the real functions
+// acting under their aliases `Render.*`; it is done this way because probably
+// the separate function which is not an object propertly, will be a bit faster to
+// access during animation loop
+
+// draws current state of animation on canvas and postpones to call itself for
+// the next time period (so to start animation, you just need to call it once
+// when the first time must occur and it will chain its own calls automatically)
+function __r_loop(ctx, pl_state, scene, before, after) {
+    if (pl_state.happens !== C.PLAYING) return;
+
+    var msec = (Date.now() - pl_state.__startTime);
+    var sec = msec / 1000;
+
+    var time = (sec * pl_state.speed) + pl_state.from;
+    pl_state.time = time;
+
+    if (before) {
+        if (!before(time)) return;
+    }
+
+    if (pl_state.__rsec === 0) pl_state.__rsec = msec;
+    if ((msec - pl_state.__rsec) >= 1000) {
+        pl_state.afps = pl_state.__redraws;
+        pl_state.__rsec = msec;
+        pl_state.__redraws = 0;
+    }
+    pl_state.__redraws++;
+
+    __r_at(time, ctx, pl_state, scene);
+
+    // show fps
+    if (pl_state.debug) { // TODO: move to player.onrender
+        __r_fps(ctx, pl_state.afps, time);
+    }
+
+    if (after) {
+        if (!after(time)) return;
+    }
+
+    if (pl_state.__supressFrames) return;
+
+    return __nextFrame(function() {
+        __r_loop(ctx, pl_state, scene, before, after);
+    })
+}
+function __r_at(time, ctx, pl_state, scene) {
+    ctx.clearRect(0, 0, scene.width * pl_state.ratio,
+                        scene.height * pl_state.ratio);
+
+    scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+}
+function __r_fps(ctx, fps, time) {
+    ctx.fillStyle = '#999';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(Math.floor(fps), 8, 20);
+    ctx.font = '10px sans-serif';
+    ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
+}
+Render.loop = __r_loop;
+Render.at = __r_at;
+Render._drawFPS = __r_fps;
 
 Render.p_drawReg = function(ctx, reg) {
     if (!(reg = reg || this.reg)) return;
@@ -3000,9 +2997,6 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.stroke();
     ctx.restore();
 }
-
-// FIXME: join three function below into one, taking one object and
-//        applying it
 
 Render.p_drawXData = function(ctx) {
     var subj = this.path || this.text || this.sheet;
