@@ -3000,7 +3000,7 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
           ctx.fillRect(hcoord + (sw * x), 0, hcoord, ph);
         }
         if (vcoord != 0) {
-          ctx.fillRect(0, 0, pw * x, vcoord);
+          ctx.fillRect(0, 0, pw, vcoord);
           ctx.fillRect(0, vcoord + (sh * x), pw, vcoord);
         }
         ctx.restore();
