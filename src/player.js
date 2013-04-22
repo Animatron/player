@@ -2978,39 +2978,40 @@ function __r_at(time, ctx, pl_state, scene) {
         __r_with_ribbons(ctx, pl_state.width, pl_state.height,
                               scene.width, scene.height,
             function(_scale) {
-              ctx.clearRect(0, 0, scene.width * _scale * pl_state.ratio,
-                                  scene.height * _scale * pl_state.ratio);
-              scene.render(ctx, time, pl_state.zoom * _scale * pl_state.ratio/*, pl_state.afps*/);
+              ctx.clearRect(0, 0, scene.width * pl_state.ratio,
+                                  scene.height * pl_state.ratio);
+              scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
             });
     }
 }
 function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
-    var dw = pw / sw,
-        dh = ph / sh;
-    var scale = Math.min(dw, dh);
-    var hcoord = (pw - sw) / 2,
-        vcoord = (ph - sh) / 2;
-    var has_ribbons = hcoord || vcoord;
-    if (has_ribbons) {
+    var xw = pw / sw,
+        xh = ph / sh;
+    var x = Math.min(xw, xh);
+    var hcoord = (pw - sw * x) / 2,
+        vcoord = (ph - sh * x) / 2;
+    var scaled = hcoord || vcoord;
+    if (scaled) {
         ctx.save();
         ctx.save();
         ctx.fillStyle = '#000';
         if (hcoord != 0) {
           ctx.fillRect(0, 0, hcoord, ph);
-          ctx.fillRect(hcoord + (sw * scale), 0, hcoord, ph);
+          ctx.fillRect(hcoord + (sw * x), 0, hcoord, ph);
         }
         if (vcoord != 0) {
-          ctx.fillRect(0, 0, pw, vcoord);
-          ctx.fillRect(0, vcoord + (sh * scale), pw, vcoord);
+          ctx.fillRect(0, 0, pw * x, vcoord);
+          ctx.fillRect(0, vcoord + (sh * x), pw, vcoord);
         }
         ctx.restore();
         ctx.beginPath();
-        ctx.rect(hcoord, vcoord, sw * scale, sh * scale);
+        ctx.rect(hcoord, vcoord, sw * x, sh * x);
         ctx.clip();
         ctx.translate(hcoord, vcoord);
+        if (x != 1) ctx.scale(x, x);
     }
-    draw_f(scale);
-    if (has_ribbons) {
+    draw_f(x);
+    if (scaled) {
         ctx.restore();
     }
 }
