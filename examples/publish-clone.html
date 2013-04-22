@@ -52,7 +52,7 @@
             // >>> DIFF WITH ORIGINAL
             var _params_ = location.search ? location.search.substr(1) : null,
                 _prefix_ = 'animatron-snapshots.s3.amazonaws.com',
-                _project_id_ = location.hash.substr(1);
+                _project_id_ = _params_ ? extractVal(_params_, 'sid') : '--no-project-id--';
             var rect = getRequiredRect(_params_);
             if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
                                         _params_ = injectVal(_params_, 'h', rect[1]); }

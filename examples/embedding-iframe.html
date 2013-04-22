@@ -45,7 +45,9 @@
 
             function load(url, w, h) {
                 var iframe = document.getElementById('trg-iframe');
-                iframe.src = './publish-clone.html#' + url.substr(1);
+                var src = './publish-clone.html?sid=' + url.substr(1).replace('?', '&') + '&salt=' + (new Date().getTime());
+                if (console) console.log(src);
+                iframe.src = src;
             };
 
             function url_change(_url) {
@@ -57,7 +59,7 @@
             function load_click(_load) {
                 try {
                     var _url = document.getElementById('url-val');
-                    load(_url.value)
+                    load(_url.value);
                 } catch(e) {
                     on_error(e);
                 }
