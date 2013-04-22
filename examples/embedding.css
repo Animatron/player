@@ -26,6 +26,11 @@ input, button {
   display: block;
 }
 
+#canvas-holder > iframe {
+  margin: 0 auto;
+  display: block;
+}
+
 #canvas-holder {
 
 }

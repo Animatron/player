@@ -703,10 +703,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
     scene.reset();
     player.setDuration(scene.duration);
 
-    state.__firstReq = D.drawNext(player.ctx,
-                                  state, scene,
-                                  player.__beforeFrame(scene),
-                                  player.__afterFrame(scene));
+    state.__firstReq = __r_loop(player.ctx,
+                                state, scene,
+                                player.__beforeFrame(scene),
+                                player.__afterFrame(scene));
 
     player.fire(C.S_PLAY, state.from);
 
@@ -2965,6 +2965,8 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     })
 }
 function __r_at(time, ctx, pl_state, scene) {
+    console.log('player width', pl_state.width, 'player height', pl_state.height,
+                'scene width', scene.width, 'scene height', scene.height);
     ctx.clearRect(0, 0, scene.width * pl_state.ratio,
                         scene.height * pl_state.ratio);
 

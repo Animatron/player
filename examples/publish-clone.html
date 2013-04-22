@@ -7,24 +7,32 @@
             padding: 0;
         }
     </style>
+
+
     <script type="text/javascript">
 
-        var WIDTH = 620.0,
-            HEIGHT = 620.0,
-            SNAPSHOT_ID = 'd4c38d2b-52d0-4feb-8014-f406861986bc';
+        // >>> DIFF WITH ORIGINAL
+        var _params_ = location.search ? location.search.substr(1) : null,
+            _prefix_ = 'animatron-snapshots.s3.amazonaws.com';
+        var _project_id_ = location.hash.substr(1);
+        console.log(_params_, _project_id_);
+        // <<< DIFF WITH ORIGINAL
 
         var start = (function() {
 
             return function() {
                 try {
-                    _forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
-                        var w = parseInt(WIDTH);
-                        var h = parseInt(HEIGHT);
+                    //_forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
+                    _forcedJS('../dist/full/bundle/animatron.js', function() {
+                        /*var w = parseInt(_width_);
+                        var h = parseInt(_height_);
                         var qstring = '';
                         if (w > 0 && h > 0) {
                             qstring = '?w=' + w + '&h=' + h;
                         }
-                        anm.Player.forSnapshot('canvas1', 'http://animatron-snapshots.s3.amazonaws.com/' + SNAPSHOT_ID + qstring, new AnimatronImporter());
+                        anm.Player.forSnapshot('canvas1', _contentUrl_ + qstring, new AnimatronImporter());*/
+                        anm.Player.forSnapshot('canvas1', 'http://' + _prefix_ + '/' + _project_id_ +
+                                                          (_params_ ? ('?' + _params_) : ''), new AnimatronImporter());
                     });
                 } catch(e) {
                     if (console) console.error(e);
