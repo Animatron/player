@@ -11,28 +11,70 @@
 
     <script type="text/javascript">
 
-        // >>> DIFF WITH ORIGINAL
-        var _params_ = location.search ? location.search.substr(1) : null,
-            _prefix_ = 'animatron-snapshots.s3.amazonaws.com';
-        var _project_id_ = location.hash.substr(1);
-        console.log(_params_, _project_id_);
-        // <<< DIFF WITH ORIGINAL
-
         var start = (function() {
+
+            function extractVal(params, name) {
+                if (!params) return null;
+                var result = null;
+                var pspec = name + '=';
+                result = (params.indexOf(pspec) >= 0) ?
+                          params.substring(params.indexOf(pspec) + pspec.length) : null;
+                result = (result !== null)
+                         ? ((result.indexOf('&') >= 0)
+                            ? result.substring(0, result.indexOf('&'))
+                            : result)
+                         : null;
+                return result;
+            }
+
+            function injectVal(params, name, value) {
+                if (!params) return name + '=' + value;
+                var pos = params.indexOf(name + '=');
+                if (pos < 0) return params + '&' + name + '=' + value;
+                var nextAmp = params.indexOf('&', pos);
+                if (nextAmp < 0) return params.substr(0, pos) + name + '=' + value;
+                return params.substr(0, pos) + name + '=' + value + params.substr(nextAmp);
+            }
+
+            function getRequiredRect(params, w, h) {
+                // w and h are precalculated scene sizes
+                // so if there is iframe wrapper, return iframe size,
+                // if there are width/height in params, return them,
+                // else return these precalculated sizes
+                var iframe = window.parent ? window.parent.frames[0] : null;
+                if (iframe) return [ iframe.innerWidth, iframe.innerHeight ];
+                var wParam = parseInt(extractVal(params, 'w')),
+                    hParam = parseInt(extractVal(params, 'h'));
+                if (wParam && hParam) return [ wParam, hParam ];
+                if (w && h) return [ w, h ];
+            }
+
+            // >>> DIFF WITH ORIGINAL
+            var _params_ = location.search ? location.search.substr(1) : null,
+                _prefix_ = 'animatron-snapshots.s3.amazonaws.com',
+                _project_id_ = location.hash.substr(1);
+            var rect = getRequiredRect(_params_);
+            if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
+                                        _params_ = injectVal(_params_, 'h', rect[1]); }
+                        else { _params_ = 'w=' + rect[0] + '&' + 'h=' + rect[1]; } }
+            var _shapshotUrl_ ='http://' + _prefix_ + '/' + _project_id_ +
+                                          (_params_ ? ('?' + _params_) : '');
+            // <<< DIFF WITH ORIGINAL
+
+            // >>> ORIGINAL SHOULD BE
+            /* var _params_ = location.search ? location.search.substr(1) : null;
+            var rect = getRequiredRect(_params_, _width_, _height_);
+            if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
+                                        _params_ = injectVal(_params_, 'h', rect[1]); }
+                        else { _params_ = 'w=' + rect[0] + '&' + 'h=' + rect[1]; } }
+            var _snapshotUrl_ = _contentUrl_ + (_params_ ? ('?' + _params_) : ''); */
+            // <<< ORIGINAL SHOULD BE
 
             return function() {
                 try {
                     //_forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
                     _forcedJS('../dist/full/bundle/animatron.js', function() {
-                        /*var w = parseInt(_width_);
-                        var h = parseInt(_height_);
-                        var qstring = '';
-                        if (w > 0 && h > 0) {
-                            qstring = '?w=' + w + '&h=' + h;
-                        }
-                        anm.Player.forSnapshot('canvas1', _contentUrl_ + qstring, new AnimatronImporter());*/
-                        anm.Player.forSnapshot('canvas1', 'http://' + _prefix_ + '/' + _project_id_ +
-                                                          (_params_ ? ('?' + _params_) : ''), new AnimatronImporter());
+                        anm.Player.forSnapshot('canvas1', _shapshotUrl_, new AnimatronImporter());
                     });
                 } catch(e) {
                     if (console) console.error(e);

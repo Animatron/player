@@ -2965,8 +2965,6 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     })
 }
 function __r_at(time, ctx, pl_state, scene) {
-    console.log('player width', pl_state.width, 'player height', pl_state.height,
-                'scene width', scene.width, 'scene height', scene.height);
     ctx.clearRect(0, 0, scene.width * pl_state.ratio,
                         scene.height * pl_state.ratio);
 

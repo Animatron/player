@@ -20,6 +20,10 @@ input, button {
   padding: 5px;
 }
 
+#canvas-holder {
+
+}
+
 #canvas-holder > canvas {
   border: 2px dashed #333;
   margin: 0 auto;
@@ -27,12 +31,9 @@ input, button {
 }
 
 #canvas-holder > iframe {
+  border: 2px solid #666;
   margin: 0 auto;
   display: block;
-}
-
-#canvas-holder {
-
 }
 
 #url-val {
