@@ -2965,10 +2965,54 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     })
 }
 function __r_at(time, ctx, pl_state, scene) {
-    ctx.clearRect(0, 0, scene.width * pl_state.ratio,
-                        scene.height * pl_state.ratio);
+    var size_differs = (pl_state.width  != scene.width) ||
+                       (pl_state.height != scene.height);
+    if (!size_differs) {
+        ctx.clearRect(0, 0, scene.width  * pl_state.ratio,
+                            scene.height * pl_state.ratio);
 
-    scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+        scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+    } else {
+        var pw = pl_state.width, ph = pl_state.height,
+            sw = scene.width,    sh = scene.height;
+        __r_with_ribbons(ctx, pl_state.width, pl_state.height,
+                              scene.width, scene.height,
+            function(_scale) {
+              ctx.clearRect(0, 0, scene.width * _scale * pl_state.ratio,
+                                  scene.height * _scale * pl_state.ratio);
+              scene.render(ctx, time, pl_state.zoom * _scale * pl_state.ratio/*, pl_state.afps*/);
+            });
+    }
+}
+function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
+    var dw = pw / sw,
+        dh = ph / sh;
+    var scale = Math.min(dw, dh);
+    var hcoord = (pw - sw) / 2,
+        vcoord = (ph - sh) / 2;
+    var has_ribbons = hcoord || vcoord;
+    if (has_ribbons) {
+        ctx.save();
+        ctx.save();
+        ctx.fillStyle = '#000';
+        if (hcoord != 0) {
+          ctx.fillRect(0, 0, hcoord, ph);
+          ctx.fillRect(hcoord + (sw * scale), 0, hcoord, ph);
+        }
+        if (vcoord != 0) {
+          ctx.fillRect(0, 0, pw, vcoord);
+          ctx.fillRect(0, vcoord + (sh * scale), pw, vcoord);
+        }
+        ctx.restore();
+        ctx.beginPath();
+        ctx.rect(hcoord, vcoord, sw * scale, sh * scale);
+        ctx.clip();
+        ctx.translate(hcoord, vcoord);
+    }
+    draw_f(scale);
+    if (has_ribbons) {
+        ctx.restore();
+    }
 }
 function __r_fps(ctx, fps, time) {
     ctx.fillStyle = '#999';
