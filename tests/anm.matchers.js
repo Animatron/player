@@ -128,7 +128,7 @@ matchers.toHaveSizeDefined = function() {
            (typeof actual.style.height !== 'undefined');
 }
 
-toHaveSize = function(expected) {
+matchers.toHaveSize = function(expected) {
     var actual = this.actual;
     var notText = this.isNot ? " not" : "";
 

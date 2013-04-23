@@ -287,12 +287,43 @@ describe("player, when speaking about loading scenes,", function() {
 
     });
 
+});
+
+describe("regarding setting zoom, when loading a scene", function() {
+
     var initialPixelRatio = window.devicePixelRatio;
 
     describe("regarding zoom", function() {
 
         var canvas,
             canvasId = 'my-canvas';
+
+        var scaleSpy;
+
+        function createSceneWithSize(size) {
+            var scene = new anm.Scene();
+            scene.width = size[0];
+            scene.height = size[1];
+            return scene;
+        }
+
+        function testZoomWith(conf) {
+            canvas.__resetMock();
+            expect(canvas).not.toHaveSizeDefined();
+            var player = conf.player(canvasId);
+            var cvs_size = conf.expected_cvs_size;
+            var scn_size = conf.scn_size;
+            expect(canvas).toHaveSize(cvs_size);
+
+            var scene = createSceneWithSize(scn_size);
+
+            player.load(scene);
+            player.drawAt(0);
+            expect(scaleSpy).toHaveBeenCalledWith(conf.expected_scale[0],
+                                                  conf.expected_scale[1]);
+            scaleSpy.reset();
+            expect(player.state.zoom).toBe(conf.expected_zoom);
+        }
 
         beforeEach(function() {
             canvas = _mocks.factory.canvas(canvasId);
@@ -304,24 +335,7 @@ describe("player, when speaking about loading scenes,", function() {
 
             this.addMatchers(_matchers);
 
-            function createSceneWithSize(size) {
-                var scene = new Scene();
-                scene.width = size[0];
-                scene.height = size[1];
-                return scene;
-            }
-
-            function testZoomWith(conf) {
-                canvas.__resetMock();
-                expect(canvas).not.toHaveSizeDefined();
-                var player = conf.player(canvasId);
-                var cvs_size = conf.expected_cvs_size;
-                var scn_size = conf.scn_size;
-                expect(canvas).toHaveSize(cvs_size);
-
-                player.load(createSceneWithSize(scn_size));
-                expect(player.state.zoom).toBe(conf.expected_zoom);
-            }
+            scaleSpy = spyOn(canvas.getContext('2d'), 'scale');
 
             // TODO: also test with importer
         });
@@ -338,34 +352,45 @@ describe("player, when speaking about loading scenes,", function() {
 
             it("should zoom a loaded scene to default canvas size after loading, if there is no canvas size specified either in element or in options", function() {
 
+                var exp_scale;
+
                 expect(915).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(214).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 915,
+                                     anm.Player.DEFAULT_CANVAS.height / 214);
                 testZoomWith({
                     player: function(id) { return createPlayer(id); },
                     scn_size: [915, 214],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
-                    expected_zoom: anm.Player.DEFAULT_CANVAS.width / 915
+                    expected_zoom: 1,
+                    expected_scale: [ exp_scale, exp_scale ]
                 });
 
                 expect(727).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(820).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 727,
+                                     anm.Player.DEFAULT_CANVAS.height / 820);
                 testZoomWith({
                     player: function(id) { return createPlayer(id); },
                     scn_size: [727, 820],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
-                    expected_zoom: anm.Player.DEFAULT_CANVAS.height / 820
+                    expected_zoom: 1,
+                    expected_scale: [ exp_scale, exp_scale ]
                 });
 
                 expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 515,
+                                     anm.Player.DEFAULT_CANVAS.height / 515);
                 testZoomWith({
                     player: function(id) { return createPlayer(id); },
                     scn_size: [515, 515],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
-                    expected_zoom: anm.Player.DEFAULT_CANVAS.width / 515
+                    expected_zoom: 1,
+                    expected_scale: [ exp_scale, exp_scale ]
                 });
 
             });
@@ -457,7 +482,7 @@ describe("player, when speaking about loading scenes,", function() {
             it("should zoom a loaded scene to canvas size, given in element, if there is no canvas size specified in options", function() {
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id); },
                     scn_size: [915, 214],
                     expected_cvs_size: [ 365, 750 ],
@@ -465,7 +490,7 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id); },
                     scn_size: [727, 820],
                     expected_cvs_size: [ 365, 750 ],
@@ -473,7 +498,7 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id); },
                     scn_size: [515, 515],
                     expected_cvs_size: [ 365, 750 ],
@@ -485,7 +510,7 @@ describe("player, when speaking about loading scenes,", function() {
             it("should zoom a loaded scene to canvas size, given in element, if there is no canvas size specified in options, but there was some zoom predefined", function() {
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 1.2 }); },
                     scn_size: [915, 214],
                     expected_cvs_size: [ 365, 750 ],
@@ -493,7 +518,7 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 6.3 }); },
                     scn_size: [727, 820],
                     expected_cvs_size: [ 365, 750 ],
@@ -501,7 +526,7 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 7.5 }); },
                     scn_size: [515, 515],
                     expected_cvs_size: [ 365, 750 ],
@@ -513,7 +538,7 @@ describe("player, when speaking about loading scenes,", function() {
             it("should zoom a loaded scene to canvas size, given in options, even if there is canvas size specified in element", function() {
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { anim: { width: 220, height: 110 } }); },
                     scn_size: [915, 214],
                     expected_cvs_size: [ 220, 110 ],
@@ -521,7 +546,7 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { anim: { width: 220, height: 110 } });  },
                     scn_size: [727, 820],
                     expected_cvs_size: [ 220, 110 ],
@@ -529,7 +554,7 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { anim: { width: 220, height: 110 } });  },
                     scn_size: [515, 515],
                     expected_cvs_size: [ 220, 110 ],
@@ -540,7 +565,7 @@ describe("player, when speaking about loading scenes,", function() {
 
             it("should zoom a loaded scene to canvas size, given in options, even if there is canvas size specified in element, but there was some zoom predefined", function() {
                 testZoomWith({
-                    player: function(id) { setCanvasSize([ 365, 750 ]);
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 1.2, anim: { width: 220, height: 110 } }); },
                     scn_size: [915, 214],
                     expected_cvs_size: [ 220, 110 ],
@@ -548,14 +573,16 @@ describe("player, when speaking about loading scenes,", function() {
                 });
 
                 testZoomWith({
-                    player: function(id) { return createPlayer(id, { zoom: 6.3, anim: { width: 220, height: 110 } }); },
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 6.3, anim: { width: 220, height: 110 } }); },
                     scn_size: [727, 820],
                     expected_cvs_size: [ 220, 110 ],
                     expected_zoom: 110 / 820 * 6.3
                 });
 
                 testZoomWith({
-                    player: function(id) { return createPlayer(id, { zoom: 7.5, anim: { width: 220, height: 110 } }); },
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 7.5, anim: { width: 220, height: 110 } }); },
                     scn_size: [515, 515],
                     expected_cvs_size: [ 220, 110 ],
                     expected_zoom: 220 / 515 * 7.5
