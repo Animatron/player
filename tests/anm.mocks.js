@@ -74,6 +74,7 @@ mocks.factory.context2d = function() {
         'fill': __nop,
         'stroke': __nop,
         'clip': __nop,
+        'rect': __nop,
         'drawImage': __nop,
         'scale': __nop,
         'globalCompositeOperation': 'source-over',

@@ -523,3 +523,11 @@ function __deepInfo(elm, level) {
 function __builderInfo(bld) {
     return __deepInfo(bld.v);
 }
+
+function setCanvasSize(canvas, size) {
+    var pxRatio = window.devicePixelRatio || 1;
+    canvas.setAttribute('width',  size[0] * pxRatio);
+    canvas.setAttribute('height', size[1] * pxRatio);
+    canvas.style.width  = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
+}

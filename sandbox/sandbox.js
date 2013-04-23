@@ -139,7 +139,6 @@ function sandbox() {
     }
 
     this.selectElm.onchange = function() {
-        console.log('select fired onchange');
         s.cm.setValue(examples[this.selectedIndex][1]);
         refresh();
     }
