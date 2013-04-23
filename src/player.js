@@ -1457,7 +1457,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
         ctx.scale(zoom, zoom);
     }
     if (this.bgfill) {
-        ctx.fillStyle = Brush.ccreate(ctx, this.bgfill);
+        ctx.fillStyle = Brush.create(ctx, this.bgfill);
         ctx.fillRect(0, 0, this.width, this.height);
     }
     this.visitRoots(function(elm) {
@@ -2913,30 +2913,6 @@ D.drawFPS = function(ctx, fps, time) {
     ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
 }
 
-// ### Drawing: Utils
-/* ------------------ */
-
-var DU = {}; // means "Drawing Utils"
-
-/* FIXME: move to `Path`? */
-DU.applyStroke = function(ctx, stroke) {
-    if (!stroke) return;
-    ctx.lineWidth = stroke.width;
-    ctx.strokeStyle = Brush.ccreate(ctx, stroke);
-    ctx.lineCap = stroke.cap;
-    ctx.lineJoin = stroke.join;
-}
-
-/* FIXME: move to `Path`? */
-DU.applyFill = function(ctx, fill) {
-    if (!fill) return;
-    ctx.fillStyle = Brush.ccreate(ctx, fill);
-}
-
-DU._hasVal = function(fsval) {
-    return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
-}
-
 // Import
 // -----------------------------------------------------------------------------
 
@@ -3057,7 +3033,7 @@ Render.h_drawMPath = function(ctx, mPath) {
     mPath.apply(ctx);
     ctx.closePath();
     ctx.stroke();
-    ctx.restore()
+    ctx.restore();
 }
 
 Render.m_checkBand = function(time, duration, band) {
@@ -3371,19 +3347,21 @@ Path.prototype.add = function(seg) {
 }
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx) {
-    var fill = this.fill || Path.DEFAULT_FILL,
-        stroke = this.stroke || Path.DEFAULT_STROKE;
+    var p = this;
+    Path.applyF(ctx, p.fill || Path.DEFAULT_FILL,
+                     p.stroke || Path.DEFAULT_STROKE,
+             function() { p.visit(Path._applyVisitor, ctx); });
 
-    ctx.save();
+    /* ctx.save();
     ctx.beginPath();
-    DU.applyFill(ctx, fill);
-    DU.applyStroke(ctx, stroke);
+    Brush.fill(ctx, fill);
+    Brush.stroke(ctx, stroke);
     this.visit(Path._applyVisitor, ctx);
     ctx.closePath();
 
-    if (DU._hasVal(fill)) ctx.fill();
-    if (DU._hasVal(stroke)) ctx.stroke();
-    ctx.restore();
+    if (Brush._hasVal(fill)) ctx.fill();
+    if (Brush._hasVal(stroke)) ctx.stroke();
+    ctx.restore(); */
 }
 Path.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -3562,6 +3540,18 @@ Path.prototype.clone = function() {
 Path.prototype.dispose = function() { }
 
 
+Path.applyF = function(ctx, fill, stroke, func) {
+    ctx.save();
+    ctx.beginPath();
+    Brush.fill(ctx, fill);
+    Brush.stroke(ctx, stroke);
+    func();
+    ctx.closePath();
+
+    if (Brush._hasVal(fill)) ctx.fill();
+    if (Brush._hasVal(stroke)) ctx.stroke();
+    ctx.restore();
+}
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets
 // chunk marker and positions sequentially
@@ -3859,14 +3849,6 @@ CSeg.prototype._calc_params = function(start) {
 // Text
 // -----------------------------------------------------------------------------
 
-Text.DEFAULT_CAP = C.PC_ROUND;
-Text.DEFAULT_JOIN = C.PC_ROUND;
-Text.DEFAULT_FFACE = 'sans-serif';
-Text.DEFAULT_FSIZE = 24;
-Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
-Text.DEFAULT_FILL = { 'color': '#000' };
-Text.BASELINE_RULE = 'bottom';
-Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 function Text(lines, font,
               fill, stroke) {
     this.lines = lines;
@@ -3875,6 +3857,16 @@ function Text(lines, font,
     this.stroke = stroke || Text.DEFAULT_STROKE;
     this._bnds = null;
 }
+
+Text.DEFAULT_CAP = C.PC_ROUND;
+Text.DEFAULT_JOIN = C.PC_ROUND;
+Text.DEFAULT_FFACE = 'sans-serif';
+Text.DEFAULT_FSIZE = 24;
+Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
+Text.DEFAULT_FILL = { 'color': '#000' };
+Text.BASELINE_RULE = 'bottom';
+Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
+
 Text.prototype.apply = function(ctx, point) {
     ctx.save();
     var point = point || [0, 0],
@@ -3883,8 +3875,8 @@ Text.prototype.apply = function(ctx, point) {
     ctx.font = this.font;
     ctx.textBaseline = Text.BASELINE_RULE;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
-    if (this.fill) {
-        DU.applyFill(ctx, this.fill);
+    if (Brush._hasVal(this.fill)) {
+        Brush.fill(ctx, this.fill);
         ctx.save();
         this.visitLines(function(line) {
             ctx.fillText(line, 0, accent);
@@ -3892,8 +3884,8 @@ Text.prototype.apply = function(ctx, point) {
         });
         ctx.restore();
     }
-    if (this.stroke) {
-        DU.applyStroke(ctx, this.stroke);
+    if (Brush._hasVal(this.stroke)) {
+        Brush.stroke(ctx, this.stroke);
         ctx.save();
         this.visitLines(function(line) {
             ctx.strokeText(line, 0, accent);
@@ -3961,7 +3953,7 @@ Text.prototype.visitLines = function(func, data) {
 }
 Text.prototype.clone = function() {
     var c = new Text(this.lines, this.font,
-                     this.stroke, this.fill);
+                     this.fill, this.stroke);
     if (this.lines && Array.isArray(this.lines)) {
         c.lines = [].concat(this.lines);
     }
@@ -3977,13 +3969,13 @@ Text.prototype.dispose = function() { }
 var Brush = {};
 // cached creation, returns previous result
 // if it was already created before
-Brush.ccreate = function(ctx, brush) {
-  if (brush._style) return brush._style;
-  brush._style = Brush.create(ctx, brush);
-  return brush._style;
+Brush.create = function(ctx, src) {
+  if (src._style) return src._style;
+  src._style = Brush._create(ctx, src);
+  return src._style;
 }
 // create canvas-compatible style from brush
-Brush.create = function(ctx, brush) {
+Brush._create = function(ctx, brush) {
     if (brush.color) return brush.color;
     if (brush.lgrad) {
         var src = brush.lgrad,
@@ -4029,6 +4021,21 @@ Brush.create = function(ctx, brush) {
         return grad;
     }
     return null;
+}
+// TODO: move to instance methods
+Brush.stroke = function(ctx, stroke) {
+    if (!stroke) return;
+    ctx.lineWidth = stroke.width;
+    ctx.strokeStyle = Brush.create(ctx, stroke);
+    ctx.lineCap = stroke.cap;
+    ctx.lineJoin = stroke.join;
+}
+Brush.fill = function(ctx, fill) {
+    if (!fill) return;
+    ctx.fillStyle = Brush.create(ctx, fill);
+}
+Brush._hasVal = function(fsval) {
+    return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
 // Sheet
@@ -4598,7 +4605,6 @@ var to_export = {
     'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
     'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
     'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
-    'DU': DU, // why DU class is visible to pulic?
     'Errors': Errors, 'SystemError': SystemError,
                       'PlayerError': PlayerError,
                       'AnimationError': AnimationError,
