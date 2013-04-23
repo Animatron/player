@@ -469,6 +469,14 @@ describe("regarding setting zoom, when loading a scene", function() {
                     expected_scale: [ 110 / 515, 110 / 515 ]
                 });
 
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 550, 275 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 220 / 550, 110 / 275 ]
+                });
+
             });
 
             it("should zoom a loaded scene to canvas size, given in options, if there is no canvas size specified in element, but there was some zoom predefined", function() {
@@ -495,6 +503,14 @@ describe("regarding setting zoom, when loading a scene", function() {
                     expected_cvs_size: [ 220, 110 ],
                     expected_zoom: 7.5,
                     expected_scale: [ 110 / 515, 110 / 515 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 2.7,  anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 550, 275 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 2.7,
+                    expected_scale: [ 220 / 550, 110 / 275 ]
                 });
 
             });
@@ -528,6 +544,15 @@ describe("regarding setting zoom, when loading a scene", function() {
                     expected_scale: [ 365 / 515, 365 / 515 ]
                 });
 
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id); },
+                    scn_size: [ 219, 450 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 365 / 219, 750 / 450 ]
+                });
+
             });
 
             it("should zoom a loaded scene to canvas size, given in element, if there is no canvas size specified in options, but there was some zoom predefined", function() {
@@ -557,6 +582,15 @@ describe("regarding setting zoom, when loading a scene", function() {
                     expected_cvs_size: [ 365, 750 ],
                     expected_zoom: 7.5,
                     expected_scale: [ 365 / 515, 365 / 515 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 2.7 }); },
+                    scn_size: [ 219, 450 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 2.7,
+                    expected_scale: [ 365 / 219, 750 / 450 ]
                 });
 
             });
@@ -590,6 +624,15 @@ describe("regarding setting zoom, when loading a scene", function() {
                     expected_scale: [ 110 / 515, 110 / 515 ]
                 });
 
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 550, 275 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 220 / 550, 110 / 275 ]
+                });
+
             });
 
             it("should zoom a loaded scene to canvas size, given in options, even if there is canvas size specified in element, but there was some zoom predefined", function() {
@@ -618,6 +661,15 @@ describe("regarding setting zoom, when loading a scene", function() {
                     expected_cvs_size: [ 220, 110 ],
                     expected_zoom: 7.5,
                     expected_scale: [ 110 / 515, 110 / 515 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 2.7, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 550, 275 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 2.7,
+                    expected_scale: [ 220 / 550, 110 / 275 ]
                 });
             });
 
