@@ -2988,7 +2988,7 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
     var x = Math.min(xw, xh);
     var hcoord = (pw - sw * x) / 2,
         vcoord = (ph - sh * x) / 2;
-    var scaled = (x != 1);
+    var scaled = (xw != 1) || (xh != 1);
     if (scaled) {
         ctx.save();
         ctx.save();
