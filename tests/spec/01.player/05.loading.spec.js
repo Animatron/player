@@ -360,7 +360,7 @@ describe("regarding setting zoom, when loading a scene", function() {
                                      anm.Player.DEFAULT_CANVAS.height / 214);
                 testZoomWith({
                     player: function(id) { return createPlayer(id); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
                     expected_zoom: 1,
@@ -373,7 +373,7 @@ describe("regarding setting zoom, when loading a scene", function() {
                                      anm.Player.DEFAULT_CANVAS.height / 820);
                 testZoomWith({
                     player: function(id) { return createPlayer(id); },
-                    scn_size: [727, 820],
+                    scn_size: [ 727, 820 ],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
                     expected_zoom: 1,
@@ -386,7 +386,7 @@ describe("regarding setting zoom, when loading a scene", function() {
                                      anm.Player.DEFAULT_CANVAS.height / 515);
                 testZoomWith({
                     player: function(id) { return createPlayer(id); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
                     expected_zoom: 1,
@@ -399,32 +399,41 @@ describe("regarding setting zoom, when loading a scene", function() {
 
                 expect(915).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(214).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 915,
+                                     anm.Player.DEFAULT_CANVAS.height / 214);
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { zoom: 1.2 }); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
-                    expected_zoom: anm.Player.DEFAULT_CANVAS.width / 915 * 1.2
+                    expected_zoom: 1.2,
+                    expected_scale: [ exp_scale, exp_scale ]
                 });
 
-                expect(727).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(327).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(820).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 327,
+                                     anm.Player.DEFAULT_CANVAS.height / 820);
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { zoom: 6.3 }); },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
-                    expected_zoom: anm.Player.DEFAULT_CANVAS.height / 820 * 6.3
+                    expected_zoom: 6.3,
+                    expected_scale: [ exp_scale, exp_scale ]
                 });
 
                 expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 515,
+                                     anm.Player.DEFAULT_CANVAS.height / 515);
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { zoom: 7.5 }); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
                                          anm.Player.DEFAULT_CANVAS.height ],
-                    expected_zoom: anm.Player.DEFAULT_CANVAS.width / 515 * 7.5
+                    expected_zoom: 7.5,
+                    expected_scale: [ exp_scale, exp_scale ]
                 });
 
             });
@@ -433,23 +442,26 @@ describe("regarding setting zoom, when loading a scene", function() {
 
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 915
+                    expected_zoom: 1,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
                 });
 
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 110 / 820
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
                 });
 
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 515
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
                 });
 
             });
@@ -458,23 +470,26 @@ describe("regarding setting zoom, when loading a scene", function() {
 
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { zoom: 1.2, anim: { width: 220, height: 110 } }); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 915 * 1.2
+                    expected_zoom: 1.2,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
                 });
 
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { zoom: 6.3, anim: { width: 220, height: 110 } }); },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 110 / 820 * 6.3
+                    expected_zoom: 6.3,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
                 });
 
                 testZoomWith({
                     player: function(id) { return createPlayer(id, { zoom: 7.5, anim: { width: 220, height: 110 } }); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 515 * 7.5
+                    expected_zoom: 7.5,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
                 });
 
             });
@@ -484,25 +499,28 @@ describe("regarding setting zoom, when loading a scene", function() {
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ 365, 750 ],
-                    expected_zoom: 365 / 915
+                    expected_zoom: 1,
+                    expected_scale: [ 365 / 915, 365 / 915 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id); },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ 365, 750 ],
-                    expected_zoom: 750 / 820
+                    expected_zoom: 1,
+                    expected_scale: [ 750 / 820, 750 / 820 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ 365, 750 ],
-                    expected_zoom: 220 / 515
+                    expected_zoom: 1,
+                    expected_scale: [ 365 / 515, 365 / 515 ]
                 });
 
             });
@@ -512,25 +530,28 @@ describe("regarding setting zoom, when loading a scene", function() {
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 1.2 }); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ 365, 750 ],
-                    expected_zoom: 365 / 915 * 1.2
+                    expected_zoom: 1.2,
+                    expected_scale: [ 365 / 915, 365 / 915 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 6.3 }); },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ 365, 750 ],
-                    expected_zoom: 750 / 820 * 6.3
+                    expected_zoom: 6.3,
+                    expected_scale: [ 750 / 820, 750 / 820 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 7.5 }); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ 365, 750 ],
-                    expected_zoom: 220 / 515 * 7.5
+                    expected_zoom: 7.5,
+                    expected_scale: [ 365 / 515, 365 / 515 ]
                 });
 
             });
@@ -540,25 +561,28 @@ describe("regarding setting zoom, when loading a scene", function() {
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { anim: { width: 220, height: 110 } }); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 915
+                    expected_zoom: 1,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { anim: { width: 220, height: 110 } });  },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 110 / 820
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { anim: { width: 220, height: 110 } });  },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 515
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
                 });
 
             });
@@ -567,25 +591,28 @@ describe("regarding setting zoom, when loading a scene", function() {
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 1.2, anim: { width: 220, height: 110 } }); },
-                    scn_size: [915, 214],
+                    scn_size: [ 915, 214 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 915 * 1.2
+                    expected_zoom: 1.2,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 6.3, anim: { width: 220, height: 110 } }); },
-                    scn_size: [727, 820],
+                    scn_size: [ 327, 820 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 110 / 820 * 6.3
+                    expected_zoom: 6.3,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
                 });
 
                 testZoomWith({
                     player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
                                            return createPlayer(id, { zoom: 7.5, anim: { width: 220, height: 110 } }); },
-                    scn_size: [515, 515],
+                    scn_size: [ 515, 515 ],
                     expected_cvs_size: [ 220, 110 ],
-                    expected_zoom: 220 / 515 * 7.5
+                    expected_zoom: 7.5,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
                 });
             });
 

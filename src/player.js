@@ -2893,9 +2893,7 @@ L.loadScene = function(player, scene, callback) {
         scene.setDuration(_duration);
         player.setDuration(_duration);
     }
-    if ((scene.width !== undefined) && (scene.height !== undefined)) {
-        player._reconfigureCanvas({ width: scene.width, height: scene.height });
-    } else {
+    if ((scene.width === undefined) && (scene.height === undefined)) {
         scene.width = player.state.width;
         scene.height = player.state.height;
     }
