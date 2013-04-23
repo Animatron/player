@@ -141,10 +141,10 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
     to.xdata.sheet = src.url ? new anm.Sheet(src.url) : null;
-    to.xdata.path = src.path ? Convert.path(src.path, src.stroke, src.fill)
+    to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,
-                                            src.stroke, src.fill)
+                                            src.fill, src.stroke)
                              : null;
 };
 
@@ -184,14 +184,14 @@ Convert.tweenData = function(type, tween) {
     }
     return tween.data;
 }
-Convert.path = function(pathStr, stroke, fill) {
+Convert.path = function(pathStr, fill, stroke) {
     // ()
     return new Path(pathStr,
                     Convert.fill(fill),
                     Convert.stroke(stroke));
 }
 Convert.text = function(lines, font,
-                        stroke, fill) {
+                        fill, stroke) {
     // (lines, font, stroke, fill)
     return new Text(lines, font,
                     Convert.fill(fill),
