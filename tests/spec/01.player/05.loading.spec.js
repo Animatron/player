@@ -287,6 +287,345 @@ describe("player, when speaking about loading scenes,", function() {
 
     });
 
+});
+
+describe("regarding setting zoom, when loading a scene", function() {
+
+    var initialPixelRatio = window.devicePixelRatio;
+
+    describe("regarding zoom", function() {
+
+        var canvas,
+            canvasId = 'my-canvas';
+
+        var scaleSpy;
+
+        function createSceneWithSize(size) {
+            var scene = new anm.Scene();
+            scene.width = size[0];
+            scene.height = size[1];
+            return scene;
+        }
+
+        function testZoomWith(conf) {
+            canvas.__resetMock();
+            expect(canvas).not.toHaveSizeDefined();
+            var player = conf.player(canvasId);
+            var cvs_size = conf.expected_cvs_size;
+            var scn_size = conf.scn_size;
+            expect(canvas).toHaveSize(cvs_size);
+
+            var scene = createSceneWithSize(scn_size);
+
+            player.load(scene);
+            player.drawAt(0);
+            if (conf.expected_zoom != 1) {
+                expect(scaleSpy).toHaveBeenCalledWith(conf.expected_zoom * (window.devicePixelRatio || 1),
+                                                      conf.expected_zoom * (window.devicePixelRatio || 1));
+            }
+            expect(scaleSpy).toHaveBeenCalledWith(conf.expected_scale[0],
+                                                  conf.expected_scale[1]);
+            scaleSpy.reset();
+            expect(player.state.zoom).toBe(conf.expected_zoom);
+
+        }
+
+        beforeEach(function() {
+            canvas = _mocks.factory.canvas(canvasId);
+            spyOn(document, 'getElementById').andCallFake(function(id) {
+                expect(id).toEqual(canvasId);
+                return canvas;
+            });
+            _fake(_Fake.CVS_POS);
+
+            this.addMatchers(_matchers);
+
+            scaleSpy = spyOn(canvas.getContext('2d'), 'scale');
+
+            // TODO: also test with importer
+        });
+
+        afterEach(function() { canvas.__resetMock(); });
+
+        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; },
+                                                         after:   function() { window.devicePixelRatio = initialPixelRatio; } },
+                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; },
+                                                       after: function() { window.devicePixelRatio = initialPixelRatio; } },
+                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; },
+                                                                 after: function() { window.devicePixelRatio = initialPixelRatio; } }],
+                 function() {
+
+            it("should zoom a loaded scene to default canvas size after loading, if there is no canvas size specified either in element or in options", function() {
+
+                var exp_scale;
+
+                expect(915).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(214).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 915,
+                                     anm.Player.DEFAULT_CANVAS.height / 214);
+                testZoomWith({
+                    player: function(id) { return createPlayer(id); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
+                                         anm.Player.DEFAULT_CANVAS.height ],
+                    expected_zoom: 1,
+                    expected_scale: [ exp_scale, exp_scale ]
+                });
+
+                expect(727).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(820).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 727,
+                                     anm.Player.DEFAULT_CANVAS.height / 820);
+                testZoomWith({
+                    player: function(id) { return createPlayer(id); },
+                    scn_size: [ 727, 820 ],
+                    expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
+                                         anm.Player.DEFAULT_CANVAS.height ],
+                    expected_zoom: 1,
+                    expected_scale: [ exp_scale, exp_scale ]
+                });
+
+                expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 515,
+                                     anm.Player.DEFAULT_CANVAS.height / 515);
+                testZoomWith({
+                    player: function(id) { return createPlayer(id); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
+                                         anm.Player.DEFAULT_CANVAS.height ],
+                    expected_zoom: 1,
+                    expected_scale: [ exp_scale, exp_scale ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to default canvas size after loading, if there is no canvas size specified either in element or in options, but there was some zoom predefined", function() {
+
+                expect(915).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(214).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 915,
+                                     anm.Player.DEFAULT_CANVAS.height / 214);
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 1.2 }); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
+                                         anm.Player.DEFAULT_CANVAS.height ],
+                    expected_zoom: 1.2,
+                    expected_scale: [ exp_scale, exp_scale ]
+                });
+
+                expect(327).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(820).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 327,
+                                     anm.Player.DEFAULT_CANVAS.height / 820);
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 6.3 }); },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
+                                         anm.Player.DEFAULT_CANVAS.height ],
+                    expected_zoom: 6.3,
+                    expected_scale: [ exp_scale, exp_scale ]
+                });
+
+                expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
+                expect(515).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                exp_scale = Math.min(anm.Player.DEFAULT_CANVAS.width  / 515,
+                                     anm.Player.DEFAULT_CANVAS.height / 515);
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 7.5 }); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ anm.Player.DEFAULT_CANVAS.width,
+                                         anm.Player.DEFAULT_CANVAS.height ],
+                    expected_zoom: 7.5,
+                    expected_scale: [ exp_scale, exp_scale ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to canvas size, given in options, if there is no canvas size specified in element", function() {
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to canvas size, given in options, if there is no canvas size specified in element, but there was some zoom predefined", function() {
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 1.2, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1.2,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 6.3, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 6.3,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { return createPlayer(id, { zoom: 7.5, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 7.5,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to canvas size, given in element, if there is no canvas size specified in options", function() {
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 365 / 915, 365 / 915 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id); },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 750 / 820, 750 / 820 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 365 / 515, 365 / 515 ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to canvas size, given in element, if there is no canvas size specified in options, but there was some zoom predefined", function() {
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 1.2 }); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 1.2,
+                    expected_scale: [ 365 / 915, 365 / 915 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 6.3 }); },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 6.3,
+                    expected_scale: [ 750 / 820, 750 / 820 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 7.5 }); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ 365, 750 ],
+                    expected_zoom: 7.5,
+                    expected_scale: [ 365 / 515, 365 / 515 ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to canvas size, given in options, even if there is canvas size specified in element", function() {
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { anim: { width: 220, height: 110 } });  },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { anim: { width: 220, height: 110 } });  },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
+                });
+
+            });
+
+            it("should zoom a loaded scene to canvas size, given in options, even if there is canvas size specified in element, but there was some zoom predefined", function() {
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 1.2, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 915, 214 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 1.2,
+                    expected_scale: [ 220 / 915, 220 / 915 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 6.3, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 327, 820 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 6.3,
+                    expected_scale: [ 110 / 820, 110 / 820 ]
+                });
+
+                testZoomWith({
+                    player: function(id) { setCanvasSize(canvas, [ 365, 750 ]);
+                                           return createPlayer(id, { zoom: 7.5, anim: { width: 220, height: 110 } }); },
+                    scn_size: [ 515, 515 ],
+                    expected_cvs_size: [ 220, 110 ],
+                    expected_zoom: 7.5,
+                    expected_scale: [ 110 / 515, 110 / 515 ]
+                });
+            });
+
+            // TODO: test loading with embedding
+        });
+
+    });
+
     // load event to be fired
     // loading different types of objects
     // loading is impossible while playing

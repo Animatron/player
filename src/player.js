@@ -27,8 +27,7 @@
 // - **Scene** —
 // - **Element** —
 // - **Import** —
-// - **Drawing** —
-// - **Custom Rendering** —
+// - **Rendering** —
 // - **Bands** —
 // - **Tweens** —
 // - **Easings** —
@@ -704,10 +703,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
     scene.reset();
     player.setDuration(scene.duration);
 
-    state.__firstReq = D.drawNext(player.ctx,
-                                  state, scene,
-                                  player.__beforeFrame(scene),
-                                  player.__afterFrame(scene));
+    state.__firstReq = __r_loop(player.ctx,
+                                state, scene,
+                                player.__beforeFrame(scene),
+                                player.__afterFrame(scene));
 
     player.fire(C.S_PLAY, state.from);
 
@@ -913,12 +912,11 @@ Player.prototype.drawAt = function(time) {
     if ((time < 0) || (time > this.state.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
-    var ctx = this.ctx,
-        state = this.state;
-    ctx.clearRect(0, 0, state.width * state.ratio,
-                        state.height * state.ratio);
     this.anim.reset();
-    this.anim.render(ctx, time, state.zoom * state.ratio);
+    // __r_at is the alias for Render.at, but a bit more quickly-accessible,
+    // because it is a single function
+    __r_at(time, this.ctx, this.state, this.anim);
+
     if (this.controls) {
         this._renderControlsAt(time);
     }
@@ -2849,70 +2847,6 @@ function mevt(e, cvs) {
                     e.pageY - cvs.__rOffsetTop ] };
 }
 
-// Drawing
-// -----------------------------------------------------------------------------
-
-var D = {}; // means "Drawing"
-
-// draws current state of animation on canvas and postpones to call itself for
-// the next time period (so to start animation, you just need to call it once
-// when the first time must occur and it will chain its own calls automatically)
-D.drawNext = function(ctx, state, scene, before, after) {
-    // NB: state here is a player state, not an element state
-
-    if (state.happens !== C.PLAYING) return;
-
-    var msec = (Date.now() - state.__startTime);
-    var sec = msec / 1000;
-
-    var time = (sec * state.speed) + state.from;
-    state.time = time;
-
-    if (before) {
-        if (!before(time)) return;
-    }
-
-    if (state.__rsec === 0) state.__rsec = msec;
-    if ((msec - state.__rsec) >= 1000) {
-        state.afps = state.__redraws;
-        state.__rsec = msec;
-        state.__redraws = 0;
-    }
-    state.__redraws++;
-
-    ctx.clearRect(0, 0, scene.width * state.ratio,
-                        scene.height * state.ratio);
-
-    scene.render(ctx, time, state.zoom * state.ratio/*, state.afps*/);
-
-    // show fps
-    if (state.debug) { // TODO: move to player.onrender
-        D.drawFPS(ctx, state.afps, time);
-    }
-
-    if (after) {
-        if (!after(time)) return;
-    }
-
-    if (state.__supressFrames) return;
-
-    return __nextFrame(function() {
-        D.drawNext(ctx, state, scene, before, after);
-    });
-
-}
-/* D.drawAt = function(ctx, state, scene, time) {
-    ctx.clearRect(0, 0, state.width, state.height);
-    scene.render(ctx, time);
-} */
-D.drawFPS = function(ctx, fps, time) {
-    ctx.fillStyle = '#999';
-    ctx.font = '20px sans-serif';
-    ctx.fillText(Math.floor(fps), 8, 20);
-    ctx.font = '10px sans-serif';
-    ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
-}
-
 // Import
 // -----------------------------------------------------------------------------
 
@@ -2959,9 +2893,7 @@ L.loadScene = function(player, scene, callback) {
         scene.setDuration(_duration);
         player.setDuration(_duration);
     }
-    if ((scene.width !== undefined) && (scene.height !== undefined)) {
-        player._reconfigureCanvas({ width: scene.width, height: scene.height });
-    } else {
+    if ((scene.width === undefined) && (scene.height === undefined)) {
         scene.width = player.state.width;
         scene.height = player.state.height;
     }
@@ -2979,10 +2911,118 @@ L.loadBuilder = function(player, builder, callback) {
     L.loadScene(player, _anim, callback);
 }
 
-// Custom Rendering
+// Rendering
 // -----------------------------------------------------------------------------
 
-var Render = {}; // means "Render", system modifiers & painters
+var Render = {}; // means "Render", render loop + system modifiers & painters
+
+// functions below, the ones named in a way like `__r_*` are the real functions
+// acting under their aliases `Render.*`; it is done this way because probably
+// the separate function which is not an object propertly, will be a bit faster to
+// access during animation loop
+
+// draws current state of animation on canvas and postpones to call itself for
+// the next time period (so to start animation, you just need to call it once
+// when the first time must occur and it will chain its own calls automatically)
+function __r_loop(ctx, pl_state, scene, before, after) {
+    if (pl_state.happens !== C.PLAYING) return;
+
+    var msec = (Date.now() - pl_state.__startTime);
+    var sec = msec / 1000;
+
+    var time = (sec * pl_state.speed) + pl_state.from;
+    pl_state.time = time;
+
+    if (before) {
+        if (!before(time)) return;
+    }
+
+    if (pl_state.__rsec === 0) pl_state.__rsec = msec;
+    if ((msec - pl_state.__rsec) >= 1000) {
+        pl_state.afps = pl_state.__redraws;
+        pl_state.__rsec = msec;
+        pl_state.__redraws = 0;
+    }
+    pl_state.__redraws++;
+
+    __r_at(time, ctx, pl_state, scene);
+
+    // show fps
+    if (pl_state.debug) { // TODO: move to player.onrender
+        __r_fps(ctx, pl_state.afps, time);
+    }
+
+    if (after) {
+        if (!after(time)) return;
+    }
+
+    if (pl_state.__supressFrames) return;
+
+    return __nextFrame(function() {
+        __r_loop(ctx, pl_state, scene, before, after);
+    })
+}
+function __r_at(time, ctx, pl_state, scene) {
+    var size_differs = (pl_state.width  != scene.width) ||
+                       (pl_state.height != scene.height);
+    if (!size_differs) {
+        ctx.clearRect(0, 0, scene.width  * pl_state.ratio,
+                            scene.height * pl_state.ratio);
+
+        scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+    } else {
+        var pw = pl_state.width, ph = pl_state.height,
+            sw = scene.width,    sh = scene.height;
+        __r_with_ribbons(ctx, pl_state.width, pl_state.height,
+                              scene.width, scene.height,
+            function(_scale) {
+              ctx.clearRect(0, 0, scene.width * pl_state.ratio,
+                                  scene.height * pl_state.ratio);
+              scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+            });
+    }
+}
+function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
+    var xw = pw / sw,
+        xh = ph / sh;
+    var x = Math.min(xw, xh);
+    var hcoord = (pw - sw * x) / 2,
+        vcoord = (ph - sh * x) / 2;
+    var scaled = hcoord || vcoord;
+    if (scaled) {
+        ctx.save();
+        ctx.save();
+        ctx.fillStyle = '#000';
+        if (hcoord != 0) {
+          ctx.fillRect(0, 0, hcoord, ph);
+          ctx.fillRect(hcoord + (sw * x), 0, hcoord, ph);
+        }
+        if (vcoord != 0) {
+          ctx.fillRect(0, 0, pw, vcoord);
+          ctx.fillRect(0, vcoord + (sh * x), pw, vcoord);
+        }
+        ctx.restore();
+        ctx.beginPath();
+        ctx.rect(hcoord, vcoord, sw * x, sh * x);
+        ctx.clip();
+        ctx.translate(hcoord, vcoord);
+        if (x != 1) ctx.scale(x, x);
+    }
+    draw_f(x);
+    if (scaled) {
+        ctx.restore();
+    }
+}
+function __r_fps(ctx, fps, time) {
+    ctx.fillStyle = '#999';
+    ctx.font = '20px sans-serif';
+    ctx.fillText(Math.floor(fps), 8, 20);
+    ctx.font = '10px sans-serif';
+    ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
+}
+Render.loop = __r_loop;
+Render.at = __r_at;
+Render._drawFPS = __r_fps;
 
 Render.p_drawReg = function(ctx, reg) {
     if (!(reg = reg || this.reg)) return;
@@ -3000,9 +3040,6 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.stroke();
     ctx.restore();
 }
-
-// FIXME: join three function below into one, taking one object and
-//        applying it
 
 Render.p_drawXData = function(ctx) {
     var subj = this.path || this.text || this.sheet;

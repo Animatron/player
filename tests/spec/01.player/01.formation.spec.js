@@ -14,14 +14,6 @@ describe("player, when created,", function() {
         var canvas,
             canvasId = 'my-canvas';
 
-        function setCanvasSize(canvas, size) {
-            var pxRatio = window.devicePixelRatio || 1;
-            canvas.setAttribute('width',  size[0] * pxRatio);
-            canvas.setAttribute('height', size[1] * pxRatio);
-            canvas.style.width  = size[0] + 'px';
-            canvas.style.height = size[1] + 'px';
-        }
-
         beforeEach(function() {
             canvas = _mocks.factory.canvas(canvasId);
             spyOn(document, 'getElementById').andCallFake(function(id) {
@@ -30,42 +22,7 @@ describe("player, when created,", function() {
             });
             _fake(_Fake.CVS_POS);
 
-            this.addMatchers({
-                toHaveSizeDefined: function() {
-                    var actual = this.actual;
-                    var notText = this.isNot ? " not" : "";
-
-                    var pxRatio = window.devicePixelRatio;
-
-                    this.message = function () {
-                        return "Expected " + actual + notText + " to have size defined";
-                    }
-
-                    return (typeof actual.width !== 'undefined') &&
-                           (typeof actual.height !== 'undefined') &&
-                           (typeof actual.getAttribute('width') !== 'undefined') &&
-                           (typeof actual.getAttribute('height') !== 'undefined') &&
-                           (typeof actual.style.width !== 'undefined') &&
-                           (typeof actual.style.height !== 'undefined');
-                },
-                toHaveSize: function(expected) {
-                    var actual = this.actual;
-                    var notText = this.isNot ? " not" : "";
-
-                    var pxRatio = window.devicePixelRatio || 1;
-
-                    this.message = function () {
-                        return "Expected " + actual + notText + " to have size equal to " + expected + ", " +
-                               "but it has " + actual.getAttribute('width') + "x" + actual.getAttribute('height') + " " +
-                               "and " + actual.style.width + ":" + actual.style.height + " in CSS";
-                    }
-
-                    return (actual.getAttribute('width')  == (expected[0] * pxRatio)) &&
-                           (actual.getAttribute('height') == (expected[1] * pxRatio)) &&
-                           (actual.style.width  == (expected[0] + 'px')) &&
-                           (actual.style.height == (expected[1] + 'px'));
-                }
-            })
+            this.addMatchers(_matchers);
         });
 
         afterEach(function() { canvas.__resetMock(); });
@@ -126,6 +83,7 @@ describe("player, when created,", function() {
                     test_h = 741;
                 expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                // pay attention that size is set multiplied to the ratio here
                 setCanvasSize(canvas, [ test_w, test_h ]);
                 createPlayer(canvasId);
                 expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
@@ -219,6 +177,7 @@ describe("player, when created,", function() {
 
     });
 
+    // test setting zoom from properties
     // also check that zoom was changed for scene.render when pixelRatio was changed
     // check new canvas __pxRatio attr was set
     // ensure that state.zoom wasn't changed, but state.ratio is used to render scene
