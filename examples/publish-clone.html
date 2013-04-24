@@ -85,7 +85,7 @@
                 var scriptElm = document.createElement('script');
                 scriptElm.type = 'text/javascript';
                 scriptElm.async = 'async';
-                scriptElm.src = _path /*+ '?' + (new Date()).getTime()*/;
+                scriptElm.src = _path + '?' + (new Date()).getTime();
                 scriptElm.onload = scriptElm.onreadystatechange = (function() {
                     var _success = false;
                     return function() {
