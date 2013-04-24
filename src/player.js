@@ -289,6 +289,10 @@ function __builder(obj) {
 
 var __arr = Array.isArray;
 
+var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
+
+var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
+
 function __num(n) {
     return !__nan(parseFloat(n)) && __finite(n);
 }
