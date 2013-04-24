@@ -15,25 +15,20 @@
 
             function extractVal(params, name) {
                 if (!params) return null;
-                var result = null;
-                var pspec = name + '=';
-                result = (params.indexOf(pspec) >= 0) ?
-                          params.substring(params.indexOf(pspec) + pspec.length) : null;
-                result = (result !== null)
-                         ? ((result.indexOf('&') >= 0)
-                            ? result.substring(0, result.indexOf('&'))
-                            : result)
-                         : null;
-                return result;
+                var res; if (res = params.match(
+                    new RegExp('[\\?&]' + name + '=([\\w\\.\\-]+)')
+                )) return (res.length && res[1]) ? res[1] : null;
             }
 
             function injectVal(params, name, value) {
                 if (!params) return name + '=' + value;
-                var pos = params.indexOf(name + '=');
-                if (pos < 0) return params + '&' + name + '=' + value;
-                var nextAmp = params.indexOf('&', pos);
-                if (nextAmp < 0) return params.substr(0, pos) + name + '=' + value;
-                return params.substr(0, pos) + name + '=' + value + params.substr(nextAmp);
+                var res = params.match(
+                    new RegExp('[\\?&]' + name + '=[\\w-]+' ));
+                if (!res || !res.length) return params + '&' + name + '=' + value;
+                return params.replace(
+                    new RegExp('([\\?&])' + name + '=[\\w-]+'),
+                    '$1' + name + '=' + value
+                );
             }
 
             function getRequiredRect(params, w, h) {
@@ -50,31 +45,30 @@
             }
 
             // >>> DIFF WITH ORIGINAL
-            var _params_ = location.search ? location.search.substr(1) : null,
+            var _params_ = location.search;
                 _prefix_ = 'animatron-snapshots.s3.amazonaws.com',
                 _project_id_ = _params_ ? extractVal(_params_, 'sid') : '--no-project-id--';
             var rect = getRequiredRect(_params_);
             if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
                                         _params_ = injectVal(_params_, 'h', rect[1]); }
-                        else { _params_ = 'w=' + rect[0] + '&' + 'h=' + rect[1]; } }
-            var _shapshotUrl_ ='http://' + _prefix_ + '/' + _project_id_ +
-                                          (_params_ ? ('?' + _params_) : '');
+                        else { _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1]; } }
+            var _snapshotUrl_ ='http://' + _prefix_ + '/' + _project_id_ + (_params_ || '');
             // <<< DIFF WITH ORIGINAL
 
             // >>> ORIGINAL SHOULD BE
-            /* var _params_ = location.search ? location.search.substr(1) : null;
+            /* var _params_ = location.search;
             var rect = getRequiredRect(_params_, _width_, _height_);
             if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
                                         _params_ = injectVal(_params_, 'h', rect[1]); }
-                        else { _params_ = 'w=' + rect[0] + '&' + 'h=' + rect[1]; } }
-            var _snapshotUrl_ = _contentUrl_ + (_params_ ? ('?' + _params_) : ''); */
+                        else { _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1]; } }
+            var _snapshotUrl_ = _contentUrl_ + (_params_ || ''); */
             // <<< ORIGINAL SHOULD BE
 
             return function() {
                 try {
                     //_forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
                     _forcedJS('../dist/full/bundle/animatron.js', function() {
-                        anm.Player.forSnapshot('canvas1', _shapshotUrl_, new AnimatronImporter());
+                        anm.Player.forSnapshot('canvas1', _snapshotUrl_, new AnimatronImporter());
                     });
                 } catch(e) {
                     if (console) console.error(e);
@@ -91,7 +85,7 @@
                 var scriptElm = document.createElement('script');
                 scriptElm.type = 'text/javascript';
                 scriptElm.async = 'async';
-                scriptElm.src = _path + '?' + (new Date()).getTime();
+                scriptElm.src = _path /*+ '?' + (new Date()).getTime()*/;
                 scriptElm.onload = scriptElm.onreadystatechange = (function() {
                     var _success = false;
                     return function() {

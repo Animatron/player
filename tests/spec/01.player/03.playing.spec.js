@@ -950,5 +950,6 @@ describe("player, when speaking about playing,", function() {
     // should not call modifiers/painters while stopped/paused
     /// test if while preview is shown at preview time pos, only for video mode, controls are at 0
     // errors
+    // test continues playing with all parameters when forceRedraw was called
 
 });

@@ -681,6 +681,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var state = player.state;
 
+    state.__lastPlayConf = [ from, speed, stopAfter ];
+
     if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.from = from || state.from;
@@ -855,7 +857,7 @@ Player.prototype.forceRedraw = function() {
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
-        case C.PLAYING: if (this.anim) this.play(this.state.time); break;
+        case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
         case C.NOTHING: this._drawSplash(); break;
     }
 }
@@ -1063,6 +1065,14 @@ Player.prototype._reset = function() {
     this.ctx.clearRect(0, 0, state.width * state.ratio,
                              state.height * state.ratio);
     /*this.stop();*/
+}
+Player.prototype._stopAndContinue = function() {
+  //state.__lastPlayConf = [ from, speed, stopAfter ];
+  var state = this.state,
+      last_conf = state.__lastPlayConf;
+  var stoppedAt = this.state.time;
+  this.stop();
+  this.play(curTime, last_conf[1], last_conf[1]);
 }
 // update player's canvas with configuration
 Player.prototype._reconfigureCanvas = function(opts) {
