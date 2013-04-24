@@ -1074,7 +1074,7 @@ Player.prototype._stopAndContinue = function() {
       last_conf = state.__lastPlayConf;
   var stoppedAt = state.time;
   this.stop();
-  this.play(stoppedAt, last_conf[1], last_conf[1]);
+  this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
 Player.prototype._reconfigureCanvas = function(opts) {
