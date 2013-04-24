@@ -274,6 +274,12 @@ function newCanvas(dimen, ratio) {
 // ### Internal Helpers
 /* -------------------- */
 
+// #### value check
+
+var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
+
+var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
+
 // #### typecheck
 
 function __builder(obj) {
@@ -284,7 +290,7 @@ function __builder(obj) {
 var __arr = Array.isArray;
 
 function __num(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
+    return !__nan(parseFloat(n)) && __finite(n);
 }
 
 function __fun(fun) {
@@ -298,10 +304,6 @@ function __obj(obj) {
 function __str(obj) {
     return obj != null && typeof obj === 'string';
 }
-
-var __nan = Number.isNaN;
-
-var __finite = Number.isFinite || function(n) { return n !== Infinity; };
 
 // #### mathematics
 
@@ -1070,9 +1072,9 @@ Player.prototype._stopAndContinue = function() {
   //state.__lastPlayConf = [ from, speed, stopAfter ];
   var state = this.state,
       last_conf = state.__lastPlayConf;
-  var stoppedAt = this.state.time;
+  var stoppedAt = state.time;
   this.stop();
-  this.play(curTime, last_conf[1], last_conf[1]);
+  this.play(stoppedAt, last_conf[1], last_conf[1]);
 }
 // update player's canvas with configuration
 Player.prototype._reconfigureCanvas = function(opts) {
@@ -4668,7 +4670,8 @@ var to_export = {
                     obj: __obj,
                     fun: __fun,
                     str: __str },
-
+    '_valcheck': { finite: __finite,
+                   nan: __nan },
     '__dev': { 'strf': _strf,
                'adjust': __adjust,
                't_cmp': __t_cmp,
