@@ -8,19 +8,20 @@
         }
     </style>
 
-
     <script type="text/javascript">
 
-        var start = (function() {
+        var _u = (function() { /* utils */
 
-            function extractVal(params, name) {
+            return {
+
+            extractVal : function(params, name) {
                 if (!params) return null;
                 var res; if (res = params.match(
                     new RegExp('[\\?&]' + name + '=([\\w\\.\\-]+)')
                 )) return (res.length && res[1]) ? res[1] : null;
-            }
+            },
 
-            function injectVal(params, name, value) {
+            injectVal : function(params, name, value) {
                 if (!params) return name + '=' + value;
                 var res = params.match(
                     new RegExp('[\\?&]' + name + '=[\\w-]+' ));
@@ -29,85 +30,113 @@
                     new RegExp('([\\?&])' + name + '=[\\w-]+'),
                     '$1' + name + '=' + value
                 );
-            }
+            },
 
-            function getRequiredRect(params, w, h) {
+            getRequiredRect : function(params, w, h) {
                 // w and h are precalculated scene sizes
                 // so if there is iframe wrapper, return iframe size,
                 // if there are width/height in params, return them,
                 // else return these precalculated sizes
-                var iframe = window.parent ? window.parent.frames[0] : null;
-                if (iframe) return [ iframe.innerWidth, iframe.innerHeight ];
-                var wParam = parseInt(extractVal(params, 'w')),
-                    hParam = parseInt(extractVal(params, 'h'));
+                if (window.self !== window.top) return _u.getIframeSize();
+                var wParam = parseInt(_u.extractVal(params, 'w')),
+                        hParam = parseInt(_u.extractVal(params, 'h'));
                 if (wParam && hParam) return [ wParam, hParam ];
                 if (w && h) return [ w, h ];
+            },
+
+            getIframeSize : function() {
+                var size = [0,0];
+                if (typeof window.innerWidth == 'number') {
+                  size = [window.innerWidth, window.innerHeight];
+                } else {
+                  size = [document.documentElement.clientWidth, document.documentElement.clientHeight];
+                }
+
+                return size;
+            },
+
+            reportError : function(_e) {
+                if (console) console.error(_e);
+                else alert(_e.message);
+            },
+
+            forcedJS : function(_path, _then) {
+                var scriptElm = document.createElement('script');
+                scriptElm.type = 'text/javascript';
+                scriptElm.async = 'async';
+                scriptElm.src = _path + '?' + (new Date()).getTime();
+                scriptElm.onload = scriptElm.onreadystatechange = (function () {
+                    var _success = false;
+                    return function () {
+                        if (!_success && (!this.readyState || (this.readyState == 'complete'))) {
+                            _success = true;
+                            _then();
+                        } else if (!_success) {
+                            _u.reportError(new Error('Request failed: ' + this.readyState));
+                        }
+                    }
+                })();
+                scriptElm.onerror = _u.reportError;
+                var headElm = document.head || document.getElementsByTagName('head')[0];
+                headElm.appendChild(scriptElm);
             }
+
+            };
+
+        })();
+
+        var start = (function () {
+
+            var CANVAS_ID = 'target';
 
             // >>> DIFF WITH ORIGINAL
             var _params_ = location.search;
                 _prefix_ = 'animatron-snapshots.s3.amazonaws.com',
-                _project_id_ = _params_ ? extractVal(_params_, 'sid') : '--no-project-id--';
-            var rect = getRequiredRect(_params_);
-            if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
-                                        _params_ = injectVal(_params_, 'h', rect[1]); }
+                _project_id_ = _params_ ? _u.extractVal(_params_, 'sid') : '--no-project-id--';
+            var rect = _u.getRequiredRect(_params_);
+            if (rect) { if (_params_) { _params_ = _u.injectVal(_params_, 'w', rect[0]);
+                                        _params_ = _u.injectVal(_params_, 'h', rect[1]); }
                         else { _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1]; } }
             var _snapshotUrl_ ='http://' + _prefix_ + '/' + _project_id_ + (_params_ || '');
             // <<< DIFF WITH ORIGINAL
 
             // >>> ORIGINAL SHOULD BE
             /* var _params_ = location.search;
-            var rect = getRequiredRect(_params_, _width_, _height_);
-            if (rect) { if (_params_) { _params_ = injectVal(_params_, 'w', rect[0]);
-                                        _params_ = injectVal(_params_, 'h', rect[1]); }
-                        else { _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1]; } }
-            var _snapshotUrl_ = _contentUrl_ + (_params_ || ''); */
+            var rect = _u.getRequiredRect(_params_, <%=width%>, <%=height%>);
+            if (rect) {
+                if (_params_) {
+                    _params_ = _u.injectVal(_params_, 'w', rect[0]);
+                    _params_ = _u.injectVal(_params_, 'h', rect[1]);
+                }
+                else {
+                    _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
+                }
+            }
+            var _snapshotUrl_ = '<%=contentUrl%>' + (_params_ || ''); */
             // <<< ORIGINAL SHOULD BE
 
-            return function() {
+            return function () {
                 try {
-                    //_forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
-                    _forcedJS('../dist/full/bundle/animatron.js', function() {
-                        anm.Player.forSnapshot('canvas1', _snapshotUrl_, new AnimatronImporter());
+                    if (rect) {
+                        var cvs = document.getElementById(CANVAS_ID);
+                        cvs.style.width = rect[0] + 'px';
+                        cvs.style.height = rect[1] + 'px';
+                    }
+                  //_u.forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function() {
+                    _u.forcedJS('../dist/full/bundle/animatron.js', function() {
+                        anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
                     });
-                } catch(e) {
-                    if (console) console.error(e);
-                    else alert(e.message);
+                } catch (e) {
+                    _u.reportError(e);
                 }
             }
 
-            function _reportError(_e) {
-                if (console) console.error(_e);
-                else alert(_e.message);
-            }
-
-            function _forcedJS(_path, _then) {
-                var scriptElm = document.createElement('script');
-                scriptElm.type = 'text/javascript';
-                scriptElm.async = 'async';
-                scriptElm.src = _path + '?' + (new Date()).getTime();
-                scriptElm.onload = scriptElm.onreadystatechange = (function() {
-                    var _success = false;
-                    return function() {
-                        if ( !_success && (!this.readyState || (this.readyState == 'complete')) )
-                        {
-                            _success = true;
-                            _then();
-                        } else if (!_success) {
-                            _reportError(new Error('Request failed: ' + this.readyState));
-                        }
-                    }
-                })();
-                scriptElm.onerror = _reportError;
-                var headElm = document.head || document.getElementsByTagName('head')[0];
-                headElm.appendChild(scriptElm);
-            }
-
         })();
+
     </script>
 </head>
 
 <body onload="start();">
-<canvas id="canvas1"></canvas>
+<canvas id="target"></canvas>
 </body>
 </html>
