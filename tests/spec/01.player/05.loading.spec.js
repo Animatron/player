@@ -320,11 +320,15 @@ describe("regarding setting zoom, when loading a scene", function() {
             player.load(scene);
             player.drawAt(0);
             if (conf.expected_zoom != 1) {
-                expect(scaleSpy).toHaveBeenCalledWith(conf.expected_zoom * (window.devicePixelRatio || 1),
-                                                      conf.expected_zoom * (window.devicePixelRatio || 1));
+                expect(scaleSpy).toHaveBeenCalledWith(conf.expected_zoom),
+                                                      conf.expected_zoom));
             }
             expect(scaleSpy).toHaveBeenCalledWith(conf.expected_scale[0],
                                                   conf.expected_scale[1]);
+            if (window.devicePixelRatio != 1) {
+                expect(scaleSpy).toHaveBeenCalledWith(window.devicePixelRatio,
+                                                      window.devicePixelRatio);
+            }
             scaleSpy.reset();
             expect(player.state.zoom).toBe(conf.expected_zoom);
 

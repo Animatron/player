@@ -274,6 +274,12 @@ function newCanvas(dimen, ratio) {
 // ### Internal Helpers
 /* -------------------- */
 
+// #### value check
+
+var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
+
+var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
+
 // #### typecheck
 
 function __builder(obj) {
@@ -284,7 +290,7 @@ function __builder(obj) {
 var __arr = Array.isArray;
 
 function __num(n) {
-    return !isNaN(parseFloat(n)) && isFinite(n);
+    return !__nan(parseFloat(n)) && __finite(n);
 }
 
 function __fun(fun) {
@@ -298,10 +304,6 @@ function __obj(obj) {
 function __str(obj) {
     return obj != null && typeof obj === 'string';
 }
-
-var __nan = Number.isNaN;
-
-var __finite = Number.isFinite || function(n) { return n !== Infinity; };
 
 // #### mathematics
 
@@ -681,6 +683,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var state = player.state;
 
+    state.__lastPlayConf = [ from, speed, stopAfter ];
+
     if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.from = from || state.from;
@@ -855,7 +859,7 @@ Player.prototype.forceRedraw = function() {
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
-        case C.PLAYING: if (this.anim) this.play(this.state.time); break;
+        case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
         case C.NOTHING: this._drawSplash(); break;
     }
 }
@@ -1063,6 +1067,14 @@ Player.prototype._reset = function() {
     this.ctx.clearRect(0, 0, state.width * state.ratio,
                              state.height * state.ratio);
     /*this.stop();*/
+}
+Player.prototype._stopAndContinue = function() {
+  //state.__lastPlayConf = [ from, speed, stopAfter ];
+  var state = this.state,
+      last_conf = state.__lastPlayConf;
+  var stoppedAt = state.time;
+  this.stop();
+  this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
 Player.prototype._reconfigureCanvas = function(opts) {
@@ -2963,22 +2975,23 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     })
 }
 function __r_at(time, ctx, pl_state, scene) {
+    ctx.save();
+    var ratio = pl_state.ratio;
+    if (ratio != 1) ctx.scale(ratio, ratio);
     var size_differs = (pl_state.width  != scene.width) ||
                        (pl_state.height != scene.height);
     if (!size_differs) {
-        ctx.clearRect(0, 0, scene.width  * pl_state.ratio,
-                            scene.height * pl_state.ratio);
-
-        scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+        ctx.clearRect(0, 0, scene.width,
+                          scene.height);
+        scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+        ctx.restore();
     } else {
-        var pw = pl_state.width, ph = pl_state.height,
-            sw = scene.width,    sh = scene.height;
         __r_with_ribbons(ctx, pl_state.width, pl_state.height,
                               scene.width, scene.height,
             function(_scale) {
-              ctx.clearRect(0, 0, scene.width * pl_state.ratio,
-                                  scene.height * pl_state.ratio);
-              scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+              ctx.clearRect(0, 0, scene.width, scene.height);
+              scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+              ctx.restore();
             });
     }
 }
@@ -4490,8 +4503,9 @@ InfoBlock.prototype.detach = function(parent) {
                     : document.body).removeChild(this.div);
 }
 InfoBlock.prototype.update = function(parent) {
-    var _p = InfoBlock.PADDING,
-        _w = parent.width - (_p + _p),
+    var _ratio = parent.__pxRatio,
+        _p = InfoBlock.PADDING,
+        _w = (parent.width / _ratio) - (_p + _p),
         _h = InfoBlock.HEIGHT - (_p + _p),
         _pp = this._inParent ? [ parent.parentNode.offsetLeft,
                                  parent.parentNode.offsetTop ]
@@ -4658,7 +4672,8 @@ var to_export = {
                     obj: __obj,
                     fun: __fun,
                     str: __str },
-
+    '_valcheck': { finite: __finite,
+                   nan: __nan },
     '__dev': { 'strf': _strf,
                'adjust': __adjust,
                't_cmp': __t_cmp,
