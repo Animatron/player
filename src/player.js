@@ -4503,8 +4503,9 @@ InfoBlock.prototype.detach = function(parent) {
                     : document.body).removeChild(this.div);
 }
 InfoBlock.prototype.update = function(parent) {
-    var _p = InfoBlock.PADDING,
-        _w = parent.width - (_p + _p),
+    var _ratio = parent.__pxRatio,
+        _p = InfoBlock.PADDING,
+        _w = (parent.width / _ratio) - (_p + _p),
         _h = InfoBlock.HEIGHT - (_p + _p),
         _pp = this._inParent ? [ parent.parentNode.offsetLeft,
                                  parent.parentNode.offsetTop ]
