@@ -2975,22 +2975,23 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     })
 }
 function __r_at(time, ctx, pl_state, scene) {
+    ctx.save();
+    var ratio = pl_state.ratio;
+    if (ratio != 1) ctx.scale(ratio, ratio);
     var size_differs = (pl_state.width  != scene.width) ||
                        (pl_state.height != scene.height);
     if (!size_differs) {
-        ctx.clearRect(0, 0, scene.width  * pl_state.ratio,
-                            scene.height * pl_state.ratio);
-
-        scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+        ctx.clearRect(0, 0, scene.width,
+                          scene.height);
+        scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+        ctx.restore();
     } else {
-        var pw = pl_state.width, ph = pl_state.height,
-            sw = scene.width,    sh = scene.height;
         __r_with_ribbons(ctx, pl_state.width, pl_state.height,
                               scene.width, scene.height,
             function(_scale) {
-              ctx.clearRect(0, 0, scene.width * pl_state.ratio,
-                                  scene.height * pl_state.ratio);
-              scene.render(ctx, time, pl_state.zoom * pl_state.ratio/*, pl_state.afps*/);
+              ctx.clearRect(0, 0, scene.width, scene.height);
+              scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+              ctx.restore();
             });
     }
 }
