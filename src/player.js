@@ -1010,6 +1010,9 @@ Player.prototype._drawSplash = function() {
         rsize = 120;
     ctx.save();
 
+    var ratio = this.state.ratio;
+    if (ratio != 1) ctx.scale(ratio, ratio);
+
     // background
     ctx.fillStyle = '#ffe';
     ctx.fillRect(0, 0, w, h);
