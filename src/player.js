@@ -409,18 +409,11 @@ C.PAUSED = 2;
 // ### Player Modes constants
 /* -------------------------- */
 
-C.M_CONTROLS_ENABLED = 1;
-C.M_INFO_ENABLED = 2;
-C.M_HANDLE_EVENTS = 4;
-C.M_DRAW_STILL = 8;
-C.M_INFINITE_DURATION = 16;
-
-C.M_CONTROLS_DISABLED
-= C.M_INFO_DISABLED
-= C.M_DO_NOT_HANDLE_EVENTS
-= C.M_DO_NOT_DRAW_STILL
-= C.M_FINITE_DURATION
-= 0;
+C.M_CONTROLS_ENABLED = 1;    C.M_CONTROLS_DISABLED = 2;
+C.M_INFO_ENABLED = 4;        C.M_INFO_DISABLED = 8;
+C.M_HANDLE_EVENTS = 16;      C.M_DO_NOT_HANDLE_EVENTS = 32;
+C.M_DRAW_STILL = 64;         C.M_DO_NOT_DRAW_STILL = 128;
+C.M_INFINITE_DURATION = 256; C.M_FINITE_DURATION = 512;
 
 C.M_PREVIEW = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
@@ -2910,7 +2903,7 @@ L.loadScene = function(player, scene, callback) {
         var _duration;
         if (scene.duration !== undefined) { _duration = scene.duration; }
         else {
-          if (player.mode & C.M_FINITE_DURATION) { _duration = Infinity; }
+          if (player.mode & C.M_INFINITE_DURATION) { _duration = Infinity; }
           else {
             if (scene.isEmpty()) { _duration = 0; }
             else { _duration = Scene.DEFAULT_LEN; }
