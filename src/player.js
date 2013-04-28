@@ -53,7 +53,7 @@
 // is executed immediately after defenition, it allows us to hold all private things inside and to turn
 // only the considered classes and methods in public. `to_export` object in the end of the file is the one
 // that collects public things and returned from closure in the end.
-var anm = (function() {
+var anm = (function(_window) {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -66,25 +66,25 @@ var anm = (function() {
    https://gist.github.com/1579671 */
 
 var __frameFunc = function() {
-           return window.requestAnimationFrame ||
-                  window.webkitRequestAnimationFrame ||
-                  window.mozRequestAnimationFrame ||
-                  window.oRequestAnimationFrame ||
-                  window.msRequestAnimationFrame ||
-                  window.__anm__frameGen ||
+           return _window.requestAnimationFrame ||
+                  _window.webkitRequestAnimationFrame ||
+                  _window.mozRequestAnimationFrame ||
+                  _window.oRequestAnimationFrame ||
+                  _window.msRequestAnimationFrame ||
+                  _window.__anm__frameGen ||
                   function(callback){
-                    return window.setTimeout(callback, 1000 / 60);
+                    return _window.setTimeout(callback, 1000 / 60);
                   } };
 
 var __clearFrameFunc = function() {
-           return window.cancelAnimationFrame ||
-                  window.webkitCancelAnimationFrame ||
-                  window.mozCancelAnimationFrame ||
-                  window.oCancelAnimationFrame ||
-                  window.msCancelAnimationFrame ||
-                  window.__anm__frameRem ||
+           return _window.cancelAnimationFrame ||
+                  _window.webkitCancelAnimationFrame ||
+                  _window.mozCancelAnimationFrame ||
+                  _window.oCancelAnimationFrame ||
+                  _window.msCancelAnimationFrame ||
+                  _window.__anm__frameRem ||
                   function(id){
-                    return window.clearTimeout(id);
+                    return _window.clearTimeout(id);
                   } };
 
 // assigns to call a function on next animation frame
@@ -203,7 +203,7 @@ function find_pos(elm) {
 function ajax(url, callback/*, errback*/) {
     var req = false;
 
-    if (!window.ActiveXObject) {
+    if (!_window.ActiveXObject) {
         req = new XMLHttpRequest();
     } else {
         try {
@@ -245,7 +245,7 @@ function ajax(url, callback/*, errback*/) {
 // ### Canvas-related Utilities
 /* ---------------------------- */
 
-function getPxRatio() { return window.devicePixelRatio || 1; }
+function getPxRatio() { return _window.devicePixelRatio || 1; }
 
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
@@ -962,8 +962,8 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    /*window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);*/
-    /*window.addEventListener('resize', Player.__getPosAndRedraw(this), false);*/
+    /*_window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);*/
+    /*_window.addEventListener('resize', Player.__getPosAndRedraw(this), false);*/
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -4681,7 +4681,9 @@ var to_export = {
                     str: __str },
     '_valcheck': { finite: __finite,
                    nan: __nan },
-    '__dev': { 'strf': _strf,
+    '__dev': { '_win': function() { return _window },
+               '_winf': function(w) { _window = w; },
+               'strf': _strf,
                'adjust': __adjust,
                't_cmp': __t_cmp,
                'TIME_PRECISION': TIME_PRECISION/*,
@@ -4698,7 +4700,7 @@ to_export.__inject = function(as, to) {
 
 return to_export;
 
-})();
+})(window);
 
 // We add all required public things as the child objects of given namespace (`anm`) to the given global object
 // (`window` or `exports`, it depends on platform, browser or some server-side JS like __node.js__)
