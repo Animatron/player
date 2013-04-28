@@ -7,7 +7,8 @@
 
 describe("player, when created,", function() {
 
-    var initialPixelRatio = window.devicePixelRatio;
+    var window_mock = {},
+        initialRatio = anm.__dev._win().devicePixelRatio;
 
     describe("regarding canvas size", function() {
 
@@ -22,17 +23,20 @@ describe("player, when created,", function() {
             });
             _fake(_Fake.CVS_POS);
 
+            anm.__dev._winf(window_mock);
+
             this.addMatchers(_matchers);
         });
 
-        afterEach(function() { canvas.__resetMock(); });
+        afterEach(function() { canvas.__resetMock();
+                               anm.__dev._winf(window /* actual window */); });
 
-        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; },
-                                                         after:   function() { window.devicePixelRatio = initialPixelRatio; } },
-                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; },
-                                                       after: function() { window.devicePixelRatio = initialPixelRatio; } },
-                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; },
-                                                                 after: function() { window.devicePixelRatio = initialPixelRatio; } }],
+        varyAll([{ description: "with standard display", prepare: function() { window_mock.devicePixelRatio = undefined; },
+                                                         after:   function() { window_mock.devicePixelRatio = initialRatio; } },
+                 { description: "with retina display", prepare: function() { window_mock.devicePixelRatio = 2; },
+                                                       after: function() { window_mock.devicePixelRatio = initialRatio; } },
+                 { description: "with 3.14 pixel ratio display", prepare: function() { window_mock.devicePixelRatio = 3.14; },
+                                                                 after: function() { window_mock.devicePixelRatio = initialRatio; } }],
                  function() {
 
             it("should use default canvas size, if there is no size specified either in element or in options", function() {

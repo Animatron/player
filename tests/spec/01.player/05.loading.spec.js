@@ -291,14 +291,15 @@ describe("player, when speaking about loading scenes,", function() {
 
 describe("regarding setting zoom, when loading a scene", function() {
 
-    var initialPixelRatio = window.devicePixelRatio;
-
     describe("regarding zoom", function() {
 
         var canvas,
             canvasId = 'my-canvas';
 
         var scaleSpy;
+
+        var window_mock = {},
+            initialRatio = anm.__dev._win().devicePixelRatio;
 
         function createSceneWithSize(size) {
             var scene = new anm.Scene();
@@ -325,9 +326,10 @@ describe("regarding setting zoom, when loading a scene", function() {
             }
             expect(scaleSpy).toHaveBeenCalledWith(conf.expected_scale[0],
                                                   conf.expected_scale[1]);
-            if (window.devicePixelRatio != 1) {
-                expect(scaleSpy).toHaveBeenCalledWith(window.devicePixelRatio,
-                                                      window.devicePixelRatio);
+            var pxRatio = window_mock.devicePixelRatio;
+            if (pxRatio && (pxRatio != 1)) {
+                expect(scaleSpy).toHaveBeenCalledWith(pxRatio,
+                                                      pxRatio);
             }
             scaleSpy.reset();
             expect(player.state.zoom).toBe(conf.expected_zoom);
@@ -342,6 +344,8 @@ describe("regarding setting zoom, when loading a scene", function() {
             });
             _fake(_Fake.CVS_POS);
 
+            anm.__dev._winf(window_mock);
+
             this.addMatchers(_matchers);
 
             scaleSpy = spyOn(canvas.getContext('2d'), 'scale');
@@ -349,14 +353,18 @@ describe("regarding setting zoom, when loading a scene", function() {
             // TODO: also test with importer
         });
 
-        afterEach(function() { canvas.__resetMock(); });
+        afterEach(function() { canvas.__resetMock();
+                               anm.__dev._winf(window /* actual window */); });
 
-        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; },
-                                                         after:   function() { window.devicePixelRatio = initialPixelRatio; } },
-                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; },
-                                                       after: function() { window.devicePixelRatio = initialPixelRatio; } },
-                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; },
-                                                                 after: function() { window.devicePixelRatio = initialPixelRatio; } }],
+        varyAll([{ description: "with standard display",
+                   prepare: function() { window_mock.devicePixelRatio = undefined; },
+                   after: function() { window_mock.devicePixelRatio = initialRatio; } },
+                 { description: "with retina display",
+                   prepare: function() { window_mock.devicePixelRatio = 2; },
+                   after: function() { window_mock.devicePixelRatio = initialRatio; } },
+                 { description: "with 3.14 pixel ratio display",
+                   prepare: function() { window_mock.devicePixelRatio = 3.14; },
+                   after: function() { window_mock.devicePixelRatio = initialRatio; } } ],
                  function() {
 
             it("should zoom a loaded scene to default canvas size after loading, if there is no canvas size specified either in element or in options", function() {
