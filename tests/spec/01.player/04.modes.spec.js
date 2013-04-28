@@ -215,12 +215,12 @@ describe("player, when speaking about modes,", function() {
 
         });
 
-        it("in preview mode (for the tool), the still-preview should not be shown", function() {
+        it("in preview mode (for the tool), the still-preview should be shown", function() {
             var scene = new anm.Scene();
             scene.duration = 2.2;
 
             player.init('fake', { mode: C.M_PREVIEW }).load(scene);
-            expect(drawAtSpy).not.toHaveBeenCalled();
+            expect(drawAtSpy).toHaveBeenCalledWith(2.2 * anm.Player.PREVIEW_POS);
             drawAtSpy.reset();
 
             player.play();
@@ -228,7 +228,9 @@ describe("player, when speaking about modes,", function() {
             player.stop();
         });
 
-        it("in dynamic mode (for the games), the still-preview should also not be shown", function() {
+        // TODO test that last frame is shown when finished playing for preview and video modes
+
+        it("in dynamic mode (for the games), the still-preview should not be shown", function() {
             var scene = new anm.Scene();
             scene.duration = 3.7;
 
