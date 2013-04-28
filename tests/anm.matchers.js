@@ -30,6 +30,8 @@
 
 jasmine.createSpy = improvedCreateSpy; */
 
+var _anm_window = anm.__dev._win;
+
 var _matchers = (function() {
 
 // Matchers
@@ -114,8 +116,6 @@ matchers.toHaveSizeDefined = function() {
     var actual = this.actual;
     var notText = this.isNot ? " not" : "";
 
-    var pxRatio = window.devicePixelRatio;
-
     this.message = function () {
         return "Expected " + actual + notText + " to have size defined";
     }
@@ -132,7 +132,7 @@ matchers.toHaveSize = function(expected) {
     var actual = this.actual;
     var notText = this.isNot ? " not" : "";
 
-    var pxRatio = window.devicePixelRatio || 1;
+    var pxRatio = _anm_window().devicePixelRatio || 1;
 
     this.message = function () {
         return "Expected " + actual + notText + " to have size equal to " + expected + ", " +
