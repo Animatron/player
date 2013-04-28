@@ -409,26 +409,27 @@ C.PAUSED = 2;
 // ### Player Modes constants
 /* -------------------------- */
 
-C.M_CONTROLS_DISABLED = 0;
-C.M_CONTROLS_ENABLED = 1;
-C.M_INFO_DISABLED = 0;
-C.M_INFO_ENABLED = 2;
-C.M_DO_NOT_HANDLE_EVENTS = 0;
-C.M_HANDLE_EVENTS = 4;
-C.M_DO_NOT_DRAW_STILL = 0;
-C.M_DRAW_STILL = 8;
+C.M_CONTROLS_ENABLED = 1;    C.M_CONTROLS_DISABLED = 2;
+C.M_INFO_ENABLED = 4;        C.M_INFO_DISABLED = 8;
+C.M_HANDLE_EVENTS = 16;      C.M_DO_NOT_HANDLE_EVENTS = 32;
+C.M_DRAW_STILL = 64;         C.M_DO_NOT_DRAW_STILL = 128;
+C.M_INFINITE_DURATION = 256; C.M_FINITE_DURATION = 512;
+
 C.M_PREVIEW = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
               | C.M_DO_NOT_HANDLE_EVENTS
-              | C.M_DO_NOT_DRAW_STILL;
+              | C.M_DRAW_STILL
+              | C.M_FINITE_DURATION;
 C.M_DYNAMIC = C.M_CONTROLS_DISABLED
               | C.M_INFO_DISABLED
               | C.M_HANDLE_EVENTS
-              | C.M_DO_NOT_DRAW_STILL;
+              | C.M_DO_NOT_DRAW_STILL
+              | C.M_INFINITE_DURATION;
 C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_INFO_ENABLED
             | C.M_DO_NOT_HANDLE_EVENTS
-            | C.M_DRAW_STILL;
+            | C.M_DRAW_STILL
+            | C.M_FINITE_DURATION;
 
 
 // ### Events
@@ -515,7 +516,7 @@ function Player() {
 Player.__instances = 0;
 
 Player.PREVIEW_POS = 0; // was 1/3
-Player.PEFF = 0.05; // seconds to play more when reached end of movie
+Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
 Player.MARKER_ATTR = 'anm-player'; // marks player existence on canvas element
@@ -1010,6 +1011,9 @@ Player.prototype._drawSplash = function() {
         rsize = 120;
     ctx.save();
 
+    var ratio = this.state.ratio;
+    if (ratio != 1) ctx.scale(ratio, ratio);
+
     // background
     ctx.fillStyle = '#ffe';
     ctx.fillRect(0, 0, w, h);
@@ -1161,6 +1165,9 @@ Player.prototype.__beforeFrame = function(scene) {
                 if (state.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
+                } else if (!(player.mode & C.M_INFINITE_DURATION)
+                       && __finite(state.duration)) {
+                   player.drawAt(state.duration);
                 }
                 return false;
             }
@@ -2896,7 +2903,7 @@ L.loadScene = function(player, scene, callback) {
         var _duration;
         if (scene.duration !== undefined) { _duration = scene.duration; }
         else {
-          if (player.mode & C.M_DYNAMIC) { _duration = Infinity; }
+          if (player.mode & C.M_INFINITE_DURATION) { _duration = Infinity; }
           else {
             if (scene.isEmpty()) { _duration = 0; }
             else { _duration = Scene.DEFAULT_LEN; }
