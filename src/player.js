@@ -4238,16 +4238,17 @@ function Controls(player) {
 /* TODO: move these settings to default css rule? */
 Controls.HEIGHT = 25;
 Controls.MARGIN = 7;
-Controls.OPACITY = 0.75;
+Controls.OPACITY = 0.8;
 Controls.BASE_FGCOLOR = '#eee';
 Controls.BASE_BGCOLOR = '#000';
-//Controls.BASE_FGCOLOR = '#fcc';
-//Controls.BASE_BGCOLOR = '#600';
+//Controls.BASE_FGCOLOR = '#ccf';
+//Controls.BASE_BGCOLOR = '#006';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN); // button height
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 Controls._SW = 1.3; // separator width
 Controls.FONT = 'Arial, sans-serif';
+Controls.FONT_WEIGHT = 'bold';
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
@@ -4280,7 +4281,7 @@ Controls.prototype.update = function(parent) {
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
     this._ratio = _ratio;
-    this.ctx.font = Math.floor(Controls._TS) + 'px ' + Controls.FONT;
+    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
@@ -4372,7 +4373,7 @@ Controls.prototype.render = function(state, time) {
     Controls.__progress(ctx, _pw, time, state.duration);
 
     // time
-    ctx.translate(_pw + _m, 0);
+    ctx.translate(_pw + _m * 2.5, 0);
     Controls.__time(ctx, this.elapsed
                          ? (time - state.duration) : time);
 
@@ -4423,6 +4424,7 @@ Controls.prototype.handle_mdown = function(event) {
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
         if (_tpos < 0) _tpos = 0;
+        if (_tpos > _d) _tpos = d;
         if (_s === C.PLAYING) {
             this.player.stop();
             this.player.play(_tpos);
@@ -4505,15 +4507,18 @@ Controls.__stop_btn = function(ctx) {
 }
 Controls.__time = function(ctx, time) {
     var _bh = Controls._BH,
+        _m = Controls.MARGIN,
         _time = Math.abs(time),
         _h = Math.floor(_time / 3600),
         _m = Math.floor((_time - (_h * 3600)) / 60),
         _s = Math.floor(_time - (_h * 3600) - (_m * 60));
-    ctx.fillText(((time < 0) ? '(' : '[') +
+    ctx.save();
+    ctx.textBaseline = 'top';
+    ctx.fillText(((time < 0) ? '-' : '') +
                  ((_h < 10) ? ('0' + _h) : _h) + ':' +
                  ((_m < 10) ? ('0' + _m) : _m) + ':' +
-                 ((_s < 10) ? ('0' + _s) : _s) +
-                 ((time < 0) ? ')' : ']'), 0, _bh - 4);
+                 ((_s < 10) ? ('0' + _s) : _s), 0, 0);
+    ctx.restore();
 }
 Controls.__progress = function(ctx, _w, time, duration) {
     var _bh = Controls._BH,
@@ -4557,14 +4562,7 @@ Controls.__progress = function(ctx, _w, time, duration) {
     }
     ctx.fill();
     ctx.restore();
-    /*ctx.beginPath();
-    ctx.moveTo(_px, 0);
-    ctx.lineTo(_px+5, 0);
-    ctx.lineTo(_px+5, _bh);
-    ctx.lineTo(_px, _bh);
-    ctx.lineTo(_px, 0);
-    ctx.fill();
-    ctx.closePath();*/
+    // end
     ctx.restore();
 }
 // from http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
