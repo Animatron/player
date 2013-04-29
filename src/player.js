@@ -4246,6 +4246,7 @@ Controls.BASE_BGCOLOR = '#000';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN); // button height
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
+Controls._SW = 1.3; // separator width
 Controls.FONT = 'Arial, sans-serif';
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
@@ -4324,7 +4325,7 @@ Controls.prototype.render = function(state, time) {
         _h = this.bounds[3] - this.bounds[1],
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
-        _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
+        _pw = (_w / _ratio) - ((_m * 5) + _tw + _bh); // progress width
     /* TODO: update only progress if state not changed? */
     ctx.clearRect(0, 0, _w, _h);
     if (!this.__bggrad) {
@@ -4408,7 +4409,7 @@ Controls.prototype.handle_mdown = function(event) {
         _ratio = this._ratio;
     var _s = this.player.state.happens;
     if (_s === C.NOTHING) return;
-    if (_lx < (_bh + _m + (_m / 2))) { // play button area
+    if (_lx < (_bh + _m + _m)) { // play button area
         if (_s === C.STOPPED) {
             this.player.play(0);
         } else if (_s === C.PAUSED) {
@@ -4417,12 +4418,13 @@ Controls.prototype.handle_mdown = function(event) {
             this.player.pause();
         }
     } else if (_lx < (_w - (_tw + _m))) { // progress area
-        var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
-            _px = _lx - (_bh + _m + _m), // progress leftmost x
+        var _pw = (_w / _ratio) - ((_m * 5) + _tw + _bh), // progress width
+            _px = _lx - (_bh + (_m * 3) + Controls._SW), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
+        if (_tpos < 0) _tpos = 0;
         if (_s === C.PLAYING) {
-            this.player.pause();
+            this.player.stop();
             this.player.play(_tpos);
         }
         else if ((_s === C.PAUSED) ||
@@ -4516,11 +4518,11 @@ Controls.__time = function(ctx, time) {
 Controls.__progress = function(ctx, _w, time, duration) {
     var _bh = Controls._BH,
         _m = Controls.MARGIN,
-        _px = (_w / duration) * time,
-        _lh = _bh * 0.7,
-        _ly = (_bh - _lh) / 2,
-        _sw = 1.3, // separator width
-        _ss = 2.5, // separator shift
+        _px = (_w / duration) * time, // progress position
+        _lh = _bh * 0.7, // line height
+        _ly = (_bh - _lh) / 2, // line y
+        _sw = Controls._SW, // separator width
+        _ss = 2.5, // separator vertical shift
         bgspec = get_rgb(this.__bgcolor);
     ctx.save();
     // separator
