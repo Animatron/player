@@ -140,6 +140,28 @@ function guid() {
   return hash;
 }*/
 
+function get_rgb(hex) {
+  if (!hex || !hex.length) return [0, 0, 0];
+  var _hex = hex.substring(1);
+  if (_hex.length === 3) {
+    _hex = _hex[0] + _hex[0] +
+           _hex[1] + _hex[1] +
+           _hex[2] + _hex[2];
+  }
+  var bigint = parseInt(_hex, 16);
+  return [ (bigint >> 16) & 255,
+           (bigint >> 8) & 255,
+           bigint & 255 ];
+}
+
+function to_rgba(r, g, b, a) {
+  return "rgba(" + Math.floor(r) + "," +
+                   Math.floor(g) + "," +
+                   Math.floor(b) + "," +
+                   ((typeof a !== 'undefined')
+                          ? a : 1) + ")";
+}
+
 // ### Arrays
 /* ---------- */
 
@@ -4214,14 +4236,17 @@ function Controls(player) {
     this._inParent = player.inParent;
 }
 /* TODO: move these settings to default css rule? */
-Controls.HEIGHT = 40;
-Controls.MARGIN = 5;
+Controls.HEIGHT = 25;
+Controls.MARGIN = 7;
 Controls.OPACITY = 0.8;
-Controls.DEF_FGCOLOR = '#faa';
-Controls.DEF_BGCOLOR = '#c22';
+Controls.BASE_FGCOLOR = '#eee';
+Controls.BASE_BGCOLOR = '#000';
+//Controls.BASE_FGCOLOR = '#fcc';
+//Controls.BASE_BGCOLOR = '#600';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN);
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
+Controls.FONT = 'Arial, sans-serif';
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
@@ -4229,9 +4254,9 @@ Controls.prototype.update = function(parent) {
         _h = Controls.HEIGHT,
         _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
-        _bp = [ _pp[0], _pp[1] + _hdiff ], // bounds position
-        _cp = this._inParent ? [ parent.parentNode.offsetLeft,
-                                 parent.parentNode.offsetTop + _hdiff ]
+        _bp = [ _pp[0] + parent.clientLeft, _pp[1] + parent.clientTop + _hdiff ], // bounds position
+        _cp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
+                                 parent.parentNode.offsetTop  + parent.clientTop + _hdiff ]
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
@@ -4246,14 +4271,14 @@ Controls.prototype.update = function(parent) {
         this.ctx = _canvas.getContext('2d');
         this.subscribeEvents(_canvas);
         this.hide();
-        this.changeColor(Controls.DEF_FGCOLOR);
+        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
     } else {
         canvasOpts(_canvas, [ _w, _h ], _ratio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
     this._ratio = _ratio;
-    this.ctx.font = Math.floor(Controls._TS) + 'px sans-serif';
+    this.ctx.font = Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
@@ -4262,7 +4287,7 @@ Controls.prototype.update = function(parent) {
         appendTo.appendChild(_canvas);
         this.ready = true;
     }
-    if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
+    if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';//this.__bgcolor;
     this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
                                     _bp[1]+(_h*_ratio) ];
 }
@@ -4301,10 +4326,26 @@ Controls.prototype.render = function(state, time) {
         _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
     /* TODO: update only progress if state not changed? */
     ctx.clearRect(0, 0, _w, _h);
+    if (!this.__bggrad) {
+        var bggrad = ctx.createLinearGradient(0, 0, 0, _h),
+            bgspec = get_rgb(this.__bgcolor);
+        bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 90, 255),
+                                       Math.min(bgspec[1] + 90, 255),
+                                       Math.min(bgspec[2] + 90, 255), .8));
+        bggrad.addColorStop(.2, to_rgba(Math.min(bgspec[0] + 30, 255),
+                                       Math.min(bgspec[1] + 30, 255),
+                                       Math.min(bgspec[2] + 30, 255), .8));
+        bggrad.addColorStop(1, to_rgba(bgspec[0],
+                                       bgspec[1],
+                                       bgspec[2], 1));
+        this.__bggrad = bggrad;
+    }
+    ctx.fillStyle = this.__bggrad;
+    ctx.fillRect(0, 0, _w, _h);
     ctx.save();
     if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
-    ctx.fillStyle = this.canvas.style.color || this.__fgcolor || Controls.DEF_FGCOLOR;
+    ctx.fillStyle = this.__fgcolor;
 
     // play/pause/stop button
     if (_s === C.PLAYING) {
@@ -4404,8 +4445,10 @@ Controls.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
     return this.inBounds([evt.pageX, evt.pageY]);
 }
-Controls.prototype.changeColor = function(front) {
+Controls.prototype.changeTheme = function(front, back) {
     this.__fgcolor = front;
+    this.__bgcolor = back;
+    this.__bggrad = null;
 }
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
