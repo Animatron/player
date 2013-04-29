@@ -984,8 +984,8 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    /*_window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);*/
-    /*_window.addEventListener('resize', Player.__getPosAndRedraw(this), false);*/
+    _window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
+    _window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -4238,12 +4238,12 @@ function Controls(player) {
 /* TODO: move these settings to default css rule? */
 Controls.HEIGHT = 25;
 Controls.MARGIN = 7;
-Controls.OPACITY = 0.8;
+Controls.OPACITY = 0.75;
 Controls.BASE_FGCOLOR = '#eee';
 Controls.BASE_BGCOLOR = '#000';
 //Controls.BASE_FGCOLOR = '#fcc';
 //Controls.BASE_BGCOLOR = '#600';
-Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN);
+Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN); // button height
 Controls._TS = Controls._BH; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 Controls.FONT = 'Arial, sans-serif';
@@ -4266,6 +4266,7 @@ Controls.prototype.update = function(parent) {
         _canvas.style.position = 'absolute';
         _canvas.style.opacity = Controls.OPACITY;
         _canvas.style.zIndex = 100;
+        _canvas.style.cursor = 'pointer';
         this.id = _canvas.id;
         this.canvas = _canvas;
         this.ctx = _canvas.getContext('2d');
@@ -4329,15 +4330,18 @@ Controls.prototype.render = function(state, time) {
     if (!this.__bggrad) {
         var bggrad = ctx.createLinearGradient(0, 0, 0, _h),
             bgspec = get_rgb(this.__bgcolor);
-        bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 90, 255),
-                                       Math.min(bgspec[1] + 90, 255),
-                                       Math.min(bgspec[2] + 90, 255), .8));
-        bggrad.addColorStop(.2, to_rgba(Math.min(bgspec[0] + 30, 255),
+        bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 120, 255),
+                                       Math.min(bgspec[1] + 120, 255),
+                                       Math.min(bgspec[2] + 120, 255), .7));
+        bggrad.addColorStop(.27, to_rgba(Math.min(bgspec[0] + 30, 255),
                                        Math.min(bgspec[1] + 30, 255),
                                        Math.min(bgspec[2] + 30, 255), .8));
+        bggrad.addColorStop(.8, to_rgba(bgspec[0],
+                                        bgspec[1],
+                                        bgspec[2], .9));
         bggrad.addColorStop(1, to_rgba(bgspec[0],
                                        bgspec[1],
-                                       bgspec[2], 1));
+                                       bgspec[2]));
         this.__bggrad = bggrad;
     }
     ctx.fillStyle = this.__bggrad;
@@ -4455,17 +4459,18 @@ Controls.prototype.forceNextRedraw = function() {
 }
 Controls.__play_btn = function(ctx) {
     var _bh = Controls._BH;
+    var _shift = 2;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(_bh, _bh / 2);
-    ctx.lineTo(0, _bh);
-    ctx.lineTo(0, 0);
+    ctx.moveTo(_shift, 0);
+    ctx.lineTo(_shift + (_bh * .8), _bh / 2);
+    ctx.lineTo(_shift, _bh);
+    ctx.lineTo(_shift, 0);
     ctx.fill();
     ctx.closePath();
 }
 Controls.__pause_btn = function(ctx) {
     var _bh = Controls._BH;
-    var _w = _bh / 2.3;
+    var _w = _bh / 2.4;
     var _d = _bh - (_w + _w);
     var _nl = _w + _d;
     ctx.beginPath();
@@ -4512,24 +4517,76 @@ Controls.__progress = function(ctx, _w, time, duration) {
     var _bh = Controls._BH,
         _m = Controls.MARGIN,
         _px = (_w / duration) * time,
-        _lh = _bh / 4,
-        _ly = (_bh - _lh) / 2;
+        _lh = _bh * 0.7,
+        _ly = (_bh - _lh) / 2,
+        _sw = 1.3, // separator width
+        _ss = 2.5, // separator shift
+        bgspec = get_rgb(this.__bgcolor);
+    ctx.save();
+    // separator
+    ctx.save();
+    ctx.globalAlpha *= .45;
     ctx.beginPath();
-    ctx.moveTo(0, _ly);
-    ctx.lineTo(_w, _ly);
-    ctx.lineTo(_w, _ly+_lh);
-    ctx.lineTo(0, _ly+_lh);
-    ctx.lineTo(0, _ly);
+    ctx.moveTo(0, -_ss);
+    ctx.lineTo(_sw, -_ss);
+    ctx.lineTo(_sw, _bh + (_ss*2));
+    ctx.lineTo(0, _bh + (_ss*2));
+    ctx.lineTo(0, -_ss);
     ctx.fill();
     ctx.closePath();
+    ctx.restore();
+    ctx.translate(_sw + _m, 0);
+    // back
+    ctx.save();
+    ctx.fillStyle = to_rgba(Math.max(bgspec[0] - 30, 0),
+                            Math.max(bgspec[1] - 30, 0),
+                            Math.max(bgspec[2] - 30, 0), .9);
+    Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
+    ctx.fill();
+    ctx.restore();
     if (duration == 0) return;
-    ctx.beginPath();
+    // front
+    ctx.save();
+    ctx.globalAlpha *= .95;
+    if (__t_cmp(time, duration) >= 0) {
+      Controls.__roundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+    } else {
+      Controls.__semiRoundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+    }
+    ctx.fill();
+    ctx.restore();
+    /*ctx.beginPath();
     ctx.moveTo(_px, 0);
     ctx.lineTo(_px+5, 0);
     ctx.lineTo(_px+5, _bh);
     ctx.lineTo(_px, _bh);
     ctx.lineTo(_px, 0);
     ctx.fill();
+    ctx.closePath();*/
+    ctx.restore();
+}
+// from http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
+Controls.__roundRect = function(ctx, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y,   x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x,   y+h, r);
+    ctx.arcTo(x,   y+h, x,   y,   r);
+    ctx.arcTo(x,   y,   x+w, y,   r);
+    ctx.closePath();
+}
+Controls.__semiRoundRect = function(ctx, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w, y);
+    ctx.lineTo(x+w, y+h);
+    ctx.arcTo(x+w, y+h, x,   y+h, r);
+    ctx.arcTo(x,   y+h, x,   y,   r);
+    ctx.arcTo(x,   y,   x+w, y,   r);
     ctx.closePath();
 }
 
