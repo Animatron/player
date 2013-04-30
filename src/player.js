@@ -4240,15 +4240,15 @@ function Controls(player) {
     this._inParent = player.inParent;
 }
 /* TODO: move these settings to default css rule? */
-Controls.HEIGHT = 25;
-Controls.MARGIN = 7;
+Controls.HEIGHT = 26;
+Controls.MARGIN = 8;
 Controls.OPACITY = 0.75;
 Controls.BASE_FGCOLOR = '#fff';
 Controls.BASE_BGCOLOR = '#000';
 //Controls.BASE_FGCOLOR = '#ccf';
 //Controls.BASE_BGCOLOR = '#006';
 Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN); // button height
-Controls._TS = Controls._BH; // text size
+Controls._TS = Controls._BH * 1.1; // text size
 Controls._TW = Controls._TS * 4.4; // text width
 Controls._SW = 1.3; // separator width
 Controls.FONT = 'Arial, sans-serif';
@@ -4330,19 +4330,21 @@ Controls.prototype.render = function(state, time) {
         _h = this.bounds[3] - this.bounds[1],
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
-        _pw = (_w / _ratio) - ((_m * 5) + _tw + _bh); // progress width
+        _pw = (_w / _ratio) - ((_m * 6) + _tw + _bh); // progress width
+    var front = this.__fgcolor,
+        back = this.__bgcolor;
     /* TODO: update only progress if state not changed? */
     ctx.clearRect(0, 0, _w, _h);
     if (!this.__bggrad) {
         var bggrad = ctx.createLinearGradient(0, 0, 0, _h),
-            bgspec = get_rgb(this.__bgcolor);
+            bgspec = get_rgb(back);
         bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 120, 255),
                                        Math.min(bgspec[1] + 120, 255),
                                        Math.min(bgspec[2] + 120, 255), .7));
-        bggrad.addColorStop(.27, to_rgba(Math.min(bgspec[0] + 30, 255),
+        bggrad.addColorStop(.35, to_rgba(Math.min(bgspec[0] + 30, 255),
                                        Math.min(bgspec[1] + 30, 255),
                                        Math.min(bgspec[2] + 30, 255), .8));
-        bggrad.addColorStop(.8, to_rgba(bgspec[0],
+        bggrad.addColorStop(.75, to_rgba(bgspec[0],
                                         bgspec[1],
                                         bgspec[2], .9));
         bggrad.addColorStop(1, to_rgba(bgspec[0],
@@ -4350,36 +4352,37 @@ Controls.prototype.render = function(state, time) {
                                        bgspec[2]));
         this.__bggrad = bggrad;
     }
-    ctx.fillStyle = this.__bggrad;
+    ctx.fillStyle = bggrad;
     ctx.fillRect(0, 0, _w, _h);
     ctx.save();
     if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
-    ctx.fillStyle = this.__fgcolor;
+    ctx.fillStyle = front;
 
     // play/pause/stop button
     if (_s === C.PLAYING) {
         // pause button
-        Controls.__pause_btn(ctx);
+        Controls.__pause_btn(ctx, front);
     } else if (_s === C.STOPPED) {
         // play button
-        Controls.__play_btn(ctx);
+        Controls.__play_btn(ctx, front);
     } else if (_s === C.PAUSED) {
         // play button
-        Controls.__play_btn(ctx);
+        Controls.__play_btn(ctx, front);
     } else {
         // stop button
-        Controls.__stop_btn(ctx);
+        Controls.__stop_btn(ctx, front);
     }
 
     // progress
     ctx.translate(_bh + _m, 0);
-    Controls.__progress(ctx, _pw, time, state.duration);
+    Controls.__progress(ctx, _pw, front, back,
+                        time, state.duration);
 
     // time
     ctx.translate(_pw + _m * 2.5, 0);
-    Controls.__time(ctx, this.elapsed
-                         ? (time - state.duration) : time);
+    Controls.__time(ctx, front, back,
+                    this.elapsed ? (time - state.duration) : time);
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -4435,6 +4438,7 @@ Controls.prototype.handle_mdown = function(event) {
         }
         else if ((_s === C.PAUSED) ||
                  (_s === C.STOPPED)) {
+            this.player.state.time = _tpos;
             this.player.drawAt(_tpos);
         }
     } else { // time area
@@ -4466,7 +4470,7 @@ Controls.prototype.changeTheme = function(front, back) {
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
 }
-Controls.__play_btn = function(ctx) {
+Controls.__play_btn = function(ctx, front) {
     var _bh = Controls._BH;
     var _shift = 2;
     ctx.beginPath();
@@ -4477,7 +4481,7 @@ Controls.__play_btn = function(ctx) {
     ctx.fill();
     ctx.closePath();
 }
-Controls.__pause_btn = function(ctx) {
+Controls.__pause_btn = function(ctx, front) {
     var _bh = Controls._BH;
     var _w = _bh / 2.4;
     var _d = _bh - (_w + _w);
@@ -4499,7 +4503,7 @@ Controls.__pause_btn = function(ctx) {
     ctx.fill();
     ctx.closePath();
 }
-Controls.__stop_btn = function(ctx) {
+Controls.__stop_btn = function(ctx, front) {
     var _bh = Controls._BH;
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -4510,36 +4514,70 @@ Controls.__stop_btn = function(ctx) {
     ctx.fill();
     ctx.closePath();
 }
-Controls.__time = function(ctx, time) {
+Controls.__time = function(ctx, front, back, time) {
     var _bh = Controls._BH,
-        _m = Controls.MARGIN,
+        _mr = Controls.MARGIN,
+        _sw = Controls._SW, // separator width
         _time = Math.abs(time),
         _h = Math.floor(_time / 3600),
         _m = Math.floor((_time - (_h * 3600)) / 60),
         _s = Math.floor(_time - (_h * 3600) - (_m * 60));
+    var bgspec = get_rgb(back),
+        darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
+                           Math.max(bgspec[1] - 30, 0),
+                           Math.max(bgspec[2] - 30, 0), .9)
     ctx.save();
+    Controls.__separator(ctx, 0, 0, front, darkback);
+    ctx.fillStyle = front;
     ctx.textBaseline = 'top';
     ctx.fillText(((time < 0) ? '-' : '') +
                  ((_h < 10) ? ('0' + _h) : _h) + ':' +
                  ((_m < 10) ? ('0' + _m) : _m) + ':' +
-                 ((_s < 10) ? ('0' + _s) : _s), 0, 0);
+                 ((_s < 10) ? ('0' + _s) : _s), _sw + _mr, 0);
     ctx.restore();
 }
-Controls.__progress = function(ctx, _w, time, duration) {
+Controls.__progress = function(ctx, _w, front, back, time, duration) {
     var _bh = Controls._BH,
         _m = Controls.MARGIN,
+        _sw = Controls._SW, // separator width
         _px = (_w / duration) * time, // progress position
         _lh = _bh * 0.7, // line height
-        _ly = 1, // line y
-        _sw = Controls._SW, // separator width
-        _ss = 2.5, // separator vertical shift
-        bgspec = get_rgb(this.__bgcolor),
-        _darkbg = to_rgba(Math.max(bgspec[0] - 30, 0),
-                          Math.max(bgspec[1] - 30, 0),
-                          Math.max(bgspec[2] - 30, 0), .9);
+        _ly = 1; // line y
+    var bgspec = get_rgb(back),
+        darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
+                           Math.max(bgspec[1] - 30, 0),
+                           Math.max(bgspec[2] - 30, 0), .9);
     ctx.save();
+    Controls.__separator(ctx, 0, 0, front, darkback);
+    ctx.translate(_sw + _m, 0);
+    // back
+    ctx.save();
+    ctx.fillStyle = back;
+    Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
+    ctx.fill();
+    ctx.restore();
+    if (duration == 0) return;
+    // front
+    ctx.save();
+    ctx.fillStyle = front;
+    ctx.globalAlpha *= .95;
+    if (__t_cmp(time, duration) >= 0) {
+      Controls.__roundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+    } else {
+      Controls.__semiRoundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+    }
+    ctx.fill();
+    ctx.restore();
+    // end
+    ctx.restore();
+}
+Controls.__separator = function(ctx, x, y, color, shadowcolor) {
+    var _bh = Controls._BH,
+        _sw = Controls._SW, // separator width
+        _ss = 2.5; // separator vertical shift
     // separator light line
     ctx.save();
+    ctx.fillStyle = color;
     ctx.globalAlpha *= .3;
     ctx.beginPath();
     ctx.moveTo(0, -_ss);
@@ -4550,7 +4588,7 @@ Controls.__progress = function(ctx, _w, time, duration) {
     ctx.fill();
     ctx.closePath();
     // separator dark line
-    ctx.fillStyle = _darkbg;
+    ctx.fillStyle = shadowcolor;
     ctx.beginPath();
     ctx.moveTo(-_sw, -_ss);
     ctx.lineTo(0, -_ss);
@@ -4559,26 +4597,6 @@ Controls.__progress = function(ctx, _w, time, duration) {
     ctx.lineTo(-_sw, -_ss);
     ctx.fill();
     ctx.closePath();
-    ctx.restore();
-    ctx.translate(_sw + _m, 0);
-    // back
-    ctx.save();
-    ctx.fillStyle = _darkbg;
-    Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
-    ctx.fill();
-    ctx.restore();
-    if (duration == 0) return;
-    // front
-    ctx.save();
-    ctx.globalAlpha *= .95;
-    if (__t_cmp(time, duration) >= 0) {
-      Controls.__roundRect(ctx, 0, _ly + 1, _px, _lh, 5);
-    } else {
-      Controls.__semiRoundRect(ctx, 0, _ly + 1, _px, _lh, 5);
-    }
-    ctx.fill();
-    ctx.restore();
-    // end
     ctx.restore();
 }
 // from http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas

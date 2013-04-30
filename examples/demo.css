@@ -35,7 +35,7 @@ hr {
 }
 
 canvas[anm-player=true] {
-	border: 1px solid #000;
+	border: 1px solid #ccc;
 }
 
 #copyright {
