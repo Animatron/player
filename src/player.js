@@ -699,6 +699,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var player = this;
 
+    // reassigns var to ensure proper function is used
     __nextFrame = __frameFunc();
 
     player._ensureHasAnim();
@@ -858,7 +859,7 @@ Player.prototype._loadOpts = function(opts) {
 Player.prototype._postInit = function() {
     this.stop();
     /* TODO: load some default information into player */
-    if (!Text.__buff) Text.__buff = Text._createBuffer(); /* so it will be performed onload */
+    Text._ensureHasBuffer(); /* so it will be performed onload */
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
@@ -3946,13 +3947,13 @@ Text.DEFAULT_FILL = { 'color': '#000' };
 Text.BASELINE_RULE = 'bottom';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
-Text.prototype.apply = function(ctx, point) {
+Text.prototype.apply = function(ctx, point, baseline) {
     ctx.save();
     var point = point || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]);
     ctx.font = this.font;
-    ctx.textBaseline = Text.BASELINE_RULE;
+    ctx.textBaseline = baseline || Text.BASELINE_RULE;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
     if (Brush._hasVal(this.fill)) {
         Brush.fill(ctx, this.fill);
@@ -4041,6 +4042,9 @@ Text.prototype.clone = function() {
     return c;
 }
 Text.prototype.dispose = function() { }
+Text._ensureHasBuffer = function() {
+  if (!Text.__buff) Text.__buff = Text._createBuffer();
+}
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -4238,8 +4242,8 @@ function Controls(player) {
 /* TODO: move these settings to default css rule? */
 Controls.HEIGHT = 25;
 Controls.MARGIN = 7;
-Controls.OPACITY = 0.8;
-Controls.BASE_FGCOLOR = '#eee';
+Controls.OPACITY = 0.75;
+Controls.BASE_FGCOLOR = '#fff';
 Controls.BASE_BGCOLOR = '#000';
 //Controls.BASE_FGCOLOR = '#ccf';
 //Controls.BASE_BGCOLOR = '#006';
@@ -4269,6 +4273,7 @@ Controls.prototype.update = function(parent) {
         _canvas.style.opacity = Controls.OPACITY;
         _canvas.style.zIndex = 100;
         _canvas.style.cursor = 'pointer';
+        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
         this.id = _canvas.id;
         this.canvas = _canvas;
         this.ctx = _canvas.getContext('2d');
@@ -4290,7 +4295,6 @@ Controls.prototype.update = function(parent) {
         appendTo.appendChild(_canvas);
         this.ready = true;
     }
-    if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';//this.__bgcolor;
     this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
                                     _bp[1]+(_h*_ratio) ];
 }
@@ -4426,7 +4430,7 @@ Controls.prototype.handle_mdown = function(event) {
         if (_tpos < 0) _tpos = 0;
         if (_tpos > _d) _tpos = d;
         if (_s === C.PLAYING) {
-            this.player.stop();
+            this.player.pause();
             this.player.play(_tpos);
         }
         else if ((_s === C.PAUSED) ||
@@ -4457,6 +4461,7 @@ Controls.prototype.changeTheme = function(front, back) {
     this.__fgcolor = front;
     this.__bgcolor = back;
     this.__bggrad = null;
+    // TODO: redraw
 }
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
@@ -4525,14 +4530,17 @@ Controls.__progress = function(ctx, _w, time, duration) {
         _m = Controls.MARGIN,
         _px = (_w / duration) * time, // progress position
         _lh = _bh * 0.7, // line height
-        _ly = (_bh - _lh) / 2, // line y
+        _ly = 1, // line y
         _sw = Controls._SW, // separator width
         _ss = 2.5, // separator vertical shift
-        bgspec = get_rgb(this.__bgcolor);
+        bgspec = get_rgb(this.__bgcolor),
+        _darkbg = to_rgba(Math.max(bgspec[0] - 30, 0),
+                          Math.max(bgspec[1] - 30, 0),
+                          Math.max(bgspec[2] - 30, 0), .9);
     ctx.save();
-    // separator
+    // separator light line
     ctx.save();
-    ctx.globalAlpha *= .45;
+    ctx.globalAlpha *= .3;
     ctx.beginPath();
     ctx.moveTo(0, -_ss);
     ctx.lineTo(_sw, -_ss);
@@ -4541,13 +4549,21 @@ Controls.__progress = function(ctx, _w, time, duration) {
     ctx.lineTo(0, -_ss);
     ctx.fill();
     ctx.closePath();
+    // separator dark line
+    ctx.fillStyle = _darkbg;
+    ctx.beginPath();
+    ctx.moveTo(-_sw, -_ss);
+    ctx.lineTo(0, -_ss);
+    ctx.lineTo(0, _bh + (_ss*2));
+    ctx.lineTo(-_sw, _bh + (_ss*2));
+    ctx.lineTo(-_sw, -_ss);
+    ctx.fill();
+    ctx.closePath();
     ctx.restore();
     ctx.translate(_sw + _m, 0);
     // back
     ctx.save();
-    ctx.fillStyle = to_rgba(Math.max(bgspec[0] - 30, 0),
-                            Math.max(bgspec[1] - 30, 0),
-                            Math.max(bgspec[2] - 30, 0), .9);
+    ctx.fillStyle = _darkbg;
     Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
     ctx.fill();
     ctx.restore();
@@ -4594,72 +4610,102 @@ Controls.__semiRoundRect = function(ctx, x, y, w, h, r) {
 // -----------------------------------------------------------------------------
 
 function InfoBlock(player) {
-    this.div = null;
+    this.canvas = null;
+    this.ctx = null;
     this.ready = false;
     this.hidden = false;
     this._inParent = player.inParent;
 }
 /* TODO: move these settings to default css rule? */
-InfoBlock.DEF_BGCOLOR = '#fff';
-InfoBlock.DEF_FGCOLOR = '#000';
-InfoBlock.OPACITY = 0.85;
-InfoBlock.HEIGHT = 60;
-InfoBlock.PADDING = 4;
+InfoBlock.BASE_BGCOLOR = Controls.BASE_BGCOLOR;
+InfoBlock.BASE_FGCOLOR = Controls.BASE_FGCOLOR;
+InfoBlock.OPACITY = 0.75;
+InfoBlock.PADDING = 6;
+InfoBlock.MARGIN = 5;
+InfoBlock.FONT = Controls.FONT;
+InfoBlock.DEFAULT_WIDTH = 0;
+InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
-                    : document.body).removeChild(this.div);
+                    : document.body).removeChild(this.canvas);
 }
 InfoBlock.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
         _p = InfoBlock.PADDING,
-        _w = (parent.width / _ratio) - (_p + _p),
-        _h = InfoBlock.HEIGHT - (_p + _p),
-        _pp = this._inParent ? [ parent.parentNode.offsetLeft,
-                                 parent.parentNode.offsetTop ]
+        _m = InfoBlock.MARGIN,
+        _w = InfoBlock.DEFAULT_WIDTH,
+        _h = InfoBlock.DEFAULT_HEIGHT - (_p + _p),
+        _pp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
+                                 parent.parentNode.offsetTop + parent.clientTop ]
                              : find_pos(parent),
-        _l = _pp[0],
-        _t = _pp[1];
-    var _div = this.div;
-    if (!_div) {
-        _div = document.createElement('div');
-        if (parent.id) { _div.id = '__'+parent.id+'_info'; }
-        _div.className = 'anm-info';
-        _div.style.position = 'absolute';
-        _div.style.opacity = InfoBlock.OPACITY;
-        _div.style.zIndex = 100;
-        if (!_div.style.fontSize) _div.style.fontSize = '10px';
-        _div.style.padding = _p+'px';
-        this.div = _div;
-        this.id = _div.id;
+        _l = _pp[0] + parent.clientLeft + _m,
+        _t = _pp[1] + parent.clientTop + _m;
+    var _canvas = this.canvas;
+    if (!_canvas) {
+        _canvas = newCanvas([ _w, _h ], _ratio);
+        if (parent.id) { _canvas.id = '__'+parent.id+'_info'; }
+        _canvas.className = 'anm-info';
+        _canvas.style.position = 'absolute';
+        _canvas.style.opacity = InfoBlock.OPACITY;
+        _canvas.style.zIndex = 100;
+        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        this.canvas = _canvas;
+        this.ctx = _canvas.getContext('2d');
+        this.id = _canvas.id;
         this.hide();
+        this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     }
-    _div.style.width = _w + 'px';
-    _div.style.height = _h + 'px';
-    _div.style.top = _t + 'px';
-    _div.style.left = _l + 'px';
+    // width and height will be calculated on update
+    /* _canvas.style.width = _w + 'px';
+       _canvas.style.height = _h + 'px'; */
+    _canvas.style.top = _t + 'px';
+    _canvas.style.left = _l + 'px';
     this.bounds = [ _l, _t, _l+_w, _t+_h ];
+    this.canvas = _canvas;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
         /* FIXME: a dirty hack */
         if (this._inParent) { appendTo.style.position = 'relative'; }
-        appendTo.appendChild(_div);
+        appendTo.appendChild(_canvas);
         this.ready = true;
     }
-    if (!_div.style.color) _div.style.color = InfoBlock.DEF_FGCOLOR;
-    if (!_div.style.backgroundColor) _div.style.backgroundColor = InfoBlock.DEF_BGCOLOR;
+    this.render();
 }
-InfoBlock.prototype.inject = function(meta, anim) {
+InfoBlock.prototype.render = function() {
+    if (!this.__data) return;
+    var meta = this.__data[0],
+        anim = this.__data[1],
+        duration = this.__data[2] || meta.duration;
+    Text._ensureHasBuffer();
     /* TODO: show speed */
-    this.div.innerHTML = '<p><span class="title">'+(meta.title || '[No title]')+'</span>'+
-            (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
-            '<span class="duration">'+anim.duration+'sec</span>'+', '+
-            (((anim.width!=null) && (anim.height!=null))
-             ? '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> ' : '')+
-            '<span class="copy">'+(meta.version ? ('v'+meta.version+' ') : '')
-                                 +meta.copyright+'</span>'+' '+
-            (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
-            '</p>';
+    var _tl = new Text(meta.title || '[No title]', 'bold 12px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+        _bl = new Text((meta.author || '[Unknown]') + ' ' + duration + 's' +
+                       ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
+                      '9px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+        _p = InfoBlock.PADDING,
+        _td = _tl.dimen(),
+        _bd = _bl.dimen(),
+        _nw = Math.max(_td[0], _bd[0]) + _p + _p,
+        _nh = _td[1] + _bd[1] + (_p * 3),
+        ctx = this.ctx;
+    canvasOpts(this.canvas, [ _nw, _nh ], this.canvas.__pxRatio);
+    ctx.save();
+    ctx.clearRect(0, 0, _nw, _nh);
+    ctx.fillStyle = this.__bgcolor;
+    Controls.__roundRect(ctx, 0, 0, _nw, _nh, 5);
+    ctx.fill();
+    ctx.fillStyle = this.__fgcolor;
+    ctx.translate(_p, _p);
+    _tl.apply(ctx);
+    ctx.globalAlpha = .8;
+    ctx.translate(0, _bd[1] + _p);
+    _bl.apply(ctx);
+    ctx.restore();
+}
+InfoBlock.prototype.inject = function(meta, anim, duration) {
+    this.__data = [ meta, anim, duration || meta.duration ];
+    if (this.ready) this.render();
 }
 InfoBlock.prototype.inBounds = function(point) {
     if (this.hidden || !this.bounds) return false;
@@ -4678,18 +4724,19 @@ InfoBlock.prototype.reset = function() {
 }
 InfoBlock.prototype.hide = function() {
     this.hidden = true;
-    this.div.style.display = 'none';
+    this.canvas.style.display = 'none';
 }
 InfoBlock.prototype.show = function() {
     this.hidden = false;
-    this.div.style.display = 'block';
+    this.canvas.style.display = 'block';
 }
 InfoBlock.prototype.setDuration = function(value) {
-    this.div.getElementsByClassName('duration')[0].innerHTML = value+'sec';
+    if (this.__data) this.inject(this.__data[0], this.__data[1], value);
 }
-InfoBlock.prototype.changeColors = function(front, back) {
-    this.div.style.color = front;
-    this.div.style.backgroundColor = back;
+InfoBlock.prototype.changeTheme = function(front, back) {
+    this.__fgcolor = front;
+    this.__bgcolor = back;
+    // TODO: redraw
 }
 
 // Strings
