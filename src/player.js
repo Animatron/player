@@ -4001,6 +4001,8 @@ Text._createBuffer = function() {
     var _div = document.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';
+    _div.style.top = -10000 + 'px';
+    _div.style.left = -10000 + 'px';
     var _span = document.createElement('span');
     _div.appendChild(_span);
     document.body.appendChild(_div);
@@ -4253,6 +4255,7 @@ Controls._TW = Controls._TS * 4.4; // text width
 Controls._SW = 1.3; // separator width
 Controls.FONT = 'Arial, sans-serif';
 Controls.FONT_WEIGHT = 'bold';
+Controls.FLAT = false;
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
@@ -4335,7 +4338,7 @@ Controls.prototype.render = function(state, time) {
         back = this.__bgcolor;
     /* TODO: update only progress if state not changed? */
     ctx.clearRect(0, 0, _w, _h);
-    if (!this.__bggrad) {
+    if (!this.__bggrad && !Controls.FLAT) {
         var bggrad = ctx.createLinearGradient(0, 0, 0, _h),
             bgspec = get_rgb(back);
         bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 120, 255),
@@ -4352,7 +4355,7 @@ Controls.prototype.render = function(state, time) {
                                        bgspec[2]));
         this.__bggrad = bggrad;
     }
-    ctx.fillStyle = bggrad;
+    ctx.fillStyle = Controls.FLAT ? back : this.__bggrad;
     ctx.fillRect(0, 0, _w, _h);
     ctx.save();
     if (_ratio != 1) ctx.scale(_ratio, _ratio);
@@ -4694,13 +4697,14 @@ InfoBlock.prototype.render = function() {
     if (!this.__data) return;
     var meta = this.__data[0],
         anim = this.__data[1],
-        duration = this.__data[2] || meta.duration;
+        duration = this.__data[2] || meta.duration,
+        ratio = this.canvas.__pxRatio;
     Text._ensureHasBuffer();
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold 12px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + duration + 's' +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      '9px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      (9 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
