@@ -140,6 +140,28 @@ function guid() {
   return hash;
 }*/
 
+function get_rgb(hex) {
+  if (!hex || !hex.length) return [0, 0, 0];
+  var _hex = hex.substring(1);
+  if (_hex.length === 3) {
+    _hex = _hex[0] + _hex[0] +
+           _hex[1] + _hex[1] +
+           _hex[2] + _hex[2];
+  }
+  var bigint = parseInt(_hex, 16);
+  return [ (bigint >> 16) & 255,
+           (bigint >> 8) & 255,
+           bigint & 255 ];
+}
+
+function to_rgba(r, g, b, a) {
+  return "rgba(" + Math.floor(r) + "," +
+                   Math.floor(g) + "," +
+                   Math.floor(b) + "," +
+                   ((typeof a !== 'undefined')
+                          ? a : 1) + ")";
+}
+
 // ### Arrays
 /* ---------- */
 
@@ -430,6 +452,11 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_DO_NOT_HANDLE_EVENTS
             | C.M_DRAW_STILL
             | C.M_FINITE_DURATION;
+C.M_SANDBOX = C.M_CONTROLS_DISABLED
+            | C.M_INFO_DISABLED
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DO_NOT_DRAW_STILL
+            | C.M_FINITE_DURATION;
 
 
 // ### Events
@@ -677,6 +704,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var player = this;
 
+    // reassigns var to ensure proper function is used
     __nextFrame = __frameFunc();
 
     player._ensureHasAnim();
@@ -836,7 +864,7 @@ Player.prototype._loadOpts = function(opts) {
 Player.prototype._postInit = function() {
     this.stop();
     /* TODO: load some default information into player */
-    if (!Text.__buff) Text.__buff = Text._createBuffer(); /* so it will be performed onload */
+    Text._ensureHasBuffer(); /* so it will be performed onload */
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
@@ -962,8 +990,8 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    /*_window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);*/
-    /*_window.addEventListener('resize', Player.__getPosAndRedraw(this), false);*/
+    _window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
+    _window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -3603,7 +3631,6 @@ Path.applyF = function(ctx, fill, stroke, func) {
     Brush.fill(ctx, fill);
     Brush.stroke(ctx, stroke);
     func();
-    ctx.closePath();
 
     if (Brush._hasVal(fill)) ctx.fill();
     if (Brush._hasVal(stroke)) ctx.stroke();
@@ -3924,13 +3951,13 @@ Text.DEFAULT_FILL = { 'color': '#000' };
 Text.BASELINE_RULE = 'bottom';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
-Text.prototype.apply = function(ctx, point) {
+Text.prototype.apply = function(ctx, point, baseline) {
     ctx.save();
     var point = point || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]);
     ctx.font = this.font;
-    ctx.textBaseline = Text.BASELINE_RULE;
+    ctx.textBaseline = baseline || Text.BASELINE_RULE;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
     if (Brush._hasVal(this.fill)) {
         Brush.fill(ctx, this.fill);
@@ -3978,6 +4005,8 @@ Text._createBuffer = function() {
     var _div = document.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';
+    _div.style.top = -10000 + 'px';
+    _div.style.left = -10000 + 'px';
     var _span = document.createElement('span');
     _div.appendChild(_span);
     document.body.appendChild(_div);
@@ -4019,6 +4048,9 @@ Text.prototype.clone = function() {
     return c;
 }
 Text.prototype.dispose = function() { }
+Text._ensureHasBuffer = function() {
+  if (!Text.__buff) Text.__buff = Text._createBuffer();
+}
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -4214,14 +4246,20 @@ function Controls(player) {
     this._inParent = player.inParent;
 }
 /* TODO: move these settings to default css rule? */
-Controls.HEIGHT = 40;
-Controls.MARGIN = 5;
-Controls.OPACITY = 0.8;
-Controls.DEF_FGCOLOR = '#faa';
-Controls.DEF_BGCOLOR = '#c22';
-Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN);
-Controls._TS = Controls._BH; // text size
+Controls.HEIGHT = 26;
+Controls.MARGIN = 8;
+Controls.OPACITY = 0.75;
+Controls.BASE_FGCOLOR = '#fff';
+Controls.BASE_BGCOLOR = '#000';
+//Controls.BASE_FGCOLOR = '#ccf';
+//Controls.BASE_BGCOLOR = '#006';
+Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN); // button height
+Controls._TS = Controls._BH * 1.1; // text size
 Controls._TW = Controls._TS * 4.4; // text width
+Controls._SW = 1.3; // separator width
+Controls.FONT = 'Arial, sans-serif';
+Controls.FONT_WEIGHT = 'bold';
+Controls.FLAT = false;
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
@@ -4229,9 +4267,9 @@ Controls.prototype.update = function(parent) {
         _h = Controls.HEIGHT,
         _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
         _pp = find_pos(parent), // parent position
-        _bp = [ _pp[0], _pp[1] + _hdiff ], // bounds position
-        _cp = this._inParent ? [ parent.parentNode.offsetLeft,
-                                 parent.parentNode.offsetTop + _hdiff ]
+        _bp = [ _pp[0] + parent.clientLeft, _pp[1] + parent.clientTop + _hdiff ], // bounds position
+        _cp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
+                                 parent.parentNode.offsetTop  + parent.clientTop + _hdiff ]
                              : _bp; // position to set in styles
     var _canvas = this.canvas;
     if (!_canvas) {
@@ -4241,19 +4279,21 @@ Controls.prototype.update = function(parent) {
         _canvas.style.position = 'absolute';
         _canvas.style.opacity = Controls.OPACITY;
         _canvas.style.zIndex = 100;
+        _canvas.style.cursor = 'pointer';
+        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
         this.id = _canvas.id;
         this.canvas = _canvas;
         this.ctx = _canvas.getContext('2d');
         this.subscribeEvents(_canvas);
         this.hide();
-        this.changeColor(Controls.DEF_FGCOLOR);
+        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
     } else {
         canvasOpts(_canvas, [ _w, _h ], _ratio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
     this._ratio = _ratio;
-    this.ctx.font = Math.floor(Controls._TS) + 'px sans-serif';
+    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
@@ -4262,7 +4302,6 @@ Controls.prototype.update = function(parent) {
         appendTo.appendChild(_canvas);
         this.ready = true;
     }
-    if (!_canvas.style.backgroundColor) _canvas.style.backgroundColor = Controls.DEF_BGCOLOR;
     this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
                                     _bp[1]+(_h*_ratio) ];
 }
@@ -4298,37 +4337,59 @@ Controls.prototype.render = function(state, time) {
         _h = this.bounds[3] - this.bounds[1],
         _m = Controls.MARGIN,
         _tw = Controls._TW, // text width
-        _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh); // progress width
+        _pw = (_w / _ratio) - ((_m * 6) + _tw + _bh); // progress width
+    var front = this.__fgcolor,
+        back = this.__bgcolor;
     /* TODO: update only progress if state not changed? */
     ctx.clearRect(0, 0, _w, _h);
+    if (!this.__bggrad && !Controls.FLAT) {
+        var bggrad = ctx.createLinearGradient(0, 0, 0, _h),
+            bgspec = get_rgb(back);
+        bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 120, 255),
+                                       Math.min(bgspec[1] + 120, 255),
+                                       Math.min(bgspec[2] + 120, 255), .7));
+        bggrad.addColorStop(.35, to_rgba(Math.min(bgspec[0] + 30, 255),
+                                       Math.min(bgspec[1] + 30, 255),
+                                       Math.min(bgspec[2] + 30, 255), .8));
+        bggrad.addColorStop(.75, to_rgba(bgspec[0],
+                                        bgspec[1],
+                                        bgspec[2], .9));
+        bggrad.addColorStop(1, to_rgba(bgspec[0],
+                                       bgspec[1],
+                                       bgspec[2]));
+        this.__bggrad = bggrad;
+    }
+    ctx.fillStyle = Controls.FLAT ? back : this.__bggrad;
+    ctx.fillRect(0, 0, _w, _h);
     ctx.save();
     if (_ratio != 1) ctx.scale(_ratio, _ratio);
     ctx.translate(_m, _m);
-    ctx.fillStyle = this.canvas.style.color || this.__fgcolor || Controls.DEF_FGCOLOR;
+    ctx.fillStyle = front;
 
     // play/pause/stop button
     if (_s === C.PLAYING) {
         // pause button
-        Controls.__pause_btn(ctx);
+        Controls.__pause_btn(ctx, front);
     } else if (_s === C.STOPPED) {
         // play button
-        Controls.__play_btn(ctx);
+        Controls.__play_btn(ctx, front);
     } else if (_s === C.PAUSED) {
         // play button
-        Controls.__play_btn(ctx);
+        Controls.__play_btn(ctx, front);
     } else {
         // stop button
-        Controls.__stop_btn(ctx);
+        Controls.__stop_btn(ctx, front);
     }
 
     // progress
     ctx.translate(_bh + _m, 0);
-    Controls.__progress(ctx, _pw, time, state.duration);
+    Controls.__progress(ctx, _pw, front, back,
+                        time, state.duration);
 
     // time
-    ctx.translate(_pw + _m, 0);
-    Controls.__time(ctx, this.elapsed
-                         ? (time - state.duration) : time);
+    ctx.translate(_pw + _m * 2.5, 0);
+    Controls.__time(ctx, front, back,
+                    this.elapsed ? (time - state.duration) : time);
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -4363,7 +4424,7 @@ Controls.prototype.handle_mdown = function(event) {
         _ratio = this._ratio;
     var _s = this.player.state.happens;
     if (_s === C.NOTHING) return;
-    if (_lx < (_bh + _m + (_m / 2))) { // play button area
+    if (_lx < (_bh + _m + _m)) { // play button area
         if (_s === C.STOPPED) {
             this.player.play(0);
         } else if (_s === C.PAUSED) {
@@ -4372,16 +4433,19 @@ Controls.prototype.handle_mdown = function(event) {
             this.player.pause();
         }
     } else if (_lx < (_w - (_tw + _m))) { // progress area
-        var _pw = (_w / _ratio) - ((_m * 4) + _tw + _bh), // progress width
-            _px = _lx - (_bh + _m + _m), // progress leftmost x
+        var _pw = (_w / _ratio) - ((_m * 5) + _tw + _bh), // progress width
+            _px = _lx - (_bh + (_m * 3) + Controls._SW), // progress leftmost x
             _d = this.player.state.duration;
         var _tpos = _px / (_pw / _d); // time position
+        if (_tpos < 0) _tpos = 0;
+        if (_tpos > _d) _tpos = d;
         if (_s === C.PLAYING) {
             this.player.pause();
             this.player.play(_tpos);
         }
         else if ((_s === C.PAUSED) ||
                  (_s === C.STOPPED)) {
+            this.player.state.time = _tpos;
             this.player.drawAt(_tpos);
         }
     } else { // time area
@@ -4404,25 +4468,29 @@ Controls.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
     return this.inBounds([evt.pageX, evt.pageY]);
 }
-Controls.prototype.changeColor = function(front) {
+Controls.prototype.changeTheme = function(front, back) {
     this.__fgcolor = front;
+    this.__bgcolor = back;
+    this.__bggrad = null;
+    // TODO: redraw
 }
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
 }
-Controls.__play_btn = function(ctx) {
+Controls.__play_btn = function(ctx, front) {
     var _bh = Controls._BH;
+    var _shift = 2;
     ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(_bh, _bh / 2);
-    ctx.lineTo(0, _bh);
-    ctx.lineTo(0, 0);
+    ctx.moveTo(_shift, 0);
+    ctx.lineTo(_shift + (_bh * .8), _bh / 2);
+    ctx.lineTo(_shift, _bh);
+    ctx.lineTo(_shift, 0);
     ctx.fill();
     ctx.closePath();
 }
-Controls.__pause_btn = function(ctx) {
+Controls.__pause_btn = function(ctx, front) {
     var _bh = Controls._BH;
-    var _w = _bh / 2.3;
+    var _w = _bh / 2.4;
     var _d = _bh - (_w + _w);
     var _nl = _w + _d;
     ctx.beginPath();
@@ -4442,7 +4510,7 @@ Controls.__pause_btn = function(ctx) {
     ctx.fill();
     ctx.closePath();
 }
-Controls.__stop_btn = function(ctx) {
+Controls.__stop_btn = function(ctx, front) {
     var _bh = Controls._BH;
     ctx.beginPath();
     ctx.moveTo(0, 0);
@@ -4453,40 +4521,113 @@ Controls.__stop_btn = function(ctx) {
     ctx.fill();
     ctx.closePath();
 }
-Controls.__time = function(ctx, time) {
+Controls.__time = function(ctx, front, back, time) {
     var _bh = Controls._BH,
+        _mr = Controls.MARGIN,
+        _sw = Controls._SW, // separator width
         _time = Math.abs(time),
         _h = Math.floor(_time / 3600),
         _m = Math.floor((_time - (_h * 3600)) / 60),
         _s = Math.floor(_time - (_h * 3600) - (_m * 60));
-    ctx.fillText(((time < 0) ? '(' : '[') +
+    var bgspec = get_rgb(back),
+        darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
+                           Math.max(bgspec[1] - 30, 0),
+                           Math.max(bgspec[2] - 30, 0), .9)
+    ctx.save();
+    Controls.__separator(ctx, 0, 0, front, darkback);
+    ctx.fillStyle = front;
+    ctx.textBaseline = 'top';
+    ctx.fillText(((time < 0) ? '-' : '') +
                  ((_h < 10) ? ('0' + _h) : _h) + ':' +
                  ((_m < 10) ? ('0' + _m) : _m) + ':' +
-                 ((_s < 10) ? ('0' + _s) : _s) +
-                 ((time < 0) ? ')' : ']'), 0, _bh - 4);
+                 ((_s < 10) ? ('0' + _s) : _s), _sw + _mr, 0);
+    ctx.restore();
 }
-Controls.__progress = function(ctx, _w, time, duration) {
+Controls.__progress = function(ctx, _w, front, back, time, duration) {
     var _bh = Controls._BH,
         _m = Controls.MARGIN,
-        _px = (_w / duration) * time,
-        _lh = _bh / 4,
-        _ly = (_bh - _lh) / 2;
+        _sw = Controls._SW, // separator width
+        _px = (_w / duration) * time, // progress position
+        _lh = _bh * 0.7, // line height
+        _ly = 1; // line y
+    var bgspec = get_rgb(back),
+        darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
+                           Math.max(bgspec[1] - 30, 0),
+                           Math.max(bgspec[2] - 30, 0), .9);
+    ctx.save();
+    Controls.__separator(ctx, 0, 0, front, darkback);
+    ctx.translate(_sw + _m, 0);
+    // back
+    ctx.save();
+    ctx.fillStyle = back;
+    Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
+    ctx.fill();
+    ctx.restore();
+    if (duration == 0) return;
+    // front
+    ctx.save();
+    ctx.fillStyle = front;
+    ctx.globalAlpha *= .95;
+    if (__t_cmp(time, duration) >= 0) {
+      Controls.__roundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+    } else {
+      Controls.__semiRoundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+    }
+    ctx.fill();
+    ctx.restore();
+    // end
+    ctx.restore();
+}
+Controls.__separator = function(ctx, x, y, color, shadowcolor) {
+    var _bh = Controls._BH,
+        _sw = Controls._SW, // separator width
+        _ss = 2.5; // separator vertical shift
+    // separator light line
+    ctx.save();
+    ctx.fillStyle = color;
+    ctx.globalAlpha *= .3;
     ctx.beginPath();
-    ctx.moveTo(0, _ly);
-    ctx.lineTo(_w, _ly);
-    ctx.lineTo(_w, _ly+_lh);
-    ctx.lineTo(0, _ly+_lh);
-    ctx.lineTo(0, _ly);
+    ctx.moveTo(0, -_ss);
+    ctx.lineTo(_sw, -_ss);
+    ctx.lineTo(_sw, _bh + (_ss*2));
+    ctx.lineTo(0, _bh + (_ss*2));
+    ctx.lineTo(0, -_ss);
     ctx.fill();
     ctx.closePath();
-    if (duration == 0) return;
+    // separator dark line
+    ctx.fillStyle = shadowcolor;
     ctx.beginPath();
-    ctx.moveTo(_px, 0);
-    ctx.lineTo(_px+5, 0);
-    ctx.lineTo(_px+5, _bh);
-    ctx.lineTo(_px, _bh);
-    ctx.lineTo(_px, 0);
+    ctx.moveTo(-_sw, -_ss);
+    ctx.lineTo(0, -_ss);
+    ctx.lineTo(0, _bh + (_ss*2));
+    ctx.lineTo(-_sw, _bh + (_ss*2));
+    ctx.lineTo(-_sw, -_ss);
     ctx.fill();
+    ctx.closePath();
+    ctx.restore();
+}
+// from http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
+Controls.__roundRect = function(ctx, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.arcTo(x+w, y,   x+w, y+h, r);
+    ctx.arcTo(x+w, y+h, x,   y+h, r);
+    ctx.arcTo(x,   y+h, x,   y,   r);
+    ctx.arcTo(x,   y,   x+w, y,   r);
+    ctx.closePath();
+}
+Controls.__semiRoundRect = function(ctx, x, y, w, h, r) {
+    if (w < 2 * r) r = w / 2;
+    if (h < 2 * r) r = h / 2;
+    ctx.beginPath();
+    ctx.moveTo(x+r, y);
+    ctx.lineTo(x+w, y);
+    ctx.lineTo(x+w, y+h);
+    ctx.arcTo(x+w, y+h, x,   y+h, r);
+    ctx.arcTo(x,   y+h, x,   y,   r);
+    ctx.arcTo(x,   y,   x+w, y,   r);
     ctx.closePath();
 }
 
@@ -4494,72 +4635,103 @@ Controls.__progress = function(ctx, _w, time, duration) {
 // -----------------------------------------------------------------------------
 
 function InfoBlock(player) {
-    this.div = null;
+    this.canvas = null;
+    this.ctx = null;
     this.ready = false;
     this.hidden = false;
     this._inParent = player.inParent;
 }
 /* TODO: move these settings to default css rule? */
-InfoBlock.DEF_BGCOLOR = '#fff';
-InfoBlock.DEF_FGCOLOR = '#000';
-InfoBlock.OPACITY = 0.85;
-InfoBlock.HEIGHT = 60;
-InfoBlock.PADDING = 4;
+InfoBlock.BASE_BGCOLOR = Controls.BASE_BGCOLOR;
+InfoBlock.BASE_FGCOLOR = Controls.BASE_FGCOLOR;
+InfoBlock.OPACITY = 0.75;
+InfoBlock.PADDING = 6;
+InfoBlock.MARGIN = 5;
+InfoBlock.FONT = Controls.FONT;
+InfoBlock.DEFAULT_WIDTH = 0;
+InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
-                    : document.body).removeChild(this.div);
+                    : document.body).removeChild(this.canvas);
 }
 InfoBlock.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
         _p = InfoBlock.PADDING,
-        _w = (parent.width / _ratio) - (_p + _p),
-        _h = InfoBlock.HEIGHT - (_p + _p),
-        _pp = this._inParent ? [ parent.parentNode.offsetLeft,
-                                 parent.parentNode.offsetTop ]
+        _m = InfoBlock.MARGIN,
+        _w = InfoBlock.DEFAULT_WIDTH,
+        _h = InfoBlock.DEFAULT_HEIGHT - (_p + _p),
+        _pp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
+                                 parent.parentNode.offsetTop + parent.clientTop ]
                              : find_pos(parent),
-        _l = _pp[0],
-        _t = _pp[1];
-    var _div = this.div;
-    if (!_div) {
-        _div = document.createElement('div');
-        if (parent.id) { _div.id = '__'+parent.id+'_info'; }
-        _div.className = 'anm-info';
-        _div.style.position = 'absolute';
-        _div.style.opacity = InfoBlock.OPACITY;
-        _div.style.zIndex = 100;
-        if (!_div.style.fontSize) _div.style.fontSize = '10px';
-        _div.style.padding = _p+'px';
-        this.div = _div;
-        this.id = _div.id;
+        _l = _pp[0] + parent.clientLeft + _m,
+        _t = _pp[1] + parent.clientTop + _m;
+    var _canvas = this.canvas;
+    if (!_canvas) {
+        _canvas = newCanvas([ _w, _h ], _ratio);
+        if (parent.id) { _canvas.id = '__'+parent.id+'_info'; }
+        _canvas.className = 'anm-info';
+        _canvas.style.position = 'absolute';
+        _canvas.style.opacity = InfoBlock.OPACITY;
+        _canvas.style.zIndex = 100;
+        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        this.canvas = _canvas;
+        this.ctx = _canvas.getContext('2d');
+        this.id = _canvas.id;
         this.hide();
+        this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     }
-    _div.style.width = _w + 'px';
-    _div.style.height = _h + 'px';
-    _div.style.top = _t + 'px';
-    _div.style.left = _l + 'px';
+    // width and height will be calculated on update
+    /* _canvas.style.width = _w + 'px';
+       _canvas.style.height = _h + 'px'; */
+    _canvas.style.top = _t + 'px';
+    _canvas.style.left = _l + 'px';
     this.bounds = [ _l, _t, _l+_w, _t+_h ];
+    this.canvas = _canvas;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : document.body;
         /* FIXME: a dirty hack */
         if (this._inParent) { appendTo.style.position = 'relative'; }
-        appendTo.appendChild(_div);
+        appendTo.appendChild(_canvas);
         this.ready = true;
     }
-    if (!_div.style.color) _div.style.color = InfoBlock.DEF_FGCOLOR;
-    if (!_div.style.backgroundColor) _div.style.backgroundColor = InfoBlock.DEF_BGCOLOR;
+    this.render();
 }
-InfoBlock.prototype.inject = function(meta, anim) {
+InfoBlock.prototype.render = function() {
+    if (!this.__data) return;
+    var meta = this.__data[0],
+        anim = this.__data[1],
+        duration = this.__data[2] || meta.duration,
+        ratio = this.canvas.__pxRatio;
+    Text._ensureHasBuffer();
     /* TODO: show speed */
-    this.div.innerHTML = '<p><span class="title">'+(meta.title || '[No title]')+'</span>'+
-            (meta.author ? ' by <span class="author">'+meta.author+'</span>' : '')+'<br/> '+
-            '<span class="duration">'+anim.duration+'sec</span>'+', '+
-            (((anim.width!=null) && (anim.height!=null))
-             ? '<span class="dimen">'+anim.width+'x'+anim.height+'</span>'+'<br/> ' : '')+
-            '<span class="copy">'+(meta.version ? ('v'+meta.version+' ') : '')
-                                 +meta.copyright+'</span>'+' '+
-            (meta.description ? '<br/><span class="desc">'+meta.description+'</span>' : '')+
-            '</p>';
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+        _bl = new Text((meta.author || '[Unknown]') + ' ' + duration + 's' +
+                       ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
+                      (9 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+        _p = InfoBlock.PADDING,
+        _td = _tl.dimen(),
+        _bd = _bl.dimen(),
+        _nw = Math.max(_td[0], _bd[0]) + _p + _p,
+        _nh = _td[1] + _bd[1] + (_p * 3),
+        ctx = this.ctx;
+    canvasOpts(this.canvas, [ _nw, _nh ], this.canvas.__pxRatio);
+    ctx.save();
+    ctx.clearRect(0, 0, _nw, _nh);
+    ctx.fillStyle = this.__bgcolor;
+    Controls.__roundRect(ctx, 0, 0, _nw, _nh, 5);
+    ctx.fill();
+    ctx.fillStyle = this.__fgcolor;
+    ctx.translate(_p, _p);
+    _tl.apply(ctx);
+    ctx.globalAlpha = .8;
+    ctx.translate(0, _bd[1] + _p);
+    _bl.apply(ctx);
+    ctx.restore();
+}
+InfoBlock.prototype.inject = function(meta, anim, duration) {
+    this.__data = [ meta, anim, duration || meta.duration ];
+    if (this.ready) this.render();
 }
 InfoBlock.prototype.inBounds = function(point) {
     if (this.hidden || !this.bounds) return false;
@@ -4578,18 +4750,19 @@ InfoBlock.prototype.reset = function() {
 }
 InfoBlock.prototype.hide = function() {
     this.hidden = true;
-    this.div.style.display = 'none';
+    this.canvas.style.display = 'none';
 }
 InfoBlock.prototype.show = function() {
     this.hidden = false;
-    this.div.style.display = 'block';
+    this.canvas.style.display = 'block';
 }
 InfoBlock.prototype.setDuration = function(value) {
-    this.div.getElementsByClassName('duration')[0].innerHTML = value+'sec';
+    if (this.__data) this.inject(this.__data[0], this.__data[1], value);
 }
-InfoBlock.prototype.changeColors = function(front, back) {
-    this.div.style.color = front;
-    this.div.style.backgroundColor = back;
+InfoBlock.prototype.changeTheme = function(front, back) {
+    this.__fgcolor = front;
+    this.__bgcolor = back;
+    // TODO: redraw
 }
 
 // Strings

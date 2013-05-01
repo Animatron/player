@@ -18,6 +18,12 @@ mocks.saveCanvasFake = function(cvs) {
 
 mocks.factory = {};
 
+mocks.factory.window = function() {
+    return {
+        addEventListener: __nop
+    };
+}
+
 var canvasMocksCount = 0;
 mocks.factory.canvas = function(id) {
     var contextMock = mocks.factory.context2d();

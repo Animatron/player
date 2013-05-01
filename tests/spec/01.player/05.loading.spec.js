@@ -15,7 +15,7 @@ describe("player, when speaking about loading scenes,", function() {
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
-        player = createPlayer('test-id');
+        player = createPlayer('test-id', { mode: anm.C.M_SANDBOX });
 
         AjaxFaker.start();
     });
@@ -298,7 +298,7 @@ describe("regarding setting zoom, when loading a scene", function() {
 
         var scaleSpy;
 
-        var window_mock = {},
+        var window_mock = _mocks.factory.window(),
             initialRatio = anm.__dev._win().devicePixelRatio;
 
         function createSceneWithSize(size) {

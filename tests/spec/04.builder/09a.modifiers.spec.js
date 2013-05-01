@@ -51,11 +51,7 @@ describe("builder, regarding modifiers,", function() {
 
         // preview mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
-        player = createPlayer('test-id', { mode: C.M_CONTROLS_DISABLED
-                                                 | C.M_INFO_DISABLED
-                                                 | C.M_DO_NOT_HANDLE_EVENTS
-                                                 | C.M_DO_NOT_DRAW_STILL
-                                                 | C.M_FINITE_DURATION });
+        player = createPlayer('test-id', { mode: C.M_SANDBOX });
     });
 
     afterEach(function() { _fg.stop().destroy(); });
