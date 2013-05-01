@@ -34,8 +34,8 @@ hr {
 	margin-top: 2.5em;
 }
 
-canvas {
-	border: 1px solid #000;
+canvas[anm-player=true] {
+	border: 1px solid #ccc;
 }
 
 #copyright {

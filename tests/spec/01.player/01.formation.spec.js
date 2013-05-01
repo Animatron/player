@@ -7,13 +7,13 @@
 
 describe("player, when created,", function() {
 
-    var window_mock = {},
-        initialRatio = anm.__dev._win().devicePixelRatio;
+    var initialRatio = anm.__dev._win().devicePixelRatio;
 
     describe("regarding canvas size", function() {
 
         var canvas,
             canvasId = 'my-canvas';
+        var window_mock = _mocks.factory.window();
 
         beforeEach(function() {
             canvas = _mocks.factory.canvas(canvasId);
