@@ -452,6 +452,11 @@ C.M_VIDEO = C.M_CONTROLS_ENABLED
             | C.M_DO_NOT_HANDLE_EVENTS
             | C.M_DRAW_STILL
             | C.M_FINITE_DURATION;
+C.M_SANDBOX = C.M_CONTROLS_DISABLED
+            | C.M_INFO_DISABLED
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DO_NOT_DRAW_STILL
+            | C.M_FINITE_DURATION;
 
 
 // ### Events
