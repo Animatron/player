@@ -31,7 +31,7 @@ describe("project meta information", function() {
         project.meta.duration = 217.6;
         injectEmptyAnmScene(project);
 
-        var player = createPlayer('foo');
+        var player = createPlayer('foo', { mode: anm.C.M_SANDBOX });
         player.load(project, importer);
 
         expect(player.anim.duration).toBe(217.6);
