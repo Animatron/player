@@ -739,7 +739,9 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__firstReq = __r_loop(player.ctx,
                                 state, scene,
                                 player.__beforeFrame(scene),
-                                player.__afterFrame(scene));
+                                player.__afterFrame(scene),
+                                player.__userBeforeRender,
+                                player.__userAfterRender);
 
     player.fire(C.S_PLAY, state.from);
 
@@ -948,12 +950,14 @@ Player.prototype.drawAt = function(time) {
     this.anim.reset();
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, this.ctx, this.state, this.anim);
+    __r_at(time, this.ctx, this.state, this.anim,
+           this.__userBeforeRender, this.__userAfterRender);
 
     if (this.controls) {
         this._renderControlsAt(time);
     }
 }
+// TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
     if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFOREFRAME_BEFORE_PLAY);
     this.__userBeforeFrame = callback;
@@ -961,6 +965,14 @@ Player.prototype.beforeFrame = function(callback) {
 Player.prototype.afterFrame = function(callback) {
     if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
+}
+Player.prototype.beforeRender = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFORENDER_BEFORE_PLAY);
+    this.__userBeforeRender = callback;
+}
+Player.prototype.afterRender = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERRENDER_BEFORE_PLAY);
+    this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
@@ -2976,7 +2988,7 @@ var Render = {}; // means "Render", render loop + system modifiers & painters
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-function __r_loop(ctx, pl_state, scene, before, after) {
+function __r_loop(ctx, pl_state, scene, before, after, before_render, after_render) {
     if (pl_state.happens !== C.PLAYING) return;
 
     var msec = (Date.now() - pl_state.__startTime);
@@ -2997,7 +3009,7 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     }
     pl_state.__redraws++;
 
-    __r_at(time, ctx, pl_state, scene);
+    __r_at(time, ctx, pl_state, scene, before_render, after_render);
 
     // show fps
     if (pl_state.debug) { // TODO: move to player.onrender
@@ -3011,10 +3023,10 @@ function __r_loop(ctx, pl_state, scene, before, after) {
     if (pl_state.__supressFrames) return;
 
     return __nextFrame(function() {
-        __r_loop(ctx, pl_state, scene, before, after);
+        __r_loop(ctx, pl_state, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, ctx, pl_state, scene) {
+function __r_at(time, ctx, pl_state, scene, before, after) {
     ctx.save();
     var ratio = pl_state.ratio;
     if (ratio != 1) ctx.scale(ratio, ratio);
@@ -3023,14 +3035,18 @@ function __r_at(time, ctx, pl_state, scene) {
     if (!size_differs) {
         ctx.clearRect(0, 0, scene.width,
                           scene.height);
+        if (before) before(time, ctx);
         scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+        if (after) after(time, ctx);
         ctx.restore();
     } else {
         __r_with_ribbons(ctx, pl_state.width, pl_state.height,
                               scene.width, scene.height,
             function(_scale) {
               ctx.clearRect(0, 0, scene.width, scene.height);
+              if (before) before(time, ctx);
               scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+              if (after) after(time, ctx);
               ctx.restore();
             });
     }
@@ -4809,6 +4825,8 @@ Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing 
                     'please stop player before loading';
 Errors.P.BEFOREFRAME_BEFORE_PLAY = 'Please assign beforeFrame callback before calling play()';
 Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
+Errors.P.BEFORERENDER_BEFORE_PLAY = 'Please assign beforeRender callback before calling play()';
+Errors.P.AFTERRENDER_BEFORE_PLAY = 'Please assign afterRender callback before calling play()';
 Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
 Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
 Errors.P.DURATION_IS_NOT_KNOWN = 'Duration is not known';
