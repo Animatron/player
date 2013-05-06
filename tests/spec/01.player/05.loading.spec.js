@@ -690,6 +690,10 @@ describe("regarding setting zoom, when loading a scene", function() {
 
     });
 
+    // ensure that canvas attributes has higher priority than options.anim for player size
+    //   and are properly applied for different ratios;
+    // ensure the main action to set player 'global' size will be canvas attributes or
+    //   probably add this params to options to be 'global' in difference with options.anim width/height
     // load event to be fired
     // loading different types of objects
     // loading is impossible while playing

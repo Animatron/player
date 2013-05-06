@@ -119,7 +119,8 @@
             var SNAPSHOT_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}';
 
             var CANVAS_ID = 'target',
-                URL_PREFIX = 'http://animatron-snapshots.s3.amazonaws.com', // d2fcbb06-dcd6-47f7-aada-bd7dc056c49a
+                PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
+                URL_PREFIX = PROTOCOL + '://animatron-snapshots.s3.amazonaws.com',
                 SNAPSHOT_ID = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos) : _search.substring(1);
 
             if (!SNAPSHOT_ID ||
@@ -141,7 +142,6 @@
                     _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
                 }
             }
-            // http://animatron-snapshots.s3.amazonaws.com/d2fcbb06-dcd6-47f7-aada-bd7dc056c49a
             var _snapshotUrl_ = URL_PREFIX + '/' + SNAPSHOT_ID + (_params_ || '');
 
             return function () {
@@ -161,7 +161,7 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS('http://player.animatron.com/latest/bundle/animatron.js', function () {
+                    _u.forcedJS(PROTOCOL + '://player.animatron.com/latest/bundle/animatron.js', function () {
                         anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
                     });
                 } catch (e) {

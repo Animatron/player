@@ -112,6 +112,7 @@ Builder.prototype.remove = function(what) {
 
 // > builder.path % (path: String | Path,
 //                   [pt: Array[2,Integer]]) => Builder
+// FIXME: change to (pt, path)
 Builder.prototype.path = function(path, pt) {
     var path = Builder.__path(path, this.x.path);
     this.x.path = path;
