@@ -954,6 +954,10 @@ Player.prototype.drawAt = function(time) {
         this._renderControlsAt(time);
     }
 }
+Player.prototype.beforeFrame = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFOREFRAME_BEFORE_PLAY);
+    this.__userBeforeFrame = callback;
+}
 Player.prototype.afterFrame = function(callback) {
     if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
@@ -1181,7 +1185,7 @@ Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw new PlayerErr(Errors.P.NO_SCENE);
 }
 Player.prototype.__beforeFrame = function(scene) {
-    return (function(player, state, scene) {
+    return (function(player, state, scene, callback) {
         return function(time) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
@@ -1199,9 +1203,10 @@ Player.prototype.__beforeFrame = function(scene) {
                 }
                 return false;
             }
+            if (callback) callback(time, player.ctx);
             return true;
         }
-    })(this, this.state, scene);
+    })(this, this.state, scene, this.__userBeforeFrame);
 }
 Player.prototype.__afterFrame = function(scene) {
     return (function(player, state, scene, callback) {
@@ -4802,6 +4807,7 @@ Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
                     'calling its playing-related methods';
 Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
                     'please stop player before loading';
+Errors.P.BEFOREFRAME_BEFORE_PLAY = 'Please assign beforeFrame callback before calling play()';
 Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
 Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
 Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
