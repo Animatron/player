@@ -4179,7 +4179,7 @@ Sheet.prototype.load = function(callback) {
         me.dimen = [ image.width, image.height ];
         me.ready = true;
         me._drawToCache();
-        if (callback) callback(image, me);
+        if (callback) callback.call(me, image);
     }
     var _cached = cache[this.src];
     if (!_cached) {
