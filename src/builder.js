@@ -296,6 +296,13 @@ Builder.prototype.move = function(pt) {
               x.pos[1] + pt[1] ];
     return this;
 }
+// > builder.pos % ([pt: Array[2,Integer]]) => Array[2] | Builder
+Builder.prototype.pos = function(pt) {
+    if (pt) {
+        this.x.pos = [ pt[0], pt[1] ];
+        return this;
+    } else return this.x.pos;
+}
 // > builder.zoom % (val: Array[2,Float]) => Builder
 Builder.prototype.zoom = function(val) {
     if (this.x.path) {
