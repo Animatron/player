@@ -956,6 +956,8 @@ Player.prototype.drawAt = function(time) {
     if (this.controls) {
         this._renderControlsAt(time);
     }
+
+    return this;
 }
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
@@ -2235,7 +2237,7 @@ Element.prototype.offset = function() {
 Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
-}*/
+} */
 Element.prototype.lbounds = function() {
     var x = this.xdata;
     if (x.__bounds) return x.__bounds; // ? it is not saved
