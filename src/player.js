@@ -99,16 +99,13 @@ var __stopAnim = function(requestId) {
 // ### Errors
 /* ---------- */
 
-var SystemError = __errorAs('SystemError',
-                            function(msg) { this.message = msg || ''; });
+var SystemError = __errorAs('SystemError');
 var SysErr = SystemError;
 
-var PlayerError = __errorAs('PlayerError',
-                            function(msg) { this.message = msg || ''; });
+var PlayerError = __errorAs('PlayerError');
 var PlayerErr = PlayerError;
 
-var AnimationError = __errorAs('AnimationError',
-                               function(msg) { this.message = msg || ''; });
+var AnimationError = __errorAs('AnimationError');
 var AnimErr = AnimationError;
 
 // ### Internal utilities
@@ -347,13 +344,22 @@ function __roundTo(n, precision) {
 
 // #### other
 
-function __errorAs(name, _constructor) {
+function __errorAs(name, _constructor, _toStr) {
+  var _producer = _constructor ?
+    function(message) {
+      _constructor.apply(this, arguments);
+      if (!this.message) this.message = message || '';
+      Error.apply(this, arguments);
+    } : function(message) {
+      this.message = message || '';
+      Error.apply(this, arguments);
+    };
   /* var _constructor = function(msg) { this.message = msg; } */
-  _constructor.prototype = new Error();
-  /* _constructor.prototype.constructor = _constructor; */
-  _constructor.prototype.name = name || 'Unknown';
-  _constructor.prototype.toString = function() { return name + (this.message ? ': ' + this.message : ''); }
-  return _constructor;
+  _producer.prototype = Error.prototype;
+  _producer.prototype.constructor = _producer;
+  _producer.prototype.name = name || 'Unknown';
+  _producer.prototype.toString = _toStr || function() { return this.name + (this.message ? ': ' + this.message : ''); }
+  return _producer;
 }
 
 function __paramsToObj(pstr) {
@@ -781,6 +787,8 @@ Player.prototype.stop = function() {
     }
 
     player.fire(C.S_STOP);
+
+    player.anim.reset();
 
     return player;
 }
@@ -2261,6 +2269,7 @@ Element.prototype.setMask = function(elm) {
 }
 Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
+    //console.log('creating mask and back canvases for ' + this.id + ' ' + this.name);
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
     this.__maskCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
@@ -2272,11 +2281,13 @@ Element.prototype.__ensureHasMaskCanvas = function() {
 }
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
+        //console.log('removing mask canvas for ' + this.id + ' ' + this.name);
         disposeElm(this.__maskCvs);
         this.__maskCvs = null;
         this.__maskCtx = null;
     }
     if (this.__backCvs) {
+        //console.log('removing back canvas for ' + this.id + ' ' + this.name);
         disposeElm(this.__backCvs);
         this.__backCvs = null;
         this.__backCtx = null;
