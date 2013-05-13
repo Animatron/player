@@ -788,7 +788,7 @@ Player.prototype.stop = function() {
 
     player.fire(C.S_STOP);
 
-    player.anim.reset();
+    if (player.anim) player.anim.reset();
 
     return player;
 }
