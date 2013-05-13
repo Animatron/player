@@ -11,7 +11,7 @@ describe("repeat modes", function() {
 
     var _fg,
         FPS = 30,
-        SCENE_DURATION = 18/*,
+        SCENE_DURATION = 28/*,
         CLOSE_FACTOR = 10*/;
 
     var b = Builder._$;
@@ -83,6 +83,20 @@ describe("repeat modes", function() {
             });
     });
 
+    it("once mode works properly even inside of another element in complex bands structure", function() {
+        var scene = b('scene');
+        var onceElm = b('once').band([1, SCENE_DURATION / 8]).once();
+        scene.add(b('wrapper').add(onceElm).band([2.2, SCENE_DURATION / 2]));
+
+        expectLocalTime(scene, onceElm,
+            function(gtime) {
+                if (t_before(gtime, 3.2) ||
+                    t_after(gtime, 2.2 + (SCENE_DURATION / 2)) ||
+                    t_after(gtime, 3.2 + ((SCENE_DURATION / 8) - 1))) return false;
+                return gtime - 3.2;
+            });
+    });
+
     it("stay mode works properly", function() {
         var scene = b('scene');
         var stayElm = b('stay').band([0, SCENE_DURATION / 2]).stay();
@@ -109,6 +123,20 @@ describe("repeat modes", function() {
             });
     });
 
+    it("stay mode works properly even inside of another element in complex bands structure", function() {
+        var scene = b('scene');
+        var stayElm = b('stay').band([1, SCENE_DURATION / 8]).stay();
+        scene.add(b('wrapper').add(stayElm).band([2.2, SCENE_DURATION / 2]));
+
+        expectLocalTime(scene, stayElm,
+            function(gtime) {
+                if (t_before(gtime, 3.2) ||
+                    t_after(gtime, 2.2 + (SCENE_DURATION / 2))) return false;
+                if (t_after(gtime, 3.2 + ((SCENE_DURATION / 8) - 1)) &&
+                    t_before_or_eq(gtime, 2.2 + (SCENE_DURATION / 2))) return (SCENE_DURATION / 8) - 1;
+                return gtime - 3.2;
+            });
+    });
 
     it("loop mode works properly", function() {
         var scene = b('scene');
@@ -130,6 +158,19 @@ describe("repeat modes", function() {
             function(gtime) {
                 if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
                 return gtime % (SCENE_DURATION / 8);
+            });
+    });
+
+    it("loop mode works properly even inside of another element in complex bands structure", function() {
+        var scene = b('scene');
+        var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop();
+        scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
+
+        expectLocalTime(scene, loopElm,
+            function(gtime) {
+                if (t_before(gtime, 3.2) ||
+                    t_after(gtime, 2.2 + SCENE_DURATION * (4 / 5))) return false;
+                return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
             });
     });
 
@@ -157,6 +198,21 @@ describe("repeat modes", function() {
                 var durtn = SCENE_DURATION / 8;
                 var fits = Math.floor(gtime / durtn);
                 return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+            });
+    });
+
+    it("bounce mode works properly even inside of another element in complex bands structure", function() {
+        var scene = b('scene');
+        var bounceElm = b('bounce').band([1, SCENE_DURATION / 8]).bounce();
+        scene.add(b('wrapper').add(bounceElm).band([2.2, SCENE_DURATION * (4 / 5)]));
+
+        expectLocalTime(scene, bounceElm,
+            function(gtime) {
+                if (t_before(gtime, 3.2) ||
+                    t_after(gtime, 2.2 + SCENE_DURATION * (4 / 5))) return false;
+                var durtn = (SCENE_DURATION / 8) - 1;
+                var fits = Math.floor((gtime - 3.2) / durtn);
+                return ((fits % 2) === 0) ? ((gtime - 3.2) % durtn) : durtn - ((gtime - 3.2) % durtn);
             });
     });
 
