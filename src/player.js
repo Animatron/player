@@ -2071,9 +2071,9 @@ Element.prototype.ltime = function(gtime) {
                            px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
-                var fits = Math.floor((gtime - x.gband[0]) / durtn);
-                //console.log(fits, x.nrep);
-                if ((fits < 0) || (fits > x.nrep)) return -1;
+                var ffits = (gtime - x.gband[0]) / durtn,
+                    fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > x.nrep)) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn);
                 return this.__checkJump(t);
             }
@@ -2087,8 +2087,9 @@ Element.prototype.ltime = function(gtime) {
                            px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
-                var fits = Math.floor((gtime - x.gband[0]) / durtn);
-                if ((fits < 0) || (fits > x.nrep)) return -1;
+                var ffits = (gtime - x.gband[0]) / durtn,
+                    fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > x.nrep)) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn),
                     t = ((fits % 2) === 0) ? t : durtn - t;
                 return this.__checkJump(t);
