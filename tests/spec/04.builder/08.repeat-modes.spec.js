@@ -5,14 +5,25 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-describe("repeat mode", function() {
+describe("repeat modes", function() {
 
     var player;
 
-    var FPS = 30,
-        SCENE_DURATION = 10;
+    var _fg,
+        FPS = 30,
+        SCENE_DURATION = 18/*,
+        CLOSE_FACTOR = 10*/;
 
     var b = Builder._$;
+
+    var t_cmp = anm.__dev.t_cmp; // FIXME: test t_cmp separately
+
+    var t_adjust = anm.__dev.adjust;
+
+    function t_before      (t0, t1) { return t_cmp(t0, t1) <  0; }
+    function t_before_or_eq(t0, t1) { return t_cmp(t0, t1) <= 0; }
+    function t_after       (t0, t1) { return t_cmp(t0, t1) >  0; }
+    function t_after_or_eq (t0, t1) { return t_cmp(t0, t1) >= 0; }
 
     beforeEach(function() {
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
@@ -25,19 +36,18 @@ describe("repeat mode", function() {
         player = createPlayer('test-id', { mode: anm.C.M_SANDBOX });
     });
 
-    function expectTime(conf) {
-        var scene = b('scene');
-        scene.add(conf.subj);
+    afterEach(function() { _fg.stop().destroy(); });
 
+    function expectLocalTime(scene, subj, func) {
         var afterFrameSpy;
 
         doAsync(player, {
             prepare: function() {
-                var onframeSpy = spyOn(conf.subj.v, 'onframe');
+                var onframeSpy = spyOn(subj.v, 'onframe');
                 afterFrameSpy = jasmine.createSpy('afterframe').andCallFake(function(glob_t) {
-                    var expected_result = conf.func(glob_t);
-                    if (expected_result !== false) expect(onframeSpy).toHaveBeenCalledWith(expected_result);
-                    else expect(onframeSpy).not.toHaveBeenCalled();
+                    var expected_result = func(glob_t);
+                    if (expected_result !== false) { expect(onframeSpy).toHaveBeenCalledWith(expected_result); }
+                    else { expect(onframeSpy).not.toHaveBeenCalled(); }
                     onframeSpy.reset();
                 });
                 player.afterFrame(afterFrameSpy);
@@ -50,14 +60,104 @@ describe("repeat mode", function() {
     }
 
     it("once mode works properly", function() {
+        var scene = b('scene');
         var onceElm = b('once').band([0, SCENE_DURATION / 2]).once();
+        scene.add(onceElm);
 
-        expectTime({
-            subj: onceElm,
-            func: function(gtime) {
-                if (gtime > (SCENE_DURATION / 2)) return false;
+        expectLocalTime(scene, onceElm,
+            function(gtime) {
+                if (t_after(gtime, (SCENE_DURATION / 2))) return false;
                 else return gtime;
-            }});
+            });
+    });
+
+    it("once mode works properly even inside of another element", function() {
+        var scene = b('scene');
+        var onceElm = b('once').band([0, SCENE_DURATION / 3]).once();
+        scene.add(b('wrapper').add(onceElm).band([0, SCENE_DURATION / 2]));
+
+        expectLocalTime(scene, onceElm,
+            function(gtime) {
+                if (t_after(gtime, (SCENE_DURATION / 3))) return false;
+                else return gtime;
+            });
+    });
+
+    it("stay mode works properly", function() {
+        var scene = b('scene');
+        var stayElm = b('stay').band([0, SCENE_DURATION / 2]).stay();
+        scene.add(stayElm);
+
+        expectLocalTime(scene, stayElm,
+            function(gtime) {
+                if (t_after(gtime, (SCENE_DURATION / 2))) return SCENE_DURATION / 2;
+                else return gtime;
+            });
+    });
+
+    it("stay mode works properly even inside of another element", function() {
+        var scene = b('scene');
+        var stayElm = b('stay').band([0, SCENE_DURATION / 3]).stay();
+        scene.add(b('wrapper').add(stayElm).band([0, SCENE_DURATION / 2]));
+
+        expectLocalTime(scene, stayElm,
+            function(gtime) {
+                if (t_after(gtime, (SCENE_DURATION / 2))) return false;
+                if (t_after(gtime, (SCENE_DURATION / 3)) &&
+                    t_before_or_eq(gtime, (SCENE_DURATION / 2))) return SCENE_DURATION / 3;
+                return gtime;
+            });
+    });
+
+
+    it("loop mode works properly", function() {
+        var scene = b('scene');
+        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
+        scene.add(loopElm);
+
+        expectLocalTime(scene, loopElm,
+            function(gtime) {
+                return gtime % (SCENE_DURATION / 8);
+            });
+    });
+
+    it("loop mode works properly even inside of another element", function() {
+        var scene = b('scene');
+        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
+        scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
+
+        expectLocalTime(scene, loopElm,
+            function(gtime) {
+                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                return gtime % (SCENE_DURATION / 8);
+            });
+    });
+
+    it("bounce mode works properly", function() {
+        var scene = b('scene');
+        var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
+        scene.add(bounceElm);
+
+        expectLocalTime(scene, bounceElm,
+            function(gtime) {
+                var durtn = SCENE_DURATION / 8;
+                var fits = Math.floor(gtime / durtn);
+                return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+            });
+    });
+
+    it("bounce mode works properly even inside of another element", function() {
+        var scene = b('scene');
+        var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
+        scene.add(b('wrapper').add(bounceElm).band([0, SCENE_DURATION * (4 / 5)]));
+
+        expectLocalTime(scene, bounceElm,
+            function(gtime) {
+                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                var durtn = SCENE_DURATION / 8;
+                var fits = Math.floor(gtime / durtn);
+                return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+            });
     });
 
 });

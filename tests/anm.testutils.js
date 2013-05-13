@@ -88,8 +88,8 @@ var _FrameGen = (function() {
 
         if (_window) {
 
-            if (requestSpy) throw new Error(ID_STR + ': Already running a request spy from ' + requestSpy.__fg_id);
-            if (cancelSpy)  throw new Error(ID_STR + ': Already running a cancel spy from '  +  cancelSpy.__fg_id);
+            if (requestSpy) throw new Error(ID_STR + ': Already running a request spy from ' + requestSpy.__fg_id + ', ensure to stop previous one');
+            if (cancelSpy)  throw new Error(ID_STR + ': Already running a cancel spy from '  +  cancelSpy.__fg_id + ', ensure to finish stopping generator before');
 
             var period = 1000 / (fps || 60);
 
@@ -165,8 +165,8 @@ var _FrameGen = (function() {
 
         if (!INSTANCE.running) throw new Error(ID_STR + ' is already stopped!');
 
-        if (!requestSpy.__fg_id == id) throw new Error(ID_STR + ': ' + requestSpy.__fg_id + ' was launched before stopping this frame-generator');
-        if (!cancelSpy.__fg_id == id)  throw new Error(ID_STR + ': ' +  cancelSpy.__fg_id + ' was launched before stopping this frame-generator');
+        if (!requestSpy.__fg_id == id) throw new Error(ID_STR + ': ' + requestSpy.__fg_id + ' was launched before stopping this frame-generator, so there is a possible leak');
+        if (!cancelSpy.__fg_id == id)  throw new Error(ID_STR + ': ' +  cancelSpy.__fg_id + ' was launched before stopping this frame-generator, so there is a possible leak');
 
         // console.log(ID_STR + ': Clock emulation disabled');
 

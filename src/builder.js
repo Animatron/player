@@ -432,6 +432,11 @@ Builder.prototype.stay = function() {
 Builder.prototype.loop = function() {
     return this.mode(C.R_LOOP);
 }
+// > builder.repeat % () => Builder
+// alias for loop
+Builder.prototype.repeat = function() {
+    return this.mode(C.R_LOOP);
+}
 // > builder.bounce % () => Builder
 Builder.prototype.bounce = function() {
     return this.mode(C.R_BOUNCE);
