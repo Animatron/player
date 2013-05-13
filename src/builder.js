@@ -439,8 +439,8 @@ Builder.prototype.repeat = function(val) {
     return this.mode(C.R_LOOP, val);
 }
 // > builder.bounce % () => Builder
-Builder.prototype.bounce = function() {
-    return this.mode(C.R_BOUNCE);
+Builder.prototype.bounce = function(val) {
+    return this.mode(C.R_BOUNCE, val);
 }
 
 // * MODIFIERS & PAINTERS *
