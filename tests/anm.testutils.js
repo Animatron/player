@@ -313,7 +313,10 @@ function doAsync(player, conf) {
     try {
         if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
 
-        if (_scene) player.load(_scene);
+        if (_scene) {
+            if (!__array(_scene)) { player.load(_scene); }
+            else { player.load.apply(player, _scene); }
+        }
         _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
         _timeout *= 1000;
     } catch(err) { reportOrThrow(err); }

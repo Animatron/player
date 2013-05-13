@@ -1794,8 +1794,6 @@ Element.prototype.render = function(ctx, gtime) {
     if (wasDrawn = (this.fits(ltime)
                     && this.onframe(ltime)
                     && this.prepare())) {
-        // update gtime, if it was changed by ltime()
-        gtime = this.gtime(ltime);
         if (!this.__mask) {
             // draw directly to context, if has no mask
             this.transform(ctx);
@@ -2073,11 +2071,11 @@ Element.prototype.ltime = function(gtime) {
                            px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
-                var times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn);
-                if (fits < 0) return -1;
+                var fits = Math.floor((gtime - x.gband[0]) / durtn);
+                //console.log(fits, x.nrep);
+                if ((fits < 0) || (fits > x.nrep)) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn);
-                return (fits <= times) ? this.__checkJump(t) : -1;
+                return this.__checkJump(t);
             }
         case C.R_BOUNCE: {
                 var p = this.parent,
@@ -2089,12 +2087,11 @@ Element.prototype.ltime = function(gtime) {
                            px.lband[0])
                         : durtn;
                 if (durtn < 0) return -1;
-                var times = Math.floor(pdurtn / durtn),
-                    fits = Math.floor((gtime - x.gband[0]) / durtn);
-                if (fits < 0) return -1;
+                var fits = Math.floor((gtime - x.gband[0]) / durtn);
+                if ((fits < 0) || (fits > x.nrep)) return -1;
                 var t = (gtime - x.gband[0]) - (fits * durtn),
                     t = ((fits % 2) === 0) ? t : durtn - t;
-                return (fits <= times) ? this.__checkJump(t) : -1;
+                return this.__checkJump(t);
             }
     }
 }
@@ -2750,11 +2747,12 @@ Element.createXData = function(owner) {
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
-             'mode': C.R_ONCE,            // playing mode
+             'mode': C.R_ONCE,            // playing mode,
+             'nrep': Infinity,        // number of repetions for the mode
              'lband': [0, Element.DEFAULT_LEN], // local band
              'gband': [0, Element.DEFAULT_LEN], // global band
-             'keys': {},
-             'tf': null,
+             'keys': {},       // aliases for time jumps
+             'tf': null,       // time jumping function
              'acomp': null,    // alpha composition
              '_mpath': null,
              '$': owner };

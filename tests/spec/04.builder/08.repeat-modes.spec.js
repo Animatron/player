@@ -51,15 +51,14 @@ describe("repeat modes", function() {
                     onframeSpy.reset();
                 });
                 player.afterFrame(afterFrameSpy);
-                scene.duration = SCENE_DURATION;
-                return scene;
+                return [ scene, SCENE_DURATION ];
             },
             do: 'play', until: anm.C.STOPPED, timeout: SCENE_DURATION + 2,
             then: function() { expect(afterFrameSpy).toHaveBeenCalled(); }
         });
     }
 
-    it("once mode works properly", function() {
+    xit("once mode works properly", function() {
         var scene = b('scene');
         var onceElm = b('once').band([0, SCENE_DURATION / 2]).once();
         scene.add(onceElm);
@@ -71,7 +70,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("once mode works properly even inside of another element", function() {
+    xit("once mode works properly even inside of another element", function() {
         var scene = b('scene');
         var onceElm = b('once').band([0, SCENE_DURATION / 3]).once();
         scene.add(b('wrapper').add(onceElm).band([0, SCENE_DURATION / 2]));
@@ -83,7 +82,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("once mode works properly even inside of another element in complex bands structure", function() {
+    xit("once mode works properly even inside of another element in complex bands structure", function() {
         var scene = b('scene');
         var onceElm = b('once').band([1, SCENE_DURATION / 8]).once();
         scene.add(b('wrapper').add(onceElm).band([2.2, SCENE_DURATION / 2]));
@@ -91,13 +90,13 @@ describe("repeat modes", function() {
         expectLocalTime(scene, onceElm,
             function(gtime) {
                 if (t_before(gtime, 3.2) ||
-                    t_after(gtime, 2.2 + (SCENE_DURATION / 2)) ||
-                    t_after(gtime, 3.2 + ((SCENE_DURATION / 8) - 1))) return false;
+                    t_after(gtime, 2.2 + (SCENE_DURATION / 8)) ||
+                    t_after(gtime, SCENE_DURATION / 2)) return false;
                 return gtime - 3.2;
             });
     });
 
-    it("stay mode works properly", function() {
+    xit("stay mode works properly", function() {
         var scene = b('scene');
         var stayElm = b('stay').band([0, SCENE_DURATION / 2]).stay();
         scene.add(stayElm);
@@ -109,7 +108,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("stay mode works properly even inside of another element", function() {
+    xit("stay mode works properly even inside of another element", function() {
         var scene = b('scene');
         var stayElm = b('stay').band([0, SCENE_DURATION / 3]).stay();
         scene.add(b('wrapper').add(stayElm).band([0, SCENE_DURATION / 2]));
@@ -123,7 +122,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("stay mode works properly even inside of another element in complex bands structure", function() {
+    xit("stay mode works properly even inside of another element in complex bands structure", function() {
         var scene = b('scene');
         var stayElm = b('stay').band([1, SCENE_DURATION / 8]).stay();
         scene.add(b('wrapper').add(stayElm).band([2.2, SCENE_DURATION / 2]));
@@ -131,14 +130,14 @@ describe("repeat modes", function() {
         expectLocalTime(scene, stayElm,
             function(gtime) {
                 if (t_before(gtime, 3.2) ||
-                    t_after(gtime, 2.2 + (SCENE_DURATION / 2))) return false;
-                if (t_after(gtime, 3.2 + ((SCENE_DURATION / 8) - 1)) &&
-                    t_before_or_eq(gtime, 2.2 + (SCENE_DURATION / 2))) return (SCENE_DURATION / 8) - 1;
+                    t_after(gtime, SCENE_DURATION / 2)) return false;
+                if (t_after(gtime, 2.2 + (SCENE_DURATION / 8)) &&
+                    t_before_or_eq(gtime, SCENE_DURATION / 2)) return (SCENE_DURATION / 8) - 1;
                 return gtime - 3.2;
             });
     });
 
-    it("loop mode works properly", function() {
+    xit("loop mode works properly", function() {
         var scene = b('scene');
         var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
         scene.add(loopElm);
@@ -149,7 +148,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("loop mode works properly even inside of another element", function() {
+    xit("loop mode works properly even inside of another element", function() {
         var scene = b('scene');
         var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
         scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
@@ -161,7 +160,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("loop mode works properly even inside of another element in complex bands structure", function() {
+    xit("loop mode works properly even inside of another element in complex bands structure", function() {
         var scene = b('scene');
         var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop();
         scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
@@ -169,12 +168,51 @@ describe("repeat modes", function() {
         expectLocalTime(scene, loopElm,
             function(gtime) {
                 if (t_before(gtime, 3.2) ||
-                    t_after(gtime, 2.2 + SCENE_DURATION * (4 / 5))) return false;
+                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
                 return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
             });
     });
 
-    it("bounce mode works properly", function() {
+    it("loop mode with restriction works properly", function() {
+        var scene = b('scene');
+        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop(3);
+        scene.add(loopElm);
+
+        expectLocalTime(scene, loopElm,
+            function(gtime) {
+                if (t_after(gtime, (SCENE_DURATION / 8) * 3)) return false;
+                return gtime % (SCENE_DURATION / 8);
+            });
+    });
+
+    it("loop mode with restriction works properly even inside of another element", function() {
+        var scene = b('scene');
+        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop(3);
+        scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
+
+        expectLocalTime(scene, loopElm,
+            function(gtime) {
+                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                if (t_after(gtime, (SCENE_DURATION / 8) * 3)) return false;
+                return gtime % (SCENE_DURATION / 8);
+            });
+    });
+
+    it("loop mode with restriction works properly even inside of another element in complex bands structure", function() {
+        var scene = b('scene');
+        var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop(3);
+        scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
+
+        expectLocalTime(scene, loopElm,
+            function(gtime) {
+                if (t_before(gtime, 3.2) ||
+                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                if (t_after(gtime, 3.2 + ((SCENE_DURATION / 8) - 1) * 3)) return false;
+                return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
+            });
+    });
+
+    xit("bounce mode works properly", function() {
         var scene = b('scene');
         var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
         scene.add(bounceElm);
@@ -187,7 +225,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("bounce mode works properly even inside of another element", function() {
+    xit("bounce mode works properly even inside of another element", function() {
         var scene = b('scene');
         var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
         scene.add(b('wrapper').add(bounceElm).band([0, SCENE_DURATION * (4 / 5)]));
@@ -201,7 +239,7 @@ describe("repeat modes", function() {
             });
     });
 
-    it("bounce mode works properly even inside of another element in complex bands structure", function() {
+    xit("bounce mode works properly even inside of another element in complex bands structure", function() {
         var scene = b('scene');
         var bounceElm = b('bounce').band([1, SCENE_DURATION / 8]).bounce();
         scene.add(b('wrapper').add(bounceElm).band([2.2, SCENE_DURATION * (4 / 5)]));
@@ -209,7 +247,7 @@ describe("repeat modes", function() {
         expectLocalTime(scene, bounceElm,
             function(gtime) {
                 if (t_before(gtime, 3.2) ||
-                    t_after(gtime, 2.2 + SCENE_DURATION * (4 / 5))) return false;
+                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
                 var durtn = (SCENE_DURATION / 8) - 1;
                 var fits = Math.floor((gtime - 3.2) / durtn);
                 return ((fits % 2) === 0) ? ((gtime - 3.2) % durtn) : durtn - ((gtime - 3.2) % durtn);
