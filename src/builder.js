@@ -415,9 +415,10 @@ Builder.prototype.alpha = function(band, values, easing) {
 
 // * REPEAT MODES *
 
-// > builder.mode % (mode: String) => Builder
-Builder.prototype.mode = function(mode) {
+// > builder.mode % (mode: String[, nrep: Float]) => Builder
+Builder.prototype.mode = function(mode, nrep) {
     this.x.mode = mode;
+    if (typeof nrep !== 'undefined') this.x.nrep = nrep;
     return this;
 }
 // > builder.once % () => Builder
@@ -429,12 +430,17 @@ Builder.prototype.stay = function() {
     return this.mode(C.R_STAY);
 }
 // > builder.loop % () => Builder
-Builder.prototype.loop = function() {
-    return this.mode(C.R_LOOP);
+Builder.prototype.loop = function(val) {
+    return this.mode(C.R_LOOP, val);
+}
+// > builder.repeat % () => Builder
+// alias for loop
+Builder.prototype.repeat = function(val) {
+    return this.mode(C.R_LOOP, val);
 }
 // > builder.bounce % () => Builder
-Builder.prototype.bounce = function() {
-    return this.mode(C.R_BOUNCE);
+Builder.prototype.bounce = function(val) {
+    return this.mode(C.R_BOUNCE, val);
 }
 
 // * MODIFIERS & PAINTERS *

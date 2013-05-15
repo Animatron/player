@@ -61,6 +61,7 @@ describe("errors", function() {
     } */
 
     it("muteErrors should be off by default", function() {
+        // FIXME: there should be off / system / all modes, system should be the default one
         expect(player.state.muteErrors).toBeFalsy();
     });
 

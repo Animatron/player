@@ -49,7 +49,7 @@ describe("builder, regarding modifiers,", function() {
 
         _fg = _FrameGen.spawn().run(FPS);
 
-        // preview mode is enabled not to mess with still-preview used for video-mode
+        // sandbox mode is enabled not to mess with still-preview used for video-mode
         // (it calls drawAt and causes modifiers to be called once more before starting playing)
         player = createPlayer('test-id', { mode: C.M_SANDBOX });
     });
