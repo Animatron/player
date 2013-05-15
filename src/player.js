@@ -345,17 +345,19 @@ function __roundTo(n, precision) {
 // #### other
 
 function __errorAs(name, _constructor, _toStr) {
+  // FIXME: breaks instanceof due to re-using same constructor
   var _producer = _constructor ?
     function(message) {
       _constructor.apply(this, arguments);
       if (!this.message) this.message = message || '';
       Error.apply(this, arguments);
-    } : function(message) {
+    } :
+    function(message) {
       this.message = message || '';
       Error.apply(this, arguments);
     };
   /* var _constructor = function(msg) { this.message = msg; } */
-  _producer.prototype = Error.prototype;
+  _producer.prototype = new Error(); //Error.prototype;
   _producer.prototype.constructor = _producer;
   _producer.prototype.name = name || 'Unknown';
   _producer.prototype.toString = _toStr || function() { return this.name + (this.message ? ': ' + this.message : ''); }
