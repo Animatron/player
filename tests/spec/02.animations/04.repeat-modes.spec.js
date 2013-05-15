@@ -1,5 +1,7 @@
-xdescribe('repeat modes', function() {
+describe('repeat modes', function() {
 
-    // FIXME: TODO
+    it('imports repeat modes in old format', function() {
+
+    });
 
 });

@@ -71,6 +71,7 @@ function injectEmptyAnmScene(project) {
     return scene;
 }
 
+// make a legal method of scene?
 anm.Scene.prototype.findByName = function(name) {
     var found = [];
     this.visitElems(function(elm) {

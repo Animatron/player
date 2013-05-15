@@ -58,245 +58,269 @@ describe("repeat modes", function() {
         });
     }
 
-    it("once mode works properly", function() {
-        var scene = b('scene');
-        var onceElm = b('once').band([0, SCENE_DURATION / 2]).once();
-        scene.add(onceElm);
+    describe("once mode", function() {
 
-        expectLocalTime(scene, onceElm,
-            function(gtime) {
-                if (t_after(gtime, (SCENE_DURATION / 2))) return false;
-                else return gtime;
-            });
+        it("animation works once, when applied to root", function() {
+            var scene = b('scene');
+            var onceElm = b('once').band([0, SCENE_DURATION / 2]).once();
+            scene.add(onceElm);
+
+            expectLocalTime(scene, onceElm,
+                function(gtime) {
+                    if (t_after(gtime, (SCENE_DURATION / 2))) return false;
+                    else return gtime;
+                });
+        });
+
+        it("animation works once inside of another element", function() {
+            var scene = b('scene');
+            var onceElm = b('once').band([0, SCENE_DURATION / 3]).once();
+            scene.add(b('wrapper').add(onceElm).band([0, SCENE_DURATION / 2]));
+
+            expectLocalTime(scene, onceElm,
+                function(gtime) {
+                    if (t_after(gtime, (SCENE_DURATION / 3))) return false;
+                    else return gtime;
+                });
+        });
+
+        it("animation works once inside of another element in complex bands structure", function() {
+            var scene = b('scene');
+            var onceElm = b('once').band([1, SCENE_DURATION / 8]).once();
+            scene.add(b('wrapper').add(onceElm).band([2.2, SCENE_DURATION / 2]));
+
+            expectLocalTime(scene, onceElm,
+                function(gtime) {
+                    if (t_before(gtime, 3.2) ||
+                        t_after(gtime, 2.2 + (SCENE_DURATION / 8)) ||
+                        t_after(gtime, SCENE_DURATION / 2)) return false;
+                    return gtime - 3.2;
+                });
+        });
+
     });
 
-    it("once mode works properly even inside of another element", function() {
-        var scene = b('scene');
-        var onceElm = b('once').band([0, SCENE_DURATION / 3]).once();
-        scene.add(b('wrapper').add(onceElm).band([0, SCENE_DURATION / 2]));
+    describe("stay mode", function() {
 
-        expectLocalTime(scene, onceElm,
-            function(gtime) {
-                if (t_after(gtime, (SCENE_DURATION / 3))) return false;
-                else return gtime;
-            });
+        it("animation stays, when applied to root", function() {
+            var scene = b('scene');
+            var stayElm = b('stay').band([0, SCENE_DURATION / 2]).stay();
+            scene.add(stayElm);
+
+            expectLocalTime(scene, stayElm,
+                function(gtime) {
+                    if (t_after(gtime, (SCENE_DURATION / 2))) return SCENE_DURATION / 2;
+                    else return gtime;
+                });
+        });
+
+        it("animation stays inside of another element", function() {
+            var scene = b('scene');
+            var stayElm = b('stay').band([0, SCENE_DURATION / 3]).stay();
+            scene.add(b('wrapper').add(stayElm).band([0, SCENE_DURATION / 2]));
+
+            expectLocalTime(scene, stayElm,
+                function(gtime) {
+                    if (t_after(gtime, (SCENE_DURATION / 2))) return false;
+                    if (t_after(gtime, (SCENE_DURATION / 3)) &&
+                        t_before_or_eq(gtime, (SCENE_DURATION / 2))) return SCENE_DURATION / 3;
+                    return gtime;
+                });
+        });
+
+        it("animation stays inside of another element in complex bands structure", function() {
+            var scene = b('scene');
+            var stayElm = b('stay').band([1, SCENE_DURATION / 8]).stay();
+            scene.add(b('wrapper').add(stayElm).band([2.2, SCENE_DURATION / 2]));
+
+            expectLocalTime(scene, stayElm,
+                function(gtime) {
+                    if (t_before(gtime, 3.2) ||
+                        t_after(gtime, SCENE_DURATION / 2)) return false;
+                    if (t_after(gtime, 2.2 + (SCENE_DURATION / 8)) &&
+                        t_before_or_eq(gtime, SCENE_DURATION / 2)) return (SCENE_DURATION / 8) - 1;
+                    return gtime - 3.2;
+                });
+        });
+
     });
 
-    it("once mode works properly even inside of another element in complex bands structure", function() {
-        var scene = b('scene');
-        var onceElm = b('once').band([1, SCENE_DURATION / 8]).once();
-        scene.add(b('wrapper').add(onceElm).band([2.2, SCENE_DURATION / 2]));
+    describe("loop mode", function() {
 
-        expectLocalTime(scene, onceElm,
-            function(gtime) {
-                if (t_before(gtime, 3.2) ||
-                    t_after(gtime, 2.2 + (SCENE_DURATION / 8)) ||
-                    t_after(gtime, SCENE_DURATION / 2)) return false;
-                return gtime - 3.2;
+        it("animation loops properly, when applied to root", function() {
+            var scene = b('scene');
+            var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
+            scene.add(loopElm);
+
+            expectLocalTime(scene, loopElm,
+                function(gtime) {
+                    return gtime % (SCENE_DURATION / 8);
+                });
+        });
+
+        it("animation loops properly inside of another element", function() {
+            var scene = b('scene');
+            var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
+            scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
+
+            expectLocalTime(scene, loopElm,
+                function(gtime) {
+                    if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                    return gtime % (SCENE_DURATION / 8);
+                });
+        });
+
+        it("animation loops properly inside of another element in complex bands structure", function() {
+            var scene = b('scene');
+            var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop();
+            scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
+
+            expectLocalTime(scene, loopElm,
+                function(gtime) {
+                    if (t_before(gtime, 3.2) ||
+                        t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                    return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
+                });
+        });
+
+        describe("with restriction", function() {
+
+            it("animation loops specified number of times, when applied to root", function() {
+                var scene = b('scene');
+                var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop(3);
+                scene.add(loopElm);
+
+                expectLocalTime(scene, loopElm,
+                    function(gtime) {
+                        if (t_after_or_eq(gtime, (SCENE_DURATION / 8) * 3)) return false;
+                        return gtime % (SCENE_DURATION / 8);
+                    });
             });
+
+            it("animation loops specified number of times inside of another element", function() {
+                var scene = b('scene');
+                var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop(2.7);
+                scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
+
+                expectLocalTime(scene, loopElm,
+                    function(gtime) {
+                        if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                        if (t_after_or_eq(gtime, (SCENE_DURATION / 8) * 2.7)) return false;
+                        return gtime % (SCENE_DURATION / 8);
+                    });
+            });
+
+            it("animation loops specified number of times inside of another element in complex bands structure", function() {
+                var scene = b('scene');
+                var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop(2.7);
+                scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
+
+                expectLocalTime(scene, loopElm,
+                    function(gtime) {
+                        if (t_before(gtime, 3.2) ||
+                            t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                        if (t_after_or_eq(gtime, 3.2 + ((SCENE_DURATION / 8) - 1) * 2.7)) return false;
+                        return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
+                    });
+            });
+
+        });
+
     });
 
-    it("stay mode works properly", function() {
-        var scene = b('scene');
-        var stayElm = b('stay').band([0, SCENE_DURATION / 2]).stay();
-        scene.add(stayElm);
+    describe("bounce mode", function() {
 
-        expectLocalTime(scene, stayElm,
-            function(gtime) {
-                if (t_after(gtime, (SCENE_DURATION / 2))) return SCENE_DURATION / 2;
-                else return gtime;
+        it("animation bounces properly, when applied to root", function() {
+            var scene = b('scene');
+            var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
+            scene.add(bounceElm);
+
+            expectLocalTime(scene, bounceElm,
+                function(gtime) {
+                    var durtn = SCENE_DURATION / 8;
+                    var fits = Math.floor(gtime / durtn);
+                    return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+                });
+        });
+
+        it("animation bounces properly inside of another element", function() {
+            var scene = b('scene');
+            var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
+            scene.add(b('wrapper').add(bounceElm).band([0, SCENE_DURATION * (4 / 5)]));
+
+            expectLocalTime(scene, bounceElm,
+                function(gtime) {
+                    if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                    var durtn = SCENE_DURATION / 8;
+                    var fits = Math.floor(gtime / durtn);
+                    return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+                });
+        });
+
+        it("animation bounces properly inside of another element in complex bands structure", function() {
+            var scene = b('scene');
+            var bounceElm = b('bounce').band([1, SCENE_DURATION / 8]).bounce();
+            scene.add(b('wrapper').add(bounceElm).band([2.2, SCENE_DURATION * (4 / 5)]));
+
+            expectLocalTime(scene, bounceElm,
+                function(gtime) {
+                    if (t_before(gtime, 3.2) ||
+                        t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                    var durtn = (SCENE_DURATION / 8) - 1;
+                    var fits = Math.floor((gtime - 3.2) / durtn);
+                    return ((fits % 2) === 0) ? ((gtime - 3.2) % durtn) : durtn - ((gtime - 3.2) % durtn);
+                });
+        });
+
+        describe("with restriction", function() {
+
+            it("animation bounces specified number of times, when applied to root", function() {
+                var scene = b('scene');
+                var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce(3);
+                scene.add(bounceElm);
+
+                expectLocalTime(scene, bounceElm,
+                    function(gtime) {
+                        var durtn = SCENE_DURATION / 8;
+                        if (t_after_or_eq(gtime, durtn * 3)) return false;
+                        var fits = Math.floor(gtime / durtn);
+                        return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+                    });
             });
-    });
 
-    it("stay mode works properly even inside of another element", function() {
-        var scene = b('scene');
-        var stayElm = b('stay').band([0, SCENE_DURATION / 3]).stay();
-        scene.add(b('wrapper').add(stayElm).band([0, SCENE_DURATION / 2]));
+            it("animation bounces specified number of times inside of another element", function() {
+                var scene = b('scene');
+                var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce(2.3);
+                scene.add(b('wrapper').add(bounceElm).band([0, SCENE_DURATION * (4 / 5)]));
 
-        expectLocalTime(scene, stayElm,
-            function(gtime) {
-                if (t_after(gtime, (SCENE_DURATION / 2))) return false;
-                if (t_after(gtime, (SCENE_DURATION / 3)) &&
-                    t_before_or_eq(gtime, (SCENE_DURATION / 2))) return SCENE_DURATION / 3;
-                return gtime;
+                expectLocalTime(scene, bounceElm,
+                    function(gtime) {
+                        if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                        var durtn = SCENE_DURATION / 8;
+                        if (t_after_or_eq(gtime, durtn * 2.3)) return false;
+                        var fits = Math.floor(gtime / durtn);
+                        return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
+                    });
             });
-    });
 
-    it("stay mode works properly even inside of another element in complex bands structure", function() {
-        var scene = b('scene');
-        var stayElm = b('stay').band([1, SCENE_DURATION / 8]).stay();
-        scene.add(b('wrapper').add(stayElm).band([2.2, SCENE_DURATION / 2]));
+            it("animation bounces specified number of times inside of another element and in complex bands structure", function() {
+                var scene = b('scene');
+                var bounceElm = b('bounce').band([1, SCENE_DURATION / 8]).bounce(2.3);
+                scene.add(b('wrapper').add(bounceElm).band([2.2, SCENE_DURATION * (4 / 5)]));
 
-        expectLocalTime(scene, stayElm,
-            function(gtime) {
-                if (t_before(gtime, 3.2) ||
-                    t_after(gtime, SCENE_DURATION / 2)) return false;
-                if (t_after(gtime, 2.2 + (SCENE_DURATION / 8)) &&
-                    t_before_or_eq(gtime, SCENE_DURATION / 2)) return (SCENE_DURATION / 8) - 1;
-                return gtime - 3.2;
+                expectLocalTime(scene, bounceElm,
+                    function(gtime) {
+                        if (t_before(gtime, 3.2) ||
+                            t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
+                        var durtn = (SCENE_DURATION / 8) - 1;
+                        if (t_after_or_eq(gtime, 3.2 + (durtn * 2.3))) return false;
+                        var fits = Math.floor((gtime - 3.2) / durtn);
+                        return ((fits % 2) === 0) ? ((gtime - 3.2) % durtn) : durtn - ((gtime - 3.2) % durtn);
+                    });
             });
-    });
 
-    it("loop mode works properly", function() {
-        var scene = b('scene');
-        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
-        scene.add(loopElm);
+        });
 
-        expectLocalTime(scene, loopElm,
-            function(gtime) {
-                return gtime % (SCENE_DURATION / 8);
-            });
-    });
-
-    it("loop mode works properly even inside of another element", function() {
-        var scene = b('scene');
-        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
-        scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, loopElm,
-            function(gtime) {
-                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                return gtime % (SCENE_DURATION / 8);
-            });
-    });
-
-    it("loop mode works properly even inside of another element in complex bands structure", function() {
-        var scene = b('scene');
-        var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop();
-        scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, loopElm,
-            function(gtime) {
-                if (t_before(gtime, 3.2) ||
-                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
-            });
-    });
-
-    it("loop mode with restriction works properly", function() {
-        var scene = b('scene');
-        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop(3);
-        scene.add(loopElm);
-
-        expectLocalTime(scene, loopElm,
-            function(gtime) {
-                if (t_after_or_eq(gtime, (SCENE_DURATION / 8) * 3)) return false;
-                return gtime % (SCENE_DURATION / 8);
-            });
-    });
-
-    it("loop mode with restriction works properly even inside of another element", function() {
-        var scene = b('scene');
-        var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop(2.7);
-        scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, loopElm,
-            function(gtime) {
-                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                if (t_after_or_eq(gtime, (SCENE_DURATION / 8) * 2.7)) return false;
-                return gtime % (SCENE_DURATION / 8);
-            });
-    });
-
-    it("loop mode with restriction works properly even inside of another element in complex bands structure", function() {
-        var scene = b('scene');
-        var loopElm = b('loop').band([1, SCENE_DURATION / 8]).loop(2.7);
-        scene.add(b('wrapper').add(loopElm).band([2.2, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, loopElm,
-            function(gtime) {
-                if (t_before(gtime, 3.2) ||
-                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                if (t_after_or_eq(gtime, 3.2 + ((SCENE_DURATION / 8) - 1) * 2.7)) return false;
-                return (gtime - 3.2) % ((SCENE_DURATION / 8) - 1);
-            });
-    });
-
-    it("bounce mode works properly", function() {
-        var scene = b('scene');
-        var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
-        scene.add(bounceElm);
-
-        expectLocalTime(scene, bounceElm,
-            function(gtime) {
-                var durtn = SCENE_DURATION / 8;
-                var fits = Math.floor(gtime / durtn);
-                return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
-            });
-    });
-
-    it("bounce mode works properly even inside of another element", function() {
-        var scene = b('scene');
-        var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce();
-        scene.add(b('wrapper').add(bounceElm).band([0, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, bounceElm,
-            function(gtime) {
-                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                var durtn = SCENE_DURATION / 8;
-                var fits = Math.floor(gtime / durtn);
-                return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
-            });
-    });
-
-    it("bounce mode works properly even inside of another element in complex bands structure", function() {
-        var scene = b('scene');
-        var bounceElm = b('bounce').band([1, SCENE_DURATION / 8]).bounce();
-        scene.add(b('wrapper').add(bounceElm).band([2.2, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, bounceElm,
-            function(gtime) {
-                if (t_before(gtime, 3.2) ||
-                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                var durtn = (SCENE_DURATION / 8) - 1;
-                var fits = Math.floor((gtime - 3.2) / durtn);
-                return ((fits % 2) === 0) ? ((gtime - 3.2) % durtn) : durtn - ((gtime - 3.2) % durtn);
-            });
-    });
-
-    it("bounce mode with restrictions works properly", function() {
-        var scene = b('scene');
-        var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce(3);
-        scene.add(bounceElm);
-
-        expectLocalTime(scene, bounceElm,
-            function(gtime) {
-                var durtn = SCENE_DURATION / 8;
-                if (t_after_or_eq(gtime, durtn * 3)) return false;
-                var fits = Math.floor(gtime / durtn);
-                return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
-            });
-    });
-
-    it("bounce mode with restrictions works properly even inside of another element", function() {
-        var scene = b('scene');
-        var bounceElm = b('bounce').band([0, SCENE_DURATION / 8]).bounce(2.3);
-        scene.add(b('wrapper').add(bounceElm).band([0, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, bounceElm,
-            function(gtime) {
-                if (t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                var durtn = SCENE_DURATION / 8;
-                if (t_after_or_eq(gtime, durtn * 2.3)) return false;
-                var fits = Math.floor(gtime / durtn);
-                return ((fits % 2) === 0) ? (gtime % durtn) : durtn - (gtime % durtn);
-            });
-    });
-
-    it("bounce mode with restrictions works properly even inside of another element in complex bands structure", function() {
-        var scene = b('scene');
-        var bounceElm = b('bounce').band([1, SCENE_DURATION / 8]).bounce(2.3);
-        scene.add(b('wrapper').add(bounceElm).band([2.2, SCENE_DURATION * (4 / 5)]));
-
-        expectLocalTime(scene, bounceElm,
-            function(gtime) {
-                if (t_before(gtime, 3.2) ||
-                    t_after(gtime, SCENE_DURATION * (4 / 5))) return false;
-                var durtn = (SCENE_DURATION / 8) - 1;
-                if (t_after_or_eq(gtime, 3.2 + (durtn * 2.3))) return false;
-                var fits = Math.floor((gtime - 3.2) / durtn);
-                return ((fits % 2) === 0) ? ((gtime - 3.2) % durtn) : durtn - ((gtime - 3.2) % durtn);
-            });
     });
 
 });

@@ -29,6 +29,7 @@ var _specs = {
                       '05.layers',
                       '06.versions',
                       '07.meta',
+                      '08.repeat-modes',
                       '_utils.and.their' ],
    '04.builder': [ '01.formation',
                    '02.structure',
