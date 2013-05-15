@@ -111,6 +111,10 @@ var Docs = {
     }
 };
 
+var Validation = {
+    Schema: { ANM_SCENE: Dirs.SRC + '/' + SubDirs.IMPORTERS + '/animatron-project.orderly' }
+}
+
 var DONE_MARKER = '.\n';
 
 // TASKS
@@ -210,6 +214,20 @@ task('docs', function() {
 //cat doc/_head.html doc/README.html doc/_foot.html > doc/README.tmp.html
 //mv doc/README.tmp.html doc/README.html
 });
+
+desc('Validate Animatron Scene');
+task('anm-scene-valid', function(param) {
+  console.log('Checking scene at: ' + _loc(param));
+
+  var orderly = require("orderly"),
+      jsonschema = require("jsonschema");
+
+  var _scheme = orderly.parse(jake.cat(_loc(Validation.Schema.ANM_SCENE)));
+  var _v = new jsonschema.Validator();
+
+  console.log(_v.validate(JSON.parse(jake.cat(_loc(param))), _scheme));
+
+})
 
 /*desc('Run JSHint');
 task('hint', function() {

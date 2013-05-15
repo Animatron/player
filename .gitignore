@@ -1,6 +1,8 @@
+*.bak
 .idea
 .DS_Store
 idea-files.zip
+node_modules
 dist
 doc/player.html
 doc/builder.html
@@ -9,3 +11,4 @@ doc/README.html
 doc/api.pdf
 doc/docco.css
 VERSIONS
+src/import/sample-scene.json

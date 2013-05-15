@@ -1,0 +1,120 @@
+// http://orderly-json.org/docs
+// to validate on the fly:
+// http://orderly-json.org/tryit && http://jsonschemalint.com/
+
+object {
+
+    // meta
+    object {
+        string id; // 23-char hash
+        integer created; // timestamp
+        integer modified; // timestamp
+        string author;
+        string description;
+        string name;
+        string copyright;
+        number duration; // float
+        integer numberOfScenes;
+        string projectAccessType [ "Public" ];
+        boolean projectAccessReadOnly;
+    } meta;
+
+    // data
+    object {
+        array [
+            object { // *brush*
+                string color;
+                string rgba;
+            }
+        ] swatches?;
+    } data?;
+
+    // anim
+    object {
+
+        array { number; number; } dimension;
+        number framerate;
+        object { // *brush*
+            string color;
+            string rgba;
+        } background;
+
+        array [ string ] scenes;
+
+        // elements
+        array [
+
+            union {
+
+                // static element
+                object {
+                    string id;
+                    string name?;
+                    object {
+                        number width <paint>?;
+                        object { // *brush*
+                            string color;
+                            string rgba;
+                        } paint?;
+                    } stroke;
+                    object { // *brush*
+                        string color;
+                        string rgba;
+                    } fill;
+                    string path?;
+                    string font <text>?;
+                    string text?;
+                    number brushWidth?;
+                    number errorThreshold?;
+                };
+
+                // dynamic element
+                object {
+                    string id;
+                    string name?;
+
+                    // layers
+                    array [
+                        object {
+                            string id;
+                            string name?;
+                            array { number; number; } band;
+                            array { string; string; } reg; // should be number; number;
+                            string eid;
+                            boolean visible;
+                            boolean outline;
+                            boolean locked;
+                            boolean dynamic;
+                            boolean opaque;
+                            string "outline-color"?;
+                            array [ number ] "last-frames-defined"?;
+
+                            // tweens
+                            array [
+                                object {
+                                    string type;
+                                    array { number; number; } band;
+                                    array [ number ] data?;
+                                    string path?;
+                                }
+                            ] tweens;
+
+                        }
+                    ] layers;
+
+                    object {
+                        string type [ "stay" ];
+                    } end?;
+                    union {
+                        string [ "stay" ];
+                        null;
+                    } "on-end"?;
+                };
+
+            }
+
+        ] elements;
+
+    } anim;
+
+};
