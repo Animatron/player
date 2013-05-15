@@ -38,4 +38,40 @@ describe("importing repeat modes", function() {
 
     });
 
+    it("should import new version of repeat modes correctly", function() {
+
+        injectAnmScene(project,
+            [ { name: 'no-end' },
+              { name: 'null-end', "#end": null },
+              { name: 'null-type-end', "#end": { 'type': null } },
+              { name: 'once-end', "#end": { 'type': 'once' } },
+              { name: 'stay-end', "#end": { 'type': 'stay' } },
+              { name: 'loop-end', "#end": { 'type': 'loop' } },
+              { name: 'loop-counter-end', "#end": { 'type': 'loop', 'counter': 4 } },
+              { name: 'bounce-end', "#end": { 'type': 'bounce' } },
+              { name: 'bounce-counter-end', "#end": { 'type': 'bounce', 'counter': 4 } },
+              { name: 'wrapper', layers: [
+                    { name: 'loop-end-inside', "#end": { 'type': 'loop' } },
+                    { name: 'loop-counter-end-inside', "#end": { 'type': 'loop', 'counter': 7 } }
+                ] } ]);
+
+        var scene = importer.load(project);
+
+        expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('null-type-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('once-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('stay-end').xdata.mode).toBe(anm.C.R_STAY);
+        expect(scene.findByName('loop-end').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('loop-counter-end').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('loop-counter-end').xdata.nrep).toBe(4);
+        expect(scene.findByName('bounce-end').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('bounce-counter-end').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('bounce-counter-end').xdata.nrep).toBe(4);
+        expect(scene.findByName('loop-end-inside').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('loop-counter-end-inside').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('loop-counter-end-inside').xdata.nrep).toBe(7);
+
+    });
+
 });
