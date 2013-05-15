@@ -133,7 +133,11 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     x.gband = in_band ? Bands.wrap(in_band, x.lband)
                       : x.lband;
     x.reg = clip.reg || [0, 0];
-    x.mode = Convert.mode(clip['on-end']);
+    // 'on-end' is the old-style end, 'end' is the current-style
+    x.mode = clip['end'] ? Convert.mode(clip['end'].type)
+                         : Convert.oldschool_mode(clip['on-end']);
+    x.nrep = (clip['end'] && (clip['end'].counter !== undefined))
+                         ? clip['end'].counter : Infinity;
     if (clip.tweens) {
         for (var tweens = clip.tweens, ti = 0, tl = tweens.length;
              ti < tl; ti++) {
@@ -272,7 +276,14 @@ Convert.gradient = function(src) {
 }
 Convert.mode = function(from) {
     if (!from) return C.R_ONCE;
-    if (from === "STOP") return C.R_STAY; // C.R_ONCE?
+    if (from === "once") return C.R_ONCE;
+    if (from === "stay") return C.R_STAY;
+    if (from === "loop") return C.R_LOOP;
+    if (from === "bounce") return C.R_BOUNCE; // FIXME: last is not for sure
+}
+Convert.oldschool_mode = function(from) {
+    if (!from) return C.R_ONCE;
+    if (from === "STOP") return C.R_STAY;
     if (from === "LOOP") return C.R_LOOP;
     if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure
 }
