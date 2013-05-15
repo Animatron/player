@@ -7,6 +7,8 @@
  * @VERSION
  */
 
+// see ./animatron-project-@VERSION.orderly for a readable scheme of accepted project
+
 var AnimatronImporter = (function() {
 
 function AnimatronImporter() { }

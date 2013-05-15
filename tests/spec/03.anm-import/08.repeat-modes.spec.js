@@ -19,12 +19,12 @@ describe("importing repeat modes", function() {
 
         injectAnmScene(project,
             [ { name: 'no-end' },
-              { name: 'null-end', 'on-end': null },
-              { name: 'stop-end', 'on-end': 'STOP' },
-              { name: 'loop-end', 'on-end': 'LOOP' },
-              { name: 'bounce-end', 'on-end': 'BOUNCE' },
+              { name: 'null-end', '#on-end': null },
+              { name: 'stop-end', '#on-end': 'STOP' },
+              { name: 'loop-end', '#on-end': 'LOOP' },
+              { name: 'bounce-end', '#on-end': 'BOUNCE' },
               { name: 'wrapper', layers: [
-                    { name: 'loop-end', 'on-end': 'LOOP' }
+                    { name: 'loop-end-inside', '#on-end': 'LOOP' }
                 ] } ]);
 
         var scene = importer.load(project);
@@ -34,7 +34,7 @@ describe("importing repeat modes", function() {
         expect(scene.findByName('stop-end').xdata.mode).toBe(anm.C.R_STAY);
         expect(scene.findByName('loop-end').xdata.mode).toBe(anm.C.R_LOOP);
         expect(scene.findByName('bounce-end').xdata.mode).toBe(anm.C.R_BOUNCE);
-        expect(scene.findByName('wrapper').xdata.mode).toBe(anm.C.R_LOOP);
+        expect(scene.findByName('loop-end-inside').xdata.mode).toBe(anm.C.R_LOOP);
 
     });
 

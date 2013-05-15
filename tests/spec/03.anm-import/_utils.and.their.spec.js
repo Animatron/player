@@ -52,7 +52,8 @@ function injectAnmScene(project, data) {
                 var innerAnmElement = { "id": elm_id };
                 anmElement = { "id": guid(), "eid": elm_id, "name": srcData.name };
                 for (var prop in srcData) {
-                    innerAnmElement[prop] = srcData[prop];
+                    if (prop.indexOf('#') === 0) anmElement[prop.substring(1)]  = srcData[prop];
+                    else innerAnmElement[prop] = srcData[prop];
                 }
                 project.anim.elements.push(innerAnmElement);
             }
