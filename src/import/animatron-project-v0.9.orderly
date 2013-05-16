@@ -7,26 +7,47 @@ object {
     // meta
     object {
         string id; // 23-char hash
-        integer created; // timestamp
-        integer modified; // timestamp
+        integer created?; // timestamp
+        integer modified?; // timestamp
+        number modificationTime?; // timestamp
         string author;
         string description;
         string name;
         string copyright;
-        number duration; // float
-        integer numberOfScenes;
-        string projectAccessType [ "Public" ];
-        boolean projectAccessReadOnly;
+        number version?;
+        number duration?; // float
+        integer numberOfScenes?;
+        union {
+            null;
+            string [ "Public" ];
+        } projectAccessType?;
+        boolean projectAccessReadOnly?;
     } meta;
 
     // data
     object {
+
+        // swatches
         array [
-            object { // *brush*
-                string color;
-                string rgba;
+            union { // *brush*
+                null;
+                object {
+                    string color;
+                    string rgba?;
+                    number alpha?;
+                };
+                object {
+                    number r0?; number r1?;
+                    number x0; number y0;
+                    number x1; number y1;
+                    array [ string ] colors;
+                    array [ string ] rgbas?;
+                    array [ number ] offsets;
+                    array { number; number; number; number; } bounds;
+                };
             }
         ] swatches?;
+
     } data?;
 
     // anim
@@ -34,38 +55,109 @@ object {
 
         array { number; number; } dimension;
         number framerate;
-        object { // *brush*
-            string color;
-            string rgba;
-        } background;
 
         array [ string ] scenes;
+
+        // background
+        union { // *brush*
+            null;
+            object {
+                string color;
+                string rgba?;
+                number alpha?;
+            };
+            object {
+                number r0?; number r1?;
+                number x0; number y0;
+                number x1; number y1;
+                array [ string ] colors;
+                array [ string ] rgbas?;
+                array [ number ] offsets;
+                array { number; number; number; number; } bounds;
+            };
+        } background;
 
         // elements
         array [
 
             union {
 
-                // static element
+                // empty object
                 object {
                     string id;
                     string name?;
-                    object {
-                        number width <paint>?;
-                        object { // *brush*
-                            string color;
-                            string rgba;
-                        } paint?;
-                    } stroke;
-                    object { // *brush*
-                        string color;
-                        string rgba;
-                    } fill;
-                    string path?;
+                };
+
+                // image
+                object {
+                    string id;
+                    string name?;
+                    string url;
+                };
+
+                // static element
+                object {
+
+                    string id;
+                    string name?;
+
+                    string path?; // TODO: split shapes and texts
                     string font <text>?;
                     string text?;
                     number brushWidth?;
                     number errorThreshold?;
+
+                    array { number; number; number; number; } "round-rect"?;
+
+                    // stroke
+                    object {
+
+                        number width <paint>?;
+
+                        // paint
+                        union { // *brush*
+                            null;
+                            object {
+                                string color;
+                                string rgba?;
+                                number alpha?;
+                            };
+                            object {
+                                number r0?; number r1?;
+                                number x0; number y0;
+                                number x1; number y1;
+                                array [ string ] colors;
+                                array [ string ] rgbas?;
+                                array [ number ] offsets;
+                                array { number; number; number; number; } bounds;
+                            };
+                        } paint?;
+
+                        string cap?; // TODO: enum
+                        string join?; // TODO: enum
+                        number limit?;
+
+                    } stroke?;
+
+                    // fill
+                    union { // *brush*
+                        null;
+                        object {
+                            string color;
+                            string rgba?;
+                            number alpha?;
+                        };
+                        object {
+                            number r0?; number r1?;
+                            number x0; number y0;
+                            number x1; number y1;
+                            array [ string ] colors;
+                            array [ string ] rgbas?;
+                            array [ number ] offsets;
+                            array { number; number; number; number; } bounds;
+                        };
+                    } fill;
+
                 };
 
                 // dynamic element
@@ -75,38 +167,55 @@ object {
 
                     // layers
                     array [
-                        object {
+                        object { // *layer-data*
                             string id;
+                            string eid; // TODO: split in ones with eid with ones without & s.o., ...
                             string name?;
                             array { number; number; } band;
-                            array { string; string; } reg; // should be number; number;
-                            string eid;
+                            union {
+                                array { string; string; };  // should be only number; number;
+                                array { number; number; };
+                            } reg;
+
                             boolean visible;
                             boolean outline;
                             boolean locked;
                             boolean dynamic;
                             boolean opaque;
+
                             string "outline-color"?;
-                            array [ number ] "last-frames-defined"?;
+
+                            number masked?;
+                            array [
+                                string [ "Translate", "Rotate", "Scale", "Alpha", "rotate-to-path" ]
+                            ] "last-frames-defined"?;
+                            string "saved-tweens"?;
 
                             // tweens
                             array [
                                 object {
-                                    string type [ "Translate", "Alpha", "Rotate-to-Path" ];
+                                    string type [ "Translate", "Rotate", "Scale", "Alpha", "rotate-to-path" ];
                                     array { number; number; } band;
                                     array [ number ] data?;
                                     string path?;
+                                    object {
+                                        string name; // Unknown, Ease In Out, ...
+                                        string path?;
+                                    } easing?;
                                 }
-                            ] tweens;
+                            ] tweens?;
 
                         }
                     ] layers;
 
                     object {
-                        string type [ "stay" ];
+                        union {
+                            string [ "once", "stay", "loop", "bounce" ];
+                            null;
+                        } type;
                     } end?;
                     union {
-                        string [ "stay" ];
+                        string [ "STOP", "LOOP", "BOUNCE" ];
                         null;
                     } "on-end"?;
                 };
