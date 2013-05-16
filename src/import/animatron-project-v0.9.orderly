@@ -92,7 +92,7 @@ object {
                             // tweens
                             array [
                                 object {
-                                    string type;
+                                    string type [ "Translate", "Alpha", "Rotate-to-Path" ];
                                     array { number; number; } band;
                                     array [ number ] data?;
                                     string path?;

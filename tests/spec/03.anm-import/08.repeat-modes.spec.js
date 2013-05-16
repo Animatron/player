@@ -29,9 +29,9 @@ describe("importing repeat modes", function() {
 
         var scene = importer.load(project);
 
-        expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_ONCE);
-        expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_ONCE);
-        expect(scene.findByName('stop-end').xdata.mode).toBe(anm.C.R_STAY);
+        expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_STAY);
+        expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_STAY);
+        expect(scene.findByName('stop-end').xdata.mode).toBe(anm.C.R_ONCE);
         expect(scene.findByName('loop-end').xdata.mode).toBe(anm.C.R_LOOP);
         expect(scene.findByName('bounce-end').xdata.mode).toBe(anm.C.R_BOUNCE);
         expect(scene.findByName('loop-end-inside').xdata.mode).toBe(anm.C.R_LOOP);
@@ -63,9 +63,9 @@ describe("importing repeat modes", function() {
 
         var scene = importer.load(project);
 
-        expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_ONCE);
-        expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_ONCE);
-        expect(scene.findByName('null-type-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_STAY);
+        expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_STAY);
+        expect(scene.findByName('null-type-end').xdata.mode).toBe(anm.C.R_STAY);
         expect(scene.findByName('once-end').xdata.mode).toBe(anm.C.R_ONCE);
         expect(scene.findByName('stay-end').xdata.mode).toBe(anm.C.R_STAY);
         expect(scene.findByName('loop-end').xdata.mode).toBe(anm.C.R_LOOP);

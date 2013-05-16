@@ -21,7 +21,8 @@
     <!-- <script src="./js/a_beach_banner.js" type="text/javascript"></script> -->
     <!-- <script src="./js/failing_scene.js" type="text/javascript"></script> -->
     <!-- <script src="./js/tangencial_eccentric.js" type="text/javascript"></script> -->
-    <script src="./js/scene_with_fonts.js" type="text/javascript"></script>
+    <!-- <script src="./js/scene_with_fonts.js" type="text/javascript"></script> -->
+    <script src="./js/animatron_scene.js" type="text/javascript"></script>
 
     <script type="text/javascript">
       function start() {
@@ -31,7 +32,7 @@
           var importer = new AnimatronImporter();
           var player = createPlayer('canvas');
           //player.debug = true;
-          player.load(scene_with_fonts, importer);
+          player.load(animatron_scene, importer);
           player.play();
 
       }
