@@ -82,8 +82,8 @@
             },
 
             reportError : function(_e) {
-                if (console) console.error(_e);
-                else alert(_e.message);
+                if (console) console.error(_e.message || _e);
+                else alert(_e.message || _e);
             },
 
             forcedJS : function(_path, _then) {
@@ -120,7 +120,7 @@
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
-                URL_PREFIX = PROTOCOL + '://animatron-snapshots.s3.amazonaws.com',
+                URL_PREFIX = PROTOCOL + 'animatron-snapshots.s3.amazonaws.com',
                 SNAPSHOT_ID = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos) : _search.substring(1);
 
             if (!SNAPSHOT_ID ||
@@ -161,7 +161,7 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS(PROTOCOL + '://player.animatron.com/latest/bundle/animatron.js', function () {
+                    _u.forcedJS(PROTOCOL + 'player.animatron.com/latest/bundle/animatron.js', function () {
                         anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
                     });
                 } catch (e) {
