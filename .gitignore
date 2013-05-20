@@ -1,4 +1,5 @@
 .DS_Store
 temp
 dist
+node_modules
 Animatron-player-*.zip
