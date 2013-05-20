@@ -19,13 +19,13 @@
     <script src="http://player.animatron.com/latest/builder.js" type="text/javascript"></script>
     <script src="http://player.animatron.com/latest/import/animatron_import.js" type="text/javascript"></script>-->
 
-    <script src="./js/demo_project.js" type="text/javascript"></script>
-    <!-- <script src="./js/tiger_project.js" type="text/javascript"></script> -->
-    <script src="./js/rectangles_project.js" type="text/javascript"></script>
-    <script src="./js/curvy_path_project.js" type="text/javascript"></script>
-    <script src="./js/alpha_project.js" type="text/javascript"></script>
-    <script src="./js/project_with_masks.3.js" type="text/javascript"></script>
-    <!-- <script src="./rel/draw_tiger.js" type="text/javascript"></script> -->
+    <script src="./files/anm/js/demo_project.js" type="text/javascript"></script>
+    <!-- <script src="./files/anm/js/tiger_project.js" type="text/javascript"></script> -->
+    <script src="./files/anm/js/_rectangles_project.js" type="text/javascript"></script>
+    <script src="./files/anm/js/curvy_path_project.js" type="text/javascript"></script>
+    <script src="./files/anm/js/alpha_project.js" type="text/javascript"></script>
+    <script src="./files/anm/js/project_with_masks.3.js" type="text/javascript"></script>
+    <!-- <script src="./files/draw_tiger.js" type="text/javascript"></script> -->
 
     <style type="text/css">
       #__canvas1_info {
@@ -61,28 +61,28 @@
           var importer = new AnimatronImporter();
           var p3 = createPlayer('canvas3');
           p3.debug = true;
-          p3.load(demo_project, importer);
+          p3.load(anm_scenes.demo_project, importer);
           p3.play(6);
           //p3.load(scene2).play(2);
 
           // canvas4
           var p4 = createPlayer('canvas4');
           p4.debug = true;
-          p4.load(rectangles_project, importer);
+          p4.load(anm_scenes.rectangles_project, importer);
 
           // canvas5
           var p5 = createPlayer('canvas5');
           p5.debug = true;
-          p5.load(curvy_path_project, importer);
+          p5.load(anm_scenes.curvy_path_project, importer);
 
           // canvas6
           var p6 = createPlayer('canvas6');
           p6.debug = true;
-          p6.load(alpha_project, importer);
+          p6.load(anm_scenes.alpha_project, importer);
 
           // canvas7
           var p7 = createPlayer('canvas7');
-          p7.load(project_with_masks_3, importer);
+          p7.load(anm_scenes.project_with_masks_3, importer);
 
           /*createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
