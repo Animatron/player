@@ -13,7 +13,7 @@ var empty_project =
     "author": "",
     "copyright": "",
     "version": 0.1,
-    "description": "",
+    "description": ""
   },
   "anim": {
     "dimension": [ 500.0, 350.0 ],
