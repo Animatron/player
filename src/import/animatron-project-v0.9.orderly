@@ -102,6 +102,7 @@ object {
                     string name?;
 
                     string path?; // TODO: split shapes and texts
+                    string original_path?;
                     string font <text>?;
                     string text?;
                     number brushWidth?;
@@ -213,6 +214,7 @@ object {
                             string [ "once", "stay", "loop", "bounce" ];
                             null;
                         } type;
+                        number counter?;
                     } end?;
                     union {
                         string [ "STOP", "LOOP", "BOUNCE" ];
