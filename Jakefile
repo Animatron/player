@@ -5,6 +5,17 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
+// Versions used:
+//    node: 0.8.9
+//    npm: 1.2.8
+//    jake: 0.5.14
+//    phantomjs: 1.7.0
+//    uglifyjs: 2.2.5
+//    doccoo: 0.6.2
+//    python markdown: ?
+//    orderly: 1.1.0
+//    jsonschema: 0.3.2
+
 var fs = require('fs')/*,
     path = require('path')*/;
 
@@ -118,18 +129,21 @@ var Validation = {
 
 var DONE_MARKER = '.\n';
 
-var DESC_NL = '\n\t\t       # ';
-var DESC_STOP = '\n';
+var DESC_WIDTH = 80,
+    DESC_PAD = 23,
+    DESC_TAB = 7,
+    DESC_PFX = '# ',
+    DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
 
 // TASKS
 
-desc('Get full distribution in the /dist directory.' + DESC_NL +
-     'Exactly the same as calling {jake dist}.' + DESC_NL +
-     'Requires: `uglifyjs`.' + DESC_NL +
-     'Produces: /dist directory.' + DESC_STOP);
+desc(_dfit_nl(['Get full distribution in the /dist directory.',
+               'Exactly the same as calling {jake dist}.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
 task('default', ['dist'], function() {});
 
-desc('Clean previous build artifacts.' + DESC_STOP);
+desc(_dfit_nl(['Clean previous build artifacts.']));
 task('clean', function() {
     console.log('Clean previous build artifacts..');
     jake.rmRf(_loc(Dirs.AS_IS));
@@ -137,23 +151,28 @@ task('clean', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Build process, with no cleaning.' + DESC_NL +
-     'Called by <dist>.' + DESC_NL +
-     'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify.>' + DESC_NL +
-     'Requires: `uglifyjs`.' + DESC_NL +
-     'Produces: /dist directory.' + DESC_STOP);
+desc(_dfit_nl(['Build process, with no cleaning.',
+               'Called by <dist>.',
+               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
 task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify'], function() {});
 
-desc('Clean previous build and create distribution files, so `dist` directory will contain the full distribution for this version,' + DESC_NL +
-     '\tincluding all required files — sources and bundles.' + DESC_NL +
-     'Coherently calls <clean> and <build>.' + DESC_NL +
-     'Requires: `uglifyjs`.' + DESC_NL +
-     'Produces: /dist directory.' + DESC_STOP);
+desc(_dfit_nl(['Clean previous build and create distribution files, '+
+                  'so `dist` directory will contain the full '+
+                  'distribution for this version, including '+
+                  'all required files — sources and bundles.',
+               'Coherently calls <clean> and <build>.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
 task('dist', ['clean', 'build'], function() {});
 
-desc('Run tests for the sources (not the distribution).' + DESC_NL +
-     'Usage: May be called with providing separate spec or spec group, in a way like: {jake test[01.player]} or {jake test[01.player/06.errors]} correspondingly' + DESC_NL +
-     'Requires: `jasmine-node`, `phantomjs`.' + DESC_STOP); // TODO: also test minified version
+desc(_dfit_nl(['Run tests for the sources (not the distribution).',
+               'Usage: Among with {jake test} may be called with '+
+                  'providing separate spec or spec group, '+
+                  'in a way like: {jake test[01.player/*]} or, for concrete spec: '+
+                  '{jake test[01.player/06.errors]}.',
+               'Requires: `jasmine-node`, `phantomjs`.'])); // TODO: also test minified version
 task('test', function(param) {
     console.log('Running tests');
     /* Usage:
@@ -176,9 +195,12 @@ task('test', function(param) {
               {printStdout: true});
 });
 
-desc('Generate Docco docs and compile API documentation into HTML files inside of the /doc directory' + DESC_NL +
-     'Requires: `docco`, Python, `markdown` module for Python' + DESC_NL +
-     'Produces: /doc/player.html, /doc/builder.html, /doc/API.html, /doc/README.html, /doc/doccoo.css' + DESC_STOP);
+desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
+                  'HTML files inside of the /doc directory.',
+               'Requires: `docco`, Python installed, `markdown` module for Python'+
+                  '(and Python is used only because of this module).',
+               'Produces: /doc/player.html, /doc/builder.html, '+
+                  '/doc/API.html, /doc/README.html, /doc/doccoo.css.']));
 task('docs', function() {
     console.log('Generating docs');
     console.log('For sources');
@@ -234,10 +256,12 @@ task('docs', function() {
 //mv doc/README.tmp.html doc/README.html
 });
 
-desc('Validate Animatron scene JSON file.' + DESC_NL +
-     'Uses /src/import/animatron-project-VERSION.orderly as validation scheme.' + DESC_NL +
-     'Usage: should be called with providing scene file, in a way like {jake anm-scene-valid[src/import/sample-scene.json]}.' + DESC_NL +
-     'Requires: `orderly` node.js module and `jsonschema` node.js module' + DESC_STOP);
+desc(_dfit_nl(['Validate Animatron scene JSON file.',
+               'Uses /src/import/animatron-project-VERSION.orderly '+
+                  'as validation scheme.',
+               'Usage: should be called with providing scene JSON file, '+
+                  'in a way like: {jake anm-scene-valid[src/some-scene.json]}.',
+               'Requires: `orderly` and `jsonschema` node.js modules']));
 task('anm-scene-valid', function(param) {
   console.log('Checking scene at: ' + _loc(param) + ' with ' + _loc(Validation.Schema.ANM_SCENE));
 
@@ -251,6 +275,25 @@ task('anm-scene-valid', function(param) {
 
 });
 
+desc(_dfit_nl(['Get current version or apply/update a version to the '+
+                  'current state of files.',
+               'Usage: {jake version} to get current version and '+
+                  '{jake version[v0.8]} to set current version '+
+                  'to a new one (do not forget to push tags)',
+               'Produces: (if invoked with parameter)'+
+                  'VERSION, VERSIONS files and git tag']));
+task('version', function(param) {
+
+});
+
+//task('rm-version', function(param) {
+//
+//});
+
+//task('push', function(param) {
+//
+//});
+
 /*desc('Run JSHint');
 task('hint', function() {
     // TODO
@@ -258,7 +301,7 @@ task('hint', function() {
 
 // ======= SUBTASKS
 
-desc('Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders');
+desc(_dfit(['Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders']));
 task('_prepare', function() {
     console.log('Create required destination folders..');
     console.log('mkdir -p ' + _loc(Dirs.MINIFIED));
@@ -268,7 +311,7 @@ task('_prepare', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder');
+desc(_dfit(['Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder']));
 task('_bundles', function() {
     console.log('Create Bundles..')
 
@@ -286,7 +329,8 @@ task('_bundles', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create a single bundle file and put it into '+Dirs.AS_IS+' folder, bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}');
+desc(_dfit(['Create a single bundle file and put it into '+Dirs.AS_IS+' folder, '+
+               'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
 task('_bundle', function(param) {
     if (!param) throw new Error('This task requires a concrete bundle name to be specified');
     var bundle;
@@ -304,7 +348,7 @@ task('_bundle', function(param) {
         });
 });
 
-desc('Copy source files to '+Dirs.AS_IS+' folder');
+desc(_dfit(['Copy source files to '+Dirs.AS_IS+' folder']));
 task('_organize', function() {
 
     console.log('Copy files to ' + Dirs.AS_IS + '..');
@@ -335,7 +379,7 @@ task('_organize', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Inject version in all '+Dirs.AS_IS+' files');
+desc(_dfit(['Inject version in all '+Dirs.AS_IS+' files']));
 task('_versionize', function() {
     console.log('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.AS_IS + '..');
 
@@ -378,7 +422,8 @@ task('_versionize', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create a minified copy of all the sources and bundles from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root');
+desc(_dfit(['Create a minified copy of all the sources and bundles '+
+               'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
 task('_minify', function() {
     console.log('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
 
@@ -463,3 +508,60 @@ function _in_dir(dir, files) {
 }
 
 function _loc(path) { return './' + path; }
+
+function _dfit(lines) {
+  return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX);
+}
+
+function _dfit_nl(lines) {
+  return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX) + '\n';
+}
+
+function _fit_nl(lines, prefix, spaces, tabs, width, def_prefix) {
+  return _fit(lines, prefix, spaces, width, def_prefix) + '\n';
+}
+
+function _fit(lines, prefix, spaces, tabs, width, def_prefix) {
+  if (!lines.length) return '';
+
+  function tabulate(line, indent_first) {
+    var pad = '',
+        tab = '';
+    for (var j = 0; j < spaces; j++) { pad += ' '; }
+    for (var j = 0; j < tabs;   j++) { tab += ' '; }
+    if (spaces + prefix.length + line.length <= width) {
+      new_lines.push(pad + prefix + line.trim());
+    } else {
+      var left = line.length,
+          pos = 0,
+          chunk = 0;
+      while (left > 0) {
+        var do_indent = indent_first || (chunk > 0);
+        var cut_size = width - spaces - prefix.length - ((do_indent ? tabs : 0));
+        new_lines.push(pad + prefix + (do_indent ? tab : '') +
+                       line.substring(pos, pos + cut_size).trim());
+        pos += cut_size;
+        left -= cut_size;
+        chunk++;
+      }
+    }
+  }
+
+  var new_lines = [];
+  if (!def_prefix) {
+    tabulate(lines[0]);
+  } else {
+    if (def_prefix + lines[0].length <= width) {
+      new_lines.push(lines[0].trim());
+    } else {
+      var cut_size = width - def_prefix;
+      new_lines.push(lines[0].substring(0, cut_size).trim());
+      tabulate(lines[0].substring(cut_size), true);
+    }
+  }
+  for (var i = 1, il = lines.length; i < il; i++) {
+    tabulate(lines[i]);
+  }
+  return new_lines.join('\n');
+}
+

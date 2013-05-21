@@ -51,10 +51,10 @@ Clone `git@github.com:Animatron/player.git` to get your own copy.
 To use JS player in current state, download or copy from the cloned repository:
 
  * `src/vendor/matrix.js`
- * `src/anm.player.js`
- * [Optional] `src/anm.builder.js` (allows to build animations in a functional way)
- * [Optional] `src/module/anm.collisions.js` (if you plan to test collisions / point-contains / intersections with your shapes)
- * [Optional] `src/import/animatron_import.js` (allows to load animations from Animatron tool)
+ * `src/player.js`
+ * [Optional] `src/builder.js` (allows to build animations in a functional way)
+ * [Optional] `src/module/collisions.js` (if you plan to test collisions / point-contains / intersections with your shapes)
+ * [Optional] `src/import/animatron_importer.js` (allows to load animations from Animatron tool)
  * [Optional] `json2.js` (JSON parser, if target broswer not supports it (currently required only for Animatron Import))
 
 And add them in the same order to your page header. Don't forget the [`LICENSE`](https://github.com/Animatron/player/blob/master/LICENSE#files) :).
@@ -67,7 +67,16 @@ Run one of the `tests/index.html` and run any of the tests to see if something i
 
 If you'd want to run them from terminal instead of browser, you'll need to have PhantomJS installation and then start `run-tests.sh[ spec]`
 
-#### Local Building
+##### Bundles
+
+When you build player with jake, it also creates several bundles, they are:
+
+1. __Standard__: just player merged with required vendor files — for quick uses of the player (when developer wants very lightweight version)
+1. __Animatron__: vendor files + player + importer from Animatron — exactly this one will be used in embedded player and in the Animatron tool
+1. __Develop__: vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM — it will work ok for developing some general (in terms of code complexity) games.
+1. __Hardcore__: vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games
+
+#### Development
 
 To build locally, you'll need to have both [`jake`](https://github.com/mde/jake) and [`uglify-js` >= 2](https://github.com/mishoo/UglifyJS2) installed.
 
@@ -75,7 +84,7 @@ Then, you'll just need to run:
 
     jake
     # or, the same
-    jake clean dist
+    jake dist
 
 And you have all the variants of the files in `dist` folder.
 
@@ -92,13 +101,85 @@ Or, to check just a specific part of tests (see `./tests/spec/spec-list.js` for 
     jake test[01.player/*]
     jake test[02.animations/01.guids]
 
-##### Bundles
+Here's the contents of the `jake -T` call, that describes each existing task:
 
-When you build player with jake, it also creates several bundles, they are:
+    jake default           # Get full distribution in the /dist directory.
+                           # Exactly the same as calling {jake dist}.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
 
-1. __Standard__: just player merged with required vendor files — for quick uses of the player (when developer wants very lightweight version)
-1. __Animatron__: vendor files + player + importer from Animatron — exactly this one will be used in embedded player and in the Animatron tool
-1. __Develop__: vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM — it will work ok for developing some general (in terms of code complexity) games.
-1. __Hardcore__: vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games
+    jake clean             # Clean previous build artifacts.
+
+    jake build             # Build process, with no cleaning.
+                           # Called by <dist>.
+                           # Depends on: <_prepare>, <_bundles>, <_organize>, <_vers
+                           #        ionize>, <_minify>.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
+
+    jake dist              # Clean previous build and create distribution files, so
+                           #        `dist` directory will contain the full distribut
+                           #        ion for this version, including all required fil
+                           #        es — sources and bundles.
+                           # Coherently calls <clean> and <build>.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
+
+    jake test              # Run tests for the sources (not the distribution).
+                           # Usage: Among with {jake test} may be called with provid
+                           #        ing separate spec or spec group, in a way like:
+                           #        {jake test[01.player/*]} or, for concrete spec:
+                           #        {jake test[01.player/06.errors]}.
+                           # Requires: `jasmine-node`, `phantomjs`.
+
+    jake docs              # Generate Docco docs and compile API documentation into
+                           # HTML files inside of the /doc directory.
+                           # Requires: `docco`, Python installed, `markdown` module
+                           #        for Python(and Python is used only because of th
+                           #        is module).
+                           # Produces: /doc/player.html, /doc/builder.html, /doc/API
+                           #        .html, /doc/README.html, /doc/doccoo.css.
+
+    jake anm-scene-valid   # Validate Animatron scene JSON file.
+                           # Uses /src/import/animatron-project-VERSION.orderly as v
+                           #        alidation scheme.
+                           # Usage: should be called with providing scene JSON file,
+                           #        in a way like: {jake anm-scene-valid[src/some-s
+                           #        cene.json]}.
+                           # Requires: `orderly` and `jsonschema` node.js modules
+
+    jake version           # Get current version or apply/update a version to the cu
+                           # rrent state of files.
+                           # Usage: {jake version} to get current version and {jake
+                           #        version[v0.8]} to set current version to a new o
+                           #        ne (do not forget to push tags)
+                           # Produces: (if invoked with parameter)VERSION, VERSIONS
+                           #        files and git tag
+
+    jake _prepare          # Create dist & dist/full folders
+    jake _bundles          # Create bundles from existing sources and put them into
+                           # dist/full folder
+    jake _bundle           # Create a single bundle file and put it into dist/full f
+                           #        older, bundle is provided as a parameter, e.g.:
+                           #        {jake _bundle[animatron]}
+    jake _organize         # Copy source files to dist/full folder
+    jake _versionize       # Inject version in all dist/full files
+    jake _minify           # Create a minified copy of all the sources and bundles f
+                           #        rom dist/full folder and put them into dist/ fol
+                           #        der root
+
+###### Versions
+
+Versions of software used for development (only `node`, `jake` and `uglifyjs` are required for building):
+
+* `node`: 0.8.9
+* `npm` (node.js): 1.2.8
+* `jake` (node.js): 0.5.14
+* `uglifyjs` (node.js): 2.2.5
+* `phantomjs`: 1.7.0
+* `doccoo` (node.js): 0.6.2
+* `markdown` (Python module): ?
+* `orderly` (node.js): 1.1.0
+* `jsonschema` (node.js): 0.3.2
 
 (c) 2011-2013 by Animatron.
