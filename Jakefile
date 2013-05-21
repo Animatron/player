@@ -118,12 +118,18 @@ var Validation = {
 
 var DONE_MARKER = '.\n';
 
+var DESC_NL = '\n\t\t       # ';
+var DESC_STOP = '\n';
+
 // TASKS
 
-desc('Coherently call `clean` and `dist` tasks by default');
-task('default', ['clean', 'dist'], function() {});
+desc('Get full distribution in the /dist directory.' + DESC_NL +
+     'Exactly the same as calling {jake dist}.' + DESC_NL +
+     'Requires: `uglifyjs`.' + DESC_NL +
+     'Produces: /dist directory.' + DESC_STOP);
+task('default', ['dist'], function() {});
 
-desc('Clean previous build artifacts');
+desc('Clean previous build artifacts.' + DESC_STOP);
 task('clean', function() {
     console.log('Clean previous build artifacts..');
     jake.rmRf(_loc(Dirs.AS_IS));
@@ -131,13 +137,23 @@ task('clean', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create bundles');
+desc('Build process, with no cleaning.' + DESC_NL +
+     'Called by <dist>.' + DESC_NL +
+     'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify.>' + DESC_NL +
+     'Requires: `uglifyjs`.' + DESC_NL +
+     'Produces: /dist directory.' + DESC_STOP);
 task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify'], function() {});
 
-desc('Prepare distribution files');
-task('dist', ['build'], function() {});
+desc('Clean previous build and create distribution files, so `dist` directory will contain the full distribution for this version,' + DESC_NL +
+     '\tincluding all required files — sources and bundles.' + DESC_NL +
+     'Coherently calls <clean> and <build>.' + DESC_NL +
+     'Requires: `uglifyjs`.' + DESC_NL +
+     'Produces: /dist directory.' + DESC_STOP);
+task('dist', ['clean', 'build'], function() {});
 
-desc('Run tests'); // TODO: test minified version instead of plain
+desc('Run tests for the sources (not the distribution).' + DESC_NL +
+     'Usage: May be called with providing separate spec or spec group, in a way like: {jake test[01.player]} or {jake test[01.player/06.errors]} correspondingly' + DESC_NL +
+     'Requires: `jasmine-node`, `phantomjs`.' + DESC_STOP); // TODO: also test minified version
 task('test', function(param) {
     console.log('Running tests');
     /* Usage:
@@ -160,7 +176,9 @@ task('test', function(param) {
               {printStdout: true});
 });
 
-desc('Generate Docco docs');
+desc('Generate Docco docs and compile API documentation into HTML files inside of the /doc directory' + DESC_NL +
+     'Requires: `docco`, Python, `markdown` module for Python' + DESC_NL +
+     'Produces: /doc/player.html, /doc/builder.html, /doc/API.html, /doc/README.html, /doc/doccoo.css' + DESC_STOP);
 task('docs', function() {
     console.log('Generating docs');
     console.log('For sources');
@@ -216,7 +234,10 @@ task('docs', function() {
 //mv doc/README.tmp.html doc/README.html
 });
 
-desc('Validate Animatron Scene');
+desc('Validate Animatron scene JSON file.' + DESC_NL +
+     'Uses /src/import/animatron-project-VERSION.orderly as validation scheme.' + DESC_NL +
+     'Usage: should be called with providing scene file, in a way like {jake anm-scene-valid[src/import/sample-scene.json]}.' + DESC_NL +
+     'Requires: `orderly` node.js module and `jsonschema` node.js module' + DESC_STOP);
 task('anm-scene-valid', function(param) {
   console.log('Checking scene at: ' + _loc(param) + ' with ' + _loc(Validation.Schema.ANM_SCENE));
 
@@ -228,7 +249,7 @@ task('anm-scene-valid', function(param) {
 
   console.log(_v.validate(JSON.parse(jake.cat(_loc(param))), _scheme));
 
-})
+});
 
 /*desc('Run JSHint');
 task('hint', function() {
@@ -265,7 +286,7 @@ task('_bundles', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create a single bundle file and put it into'+Dirs.AS_IS+' folder');
+desc('Create a single bundle file and put it into '+Dirs.AS_IS+' folder, bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}');
 task('_bundle', function(param) {
     if (!param) throw new Error('This task requires a concrete bundle name to be specified');
     var bundle;
@@ -357,7 +378,7 @@ task('_versionize', function() {
     console.log(DONE_MARKER);
 });
 
-desc('Create a minified copy of all the sources from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+' folder root');
+desc('Create a minified copy of all the sources and bundles from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root');
 task('_minify', function() {
     console.log('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
 
