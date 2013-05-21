@@ -80,6 +80,8 @@ When you build player with jake, it also creates several bundles, they are:
 
 To build locally, you'll need to have both [`jake`](https://github.com/mde/jake) and [`uglify-js` >= 2](https://github.com/mishoo/UglifyJS2) installed.
 
+Warning: Building system currently uses `cat` and `mv` commands from UNIX shell, so it will need some UNIX-friendly environment to build correctly. However, node.js for MS Windows currently provides an integrated console that supports stuff like that, so probably it will work ok even without installing MinGW or Cygwin.
+
 Then, you'll just need to run:
 
     jake
@@ -101,7 +103,7 @@ Or, to check just a specific part of tests (see `./tests/spec/spec-list.js` for 
     jake test[01.player/*]
     jake test[02.animations/01.guids]
 
-Here's the contents of the `jake -T` call, that describes each existing task:
+Here's the contents of the `jake -T` call, which describes each existing task:
 
     jake default           # Get full distribution in the /dist directory.
                            # Exactly the same as calling {jake dist}.
@@ -133,7 +135,7 @@ Here's the contents of the `jake -T` call, that describes each existing task:
                            # Requires: `jasmine-node`, `phantomjs`.
 
     jake docs              # Generate Docco docs and compile API documentation into
-                           # HTML files inside of the /doc directory.
+                           #        HTML files inside of the /doc directory.
                            # Requires: `docco`, Python installed, `markdown` module
                            #        for Python(and Python is used only because of th
                            #        is module).
@@ -149,24 +151,24 @@ Here's the contents of the `jake -T` call, that describes each existing task:
                            # Requires: `orderly` and `jsonschema` node.js modules
 
     jake version           # Get current version or apply/update a version to the cu
-                           # rrent state of files.
+                           #        rrent state of files.
                            # Usage: {jake version} to get current version and {jake
                            #        version[v0.8]} to set current version to a new o
                            #        ne (do not forget to push tags)
                            # Produces: (if invoked with parameter)VERSION, VERSIONS
                            #        files and git tag
 
-    jake _prepare          # Create dist & dist/full folders
-    jake _bundles          # Create bundles from existing sources and put them into
-                           # dist/full folder
-    jake _bundle           # Create a single bundle file and put it into dist/full f
-                           #        older, bundle is provided as a parameter, e.g.:
-                           #        {jake _bundle[animatron]}
-    jake _organize         # Copy source files to dist/full folder
-    jake _versionize       # Inject version in all dist/full files
-    jake _minify           # Create a minified copy of all the sources and bundles f
-                           #        rom dist/full folder and put them into dist/ fol
-                           #        der root
+    jake _prepare          # Internal. Create dist & dist/full folders
+    jake _bundles          # Internal. Create bundles from existing sources and put
+                           #        them into dist/full folder
+    jake _bundle           # Internal. Create a single bundle file and put it into d
+                           #        ist/full folder, bundle is provided as a paramet
+                           #        er, e.g.: {jake _bundle[animatron]}
+    jake _organize         # Internal. Copy source files to dist/full folder
+    jake _versionize       # Internal. Inject version in all dist/full files
+    jake _minify           # Internal. Create a minified copy of all the sources and
+                           #        bundles from dist/full folder and put them into
+                           #        dist/ folder root
 
 ###### Versions
 
@@ -177,9 +179,17 @@ Versions of software used for development (only `node`, `jake` and `uglifyjs` ar
 * `jake` (node.js): 0.5.14
 * `uglifyjs` (node.js): 2.2.5
 * `phantomjs`: 1.7.0
+* `jasmine-node`: 1.7.1
 * `doccoo` (node.js): 0.6.2
 * `markdown` (Python module): ?
 * `orderly` (node.js): 1.1.0
 * `jsonschema` (node.js): 0.3.2
+
+Requirements for different actions are:
+
+* Building a distribution: `node`, `jake`, `uglifyjs`
+* Testing sources: `node`, `jake`, `jasmine-node`, `phantomjs`
+* Build HTML documentation: `node`, `jake`, `doccoo`, `python`, Python `markdown` module
+* Validate Animatron scenes: `node`, `jake`, `orderly`, `jsonschema`
 
 (c) 2011-2013 by Animatron.

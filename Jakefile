@@ -10,6 +10,7 @@
 //    npm: 1.2.8
 //    jake: 0.5.14
 //    phantomjs: 1.7.0
+//    jasmine-node: 1.7.1
 //    uglifyjs: 2.2.5
 //    doccoo: 0.6.2
 //    python markdown: ?
@@ -27,8 +28,9 @@ jake.echo = function(what, where) { fs.appendFileSync(where, what, 'utf8'); };
 // CONSTANTS
 
 var VERSION_FILE = 'VERSION',
+    VERSIONS_FILE = 'VERSIONS',
     VERSION = (function(file) {
-       return jake.cat(file).trim();
+       return jake.cat(_loc(file)).trim();
     })(VERSION_FILE);
 
 var COPYRIGHT_COMMENT =
@@ -127,13 +129,19 @@ var Validation = {
     Schema: { ANM_SCENE: Dirs.SRC + '/' + SubDirs.IMPORTERS + '/animatron-project-' + VERSION + '.orderly' }
 }
 
-var DONE_MARKER = '.\n';
+var DONE_MARKER = '<Done>.\n',
+    NONE_MARKER = '<None>.\n',
+    FAILED_MARKER = '<Failed>.\n';
 
 var DESC_WIDTH = 80,
     DESC_PAD = 23,
     DESC_TAB = 7,
     DESC_PFX = '# ',
     DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
+
+var EXEC_OPTS = { printStdout: !jake.program.opts.quiet };
+
+var _print = !jake.program.opts.quiet ? console.log : function() { };
 
 // TASKS
 
@@ -145,10 +153,10 @@ task('default', ['dist'], function() {});
 
 desc(_dfit_nl(['Clean previous build artifacts.']));
 task('clean', function() {
-    console.log('Clean previous build artifacts..');
+    _print('Clean previous build artifacts..');
     jake.rmRf(_loc(Dirs.AS_IS));
     jake.rmRf(_loc(Dirs.MINIFIED));
-    console.log(DONE_MARKER);
+    _print(DONE_MARKER);
 });
 
 desc(_dfit_nl(['Build process, with no cleaning.',
@@ -174,7 +182,7 @@ desc(_dfit_nl(['Run tests for the sources (not the distribution).',
                   '{jake test[01.player/06.errors]}.',
                'Requires: `jasmine-node`, `phantomjs`.'])); // TODO: also test minified version
 task('test', function(param) {
-    console.log('Running tests');
+    _print('Running tests');
     /* Usage:
      *    run all specs: > jake test
      *    run all specs: > jake test[*]
@@ -188,11 +196,10 @@ task('test', function(param) {
                         param || ''
                       ].join(' ');
 
-    console.log(runTestsCmd);
-    jake.exec(runTestsCmd,
-              function() { console.log('Tests finished successfully');
-                           console.log(DONE_MARKER); },
-              {printStdout: true});
+    _print(runTestsCmd);
+    jake.exec(runTestsCmd, EXEC_OPTS,
+              function() { _print('Tests finished successfully');
+                           _print(DONE_MARKER); });
 });
 
 desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
@@ -202,16 +209,16 @@ desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                'Produces: /doc/player.html, /doc/builder.html, '+
                   '/doc/API.html, /doc/README.html, /doc/doccoo.css.']));
 task('docs', function() {
-    console.log('Generating docs');
-    console.log('For sources');
+    _print('Generating docs');
+    _print('For sources');
     jake.exec([ Binaries.DOCCO,
                 '-o',
                 _loc(Dirs.DOCS)
               ].concat(Docs.FromSRC.INCLUDE)
-               .join(' '),
-              function() { console.log('Source docs were Generated successfully');
-                           console.log(DONE_MARKER); });
-    console.log('For README/API');
+               .join(' '), EXEC_OPTS,
+              function() { _print('Source docs were Generated successfully');
+                           _print(DONE_MARKER); });
+    _print('For README/API');
     jake.exec([ [ Binaries.MARKDOWN,
                   _loc(Docs.FromMD.Files.API_SRC),
                   '>', _loc(Docs.FromMD.Files.API_DST),
@@ -226,9 +233,9 @@ task('docs', function() {
                   _loc(Docs.FromMD.Files.API_DST + '.tmp'),
                   _loc(Docs.FromMD.Files.API_DST)
                 ].join(' ')
-              ],
-              function() { console.log('API.html was Generated successfully');
-                           console.log(DONE_MARKER); });
+              ], EXEC_OPTS,
+              function() { _print('API.html was Generated successfully');
+                           _print(DONE_MARKER); });
     jake.exec([ [ Binaries.MARKDOWN,
                   _loc(Docs.FromMD.Files.README_SRC),
                   '>', _loc(Docs.FromMD.Files.README_DST),
@@ -243,9 +250,9 @@ task('docs', function() {
                   _loc(Docs.FromMD.Files.README_DST + '.tmp'),
                   _loc(Docs.FromMD.Files.README_DST)
                 ].join(' ')
-              ],
-              function() { console.log('README.html was Generated successfully');
-                           console.log(DONE_MARKER); });
+              ], EXEC_OPTS,
+              function() { _print('README.html was Generated successfully');
+                           _print(DONE_MARKER); });
 
 //sudo pip install markdown
 //python -m markdown doc/API.md > doc/API.html
@@ -263,7 +270,7 @@ desc(_dfit_nl(['Validate Animatron scene JSON file.',
                   'in a way like: {jake anm-scene-valid[src/some-scene.json]}.',
                'Requires: `orderly` and `jsonschema` node.js modules']));
 task('anm-scene-valid', function(param) {
-  console.log('Checking scene at: ' + _loc(param) + ' with ' + _loc(Validation.Schema.ANM_SCENE));
+  _print('Checking scene at: ' + _loc(param) + ' with ' + _loc(Validation.Schema.ANM_SCENE));
 
   var orderly = require("orderly"),
       jsonschema = require("jsonschema");
@@ -271,20 +278,114 @@ task('anm-scene-valid', function(param) {
   var _scheme = orderly.parse(jake.cat(_loc(Validation.Schema.ANM_SCENE)));
   var _v = new jsonschema.Validator();
 
-  console.log(_v.validate(JSON.parse(jake.cat(_loc(param))), _scheme));
+  _print(_v.validate(JSON.parse(jake.cat(_loc(param))), _scheme));
 
+  _print(DONE_MARKER);
 });
 
-desc(_dfit_nl(['Get current version or apply/update a version to the '+
+desc(_dfit_nl(['Get current version or apply a new version to the '+
                   'current state of files.',
                'Usage: {jake version} to get current version and '+
                   '{jake version[v0.8]} to set current version '+
-                  'to a new one (do not forget to push tags)',
-               'Produces: (if invoked with parameter)'+
+                  'to a new one (do not forget to push tags). '+
+                  'If this version exists, you will get detailed information about it. '+
+                  'To remove a previous version, use <rm-version> task',
+               'Produces: (if creates a new version)'+
                   'VERSION, VERSIONS files and git tag']));
 task('version', function(param) {
+    if (!param) { _print(VERSION); return; }
 
-});
+    // Read versions
+
+    var _v = (param.indexOf('v') == '0') ? param : ('v' + param);
+    _print('Current version: ' + VERSION);
+    _print('Selected version: ' + _v + '\n');
+
+    var _vfile = jake.cat(_loc(VERSIONS_FILE));
+    _print('Known versions:');
+
+    _vfile = _vfile.split('\n');
+    _vhash = {};
+    _vlist = [];
+    if (!_vfile.length) _print(NONE_MARKER);
+    for (var i = 0, il = _vfile.length; i < il; i++) {
+        var _vdata = _vfile[i].split(/\s+/);
+        if (_vdata.length) {
+            _vhash[_vdata[0]] = [ _vdata[1], _vdata[2] ];
+            _vlist.push(_vdata[0]);
+            _print(_vdata[0]);
+        }
+    }
+    _print();
+
+    // Show or write a version data
+
+    if (_vhash[_v]) {
+
+        _print('Selected version exists, here\'s the detailed information about it:\n');
+        if (!jake.program.opts.quiet) {
+          jake.exec([ [ Binaries.GIT, 'show', _v ].join(' ') ], EXEC_OPTS,
+                    function() { _print('\n' + DONE_MARKER); });
+        }
+
+    } else {
+
+        _print('Selected version does not exists, applying it to a current state.\n');
+
+        _print('Getting head revision sha and date.');
+
+        var _getCommitData = jake.createExec([
+          [ Binaries.GIT,
+            'show',
+            '-s',
+            '--format="%H %ct"',
+            'HEAD' ].join(' ')
+          ], EXEC_OPTS);
+        _getCommitData.on('stdout', function(commit_data) {
+
+            commit_data = commit_data.toString().split(/\s+/);
+            var _hash = commit_data[0],
+                _timestamp = commit_data[1],
+                _timestr = new Date(_timestamp * 1000).toString();
+            _print('HEAD sha is: ' + commit_data[0]);
+            _print('HEAD timestamp is: ' + commit_data[1]);
+            _print('HEAD human-written time is: ' + _timestr);
+
+            VERSION = _v;
+
+            /*jake.exec([ Binaries.GIT,
+              'tag',
+              '' ].join(' ')
+            ], EXEC_OPTS, function() {
+
+                jake.rmRf(_loc(VERSION_FILE));
+                _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
+                jake.echo(_v, _loc(VERSION_FILE));
+
+                _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
+                jake.rmRf(_loc(VERSIONS_FILE));
+                var _nline = _v + ' ' + _timestamp + ' ' + _hash + ' <' + _timestr + '>';
+                jake.echo(_nline, _loc(VERSIONS_FILE));
+                _print(VERSIONS_FILE + ' <- ' + _nline);
+                for (var i = 0, il = _vfile.length; i < il; i++) {
+                  var _line = _vfile[i];
+                  jake.echo(_line + '\n', _loc(VERSIONS_FILE));
+                  _print(VERSIONS_FILE + ' <- ' + _line);
+                }
+                // _print('Version was updated, do not forget to rebuild with <jake> command and to push tags to git with <git push origin --tags>')
+                _print(DONE_MARKER);
+
+            })*/
+
+        });
+        _getCommitData.on('error', function(msg) {
+          _print(FAILED_MARKER, msg);
+        });
+        _getCommitData.run();
+
+    }
+
+  });
 
 //task('rm-version', function(param) {
 //
@@ -301,35 +402,35 @@ task('hint', function() {
 
 // ======= SUBTASKS
 
-desc(_dfit(['Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders']));
+desc(_dfit(['Internal. Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders']));
 task('_prepare', function() {
-    console.log('Create required destination folders..');
-    console.log('mkdir -p ' + _loc(Dirs.MINIFIED));
+    _print('Create required destination folders..');
+    _print('mkdir -p ' + _loc(Dirs.MINIFIED));
     jake.mkdirP(_loc(Dirs.MINIFIED));
-    console.log('mkdir -p ' + _loc(Dirs.AS_IS));
+    _print('mkdir -p ' + _loc(Dirs.AS_IS));
     jake.mkdirP(_loc(Dirs.AS_IS));
-    console.log(DONE_MARKER);
+    _print(DONE_MARKER);
 });
 
-desc(_dfit(['Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder']));
+desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder']));
 task('_bundles', function() {
-    console.log('Create Bundles..')
+    _print('Create Bundles..')
 
     var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
     Bundles.forEach(function(bundle) {
-        console.log('Package bundle \'' + bundle.name + '\'');
+        _print('Package bundle \'' + bundle.name + '\'');
         var targetFile = targetDir + '/' + bundle.file + '.js';
         bundle.includes.forEach(function(bundleFile) {
             jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n', _loc(targetFile));
-            console.log('.. ' + bundleFile + ' > ' + targetFile);
+            _print('.. ' + bundleFile + ' > ' + targetFile);
         });
     });
 
-    console.log(DONE_MARKER);
+    _print(DONE_MARKER);
 });
 
-desc(_dfit(['Create a single bundle file and put it into '+Dirs.AS_IS+' folder, '+
+desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.AS_IS+' folder, '+
                'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
 task('_bundle', function(param) {
     if (!param) throw new Error('This task requires a concrete bundle name to be specified');
@@ -340,18 +441,18 @@ task('_bundle', function(param) {
     if (!bundle) throw new Error('Bundle with name ' + param + ' was not found');
     var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
-    console.log('Package bundle \'' + bundle.name + '\'');
+    _print('Package bundle \'' + bundle.name + '\'');
     var targetFile = targetDir + '/' + bundle.file + '.js';
     bundle.includes.forEach(function(bundleFile) {
             jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n', _loc(targetFile));
-            console.log('.. ' + bundleFile + ' > ' + targetFile);
+            _print('.. ' + bundleFile + ' > ' + targetFile);
         });
 });
 
-desc(_dfit(['Copy source files to '+Dirs.AS_IS+' folder']));
+desc(_dfit(['Internal. Copy source files to '+Dirs.AS_IS+' folder']));
 task('_organize', function() {
 
-    console.log('Copy files to ' + Dirs.AS_IS + '..');
+    _print('Copy files to ' + Dirs.AS_IS + '..');
 
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.PLAYER),
              _loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
@@ -376,56 +477,56 @@ task('_organize', function() {
                  _loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
     });
 
-    console.log(DONE_MARKER);
+    _print(DONE_MARKER);
 });
 
-desc(_dfit(['Inject version in all '+Dirs.AS_IS+' files']));
+desc(_dfit(['Internal. Inject version in all '+Dirs.AS_IS+' files']));
 task('_versionize', function() {
-    console.log('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.AS_IS + '..');
+    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.AS_IS + '..');
 
     function versionize(file) {
         var new_content = jake.cat(file).trim()
                                         .replace(/@VERSION/g, VERSION);
         jake.rmRf(file);
         jake.echo(new_content, file);
-        console.log('v -> ' + file);
+        _print('v -> ' + file);
     }
 
-    console.log('.. Main files');
+    _print('.. Main files');
 
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
 
-    console.log('.. Modules');
+    _print('.. Modules');
 
     Files.Ext.MODULES.forEach(function(moduleFile) {
         versionize(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
-    console.log('.. Importers');
+    _print('.. Importers');
 
     Files.Ext.IMPORTERS.forEach(function(importerFile) {
         versionize(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
-    console.log('.. Bundles');
+    _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
         versionize(_loc(Dirs.AS_IS + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
-    console.log('..Docs');
+    _print('..Docs');
 
     versionize(_loc(Files.Doc.README));
     versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
 
-    console.log(DONE_MARKER);
+    _print(DONE_MARKER);
 });
 
-desc(_dfit(['Create a minified copy of all the sources and bundles '+
+desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
 task('_minify', function() {
-    console.log('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
+    _print('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
 
     function minify(src, dst, cb) {
         jake.exec([
@@ -434,8 +535,8 @@ task('_minify', function() {
               '-o',
               dst, src
             ].join(' ')
-        ], cb);
-        console.log('min -> ' + src + ' -> ' + dst);
+        ], EXEC_OPTS, cb);
+        _print('min -> ' + src + ' -> ' + dst);
     }
 
     function copyrightize(file) {
@@ -445,17 +546,17 @@ task('_minify', function() {
                                            .concat(jake.cat(file).trim());
         jake.rmRf(file);
         jake.echo(new_content, file);
-        console.log('(c) -> ' + file);
+        _print('(c) -> ' + file);
     }
 
     function minifyWithCopyright(src, dst) {
         minify(src, dst, function() {
             copyrightize(dst);
-            console.log(DONE_MARKER);
+            _print(DONE_MARKER);
         })
     }
 
-    console.log('.. Vendor Files');
+    _print('.. Vendor Files');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.VENDOR);
     Files.Ext.VENDOR.forEach(function(vendorFile) {
@@ -463,14 +564,14 @@ task('_minify', function() {
                _loc(Dirs.MINIFIED + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
 
-    console.log('.. Main files');
+    _print('.. Main files');
 
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
                         _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
                         _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
 
-    console.log('.. Bundles');
+    _print('.. Bundles');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.BUNDLES);
     Bundles.forEach(function(bundle) {
@@ -478,7 +579,7 @@ task('_minify', function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
-    console.log('.. Modules');
+    _print('.. Modules');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
     Files.Ext.MODULES.forEach(function(moduleFile) {
@@ -486,7 +587,7 @@ task('_minify', function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
-    console.log('.. Importers');
+    _print('.. Importers');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS);
     Files.Ext.IMPORTERS.forEach(function(importerFile) {
@@ -494,7 +595,7 @@ task('_minify', function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
-    console.log('\n(async)\n');
+    _print('\n(async)\n');
 });
 
 // UTILS
@@ -530,7 +631,7 @@ function _fit(lines, prefix, spaces, tabs, width, def_prefix) {
     for (var j = 0; j < spaces; j++) { pad += ' '; }
     for (var j = 0; j < tabs;   j++) { tab += ' '; }
     if (spaces + prefix.length + line.length <= width) {
-      new_lines.push(pad + prefix + line.trim());
+      new_lines.push(pad + prefix + (indent_first ? tab : '') + line.trim());
     } else {
       var left = line.length,
           pos = 0,
@@ -551,7 +652,7 @@ function _fit(lines, prefix, spaces, tabs, width, def_prefix) {
   if (!def_prefix) {
     tabulate(lines[0]);
   } else {
-    if (def_prefix + lines[0].length <= width) {
+    if ((def_prefix + lines[0].length) <= width) {
       new_lines.push(lines[0].trim());
     } else {
       var cut_size = width - def_prefix;
