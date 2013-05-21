@@ -38,7 +38,8 @@ var Binaries = {
     PHANTOMJS: 'phantomjs',
     CAT: 'cat',
     MV: 'mv',
-    MARKDOWN: 'python -m markdown'
+    MARKDOWN: 'python -m markdown',
+    GIT: 'git'
 };
 
 var Dirs = {
