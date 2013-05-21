@@ -19,7 +19,7 @@ object {
         integer numberOfScenes?;
         union {
             null;
-            string [ "Public" ];
+            string [ "Public", "Unlisted" ];
         } projectAccessType?;
         boolean projectAccessReadOnly?;
     } meta;
@@ -44,6 +44,7 @@ object {
                     array [ string ] rgbas?;
                     array [ number ] offsets;
                     array { number; number; number; number; } bounds;
+                    number alpha?;
                 };
             }
         ] swatches?;
@@ -74,6 +75,7 @@ object {
                 array [ string ] rgbas?;
                 array [ number ] offsets;
                 array { number; number; number; number; } bounds;
+                number alpha?;
             };
         } background;
 
@@ -131,6 +133,7 @@ object {
                                 array [ string ] rgbas?;
                                 array [ number ] offsets;
                                 array { number; number; number; number; } bounds;
+                                number alpha?;
                             };
                         } paint?;
 
@@ -156,8 +159,9 @@ object {
                             array [ string ] rgbas?;
                             array [ number ] offsets;
                             array { number; number; number; number; } bounds;
+                            number alpha?;
                         };
-                    } fill;
+                    } fill?;
 
                 };
 
@@ -188,14 +192,14 @@ object {
 
                             number masked?;
                             array [
-                                string [ "Translate", "Rotate", "Scale", "Alpha", "rotate-to-path" ]
+                                string [ "Translate", "Rotate", "Scale", "Alpha", "Shear", "rotate-to-path" ]
                             ] "last-frames-defined"?;
-                            string "saved-tweens"?;
+                            string "saved-tweens"?; // "[{\"type\":\"Scale\",..."
 
                             // tweens
                             array [
                                 object {
-                                    string type [ "Translate", "Rotate", "Scale", "Alpha", "rotate-to-path" ];
+                                    string type [ "Translate", "Rotate", "Scale", "Alpha", "Shear", "rotate-to-path" ];
                                     array { number; number; } band;
                                     array [ number ] data?;
                                     string path?;
