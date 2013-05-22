@@ -29,6 +29,8 @@ jake.echo = function(what, where) { fs.appendFileSync(where, what, 'utf8'); };
 
 var VERSION_FILE = 'VERSION',
     VERSIONS_FILE = 'VERSIONS',
+    VERSION_LOG_FILE = 'VERSION_LOG',
+    CHANGES_FILE = 'CHANGES',
     VERSION = (function(file) {
        return jake.cat(_loc(file)).trim();
     })(VERSION_FILE);
@@ -284,38 +286,30 @@ task('anm-scene-valid', function(param) {
 });
 
 desc(_dfit_nl(['Get current version or apply a new version to the '+
-                  'current state of files.',
+                  'current state of files. If applies a new version, '+
+                  'then also adds a git tag, while pushes nothing.',
                'Usage: {jake version} to get current version and '+
                   '{jake version[v0.8]} to set current version '+
                   'to a new one (do not forget to push tags). '+
                   'If this version exists, you will get detailed information about it. '+
                   'To remove a previous version, use <rm-version> task',
                'Produces: (if creates a new version)'+
-                  'VERSION, VERSIONS files and git tag']));
+                  'VERSION, VERSIONS files and a git tag']));
 task('version', function(param) {
     if (!param) { _print(VERSION); return; }
 
     // Read versions
 
-    var _v = (param.indexOf('v') == '0') ? param : ('v' + param);
+    var _v = _version(param);
     _print('Current version: ' + VERSION);
     _print('Selected version: ' + _v + '\n');
 
-    var _vfile = jake.cat(_loc(VERSIONS_FILE));
-    _print('Known versions:');
+    // TODO: if (_v.match(/\d+\.\d+/))
 
-    _vfile = _vfile.split('\n');
-    _vhash = {};
-    _vlist = [];
-    if (!_vfile.length) _print(NONE_MARKER);
-    for (var i = 0, il = _vfile.length; i < il; i++) {
-        var _vdata = _vfile[i].split(/\s+/);
-        if (_vdata.length) {
-            _vhash[_vdata[0]] = [ _vdata[1], _vdata[2] ];
-            _vlist.push(_vdata[0]);
-            _print(_vdata[0]);
-        }
-    }
+    var _vhash = read_versions();
+
+    if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no any version data stored in ' + VERSIONS_FILE + ' file.'); }
+
     _print();
 
     // Show or write a version data
@@ -324,13 +318,19 @@ task('version', function(param) {
 
         _print('Selected version exists, here\'s the detailed information about it:\n');
         if (!jake.program.opts.quiet) {
-          jake.exec([ [ Binaries.GIT, 'show', _v ].join(' ') ], EXEC_OPTS,
-                    function() { _print('\n' + DONE_MARKER); });
+            jake.exec([
+                [ Binaries.GIT,
+                  'show',
+                  '-s',
+                  //'--format=full',
+                  _v  ].join(' ')
+                ], EXEC_OPTS,
+                function() { _print('\n' + DONE_MARKER); });
         }
 
     } else {
 
-        _print('Selected version does not exists, applying it to a current state.\n');
+        _print('Selected version does not exists, applying the new one (' + _v + ') to a current state.\n');
 
         _print('Getting head revision sha and date.');
 
@@ -347,51 +347,106 @@ task('version', function(param) {
             var _hash = commit_data[0],
                 _timestamp = commit_data[1],
                 _timestr = new Date(_timestamp * 1000).toString();
-            _print('HEAD sha is: ' + commit_data[0]);
-            _print('HEAD timestamp is: ' + commit_data[1]);
+            _print('HEAD sha is: ' + _hash);
+            _print('HEAD timestamp is: ' + _timestamp);
             _print('HEAD human-written time is: ' + _timestr);
 
-            VERSION = _v;
+            _vhash[_v] = [ _hash, _timestamp, _timestr ];
 
-            /*jake.exec([ Binaries.GIT,
-              'tag',
-              '' ].join(' ')
+            jake.exec([
+              [ Binaries.GIT,
+                'tag',
+                '-a', // annotated
+                //'-s', // signed
+                '-f', // force creation
+                '--file', _loc(VERSION_LOG_FILE),
+                _v ].join(' ')
             ], EXEC_OPTS, function() {
+
+                VERSION = _v;
 
                 jake.rmRf(_loc(VERSION_FILE));
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
-                _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
-                jake.rmRf(_loc(VERSIONS_FILE));
-                var _nline = _v + ' ' + _timestamp + ' ' + _hash + ' <' + _timestr + '>';
-                jake.echo(_nline, _loc(VERSIONS_FILE));
-                _print(VERSIONS_FILE + ' <- ' + _nline);
-                for (var i = 0, il = _vfile.length; i < il; i++) {
-                  var _line = _vfile[i];
-                  jake.echo(_line + '\n', _loc(VERSIONS_FILE));
-                  _print(VERSIONS_FILE + ' <- ' + _line);
-                }
-                // _print('Version was updated, do not forget to rebuild with <jake> command and to push tags to git with <git push origin --tags>')
+                write_versions(_vhash);
+
+                _print();
+                _print('Version ' + _v + ' was applied.');
                 _print(DONE_MARKER);
 
-            })*/
+            });
 
         });
         _getCommitData.on('error', function(msg) {
-          _print(FAILED_MARKER, msg);
+            _print(FAILED_MARKER, msg);
+            throw new Error(msg);
         });
         _getCommitData.run();
 
     }
 
-  });
+});
 
-//task('rm-version', function(param) {
-//
-//});
+desc(_dfit_nl(['Remove given version information from versions '+
+                  'data files among with the git tag. Pushes nothing.',
+               'Usage: {jake version[v0.9:v0.8]} to remove version 0.9 '+
+                  'and then set current version to 0.8, '+
+                  '{jake rm-version[v0.9:]} to remove given version, '+
+                  'but yo stay at the current one (do not forget to push tags) '+
+                  'To add a new version, use <version> task',
+               'Produces: (if removes a version)'+
+                  'VERSION, VERSIONS files and removes a git tag']));
+task('rm-version', function(param) {
+    if (!param) { throw new Error('Both target version and fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
 
-//task('push', function(param) {
+    var _s = param.split(':'),
+        src_v = _version(_s[0]),
+        dst_v = _version(_s[1]) || VERSION;
+
+    if (!src_v) { _print(FAILED_MARKER); throw new Error('Target version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
+    if (!dst_v) { _print(FAILED_MARKER); throw new Error('Fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
+    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is already a current version (' + VERSION + ').'); }
+
+    var _vhash = read_versions();
+
+    if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no any version data stored in ' + VERSIONS_FILE + ' file.'); }
+
+    if (!_vhash[src_v]) { _print(FAILED_MARKER); throw new Error('No version ' + src_v + ' registered in ' + VERSIONS_FILE + ' file.'); }
+    if (!_vhash[dst_v]) { _print(FAILED_MARKER); throw new Error('No version ' + dst_v + ' registered in ' + VERSIONS_FILE + ' file.'); }
+
+    _print();
+    _print(src_v + ' -> ' + dst_v);
+    _print();
+
+    jake.exec([
+        [ Binaries.GIT,
+          'tag',
+          '-d',
+          src_v ].join(' ')
+    ], EXEC_OPTS, function() {
+
+        VERSION = dst_v;
+
+        jake.rmRf(_loc(VERSION_FILE));
+        _print(dst_v + ' -> ' + VERSION_FILE);
+        jake.echo(dst_v, _loc(VERSION_FILE));
+
+        _vhash[src_v] = null;
+        delete _vhash[src_v];
+
+        write_versions(_vhash);
+
+        _print();
+        _print('Version ' + src_v + ' was removed and replaced back to ' + dst_v);
+        _print(DONE_MARKER);
+
+    });
+
+
+});
+
+//task('push-version', function(param) {
 //
 //});
 
@@ -611,58 +666,98 @@ function _in_dir(dir, files) {
 function _loc(path) { return './' + path; }
 
 function _dfit(lines) {
-  return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX);
+    return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX);
 }
 
 function _dfit_nl(lines) {
-  return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX) + '\n';
+    return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX) + '\n';
 }
 
 function _fit_nl(lines, prefix, spaces, tabs, width, def_prefix) {
-  return _fit(lines, prefix, spaces, width, def_prefix) + '\n';
+    return _fit(lines, prefix, spaces, width, def_prefix) + '\n';
 }
 
 function _fit(lines, prefix, spaces, tabs, width, def_prefix) {
-  if (!lines.length) return '';
+    if (!lines.length) return '';
 
-  function tabulate(line, indent_first) {
-    var pad = '',
-        tab = '';
-    for (var j = 0; j < spaces; j++) { pad += ' '; }
-    for (var j = 0; j < tabs;   j++) { tab += ' '; }
-    if (spaces + prefix.length + line.length <= width) {
-      new_lines.push(pad + prefix + (indent_first ? tab : '') + line.trim());
-    } else {
-      var left = line.length,
-          pos = 0,
-          chunk = 0;
-      while (left > 0) {
-        var do_indent = indent_first || (chunk > 0);
-        var cut_size = width - spaces - prefix.length - ((do_indent ? tabs : 0));
-        new_lines.push(pad + prefix + (do_indent ? tab : '') +
-                       line.substring(pos, pos + cut_size).trim());
-        pos += cut_size;
-        left -= cut_size;
-        chunk++;
-      }
+    function tabulate(line, indent_first) {
+        var pad = '',
+            tab = '';
+        for (var j = 0; j < spaces; j++) { pad += ' '; }
+        for (var j = 0; j < tabs;   j++) { tab += ' '; }
+        if (spaces + prefix.length + line.length <= width) {
+            new_lines.push(pad + prefix + (indent_first ? tab : '') + line.trim());
+        } else {
+            var left = line.length,
+                pos = 0,
+                chunk = 0;
+            while (left > 0) {
+                var do_indent = indent_first || (chunk > 0);
+                var cut_size = width - spaces - prefix.length - ((do_indent ? tabs : 0));
+                new_lines.push(pad + prefix + (do_indent ? tab : '') +
+                               line.substring(pos, pos + cut_size).trim());
+                pos += cut_size;
+                left -= cut_size;
+                chunk++;
+            }
+        }
     }
-  }
 
-  var new_lines = [];
-  if (!def_prefix) {
-    tabulate(lines[0]);
-  } else {
-    if ((def_prefix + lines[0].length) <= width) {
-      new_lines.push(lines[0].trim());
+    var new_lines = [];
+    if (!def_prefix) {
+        tabulate(lines[0]);
     } else {
-      var cut_size = width - def_prefix;
-      new_lines.push(lines[0].substring(0, cut_size).trim());
-      tabulate(lines[0].substring(cut_size), true);
+        if ((def_prefix + lines[0].length) <= width) {
+            new_lines.push(lines[0].trim());
+        } else {
+            var cut_size = width - def_prefix;
+            new_lines.push(lines[0].substring(0, cut_size).trim());
+            tabulate(lines[0].substring(cut_size), true);
+        }
     }
-  }
-  for (var i = 1, il = lines.length; i < il; i++) {
-    tabulate(lines[i]);
-  }
-  return new_lines.join('\n');
+    for (var i = 1, il = lines.length; i < il; i++) {
+        tabulate(lines[i]);
+    }
+    return new_lines.join('\n');
 }
 
+function _version(val) {
+    if (!val) return null;
+    return (val.indexOf('v') == '0') ? val : ('v' + val)
+}
+
+function read_versions() {
+    var _vfile,
+        _vhash;
+    try {
+        _vfile = jake.cat(_loc(VERSIONS_FILE));
+        if (!_vfile.length) throw new Error('File is empty');
+        _print('Known versions:');
+        _vhash = JSON.parse(_vfile);
+        var _collected = 0;
+        for (v in _vhash) {
+            _print(v);
+            _collected++;
+        };
+        if (!_collected) _print(NONE_MARKER);
+    } catch(e) {
+        _print(e.message || e);
+        _print(VERSIONS_FILE + ' failed to parse or no ' + VERSIONS_FILE + ' file was found.');
+        _print();
+        _print(FAILED_MARKER);
+        return;
+    }
+    return _vhash;
+}
+
+function write_versions(_vhash) {
+    _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
+    console.log
+    var _vhash_json = JSON.stringify(_vhash, null, 4);
+    jake.rmRf(_loc(VERSIONS_FILE));
+    jake.echo(_vhash_json, _loc(VERSIONS_FILE));
+    for (v in _vhash) {
+        var _d = _vhash[v];
+        _print(VERSIONS_FILE + ' <- ' + v + ' ' + _d[0] + ' ' + _d[1] + ' <' + _d[2] + '>');
+    };
+}
