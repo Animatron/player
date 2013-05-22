@@ -150,13 +150,27 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                            #        cene.json]}.
                            # Requires: `orderly` and `jsonschema` node.js modules
 
-    jake version           # Get current version or apply/update a version to the cu
-                           #        rrent state of files.
+    jake version           # Get current version or apply a new version to the curre
+                           #        nt state of files. If applies a new version, the
+                           #        n also adds a git tag, while pushes nothing.
                            # Usage: {jake version} to get current version and {jake
                            #        version[v0.8]} to set current version to a new o
-                           #        ne (do not forget to push tags)
-                           # Produces: (if invoked with parameter)VERSION, VERSIONS
-                           #        files and git tag
+                           #        ne (do not forget to push tags). If this version
+                           #        exists, you will get detailed information about
+                           #        it. To remove a previous version, use <rm-versi
+                           #        on> task
+                           # Produces: (if creates a new version)VERSION, VERSIONS f
+                           #        iles and a git tag
+
+    jake rm-version        # Remove given version information from versions data fil
+                           #        es among with the git tag. Pushes nothing.
+                           # Usage: {jake version[v0.9:v0.8]} to remove version 0.9
+                           #        and then set current version to 0.8, {jake rm-ve
+                           #        rsion[v0.9:]} to remove given version, but yo st
+                           #        ay at the current one (do not forget to push tag
+                           #        s) To add a new version, use <version> task
+                           # Produces: (if removes a version)VERSION, VERSIONS files
+                           #        and removes a git tag
 
     jake _prepare          # Internal. Create dist & dist/full folders
     jake _bundles          # Internal. Create bundles from existing sources and put
