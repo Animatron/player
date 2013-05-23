@@ -306,7 +306,7 @@ task('version', function(param) {
 
     // TODO: if (_v.match(/\d+\.\d+/))
 
-    var _vhash = read_versions();
+    var _vhash = _versions.read();
 
     if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no any version data stored in ' + VERSIONS_FILE + ' file.'); }
 
@@ -369,7 +369,7 @@ task('version', function(param) {
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
-                write_versions(_vhash);
+                _versions.write(_vhash);
 
                 _print();
                 _print('Version ' + _v + ' was applied.');
@@ -408,7 +408,7 @@ task('rm-version', function(param) {
     if (!dst_v) { _print(FAILED_MARKER); throw new Error('Fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
     if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is already a current version (' + VERSION + ').'); }
 
-    var _vhash = read_versions();
+    var _vhash = _versions.read();
 
     if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no any version data stored in ' + VERSIONS_FILE + ' file.'); }
 
@@ -435,7 +435,7 @@ task('rm-version', function(param) {
         _vhash[src_v] = null;
         delete _vhash[src_v];
 
-        write_versions(_vhash);
+        _versions.write(_vhash);
 
         _print();
         _print('Version ' + src_v + ' was removed and replaced back to ' + dst_v);
@@ -446,9 +446,24 @@ task('rm-version', function(param) {
 
 });
 
-//task('push-version', function(param) {
-//
-//});
+task('push-version', function(param) {
+
+    var creds = [];
+    try {
+        creds = jake.cat(_loc('.s3'));
+    } catch(e) {
+        _print('No .s3 file which should contain credentials to upload with was found');
+        _print(FAILED_MARKER);
+        throw e;
+    }
+
+    creds = creds.split(/\s+/);
+
+    _print('Got credentials. Making a request.');
+
+    _s3.put(creds, '/VERSIONS', jake.cat(_loc(VERSIONS_FILE)), 'text/json');
+
+});
 
 /*desc('Run JSHint');
 task('hint', function() {
@@ -726,38 +741,141 @@ function _version(val) {
     return (val.indexOf('v') == '0') ? val : ('v' + val)
 }
 
-function read_versions() {
-    var _vfile,
-        _vhash;
-    try {
-        _vfile = jake.cat(_loc(VERSIONS_FILE));
-        if (!_vfile.length) throw new Error('File is empty');
-        _print('Known versions:');
-        _vhash = JSON.parse(_vfile);
-        var _collected = 0;
-        for (v in _vhash) {
-            _print(v);
-            _collected++;
-        };
-        if (!_collected) _print(NONE_MARKER);
-    } catch(e) {
-        _print(e.message || e);
-        _print(VERSIONS_FILE + ' failed to parse or no ' + VERSIONS_FILE + ' file was found.');
-        _print();
-        _print(FAILED_MARKER);
-        return;
+var _versions = (function() {
+
+    function _read() {
+        var _vfile,
+            _vhash;
+        try {
+            _vfile = jake.cat(_loc(VERSIONS_FILE));
+            if (!_vfile.length) throw new Error('File is empty');
+            _print('Known versions:');
+            _vhash = JSON.parse(_vfile);
+            var _collected = 0;
+            for (v in _vhash) {
+                _print(v);
+                _collected++;
+            };
+            if (!_collected) _print(NONE_MARKER);
+        } catch(e) {
+            _print(e.message || e);
+            _print(VERSIONS_FILE + ' failed to parse or no ' + VERSIONS_FILE + ' file was found.');
+            _print();
+            _print(FAILED_MARKER);
+            return;
+        }
+        return _vhash;
     }
-    return _vhash;
+
+    function _write(_vhash) {
+        _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
+        console.log
+        var _vhash_json = JSON.stringify(_vhash, null, 4);
+        jake.rmRf(_loc(VERSIONS_FILE));
+        jake.echo(_vhash_json, _loc(VERSIONS_FILE));
+        for (v in _vhash) {
+            var _d = _vhash[v];
+            _print(VERSIONS_FILE + ' <- ' + v + ' ' + _d[0] + ' ' + _d[1] + ' <' + _d[2] + '>');
+        };
+    }
+
+    return { read: _read,
+             write: _write };
+})();
+
+
+var _s3 = (function() {
+
+    var http = require('http'),
+        crypto = require('crypto');
+
+    var BUCKET = 'animatron-player.s3.amazonaws.com';
+
+    function __authorize(creds, opts) {
+        var user = creds[0],
+            acc_id = creds[1],
+            acc_secret = creds[2];
+
+        switch (opts.method) {
+            case 'GET': {
+                return 'AWS ' + acc_id + ':' +
+                       crypto.createHmac('sha1', acc_secret)
+                             .update('GET\n\n\n' + opts.date + '\n/johnsmith' + opts.path)
+                             .digest('base64');
+            }; break;
+        }
+    }
+
+    function _get(creds, path, callback) {
+        //var user = creds[0];
+
+        var opts = {
+            'host': BUCKET,
+            'method': 'GET',
+            'date': new Date(),
+            'path': path
+        }
+        opts.authorization = __authorize(creds, opts);
+
+        _print();
+        _print('>>>>>>>>>>>');
+        _print(opts);
+        _print('<<<<<<<<<<<');
+        _print();
+
+        var _cb = function(response) {
+            var str = ''
+            response.on('data', function (chunk) {
+                str += chunk;
+            });
+
+            response.on('end', function () {
+                callback(str);
+            });
+
+            response.on('error', function(e) {
+                _print(FAILED_MARKER);
+                throw e;
+            });
+        }
+
+        http.request(opts, _cb).end();
+    }
+
+    function _put() {
+
+    }
+
+    return { get: _get,
+             put: _put };
+})();
+
+
+
+/*function _ask_s3_for(http, creds, path, callback) {
+    //var user = creds[0];
+
+    var opts = {
+        'host': 'johnsmith.s3.amazonaws.com', //'animatron.s3.amazonaws.com',
+        'method': 'GET',
+        'date': 'Tue, 27 Mar 2007 19:36:42 +0000', // new Date(),
+        'path': '/photos/puppy.jpg' // path
+    }
+    opts.authorization = _authorize(['johnsmith', 'AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'], opts);
 }
 
-function write_versions(_vhash) {
-    _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
-    console.log
-    var _vhash_json = JSON.stringify(_vhash, null, 4);
-    jake.rmRf(_loc(VERSIONS_FILE));
-    jake.echo(_vhash_json, _loc(VERSIONS_FILE));
-    for (v in _vhash) {
-        var _d = _vhash[v];
-        _print(VERSIONS_FILE + ' <- ' + v + ' ' + _d[0] + ' ' + _d[1] + ' <' + _d[2] + '>');
-    };
-}
+function _authorize(creds, opts) {
+    var crypto = require('crypto');
+
+    var user = creds[0],
+        acc_id = creds[1],
+        acc_secret = creds[2];
+
+    switch (opts.method) {
+        case 'GET': {
+            return crypto.createHmac('sha1', acc_secret)
+                         .update('GET\n\n\n' + opts.date + '\n/johnsmith' + opts.path)
+                         .digest('base64');
+        }; break;
+    }
+}*/

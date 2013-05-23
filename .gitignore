@@ -1,5 +1,6 @@
 *.bak
 .idea
+.s3
 .DS_Store
 idea-files.zip
 node_modules
