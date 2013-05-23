@@ -198,6 +198,7 @@ Versions of software used for development (only `node`, `jake` and `uglifyjs` ar
 * `markdown` (Python module): ?
 * `orderly` (node.js): 1.1.0
 * `jsonschema` (node.js): 0.3.2
+* `aws2js` (node.js): 0.8.3
 
 Requirements for different actions are:
 
@@ -205,5 +206,6 @@ Requirements for different actions are:
 * Testing sources: `node`, `jake`, `jasmine-node`, `phantomjs`
 * Build HTML documentation: `node`, `jake`, `doccoo`, `python`, Python `markdown` module
 * Validate Animatron scenes: `node`, `jake`, `orderly`, `jsonschema`
+* Putting Files to S3: `node`, `jake`, `aws2js`
 
 (c) 2011-2013 by Animatron.

@@ -16,6 +16,7 @@
 //    python markdown: ?
 //    orderly: 1.1.0
 //    jsonschema: 0.3.2
+//    aws2js: 0.8.3
 
 var fs = require('fs')/*,
     path = require('path')*/;
@@ -461,7 +462,35 @@ task('push-version', function(param) {
 
     _print('Got credentials. Making a request.');
 
-    _s3.put(creds, _loc(VERSIONS_FILE), '/VERSIONS', 'text/json');
+    var s3 = require('aws2js').load('s3', creds[1], creds[2]);
+
+    s3.setBucket('animatron-player');
+
+    console.log('Put file');
+
+    s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
+        if (err) { _print(FAILED_MARKER); throw err; }
+    });
+
+    console.log('Get file');
+
+    /* s3.get('/VERSIONS', null, 'stream', function(buf) {
+
+      console.log('+++', buf);
+
+      var str = '';
+
+      //another chunk of data has been recieved, so append it to `str`
+      buf.on('data', function (chunk) {
+        str += chunk;
+      });
+
+      //the whole response has been recieved, so we just print it out here
+      buf.on('end', function () {
+        console.log(str);
+      });
+
+    }); */
 
 });
 
@@ -782,130 +811,3 @@ var _versions = (function() {
     return { read: _read,
              write: _write };
 })();
-
-
-var _s3 = (function() {
-
-    var http = require('http'),
-        crypto = require('crypto');
-
-    var BUCKET = 'animatron-player.s3.amazonaws.com';
-
-    var __cb = function(callback) {
-        return function(response) {
-            var str = '';
-            response.on('data', function (chunk) {
-                str += chunk;
-            });
-
-            response.on('end', function () {
-                __pretty_print(response);
-                callback(str);
-            });
-
-            response.on('error', function(e) {
-                _print(FAILED_MARKER);
-                throw e;
-            });
-        };
-    };
-
-    function __authorize(creds, opts) {
-        var user = creds[0],
-            acc_id = creds[1],
-            acc_secret = creds[2];
-
-        switch (opts.method) {
-            case 'GET': {
-                return 'AWS ' + acc_id + ':' +
-                       crypto.createHmac('sha1', acc_secret)
-                             .update('GET\n\n\n' + opts.date + '\n/johnsmith' + opts.path)
-                             .digest('base64');
-            }; break;
-        }
-    }
-
-    function __pretty_print(obj) {
-        _print();
-        _print('>>>>>>>>>>>');
-        _print(obj);
-        _print('<<<<<<<<<<<');
-        _print();
-    }
-
-    function _get(creds, path, callback) {
-        //var user = creds[0];
-
-        var opts = {
-            'host': BUCKET,
-            'method': 'GET',
-            'date': new Date(),
-            'path': path
-        }
-        opts.authorization = __authorize(creds, opts);
-
-        __pretty_print(opts);
-
-        http.request(opts, __cb(callback)).end();
-    }
-
-    function _put(creds, path_from, path_to, contenttype, callback) {
-
-        //var content_stream = fs.createReadStream(_loc(path_from));
-
-        var content_buf = new Buffer(jake.cat(path_from));
-
-        var opts = {
-            'host': BUCKET,
-            'method': 'PUT',
-            'date': new Date(),
-            'path': path_to,
-            'content-type': contenttype,
-            'content-md5': crypto.createHash('md5').update(content_buf).digest('hex'),
-            'content-length': content_buf.length
-        }
-        opts.authorization = __authorize(creds, opts);
-
-        __pretty_print(opts);
-
-        var request =  http.request(opts, __cb(callback)).write(content_buf).end();
-
-        /* content_stream.on('close', function() { request.end(); });
-
-        content_stream.pipe(request); */
-
-    }
-
-    return { get: _get,
-             put: _put };
-})();
-
-
-
-/*function _ask_s3_for(http, creds, path, callback) {
-    //var user = creds[0];
-
-    var opts = {
-        'host': 'johnsmith.s3.amazonaws.com', //'animatron.s3.amazonaws.com',
-        'method': 'GET',
-        'date': 'Tue, 27 Mar 2007 19:36:42 +0000', // new Date(),
-        'path': '/photos/puppy.jpg' // path
-    }
-    opts.authorization = _authorize(['johnsmith', 'AKIAIOSFODNN7EXAMPLE', 'wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY'], opts);
-}
-
-function _authorize(creds, opts) {
-    var crypto = require('crypto');
-
-    var user = creds[0],
-        acc_id = creds[1],
-        acc_secret = creds[2];
-
-    switch (opts.method) {
-        case 'GET': {
-            return crypto.createHmac('sha1', acc_secret)
-                         .update('GET\n\n\n' + opts.date + '\n/johnsmith' + opts.path)
-                         .digest('base64');
-        }; break;
-    }
-}*/
