@@ -461,7 +461,7 @@ task('push-version', function(param) {
 
     _print('Got credentials. Making a request.');
 
-    _s3.put(creds, '/VERSIONS', jake.cat(_loc(VERSIONS_FILE)), 'text/json');
+    _s3.put(creds, _loc(VERSIONS_FILE), '/VERSIONS', 'text/json');
 
 });
 
@@ -791,6 +791,25 @@ var _s3 = (function() {
 
     var BUCKET = 'animatron-player.s3.amazonaws.com';
 
+    var __cb = function(callback) {
+        return function(response) {
+            var str = '';
+            response.on('data', function (chunk) {
+                str += chunk;
+            });
+
+            response.on('end', function () {
+                __pretty_print(response);
+                callback(str);
+            });
+
+            response.on('error', function(e) {
+                _print(FAILED_MARKER);
+                throw e;
+            });
+        };
+    };
+
     function __authorize(creds, opts) {
         var user = creds[0],
             acc_id = creds[1],
@@ -806,6 +825,14 @@ var _s3 = (function() {
         }
     }
 
+    function __pretty_print(obj) {
+        _print();
+        _print('>>>>>>>>>>>');
+        _print(obj);
+        _print('<<<<<<<<<<<');
+        _print();
+    }
+
     function _get(creds, path, callback) {
         //var user = creds[0];
 
@@ -817,32 +844,35 @@ var _s3 = (function() {
         }
         opts.authorization = __authorize(creds, opts);
 
-        _print();
-        _print('>>>>>>>>>>>');
-        _print(opts);
-        _print('<<<<<<<<<<<');
-        _print();
+        __pretty_print(opts);
 
-        var _cb = function(response) {
-            var str = ''
-            response.on('data', function (chunk) {
-                str += chunk;
-            });
-
-            response.on('end', function () {
-                callback(str);
-            });
-
-            response.on('error', function(e) {
-                _print(FAILED_MARKER);
-                throw e;
-            });
-        }
-
-        http.request(opts, _cb).end();
+        http.request(opts, __cb(callback)).end();
     }
 
-    function _put() {
+    function _put(creds, path_from, path_to, contenttype, callback) {
+
+        //var content_stream = fs.createReadStream(_loc(path_from));
+
+        var content_buf = new Buffer(jake.cat(path_from));
+
+        var opts = {
+            'host': BUCKET,
+            'method': 'PUT',
+            'date': new Date(),
+            'path': path_to,
+            'content-type': contenttype,
+            'content-md5': crypto.createHash('md5').update(content_buf).digest('hex'),
+            'content-length': content_buf.length
+        }
+        opts.authorization = __authorize(creds, opts);
+
+        __pretty_print(opts);
+
+        var request =  http.request(opts, __cb(callback)).write(content_buf).end();
+
+        /* content_stream.on('close', function() { request.end(); });
+
+        content_stream.pipe(request); */
 
     }
 
