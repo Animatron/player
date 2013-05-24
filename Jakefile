@@ -62,6 +62,7 @@ var Dirs = {
     SRC: 'src',
     AS_IS: 'dist/full',
     MINIFIED: 'dist',
+    DIST_ROOT: 'dist',
     TESTS: 'tests',
     DOCS: 'doc'
 };
@@ -184,7 +185,7 @@ desc(_dfit_nl(['Run tests for the sources (not the distribution).',
                   'in a way like: {jake test[01.player/*]} or, for concrete spec: '+
                   '{jake test[01.player/06.errors]}.',
                'Requires: `jasmine-node`, `phantomjs`.'])); // TODO: also test minified version
-task('test', function(param) {
+task('test', { async: true }, function(param) {
     _print('Running tests');
     /* Usage:
      *    run all specs: > jake test
@@ -202,7 +203,8 @@ task('test', function(param) {
     _print(runTestsCmd);
     jake.exec(runTestsCmd, EXEC_OPTS,
               function() { _print('Tests finished successfully');
-                           _print(DONE_MARKER); });
+                           _print(DONE_MARKER);
+                           complete(); });
 });
 
 desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
@@ -211,51 +213,73 @@ desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                   '(and Python is used only because of this module).',
                'Produces: /doc/player.html, /doc/builder.html, '+
                   '/doc/API.html, /doc/README.html, /doc/doccoo.css.']));
-task('docs', function() {
+task('docs', { async: true }, function() {
     _print('Generating docs');
-    _print('For sources');
-    jake.exec([ Binaries.DOCCO,
-                '-o',
-                _loc(Dirs.DOCS)
-              ].concat(Docs.FromSRC.INCLUDE)
-               .join(' '), EXEC_OPTS,
-              function() { _print('Source docs were Generated successfully');
-                           _print(DONE_MARKER); });
-    _print('For README/API');
-    jake.exec([ [ Binaries.MARKDOWN,
-                  _loc(Docs.FromMD.Files.API_SRC),
-                  '>', _loc(Docs.FromMD.Files.API_DST),
-                ].join(' '),
-                [ Binaries.CAT,
-                  _loc(Docs.FromMD.Parts._head),
-                  _loc(Docs.FromMD.Files.API_DST),
-                  _loc(Docs.FromMD.Parts._foot),
-                  '>', _loc(Docs.FromMD.Files.API_DST + '.tmp'),
-                ].join(' '),
-                [ Binaries.MV,
-                  _loc(Docs.FromMD.Files.API_DST + '.tmp'),
-                  _loc(Docs.FromMD.Files.API_DST)
-                ].join(' ')
-              ], EXEC_OPTS,
-              function() { _print('API.html was Generated successfully');
-                           _print(DONE_MARKER); });
-    jake.exec([ [ Binaries.MARKDOWN,
-                  _loc(Docs.FromMD.Files.README_SRC),
-                  '>', _loc(Docs.FromMD.Files.README_DST),
-                ].join(' '),
-                [ Binaries.CAT,
-                  _loc(Docs.FromMD.Parts._head),
-                  _loc(Docs.FromMD.Files.README_DST),
-                  _loc(Docs.FromMD.Parts._foot),
-                  '>', _loc(Docs.FromMD.Files.README_DST + '.tmp'),
-                ].join(' '),
-                [ Binaries.MV,
-                  _loc(Docs.FromMD.Files.README_DST + '.tmp'),
-                  _loc(Docs.FromMD.Files.README_DST)
-                ].join(' ')
-              ], EXEC_OPTS,
-              function() { _print('README.html was Generated successfully');
-                           _print(DONE_MARKER); });
+
+    function _src_docs(next) {
+        _print('For sources');
+
+        jake.exec([ Binaries.DOCCO,
+                    '-o',
+                    _loc(Dirs.DOCS)
+                  ].concat(Docs.FromSRC.INCLUDE)
+                   .join(' '), EXEC_OPTS,
+                  function() { _print('Source docs were Generated successfully');
+                               _print(DONE_MARKER);
+                               if (next) next(); });
+    }
+
+    function _api_docs(next) {
+        _print('For API');
+        jake.exec([ [ Binaries.MARKDOWN,
+                      _loc(Docs.FromMD.Files.API_SRC),
+                      '>', _loc(Docs.FromMD.Files.API_DST),
+                    ].join(' '),
+                    [ Binaries.CAT,
+                      _loc(Docs.FromMD.Parts._head),
+                      _loc(Docs.FromMD.Files.API_DST),
+                      _loc(Docs.FromMD.Parts._foot),
+                      '>', _loc(Docs.FromMD.Files.API_DST + '.tmp'),
+                    ].join(' '),
+                    [ Binaries.MV,
+                      _loc(Docs.FromMD.Files.API_DST + '.tmp'),
+                      _loc(Docs.FromMD.Files.API_DST)
+                    ].join(' ')
+                  ], EXEC_OPTS,
+                  function() { _print('API.html was Generated successfully');
+                               _print(DONE_MARKER);
+                               if (next) next(); });
+    }
+
+    function _readme_docs(next) {
+        _print('For README');
+        jake.exec([ [ Binaries.MARKDOWN,
+                      _loc(Docs.FromMD.Files.README_SRC),
+                      '>', _loc(Docs.FromMD.Files.README_DST),
+                    ].join(' '),
+                    [ Binaries.CAT,
+                      _loc(Docs.FromMD.Parts._head),
+                      _loc(Docs.FromMD.Files.README_DST),
+                      _loc(Docs.FromMD.Parts._foot),
+                      '>', _loc(Docs.FromMD.Files.README_DST + '.tmp'),
+                    ].join(' '),
+                    [ Binaries.MV,
+                      _loc(Docs.FromMD.Files.README_DST + '.tmp'),
+                      _loc(Docs.FromMD.Files.README_DST)
+                    ].join(' ')
+                  ], EXEC_OPTS,
+                  function() { _print('README.html was Generated successfully');
+                               _print(DONE_MARKER);
+                               if (next) next(); });
+    }
+
+    _src_docs(function() {
+      _api_docs(function() {
+        _readme_docs(function() {
+          complete();
+        });
+      });
+    });
 
 //sudo pip install markdown
 //python -m markdown doc/API.md > doc/API.html
@@ -296,7 +320,7 @@ desc(_dfit_nl(['Get current version or apply a new version to the '+
                   'To remove a previous version, use <rm-version> task',
                'Produces: (if creates a new version)'+
                   'VERSION, VERSIONS files and a git tag']));
-task('version', function(param) {
+task('version', { async: true }, function(param) {
     if (!param) { _print(VERSION); return; }
 
     // Read versions
@@ -326,7 +350,7 @@ task('version', function(param) {
                   //'--format=full',
                   _v  ].join(' ')
                 ], EXEC_OPTS,
-                function() { _print('\n' + DONE_MARKER); });
+                function() { _print('\n' + DONE_MARKER); complete(); });
         }
 
     } else {
@@ -354,6 +378,8 @@ task('version', function(param) {
 
             _vhash[_v] = [ _hash, _timestamp, _timestr ];
 
+            _print('Applying a git tag ' + _v + ' to HEAD');
+
             jake.exec([
               [ Binaries.GIT,
                 'tag',
@@ -370,11 +396,13 @@ task('version', function(param) {
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
+                _print('Writing ' + _v + ' information to ' + VERSIONS_FILE + ' file.\n');
                 _versions.write(_vhash);
 
                 _print();
                 _print('Version ' + _v + ' was applied.');
                 _print(DONE_MARKER);
+                complete();
 
             });
 
@@ -394,11 +422,11 @@ desc(_dfit_nl(['Remove given version information from versions '+
                'Usage: {jake version[v0.9:v0.8]} to remove version 0.9 '+
                   'and then set current version to 0.8, '+
                   '{jake rm-version[v0.9:]} to remove given version, '+
-                  'but yo stay at the current one (do not forget to push tags) '+
+                  'but to stay at the current one. (Do not forget to push tags.) '+
                   'To add a new version, use <version> task',
                'Produces: (if removes a version)'+
                   'VERSION, VERSIONS files and removes a git tag']));
-task('rm-version', function(param) {
+task('rm-version', { async: true }, function(param) {
     if (!param) { throw new Error('Both target version and fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
 
     var _s = param.split(':'),
@@ -420,6 +448,8 @@ task('rm-version', function(param) {
     _print(src_v + ' -> ' + dst_v);
     _print();
 
+    _print('Removing a git tag ' + src_v);
+
     jake.exec([
         [ Binaries.GIT,
           'tag',
@@ -436,61 +466,81 @@ task('rm-version', function(param) {
         _vhash[src_v] = null;
         delete _vhash[src_v];
 
+        _print('Removing ' + src_v + ' information from ' + VERSIONS_FILE + ' file.\n');
+
         _versions.write(_vhash);
 
         _print();
         _print('Version ' + src_v + ' was removed and replaced back to ' + dst_v);
         _print(DONE_MARKER);
+        complete();
 
     });
 
 
 });
 
-task('push-version', function(param) {
+task('push-version', ['dist'], { async: true }, function(param) {
 
-    var creds = [];
-    try {
-        creds = jake.cat(_loc('.s3'));
-    } catch(e) {
-        _print('No .s3 file which should contain credentials to upload with was found');
-        _print(FAILED_MARKER);
-        throw e;
-    }
+    _print('Collecting file paths to upload');
 
-    creds = creds.split(/\s+/);
+    var walk = require('walk');
 
-    _print('Got credentials. Making a request.');
+    var files   = [];
 
-    var s3 = require('aws2js').load('s3', creds[1], creds[2]);
+    var walker  = walk.walk(_loc(Dirs.DIST_ROOT), { followLinks: false });
 
-    s3.setBucket('animatron-player');
-
-    console.log('Put file');
-
-    s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
-        if (err) { _print(FAILED_MARKER); throw err; }
+    walker.on('file', function(root, stat, next) {
+        files.push(root + '/' + stat.name);
+        next();
     });
 
-    console.log('Get file');
+    walker.on('end', function() {
+        _print('Files to put: ');
+        console.log(files);
 
-    /* s3.get('/VERSIONS', null, 'stream', function(buf) {
+        var creds = [];
+        try {
+            creds = jake.cat(_loc('.s3'));
+        } catch(e) {
+            _print('No .s3 file which should contain credentials to upload with was found');
+            _print(FAILED_MARKER);
+            throw e;
+        }
 
-      console.log('+++', buf);
+        creds = creds.split(/\s+/);
 
-      var str = '';
+        _print('Got credentials. Making a request.');
 
-      //another chunk of data has been recieved, so append it to `str`
-      buf.on('data', function (chunk) {
-        str += chunk;
-      });
+        /* var s3 = require('aws2js').load('s3', creds[1], creds[2]);
 
-      //the whole response has been recieved, so we just print it out here
-      buf.on('end', function () {
-        console.log(str);
-      });
+        s3.setBucket('animatron-player'); */
 
-    }); */
+        /* s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
+            if (err) { _print(FAILED_MARKER); throw err; }
+            console.log(res);
+        }); */
+
+        /* s3.get('/VERSIONS', null, 'stream', function(buf) {
+
+          console.log('+++', buf);
+
+          var str = '';
+
+          //another chunk of data has been recieved, so append it to `str`
+          buf.on('data', function (chunk) {
+            str += chunk;
+          });
+
+          //the whole response has been recieved, so we just print it out here
+          buf.on('end', function () {
+            console.log(str);
+          });
+
+        }); */
+
+        complete();
+    });
 
 });
 
@@ -624,7 +674,7 @@ task('_versionize', function() {
 
 desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
-task('_minify', function() {
+task('_minify', { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
 
     function minify(src, dst, cb) {
@@ -648,10 +698,14 @@ task('_minify', function() {
         _print('(c) -> ' + file);
     }
 
+    var tasks = 0;
     function minifyWithCopyright(src, dst) {
+        tasks++;
         minify(src, dst, function() {
             copyrightize(dst);
             _print(DONE_MARKER);
+            tasks--;
+            if (!tasks) complete();
         })
     }
 
@@ -694,7 +748,6 @@ task('_minify', function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
-    _print('\n(async)\n');
 });
 
 // UTILS

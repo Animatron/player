@@ -186,6 +186,9 @@ Here's the contents of the `jake -T` call, which describes each existing task:
 
 ###### Versions
 
+None of the libraries or software is required to run and use the player, except HTML5-Compatible browser.
+The versions listed below are for the development participation only.
+
 Versions of software used for development (only `node`, `jake` and `uglifyjs` are required for building):
 
 * `node`: 0.8.9
@@ -199,6 +202,7 @@ Versions of software used for development (only `node`, `jake` and `uglifyjs` ar
 * `orderly` (node.js): 1.1.0
 * `jsonschema` (node.js): 0.3.2
 * `aws2js` (node.js): 0.8.3
+* `walk` (node.js): 2.2.1
 
 Requirements for different actions are:
 
@@ -206,6 +210,6 @@ Requirements for different actions are:
 * Testing sources: `node`, `jake`, `jasmine-node`, `phantomjs`
 * Build HTML documentation: `node`, `jake`, `doccoo`, `python`, Python `markdown` module
 * Validate Animatron scenes: `node`, `jake`, `orderly`, `jsonschema`
-* Putting Files to S3: `node`, `jake`, `aws2js`
+* Putting Files to S3: `node`, `jake`, `aws2js`, `walk`
 
 (c) 2011-2013 by Animatron.
