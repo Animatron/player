@@ -486,14 +486,15 @@ task('rm-version', { async: true }, function(param) {
 });
 
 desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
-                 'to S3 at the path of `<VERSION>/` or `latest/`. '+
-                 'No git switching to tag or anything smarter than just build and push to directory. '+
-                 'To assign a version to a `HEAD` '+
-                 'use {jake version[<version>]}, then you are safe to push.',
+                   'to S3 at the path of `<VERSION>/` or `latest/`. '+
+                   'No git switching to tag or anything smarter than just build and push to directory. '+
+                   'To assign a version to a `HEAD` '+
+                   'use {jake version[<version>]}, then you are safe to push.',
                'Usage: {jake push-version} to push current version from VERSION file. '+
-                 'To push to `latest/`, use {jake push-version[latest]}.',
+                   'To push to `latest/`, use {jake push-version[latest]}.',
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
-               'Requires: `aws2js` and `walk` node.js modules.']));
+               'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
+                    '`aws2js` and `walk` node.js modules.']));
 task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
 
     var trg_dir = (param || VERSION);
