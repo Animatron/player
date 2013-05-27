@@ -312,14 +312,16 @@ task('anm-scene-valid', function(param) {
 
 desc(_dfit_nl(['Get current version or apply a new version to the '+
                   'current state of files. If applies a new version, '+
-                  'then also adds a git tag, while pushes nothing.',
+                  'modifies VERSION and VERSIONS files, then also adds '+
+                  'a git tag, while pushes nothing. Uses VERSION_LOG file '+
+                  'to provide annotation for a new tag.',
                'Usage: {jake version} to get current version and '+
                   '{jake version[v0.8]} to set current version '+
                   'to a new one (do not forget to push tags). '+
                   'If this version exists, you will get detailed information about it. '+
-                  'To remove a previous version, use <rm-version> task',
-               'Produces: (if creates a new version)'+
-                  'VERSION, VERSIONS files and a git tag']));
+                  'To remove a previous version, use <rm-version> task.',
+               'Affects: (if creates a new version) '+
+                  'VERSION, VERSIONS files and a git tag.']));
 task('version', { async: true }, function(param) {
     if (!param) { _print(VERSION); return; }
 
@@ -378,6 +380,8 @@ task('version', { async: true }, function(param) {
 
             _vhash[_v] = [ _hash, _timestamp, _timestr ];
 
+            _vhash['latest'] = _v;
+
             _print('Applying a git tag ' + _v + ' to HEAD');
 
             jake.exec([
@@ -420,12 +424,12 @@ task('version', { async: true }, function(param) {
 desc(_dfit_nl(['Remove given version information from versions '+
                   'data files among with the git tag. Pushes nothing.',
                'Usage: {jake version[v0.9:v0.8]} to remove version 0.9 '+
-                  'and then set current version to 0.8, '+
+                  'and then set current (and latest) version to 0.8, '+
                   '{jake rm-version[v0.9:]} to remove given version, '+
                   'but to stay at the current one. (Do not forget to push tags.) '+
-                  'To add a new version, use <version> task',
-               'Produces: (if removes a version)'+
-                  'VERSION, VERSIONS files and removes a git tag']));
+                  'To add a new version, use <version> task.',
+               'Affects: (if removes a version) '+
+                  'VERSION, VERSIONS files and removes a git tag.']));
 task('rm-version', { async: true }, function(param) {
     if (!param) { throw new Error('Both target version and fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
 
@@ -465,6 +469,7 @@ task('rm-version', { async: true }, function(param) {
 
         _vhash[src_v] = null;
         delete _vhash[src_v];
+        _vhash['latest'] = _dst_v;
 
         _print('Removing ' + src_v + ' information from ' + VERSIONS_FILE + ' file.\n');
 
@@ -480,7 +485,18 @@ task('rm-version', { async: true }, function(param) {
 
 });
 
-task('push-version', ['dist'], { async: true }, function(param) {
+desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
+                 'to S3 at the path of `<VERSION>/` or `latest/`. '+
+                 'No git switching to tag or anything smarter than just build and push to directory. '+
+                 'To assign a version to a `HEAD` '+
+                 'use {jake version[<version>]}, then you are safe to push.',
+               'Usage: {jake push-version} to push current version from VERSION file. '+
+                 'To push to `latest/`, use {jake push-version[latest]}.',
+               'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
+               'Requires: `aws2js` and `walk` node.js modules.']));
+task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
+
+    var trg_dir = (param || VERSION);
 
     _print('Collecting file paths to upload');
 
@@ -491,13 +507,16 @@ task('push-version', ['dist'], { async: true }, function(param) {
     var walker  = walk.walk(_loc(Dirs.DIST_ROOT), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
-        files.push(root + '/' + stat.name);
+        files.push([ root + '/' + stat.name, // source
+                     trg_dir +  // destination
+                     root.substring(root.indexOf(Dirs.DIST_ROOT) +
+                                    Dirs.DIST_ROOT.length) + '/'
+                     + stat.name ]);
         next();
     });
 
     walker.on('end', function() {
-        _print('Files to put: ');
-        console.log(files);
+        _print('Got list of files to put to S3');
 
         var creds = [];
         try {
@@ -512,34 +531,26 @@ task('push-version', ['dist'], { async: true }, function(param) {
 
         _print('Got credentials. Making a request.');
 
-        /* var s3 = require('aws2js').load('s3', creds[1], creds[2]);
+        var s3 = require('aws2js').load('s3', creds[1], creds[2]);
 
-        s3.setBucket('animatron-player'); */
+        s3.setBucket('animatron-player');
 
-        /* s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
+        s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
-            console.log(res);
-        }); */
+            console.log(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
 
-        /* s3.get('/VERSIONS', null, 'stream', function(buf) {
+            var files_count = files.length;
 
-          console.log('+++', buf);
-
-          var str = '';
-
-          //another chunk of data has been recieved, so append it to `str`
-          buf.on('data', function (chunk) {
-            str += chunk;
-          });
-
-          //the whole response has been recieved, so we just print it out here
-          buf.on('end', function () {
-            console.log(str);
-          });
-
-        }); */
-
-        complete();
+            files.forEach(function(file) {
+                s3.putFile(file[1], _loc(file[0]), 'public-read', { 'content-type': 'text/javascript' }, (function(file) {
+                  return function(err,res) {
+                    if (err) { _print(FAILED_MARKER); throw err; }
+                    _print(file[0] + ' -> S3 as ' + file[1]);
+                    if (!files_count) { _print(DONE_MARKER); complete(); }
+                  }
+                })(file));
+            });
+        });
     });
 
 });
