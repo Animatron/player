@@ -1,0 +1,195 @@
+v0.9.12 / ... / ....
+====================
+
+* Versioning with Jake
+
+Last PR #93: "Versioning"
+
+
+v0.9.11 / ... / ...
+===================
+
+This version includes almost complete implementation of versioning, but is required to be done before v0.9.12, to test versions mechanics before merging.
+
+
+v0.9.1 / Mon May 20 23:24:52 2013 +0200 / 216a5f011e05fb83e3517a4dade022f1d9739a0a
+==================================================================================
+
+Includes:
+
+* Improvements on Repeat modes like `once`/`stay`/`loop`/`bounce` (allow to restict last two with concrete number of times), it mostly came from Animatron Tool
+* Totally new design for the controls
+* Fix Pixel-ratio tests
+* Show last frame when stopped playing in preview and video modes
+* Major fixes regarding retina
+* Fix scaling when scene aspect ratio equals to player aspect ratio
+* Scaling scene to a size of player
+* Improving sprites (a new code introduced)
+* Tool compatibility
+* Fixes scene and element duration issues with importing scenes from the tool
+* Proper Calculation of Scene Duration + Element has Infinite Band by Default
+* Generate Docs from Markdown files
+* Sandbox improvements
+* Building with Jake and Bundles
+
+Last PR #92: "STAY is default mode for importing from Animatron"
+
+
+v0.9 / Sun Mar 3 17:10:17 2013 -0800 / 5f9f4149a372ac4b16236880c3da795db98f2098
+===============================================================================
+
+Includes:
+* Modifiers are back to normal and relative modifiers are now the optional part, though fully implemented and usable
+* Relative tweens are also supported
+* Improved tests automation (it is ok to run them from console now)
+* Several fixes
+* Image caching from @Nek
+
+Still:
+* Trigger-modifiers are still not very guaranteed to be called, especially in the end of the band
+
+Last PR #72: "Tests Automation"
+
+
+
+v0.246b / Fri Nov 2 14:56:17 2012 -0700 / bed582ae4ad3956a08f40af6f3dd79b73cb3b792
+==================================================================================
+
+**Major** change is that ALL types of the modifiers now receive _relative time_.
+
+The another **major** change is that _tweens_ are TOTALLY identical to _band-restricted modifiers_ now, they just have predefined functions.
+
+This version will **BREAK** most of the code used with previous versions. The version just before these changes has `v0.245` tag, so it is safe to switch to it and your code will work properly, but w
+
+So, developers who use the engine should change their code accordingly, and I recommend to do it in a separate branch, use `v0.245` and `v0.246b` tags to checkout and switch versions of player.
+
+Some new aggressive errors may appear while using new code, please report it to me, by e-mail or through issues, I'll try to fix them asap.
+
+Final `v0.246` version will fix `AnimatronImporter`, new-found bugs and include docs. If you feel unsafe, you may wait to the final `v0.246` version which should fix bugs unrelated to animations and those
+
+* tweens now act as a band-restricted modifiers, so they get value of `0` before their band wasn't started and value of `1` after their band; please keep that in mind when you use overlapping modifiers or
+* simple modifiers now take time `t` in range of `0..1`, second argument is `duration`, so to get the actual value you should use `t * duration`; `data` is the _third_ argument now.
+* default band for any empty element is back to `0..10`, before it was `0..MAX_INT` — it was changed back since all modifiers now get `0..1` of `t` and in previous version empty elements got the very smal
+* state is now totally clean in modifiers when it comes inside on new frame, so code like `this.x += 5` will not work (and failed to work before, but it is another story), please use previous state that i
+
+Modifiers types:
+
+* `b().modify(function(t, [duration[, data]]) { ... })` — now modifier takes `t` in range `0..1`, and takes `duration`, which is duration of the element band (same to `this.$.duration()`).
+* `b().modify([x, y], function(t, [duration[, data]]) { ... })`, will call a modifier through the inner band, getting _value from `0..1`_ in the duration of the band `[x, y]`, like tweens. It is important
+* `b().modify(my_t, function(t, [duration[, data]]) { ... })` will call a modifier at `my_t` time or a bit later, if framerate is low, and will get actual time when it was called. `my_t` is like a band-ti
+
+See example from [Previous PR#53](https://github.com/Animatron/player/pull/56) to get vision of new types of modifiers.
+
+Other changes:
+
+* Tweens are equal to band-modifiers, their functions are also changed accordingly
+* Default band for empty element is now `0..10`
+* It is now possible to pass easing for any modifier (I should also mention it in docs)
+* Element state is now cleared on every frame (previously it was cloned and passed to new-frame modifiers)
+* `scene.duration` and elements' bands calculation fixes, default band for the element is now [0, 10]
+* More bands, scene & element duration tests, so they should work more polished
+* Partly refactored errors to be collected in a single object
+
+`v0.247` is planned to include relative-modifiers, so:
+
+    b().band([0, 5]).modify([2.5, 4], function(t) { ... })
+    b().band([0, 5]).rmodify([1/2, 4/5], function(t) { ... })
+
+will be equal, and the same with triggers:
+
+    b().band([0, 5]).modify(2.5, function(t) { ... })
+    b().band([0, 5]).rmodify(1/2, function(t) { ... })
+
+Last PR #57: "Time is relative in all of the modifiers. Tweens are now totally identical to band-restricted modifiers"
+
+
+
+v0.245 / Mon Oct 29 01:42:46 2012 -0700 / 92c53a52632d70d14cbe6ee4d1ffae867b3a214f
+==================================================================================
+
+Transitional version. Introduces time-restricted modifiers, but their abilities differ alot, and it will be fixed in next versions.
+
++ `b().modify(function(t) { ... })`, acts like before
++ `b().modify([x, y], function(t) { ... })`, will call a modifier through the inner band, getting _value from `0..1`_ in the duration of the band `[x, y]`, like tweens. It is important to note that it wil
++ `b().modify(my_t, function(t) { ... })` will call a modifier at `my_t` time or a bit later, if framerate is low, and will get actual time when it was called. both `my_t` and `t` are relative to a band o
+
+Also includes these inner things:
+
++ `stopAfter` argument for play to stop when played given amount of seconds
++ smart time-decisions for exact-time modifiers
++ timer-emulator for tests
++ play-and-wait-for-something-happen helper for tests
++ better grouping of painters and modifiers
+* removed preview for modes other than C.M_VIDEO mode
+
+Last PR #56: "Time is relative in all of the modifiers. Tweens are now totally identical to band-restricted modifiers"
+
+
+
+v0.24 / Mon Oct 1 04:26:08 2012 -0700 / c95d1e30d2d73f75ec70b6add04609700fcf7137
+================================================================================
+
+Includes:
+
++ masks support, with fixes
++ callbacks to drawAt method, and every-frame callback
++ load scene from url
++ customizing player with url
++ retina support (mouse events sometimes produce incorrect positions)
++ unmodify/unpaint improved
++ tests
+* fix arrow keys
+* fix enabling/disabling elements in chains
+* fixes for loading options from attributes/configuration object
+
+Last PR: #55 "Retina support: Final touches"
+
+
+
+v0.23 / Fri Sep 7 07:00:11 2012 -0700 / 0752b5ea0d86d5989e0546a6270c3f41726a4579
+================================================================================
+
+"A callback to call after every frame + some nice playing cycle/drawAt tests"
+
++ collisions module and all that stuff related to it: intersections/contains test
++ two-states mode (previous/current) for rendering, gives a lot of advantages for collisions and animations at all
++ data() method to store data within elements
++ iteration over child elements: each()/deach()
++ caching already wrapped elements in Builder -> faster access from modifiers
++ infinite bands
++ live adding/removing elements to/from scene
++ live adding/removing modifiers to/from elements
++ priorities from modifiers and painters
++ started tests
++ force focus on canvas if player is in dynamic mode
++ TeamCity integration
++ at() method to call a modifier at some concrete time
++ clear() method to clear the element
+* elements-cloning fixes
+* fix alpha tween
+* fix circle shape
+* fix player representation in all cases
+* fix all of problems with playing appeared while developing previous versions
+* fix __stopAnim callback to stop drawing once and only the corresponding rendering cycle
+
+
+
+v0.22-patched / Wed May 23 16:53:32 2012 +0400 / 59e238c011a916e7b7d119c370fcda27810053c6
+=========================================================================================
+
+patch for v0.22
+
+
+
+v0.22 / Tue May 22 13:22:48 2012 +0400 / a8dd55e126c3f8f7f3efa626fe376e483f05afa3
+=================================================================================
+
+* fix alpha encoding for FF
+
+
+
+v0.21 / Tue Apr 10 18:47:08 2012 +0300 / 64b58e1d4e2f081358d7faaa50559fd3876c7215
+=================================================================================
+
+zoom in options + fix accidentally changed order of tweens applying
+
