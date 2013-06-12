@@ -113,19 +113,33 @@
 
         var start = (function () {
 
-            var _search = location.search,
-                _first_amp_pos = _search.indexOf('&');
+            var SNAPSHOT_ID_LEN = 36;// 8 + 1     + 4 + 1     + 4 + 1     + 4 + 1       + 12;
+                SNAPSHOT_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}',
+                VERSION_MASK = '(v[0-9\.-]+)|latest';
 
-            var SNAPSHOT_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}';
+            var _search = location.search,
+                _first_amp_pos = _search.indexOf('&'),
+                _before_amp = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos)
+                                                   : _search.substring(1),
+                _version_specified = _before_amp.length > (SNAPSHOT_ID_LEN + 1);
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
                 URL_PREFIX = PROTOCOL + 'animatron-snapshots.s3.amazonaws.com',
-                SNAPSHOT_ID = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos) : _search.substring(1);
+                SNAPSHOT_ID = _version_specified ? _before_amp.substring(0, SNAPSHOT_ID_LEN)
+                                                 : _before_amp,
+                VERSION_ID = _version_specified ? _before_amp.substring(SNAPSHOT_ID_LEN + 1)
+                                                : 'latest';
 
             if (!SNAPSHOT_ID ||
                 !SNAPSHOT_ID.match(SNAPSHOT_MASK)) {
                 _u.reportError(new Error('Snapshot ID \'' + SNAPSHOT_ID + '\' is incorrect'));
+                return;
+            }
+
+            if (!VERSION_ID ||
+                !VERSION_ID.match(VERSION_MASK)) {
+                _u.reportError(new Error('Version ID \'' + VERSION_ID + '\' is incorrect'));
                 return;
             }
 
@@ -161,7 +175,7 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS(PROTOCOL + 'player.animatron.com/latest/bundle/animatron.js', function () {
+                    _u.forcedJS(PROTOCOL + 'player.animatron.com/' + VERSION_ID + '/bundle/animatron.js', function () {
                         anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
                     });
                 } catch (e) {
