@@ -113,26 +113,32 @@
 
         var start = (function () {
 
-            var SNAPSHOT_ID_LEN = 36;// 8 + 1     + 4 + 1     + 4 + 1     + 4 + 1       + 12;
-                SNAPSHOT_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}',
+            var SNAPSHOT_V1_LEN = 36, // 8 + 1     + 4 + 1     + 4 + 1     + 4 + 1       + 12;
+                SNAPSHOT_V2_LEN = 24,
+                SNAPSHOT_V1_DASH_POS = /*below V*/9,
+                SNAPSHOT_V1_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}',
+                SNAPSHOT_V2_MASK = '[a-z0-9]{24}',
                 VERSION_MASK = '(v[0-9\.-]+)|latest';
 
             var _search = location.search,
                 _first_amp_pos = _search.indexOf('&'),
+                _is_v1 = _search.indexOf('-') == SNAPSHOT_V1_DASH_POS, _is_v2 = !_is_v1,
+                _snapshot_id_len = _is_v1 ? SNAPSHOT_V1_LEN : SNAPSHOT_V2_LEN,
+                _snapshot_id_mask = _is_v1 ? SNAPSHOT_V1_MASK : SNAPSHOT_V2_MASK,
                 _before_amp = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos)
                                                    : _search.substring(1),
-                _version_specified = _before_amp.length > (SNAPSHOT_ID_LEN + 1);
+                _version_specified = _before_amp.length > (_snapshot_id_len + 1);
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
                 URL_PREFIX = PROTOCOL + 'animatron-snapshots.s3.amazonaws.com',
-                SNAPSHOT_ID = _version_specified ? _before_amp.substring(0, SNAPSHOT_ID_LEN)
+                SNAPSHOT_ID = _version_specified ? _before_amp.substring(0, _snapshot_id_len)
                                                  : _before_amp,
-                VERSION_ID = _version_specified ? _before_amp.substring(SNAPSHOT_ID_LEN + 1)
+                VERSION_ID = _version_specified ? _before_amp.substring(_snapshot_id_len + 1)
                                                 : 'latest';
 
             if (!SNAPSHOT_ID ||
-                !SNAPSHOT_ID.match(SNAPSHOT_MASK)) {
+                !SNAPSHOT_ID.match(_snapshot_id_mask)) {
                 _u.reportError(new Error('Snapshot ID \'' + SNAPSHOT_ID + '\' is incorrect'));
                 return;
             }
@@ -156,7 +162,7 @@
                     _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
                 }
             }
-            var _snapshotUrl_ = URL_PREFIX + '/' + SNAPSHOT_ID + (_params_ || '');
+            var _snapshotUrl_ = URL_PREFIX + '/' + SNAPSHOT_ID + '-' + VERSION_ID + (_params_ || '');
 
             return function () {
                 try {
