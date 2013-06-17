@@ -162,7 +162,9 @@
                     _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
                 }
             }
-            var _snapshotUrl_ = URL_PREFIX + '/' + SNAPSHOT_ID + '-' + VERSION_ID + (_params_ || '');
+            var _snapshotUrl_ = URL_PREFIX + '/' + SNAPSHOT_ID +
+                                (_version_specified ? ('-' + VERSION_ID)
+                                                    : '') + (_params_ || '');
 
             return function () {
                 try {
