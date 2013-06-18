@@ -1724,6 +1724,7 @@ Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
+    this.bstate = Element.createBaseState();
     this.state = Element.createState(this);
     this.xdata = Element.createXData(this);
     this.children = [];
@@ -1779,9 +1780,10 @@ Element.prototype.drawTo = function(ctx) {
 Element.prototype.draw = Element.prototype.drawTo
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
-    var s = this.state;
-    s._matrix = Element._getMatrixOf(s, s._matrix);
-    ctx.globalAlpha *= s.alpha;
+    var bs = this.bstate,
+        s = this.state;
+    s._matrix = Element._getMatrixOf(bs, s, s._matrix);
+    ctx.globalAlpha *= bs.alpha * s.alpha;
     s._matrix.apply(ctx);
 }
 // > Element.render % (ctx: Context, gtime: Float)
@@ -2626,7 +2628,7 @@ Element.prototype.__mbefore = function(t, type) {
 }
 Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === Element.USER_MOD)) {
-        this.__lmatrix = Element._getIMatrixOf(this.state);
+        this.__lmatrix = Element._getIMatrixOf(this.bstate, this.state);
     }*/
     /*if (!result || (type === Element.EVENT_MOD)) {
         this.__clearEvtState();
@@ -2727,6 +2729,16 @@ Element.prototype.__resetState = function() {
     s._matrix.reset();
 }
 
+// base (initial) state of the element
+Element.createBaseState = function() {
+    return { 'x': 0, 'y': 0,   // dynamic position
+             'angle': 0,       // rotation angle
+             'sx': 1, 'sy': 1, // scale by x / by y
+             'alpha': 1,       // opacity
+             'p': null, 't': null, 'key': null };
+                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
+                               // if both are null — stays as defined
+}
 // state of the element
 Element.createState = function(owner) {
     return { 'x': 0, 'y': 0,   // dynamic position
@@ -2814,7 +2826,17 @@ Element.__convertEasing = function(easing, data, relative) {
   if (easing.f) return easing.f(easing.data || data);
 }
 
-Element._getMatrixOf = function(s, m) {
+Element._getMatrixOf = function(bs, s, m) {
+    var _t = (m ? (m.reset(), m)
+                : new Transform());
+    _t.translate(s.lx, s.ly);
+    _t.translate(bs.x + s.x, bs.y + s.y);
+    _t.rotate(bs.angle + s.angle);
+    _t.scale(bs.sx * s.sx, bs.sy * s.sy);
+    _t.translate(-s.rx, -s.ry);
+    return _t;
+}
+Element._getSMatrixOf = function(s, m) {
     var _t = (m ? (m.reset(), m)
                 : new Transform());
     _t.translate(s.lx, s.ly);
@@ -2824,8 +2846,13 @@ Element._getMatrixOf = function(s, m) {
     _t.translate(-s.rx, -s.ry);
     return _t;
 }
-Element._getIMatrixOf = function(s, m) {
-    var _t = Element._getMatrixOf(s, m);
+Element._getIMatrixOf = function(bs, s, m) {
+    var _t = Element._getMatrixOf(bs, s, m);
+    _t.invert();
+    return _t;
+}
+Element._getSIMatrixOf = function(s, m) {
+    var _t = Element._getSMatrixOf(s, m);
     _t.invert();
     return _t;
 }

@@ -317,6 +317,11 @@ Builder.prototype.bounds = function(bounds) {
     this.x.__bounds = bounds;
     return this;
 }
+// > builder.init % (val: Object) => Builder
+Builder.prototype.init = function(state) {
+    this.v.bstate = state;
+    return this;
+}
 
 // * BANDS & DURATION *
 

@@ -201,7 +201,7 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     var s = (t == null) ? this.state : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix);
-    return this.__adoptWithM(pts, E._getIMatrixOf(s));
+    return this.__adoptWithM(pts, E._getSIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
     if (!pts) return null;
@@ -210,7 +210,7 @@ E.prototype._radopt = function(pts, t) {
     var s = (t == null) ? this.state : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
-    return this.__adoptWithM(pts, E._getMatrixOf(s));
+    return this.__adoptWithM(pts, E._getSMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
     var p = this.parent;
@@ -294,7 +294,7 @@ E.prototype._makeGhost = function(t) {
     var ghost = E._predictState(s1 || s0, vec, opts.predictSpan);
     ghost._applied = true;
     ghost._appliedAt = t;
-    ghost._matrix = E._getMatrixOf(ghost, ghost._matrix);
+    ghost._matrix = E._getSMatrixOf(ghost, ghost._matrix);
     ghost._vec = vec;
     ghost._tdiff = t_diff;
 
