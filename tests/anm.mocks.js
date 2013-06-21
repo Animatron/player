@@ -116,6 +116,27 @@ mocks.factory.fullImporter = function() {
     }
 }
 
+mocks.factory.transform = function() {
+    var _instance = {
+            'reset': __nop,
+            'multiply': __nop,
+            'invert': __nop,
+            'rotate': __nop,
+            'rotateDegrees': __nop,
+            'translate': __nop,
+            'scale': __nop,
+            'transformPoint': __nop,
+            'apply': __nop,
+            'clone': __nop,
+            'inverted': __nop
+        };
+    var _f = function() {
+        return _instance;
+    }
+    _f.instance = _instance;
+    return _f;
+}
+
 mocks.factory.cssStyle = function() {
     return { };
 };

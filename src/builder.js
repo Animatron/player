@@ -35,7 +35,6 @@ function Builder(obj) {
     if (!obj) {
         this.n = '';
         this.v = new Element();
-        this.x = this.v.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
         this.v = obj.v.deepClone();
@@ -47,13 +46,13 @@ function Builder(obj) {
     } else if (obj instanceof Element) {
         this.n = obj.name;
         this.v = obj;
-        this.x = obj.xdata;
     } else if (is.str(obj)) {
         this.n = obj;
         this.v = new Element();
         this.v.name = this.n;
-        this.x = this.v.xdata;
     }
+    this.x = this.v.xdata;
+    this.bs = this.v.bstate;
     this.v.__b$ = this;
     this.f = this._extractFill(Builder.DEFAULT_FILL);
     this.s = this._extractStroke(Builder.DEFAULT_STROKE);
@@ -289,19 +288,21 @@ Builder.prototype.regAt = function(side) {
     x.reg = _new;
     return this;
 }
+// > builder.init % (val: Object) => Builder
+Builder.prototype.init = function(state) {
+    this.v.bstate = state;
+    this.bs = state;
+    return this;
+}
 // > builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
-    var x = this.x;
-    x.pos = [ x.pos[0] + pt[0],
-              x.pos[1] + pt[1] ];
+    this.bs.x = pt[0];
+    this.bs.y = pt[1];
     return this;
 }
 // > builder.pos % ([pt: Array[2,Integer]]) => Array[2] | Builder
 Builder.prototype.pos = function(pt) {
-    if (pt) {
-        this.x.pos = [ pt[0], pt[1] ];
-        return this;
-    } else return this.x.pos;
+    return pt ? this.move(pt) : [ this.bs.x, this.bs.y ];
 }
 // > builder.zoom % (val: Array[2,Float]) => Builder
 Builder.prototype.zoom = function(val) {
@@ -311,15 +312,34 @@ Builder.prototype.zoom = function(val) {
     }
     return this;
 }
+// > builder.size % (val: Array[2,Float]) => Builder
+Builder.prototype.size = function(val) {
+    this.bs.sx = val[0];
+    this.bs.sy = val[1];
+    return this;
+}
+// > builder.resize % (val: Array[2,Float]) => Builder
+Builder.prototype.resize = Builder.prototype.size;
+// > builder.proportions % (val: Array[2,Float]) => Builder
+Builder.prototype.proportions = Builder.prototype.size;
+// > builder.angle % (val: Float) => Builder
+Builder.prototype.angle = function(val) {
+    this.bs.angle = val;
+    return this;
+}
+// > builder.slope % (val: Float) => Builder
+Builder.prototype.slope = Builder.prototype.angle;
+// > builder.turn % (val: Float) => Builder
+Builder.prototype.turn = Builder.prototype.angle;
+// > builder.opacity % (val: Float) => Builder
+Builder.prototype.opacity = function(val) {
+    this.bs.alpha = val;
+    return this;
+}
 // > builder.bounds % (val: Array[4,Float]) => Builder
 Builder.prototype.bounds = function(bounds) {
     if (!bounds.length === 4) throw new Error('Incorrect bounds');
     this.x.__bounds = bounds;
-    return this;
-}
-// > builder.init % (val: Object) => Builder
-Builder.prototype.init = function(state) {
-    this.v.bstate = state;
     return this;
 }
 
