@@ -122,10 +122,10 @@ describe("static modification", function() {
                 elm_v = elm.v;
             expect(elm_v.state.alpha).toBe(1);
             elm.opacity(0.999);
-            expect(elm_v.state.alpha).toBe(0);
+            expect(elm_v.state.alpha).toBe(1);
             expect(elm_v.bstate.alpha).toBe(0.999);
             elm.opacity(0.756);
-            expect(elm_v.state.alpha).toBe(0);
+            expect(elm_v.state.alpha).toBe(1);
             expect(elm_v.bstate.alpha).toBe(0.756);
         });
 
@@ -158,52 +158,165 @@ describe("static modification", function() {
             var elm = b(),
                 elm_v = elm.v;
 
-            var transSpy = spyOn(Transform_mock.instance, 'translate');
+            var translateSpy = spyOn(Transform_mock.instance, 'translate');
 
             elm.pos([5, 15]);
 
             player.load(elm).drawAt(0);
 
-            expect(transSpy).toHaveBeenCalledWith(5, 15);
-            transSpy.reset();
+            expect(translateSpy).toHaveBeenCalledWith(5, 15);
+            translateSpy.reset();
 
             elm.move([7, 215.3]);
             player.drawAt(0);
-            expect(transSpy).toHaveBeenCalledWith(7, 215.3);
-            transSpy.reset();
+            expect(translateSpy).toHaveBeenCalledWith(7, 215.3);
+            translateSpy.reset();
 
-            b().trans([2, 4], [[7, 2], [8, 3]]);
+            elm.trans([2, 4], [[7, 2], [8, 5]]);
 
             player.drawAt(0);
-            expect(transSpy).toHaveBeenCalledWith(7, 215.3);
-            transSpy.reset();
+            expect(translateSpy).toHaveBeenCalledWith(7, 215.3);
+            translateSpy.reset();
 
             player.drawAt(2);
-            expect(transSpy).toHaveBeenCalledWith(7, 17);
-            transSpy.reset();
+            expect(translateSpy).toHaveBeenCalledWith(14, 217.3);
+            translateSpy.reset();
+
+            player.drawAt(3);
+            expect(translateSpy).toHaveBeenCalledWith(14.5, 218.8);
+            translateSpy.reset();
 
             player.drawAt(4);
-            expect(transSpy).toHaveBeenCalledWith(10, 18);
-            transSpy.reset();
+            expect(translateSpy).toHaveBeenCalledWith(15, 220.3);
+            translateSpy.reset();
         });
 
         it("applies base angle change", function() {
-            this.fail('TODO');
+            var elm = b(),
+                elm_v = elm.v;
+
+            var rotateSpy = spyOn(Transform_mock.instance, 'rotate');
+
+            elm.angle(Math.PI / 4);
+
+            player.load(elm).drawAt(0);
+
+            expect(rotateSpy).toHaveBeenCalledWith(Math.PI / 4);
+            rotateSpy.reset();
+
+            elm.slope(Math.PI / 3);
+            player.drawAt(0);
+            expect(rotateSpy).toHaveBeenCalledWith(Math.PI / 3);
+            rotateSpy.reset();
+
+            elm.turn(2 * Math.PI / 3);
+            player.drawAt(0);
+            expect(rotateSpy).toHaveBeenCalledWith(2 * Math.PI / 3);
+            rotateSpy.reset();
+
+            elm.rotate([2, 4], [ Math.PI / 3, 2 * Math.PI / 3 ]);
+
+            player.drawAt(0);
+            expect(rotateSpy).toHaveBeenCalledWith(2 * Math.PI / 3);
+            rotateSpy.reset();
+
+            player.drawAt(2);
+            expect(rotateSpy).toHaveBeenCalledWith(3 * Math.PI / 3);
+            rotateSpy.reset();
+
+            player.drawAt(3);
+            expect(rotateSpy).toHaveBeenCalledWith(3.5 * Math.PI / 3);
+            rotateSpy.reset();
+
+            player.drawAt(4);
+            expect(rotateSpy).toHaveBeenCalledWith(4 * Math.PI / 3);
+            rotateSpy.reset();
         });
 
         it("applies base scale change", function() {
-            this.fail('TODO');
+            var elm = b(),
+                elm_v = elm.v;
+
+            var scaleSpy = spyOn(Transform_mock.instance, 'scale');
+
+            elm.size([2.1, 0.3]);
+            // size / resize / proportions
+
+            player.load(elm).drawAt(0);
+
+            expect(scaleSpy).toHaveBeenCalledWith(2.1, 0.3);
+            scaleSpy.reset();
+
+            elm.resize([0.8, 5]);
+            player.drawAt(0);
+            expect(scaleSpy).toHaveBeenCalledWith(0.8, 5);
+            scaleSpy.reset();
+
+            elm.proportions([2, 0.65]);
+            player.drawAt(0);
+            expect(scaleSpy).toHaveBeenCalledWith(2, 0.65);
+            scaleSpy.reset();
+
+            elm.scale([2, 4], [[3, 0.2], [6, 4]]);
+
+            player.drawAt(0);
+            expect(scaleSpy).toHaveBeenCalledWith(2, 0.65);
+            scaleSpy.reset();
+
+            player.drawAt(2);
+            expect(scaleSpy).toHaveBeenCalledWith(6, 0.13);
+            scaleSpy.reset();
+
+            player.drawAt(3);
+            expect(scaleSpy).toHaveBeenCalledWith(9, 0.13+((2.6-0.13)/2));
+            scaleSpy.reset();
+
+            player.drawAt(4);
+            expect(scaleSpy).toHaveBeenCalledWith(12, 2.6);
+            scaleSpy.reset();
         });
 
         it("applies base alpha change", function() {
+            var elm = b(),
+                elm_v = elm.v;
+
+            var orig_transform = elm_v.transform;
+            var transformSpy = spyOn(elm_v, 'transform').andCallFake();
+            function expect_next_alpha(val) {
+                transformSpy.andCallFake(function(ctx) {
+                    orig_transform.apply(elm_v, arguments);
+                    expect(ctx.globalAlpha).toBe(val);
+                });
+            }
+
+            elm.opacity(0.2);
+            expect_next_alpha(0.2);
+            player.load(elm).drawAt(0);
+
+            elm.opacity(0.7);
+            expect_next_alpha(0.7);
+            player.drawAt(0);
+
+            elm.alpha([2, 4], [.5, 2]);
+
+            expect_next_alpha(0.7);
+            player.drawAt(0);
+
+            expect_next_alpha(0.35);
+            player.drawAt(2);
+
+            expect_next_alpha(0.875);
+            player.drawAt(3);
+
+            expect_next_alpha(1.4);
+            player.drawAt(4);
+        });
+
+        xit("applies all changes done with init()", function() {
             this.fail('TODO');
         });
 
         xit("applies base time position change", function() {
-            this.fail('TODO');
-        });
-
-        it("applies all changes done with init()", function() {
             this.fail('TODO');
         });
 
@@ -215,30 +328,3 @@ describe("static modification", function() {
     });
 
 });
-
-/* // base (initial) state of the element
-Element.createBaseState = function() {
-    return { 'x': 0, 'y': 0,   // dynamic position
-             'angle': 0,       // rotation angle
-             'sx': 1, 'sy': 1, // scale by x / by y
-             'alpha': 1,       // opacity
-             'p': null, 't': null, 'key': null };
-                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
-                               // if both are null — stays as defined
-}
-// state of the element
-Element.createState = function(owner) {
-    return { 'x': 0, 'y': 0,   // dynamic position
-             'lx': 0, 'ly': 0, // static position
-             'rx': 0, 'ry': 0, // registration point shift
-             'angle': 0,       // rotation angle
-             'sx': 1, 'sy': 1, // scale by x / by y
-             'alpha': 1,       // opacity
-             'p': null, 't': null, 'key': null,
-                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
-                               // if both are null — stays as defined
-             '_matrix': new Transform(),
-             '_evts': {},
-             '_evt_st': 0,
-             '$': owner };
-}; */

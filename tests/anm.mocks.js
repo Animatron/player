@@ -83,6 +83,7 @@ mocks.factory.context2d = function() {
         'rect': __nop,
         'drawImage': __nop,
         'scale': __nop,
+        'globalAlpha': 1,
         'globalCompositeOperation': 'source-over',
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
     };

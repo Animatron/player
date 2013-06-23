@@ -313,7 +313,7 @@ describe("tweens", function() {
         function checkTweens(bs, band, tweens, checking_f, message) {
             var scene = b();
             var elm = b().band(band);
-            b().init(bs);
+            elm.init(bs);
             scene.add(elm);
             doAsync(player, {
                 prepare: function() {
