@@ -53,20 +53,15 @@ function sandbox() {
       document.body.className = '';
     });
     this.cm.on('change', function() {
-      refresh();
+      refreshFromCurrentMoment();
     });
 
     var s = this;
 
     var curInterval = null,
         refreshRate = localStorage ? load_refresh_rate() : DEFAULT_REFRESH_RATE;
-    var lastRefresh = undefined,
-        lastPlayedFrom = undefined;
 
-    function resetTime() {
-        lastRefresh = undefined;
-        lastPlayedFrom = undefined;
-    }
+    var lastPlay = -1;
 
     function makeSafe(code) {
         return ['(function(){',
@@ -74,25 +69,18 @@ function sandbox() {
                 '})();'].join('\n');
     }
 
-    function refresh() {
-        var playFrom = 0;
-        var now = new Date();
-        if (lastRefresh != undefined) {
-            var t_diff = (now - lastRefresh),
-                playFrom = ((lastPlayedFrom || 0) + t_diff) % refreshRate;
-            lastPlayedFrom = playFrom;
-            playFrom /= 1000;
-        }
-        lastRefresh = now;
+    function playFrom(from, rate) {
+        //console.log('play from ', from, 'ms, rate is ', rate);
         s.errorsElm.style.display = 'none';
         try {
-            s.player.stop();
+            _player.stop();
             var userCode = s.cm.getValue();
             if (localStorage) save_current_code(userCode);
             var safeCode = makeSafe(userCode);
             var scene = eval(safeCode);
-            player.load(scene, refreshRate / 1000);
-            player.play(playFrom);
+            _player.load(scene, rate / 1000);
+            _player.play(from / 1000);
+            lastPlay = Date.now() - from;
         } catch(e) {
             onerror(e);
         }
@@ -101,9 +89,9 @@ function sandbox() {
     function onerror(e) {
         var e2;
         try {
-          s.player.anim = null;
-          s.player.stop();
-          s.player.drawSplash();
+          _player.anim = null;
+          _player.stop();
+          _player.drawSplash();
         } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
@@ -116,18 +104,37 @@ function sandbox() {
 
     this.player.onerror(onerror);
 
-    function updateInterval(to) {
-        if (curInterval) clearTimeout(curInterval);
-        //setTimeout(function() {
-            refreshRate = to;
-            save_refresh_rate(refreshRate);
-            resetTime();
-            var refresher = function() {
-              refresh();
-              curInterval = setTimeout(refresher, to);
+    function ensureToCancelInterval() {
+        if (curInterval) {
+            //console.log('cancelling interval #', curInterval);
+            clearTimeout(curInterval);
+        }
+    }
+
+    function refreshFromStart() {
+        //console.log('refresh from start');
+        runSequence(refreshRate, 0);
+    }
+
+    function refreshFromCurrentMoment() {
+        //console.log('refresh from current moment');
+        runSequence(refreshRate, (Date.now() - lastPlay) % refreshRate);
+    }
+
+    function runSequence(rate, startAt) {
+        ensureToCancelInterval();
+        refreshRate = rate;
+        save_refresh_rate(rate);
+        var _refresher = function(from) {
+            return function() {
+                //console.log('starting to play from ', from);
+                playFrom(from, rate);
+                //console.log('#' + curInterval + ' is done.');
+                curInterval = setTimeout(_refresher(0), rate - from);
+                //console.log('sheduled next refresh to ', rate - from, 'ms (#', curInterval, ')');
             }
-            refresher();
-        //}, 1);
+        }
+        _refresher(startAt || 0)();
     }
 
     if (localStorage) {
@@ -140,12 +147,12 @@ function sandbox() {
 
     this.selectElm.onchange = function() {
         s.cm.setValue(examples[this.selectedIndex][1]);
-        refresh();
+        refreshFromStart();
     }
 
     this.debugElm.onchange = function() {
         s.player.debug = !s.player.debug;
-        refresh();
+        refreshFromCurrentMoment();
     }
 
     var tangleModel = {
@@ -154,11 +161,11 @@ function sandbox() {
         },
         update: function () {
             this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
-            updateInterval(this.secPeriod * 1000);
+            runSequence(this.secPeriod * 1000, 0);
         }
     };
 
-    updateInterval(refreshRate);
+    runSequence(refreshRate, 0);
 
     new Tangle(this.tangleElm, tangleModel);
 
@@ -166,7 +173,7 @@ function sandbox() {
       if (_player) {
         _player.mode = C[radio.value];
         _player._checkMode();
-        refresh();
+        refreshFromStart();
       }
     }
 
