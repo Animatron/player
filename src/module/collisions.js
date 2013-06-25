@@ -198,19 +198,19 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     this.__ensureTimeTestAllowedFor(t);
-    var s = (t == null) ? this.state : this.stateAt(t);
+    var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix);
-    return this.__adoptWithM(pts, E._getSIMatrixOf(s));
+    return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) {
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     this.__ensureTimeTestAllowedFor(t);
-    var s = (t == null) ? this.state : this.stateAt(t);
+    var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
-    return this.__adoptWithM(pts, E._getSMatrixOf(s));
+    return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) {
     var p = this.parent;
@@ -294,7 +294,7 @@ E.prototype._makeGhost = function(t) {
     var ghost = E._predictState(s1 || s0, vec, opts.predictSpan);
     ghost._applied = true;
     ghost._appliedAt = t;
-    ghost._matrix = E._getSMatrixOf(ghost, ghost._matrix);
+    ghost._matrix = E._getMatrixOf(E._mergeStates(this.bstate, ghost), ghost._matrix);
     ghost._vec = vec;
     ghost._tdiff = t_diff;
 

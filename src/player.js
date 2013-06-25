@@ -1726,6 +1726,7 @@ function Element(draw, onframe) {
     this.name = '';
     this.bstate = Element.createBaseState();
     this.state = Element.createState(this);
+    this.astate = null;
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
@@ -1780,11 +1781,14 @@ Element.prototype.drawTo = function(ctx) {
 Element.prototype.draw = Element.prototype.drawTo
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
-    var bs = this.bstate,
-        s = this.state;
-    s._matrix = Element._getMatrixOf(bs, s, s._matrix);
-    ctx.globalAlpha *= bs.alpha * s.alpha;
+    var s = this.state,
+        bs = this.bstate,
+        as = Element.__mergeStates(bs, s);
+    this.astate = as;
+    s._matrix = Element._getMatrixOf(as, s._matrix);
+    ctx.globalAlpha *= as.alpha;
     s._matrix.apply(ctx);
+    as._matrix = s._matrix;
 }
 // > Element.render % (ctx: Context, gtime: Float)
 Element.prototype.render = function(ctx, gtime) {
@@ -2227,15 +2231,20 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
     var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
-    return success ? state : null;
+    return success ? Element._mergeStates(this.bstate, state) : null;
+}
+Element.prototype.getPosition = function() {
+    return [ this.bstate.x + this.state.x,
+             this.bstate.y + this.state.y ];
 }
 Element.prototype.offset = function() {
     var xsum = 0, ysum = 0;
     var p = this.parent;
     while (p) {
-        var ps = p.state;
-        xsum += ps.lx + ps.x;
-        ysum += ps.ly + ps.y;
+        var pbs = p.bstate,
+            ps = p.state;
+        xsum += pbs.x + ps.x;
+        ysum += pbs.y + ps.y;
         p = p.parent;
     }
     return [ xsum, ysum ];
@@ -2248,9 +2257,13 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
+Element.prototype.dimen = function() {
+    var x = this.xdata;
+    var subj = x.path || x.text || x.sheet;
+    if (subj) return subj.dimen();
+}
 Element.prototype.lbounds = function() {
     var x = this.xdata;
-    if (x.__bounds) return x.__bounds; // ? it is not saved
     var subj = x.path || x.text || x.sheet;
     if (subj) return subj.bounds();
 }
@@ -2386,7 +2399,7 @@ Element.prototype.deepClone = function() {
     if (src_x.path) trg_x.path = src_x.path.clone();
     if (src_x.text) trg_x.text = src_x.text.clone();
     if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
-    trg_x.pos = [].concat(src_x.pos);
+    trg_x.pvt = [].concat(src_x.pvt);
     trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
     trg_x.gband = [].concat(src_x.gband);
@@ -2407,8 +2420,6 @@ Element.prototype._addChildren = function(elms) {
 Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
-           "lx: " + s.lx + " ly: " + s.ly + '\n' +
-           "rx: " + s.rx + " ry: " + s.ry + '\n' +
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
@@ -2719,8 +2730,6 @@ Element.prototype.__postRender = function() {
 Element.prototype.__resetState = function() {
     var s = this.state;
     s.x = 0; s.y = 0;
-    s.lx = 0; s.ly = 0;
-    s.rx = 0; s.ry = 0;
     s.angle = 0; s.alpha = 1;
     s.sx = 1; s.sy = 1;
     s.p = null; s.t = null; s.key = null;
@@ -2742,8 +2751,6 @@ Element.createBaseState = function() {
 // state of the element
 Element.createState = function(owner) {
     return { 'x': 0, 'y': 0,   // dynamic position
-             'lx': 0, 'ly': 0, // static position
-             'rx': 0, 'ry': 0, // registration point shift
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
              'alpha': 1,       // opacity
@@ -2757,7 +2764,7 @@ Element.createState = function(owner) {
 };
 // geometric data of the element
 Element.createXData = function(owner) {
-    return { 'pos': [0, 0],      // position in parent clip space
+    return { 'pvt': [0, 0],      // pivot
              'reg': [0, 0],      // registration point
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
@@ -2775,15 +2782,16 @@ Element.createXData = function(owner) {
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
     /* if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband); */
-    elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
-    elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
+    // elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
+    // elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_usePivot);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawReg);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPvt);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
     /* elm.__paint({ type: Element.DEBUG_PNT,
                      priority: 1 },
@@ -2812,47 +2820,37 @@ Element.__addTweenModifier = function(elm, conf) {
                           data: conf.data }, m_tween);
 }
 Element.__convertEasing = function(easing, data, relative) {
-  if (!easing) return null;
-  if (__str(easing)) {
-      var f = EasingImpl[easing](data);
-      return relative ? f : function(t, len) { return f(t / len, len) * len; }
-  }
-  if (__fun(easing) && !data) return easing;
-  if (__fun(easing) && data) return easing(data);
-  if (easing.type) {
-    var f = EasingImpl[easing.type](easing.data || data);
-    return relative ? f : function(t, len) { return f(t / len, len) * len; }
-  }
-  if (easing.f) return easing.f(easing.data || data);
+    if (!easing) return null;
+    if (__str(easing)) {
+        var f = EasingImpl[easing](data);
+        return relative ? f : function(t, len) { return f(t / len, len) * len; }
+    }
+    if (__fun(easing) && !data) return easing;
+    if (__fun(easing) && data) return easing(data);
+    if (easing.type) {
+        var f = EasingImpl[easing.type](easing.data || data);
+        return relative ? f : function(t, len) { return f(t / len, len) * len; }
+    }
+    if (easing.f) return easing.f(easing.data || data);
 }
-
-Element._getMatrixOf = function(bs, s, m) {
+Element._mergeStates = function(s1, s2) {
+    return {
+        x: s1.x + s2.x, y: s1.y + s2.y,
+        sx: s1.sx * s2.sx, sy: s1.sy * s1.sy,
+        angle: s1.angle + s2.angle,
+        alpha: s1.alpha * s2.alpha
+    }
+}
+Element._getMatrixOf = function(s, m) {
     var _t = (m ? (m.reset(), m)
                 : new Transform());
-    _t.translate(s.lx, s.ly);
     _t.translate(bs.x + s.x, bs.y + s.y);
     _t.rotate(bs.angle + s.angle);
     _t.scale(bs.sx * s.sx, bs.sy * s.sy);
-    _t.translate(-s.rx, -s.ry);
     return _t;
 }
-Element._getSMatrixOf = function(s, m) {
-    var _t = (m ? (m.reset(), m)
-                : new Transform());
-    _t.translate(s.lx, s.ly);
-    _t.translate(s.x, s.y);
-    _t.rotate(s.angle);
-    _t.scale(s.sx, s.sy);
-    _t.translate(-s.rx, -s.ry);
-    return _t;
-}
-Element._getIMatrixOf = function(bs, s, m) {
+Element._getIMatrixOf = function(s, m) {
     var _t = Element._getMatrixOf(bs, s, m);
-    _t.invert();
-    return _t;
-}
-Element._getSIMatrixOf = function(s, m) {
-    var _t = Element._getSMatrixOf(s, m);
     _t.invert();
     return _t;
 }
@@ -3134,10 +3132,13 @@ Render.loop = __r_loop;
 Render.at = __r_at;
 Render._drawFPS = __r_fps;
 
-Render.p_drawReg = function(ctx, reg) {
-    if (!(reg = reg || this.reg)) return;
+Render.p_drawPvt = function(ctx, pvt) {
+    if (!(pvt = pvt || this.pvt)) return;
+    var dimen = this.$.dimen();
+    if (!dimen) return;
     ctx.save();
-    ctx.translate(reg[0],reg[1]);
+    ctx.translate(pvt[0] * dimen[0],
+                  pvt[1] * dimen[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#600';
@@ -3170,11 +3171,19 @@ Render.p_applyAComp = function(ctx) {
     if (this.acomp) ctx.globalCompositeOperation = C.AC_NAMES[this.acomp];
 }
 
+Redner.p_usePivot = function(ctx) {
+    var dimen = this.$.dimen(),
+        pvt = this.pvt;
+    if (!dimen) return;
+    ctx.translate(-(pvt[0] * dimen[0]),
+                  -(pvt[1] * dimen[1]));
+}
+
 Render.h_drawMPath = function(ctx, mPath) {
     if (!(mPath = mPath || this.state._mpath)) return;
     ctx.save();
     var s = this.state;
-    ctx.translate(s.lx, s.ly);
+    Render.p_usePivot.call(this, ctx);
     mPath.cstroke('#600', 2.0);
     ctx.beginPath();
     mPath.apply(ctx);
@@ -3186,18 +3195,6 @@ Render.h_drawMPath = function(ctx, mPath) {
 Render.m_checkBand = function(time, duration, band) {
     if (band[0] > (duration * time)) return false; // exit
     if (band[1] < (duration * time)) return false; // exit
-}
-
-Render.m_saveReg = function(time, duration, reg) {
-    if (!(reg = reg || this.$.xdata.reg)) return;
-    this.rx = reg[0];
-    this.ry = reg[1];
-}
-
-Render.m_applyPos = function(time, duration, pos) {
-    if (!(pos = pos || this.$.xdata.pos)) return;
-    this.lx = pos[0];
-    this.ly = pos[1];
 }
 
 // Bands
@@ -3608,6 +3605,10 @@ Path.prototype.bounds = function() {
         }
     });
     return [ minX, minY, maxX, maxY ];
+}
+Path.prototype.dimen = function() {
+    var bounds = this.bounds();
+    return [ bounds[2], bounds[3] ];
 }
 Path.prototype.rect = function() {
     var b = this.bounds();
@@ -4273,11 +4274,20 @@ Sheet.prototype.apply = function(ctx) {
     ctx.drawImage(this._cvs_cache, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
+Sheet.prototype.dimen = function() {
+    if (!this.ready || !this._active_region) return [0, 0];
+    var r = this._active_region;
+    return [ r[2], r[3] ];
+}
 Sheet.prototype.bounds = function() {
     // TODO: when using current_region, bounds will depend on that region
     if (!this.ready || !this._active_region) return [0, 0, 0, 0];
     var r = this._active_region;
     return [ 0, 0, r[2], r[3] ];
+}
+Sheet.prototype.rect = function() {
+    // TODO: when using current_region, bounds will depend on that region
+    throw new Error('Not Implemented. Why?');
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);

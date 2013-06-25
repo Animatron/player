@@ -113,11 +113,10 @@ Builder.prototype.remove = function(what) {
 //                   [pt: Array[2,Integer]]) => Builder
 // FIXME: change to (pt, path)
 Builder.prototype.path = function(path, pt) {
+    this.move(pt || [0, 0]);
     var path = Builder.__path(path, this.x.path);
     this.x.path = path;
     path.normalize();
-    this.x.reg = [0, 0];
-    this.x.pos = pt || [0, 0];
     if (!path.fill) { path.fill = this.f; }
     else { this.f = path.fill; }
     if (!path.stroke) { path.stroke = this.s; }
@@ -140,8 +139,7 @@ Builder.prototype.rect = function(pt, rect) {
 //                       radius: Float) => Builder
 } */
 Builder.prototype.circle = function(pt, radius) {
-    this.x.pos = pt;
-    this.x.reg = [ 0, 0 ];
+    this.move(pt || [0, 0]);
     this.x.__bounds = [ -radius, -radius, radius, radius];
     this.paint(function(ctx) {
             var b = this.$.__b$;
@@ -157,7 +155,7 @@ Builder.prototype.circle = function(pt, radius) {
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src, callback) {
-    this.x.pos = pt;
+    this.move(pt || [0, 0]);
     if (src) {
         var b = this;
         this.x.sheet =
@@ -170,11 +168,10 @@ Builder.prototype.image = function(pt, src, callback) {
 //                   [size: Float],
 //                   [font: String | Array]) => Builder
 Builder.prototype.text = function(pt, lines, size, font) {
-    this.x.pos = pt;
+    this.move(pt || [0, 0]);
     var text = lines instanceof Text ? lines
                      : new Text(lines, Builder.font(font, size));
     this.x.text = text;
-    this.x.reg = [ 0, 0 ];
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
     if (!text.fill) { text.fill = this.f; }
@@ -186,7 +183,7 @@ Builder.prototype.text = function(pt, lines, size, font) {
 //                     [tile_spec: Array[2,Integer] | Function],
 //                     [callback: Function(Image)]) => Builder
 Builder.prototype.sprite = function(pt, src, tile_spec, callback) {
-    this.x.pos = pt;
+    this.move(pt || [0, 0]);
     var animator;
     if (is.str(src)) {
         animator = Builder.sheet(src, tile_spec, callback)(this.v);
@@ -256,36 +253,19 @@ Builder.prototype.nostroke = function() {
 
 // * STATIC MODIFICATION *
 
-// > builder.reg % (pt: Array[2,Integer]) => Builder
+C.R_TL = [ -0.5, -0.5 ]; C.R_TC = [ +0.0, -0.5 ]; C.R_TR = [ +0.5, -0.5 ];
+C.R_ML = [ -0.5, +0.0 ]; C.R_MC = [ +0.0, +0.0 ]; C.R_MR = [ +0.5, +0.0 ];
+C.R_BL = [ -0.5, +0.5 ]; C.R_BC = [ +0.0, +0.5 ]; C.R_BR = [ +0.5, +0.5 ];
+// > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder
 Builder.prototype.reg = function(pt) {
     var x = this.x;
-    x.reg = pt;
+    x.reg = pt || x.reg;
     return this;
 }
-C.R_TL = 1; C.R_TC = 5; C.R_TR = 2;
-C.R_ML = 6; C.R_MC = 0; C.R_MR = 7;
-C.R_BL = 3; C.R_BC = 8; C.R_BR = 4;
-// > builder.reg % (side: C.R_*) => Builder
-Builder.prototype.regAt = function(side) {
-    var x = this.x, _new = x.reg;
-    var b = this.v.lbounds();
-    if (!b) return this; // throw error?
-    var w = b[2] - b[0],
-        h = b[3] - b[1];
-    switch (side) {
-        case C.R_TL: _new = [ -w/2, -h/2 ]; break;
-        case C.R_TC: _new = [    0, -h/2 ]; break;
-        case C.R_TR: _new = [  w/2, -h/2 ]; break;
-
-        case C.R_ML: _new = [ -w/2,    0 ]; break;
-        case C.R_MC: _new = [    0,    0 ]; break;
-        case C.R_MR: _new = [  w/2,    0 ]; break;
-
-        case C.R_BL: _new = [ -w/2,  h/2 ]; break;
-        case C.R_BC: _new = [    0,  h/2 ]; break;
-        case C.R_BR: _new = [  w/2,  h/2 ]; break;
-    }
-    x.reg = _new;
+// > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder
+Builder.prototype.pvt = function(pt) {
+    var x = this.x;
+    x.pvt = pt || x.pvt;
     return this;
 }
 // > builder.init % (val: Object) => Builder
@@ -303,6 +283,20 @@ Builder.prototype.move = function(pt) {
 // > builder.pos % ([pt: Array[2,Integer]]) => Array[2] | Builder
 Builder.prototype.pos = function(pt) {
     return pt ? this.move(pt) : [ this.bs.x, this.bs.y ];
+}
+// > builder.dpos % () => Array[2]
+Builder.prototype.dpos = function() {
+    return this.v.getPosition();
+}
+// > builder.apos % () => Array[2]
+Builder.prototype.apos = function() {
+    var pos = this.dpos(),
+        off = this.offset();
+    return [ off[0] + pos[0], off[1] + pos[1] ];
+}
+// > builder.offset % () => Array[2]
+Builder.prototype.offset = function() {
+    return this.v.offset();
 }
 // > builder.zoom % (val: Array[2,Float]) => Builder
 Builder.prototype.zoom = function(val) {
