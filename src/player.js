@@ -1067,6 +1067,8 @@ Player.prototype._drawSplash = function() {
         rsize = 120;
     ctx.save();
 
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
     var ratio = this.state.ratio;
     if (ratio != 1) ctx.scale(ratio, ratio);
 
@@ -3171,7 +3173,7 @@ Render.p_applyAComp = function(ctx) {
     if (this.acomp) ctx.globalCompositeOperation = C.AC_NAMES[this.acomp];
 }
 
-Redner.p_usePivot = function(ctx) {
+Render.p_usePivot = function(ctx) {
     var dimen = this.$.dimen(),
         pvt = this.pvt;
     if (!dimen) return;

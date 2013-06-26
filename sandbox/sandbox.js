@@ -47,21 +47,24 @@ function sandbox() {
     //this.cm.setValue('return <your code here>;');
     this.cm.setSize(null, '66%');
     this.cm.on('focus', function() {
-      document.body.className = 'blur';
+        document.body.className = 'blur';
     });
     this.cm.on('blur', function() {
-      document.body.className = '';
+        document.body.className = '';
     });
     this.cm.on('change', function() {
-      refreshFromCurrentMoment();
+        wereErrors = false;
+        refreshFromCurrentMoment();
     });
 
     var s = this;
 
-    var curInterval = null,
+    var curTimeouts = [],
         refreshRate = localStorage ? load_refresh_rate() : DEFAULT_REFRESH_RATE;
 
-    var lastPlay = -1;
+    var lastPlay = -1,
+        lastSequence = -1,
+        wereErrors = false;
 
     function makeSafe(code) {
         return ['(function(){',
@@ -70,7 +73,6 @@ function sandbox() {
     }
 
     function playFrom(from, rate) {
-        //console.log('play from ', from, 'ms, rate is ', rate);
         s.errorsElm.style.display = 'none';
         try {
             _player.stop();
@@ -87,6 +89,8 @@ function sandbox() {
     };
 
     function onerror(e) {
+        ensureToCancelTimeouts();
+        wereErrors = true;
         var e2;
         try {
           _player.anim = null;
@@ -104,11 +108,15 @@ function sandbox() {
 
     this.player.onerror(onerror);
 
-    function ensureToCancelInterval() {
-        if (curInterval) {
-            //console.log('cancelling interval #', curInterval);
-            clearTimeout(curInterval);
+    function ensureToCancelTimeouts() {
+        var count = curTimeouts.length;
+        //console.log('removing all of the timeouts (' + count + ')');
+        while (count) {
+            var timeout = curTimeouts[--count];
+            //console.log('cancelling timeout #' + timeout[0] + ' (' + timeout[1] + ')');
+            clearTimeout(timeout[0]);
         }
+        curTimeouts = [];
     }
 
     function refreshFromStart() {
@@ -122,19 +130,24 @@ function sandbox() {
     }
 
     function runSequence(rate, startAt) {
-        ensureToCancelInterval();
+        var sequenceId = ++lastSequence,
+            timeoutId = 0;
+        //console.log('runSequence #' + sequenceId);
+        ensureToCancelTimeouts();
         refreshRate = rate;
         save_refresh_rate(rate);
-        var _refresher = function(from) {
+        var _refresher = function(from, seqId, tId) {
             return function() {
-                //console.log('starting to play from ', from);
+                if (wereErrors) return;
+                //console.log('starting to play from ', from, ', refresher id is ',
+                //             seqId + '-' + tId, new Date());
                 playFrom(from, rate);
-                //console.log('#' + curInterval + ' is done.');
-                curInterval = setTimeout(_refresher(0), rate - from);
-                //console.log('sheduled next refresh to ', rate - from, 'ms (#', curInterval, ')');
+                var nextTimeout = seqId + '-' + (tId + 1);
+                curTimeouts.push([ setTimeout(_refresher(0, seqId, tId + 1), rate - from), nextTimeout ]);
+                //console.log('sheduled next refresh to ', rate - from, 'ms (#', nextTimeout, ')');
             }
-        }
-        _refresher(startAt || 0)();
+        };
+        _refresher(startAt || 0, sequenceId, timeoutId)();
     }
 
     if (localStorage) {
@@ -147,6 +160,7 @@ function sandbox() {
 
     this.selectElm.onchange = function() {
         s.cm.setValue(examples[this.selectedIndex][1]);
+        wereErrors = false;
         refreshFromStart();
     }
 
