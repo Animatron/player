@@ -4214,7 +4214,7 @@ Sheet.instances = 0;
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
     this.src = src;
-    this.dimen = /*dimen ||*/ [0, 0];
+    this._dimen = /*dimen ||*/ [0, 0];
     this.regions = [ [ 0, 0, 1, 1 ] ]; // for image, sheet contains just one image
     this.regions_f = null;
     // this.aliases = {}; // map of names to regions (or regions ranges)
@@ -4234,7 +4234,7 @@ Sheet.prototype.load = function(callback) {
     function whenDone(image) {
         me._image = image;
         // if (me.regions.length == 1) me._drawToCache();
-        me.dimen = [ image.width, image.height ];
+        me._dimen = [ image.width, image.height ];
         me.ready = true;
         me._drawToCache();
         if (callback) callback.call(me, image);
@@ -4269,9 +4269,9 @@ Sheet.prototype._drawToCache = function() {
         this._cvs_cache = this._image.__cvs;
         return;
     }
-    var _canvas = newCanvas(this.dimen, 1 /* FIXME: use real ratio */);
+    var _canvas = newCanvas(this._dimen, 1 /* FIXME: use real ratio */);
     var _ctx = _canvas.getContext('2d');
-    _ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+    _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
     this._cvs_cache = _canvas;
 }
@@ -4282,7 +4282,7 @@ Sheet.prototype.apply = function(ctx) {
     if (this.region_f) { region = this.region_f(this.cur_region); }
     else {
         var r = this.regions[this.cur_region],
-            d = this.dimen;
+            d = this._dimen;
         region = [ r[0] * d[0], r[1] * d[1],
                    r[2] * d[0], r[3] * d[1] ];
     }
@@ -4291,9 +4291,10 @@ Sheet.prototype.apply = function(ctx) {
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
 Sheet.prototype.dimen = function() {
-    if (!this.ready || !this._active_region) return [0, 0];
+    /* if (!this.ready || !this._active_region) return [0, 0];
     var r = this._active_region;
-    return [ r[2], r[3] ];
+    return [ r[2], r[3] ]; */
+    return this._dimen;
 }
 Sheet.prototype.bounds = function() {
     // TODO: when using current_region, bounds will depend on that region

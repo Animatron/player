@@ -862,7 +862,7 @@ Builder.sheet = function(src, tile_spec, callback) {
     var sheet = new Sheet(src, function(img, sheet) {
         if (is.arr(tile_spec)) {
             var tdimen = tile_spec,
-                sdimen = sheet.dimen,
+                sdimen = sheet.dimen(),
                 h_factor = Math.floor(sdimen[0] / tdimen[0]);
             sheet.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
                                                h_pos = n % h_factor;
