@@ -813,7 +813,7 @@ function _get_frame(start, t, anim) {
     var frames = anim[0],
         fps = anim[1],
         step = (frames.length > 2) ? frames[2] : 1,
-        repeat = (frames.length > 3) ? frames[3] : false,
+        repeat = (frames.length > 3) ? frames[3] : (anim[2] || false),
         start_frame = frames[0],
         end_frame = frames[1],
         dt = __t(t - start);
@@ -835,7 +835,6 @@ function _Animator(sheet, elm) {
         var frame = _get_frame(me.start, t, me.cur_anim);
         if (frame >= 0) {
             sheet.cur_region = frame;
-
         } else {
             sheet.cur_region = -1; // FIXME: use default frame
             me.cur_anim = null;
@@ -859,16 +858,16 @@ _Animator.prototype.animate = function(t, frames, fps, repeat) {
 //                    [tile_selector: Array[2,Integer] | Function(Integer) => Array[4,Integer]],
 //                    [callback: Function(Image)]) => Builder
 Builder.sheet = function(src, tile_spec, callback) {
-    var sheet = new Sheet(src, function(img, sheet) {
+    var sheet = new Sheet(src, function(img) {
         if (is.arr(tile_spec)) {
             var tdimen = tile_spec,
-                sdimen = sheet.dimen(),
+                sdimen = this.dimen(),
                 h_factor = Math.floor(sdimen[0] / tdimen[0]);
-            sheet.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
+            this.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
                                                h_pos = n % h_factor;
                                            return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
         } else if (is.fun(tile_spec)) {
-            sheet.region_f = tile_spec;
+            this.region_f = tile_spec;
         }
         if (callback) callback();
     });
