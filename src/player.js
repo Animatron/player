@@ -1112,6 +1112,17 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.fillText(text || Strings.LOADING, 20, 25);
     ctx.restore();
 }
+Player.prototype._drawErrorSplash = function(e) {
+    this._drawSplash();
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.fillStyle = '#006';
+    ctx.font = '12px sans-serif';
+    ctx.fillText(Strings.ERROR +
+                 (e ? ': ' + (e.message || (typeof Error))
+                    : '') + '.', 20, 25);
+    ctx.restore();
+}
 Player.prototype.toString = function() {
     return "[ Player '" + this.id + "' m-" + this.mode + " ]";
 }
@@ -1263,7 +1274,10 @@ Player.prototype.__onerror = function(err) {
 
   doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
-  if (!doMute) throw err;
+  if (!doMute) {
+      this._drawErrorSplash(err);
+      throw err;
+  }
 }
 Player.prototype.__callSafe = function(f) {
   try {
@@ -1785,7 +1799,7 @@ Element.prototype.draw = Element.prototype.drawTo
 Element.prototype.transform = function(ctx) {
     var s = this.state,
         bs = this.bstate,
-        as = Element.__mergeStates(bs, s);
+        as = Element._mergeStates(bs, s);
     this.astate = as;
     s._matrix = Element._getMatrixOf(as, s._matrix);
     ctx.globalAlpha *= as.alpha;
@@ -2838,7 +2852,7 @@ Element.__convertEasing = function(easing, data, relative) {
 Element._mergeStates = function(s1, s2) {
     return {
         x: s1.x + s2.x, y: s1.y + s2.y,
-        sx: s1.sx * s2.sx, sy: s1.sy * s1.sy,
+        sx: s1.sx * s2.sx, sy: s1.sy * s2.sy,
         angle: s1.angle + s2.angle,
         alpha: s1.alpha * s2.alpha
     }
@@ -2846,13 +2860,13 @@ Element._mergeStates = function(s1, s2) {
 Element._getMatrixOf = function(s, m) {
     var _t = (m ? (m.reset(), m)
                 : new Transform());
-    _t.translate(bs.x + s.x, bs.y + s.y);
-    _t.rotate(bs.angle + s.angle);
-    _t.scale(bs.sx * s.sx, bs.sy * s.sy);
+    _t.translate(s.x, s.y);
+    _t.rotate(s.angle);
+    _t.scale(s.sx, s.sy);
     return _t;
 }
 Element._getIMatrixOf = function(s, m) {
-    var _t = Element._getMatrixOf(bs, s, m);
+    var _t = Element._getMatrixOf(s, m);
     _t.invert();
     return _t;
 }

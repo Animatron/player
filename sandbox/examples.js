@@ -74,7 +74,7 @@ examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
   'var scene = new anm.Scene();',
   'var elem = new anm.Element();',
-  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
+  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 L36 35 Z\',',
   '                      { color: \'#f00\' },',
   '                      { width: 2, color: \'#300\' });',
   'elem.addTween({',
