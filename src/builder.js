@@ -7,7 +7,22 @@
  * @VERSION
  */
 
-window.Builder = (function() { // anonymous wrapper to exclude global context clash
+(function(root, name, produce) {
+    // Cross-platform injector
+    if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(['anm'], produce);
+    } else if (typeof module != 'undefined') {
+        // CommonJS / module
+        module.exports = produce(require('anm'));
+    } else if (typeof exports === 'object') {
+        // CommonJS / exports
+        produce(require('anm'));
+    } else {
+        // Browser globals
+        root[name] = produce(root.anm);
+    }
+})(this, 'Builder'/*, 'anm/builder'*/, function(anm) {
 
 var Path = anm.Path;
 var Element = anm.Element;
@@ -916,4 +931,4 @@ Element.prototype.clone = function() {
 
 return Builder;
 
-})(); // end of anonymous wrapper
+});

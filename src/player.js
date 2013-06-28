@@ -49,11 +49,34 @@
 
 // So, let's start
 
-// `anm` is a player namespace; the function next to it is just a huge closure which covers the whole file and
-// is executed immediately after defenition, it allows us to hold all private things inside and to turn
-// only the considered classes and methods in public. `to_export` object in the end of the file is the one
-// that collects public things and returned from closure in the end.
-var anm = (function(_window) {
+// Module Definition
+// -----------------------------------------------------------------------------
+
+(function(name, produce) {
+    // Cross-platform injector
+    var _wnd = (typeof window !== 'undefined') ? window : {
+        'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
+        'devicePixelRatio': 1,
+        'addEventListener': function() {},
+        'removeEventListener': function() {}
+    };
+    var _doc = (typeof document !== 'undefined') ? document : null;
+    // TODO: var _factory = __anm_factory || { /*...*/ };
+    if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(produce(_wnd, _doc));
+    } else if (typeof module != 'undefined') {
+        // CommonJS / module
+        module.exports = produce(_wnd, _doc)({});
+    } else if (typeof exports === 'object') {
+        // CommonJS / exports
+        produce(_wnd, _doc)(exports);
+    } else {
+        // Browser globals
+        _wnd[name] = _wnd[name] || {};
+        produce(_wnd, _doc)(_wnd[name]);
+    }
+})('anm'/*, 'anm/player'*/, function($wnd, $doc) {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -66,25 +89,25 @@ var anm = (function(_window) {
    https://gist.github.com/1579671 */
 
 var __frameFunc = function() {
-           return _window.requestAnimationFrame ||
-                  _window.webkitRequestAnimationFrame ||
-                  _window.mozRequestAnimationFrame ||
-                  _window.oRequestAnimationFrame ||
-                  _window.msRequestAnimationFrame ||
-                  _window.__anm__frameGen ||
+           return $wnd.requestAnimationFrame ||
+                  $wnd.webkitRequestAnimationFrame ||
+                  $wnd.mozRequestAnimationFrame ||
+                  $wnd.oRequestAnimationFrame ||
+                  $wnd.msRequestAnimationFrame ||
+                  $wnd.__anm__frameGen ||
                   function(callback){
-                    return _window.setTimeout(callback, 1000 / 60);
+                    return $wnd.setTimeout(callback, 1000 / 60);
                   } };
 
 var __clearFrameFunc = function() {
-           return _window.cancelAnimationFrame ||
-                  _window.webkitCancelAnimationFrame ||
-                  _window.mozCancelAnimationFrame ||
-                  _window.oCancelAnimationFrame ||
-                  _window.msCancelAnimationFrame ||
-                  _window.__anm__frameRem ||
+           return $wnd.cancelAnimationFrame ||
+                  $wnd.webkitCancelAnimationFrame ||
+                  $wnd.mozCancelAnimationFrame ||
+                  $wnd.oCancelAnimationFrame ||
+                  $wnd.msCancelAnimationFrame ||
+                  $wnd.__anm__frameRem ||
                   function(id){
-                    return _window.clearTimeout(id);
+                    return $wnd.clearTimeout(id);
                   } };
 
 // assigns to call a function on next animation frame
@@ -222,14 +245,14 @@ function find_pos(elm) {
 function ajax(url, callback/*, errback*/) {
     var req = false;
 
-    if (!_window.ActiveXObject) {
-        req = new XMLHttpRequest();
+    if (!$wnd.ActiveXObject) {
+        req = new $wnd.XMLHttpRequest();
     } else {
         try {
-            req = new ActiveXObject("Msxml2.XMLHTTP");
+            req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
         } catch (e1) {
             try {
-                req = new ActiveXObject("Microsoft.XMLHTTP");
+                req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
             } catch (e2) {
                 throw new SysErr('No AJAX/XMLHttp support');
             }
@@ -264,7 +287,7 @@ function ajax(url, callback/*, errback*/) {
 // ### Canvas-related Utilities
 /* ---------------------------- */
 
-function getPxRatio() { return _window.devicePixelRatio || 1; }
+function getPxRatio() { return $wnd.devicePixelRatio || 1; }
 
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
@@ -285,7 +308,7 @@ function canvasOpts(canvas, opts, ratio) {
 }
 
 function newCanvas(dimen, ratio) {
-    var _canvas = document.createElement('canvas');
+    var _canvas = $doc.createElement('canvas');
     canvasOpts(_canvas, dimen, ratio);
     return _canvas;
 }
@@ -391,10 +414,10 @@ function _strf(str, subst) {
 var trashBin = null;
 function disposeElm(domElm) {
     if (!trashBin) {
-        trashBin = document.createElement('div');
+        trashBin = $doc.createElement('div');
         trashBin.id = 'trash-bin';
         trashBin.style.display = 'none';
-        document.body.appendChild(trashBin);
+        $doc.body.appendChild(trashBin);
     }
     trashBin.appendChild(domElm);
     trashBin.innerHTML = '';
@@ -841,7 +864,7 @@ Player.prototype.onerror = function(callback) {
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (__str(cvs)) {
-        this.canvas = document.getElementById(cvs);
+        this.canvas = $doc.getElementById(cvs);
         if (!this.canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [cvs]));
         this.id = cvs;
     } else {
@@ -1018,8 +1041,8 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    _window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
-    _window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
+    $wnd.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
+    $wnd.addEventListener('resize', Player.__getPosAndRedraw(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -1321,8 +1344,8 @@ Player.prototype.__makeSafe = function(methods) {
     }})(this);
 } */
 Player._saveCanvasPos = function(cvs) {
-    var gcs = (document.defaultView &&
-               document.defaultView.getComputedStyle); // last is assigned
+    var gcs = ($doc.defaultView &&
+               $doc.defaultView.getComputedStyle); // last is assigned
 
     // computed padding-left
     var cpl = gcs ?
@@ -1337,7 +1360,7 @@ Player._saveCanvasPos = function(cvs) {
         cbt = gcs ?
           (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
 
-    var html = document.body.parentNode,
+    var html = $doc.body.parentNode,
         htol = html.offsetLeft,
         htot = html.offsetTop;
 
@@ -2307,8 +2330,8 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     this.__maskCtx = this.__maskCvs.getContext('2d');
     this.__backCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
-    /* document.body.appendChild(this.__maskCvs); */
-    /* document.body.appendChild(this.__backCvs); */
+    /* $doc.body.appendChild(this.__maskCvs); */
+    /* $doc.body.appendChild(this.__backCvs); */
 }
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
@@ -4081,14 +4104,14 @@ Text.prototype.accent = function(height) {
 }
 Text._createBuffer = function() {
     /* FIXME: dispose buffer when text is removed from scene */
-    var _div = document.createElement('div');
+    var _div = $doc.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';
     _div.style.top = -10000 + 'px';
     _div.style.left = -10000 + 'px';
-    var _span = document.createElement('span');
+    var _span = $doc.createElement('span');
     _div.appendChild(_span);
-    document.body.appendChild(_div);
+    $doc.body.appendChild(_div);
     return _span;
 }
 Text.prototype.cstroke = function(color, width, cap, join) {
@@ -4385,7 +4408,7 @@ Controls.prototype.update = function(parent) {
     this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
-                                      : document.body;
+                                      : $doc.body;
         /* FIXME: a dirty hack? */
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
@@ -4500,7 +4523,7 @@ Controls.prototype.reset = function() {
 }
 Controls.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
-                    : document.body).removeChild(this.canvas);
+                    : $doc.body).removeChild(this.canvas);
 }
 Controls.prototype.handle_mdown = function(event) {
     if (this.hidden) return;
@@ -4741,7 +4764,7 @@ InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
-                    : document.body).removeChild(this.canvas);
+                    : $doc.body).removeChild(this.canvas);
 }
 InfoBlock.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
@@ -4778,7 +4801,7 @@ InfoBlock.prototype.update = function(parent) {
     this.canvas = _canvas;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
-                                      : document.body;
+                                      : $doc.body;
         /* FIXME: a dirty hack */
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
@@ -4916,59 +4939,61 @@ Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
 // Exports
 // -----------------------------------------------------------------------------
 
-var to_export = {
+return function($trg) {
 
-    'C': C, // constants
-    'M': M, // modules
-    'Player': Player,
-    'Scene': Scene,
-    'Element': Element,
-    'Clip': Clip,
-    'Path': Path, 'Text': Text, 'Sheet': Sheet, 'Image': _Image,
-    'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
-    'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
-    'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
-    'Errors': Errors, 'SystemError': SystemError,
-                      'PlayerError': PlayerError,
-                      'AnimationError': AnimationError,
-    'MODULES': {},
+    if (!$trg) $trg = {};
 
-    'obj_clone': obj_clone,
+    if (!$trg.MODULES)  $trg.MODULES = {};
+    if (!$trg._globals) $trg._globals = {};
 
-    'createPlayer': function(cvs, opts) { var p = new Player();
-                                          p.init(cvs, opts); return p; },
-    'ajax': ajax,
-    '_typecheck': { builder: __builder,
-                    arr: __arr,
-                    num: __num,
-                    obj: __obj,
-                    fun: __fun,
-                    str: __str },
-    '_valcheck': { finite: __finite,
-                   nan: __nan },
-    '__dev': { '_win': function() { return _window },
-               '_winf': function(w) { _window = w; },
-               'strf': _strf,
-               'adjust': __adjust,
-               't_cmp': __t_cmp,
-               'TIME_PRECISION': TIME_PRECISION/*,
-               'Controls': Controls, 'Info': InfoBlock*/ },
+    function __createPlayer(cvs, opts) { var p = new Player();
+                                         p.init(cvs, opts); return p; }
 
-};
+    var __globals = {
+        'createPlayer': __createPlayer
+    }
+    for (prop in __globals) {
+        $trg._globals[prop] = __globals[prop];
+        $wnd[prop] = __globals[prop];
+    }
 
-to_export._$ = to_export.createPlayer;
-/*to_export.__js_pl_all = this;*/
-to_export.__inject = function(as, to) {
-  to[as] = to_export;
-  to.createPlayer = to_export.createPlayer;
-};
+    /*$trg.__js_pl_all = this;*/
 
-return to_export;
+    $trg.createPlayer = __createPlayer;
+    $trg._$ = __createPlayer;
 
-})(window);
+    $trg.C = C; // constants
+    $trg.M = M; // modules
+    $trg.Player = Player;
+    $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
+    $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
+    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
+    $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
+    $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
+    $trg.Errors = Errors; $trg.SystemError = SystemError;
+                          $trg.PlayerError = PlayerError;
+                          $trg.AnimationError = AnimationError;
 
-// We add all required public things as the child objects of given namespace (`anm`) to the given global object
-// (`window` or `exports`, it depends on platform, browser or some server-side JS like __node.js__)
-anm.__inject('anm', typeof window !== "undefined"
-                    ? window
-                    : exports);
+    $trg.obj_clone = obj_clone; $trg.ajax = ajax;
+
+    $trg._typecheck = { builder: __builder,
+                        arr: __arr,
+                        num: __num,
+                        obj: __obj,
+                        fun: __fun,
+                        str: __str };
+    $trg._valcheck = { finite: __finite,
+                       nan: __nan };
+    $trg.__dev = { '_win': function() { return $wnd },
+                   '_winf': function(w) { $wnd = w; },
+                   'strf': _strf,
+                   'adjust': __adjust,
+                   't_cmp': __t_cmp,
+                   'TIME_PRECISION': TIME_PRECISION/*,
+                   'Controls': Controls, 'Info': InfoBlock*/ };
+
+    return $trg;
+
+}
+
+});
