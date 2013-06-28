@@ -61,7 +61,6 @@
         'removeEventListener': function() {}
     };
     var _doc = (typeof document !== 'undefined') ? document : null;
-    // TODO: var _factory = __anm_factory || { /*...*/ };
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(produce(_wnd, _doc));
@@ -370,12 +369,14 @@ function __roundTo(n, precision) {
 function __errorAs(name, _constructor, _toStr) {
   // FIXME: breaks instanceof due to re-using same constructor
   var _producer = _constructor ?
-    function(message) {
+    function (message) {
+      if (Error.captureStackTrace) Error.captureStackTrace(this, _constructor);
       _constructor.apply(this, arguments);
       if (!this.message) this.message = message || '';
       Error.apply(this, arguments);
     } :
-    function(message) {
+    function (message) {
+      if (Error.captureStackTrace) Error.captureStackTrace(this, this);
       this.message = message || '';
       Error.apply(this, arguments);
     };
@@ -641,7 +642,9 @@ Player.prototype.init = function(cvs, opts) {
     if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
-    this._prepare(cvs);
+    var cvs_opts = Player._mergeOpts(this._prepare(cvs),
+                                     Player.DEFAULT_CONFIGURATION);
+    var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
     this._loadOpts(opts);
     this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
@@ -861,28 +864,67 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
+Player.DOM_ENGINE = {
+    // TODO: frameFunc, remFrameFunc, createCanvas
+    loadCanvas: function(id) {
+                    var cvs = $doc.getElementById(id);
+                    if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+                    if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+                    cvs.setAttribute(Player.MARKER_ATTR, true);
+                    return cvs;
+                },
+    getContext: function(cvs, type) {
+                    return cvs.getContext(type);
+                },
+    extractUserOptions: function(cvs) {
+                    return Player._optsFromCvsAttrs(cvs);
+                },
+    configureCanvas: function(cvs, opts) {
+                    /* TODO */
+                },
+    checkCanvas: function(cvs) { return true; },
+    subscribeEvents: function(cvs, handlers) {
+                    if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
+                    if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
+                    if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
+                    if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
+                },
+    hasURLtoLoad: function(cvs) { return this.canvas.getAttribute(Player.URL_ATTR); },
+    attachedTo: function(cvs) { /* TODO */ },
+    getSize: function(cvs) { /* TODO */ },
+    rectChanged: function(cvs, spec) { /* TODO */ }
+};
+
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
-    if (__str(cvs)) {
-        this.canvas = $doc.getElementById(cvs);
-        if (!this.canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [cvs]));
-        this.id = cvs;
+    var engine,
+        cvs_id, canvas;
+    if (__fun(cvs)) {
+        engine = cvs();
+        cvs_id = guid();
+        canvas = engine.loadCanvas(cvs_id);
+    } else if (__str(cvs)) {
+        engine = Player.DOM_ENGINE;
+        cvs_id = cvs;
+        canvas = engine.loadCanvas(cvs_id);
     } else {
         if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
+        engine = Player.DOM_ENGINE;
         this.id = cvs.id;
         this.canvas = cvs;
     }
-    var canvas = this.canvas;
-    if (canvas.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-    canvas.setAttribute(Player.MARKER_ATTR, true);
-    this.ctx = canvas.getContext("2d");
+    if (!engine.checkCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    this._engine = engine;
+    this.id = cvs_id;
+    this.canvas = canvas;
+    this.ctx = engine.getContext(canvas, '2d');
     this.state = Player.createState(this);
+
     this.subscribeEvents(canvas);
+
+    return engine.extractUserOptions(canvas);
 }
 Player.prototype._loadOpts = function(opts) {
-    var cvs_opts = Player._mergeOpts(Player._optsFromCvsAttrs(this.canvas),
-                                     Player.DEFAULT_CONFIGURATION);
-    var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
     this.inParent = opts.inParent;
     this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
     this.debug = opts.debug;
@@ -944,7 +986,7 @@ Player.prototype.changeZoom = function(ratio) {
 //     }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
-    var cnvs = this.canvas;
+    var cvs = this.canvas;
 
     if (!conf.width && cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
     if (!conf.height && cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
@@ -1041,9 +1083,11 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    $wnd.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
-    $wnd.addEventListener('resize', Player.__getPosAndRedraw(this), false);
-    this.canvas.addEventListener('mouseover', (function(player) {
+    if (!this._engine) throw new PlayerErr('Engine is not initialized.');
+    this._engine.subscribeEvents(canvas, {
+        scroll: Player.__getPosAndRedraw(this),
+        resize: Player.__getPosAndRedraw(this),
+        mouseover: (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
                                 (player.mode & C.M_HANDLE_EVENTS) &&
@@ -1058,8 +1102,8 @@ Player.prototype.subscribeEvents = function(canvas) {
                             if (player.info) player.info.show();
                             return true;
                         };
-                    })(this), false);
-    this.canvas.addEventListener('mouseout', (function(player) {
+                    })(this),
+        mouseout:   (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
                                 (player.mode & C.M_HANDLE_EVENTS) &&
@@ -1077,7 +1121,8 @@ Player.prototype.subscribeEvents = function(canvas) {
                             }
                             return true;
                         };
-                    })(this), false);
+                    })(this)
+    };
 }
 Player.prototype.setDuration = function(value) {
     this.state.duration = (value >= 0) ? value : 0;
@@ -4897,10 +4942,11 @@ Errors.A = {}; // Animation Errors
 
 Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
 Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
-Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player.';
+Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player';
 Errors.P.NO_IMPORTER_TO_LOAD_WITH = 'Cannot load project without importer. Please define it';
 Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: {0}';
 Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
+Errors.P.CANVAS_NOT_VERIFIED = 'Canvas is not verified by the provider';
 Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
 Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
                            '\'stop\' or \'pause\' before playing again';
