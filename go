@@ -131,7 +131,7 @@
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
-                URL_PREFIX = PROTOCOL + 'animatron-snapshots.s3.amazonaws.com',
+                URL_PREFIX = PROTOCOL + 'animatron-snapshots-dev.s3.amazonaws.com',
                 SNAPSHOT_ID = _version_specified ? _before_amp.substring(0, _snapshot_id_len)
                                                  : _before_amp,
                 VERSION_ID = _version_specified ? _before_amp.substring(_snapshot_id_len + 1)
