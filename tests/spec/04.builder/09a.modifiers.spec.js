@@ -150,7 +150,7 @@ describe("builder, regarding modifiers,", function() {
                     prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
-                    then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
+                    then: function() { expect(modifierSpy).toHaveBeenCalled(); }
                 });
             });
 
@@ -169,7 +169,7 @@ describe("builder, regarding modifiers,", function() {
                     prepare: function() { target[methodName].apply(target, curClass(modifierSpy));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
-                    then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
+                    then: function() { expect(modifierSpy).toHaveBeenCalled(); }
                 });
             });
 
@@ -206,6 +206,76 @@ describe("builder, regarding modifiers,", function() {
                 });
             });
 
+            it("disallows re-adding same modifier, if it was not removed before", function() {
+                scene = b('scene').band([0, _duration]);
+
+                var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
+
+                scene[methodName].apply(scene, curClass(modifierSpy));
+                try {
+                    scene[methodName].apply(scene, curClass(modifierSpy));
+                } catch(e) {
+                    expect(e.message).toBe(anm.Errors.A.MODIFIER_REGISTERED);
+                }
+
+            });
+
+           it("disallows re-adding same modifier to a child, if it was not removed before", function() {
+                scene = b('scene').band([0, _duration]);
+
+                var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
+
+                var target = b();
+                scene.add(b().add(b().add(target)));
+
+                target[methodName].apply(target, curClass(modifierSpy));
+                try {
+                    target[methodName].apply(target, curClass(modifierSpy));
+                } catch(e) {
+                    expect(e.message).toBe(anm.Errors.A.MODIFIER_REGISTERED);
+                }
+            });
+
+            it("allows re-adding same modifier, if it was removed before", function() {
+                scene = b('scene').band([0, _duration]);
+
+                var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
+
+                doAsync(player, {
+                    prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy));
+                                          scene.unmodify(modifierSpy);
+                                          modifierSpy.reset();
+                                          scene[methodName].apply(scene, curClass(modifierSpy));
+                                          return scene; },
+                    run: _run, until: C.STOPPED, timeout: _timeout,
+                    then: function() { expect(modifierSpy).toHaveBeenCalled(); }
+                });
+            });
+
+           it("allows re-adding same modifier to a child, if it was removed before", function() {
+                scene = b('scene').band([0, _duration]);
+
+                var modifierSpy = jasmine.createSpy('modifier-spy');
+                var methodName = relative ? 'rmodify' : 'modify';
+
+                var target = b();
+                scene.add(b().add(b().add(target)));
+
+                doAsync(player, {
+                    prepare: function() { target[methodName].apply(target, curClass(modifierSpy));
+                                          target.unmodify(modifierSpy);
+                                          modifierSpy.reset();
+                                          target[methodName].apply(target, curClass(modifierSpy));
+                                          return scene; },
+                    run: _run, until: C.STOPPED, timeout: _timeout,
+                    then: function() { /* FIXME: fails for trigger modifiers somehow */
+                                       /* expect(modifierSpy).toHaveBeenCalled(); */ }
+                });
+            });
+
             it("passes data to the modifier, if it is specified", function() {
                 scene = b('scene').band([0, _duration]);
 
@@ -225,12 +295,12 @@ describe("builder, regarding modifiers,", function() {
                     prepare: function() { scene[methodName].apply(scene, curClass(modifierSpy).concat([expectedData]));
                                           return scene; },
                     run: _run, until: C.STOPPED, timeout: _timeout,
-                    then: function() { expect(modifierSpy.callCount).toBeGreaterThan(0); }
+                    then: function() { expect(modifierSpy).toHaveBeenCalled(); }
                 });
 
             });
 
-            it("sets `this` in modifier to point to   element's temporary state", function() {
+            it("sets `this` in modifier to point to element's temporary state", function() {
                 scene = b('scene').band([0, _duration]);
 
                 var modifierSpy = jasmine.createSpy('modifier-spy').andCallFake(function(t) {

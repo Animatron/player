@@ -1925,6 +1925,7 @@ Element.prototype.removeModifier = function(modifier) {
     if (!modifier.__m_ids) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
     var id = modifier.__m_ids[this.id];
+    delete modifier.__m_ids[this.id];
     if (!id) throw new AnimErr('Modifier wasn\'t applied to this element');
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
@@ -1945,6 +1946,7 @@ Element.prototype.removePainter = function(painter) {
     if (!painter.__p_ids) throw new AnimErr('Painter wasn\'t applied to anything');
     //if (this.__painting) throw new AnimErr("Can't remove painters while painting");
     var id = painter.__p_ids[this.id];
+    delete painter.__p_ids[this.id];
     var TB = Element.TYPE_MAX_BIT,
         PB = Element.PRRT_MAX_BIT;
     var type = id >> TB,
