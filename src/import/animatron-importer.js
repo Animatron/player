@@ -276,14 +276,14 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return C.R_STAY;
+    if (!from) return C.R_ONCE;
     if (from === "once") return C.R_ONCE;
     if (from === "stay") return C.R_STAY;
     if (from === "loop") return C.R_LOOP;
     if (from === "bounce") return C.R_BOUNCE; // FIXME: last is not for sure
 }
 Convert.oldschool_mode = function(from) {
-    if (!from) return C.R_STAY;
+    if (!from) return C.R_ONCE;
     if (from === "STOP") return C.R_ONCE;
     if (from === "LOOP") return C.R_LOOP;
     if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure
