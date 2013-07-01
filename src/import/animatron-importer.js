@@ -276,7 +276,7 @@ Convert.gradient = function(src) {
     };
 }
 Convert.mode = function(from) {
-    if (!from) return C.R_ONCE;
+    if (!from) return C.R_STAY;
     if (from === "once") return C.R_ONCE;
     if (from === "stay") return C.R_STAY;
     if (from === "loop") return C.R_LOOP;

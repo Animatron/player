@@ -61,8 +61,13 @@ describe("importing repeat modes", function() {
                     { name: 'loop-counter-end-inside', "#end": { 'type': 'loop', 'counter': 7 } }
                 ] } ]);
 
+        console.log(project);
+
         var scene = importer.load(project);
 
+        /*expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_ONCE);
+        expect(scene.findByName('null-type-end').xdata.mode).toBe(anm.C.R_ONCE);*/
         expect(scene.findByName('no-end').xdata.mode).toBe(anm.C.R_STAY);
         expect(scene.findByName('null-end').xdata.mode).toBe(anm.C.R_STAY);
         expect(scene.findByName('null-type-end').xdata.mode).toBe(anm.C.R_STAY);
