@@ -283,34 +283,12 @@ function ajax(url, callback/*, errback*/) {
     req.send(null);
 }
 
-// ### Canvas-related Utilities
+// ### Canvas-related Constants
 /* ---------------------------- */
-
-function getPxRatio() { return $wnd.devicePixelRatio || 1; }
 
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
 var DEF_CNVS_BG = '#fff';
-
-function canvasOpts(canvas, opts, ratio) {
-    var isObj = !(opts instanceof Array),
-        _w = isObj ? opts.width : opts[0],
-        _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor && opts.bgcolor.color) {
-        canvas.style.backgroundColor = opts.bgcolor.color;
-    }
-    canvas.__pxRatio = ratio;
-    canvas.style.width = _w + 'px';
-    canvas.style.height = _h + 'px';
-    canvas.setAttribute('width', _w * (ratio || 1));
-    canvas.setAttribute('height', _h * (ratio || 1));
-}
-
-function newCanvas(dimen, ratio) {
-    var _canvas = $doc.createElement('canvas');
-    canvasOpts(_canvas, dimen, ratio);
-    return _canvas;
-}
 
 // ### Internal Helpers
 /* -------------------- */
@@ -864,36 +842,127 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-Player.DOM_ENGINE = {
-    // TODO: frameFunc, remFrameFunc, createCanvas
-    loadCanvas: function(id) {
-                    var cvs = $doc.getElementById(id);
-                    if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
-                    if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-                    cvs.setAttribute(Player.MARKER_ATTR, true);
-                    return cvs;
-                },
-    getContext: function(cvs, type) {
-                    return cvs.getContext(type);
-                },
-    extractUserOptions: function(cvs) {
-                    return Player._optsFromCvsAttrs(cvs);
-                },
-    configureCanvas: function(cvs, opts) {
-                    /* TODO */
-                },
-    checkCanvas: function(cvs) { return true; },
-    subscribeEvents: function(cvs, handlers) {
-                    if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
-                    if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
-                    if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
-                    if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
-                },
-    hasURLtoLoad: function(cvs) { return this.canvas.getAttribute(Player.URL_ATTR); },
-    attachedTo: function(cvs) { /* TODO */ },
-    getSize: function(cvs) { /* TODO */ },
-    rectChanged: function(cvs, spec) { /* TODO */ }
-};
+DomEngine = { };
+DomEngine.__textBuf = null;
+// TODO: frameFunc, remFrameFunc, createCanvas
+DomEngine.createCanvas = function(dimen, ratio) {
+    var cvs = $doc.createElement('canvas');
+    DomEngine.configureCanvas(cvs, dimen, ratio);
+    return cvs;
+}
+DomEngine.getPlayerCanvas = function(id) {
+    var cvs = $doc.getElementById(id);
+    if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+    if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+    cvs.setAttribute(Player.MARKER_ATTR, true);
+    return cvs;
+}
+DomEngine.playerAttachedTo = function(cvs) {
+    return (cvs.getAttribute(Player.MARKER_ATTR) == null) ||
+           (cvs.getAttribute(Player.MARKER_ATTR) == undefined); }
+DomEngine.getContext = function(cvs, type) { return cvs.getContext(type); }
+DomEngine.extractUserOptions = function(cvs) { return Player._optsFromCvsAttrs(cvs); }
+DomEngine.checkPlayerCanvas = function(cvs) { return true; }
+DomEngine.subscribeEvents = function(cvs, handlers) {
+    if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
+    if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
+    if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
+    if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
+}
+DomEngine.hasURLtoLoad = function(cvs) { return cvs.getAttribute(Player.URL_ATTR); },
+DomEngine.createTextMeasurer = function() {
+    var buff = DomEngine.__textBuf;
+    if (!buff) {
+        /* FIXME: dispose buffer when text is removed from scene */
+        var _div = $doc.createElement('div');
+        _div.style.visibility = 'hidden';
+        _div.style.position = 'absolute';
+        _div.style.top = -10000 + 'px';
+        _div.style.left = -10000 + 'px';
+        var _span = $doc.createElement('span');
+        _div.appendChild(_span);
+        $doc.body.appendChild(_div);
+        DomEngine.__textBuf = _span;
+        buff = DomEngine.__textBuf;
+    }
+    return function(text) {
+        buff.style.font = text.font;
+        if (__str(text.lines)) {
+            buff.textContent = text.lines;
+        } else {
+            buff.textContent = text.lines.join('<br/>');
+        }
+        // TODO: test if lines were changed, and if not,
+        //       use cached value
+        return [ buff.offsetWidth,
+                 buff.offsetHeight ];
+    }
+}
+DomEngine.configureCanvas = function(cvs, opts, ratio) {
+    var ratio = ratio || DomEngine.getPxRatio();
+    var isObj = !(opts instanceof Array),
+        _w = isObj ? opts.width : opts[0],
+        _h = isObj ? opts.height : opts[1];
+    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+        cvs.style.backgroundColor = opts.bgcolor.color;
+    }
+    cvs.__pxRatio = ratio;
+    cvs.style.width = _w + 'px';
+    cvs.style.height = _h + 'px';
+    cvs.setAttribute('width', _w * (ratio || 1));
+    cvs.setAttribute('height', _h * (ratio || 1));
+    DomEngine._saveCanvasPos(cvs);
+    return [ _w, _h ];
+}
+DomEngine._saveCanvasPos = function(cvs) {
+    var gcs = ($doc.defaultView &&
+               $doc.defaultView.getComputedStyle); // last is assigned
+
+    // computed padding-left
+    var cpl = gcs ?
+          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
+    // computed padding-top
+        cpt = gcs ?
+          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
+    // computed bodrer-left
+        cbl = gcs ?
+          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
+    // computed bodrer-top
+        cbt = gcs ?
+          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
+
+    var html = $doc.body.parentNode,
+        htol = html.offsetLeft,
+        htot = html.offsetTop;
+
+    var elm = cvs,
+        ol = cpl + cbl + htol,
+        ot = cpt + cbt + htot;
+
+    if (elm.offsetParent !== undefined) {
+        do {
+            ol += elm.offsetLeft;
+            ot += elm.offsetTop;
+        } while (elm = elm.offsetParent)
+    }
+
+    ol += cpl + cbl + htol;
+    ot += cpt + cbt + htot;
+
+    /* FIXME: find a method with no injection of custom properties
+              (data-xxx attributes are stored as strings and may work
+               a bit slower for events) */
+    cvs.__rOffsetLeft = ol;
+    cvs.__rOffsetTop = ot;
+}
+DomEngine.getPxRatio = function() { return $wnd.devicePixelRatio || 1; }
+
+Player.E_DOM = 'DOM';
+
+Player.ENGINES = {};
+Player.ENGINES[Player.E_DOM] = DomEngine;
+
+// TODO: Some separate 'StyleEngine' to manipulate Controls & InfoBlock
 
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
@@ -902,18 +971,18 @@ Player.prototype._prepare = function(cvs) {
     if (__fun(cvs)) {
         engine = cvs();
         cvs_id = guid();
-        canvas = engine.loadCanvas(cvs_id);
+        canvas = engine.getPlayerCanvas(cvs_id);
     } else if (__str(cvs)) {
-        engine = Player.DOM_ENGINE;
+        engine = Player.ENGINES[Player.E_DOM];
         cvs_id = cvs;
-        canvas = engine.loadCanvas(cvs_id);
+        canvas = engine.getPlayerCanvas(cvs_id);
     } else {
         if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-        engine = Player.DOM_ENGINE;
+        engine = Player.ENGINES[Player.E_DOM];
         this.id = cvs.id;
         this.canvas = cvs;
     }
-    if (!engine.checkCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    if (!engine.checkPlayerCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
     this._engine = engine;
     this.id = cvs_id;
     this.canvas = canvas;
@@ -940,14 +1009,14 @@ Player.prototype._loadOpts = function(opts) {
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
     this.stop();
+    Text.__measuring_f = this._engine.createTextMeasurer();
     /* TODO: load some default information into player */
-    Text._ensureHasBuffer(); /* so it will be performed onload */
-    var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
+    var mayBeUrl = this._engine.hasURLtoLoad(this.canvas);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
-    this._reconfigureCanvas({
+    this._configureCanvas({
         width: rect.width,
         height: rect.height,
         x: rect.x,
@@ -991,9 +1060,7 @@ Player.prototype.configureAnim = function(conf) {
     if (!conf.width && cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
     if (!conf.height && cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
 
-    this._reconfigureCanvas(conf);
-
-    if (conf.bgcolor) this.state.bgcolor = conf.bgcolor;
+    this._configureCanvas(conf);
 
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
@@ -1057,10 +1124,6 @@ Player.prototype.detach = function() {
     this.canvas.removeAttribute(Player.MARKER_ATTR);
     this._reset();
 }
-Player.attachedTo = function(canvas) {
-    return (canvas.getAttribute(Player.MARKER_ATTR) == null) ||
-           (canvas.getAttribute(Player.MARKER_ATTR) == undefined);
-}
 Player.__getPosAndRedraw = function(player) {
     return function(evt) {
         /*var canvas = player.canvas;
@@ -1083,7 +1146,7 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    if (!this._engine) throw new PlayerErr('Engine is not initialized.');
+    this._ensureHasEngine();
     this._engine.subscribeEvents(canvas, {
         scroll: Player.__getPosAndRedraw(this),
         resize: Player.__getPosAndRedraw(this),
@@ -1218,9 +1281,9 @@ Player.prototype._stopAndContinue = function() {
   this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
-Player.prototype._reconfigureCanvas = function(opts) {
+Player.prototype._configureCanvas = function(opts) {
     var canvas = this.canvas;
-    var pxRatio = getPxRatio();
+    var pxRatio = this._engine.getPxRatio();
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -1230,8 +1293,7 @@ Player.prototype._reconfigureCanvas = function(opts) {
     this.state.height = _h;
     this.state.ratio = pxRatio;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    canvasOpts(canvas, opts, pxRatio);
-    Player._saveCanvasPos(canvas);
+    this._engine.configureCanvas(canvas, opts, pxRatio);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
     this.__canvasPrepared = true;
@@ -1288,6 +1350,9 @@ Player.prototype._ensureHasState = function() {
 }
 Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw new PlayerErr(Errors.P.NO_SCENE);
+}
+Player.prototype._ensureHasEngine = function() {
+    if (!this._engine) throw new PlayerErr(Errors.P.NO_ENGINE);
 }
 Player.prototype.__beforeFrame = function(scene) {
     return (function(player, state, scene, callback) {
@@ -1388,47 +1453,6 @@ Player.prototype.__makeSafe = function(methods) {
         return player._fireError(err);
     }})(this);
 } */
-Player._saveCanvasPos = function(cvs) {
-    var gcs = ($doc.defaultView &&
-               $doc.defaultView.getComputedStyle); // last is assigned
-
-    // computed padding-left
-    var cpl = gcs ?
-          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
-    // computed padding-top
-        cpt = gcs ?
-          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
-    // computed bodrer-left
-        cbl = gcs ?
-          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
-    // computed bodrer-top
-        cbt = gcs ?
-          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
-
-    var html = $doc.body.parentNode,
-        htol = html.offsetLeft,
-        htot = html.offsetTop;
-
-    var elm = cvs,
-        ol = cpl + cbl + htol,
-        ot = cpt + cbt + htot;
-
-    if (elm.offsetParent !== undefined) {
-        do {
-            ol += elm.offsetLeft;
-            ot += elm.offsetTop;
-        } while (elm = elm.offsetParent)
-    }
-
-    ol += cpl + cbl + htol;
-    ot += cpt + cbt + htot;
-
-    /* FIXME: find a method with no injection of custom properties
-              (data-xxx attributes are stored as strings and may work
-               a bit slower for events) */
-    cvs.__rOffsetLeft = ol;
-    cvs.__rOffsetTop = ot;
-}
 
 Player.createState = function(player) {
     return {
@@ -1512,7 +1536,7 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
-            player._reconfigureCanvas({ width: params.w, height: params.h });
+            player._configureCanvas({ width: params.w, height: params.h });
         }
         if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
     }
@@ -4127,18 +4151,9 @@ Text.prototype.apply = function(ctx, point, baseline) {
     ctx.restore();
 }
 Text.prototype.dimen = function() {
-    if (this._dimen) return this._dimen;
-    if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
-    var buff = Text.__buff;
-    buff.style.font = this.font;
-    if (__str(this.lines)) {
-        buff.textContent = this.lines;
-    } else {
-        buff.textContent = this.lines.join('<br/>');
-    }
-    return (this._dimen = [ buff.offsetWidth,
-                            buff.offsetHeight ]);
-
+    //if (this._dimen) return this._dimen;
+    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
+    return Text.__measuring_f(this);
 }
 Text.prototype.bounds = function() {
     var dimen = this.dimen();
@@ -4146,18 +4161,6 @@ Text.prototype.bounds = function() {
 }
 Text.prototype.accent = function(height) {
     return height; /* FIXME */
-}
-Text._createBuffer = function() {
-    /* FIXME: dispose buffer when text is removed from scene */
-    var _div = $doc.createElement('div');
-    _div.style.visibility = 'hidden';
-    _div.style.position = 'absolute';
-    _div.style.top = -10000 + 'px';
-    _div.style.left = -10000 + 'px';
-    var _span = $doc.createElement('span');
-    _div.appendChild(_span);
-    $doc.body.appendChild(_div);
-    return _span;
 }
 Text.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -4195,9 +4198,6 @@ Text.prototype.clone = function() {
     return c;
 }
 Text.prototype.dispose = function() { }
-Text._ensureHasBuffer = function() {
-  if (!Text.__buff) Text.__buff = Text._createBuffer();
-}
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -4401,6 +4401,7 @@ function Controls(player) {
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
+    this._engine = player._engine;
 }
 /* TODO: move these settings to default css rule? */
 Controls.HEIGHT = 26;
@@ -4418,6 +4419,7 @@ Controls.FONT = 'Arial, sans-serif';
 Controls.FONT_WEIGHT = 'bold';
 Controls.FLAT = false;
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
+// TODO: move to engine
 Controls.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
         _w = parent.width / _ratio,
@@ -4797,6 +4799,7 @@ function InfoBlock(player) {
     this.ready = false;
     this.hidden = false;
     this._inParent = player.inParent;
+    this._engine = player._engine;
 }
 /* TODO: move these settings to default css rule? */
 InfoBlock.BASE_BGCOLOR = Controls.BASE_BGCOLOR;
@@ -4811,6 +4814,7 @@ InfoBlock.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
                     : $doc.body).removeChild(this.canvas);
 }
+// TODO: move to engine
 InfoBlock.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
         _p = InfoBlock.PADDING,
@@ -4860,7 +4864,6 @@ InfoBlock.prototype.render = function() {
         anim = this.__data[1],
         duration = this.__data[2] || meta.duration,
         ratio = this.canvas.__pxRatio;
-    Text._ensureHasBuffer();
     /* TODO: show speed */
     var _tl = new Text(meta.title || '[No title]', 'bold ' + (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + duration + 's' +
@@ -4958,6 +4961,7 @@ Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
 Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
                     'please load something in player before ' +
                     'calling its playing-related methods';
+Errors.P.NO_ENGINE = 'Player has no engine to run on, by accident';
 Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
                     'please stop player before loading';
 Errors.P.BEFOREFRAME_BEFORE_PLAY = 'Please assign beforeFrame callback before calling play()';
