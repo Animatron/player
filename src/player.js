@@ -352,18 +352,6 @@ function _strf(str, subst) {
   });
 };
 
-var trashBin = null;
-function disposeElm(domElm) {
-    if (!trashBin) {
-        trashBin = $doc.createElement('div');
-        trashBin.id = 'trash-bin';
-        trashBin.style.display = 'none';
-        $doc.body.appendChild(trashBin);
-    }
-    trashBin.appendChild(domElm);
-    trashBin.innerHTML = '';
-}
-
 /* TODO: Create custom `undefined`, consider changing Infinity to Number.POSITIVE_INIFINITY */
 
 
@@ -4766,12 +4754,11 @@ InfoBlock.prototype.changeTheme = function(front, back) {
 // -----------------------------------------------------------------------------
 
 DomEngine = { };
-DomEngine.__textBuf = null;
-DomEngine.__frameFunc = null;
-DomEngine.__cancelFunc = null;
 
 // Framing
 
+DomEngine.__frameFunc = null;
+DomEngine.__cancelFunc = null;
 DomEngine.getRequestFrameFunc = function() {
     if (DomEngine.__frameFunc) return DomEngine.__frameFunc;
     return (DomEngine.__frameFunc =
@@ -4805,6 +4792,7 @@ DomEngine.stopAnim = function(reqId) {
 DomEngine.getPxRatio = function() {
     return $wnd.devicePixelRatio || 1;
 }
+DomEngine.__textBuf = null;
 DomEngine.createTextMeasurer = function() {
     var buff = DomEngine.__textBuf;
     if (!buff) {
@@ -4832,6 +4820,19 @@ DomEngine.createTextMeasurer = function() {
         return [ buff.offsetWidth,
                  buff.offsetHeight ];
     }
+}
+DomEngine.__trashBin;
+DomEngine.disposeElm = function(elm) {
+    var trashBin = DomEngine.__trashBin;
+    if (!trashBin) {
+        trashBin = $doc.createElement('div');
+        trashBin.id = 'trash-bin';
+        trashBin.style.display = 'none';
+        $doc.body.appendChild(trashBin);
+        DomEngine.__trashBin = trashBin;
+    }
+    trashBin.appendChild(domElm);
+    trashBin.innerHTML = '';
 }
 
 // Creating & Modifying Canvas
@@ -4934,7 +4935,6 @@ DomEngine._saveCanvasPos = function(cvs) {
     cvs.__rOffsetLeft = ol;
     cvs.__rOffsetTop = ot;
 }
-
 DomEngine.addChildCanvas = function(id, parent, pos, style, inside) {
     // pos should be: [ x, y, w, h]
     // style may contain _class attr
