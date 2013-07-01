@@ -80,44 +80,6 @@
 // Utils
 // -----------------------------------------------------------------------------
 
-// ### Framing
-/* ----------- */
-
-/* http://www.html5canvastutorials.com/advanced/html5-canvas-start-and-stop-an-animation/
-   http://www.w3.org/TR/animation-timing/
-   https://gist.github.com/1579671 */
-
-var __frameFunc = function() {
-           return $wnd.requestAnimationFrame ||
-                  $wnd.webkitRequestAnimationFrame ||
-                  $wnd.mozRequestAnimationFrame ||
-                  $wnd.oRequestAnimationFrame ||
-                  $wnd.msRequestAnimationFrame ||
-                  $wnd.__anm__frameGen ||
-                  function(callback){
-                    return $wnd.setTimeout(callback, 1000 / 60);
-                  } };
-
-var __clearFrameFunc = function() {
-           return $wnd.cancelAnimationFrame ||
-                  $wnd.webkitCancelAnimationFrame ||
-                  $wnd.mozCancelAnimationFrame ||
-                  $wnd.oCancelAnimationFrame ||
-                  $wnd.msCancelAnimationFrame ||
-                  $wnd.__anm__frameRem ||
-                  function(id){
-                    return $wnd.clearTimeout(id);
-                  } };
-
-// assigns to call a function on next animation frame
-var __nextFrame;
-
-// stops the animation
-/* FIXME: remove, not used, __supressFrames is used */
-var __stopAnim = function(requestId) {
-    __clearFrameFunc()(requestId);
-};
-
 // ### Errors
 /* ---------- */
 
@@ -710,6 +672,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     return player;
 }
 
+var __nextFrame = null,
+    __stopAnim  = null;
 Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.ALREADY_PLAYING);
@@ -717,7 +681,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     var player = this;
 
     // reassigns var to ensure proper function is used
-    __nextFrame = __frameFunc();
+    __nextFrame = player._engine.getRequestFrameFunc();
+    __stopAnim = player._engine.getCancelFrameFunc();
 
     player._ensureHasAnim();
     player._ensureHasState();
@@ -844,7 +809,35 @@ Player.prototype.onerror = function(callback) {
 
 DomEngine = { };
 DomEngine.__textBuf = null;
-// TODO: frameFunc, remFrameFunc, createCanvas
+DomEngine.__frameFunc = null;
+DomEngine.__cancelFunc = null;
+DomEngine.getRequestFrameFunc = function() {
+    if (DomEngine.__frameFunc) return DomEngine.__frameFunc;
+    return (DomEngine.__frameFunc =
+                ($wnd.requestAnimationFrame ||
+                 $wnd.webkitRequestAnimationFrame ||
+                 $wnd.mozRequestAnimationFrame ||
+                 $wnd.oRequestAnimationFrame ||
+                 $wnd.msRequestAnimationFrame ||
+                 $wnd.__anm__frameGen ||
+                 function(callback){
+                   return $wnd.setTimeout(callback, 1000 / 60);
+                 } }));
+DomEngine.getCancelFrameFunc = function() {
+    if (DomEngine.__cancelFunc) return DomEngine.__cancelFunc;
+    return (DomEngine.__frameFunc =
+                ($wnd.cancelAnimationFrame ||
+                 $wnd.webkitCancelAnimationFrame ||
+                 $wnd.mozCancelAnimationFrame ||
+                 $wnd.oCancelAnimationFrame ||
+                 $wnd.msCancelAnimationFrame ||
+                 $wnd.__anm__frameRem ||
+                 function(id){
+                   return $wnd.clearTimeout(id);
+                 } }));
+DomEngine.stopAnim = function(reqId) {
+    DomEnginge.getCancelFrameFunc()(reqId);
+}
 DomEngine.createCanvas = function(dimen, ratio) {
     var cvs = $doc.createElement('canvas');
     DomEngine.configureCanvas(cvs, dimen, ratio);
@@ -860,16 +853,24 @@ DomEngine.getPlayerCanvas = function(id) {
 DomEngine.playerAttachedTo = function(cvs) {
     return (cvs.getAttribute(Player.MARKER_ATTR) == null) ||
            (cvs.getAttribute(Player.MARKER_ATTR) == undefined); }
-DomEngine.getContext = function(cvs, type) { return cvs.getContext(type); }
-DomEngine.extractUserOptions = function(cvs) { return Player._optsFromCvsAttrs(cvs); }
-DomEngine.checkPlayerCanvas = function(cvs) { return true; }
+DomEngine.getContext = function(cvs, type) {
+    return cvs.getContext(type);
+}
+DomEngine.extractUserOptions = function(cvs) {
+    return Player._optsFromCvsAttrs(cvs);
+}
+DomEngine.checkPlayerCanvas = function(cvs) {
+    return true;
+}
 DomEngine.subscribeEvents = function(cvs, handlers) {
     if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
     if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
     if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
     if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
 }
-DomEngine.hasURLtoLoad = function(cvs) { return cvs.getAttribute(Player.URL_ATTR); },
+DomEngine.hasURLtoLoad = function(cvs) {
+    return cvs.getAttribute(Player.URL_ATTR);
+}
 DomEngine.createTextMeasurer = function() {
     var buff = DomEngine.__textBuf;
     if (!buff) {
@@ -955,7 +956,9 @@ DomEngine._saveCanvasPos = function(cvs) {
     cvs.__rOffsetLeft = ol;
     cvs.__rOffsetTop = ot;
 }
-DomEngine.getPxRatio = function() { return $wnd.devicePixelRatio || 1; }
+DomEngine.getPxRatio = function() {
+    return $wnd.devicePixelRatio || 1;
+}
 
 Player.E_DOM = 'DOM';
 
