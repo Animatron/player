@@ -807,165 +807,10 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-DomEngine = { };
-DomEngine.__textBuf = null;
-DomEngine.__frameFunc = null;
-DomEngine.__cancelFunc = null;
-DomEngine.getRequestFrameFunc = function() {
-    if (DomEngine.__frameFunc) return DomEngine.__frameFunc;
-    return (DomEngine.__frameFunc =
-                ($wnd.requestAnimationFrame ||
-                 $wnd.webkitRequestAnimationFrame ||
-                 $wnd.mozRequestAnimationFrame ||
-                 $wnd.oRequestAnimationFrame ||
-                 $wnd.msRequestAnimationFrame ||
-                 $wnd.__anm__frameGen ||
-                 function(callback){
-                   return $wnd.setTimeout(callback, 1000 / 60);
-                 } }));
-DomEngine.getCancelFrameFunc = function() {
-    if (DomEngine.__cancelFunc) return DomEngine.__cancelFunc;
-    return (DomEngine.__frameFunc =
-                ($wnd.cancelAnimationFrame ||
-                 $wnd.webkitCancelAnimationFrame ||
-                 $wnd.mozCancelAnimationFrame ||
-                 $wnd.oCancelAnimationFrame ||
-                 $wnd.msCancelAnimationFrame ||
-                 $wnd.__anm__frameRem ||
-                 function(id){
-                   return $wnd.clearTimeout(id);
-                 } }));
-DomEngine.stopAnim = function(reqId) {
-    DomEnginge.getCancelFrameFunc()(reqId);
-}
-DomEngine.createCanvas = function(dimen, ratio) {
-    var cvs = $doc.createElement('canvas');
-    DomEngine.configureCanvas(cvs, dimen, ratio);
-    return cvs;
-}
-DomEngine.getPlayerCanvas = function(id) {
-    var cvs = $doc.getElementById(id);
-    if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
-    if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-    cvs.setAttribute(Player.MARKER_ATTR, true);
-    return cvs;
-}
-DomEngine.playerAttachedTo = function(cvs) {
-    return (cvs.getAttribute(Player.MARKER_ATTR) == null) ||
-           (cvs.getAttribute(Player.MARKER_ATTR) == undefined); }
-DomEngine.getContext = function(cvs, type) {
-    return cvs.getContext(type);
-}
-DomEngine.extractUserOptions = function(cvs) {
-    return Player._optsFromCvsAttrs(cvs);
-}
-DomEngine.checkPlayerCanvas = function(cvs) {
-    return true;
-}
-DomEngine.subscribeEvents = function(cvs, handlers) {
-    if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
-    if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
-    if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
-    if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
-}
-DomEngine.hasURLtoLoad = function(cvs) {
-    return cvs.getAttribute(Player.URL_ATTR);
-}
-DomEngine.createTextMeasurer = function() {
-    var buff = DomEngine.__textBuf;
-    if (!buff) {
-        /* FIXME: dispose buffer when text is removed from scene */
-        var _div = $doc.createElement('div');
-        _div.style.visibility = 'hidden';
-        _div.style.position = 'absolute';
-        _div.style.top = -10000 + 'px';
-        _div.style.left = -10000 + 'px';
-        var _span = $doc.createElement('span');
-        _div.appendChild(_span);
-        $doc.body.appendChild(_div);
-        DomEngine.__textBuf = _span;
-        buff = DomEngine.__textBuf;
-    }
-    return function(text) {
-        buff.style.font = text.font;
-        if (__str(text.lines)) {
-            buff.textContent = text.lines;
-        } else {
-            buff.textContent = text.lines.join('<br/>');
-        }
-        // TODO: test if lines were changed, and if not,
-        //       use cached value
-        return [ buff.offsetWidth,
-                 buff.offsetHeight ];
-    }
-}
-DomEngine.configureCanvas = function(cvs, opts, ratio) {
-    var ratio = ratio || DomEngine.getPxRatio();
-    var isObj = !(opts instanceof Array),
-        _w = isObj ? opts.width : opts[0],
-        _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor && opts.bgcolor.color) {
-        cvs.style.backgroundColor = opts.bgcolor.color;
-    }
-    cvs.__pxRatio = ratio;
-    cvs.style.width = _w + 'px';
-    cvs.style.height = _h + 'px';
-    cvs.setAttribute('width', _w * (ratio || 1));
-    cvs.setAttribute('height', _h * (ratio || 1));
-    DomEngine._saveCanvasPos(cvs);
-    return [ _w, _h ];
-}
-DomEngine._saveCanvasPos = function(cvs) {
-    var gcs = ($doc.defaultView &&
-               $doc.defaultView.getComputedStyle); // last is assigned
-
-    // computed padding-left
-    var cpl = gcs ?
-          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
-    // computed padding-top
-        cpt = gcs ?
-          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
-    // computed bodrer-left
-        cbl = gcs ?
-          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
-    // computed bodrer-top
-        cbt = gcs ?
-          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
-
-    var html = $doc.body.parentNode,
-        htol = html.offsetLeft,
-        htot = html.offsetTop;
-
-    var elm = cvs,
-        ol = cpl + cbl + htol,
-        ot = cpt + cbt + htot;
-
-    if (elm.offsetParent !== undefined) {
-        do {
-            ol += elm.offsetLeft;
-            ot += elm.offsetTop;
-        } while (elm = elm.offsetParent)
-    }
-
-    ol += cpl + cbl + htol;
-    ot += cpt + cbt + htot;
-
-    /* FIXME: find a method with no injection of custom properties
-              (data-xxx attributes are stored as strings and may work
-               a bit slower for events) */
-    cvs.__rOffsetLeft = ol;
-    cvs.__rOffsetTop = ot;
-}
-DomEngine.getPxRatio = function() {
-    return $wnd.devicePixelRatio || 1;
-}
-
 Player.E_DOM = 'DOM';
 
 Player.ENGINES = {};
 Player.ENGINES[Player.E_DOM] = DomEngine;
-
-// TODO: Some separate 'StyleEngine' to manipulate Controls & InfoBlock
 
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
@@ -1341,10 +1186,10 @@ Player.prototype._checkMode = function() {
 }
 Player.prototype.__subscribeDynamicEvents = function(scene) {
     if (global_opts.setTabindex) {
-        this.canvas.setAttribute('tabindex',this.__instanceNum);
+        this._engine.setTabindex(this.canvas, this.__instanceNum);
     }
     if (scene && !scene.__subscribedEvts) {
-        scene.subscribeEvents(this.canvas);
+        this._engine.subscribeSceneToEvents(this.canvas, scene);
         scene.__subscribedEvts = true;
     }
 }
@@ -1686,39 +1531,6 @@ Scene.prototype.isEmpty = function() {
 }
 Scene.prototype.toString = function() {
     return "[ Scene "+(this.name ? "'"+this.name+"'" : "")+"]";
-}
-Scene.prototype.subscribeEvents = function(canvas) {
-    var anim = this;
-    canvas.addEventListener('mouseup', function(evt) {
-        anim.fire(C.X_MUP, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mousedown', function(evt) {
-        anim.fire(C.X_MDOWN, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mousemove', function(evt) {
-        anim.fire(C.X_MMOVE, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mouseover', function(evt) {
-        anim.fire(C.X_MOVER, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mouseout', function(evt) {
-        anim.fire(C.X_MOUT, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('click', function(evt) {
-        anim.fire(C.X_MCLICK, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('dblclick', function(evt) {
-        anim.fire(C.X_MDCLICK, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('keyup', function(evt) {
-        anim.fire(C.X_KUP, kevt(evt));
-    }, false);
-    canvas.addEventListener('keydown', function(evt) {
-        anim.fire(C.X_KDOWN, kevt(evt));
-    }, false);
-    canvas.addEventListener('keypress', function(evt) {
-        anim.fire(C.X_KPRESS, kevt(evt));
-    }, false);
 }
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
@@ -3049,16 +2861,6 @@ function provideEvents(subj, events) {
     /* subj.prototype.before = function(event, handler) { } */
     /* subj.prototype.after = function(event, handler) { } */
     /* subj.prototype.provide = function(event, provider) { } */
-}
-
-function kevt(e) {
-    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
-             ch: e.charCode };
-}
-
-function mevt(e, cvs) {
-    return { pos: [ e.pageX - cvs.__rOffsetLeft,
-                    e.pageY - cvs.__rOffsetTop ] };
 }
 
 // Import
@@ -4424,7 +4226,37 @@ Controls.FLAT = false;
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
 // TODO: move to engine
 Controls.prototype.update = function(parent) {
-    var _ratio = parent.__pxRatio,
+    var cvs = this.canvas,
+        engine = this._engine,
+        pconf = engine.getCanvasParams(parent),
+        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr, ;
+    if (!cvs) {
+        cvs = engine.addChildCanvas('ctrls', parent,
+                 [ 0, _ph - Controls.HEIGHT,
+                   _pw, Controls.HEIGHT ],
+                 { _class: 'anm-controls ',
+                   position: 'absolute',
+                   opacity: Controls.OPACITY,
+                   zIndex: 100,
+                   cursor: 'pointer',
+                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        this.id = cvs.id;
+        this.canvas = cvs;
+        this.ctx = engine.getContext(cvs, '2d');
+        this.subscribeEvent(cvs);
+        this.hide();
+        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
+    } else {
+        engine.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
+    }
+    var cconf = engine.getCanvasParams(cvs);
+    // _canvas.style.left = _cp[0] + 'px';
+    // _canvas.style.top = _cp[1] + 'px';
+    this._ratio = cconf[2];
+    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
+    this.bounds = engine.getCanvasBounds(cvs);
+
+    /* var _ratio = parent.__pxRatio,
         _w = parent.width / _ratio,
         _h = Controls.HEIGHT,
         _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
@@ -4459,25 +4291,27 @@ Controls.prototype.update = function(parent) {
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : $doc.body;
-        /* FIXME: a dirty hack? */
+        // FIXME: a dirty hack?
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
         this.ready = true;
     }
     this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
-                                    _bp[1]+(_h*_ratio) ];
+                                    _bp[1]+(_h*_ratio) ]; */
 }
 Controls.prototype.subscribeEvents = function(canvas) {
-    canvas.addEventListener('mousedown', (function(controls) {
-            return function(evt) {
-                controls.fire(C.X_MDOWN, evt);
-            };
-        })(this), false);
-    canvas.addEventListener('mouseout', (function(controls) {
-            return function(evt) {
-                controls.hide();
-            };
-        })(this), false);
+    this._engine.subscribeEvents({
+        mousedown: (function(controls) {
+                return function(evt) {
+                    controls.fire(C.X_MDOWN, evt);
+                };
+            })(this),
+        mouseout: (function(controls) {
+                return function(evt) {
+                    controls.hide();
+                };
+            })(this)
+    });
 }
 Controls.prototype.render = function(state, time) {
     if (this.hidden && !this.__force) return;
@@ -4926,6 +4760,258 @@ InfoBlock.prototype.changeTheme = function(front, back) {
     this.__fgcolor = front;
     this.__bgcolor = back;
     // TODO: redraw
+}
+
+// DOM Engine
+// -----------------------------------------------------------------------------
+
+DomEngine = { };
+DomEngine.__textBuf = null;
+DomEngine.__frameFunc = null;
+DomEngine.__cancelFunc = null;
+
+// Framing
+
+DomEngine.getRequestFrameFunc = function() {
+    if (DomEngine.__frameFunc) return DomEngine.__frameFunc;
+    return (DomEngine.__frameFunc =
+                ($wnd.requestAnimationFrame ||
+                 $wnd.webkitRequestAnimationFrame ||
+                 $wnd.mozRequestAnimationFrame ||
+                 $wnd.oRequestAnimationFrame ||
+                 $wnd.msRequestAnimationFrame ||
+                 $wnd.__anm__frameGen ||
+                 function(callback){
+                   return $wnd.setTimeout(callback, 1000 / 60);
+                 } }));
+DomEngine.getCancelFrameFunc = function() {
+    if (DomEngine.__cancelFunc) return DomEngine.__cancelFunc;
+    return (DomEngine.__frameFunc =
+                ($wnd.cancelAnimationFrame ||
+                 $wnd.webkitCancelAnimationFrame ||
+                 $wnd.mozCancelAnimationFrame ||
+                 $wnd.oCancelAnimationFrame ||
+                 $wnd.msCancelAnimationFrame ||
+                 $wnd.__anm__frameRem ||
+                 function(id){
+                   return $wnd.clearTimeout(id);
+                 } }));
+DomEngine.stopAnim = function(reqId) {
+    DomEnginge.getCancelFrameFunc()(reqId);
+}
+
+// Global things
+
+DomEngine.getPxRatio = function() {
+    return $wnd.devicePixelRatio || 1;
+}
+DomEngine.createTextMeasurer = function() {
+    var buff = DomEngine.__textBuf;
+    if (!buff) {
+        /* FIXME: dispose buffer when text is removed from scene */
+        var _div = $doc.createElement('div');
+        _div.style.visibility = 'hidden';
+        _div.style.position = 'absolute';
+        _div.style.top = -10000 + 'px';
+        _div.style.left = -10000 + 'px';
+        var _span = $doc.createElement('span');
+        _div.appendChild(_span);
+        $doc.body.appendChild(_div);
+        DomEngine.__textBuf = _span;
+        buff = DomEngine.__textBuf;
+    }
+    return function(text) {
+        buff.style.font = text.font;
+        if (__str(text.lines)) {
+            buff.textContent = text.lines;
+        } else {
+            buff.textContent = text.lines.join('<br/>');
+        }
+        // TODO: test if lines were changed, and if not,
+        //       use cached value
+        return [ buff.offsetWidth,
+                 buff.offsetHeight ];
+    }
+}
+
+// Creating & Modifying Canvas
+
+DomEngine.createCanvas = function(dimen, ratio) {
+    var cvs = $doc.createElement('canvas');
+    DomEngine.configureCanvas(cvs, dimen, ratio);
+    return cvs;
+}
+DomEngine.getPlayerCanvas = function(id) {
+    var cvs = $doc.getElementById(id);
+    if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+    if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+    cvs.setAttribute(Player.MARKER_ATTR, true);
+    return cvs;
+}
+DomEngine.playerAttachedTo = function(cvs) {
+    return (cvs.getAttribute(Player.MARKER_ATTR) == null) ||
+           (cvs.getAttribute(Player.MARKER_ATTR) == undefined); }
+DomEngine.getContext = function(cvs, type) {
+    return cvs.getContext(type);
+}
+DomEngine.extractUserOptions = function(cvs) {
+    return Player._optsFromCvsAttrs(cvs);
+}
+DomEngine.checkPlayerCanvas = function(cvs) {
+    return true;
+}
+DomEngine.hasURLtoLoad = function(cvs) {
+    return cvs.getAttribute(Player.URL_ATTR);
+}
+DomEngine.setTabindex = function(cvs, idx) {
+    cvs.setAttribute('tabindex', idx);
+}
+DomEngine.getCanvasParams = function(cvs) {
+    //var ratio = DomEngine.getPxRatio();
+    // ensure ratio is set when canvas created
+    return [ cvs.width, cvs.height, cvs.__pxRatio ];
+}
+DomEngine.getCanvasBounds = function(cvs/*, parent*/) {
+    //var parent = parent || cvs.parentNode;
+    var pos = find_pos(cvs),
+        params = DomEngine.getCanvasParams(cvs);
+    return [ pos[0], pos[1], params[0], params[1], params[2] ];
+}
+DomEngine.configureCanvas = function(cvs, opts, ratio) {
+    var ratio = ratio || DomEngine.getPxRatio();
+    var isObj = !(opts instanceof Array),
+        _w = isObj ? opts.width : opts[0],
+        _h = isObj ? opts.height : opts[1];
+    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+        cvs.style.backgroundColor = opts.bgcolor.color;
+    }
+    cvs.__pxRatio = ratio;
+    cvs.style.width = _w + 'px';
+    cvs.style.height = _h + 'px';
+    cvs.setAttribute('width', _w * (ratio || 1));
+    cvs.setAttribute('height', _h * (ratio || 1));
+    DomEngine._saveCanvasPos(cvs);
+    return [ _w, _h ];
+}
+DomEngine._saveCanvasPos = function(cvs) {
+    var gcs = ($doc.defaultView &&
+               $doc.defaultView.getComputedStyle); // last is assigned
+
+    // computed padding-left
+    var cpl = gcs ?
+          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
+    // computed padding-top
+        cpt = gcs ?
+          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
+    // computed bodrer-left
+        cbl = gcs ?
+          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
+    // computed bodrer-top
+        cbt = gcs ?
+          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
+
+    var html = $doc.body.parentNode,
+        htol = html.offsetLeft,
+        htot = html.offsetTop;
+
+    var elm = cvs,
+        ol = cpl + cbl + htol,
+        ot = cpt + cbt + htot;
+
+    if (elm.offsetParent !== undefined) {
+        do {
+            ol += elm.offsetLeft;
+            ot += elm.offsetTop;
+        } while (elm = elm.offsetParent)
+    }
+
+    ol += cpl + cbl + htol;
+    ot += cpt + cbt + htot;
+
+    /* FIXME: find a method with no injection of custom properties
+              (data-xxx attributes are stored as strings and may work
+               a bit slower for events) */
+    cvs.__rOffsetLeft = ol;
+    cvs.__rOffsetTop = ot;
+}
+
+DomEngine.addChildCanvas = function(id, parent, pos, style, inside) {
+    // pos should be: [ x, y, w, h]
+    // style may contain _class attr
+    var _ratio = DomEngine.getPxRatio(),
+        _x = pos[0], _y = pos[1],
+        _w = pos[2], _h = pos[3], // width & height
+        _pp = find_pos(parent), // parent position
+        _bp = [ _pp[0] + parent.clientLeft + _x, _pp[1] + parent.clientTop + _y ], // bounds position
+        _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
+                         parent.parentNode.offsetTop  + parent.clientTop + _y ]
+                       : _bp; // position to set in styles
+    var cvs = DomEngine.createCanvas([ _w, _h ], _ratio);
+    cvs.id = parent.id ? '__' + parent.id + '_' + id;
+    if (style._class) cvs.className = style._class;
+    for (prop in style) {
+        cvs.style[prop] = style[prop];
+    }
+    var appendTo = inside ? parent.parentNode
+                          : $doc.body;
+    // FIXME: a dirty hack?
+    if (inside) { appendTo.style.position = 'relative'; }
+    appendTo.appendChild(cvs);
+    return cvs;
+}
+
+// Events
+
+function __kevt(e) {
+    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
+             ch: e.charCode };
+}
+
+function __mevt(e, cvs) {
+    return { pos: [ e.pageX - cvs.__rOffsetLeft,
+                    e.pageY - cvs.__rOffsetTop ] };
+}
+DomEngine.evtPos = function(evt) {
+    return [ evt.pageX, evt.pageY ];
+}
+DomEngine.subscribeEvents = function(cvs, handlers) {
+    if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
+    if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
+    if (handlers.mousedown) cvs.addEventListener('mousedown', handlers.mousedown, false);
+    if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
+    if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
+}
+DomEngine.subsribeSceneToEvents = function(scene, cvs) {
+    cvs.addEventListener('mouseup', function(evt) {
+        scene.fire(C.X_MUP, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('mousedown', function(evt) {
+        scene.fire(C.X_MDOWN, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('mousemove', function(evt) {
+        scene.fire(C.X_MMOVE, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('mouseover', function(evt) {
+        scene.fire(C.X_MOVER, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('mouseout', function(evt) {
+        scene.fire(C.X_MOUT, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('click', function(evt) {
+        scene.fire(C.X_MCLICK, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('dblclick', function(evt) {
+        scene.fire(C.X_MDCLICK, __mevt(evt, canvas));
+    }, false);
+    cvs.addEventListener('keyup', function(evt) {
+        scene.fire(C.X_KUP, __kevt(evt));
+    }, false);
+    cvs.addEventListener('keydown', function(evt) {
+        scene.fire(C.X_KDOWN, __kevt(evt));
+    }, false);
+    cvs.addEventListener('keypress', function(evt) {
+        scene.fire(C.X_KPRESS, __kevt(evt));
+    }, false);
 }
 
 // Strings
