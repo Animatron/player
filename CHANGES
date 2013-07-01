@@ -1,3 +1,11 @@
+v0.9.121 / Tue Jul 02 2013 00:10:29 +0200 / ab040726b8228cb2e0e0a06b7b865cd0bca17057
+===================================================================================
+
+Fixes:
+
+* Allows to re-add modifiers that were removed before
+* Both old and new 'end' properties for clips, imported from Animatron, now default to C.ONCE instead of C.STAY
+
 v0.9.12 / Mon May 27 11:00:59 2013 -0700 / 024740e3c19ac8566e44a0fd2131b6291ce1d93a
 ===================================================================================
 
