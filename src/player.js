@@ -193,8 +193,7 @@ var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
 // #### typecheck
 
 function __builder(obj) {
-    return (typeof Builder !== 'undefined') &&
-           (obj instanceof Builder);
+    return obj && obj.__anm_iamBulder;
 }
 
 var __arr = Array.isArray;
@@ -1105,7 +1104,7 @@ Player.prototype._checkMode = function() {
 }
 Player.prototype.__subscribeDynamicEvents = function(scene) {
     if (global_opts.setTabindex) {
-        ENGINE.setTabindex(this.canvas, this.__instanceNum);
+        ENGINE.setTabIndex(this.canvas, this.__instanceNum);
     }
     if (scene && !scene.__subscribedEvts) {
         ENGINE.subscribeSceneToEvents(this.canvas, scene);

@@ -1,6 +1,6 @@
 var anm = require('./player.js');
 var Builder = require('./builder.js');
-var NODE = require('./engines/node-engine.js');
+var NODE = require('./engines/node-engine.node.js');
 
 var b = Builder._$;
 
