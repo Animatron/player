@@ -22,14 +22,15 @@ function sandbox() {
     window.C = anm.C;
 
     this.player = createPlayer('my-canvas', {
+        'mode': anm.C.M_PREVIEW,
         'muteErrors': true,
         'anim': {
             width: 400,
             height: 250,
             bgcolor: '#fff' }
     });
-    this.player.mode = anm.C.M_PREVIEW;
-    this.player._checkMode();
+    //this.player.mode = anm.C.M_PREVIEW;
+    //this.player._checkMode();
     _player = this.player;
 
     var lastCode = '';

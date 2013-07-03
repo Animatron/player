@@ -72,7 +72,7 @@
     }
 })('anm'/*, 'anm/player'*/, function($wnd, $doc) {
 
-var ENGINE = DomEngine;
+var ENGINE;
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -427,6 +427,12 @@ M[C.MOD_PLAYER] = global_opts;
 // -----------------------------------------------------------------------------
 
 function Player() {
+    // The line below ensures us that no engine code is used before the creation of
+    // any player instance and also gives user the ability to change engine on-the-fly,
+    // in any moment before creating a first player instance.
+    // By default — the engine is DOM, of course.
+    // The engine function should return a singleton object, so no `new` or something.
+    if (!ENGINE) ENGINE = DomEngine();
     this.id = '';
     this.state = null;
     this.anim = null;
@@ -738,7 +744,7 @@ Player.prototype._prepare = function(cvs) {
     var cvs_id, canvas;
     if (__str(cvs)) {
         cvs_id = cvs;
-        canvas = ENGINE.getPlayerCanvas(cvs_id);
+        canvas = ENGINE.getPlayerCanvas(cvs_id, this);
     } else {
         if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
         this.id = cvs.id;
@@ -882,7 +888,7 @@ Player.prototype.afterRender = function(callback) {
 Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
     if (this.info) this.info.detach(this.canvas);
-    this.canvas.removeAttribute(Player.MARKER_ATTR);
+    ENGINE.detachPlayer(this.canvas, this);
     this._reset();
 }
 Player.__getPosAndRedraw = function(player) {
@@ -945,7 +951,7 @@ Player.prototype.subscribeEvents = function(canvas) {
                             return true;
                         };
                     })(this)
-    };
+    });
 }
 Player.prototype.setDuration = function(value) {
     this.state.duration = (value >= 0) ? value : 0;
@@ -1004,14 +1010,15 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.restore();
 }
 Player.prototype._drawErrorSplash = function(e) {
+    if (!this.canvas || !this.ctx) return;
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
-    ctx.fillStyle = '#006';
-    ctx.font = '12px sans-serif';
+    ctx.fillStyle = '#600';
+    ctx.font = '16px sans-serif';
     ctx.fillText(Strings.ERROR +
                  (e ? ': ' + (e.message || (typeof Error))
-                    : '') + '.', 20, 25);
+                    : '') + '.', 20, 35);
     ctx.restore();
 }
 Player.prototype.toString = function() {
@@ -1043,7 +1050,7 @@ Player.prototype._stopAndContinue = function() {
 // update player's canvas with configuration
 Player.prototype._configureCanvas = function(opts) {
     var canvas = this.canvas;
-    var pxRatio = ENGINE.getPxRatio();
+    var pxRatio = ENGINE.PX_RATIO;
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -1156,11 +1163,17 @@ Player.prototype.__onerror = function(err) {
       doMute = doMute && !(err instanceof SysErr);
 
   try {
-    player.fire(C.S_ERROR, err);
+      player.fire(C.S_ERROR, err);
 
-    player.anim = null;
-    /*if (player.state)*/ player.__unsafe_stop();
+      player.anim = null;
   } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
+
+  try {
+      if ((player.state.happens != C.NOTHING) ||
+          (player.state.happens != C.STOPPED)) {
+          player.__unsafe_stop();
+      }
+  } catch(e) { /* skip this error, it's ok just to fail to stop */ }
 
   doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
@@ -1239,32 +1252,6 @@ Player._mergeOpts = function(what, where) {
     res.anim = what.anim ? _mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
     return res;
 }
-Player._optsFromCvsAttrs = function(canvas) {
-    var width, height,
-        pxRatio = getPxRatio();
-    return { 'debug': __attrOr(canvas, 'data-debug', undefined),
-             'inParent': undefined,
-             'muteErrors': __attrOr(canvas, 'data-mute-errors', false),
-             'repeat': __attrOr(canvas, 'data-repeat', undefined),
-             'mode': __attrOr(canvas, 'data-mode', undefined),
-             'zoom': __attrOr(canvas, 'data-zoom', undefined),
-             'meta': { 'title': __attrOr(canvas, 'data-title', undefined),
-                       'author': __attrOr(canvas, 'data-author', undefined),
-                       'copyright': undefined,
-                       'version': undefined,
-                       'description': undefined },
-             'anim': { 'fps': undefined,
-                       'width': (__attrOr(canvas, 'data-width',
-                                (width = __attrOr(canvas, 'width', undefined),
-                                 width ? (width / pxRatio) : undefined))),
-                       'height': (__attrOr(canvas, 'data-height',
-                                 (height = __attrOr(canvas, 'height', undefined),
-                                  height ? (height / pxRatio) : undefined))),
-                       'bgcolor': canvas.hasAttribute('data-bgcolor')
-                                 ? { 'color': canvas.getAttribute('data-bgcolor') }
-                                 : undefined,
-                       'duration': undefined } };
-};
 Player._optsFromUrlParams = function(params/* as object */) {
     return { 'debug': params.debug,
              'inParent': undefined,
@@ -3005,7 +2992,7 @@ Render.h_drawMPath = function(ctx, mPath) {
     if (!(mPath = mPath || this.state._mpath)) return;
     ctx.save();
     var s = this.state;
-    Render.p_usePivot.call(this, ctx);
+    Render.p_usePivot.call(this.xdata, ctx);
     mPath.cstroke('#600', 2.0);
     ctx.beginPath();
     mPath.apply(ctx);
@@ -4149,7 +4136,7 @@ Controls.prototype.update = function(parent) {
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = ENGINE.getContext(cvs, '2d');
-        this.subscribeEvent(cvs);
+        this.subscribeEvents(cvs);
         this.hide();
         this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
     } else {
@@ -4312,8 +4299,7 @@ Controls.prototype.reset = function() {
     this.elapsed = false;
 }
 Controls.prototype.detach = function(parent) {
-    (this._inParent ? parent.parentNode
-                    : $doc.body).removeChild(this.canvas);
+    ENGINE.detachElm(this._inParent ? parent : null, this.canvas);
 }
 Controls.prototype.handle_mdown = function(event) {
     if (this.hidden) return;
@@ -4553,8 +4539,7 @@ InfoBlock.FONT = Controls.FONT;
 InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
-    (this._inParent ? parent.parentNode
-                    : $doc.body).removeChild(this.canvas);
+    ENGINE.detachElm(this._inParent ? parent : null, this.canvas);
 }
 // TODO: move to engine
 InfoBlock.prototype.update = function(parent) {
@@ -4575,7 +4560,7 @@ InfoBlock.prototype.update = function(parent) {
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = ENGINE.getContext(cvs, '2d');
-        this.subscribeEvent(cvs);
+        this.subscribeEvents(cvs);
         this.hide();
         this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
     } else {
@@ -4587,6 +4572,8 @@ InfoBlock.prototype.update = function(parent) {
     this._ratio = cconf[2];
     this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     this.bounds = ENGINE.getCanvasBounds(cvs);*/
+
+    /* COPIED TO BE NEW, MODIFY AND GET NEW
 
     var cvs = this.canvas,
         pconf = ENGINE.getCanvasParams(parent),
@@ -4604,7 +4591,7 @@ InfoBlock.prototype.update = function(parent) {
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = ENGINE.getContext(cvs, '2d');
-        this.subscribeEvent(cvs);
+        this.subscribeEvents(cvs);
         this.hide();
         this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
     } else {
@@ -4615,7 +4602,9 @@ InfoBlock.prototype.update = function(parent) {
     // _canvas.style.top = _cp[1] + 'px';
     this._ratio = cconf[2];
     this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
-    this.bounds = ENGINE.getCanvasBounds(cvs);
+    this.bounds = ENGINE.getCanvasBounds(cvs); */
+
+    /* ACTUAL CODE THAT WAS HERE
 
     var _ratio = parent.__pxRatio,
         _p = InfoBlock.PADDING,
@@ -4643,8 +4632,8 @@ InfoBlock.prototype.update = function(parent) {
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     }
     // width and height will be calculated on update
-    /* _canvas.style.width = _w + 'px';
-       _canvas.style.height = _h + 'px'; */
+    // _canvas.style.width = _w + 'px';
+    // _canvas.style.height = _h + 'px';
     _canvas.style.top = _t + 'px';
     _canvas.style.left = _l + 'px';
     this.bounds = [ _l, _t, _l+_w, _t+_h ];
@@ -4652,12 +4641,12 @@ InfoBlock.prototype.update = function(parent) {
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : $doc.body;
-        /* FIXME: a dirty hack */
+        // FIXME: a dirty hack
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
         this.ready = true;
     }
-    this.render();
+    this.render(); */
 
 
 
@@ -4774,318 +4763,358 @@ InfoBlock.prototype.changeTheme = function(front, back) {
 // DOM Engine
 // -----------------------------------------------------------------------------
 
-DomEngine = { };
+function DomEngine() { return (function() { // wrapper here is just to isolate it
 
-// Framing
+    var $DE = {};
 
-DomEngine.__frameFunc = null;
-DomEngine.__cancelFunc = null;
-DomEngine.getRequestFrameFunc = function() {
-    if (DomEngine.__frameFunc) return DomEngine.__frameFunc;
-    return (DomEngine.__frameFunc =
-                ($wnd.requestAnimationFrame ||
-                 $wnd.webkitRequestAnimationFrame ||
-                 $wnd.mozRequestAnimationFrame ||
-                 $wnd.oRequestAnimationFrame ||
-                 $wnd.msRequestAnimationFrame ||
-                 $wnd.__anm__frameGen ||
-                 function(callback){
-                   return $wnd.setTimeout(callback, 1000 / 60);
-                 } }));
-DomEngine.getCancelFrameFunc = function() {
-    if (DomEngine.__cancelFunc) return DomEngine.__cancelFunc;
-    return (DomEngine.__frameFunc =
-                ($wnd.cancelAnimationFrame ||
-                 $wnd.webkitCancelAnimationFrame ||
-                 $wnd.mozCancelAnimationFrame ||
-                 $wnd.oCancelAnimationFrame ||
-                 $wnd.msCancelAnimationFrame ||
-                 $wnd.__anm__frameRem ||
-                 function(id){
-                   return $wnd.clearTimeout(id);
-                 } }));
-DomEngine.stopAnim = function(reqId) {
-    DomEnginge.getCancelFrameFunc()(reqId);
-}
+    // Framing
 
-// Global things
+    $DE.__frameFunc = null;
+    $DE.__cancelFunc = null;
+    $DE.getRequestFrameFunc = function() {
+        if ($DE.__frameFunc) return $DE.__frameFunc;
+        return ($DE.__frameFunc =
+                    ($wnd.requestAnimationFrame ||
+                     $wnd.webkitRequestAnimationFrame ||
+                     $wnd.mozRequestAnimationFrame ||
+                     $wnd.oRequestAnimationFrame ||
+                     $wnd.msRequestAnimationFrame ||
+                     $wnd.__anm__frameGen ||
+                     function(callback){
+                       return $wnd.setTimeout(callback, 1000 / 60);
+                     })) };
+    $DE.getCancelFrameFunc = function() {
+        if ($DE.__cancelFunc) return $DE.__cancelFunc;
+        return ($DE.__cancelFunc =
+                    ($wnd.cancelAnimationFrame ||
+                     $wnd.webkitCancelAnimationFrame ||
+                     $wnd.mozCancelAnimationFrame ||
+                     $wnd.oCancelAnimationFrame ||
+                     $wnd.msCancelAnimationFrame ||
+                     $wnd.__anm__frameRem ||
+                     function(id){
+                       return $wnd.clearTimeout(id);
+                     })) };
+    /*$DE.stopAnim = function(reqId) {
+        $DE.getCancelFrameFunc()(reqId);
+    }*/
 
-DomEngine.ajax = function(url, callback/*, errback*/) {
-    var req = false;
+    // Global things
 
-    if (!$wnd.ActiveXObject) {
-        req = new $wnd.XMLHttpRequest();
-    } else {
-        try {
-            req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e1) {
-            try {
-                req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e2) {
-                throw new SysErr('No AJAX/XMLHttp support');
-            }
-        }
-    }
+    $DE.PX_RATIO = $wnd.devicePixelRatio || 1;
 
-    /*if (req.overrideMimeType) {
-        req.overrideMimeType('text/xml');
-      } */
+    $DE.ajax = function(url, callback/*, errback*/) {
+        var req = false;
 
-    if (!req) {
-      throw new SysErr('Failed to create XMLHttp instance');
-    }
-
-    var whenDone = function() {
-        if (req.readyState == 4) {
-            if (req.status == 200) {
-                if (callback) callback(req);
-            } else {
-                throw new SysErr('AJAX request for ' + url +
-                                 ' returned ' + req.status +
-                                 ' instead of 200');
-            }
-        }
-    };
-
-    req.onreadystatechange = whenDone;
-    req.open('GET', url, true);
-    req.send(null);
-}
-DomEngine.getPxRatio = function() {
-    return $wnd.devicePixelRatio || 1;
-}
-DomEngine.__textBuf = null;
-DomEngine.createTextMeasurer = function() {
-    var buff = DomEngine.__textBuf;
-    if (!buff) {
-        /* FIXME: dispose buffer when text is removed from scene */
-        var _div = $doc.createElement('div');
-        _div.style.visibility = 'hidden';
-        _div.style.position = 'absolute';
-        _div.style.top = -10000 + 'px';
-        _div.style.left = -10000 + 'px';
-        var _span = $doc.createElement('span');
-        _div.appendChild(_span);
-        $doc.body.appendChild(_div);
-        DomEngine.__textBuf = _span;
-        buff = DomEngine.__textBuf;
-    }
-    return function(text) {
-        buff.style.font = text.font;
-        if (__str(text.lines)) {
-            buff.textContent = text.lines;
+        if (!$wnd.ActiveXObject) {
+            req = new $wnd.XMLHttpRequest();
         } else {
-            buff.textContent = text.lines.join('<br/>');
+            try {
+                req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
+            } catch (e1) {
+                try {
+                    req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
+                } catch (e2) {
+                    throw new SysErr('No AJAX/XMLHttp support');
+                }
+            }
         }
-        // TODO: test if lines were changed, and if not,
-        //       use cached value
-        return [ buff.offsetWidth,
-                 buff.offsetHeight ];
+
+        /*if (req.overrideMimeType) {
+            req.overrideMimeType('text/xml');
+          } */
+
+        if (!req) {
+          throw new SysErr('Failed to create XMLHttp instance');
+        }
+
+        var whenDone = function() {
+            if (req.readyState == 4) {
+                if (req.status == 200) {
+                    if (callback) callback(req);
+                } else {
+                    throw new SysErr('AJAX request for ' + url +
+                                     ' returned ' + req.status +
+                                     ' instead of 200');
+                }
+            }
+        };
+
+        req.onreadystatechange = whenDone;
+        req.open('GET', url, true);
+        req.send(null);
     }
-}
-/* FIXME: replace with elm.getBoundingClientRect();
-   see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
-DomEngine.findPos = function(elm) {
-    var curleft = 0,
-        curtop = 0;
-    do {
-        curleft += elm.offsetLeft/* - elm.scrollLeft*/;
-        curtop += elm.offsetTop/* - elm.scrollTop*/;
-    } while (elm = elm.offsetParent);
-    return [ curleft, curtop ];
-}
-DomEngine.__trashBin;
-DomEngine.disposeElm = function(elm) {
-    var trashBin = DomEngine.__trashBin;
-    if (!trashBin) {
-        trashBin = $doc.createElement('div');
-        trashBin.id = 'trash-bin';
-        trashBin.style.display = 'none';
-        $doc.body.appendChild(trashBin);
-        DomEngine.__trashBin = trashBin;
+
+    $DE.__textBuf = null;
+    $DE.createTextMeasurer = function() {
+        var buff = $DE.__textBuf;
+        if (!buff) {
+            /* FIXME: dispose buffer when text is removed from scene */
+            var _div = $doc.createElement('div');
+            _div.style.visibility = 'hidden';
+            _div.style.position = 'absolute';
+            _div.style.top = -10000 + 'px';
+            _div.style.left = -10000 + 'px';
+            var _span = $doc.createElement('span');
+            _div.appendChild(_span);
+            $doc.body.appendChild(_div);
+            $DE.__textBuf = _span;
+            buff = $DE.__textBuf;
+        }
+        return function(text) {
+            buff.style.font = text.font;
+            if (__str(text.lines)) {
+                buff.textContent = text.lines;
+            } else {
+                buff.textContent = text.lines.join('<br/>');
+            }
+            // TODO: test if lines were changed, and if not,
+            //       use cached value
+            return [ buff.offsetWidth,
+                     buff.offsetHeight ];
+        }
     }
-    trashBin.appendChild(domElm);
-    trashBin.innerHTML = '';
-}
 
-// Creating & Modifying Canvas
+    // Elements
 
-DomEngine.newCanvas = function(dimen, ratio) {
-    var cvs = $doc.createElement('canvas');
-    DomEngine.configureCanvas(cvs, dimen, ratio);
-    return cvs;
-}
-DomEngine.getPlayerCanvas = function(id) {
-    var cvs = $doc.getElementById(id);
-    if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
-    if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-    cvs.setAttribute(Player.MARKER_ATTR, true);
-    return cvs;
-}
-DomEngine.playerAttachedTo = function(cvs) {
-    return (cvs.getAttribute(Player.MARKER_ATTR) == null) ||
-           (cvs.getAttribute(Player.MARKER_ATTR) == undefined); }
-DomEngine.getContext = function(cvs, type) {
-    return cvs.getContext(type);
-}
-DomEngine.extractUserOptions = function(cvs) {
-    return Player._optsFromCvsAttrs(cvs);
-}
-DomEngine.checkPlayerCanvas = function(cvs) {
-    return true;
-}
-DomEngine.hasURLtoLoad = function(cvs) {
-    return cvs.getAttribute(Player.URL_ATTR);
-}
-DomEngine.setTabindex = function(cvs, idx) {
-    cvs.setAttribute('tabindex', idx);
-}
-DomEngine.getCanvasParams = function(cvs) {
-    //var ratio = DomEngine.getPxRatio();
-    // ensure ratio is set when canvas created
-    return [ cvs.width, cvs.height, cvs.__pxRatio ];
-}
-DomEngine.getCanvasBounds = function(cvs/*, parent*/) {
-    //var parent = parent || cvs.parentNode;
-    var pos = DomEngine.findPos(cvs),
-        params = DomEngine.getCanvasParams(cvs);
-    return [ pos[0], pos[1], params[0], params[1], params[2] ];
-}
-DomEngine.configureCanvas = function(cvs, opts, ratio) {
-    var ratio = ratio || DomEngine.getPxRatio();
-    var isObj = !(opts instanceof Array),
-        _w = isObj ? opts.width : opts[0],
-        _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor && opts.bgcolor.color) {
-        cvs.style.backgroundColor = opts.bgcolor.color;
-    }
-    cvs.__pxRatio = ratio;
-    cvs.style.width = _w + 'px';
-    cvs.style.height = _h + 'px';
-    cvs.setAttribute('width', _w * (ratio || 1));
-    cvs.setAttribute('height', _h * (ratio || 1));
-    DomEngine._saveCanvasPos(cvs);
-    return [ _w, _h ];
-}
-DomEngine._saveCanvasPos = function(cvs) {
-    var gcs = ($doc.defaultView &&
-               $doc.defaultView.getComputedStyle); // last is assigned
-
-    // computed padding-left
-    var cpl = gcs ?
-          (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
-    // computed padding-top
-        cpt = gcs ?
-          (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
-    // computed bodrer-left
-        cbl = gcs ?
-          (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
-    // computed bodrer-top
-        cbt = gcs ?
-          (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
-
-    var html = $doc.body.parentNode,
-        htol = html.offsetLeft,
-        htot = html.offsetTop;
-
-    var elm = cvs,
-        ol = cpl + cbl + htol,
-        ot = cpt + cbt + htot;
-
-    if (elm.offsetParent !== undefined) {
+    /* FIXME: replace with elm.getBoundingClientRect();
+       see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
+    $DE.findPos = function(elm) {
+        var curleft = 0,
+            curtop = 0;
         do {
-            ol += elm.offsetLeft;
-            ot += elm.offsetTop;
-        } while (elm = elm.offsetParent)
+            curleft += elm.offsetLeft/* - elm.scrollLeft*/;
+            curtop += elm.offsetTop/* - elm.scrollTop*/;
+        } while (elm = elm.offsetParent);
+        return [ curleft, curtop ];
     }
 
-    ol += cpl + cbl + htol;
-    ot += cpt + cbt + htot;
-
-    /* FIXME: find a method with no injection of custom properties
-              (data-xxx attributes are stored as strings and may work
-               a bit slower for events) */
-    cvs.__rOffsetLeft = ol;
-    cvs.__rOffsetTop = ot;
-}
-DomEngine.addChildCanvas = function(id, parent, pos, style, inside) {
-    // pos should be: [ x, y, w, h]
-    // style may contain _class attr
-    var _ratio = DomEngine.getPxRatio(),
-        _x = pos[0], _y = pos[1],
-        _w = pos[2], _h = pos[3], // width & height
-        _pp = DomEngine.findPos(parent), // parent position
-        _bp = [ _pp[0] + parent.clientLeft + _x, _pp[1] + parent.clientTop + _y ], // bounds position
-        _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
-                         parent.parentNode.offsetTop  + parent.clientTop + _y ]
-                       : _bp; // position to set in styles
-    var cvs = DomEngine.createCanvas([ _w, _h ], _ratio);
-    cvs.id = parent.id ? '__' + parent.id + '_' + id;
-    if (style._class) cvs.className = style._class;
-    for (var prop in style) {
-        cvs.style[prop] = style[prop];
+    $DE.__trashBin;
+    $DE.disposeElm = function(elm) {
+        var trashBin = $DE.__trashBin;
+        if (!trashBin) {
+            trashBin = $doc.createElement('div');
+            trashBin.id = 'trash-bin';
+            trashBin.style.display = 'none';
+            $doc.body.appendChild(trashBin);
+            $DE.__trashBin = trashBin;
+        }
+        trashBin.appendChild(domElm);
+        trashBin.innerHTML = '';
     }
-    var appendTo = inside ? parent.parentNode
-                          : $doc.body;
-    // FIXME: a dirty hack?
-    if (inside) { appendTo.style.position = 'relative'; }
-    appendTo.appendChild(cvs);
-    return cvs;
-}
+    $DE.detachElm = function(parent, child) {
+        (parent ? parent.parentNode
+                : $doc.body).removeChild(child);
+    }
 
-// Events
+    // Creating & Modifying Canvas
 
-function __kevt(e) {
-    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
-             ch: e.charCode };
-}
+    $DE.createCanvas = function(dimen, ratio) {
+        var cvs = $doc.createElement('canvas');
+        $DE.configureCanvas(cvs, dimen, ratio);
+        return cvs;
+    }
+    $DE.getPlayerCanvas = function(id, player) {
+        var cvs = $doc.getElementById(id);
+        if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+        if (cvs.getAttribute(Player.MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+        cvs.setAttribute(Player.MARKER_ATTR, true);
+        return cvs;
+    }
+    $DE.playerAttachedTo = function(cvs, player) {
+        return (cvs.getAttribute(Player.MARKER_ATTR) == null) ||
+               (cvs.getAttribute(Player.MARKER_ATTR) == undefined); }
+    $DE.detachPlayer = function(cvs, player) {
+        cvs.removeAttribute(Player.MARKER_ATTR);
+    }
+    $DE.getContext = function(cvs, type) {
+        return cvs.getContext(type);
+    }
+    $DE.extractUserOptions = function(cvs) {
+      var width, height,
+          pxRatio = $DE.PX_RATIO;
+      return { 'debug': __attrOr(cvs, 'data-debug', undefined),
+               'inParent': undefined,
+               'muteErrors': __attrOr(cvs, 'data-mute-errors', false),
+               'repeat': __attrOr(cvs, 'data-repeat', undefined),
+               'mode': __attrOr(cvs, 'data-mode', undefined),
+               'zoom': __attrOr(cvs, 'data-zoom', undefined),
+               'meta': { 'title': __attrOr(cvs, 'data-title', undefined),
+                         'author': __attrOr(cvs, 'data-author', undefined),
+                         'copyright': undefined,
+                         'version': undefined,
+                         'description': undefined },
+               'anim': { 'fps': undefined,
+                         'width': (__attrOr(cvs, 'data-width',
+                                  (width = __attrOr(cvs, 'width', undefined),
+                                   width ? (width / pxRatio) : undefined))),
+                         'height': (__attrOr(cvs, 'data-height',
+                                   (height = __attrOr(cvs, 'height', undefined),
+                                    height ? (height / pxRatio) : undefined))),
+                         'bgcolor': cvs.hasAttribute('data-bgcolor')
+                                   ? { 'color': cvs.getAttribute('data-bgcolor') }
+                                   : undefined,
+                         'duration': undefined } };
+    }
+    $DE.checkPlayerCanvas = function(cvs) {
+        return true;
+    }
+    $DE.hasURLtoLoad = function(cvs) {
+        return cvs.getAttribute(Player.URL_ATTR);
+    }
+    $DE.setTabindex = function(cvs, idx) {
+        cvs.setAttribute('tabindex', idx);
+    }
+    $DE.getCanvasParams = function(cvs) {
+        //var ratio = $DE.PX_RATIO;
+        // ensure ratio is set when canvas created
+        return [ cvs.width, cvs.height, cvs.__pxRatio ];
+    }
+    $DE.getCanvasBounds = function(cvs/*, parent*/) {
+        //var parent = parent || cvs.parentNode;
+        var pos = $DE.findPos(cvs),
+            params = $DE.getCanvasParams(cvs);
+        return [ pos[0], pos[1], params[0], params[1], params[2] ];
+    }
+    $DE.configureCanvas = function(cvs, opts, ratio) {
+        var ratio = ratio || $DE.PX_RATIO;
+        var isObj = !(opts instanceof Array),
+            _w = isObj ? opts.width : opts[0],
+            _h = isObj ? opts.height : opts[1];
+        if (isObj && opts.bgcolor && opts.bgcolor.color) {
+            cvs.style.backgroundColor = opts.bgcolor.color;
+        }
+        cvs.__pxRatio = ratio;
+        cvs.style.width = _w + 'px';
+        cvs.style.height = _h + 'px';
+        cvs.setAttribute('width', _w * (ratio || 1));
+        cvs.setAttribute('height', _h * (ratio || 1));
+        $DE._saveCanvasPos(cvs);
+        return [ _w, _h ];
+    }
+    $DE._saveCanvasPos = function(cvs) {
+        var gcs = ($doc.defaultView &&
+                   $doc.defaultView.getComputedStyle); // last is assigned
 
-function __mevt(e, cvs) {
-    return { pos: [ e.pageX - cvs.__rOffsetLeft,
-                    e.pageY - cvs.__rOffsetTop ] };
-}
-DomEngine.evtPos = function(evt) {
-    return [ evt.pageX, evt.pageY ];
-}
-DomEngine.subscribeEvents = function(cvs, handlers) {
-    if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
-    if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
-    if (handlers.mousedown) cvs.addEventListener('mousedown', handlers.mousedown, false);
-    if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
-    if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
-}
-DomEngine.subsribeSceneToEvents = function(scene, cvs) {
-    cvs.addEventListener('mouseup', function(evt) {
-        scene.fire(C.X_MUP, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('mousedown', function(evt) {
-        scene.fire(C.X_MDOWN, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('mousemove', function(evt) {
-        scene.fire(C.X_MMOVE, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('mouseover', function(evt) {
-        scene.fire(C.X_MOVER, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('mouseout', function(evt) {
-        scene.fire(C.X_MOUT, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('click', function(evt) {
-        scene.fire(C.X_MCLICK, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('dblclick', function(evt) {
-        scene.fire(C.X_MDCLICK, __mevt(evt, canvas));
-    }, false);
-    cvs.addEventListener('keyup', function(evt) {
-        scene.fire(C.X_KUP, __kevt(evt));
-    }, false);
-    cvs.addEventListener('keydown', function(evt) {
-        scene.fire(C.X_KDOWN, __kevt(evt));
-    }, false);
-    cvs.addEventListener('keypress', function(evt) {
-        scene.fire(C.X_KPRESS, __kevt(evt));
-    }, false);
-}
+        // computed padding-left
+        var cpl = gcs ?
+              (parseInt(gcs(cvs, null).paddingLeft, 10) || 0) : 0,
+        // computed padding-top
+            cpt = gcs ?
+              (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
+        // computed bodrer-left
+            cbl = gcs ?
+              (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
+        // computed bodrer-top
+            cbt = gcs ?
+              (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
+
+        var html = $doc.body.parentNode,
+            htol = html.offsetLeft,
+            htot = html.offsetTop;
+
+        var elm = cvs,
+            ol = cpl + cbl + htol,
+            ot = cpt + cbt + htot;
+
+        if (elm.offsetParent !== undefined) {
+            do {
+                ol += elm.offsetLeft;
+                ot += elm.offsetTop;
+            } while (elm = elm.offsetParent)
+        }
+
+        ol += cpl + cbl + htol;
+        ot += cpt + cbt + htot;
+
+        /* FIXME: find a method with no injection of custom properties
+                  (data-xxx attributes are stored as strings and may work
+                   a bit slower for events) */
+        cvs.__rOffsetLeft = ol;
+        cvs.__rOffsetTop = ot;
+    }
+    $DE.addChildCanvas = function(id, parent, pos, style, inside) {
+        // pos should be: [ x, y, w, h]
+        // style may contain _class attr
+        var _ratio = $DE.PX_RATIO,
+            _x = pos[0], _y = pos[1],
+            _w = pos[2], _h = pos[3], // width & height
+            _pp = $DE.findPos(parent), // parent position
+            _bp = [ _pp[0] + parent.clientLeft + _x, _pp[1] + parent.clientTop + _y ], // bounds position
+            _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
+                             parent.parentNode.offsetTop  + parent.clientTop + _y ]
+                           : _bp; // position to set in styles
+        var cvs = $DE.createCanvas([ _w, _h ], _ratio);
+        cvs.id = parent.id ? ('__' + parent.id + '_' + id) : ('__anm_' + id) ;
+        if (style._class) cvs.className = style._class;
+        for (var prop in style) {
+            cvs.style[prop] = style[prop];
+        }
+        var appendTo = inside ? parent.parentNode
+                              : $doc.body;
+        // FIXME: a dirty hack?
+        if (inside) { appendTo.style.position = 'relative'; }
+        appendTo.appendChild(cvs);
+        return cvs;
+    }
+
+    // Events
+
+    function __kevt(e) {
+        return { key: ((e.keyCode != null) ? e.keyCode : e.which),
+                 ch: e.charCode };
+    }
+
+    function __mevt(e, cvs) {
+        return { pos: [ e.pageX - cvs.__rOffsetLeft,
+                        e.pageY - cvs.__rOffsetTop ] };
+    }
+    $DE.evtPos = function(evt) {
+        return [ evt.pageX, evt.pageY ];
+    }
+    $DE.subscribeEvents = function(cvs, handlers) {
+        if (handlers.scroll) $wnd.addEventListener('scroll', handlers.scroll, false);
+        if (handlers.resize) $wnd.addEventListener('resize', handlers.resize, false);
+        if (handlers.mousedown) cvs.addEventListener('mousedown', handlers.mousedown, false);
+        if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
+        if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
+    }
+    $DE.subsribeSceneToEvents = function(scene, cvs) {
+        cvs.addEventListener('mouseup', function(evt) {
+            scene.fire(C.X_MUP, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('mousedown', function(evt) {
+            scene.fire(C.X_MDOWN, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('mousemove', function(evt) {
+            scene.fire(C.X_MMOVE, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('mouseover', function(evt) {
+            scene.fire(C.X_MOVER, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('mouseout', function(evt) {
+            scene.fire(C.X_MOUT, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('click', function(evt) {
+            scene.fire(C.X_MCLICK, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('dblclick', function(evt) {
+            scene.fire(C.X_MDCLICK, __mevt(evt, canvas));
+        }, false);
+        cvs.addEventListener('keyup', function(evt) {
+            scene.fire(C.X_KUP, __kevt(evt));
+        }, false);
+        cvs.addEventListener('keydown', function(evt) {
+            scene.fire(C.X_KDOWN, __kevt(evt));
+        }, false);
+        cvs.addEventListener('keypress', function(evt) {
+            scene.fire(C.X_KPRESS, __kevt(evt));
+        }, false);
+    }
+
+    return $DE; })();
+
+};
 
 // Strings
 // -----------------------------------------------------------------------------
@@ -5185,7 +5214,7 @@ return function($trg) {
                           $trg.PlayerError = PlayerError;
                           $trg.AnimationError = AnimationError;
 
-    $trg.obj_clone = obj_clone; $trg.ajax = ajax;
+    $trg.obj_clone = obj_clone; /*$trg.ajax = ENGINE.ajax;*/
 
     $trg._typecheck = { builder: __builder,
                         arr: __arr,
