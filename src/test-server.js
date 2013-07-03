@@ -6,7 +6,7 @@ var b = Builder._$;
 
 /*var engine = */anm.switchEngineTo(NODE.Engine);
 
-var player = anm.createPlayer('fake');
+var player = anm.createPlayer('fake', { mode: anm.C.M_DYNAMIC });
 
 var elm1 = b();
 elm1.modify(function(t) {

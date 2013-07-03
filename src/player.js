@@ -778,7 +778,7 @@ Player.prototype._postInit = function() {
     this.stop();
     Text.__measuring_f = ENGINE.createTextMeasurer();
     /* TODO: load some default information into player */
-    var mayBeUrl = ENGINE.hasURLtoLoad(this.canvas);
+    var mayBeUrl = ENGINE.hasUrlToLoad(this.canvas);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
@@ -2576,7 +2576,7 @@ Element.createState = function(owner) {
              'p': null, 't': null, 'key': null,
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
                                // if both are null — stays as defined
-             '_matrix': new Transform(),
+             '_matrix': ENGINE.createTransform(),
              '_evts': {},
              '_evt_st': 0,
              '$': owner };
@@ -4907,6 +4907,10 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
         }
     }
 
+    $DE.createTransform = function() {
+        return new Transform();
+    }
+
     // Elements
 
     /* FIXME: replace with elm.getBoundingClientRect();
@@ -4991,7 +4995,7 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
     $DE.checkPlayerCanvas = function(cvs) {
         return true;
     }
-    $DE.hasURLtoLoad = function(cvs) {
+    $DE.hasUrlToLoad = function(cvs) {
         return cvs.getAttribute(Player.URL_ATTR);
     }
     $DE.setTabindex = function(cvs, idx) {

@@ -1,5 +1,7 @@
 exports.Engine = (function() {
 
+    var Transform = require('../vendor/matrix.js').Transform;
+
     return function() {
 
         var $NE = {};
@@ -45,10 +47,14 @@ exports.Engine = (function() {
             }
         }
 
+        $NE.createTransform = function() {
+            return new Transform();
+        }
+
         /* TODO: insert a real objects here */
         $NE.createCanvas = function(params, ratio) { return {}; };
         $NE.getPlayerCanvas = function(id, player) { return {}; };
-        $NE.getContext = function(canvas, type) { return {}; };
+        $NE.getContext = function(canvas, type) { return mocks_factory.context2d(); };
 
         $NE.ajax = function() { throw new Error('Not Implemented'); }
 
@@ -75,6 +81,44 @@ exports.Engine = (function() {
         $NE.subscribeSceneToEvents = function(scene, canvas) {}
 
         // TODO: image, proper events
+
+        var mocks_factory = {};
+
+        var __nop = function() {};
+        var _ctxMocksCount = 0;
+        mocks_factory.context2d = function() {
+            return {
+                '__mockId': _ctxMocksCount++,
+                'save': __nop,
+                'restore': __nop,
+                'fillRect': __nop,
+                'clearRect': __nop,
+                'fillText': __nop,
+                'strokeRect': __nop,
+                'translate': __nop,
+                'transform': __nop,
+                'beginPath': __nop,
+                'closePath': __nop,
+                'moveTo': __nop,
+                'lineTo': __nop,
+                'fill': __nop,
+                'stroke': __nop,
+                'clip': __nop,
+                'rect': __nop,
+                'drawImage': __nop,
+                'scale': __nop,
+                'setTransform': __nop,
+                'globalAlpha': 1,
+                'globalCompositeOperation': 'source-over',
+                'createLinearGradient': function() { return mocks_factory.linearGradient(); },
+            };
+        };
+
+        mocks_factory.linearGradient = function() {
+            return {
+                'addColorStop': __nop
+            };
+        };
 
         return $NE;
 

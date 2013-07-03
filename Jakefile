@@ -556,6 +556,8 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
 
 });
 
+// TODO: push-go task
+
 /*desc('Run JSHint');
 task('hint', function() {
     // TODO
