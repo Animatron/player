@@ -54,12 +54,7 @@
 
 (function(name, produce) {
     // Cross-platform injector
-    var _wnd = (typeof window !== 'undefined') ? window : {
-        'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
-        'devicePixelRatio': 1,
-        'addEventListener': function() {},
-        'removeEventListener': function() {}
-    };
+    var _wnd = (typeof window !== 'undefined') ? window : null;
     var _doc = (typeof document !== 'undefined') ? document : null;
     if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
@@ -76,6 +71,8 @@
         produce(_wnd, _doc)(_wnd[name]);
     }
 })('anm'/*, 'anm/player'*/, function($wnd, $doc) {
+
+var ENGINE = DomEngine;
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -176,74 +173,6 @@ function iter(a) {
     });
 }
 
-// ### DOM
-/* ------- */
-
-// for one-level objects, so no hasOwnProperty check
-function obj_clone(what) {
-    var dest = {};
-    for (var prop in what) {
-        dest[prop] = what[prop];
-    }
-    return dest;
-}
-
-/* FIXME: replace with elm.getBoundingClientRect();
-   see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
-function find_pos(elm) {
-    var curleft = 0,
-        curtop = 0;
-    do {
-        curleft += elm.offsetLeft/* - elm.scrollLeft*/;
-        curtop += elm.offsetTop/* - elm.scrollTop*/;
-    } while (elm = elm.offsetParent);
-    return [ curleft, curtop ];
-}
-
-// ### AJAX
-/* -------- */
-
-function ajax(url, callback/*, errback*/) {
-    var req = false;
-
-    if (!$wnd.ActiveXObject) {
-        req = new $wnd.XMLHttpRequest();
-    } else {
-        try {
-            req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
-        } catch (e1) {
-            try {
-                req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
-            } catch (e2) {
-                throw new SysErr('No AJAX/XMLHttp support');
-            }
-        }
-    }
-
-    /*if (req.overrideMimeType) {
-        req.overrideMimeType('text/xml');
-      } */
-
-    if (!req) {
-      throw new SysErr('Failed to create XMLHttp instance');
-    }
-
-    var whenDone = function() {
-        if (req.readyState == 4) {
-            if (req.status == 200) {
-                if (callback) callback(req);
-            } else {
-                throw new SysErr('AJAX request for ' + url +
-                                 ' returned ' + req.status +
-                                 ' instead of 200');
-            }
-        }
-    };
-
-    req.onreadystatechange = whenDone;
-    req.open('GET', url, true);
-    req.send(null);
-}
 
 // ### Canvas-related Constants
 /* ---------------------------- */
@@ -334,10 +263,19 @@ function __paramsToObj(pstr) {
   return o;
 }
 
+// for one-level objects, so no hasOwnProperty check
+function obj_clone(what) {
+    var dest = {};
+    for (var prop in what) {
+        dest[prop] = what[prop];
+    }
+    return dest;
+}
+
 function _mrg_obj(src, backup) {
     if (!backup) return src;
     var res = {};
-    for (prop in backup) {
+    for (var prop in backup) {
         res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
     return res;
 }
@@ -669,8 +607,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     var player = this;
 
     // reassigns var to ensure proper function is used
-    __nextFrame = player._engine.getRequestFrameFunc();
-    __stopAnim = player._engine.getCancelFrameFunc();
+    __nextFrame = ENGINE.getRequestFrameFunc();
+    __stopAnim = ENGINE.getCancelFrameFunc();
 
     player._ensureHasAnim();
     player._ensureHasState();
@@ -795,39 +733,26 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-Player.E_DOM = 'DOM';
-
-Player.ENGINES = {};
-Player.ENGINES[Player.E_DOM] = DomEngine;
-
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
-    var engine,
-        cvs_id, canvas;
-    if (__fun(cvs)) {
-        engine = cvs();
-        cvs_id = guid();
-        canvas = engine.getPlayerCanvas(cvs_id);
-    } else if (__str(cvs)) {
-        engine = Player.ENGINES[Player.E_DOM];
+    var cvs_id, canvas;
+    if (__str(cvs)) {
         cvs_id = cvs;
-        canvas = engine.getPlayerCanvas(cvs_id);
+        canvas = ENGINE.getPlayerCanvas(cvs_id);
     } else {
         if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-        engine = Player.ENGINES[Player.E_DOM];
         this.id = cvs.id;
         this.canvas = cvs;
     }
-    if (!engine.checkPlayerCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this._engine = engine;
+    if (!ENGINE.checkPlayerCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
     this.id = cvs_id;
     this.canvas = canvas;
-    this.ctx = engine.getContext(canvas, '2d');
+    this.ctx = ENGINE.getContext(canvas, '2d');
     this.state = Player.createState(this);
 
     this.subscribeEvents(canvas);
 
-    return engine.extractUserOptions(canvas);
+    return ENGINE.extractUserOptions(canvas);
 }
 Player.prototype._loadOpts = function(opts) {
     this.inParent = opts.inParent;
@@ -845,9 +770,9 @@ Player.prototype._loadOpts = function(opts) {
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
     this.stop();
-    Text.__measuring_f = this._engine.createTextMeasurer();
+    Text.__measuring_f = ENGINE.createTextMeasurer();
     /* TODO: load some default information into player */
-    var mayBeUrl = this._engine.hasURLtoLoad(this.canvas);
+    var mayBeUrl = ENGINE.hasURLtoLoad(this.canvas);
     if (mayBeUrl) this.load(mayBeUrl/*,
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
@@ -982,8 +907,7 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    this._ensureHasEngine();
-    this._engine.subscribeEvents(canvas, {
+    ENGINE.subscribeEvents(canvas, {
         scroll: Player.__getPosAndRedraw(this),
         resize: Player.__getPosAndRedraw(this),
         mouseover: (function(player) {
@@ -1119,7 +1043,7 @@ Player.prototype._stopAndContinue = function() {
 // update player's canvas with configuration
 Player.prototype._configureCanvas = function(opts) {
     var canvas = this.canvas;
-    var pxRatio = this._engine.getPxRatio();
+    var pxRatio = ENGINE.getPxRatio();
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -1129,7 +1053,7 @@ Player.prototype._configureCanvas = function(opts) {
     this.state.height = _h;
     this.state.ratio = pxRatio;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    this._engine.configureCanvas(canvas, opts, pxRatio);
+    ENGINE.configureCanvas(canvas, opts, pxRatio);
     if (this.controls) this.controls.update(canvas);
     if (this.info) this.info.update(canvas);
     this.__canvasPrepared = true;
@@ -1174,10 +1098,10 @@ Player.prototype._checkMode = function() {
 }
 Player.prototype.__subscribeDynamicEvents = function(scene) {
     if (global_opts.setTabindex) {
-        this._engine.setTabindex(this.canvas, this.__instanceNum);
+        ENGINE.setTabindex(this.canvas, this.__instanceNum);
     }
     if (scene && !scene.__subscribedEvts) {
-        this._engine.subscribeSceneToEvents(this.canvas, scene);
+        ENGINE.subscribeSceneToEvents(this.canvas, scene);
         scene.__subscribedEvts = true;
     }
 }
@@ -1186,9 +1110,6 @@ Player.prototype._ensureHasState = function() {
 }
 Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw new PlayerErr(Errors.P.NO_SCENE);
-}
-Player.prototype._ensureHasEngine = function() {
-    if (!this._engine) throw new PlayerErr(Errors.P.NO_ENGINE);
 }
 Player.prototype.__beforeFrame = function(scene) {
     return (function(player, state, scene, callback) {
@@ -2198,9 +2119,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     //console.log('creating mask and back canvases for ' + this.id + ' ' + this.name);
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
+    this.__maskCvs = ENGINE.createCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
+    this.__backCvs = ENGINE.createCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
     /* $doc.body.appendChild(this.__maskCvs); */
     /* $doc.body.appendChild(this.__backCvs); */
@@ -2208,13 +2129,13 @@ Element.prototype.__ensureHasMaskCanvas = function() {
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
         //console.log('removing mask canvas for ' + this.id + ' ' + this.name);
-        disposeElm(this.__maskCvs);
+        ENGINE.disposeElm(this.__maskCvs);
         this.__maskCvs = null;
         this.__maskCtx = null;
     }
     if (this.__backCvs) {
         //console.log('removing back canvas for ' + this.id + ' ' + this.name);
-        disposeElm(this.__backCvs);
+        ENGINE.disposeElm(this.__backCvs);
         this.__backCvs = null;
         this.__backCtx = null;
     }
@@ -2277,7 +2198,7 @@ Element.prototype.deepClone = function() {
             var priority_group = type_group[mpi];
             if (!priority_group) continue;
             clone._modifiers[mti][mpi] = [].concat(priority_group);
-            for (mi = 0, ml = priority_group.length; mi < ml; mi++) {
+            for (var mi = 0, ml = priority_group.length; mi < ml; mi++) {
                 var modifier = priority_group[mi];
                 if (modifier && modifier.__m_ids) {
                     modifier.__m_ids[clone.id] = modifier.__m_ids[this.id];
@@ -2296,7 +2217,7 @@ Element.prototype.deepClone = function() {
             var priority_group = type_group[ppi];
             if (!priority_group) continue;
             clone._painters[pti][ppi] = [].concat(priority_group);
-            for (pi = 0, pl = priority_group.length; pi < pl; pi++) {
+            for (var pi = 0, pl = priority_group.length; pi < pl; pi++) {
                 var painter = priority_group[pi];
                 if (painter && painter.__p_ids) {
                     painter.__p_ids[clone.id] = painter.__p_ids[this.id];
@@ -2861,7 +2782,7 @@ L.loadFromUrl = function(player, url, importer, callback) {
 
     player._drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
 
-    ajax(url, function(req) {
+    ENGINE.ajax(url, function(req) {
         L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
     });
 }
@@ -4130,7 +4051,7 @@ Sheet.prototype._drawToCache = function() {
         this._cvs_cache = this._image.__cvs;
         return;
     }
-    var _canvas = newCanvas(this._dimen, 1 /* FIXME: use real ratio */);
+    var _canvas = ENGINE.createCanvas(this._dimen, 1 /* FIXME: use real ratio */);
     var _ctx = _canvas.getContext('2d');
     _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
@@ -4194,7 +4115,6 @@ function Controls(player) {
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
-    this._engine = player._engine;
 }
 /* TODO: move these settings to default css rule? */
 Controls.HEIGHT = 26;
@@ -4212,14 +4132,12 @@ Controls.FONT = 'Arial, sans-serif';
 Controls.FONT_WEIGHT = 'bold';
 Controls.FLAT = false;
 provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
-// TODO: move to engine
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
-        engine = this._engine,
-        pconf = engine.getCanvasParams(parent),
-        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr, ;
+        pconf = ENGINE.getCanvasParams(parent),
+        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr;
     if (!cvs) {
-        cvs = engine.addChildCanvas('ctrls', parent,
+        cvs = ENGINE.addChildCanvas('ctrls', parent,
                  [ 0, _ph - Controls.HEIGHT,
                    _pw, Controls.HEIGHT ],
                  { _class: 'anm-controls ',
@@ -4230,19 +4148,19 @@ Controls.prototype.update = function(parent) {
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
         this.id = cvs.id;
         this.canvas = cvs;
-        this.ctx = engine.getContext(cvs, '2d');
+        this.ctx = ENGINE.getContext(cvs, '2d');
         this.subscribeEvent(cvs);
         this.hide();
         this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
     } else {
-        engine.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
+        ENGINE.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
     }
-    var cconf = engine.getCanvasParams(cvs);
+    var cconf = ENGINE.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';
     // _canvas.style.top = _cp[1] + 'px';
     this._ratio = cconf[2];
     this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
-    this.bounds = engine.getCanvasBounds(cvs);
+    this.bounds = ENGINE.getCanvasBounds(cvs);
 
     /* var _ratio = parent.__pxRatio,
         _w = parent.width / _ratio,
@@ -4288,7 +4206,7 @@ Controls.prototype.update = function(parent) {
                                     _bp[1]+(_h*_ratio) ]; */
 }
 Controls.prototype.subscribeEvents = function(canvas) {
-    this._engine.subscribeEvents({
+    ENGINE.subscribeEvents({
         mousedown: (function(controls) {
                 return function(evt) {
                     controls.fire(C.X_MDOWN, evt);
@@ -4624,7 +4542,6 @@ function InfoBlock(player) {
     this.ready = false;
     this.hidden = false;
     this._inParent = player.inParent;
-    this._engine = player._engine;
 }
 /* TODO: move these settings to default css rule? */
 InfoBlock.BASE_BGCOLOR = Controls.BASE_BGCOLOR;
@@ -4641,6 +4558,65 @@ InfoBlock.prototype.detach = function(parent) {
 }
 // TODO: move to engine
 InfoBlock.prototype.update = function(parent) {
+
+    /*var cvs = this.canvas,
+        pconf = ENGINE.getCanvasParams(parent),
+        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr, ;
+    if (!cvs) {
+        cvs = ENGINE.addChildCanvas('ctrls', parent,
+                 [ 0, _ph - Controls.HEIGHT,
+                   _pw, Controls.HEIGHT ],
+                 { _class: 'anm-controls ',
+                   position: 'absolute',
+                   opacity: Controls.OPACITY,
+                   zIndex: 100,
+                   cursor: 'pointer',
+                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        this.id = cvs.id;
+        this.canvas = cvs;
+        this.ctx = ENGINE.getContext(cvs, '2d');
+        this.subscribeEvent(cvs);
+        this.hide();
+        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
+    } else {
+        ENGINE.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
+    }
+    var cconf = ENGINE.getCanvasParams(cvs);
+    // _canvas.style.left = _cp[0] + 'px';
+    // _canvas.style.top = _cp[1] + 'px';
+    this._ratio = cconf[2];
+    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
+    this.bounds = ENGINE.getCanvasBounds(cvs);*/
+
+    var cvs = this.canvas,
+        pconf = ENGINE.getCanvasParams(parent),
+        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr;
+    if (!cvs) {
+        cvs = ENGINE.addChildCanvas('info', parent,
+                 [ 0, _ph - Controls.HEIGHT,
+                   _pw, Controls.HEIGHT ],
+                 { _class: 'anm-info ',
+                   position: 'absolute',
+                   opacity: Controls.OPACITY,
+                   zIndex: 100,
+                   cursor: 'pointer',
+                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        this.id = cvs.id;
+        this.canvas = cvs;
+        this.ctx = ENGINE.getContext(cvs, '2d');
+        this.subscribeEvent(cvs);
+        this.hide();
+        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
+    } else {
+        ENGINE.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
+    }
+    var cconf = ENGINE.getCanvasParams(cvs);
+    // _canvas.style.left = _cp[0] + 'px';
+    // _canvas.style.top = _cp[1] + 'px';
+    this._ratio = cconf[2];
+    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
+    this.bounds = ENGINE.getCanvasBounds(cvs);
+
     var _ratio = parent.__pxRatio,
         _p = InfoBlock.PADDING,
         _m = InfoBlock.MARGIN,
@@ -4648,7 +4624,7 @@ InfoBlock.prototype.update = function(parent) {
         _h = InfoBlock.DEFAULT_HEIGHT - (_p + _p),
         _pp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
                                  parent.parentNode.offsetTop + parent.clientTop ]
-                             : find_pos(parent),
+                             : ENGINE.findPos(parent),
         _l = _pp[0] + parent.clientLeft + _m,
         _t = _pp[1] + parent.clientTop + _m;
     var _canvas = this.canvas;
@@ -4682,6 +4658,51 @@ InfoBlock.prototype.update = function(parent) {
         this.ready = true;
     }
     this.render();
+
+
+
+    /* var _ratio = parent.__pxRatio,
+        _w = parent.width / _ratio,
+        _h = Controls.HEIGHT,
+        _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
+        _pp = find_pos(parent), // parent position
+        _bp = [ _pp[0] + parent.clientLeft, _pp[1] + parent.clientTop + _hdiff ], // bounds position
+        _cp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
+                                 parent.parentNode.offsetTop  + parent.clientTop + _hdiff ]
+                             : _bp; // position to set in styles
+    var _canvas = this.canvas;
+    if (!_canvas) {
+        _canvas = newCanvas([ _w, _h ], _ratio);
+        if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
+        _canvas.className = 'anm-controls';
+        _canvas.style.position = 'absolute';
+        _canvas.style.opacity = Controls.OPACITY;
+        _canvas.style.zIndex = 100;
+        _canvas.style.cursor = 'pointer';
+        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        this.id = _canvas.id;
+        this.canvas = _canvas;
+        this.ctx = _canvas.getContext('2d');
+        this.subscribeEvents(_canvas);
+        this.hide();
+        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
+    } else {
+        canvasOpts(_canvas, [ _w, _h ], _ratio);
+    }
+    _canvas.style.left = _cp[0] + 'px';
+    _canvas.style.top = _cp[1] + 'px';
+    this._ratio = _ratio;
+    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
+    if (!this.ready) {
+        var appendTo = this._inParent ? parent.parentNode
+                                      : $doc.body;
+        // FIXME: a dirty hack?
+        if (this._inParent) { appendTo.style.position = 'relative'; }
+        appendTo.appendChild(_canvas);
+        this.ready = true;
+    }
+    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
+                                    _bp[1]+(_h*_ratio) ]; */
 }
 InfoBlock.prototype.render = function() {
     if (!this.__data) return;
@@ -4789,6 +4810,47 @@ DomEngine.stopAnim = function(reqId) {
 
 // Global things
 
+DomEngine.ajax = function(url, callback/*, errback*/) {
+    var req = false;
+
+    if (!$wnd.ActiveXObject) {
+        req = new $wnd.XMLHttpRequest();
+    } else {
+        try {
+            req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
+        } catch (e1) {
+            try {
+                req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
+            } catch (e2) {
+                throw new SysErr('No AJAX/XMLHttp support');
+            }
+        }
+    }
+
+    /*if (req.overrideMimeType) {
+        req.overrideMimeType('text/xml');
+      } */
+
+    if (!req) {
+      throw new SysErr('Failed to create XMLHttp instance');
+    }
+
+    var whenDone = function() {
+        if (req.readyState == 4) {
+            if (req.status == 200) {
+                if (callback) callback(req);
+            } else {
+                throw new SysErr('AJAX request for ' + url +
+                                 ' returned ' + req.status +
+                                 ' instead of 200');
+            }
+        }
+    };
+
+    req.onreadystatechange = whenDone;
+    req.open('GET', url, true);
+    req.send(null);
+}
 DomEngine.getPxRatio = function() {
     return $wnd.devicePixelRatio || 1;
 }
@@ -4821,6 +4883,17 @@ DomEngine.createTextMeasurer = function() {
                  buff.offsetHeight ];
     }
 }
+/* FIXME: replace with elm.getBoundingClientRect();
+   see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
+DomEngine.findPos = function(elm) {
+    var curleft = 0,
+        curtop = 0;
+    do {
+        curleft += elm.offsetLeft/* - elm.scrollLeft*/;
+        curtop += elm.offsetTop/* - elm.scrollTop*/;
+    } while (elm = elm.offsetParent);
+    return [ curleft, curtop ];
+}
 DomEngine.__trashBin;
 DomEngine.disposeElm = function(elm) {
     var trashBin = DomEngine.__trashBin;
@@ -4837,7 +4910,7 @@ DomEngine.disposeElm = function(elm) {
 
 // Creating & Modifying Canvas
 
-DomEngine.createCanvas = function(dimen, ratio) {
+DomEngine.newCanvas = function(dimen, ratio) {
     var cvs = $doc.createElement('canvas');
     DomEngine.configureCanvas(cvs, dimen, ratio);
     return cvs;
@@ -4874,7 +4947,7 @@ DomEngine.getCanvasParams = function(cvs) {
 }
 DomEngine.getCanvasBounds = function(cvs/*, parent*/) {
     //var parent = parent || cvs.parentNode;
-    var pos = find_pos(cvs),
+    var pos = DomEngine.findPos(cvs),
         params = DomEngine.getCanvasParams(cvs);
     return [ pos[0], pos[1], params[0], params[1], params[2] ];
 }
@@ -4941,7 +5014,7 @@ DomEngine.addChildCanvas = function(id, parent, pos, style, inside) {
     var _ratio = DomEngine.getPxRatio(),
         _x = pos[0], _y = pos[1],
         _w = pos[2], _h = pos[3], // width & height
-        _pp = find_pos(parent), // parent position
+        _pp = DomEngine.findPos(parent), // parent position
         _bp = [ _pp[0] + parent.clientLeft + _x, _pp[1] + parent.clientTop + _y ], // bounds position
         _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
                          parent.parentNode.offsetTop  + parent.clientTop + _y ]
@@ -4949,7 +5022,7 @@ DomEngine.addChildCanvas = function(id, parent, pos, style, inside) {
     var cvs = DomEngine.createCanvas([ _w, _h ], _ratio);
     cvs.id = parent.id ? '__' + parent.id + '_' + id;
     if (style._class) cvs.className = style._class;
-    for (prop in style) {
+    for (var prop in style) {
         cvs.style[prop] = style[prop];
     }
     var appendTo = inside ? parent.parentNode
@@ -5050,7 +5123,6 @@ Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
 Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
                     'please load something in player before ' +
                     'calling its playing-related methods';
-Errors.P.NO_ENGINE = 'Player has no engine to run on, by accident';
 Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
                     'please stop player before loading';
 Errors.P.BEFOREFRAME_BEFORE_PLAY = 'Please assign beforeFrame callback before calling play()';
@@ -5091,7 +5163,7 @@ return function($trg) {
     var __globals = {
         'createPlayer': __createPlayer
     }
-    for (prop in __globals) {
+    for (var prop in __globals) {
         $trg._globals[prop] = __globals[prop];
         $wnd[prop] = __globals[prop];
     }
