@@ -432,7 +432,7 @@ function Player() {
     // in any moment before creating a first player instance.
     // By default — the engine is DOM, of course.
     // The engine function should return a singleton object, so no `new` or something.
-    if (!ENGINE) ENGINE = DomEngine();
+    if (!ENGINE) ENGINE = DomEngine($wnd, $doc);
     this.id = '';
     this.state = null;
     this.anim = null;
@@ -4763,9 +4763,41 @@ InfoBlock.prototype.changeTheme = function(front, back) {
 // DOM Engine
 // -----------------------------------------------------------------------------
 
-function DomEngine() { return (function() { // wrapper here is just to isolate it
+function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to isolate it, executed immediately
 
     var $DE = {};
+
+    // FIXME: here are truly a lot of methods, try to
+    //        reduce their number as much as possible
+
+    // getRequestFrameFunc() -> function(callback)
+    // getCancelFrameFunc() -> function(id)
+
+    // ajax(url, callback) -> none
+
+    // createTextMeasurer() -> function(text) -> [ width, height ]
+
+    // findPos(elm) -> [ x, y ]
+    // disposeElm(elm) -> none
+    // detachElm(parent | null, child) -> none
+
+    // createCanvas(params | [width, height], pxratio) -> canvas
+    // getPlayerCanvas(id, player) -> canvas
+    // getContext(canvas, type) -> context
+    // playerAttachedTo(canvas, player) -> true | false
+    // detachPlayer(canvas, player) -> none
+    // extractUserOptions(canvas) -> options: object | {}
+    // checkPlayerCanvas(canvas) -> true | false
+    // hasUrlToLoad(canvas) -> string | null
+    // setTabIndex(canvas) -> none
+    // getCanvasParams(canvas) -> [ width, height, ratio ]
+    // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
+    // configureCanvas(canvas, options, ratio) -> none
+    // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
+
+    // evtPos(event) -> [ x, y ]
+    // subscribeEvents(canvas, handlers: object) -> none
+    // subscribeSceneToEvents(scene, canvas) -> none
 
     // Framing
 
@@ -5193,14 +5225,16 @@ return function($trg) {
         'createPlayer': __createPlayer
     }
     for (var prop in __globals) {
-        $trg._globals[prop] = __globals[prop];
-        $wnd[prop] = __globals[prop];
+        $trg._globals[prop]  = __globals[prop];
+        if ($wnd) $wnd[prop] = __globals[prop];
     }
 
     /*$trg.__js_pl_all = this;*/
 
     $trg.createPlayer = __createPlayer;
     $trg._$ = __createPlayer;
+
+    $trg.switchEngineTo = function(engine) { ENGINE = engine($wnd, $doc); };
 
     $trg.C = C; // constants
     $trg.M = M; // modules
