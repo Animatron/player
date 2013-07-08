@@ -77,6 +77,9 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
         if (!inner.eid && !inner.layers) {
             // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
             this._collectStaticData(target, inner);
+            if (target.collectCustomData) {
+              target.collectCustomData(inner);
+            }
         } else {
             // FIXME: consider returning this element, but not adding it
             target.add(this.importElement(inner, source, target.xdata.gband));
@@ -147,7 +150,9 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 };
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
-    to.xdata.sheet = src.url ? new anm.Sheet(src.url) : null;
+    // todo: make opposite check (if IS IMAGE or SHEET, etc)
+    var isAudio = src.id.substr(src.id.length - 2) === "0e";
+    to.xdata.sheet = src.url && !isAudio ? new anm.Sheet(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,
