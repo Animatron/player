@@ -148,11 +148,8 @@ Builder.prototype.rect = function(pt, rect) {
                [0, 0]], pt);
     return this;
 }
-// TODO:
-/* Builder.prototype.oval = function(pt, radius, ratio) {
-// > builder.oval % (pt: Array[2,Integer],
-//                       radius: Float) => Builder
-} */
+// > builder.cicle % (pt: Array[2,Integer],
+//                   radius: Float) => Builder
 Builder.prototype.circle = function(pt, radius) {
     this.move(pt || [0, 0]);
     this.x.__bounds = [ -radius, -radius, radius, radius];
@@ -163,10 +160,14 @@ Builder.prototype.circle = function(pt, radius) {
                     ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                 });
         });
+    // FIXME: move this line to the collisions module itself
     if (modCollisions) this.v.reactAs(
             Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
     return this;
 }
+// TODO:
+/*Builder.prototype.oval = function(pt, hradius, vradius) {
+}*/
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src, callback) {
@@ -280,7 +281,8 @@ Builder.prototype.reg = function(pt) {
 // > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder
 Builder.prototype.pvt = function(pt) {
     var x = this.x;
-    x.pvt = pt || x.pvt;
+    if (!pt) return x.pvt;
+    x.pvt = pt;
     return this;
 }
 // > builder.init % (val: Object) => Builder
