@@ -578,6 +578,18 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'duration': 0 }
                                };
 
+Player.__instance_listeners = [];
+
+Player.fireNewInstance = function(instance) {
+  for (var i in Player.__instance_listeners) {
+    Player.__instance_listeners[i].call(instance);
+  }
+};
+
+Player.addNewInstanceListener = function(handler) {
+  Player.__instance_listeners.push(handler);
+};
+
 // ### Playing Control API
 /* ----------------------- */
 
@@ -622,6 +634,8 @@ Player.prototype.init = function(cvs, opts) {
     this._loadOpts(opts);
     this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
+
+    Player.fireNewInstance(this);
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
@@ -1790,64 +1804,69 @@ Element.prototype.render = function(ctx, gtime) {
     this.rendering = true;
     ctx.save();
     var wasDrawn = false;
-    // checks if any time jumps (including repeat
-    // modes) were performed
-    var ltime = this.ltime(gtime);
-    if (wasDrawn = (this.fits(ltime)
-                    && this.onframe(ltime)
-                    && this.prepare())) {
-        if (!this.__mask) {
-            // draw directly to context, if has no mask
-            this.transform(ctx);
-            this.draw(ctx);
-            this.visitChildren(function(elm) {
-                elm.render(ctx, gtime);
-            });
-        } else {
-            // draw to back canvas, if has
-            this.__ensureHasMaskCanvas();
-            var mcvs = this.__maskCvs,
-                mctx = this.__maskCtx,
-                bcvs = this.__backCvs,
-                bctx = this.__backCtx;
 
-            var scene_width = this.scene.width,
-                scene_height = this.scene.height,
-                dbl_scene_width = scene_width * 2,
-                dbl_scene_height = scene_height * 2;
+    if (this.customRender) {
+      wasDrawn = this.customRender(ctx, gtime);
+    } else {
+      // checks if any time jumps (including repeat
+      // modes) were performed
+      var ltime = this.ltime(gtime);
+      if (wasDrawn = (this.fits(ltime)
+                      && this.onframe(ltime)
+                      && this.prepare())) {
+          if (!this.__mask) {
+              // draw directly to context, if has no mask
+              this.transform(ctx);
+              this.draw(ctx);
+              this.visitChildren(function(elm) {
+                  elm.render(ctx, gtime);
+              });
+          } else {
+              // draw to back canvas, if has
+              this.__ensureHasMaskCanvas();
+              var mcvs = this.__maskCvs,
+                  mctx = this.__maskCtx,
+                  bcvs = this.__backCvs,
+                  bctx = this.__backCtx;
 
-            // at this point:
-            // mcvs.height is twice scene height
-            // mcvs.width  is twice scene width
+              var scene_width = this.scene.width,
+                  scene_height = this.scene.height,
+                  dbl_scene_width = scene_width * 2,
+                  dbl_scene_height = scene_height * 2;
 
-            bctx.save();
-            bctx.clearRect(0, 0, dbl_scene_width,
-                                 dbl_scene_height);
+              // at this point:
+              // mcvs.height is twice scene height
+              // mcvs.width  is twice scene width
 
-            bctx.save();
-            bctx.translate(scene_width, scene_height);
-            this.transform(bctx);
-            this.visitChildren(function(elm) {
-                elm.render(bctx, gtime);
-            });
-            this.draw(bctx);
-            bctx.restore();
-            bctx.globalCompositeOperation = 'destination-in';
+              bctx.save();
+              bctx.clearRect(0, 0, dbl_scene_width,
+                                   dbl_scene_height);
 
-            mctx.save();
-            mctx.clearRect(0, 0, dbl_scene_width,
-                                 dbl_scene_height);
-            mctx.translate(scene_width, scene_height);
-            this.__mask.render(mctx, gtime);
-            mctx.restore();
+              bctx.save();
+              bctx.translate(scene_width, scene_height);
+              this.transform(bctx);
+              this.visitChildren(function(elm) {
+                  elm.render(bctx, gtime);
+              });
+              this.draw(bctx);
+              bctx.restore();
+              bctx.globalCompositeOperation = 'destination-in';
 
-            bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
-                                       dbl_scene_height);
-            bctx.restore();
+              mctx.save();
+              mctx.clearRect(0, 0, dbl_scene_width,
+                                   dbl_scene_height);
+              mctx.translate(scene_width, scene_height);
+              this.__mask.render(mctx, gtime);
+              mctx.restore();
 
-            ctx.drawImage(bcvs, -scene_width, -scene_height,
-                          dbl_scene_width, dbl_scene_height);
-        }
+              bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
+                                         dbl_scene_height);
+              bctx.restore();
+
+              ctx.drawImage(bcvs, -scene_width, -scene_height,
+                            dbl_scene_width, dbl_scene_height);
+          }
+      }
     }
     // immediately when drawn, element becomes visible,
     // it is reasonable
