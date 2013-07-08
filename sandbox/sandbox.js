@@ -95,7 +95,7 @@ function sandbox() {
         try {
           _player.anim = null;
           _player.stop();
-          _player.drawSplash();
+          _player._drawErrorSplash(e);
         } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;

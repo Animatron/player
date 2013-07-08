@@ -1725,6 +1725,9 @@ C.AC_NAMES[C.C_DARKER] = 'darker';
 C.AC_NAMES[C.C_COPY] = 'copy';
 C.AC_NAMES[C.C_XOR] = 'xor';
 
+Element.DEFAULT_PVT = [ 0, 0 ];
+Element.DEFAULT_REG = [ 0, 0 ];
+
 Element.TYPE_MAX_BIT = 16;
 Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
     // they are: (type << TYPE_MAX_BIT) | (priot << PRRT_MAX_BIT) | i
@@ -2297,6 +2300,8 @@ Element.prototype.global = function(pt) {
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
 Element.prototype.dimen = function() {
+    // TODO: allow to set _dimen?
+    if (this._dimen) return this._dimen;
     var x = this.xdata;
     var subj = x.path || x.text || x.sheet;
     if (subj) return subj.dimen();
@@ -2803,8 +2808,8 @@ Element.createState = function(owner) {
 };
 // geometric data of the element
 Element.createXData = function(owner) {
-    return { 'pvt': [0, 0],      // pivot
-             'reg': [0, 0],      // registration point
+    return { 'pvt': Element.DEFAULT_PVT,      // pivot
+             'reg': Element.DEFAULT_REG,      // registration point
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
@@ -3214,6 +3219,7 @@ Render.p_usePivot = function(ctx) {
     var dimen = this.$.dimen(),
         pvt = this.pvt;
     if (!dimen) return;
+    if ((pvt[0] === 0) && (pvt[1] === 0)) return;
     ctx.translate(-(pvt[0] * dimen[0]),
                   -(pvt[1] * dimen[1]));
 }

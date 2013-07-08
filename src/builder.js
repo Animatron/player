@@ -124,18 +124,22 @@ Builder.prototype.remove = function(what) {
 
 // TODO: move shapes to B.P.rect/... ?
 
-// > builder.path % (path: String | Path,
-//                   [pt: Array[2,Integer]]) => Builder
-// FIXME: change to (pt, path)
-Builder.prototype.path = function(path, pt) {
+// > builder.path % (pt: Array[2,Integer],
+//                   path: String | Path) => Builder
+Builder.prototype.path = function(pt, path) {
     this.move(pt || [0, 0]);
     var path = Builder.__path(path, this.x.path);
     this.x.path = path;
-    path.normalize();
     if (!path.fill) { path.fill = this.f; }
     else { this.f = path.fill; }
     if (!path.stroke) { path.stroke = this.s; }
     else { this.s = path.stroke; }
+    return this;
+}
+// > builder.npath % (pt: Array[2,Integer],
+//                   path: String | Path) => Builder
+Builder.prototype.npath = function(pt, path) {
+    this.path(pt, Builder.__path(path, this.x.path).clone().normalize());
     return this;
 }
 // > builder.rect % (pt: Array[2,Integer],
@@ -143,16 +147,16 @@ Builder.prototype.path = function(path, pt) {
 Builder.prototype.rect = function(pt, rect) {
     var rect = is.arr(rect) ? rect : [ rect, rect ];
     var w = rect[0], h = rect[1];
-    this.path([[0, 0], [w, 0],
-               [w, h], [0, h],
-               [0, 0]], pt);
+    this.path(pt, [[0, 0], [w, 0],
+                   [w, h], [0, h],
+                   [0, 0]]);
     return this;
 }
-// > builder.cicle % (pt: Array[2,Integer],
-//                   radius: Float) => Builder
+// > builder.circle % (pt: Array[2,Integer],
+//                    radius: Float) => Builder
 Builder.prototype.circle = function(pt, radius) {
     this.move(pt || [0, 0]);
-    this.x.__bounds = [ -radius, -radius, radius, radius];
+    this.v._dimen = [ radius + radius, radius + radius ];
     this.paint(function(ctx) {
             var b = this.$.__b$;
             Path.applyF(ctx, b.f, b.s,
@@ -319,7 +323,7 @@ Builder.prototype.offset = function() {
 Builder.prototype.zoom = function(val) {
     if (this.x.path) {
         this.x.path.zoom(val);
-        this.path(this.x.path); // will normalize it
+        //this.path(this.x.path); // will normalize it
     }
     return this;
 }

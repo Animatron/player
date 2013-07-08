@@ -117,8 +117,28 @@ examples.push([ 0 /*version*/, [
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
 
-examples.push([0 /*version*/, [
+examples.push([ 0 /*version*/, [
   'return b().image([-30, -30], \'./res/bender.jpg\')',
   '           .rotate([0, 3], [0, Math.PI / 5])',
   '           .xscale([0, 3], [.3, .1]);'
 ].join('\n') ]);
+
+/*
+return b('scene')
+  //.add(b('rect').rect([0, 0], 90).fill('rgba(255,255,0,.4)'))
+  //.add(b('rect').rect([0, 0], 90).fill('rgba(255,255,0,.4)').pvt([-.5, -.5]))
+  //.add(b('circle').circle([0, 0], 45).fill('rgba(90,0,90,.4)').pvt([.5, .5]))
+  //.add(b('circle').circle([0, 0], 145).fill('rgba(90,0,90,.4)').pvt([0, 0]))
+  //.add(b('path1').path([110, 110], 'M0 0 L90 90 L0 90 L0 0 Z').fill('rgba(90,90,0,.4)')
+  //                                                 .stroke('#000', 5).pvt([1, 1]))
+  //.add(b('path2').npath([110, 110], 'M50 50 L90 90 L50 90 L50 50 Z').fill('rgba(90,90,0,.4)')
+  //                                                 .stroke('#000', 5).pvt([1, 1]))
+  //.add(b('path3').path([110, 110], 'M0 0 L90 90 L0 90 L0 0 Z').fill('rgba(90,90,0,.4)')
+  //                                                 .stroke('#000', 5).pvt([0, .5]))
+  //.add(b('image').image([0, 0], './res/sprite.png'))
+  //.add(b('text').text([0, 0], './res/sprite.png'))
+  //.add(b('sprite').sprite([1, 1], './res/sprite_sample.png', [144, 59]).pvt([0, 0])
+  //        .animate(0, [0, 30], 10).opacity(.5))
+;
+
+*/
