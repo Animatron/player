@@ -46,11 +46,14 @@ var COPYRIGHT_COMMENT =
   ' * ' + VERSION + ', built at @BUILD_TIME',
   ' */'].join('\n') + '\n';
 
+var NODE_GLOBAL = false,
+    LOCAL_NODE_DIR = './node_modules';
+
 var Binaries = {
-    JSHINT: 'jshint',
-    UGLIFYJS: 'uglifyjs',
-    JASMINE_NODE: 'jasmine-node',
-    DOCCO: 'docco',
+    JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
+    UGLIFYJS: NODE_GLOBAL ? 'uglifyjs' : (LOCAL_NODE_DIR + '/uglify-js/bin/uglifyjs'),
+    JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
+    DOCCO: NODE_GLOBAL ? 'docco' : (LOCAL_NODE_DIR + '/docco/bin/docco'),
     PHANTOMJS: 'phantomjs',
     CAT: 'cat',
     MV: 'mv',
@@ -215,6 +218,10 @@ desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                   '/doc/API.html, /doc/README.html, /doc/docco.css.']));
 task('docs', { async: true }, function() {
     _print('Generating docs');
+
+    _print('Using ' + (NODE_GLOBAL ? 'global'
+                               : 'local (at '+LOCAL_NODE_DIR+')')
+                + ' node.js binaries');
 
     function _src_docs(next) {
         _print('For sources');
@@ -538,7 +545,7 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
 
         s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
-            console.log(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
+            _print(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
 
             var files_count = files.length;
 
@@ -688,6 +695,10 @@ desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
 task('_minify', { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
+
+    _print('Using ' + (NODE_GLOBAL ? 'global'
+                               : 'local (at '+LOCAL_NODE_DIR+')')
+                + ' node.js binaries');
 
     function minify(src, dst, cb) {
         jake.exec([
@@ -863,7 +874,6 @@ var _versions = (function() {
 
     function _write(_vhash) {
         _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
-        console.log
         var _vhash_json = JSON.stringify(_vhash, null, 4);
         jake.rmRf(_loc(VERSIONS_FILE));
         jake.echo(_vhash_json, _loc(VERSIONS_FILE));
