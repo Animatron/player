@@ -148,7 +148,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
 AnimatronImporter.prototype._collectStaticData = function(to, src) {
     if (!to.name) to.name = src.name;
     to.xdata.sheet = src.url ? new anm.Sheet(src.url) : null;
-    to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke)
+    to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke, src.shadow)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,
                                             src.fill, src.stroke)
@@ -191,11 +191,12 @@ Convert.tweenData = function(type, tween) {
     }
     return tween.data;
 }
-Convert.path = function(pathStr, fill, stroke) {
+Convert.path = function(pathStr, fill, stroke, shadow) {
     // ()
     return new Path(pathStr,
                     Convert.fill(fill),
-                    Convert.stroke(stroke));
+                    Convert.stroke(stroke),
+                    Convert.shadow(shadow));
 }
 Convert.text = function(lines, font,
                         fill, stroke) {
@@ -204,6 +205,15 @@ Convert.text = function(lines, font,
                     Convert.fill(fill),
                     Convert.stroke(stroke));
 }
+Convert.shadow = function(src) {
+  if (!src || !src.offsetX) return null;
+  var shadow = {};
+  shadow.color = src.paint.rgba || src.paint.color;
+  shadow.offsetX = src.offsetX;
+  shadow.offsetY = src.offsetY;
+  shadow.blurRadius = src.blur;
+  return shadow;
+};
 Convert.easing = function(from) {
     // (name, path?)
     if (!from) return null;
