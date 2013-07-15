@@ -87,7 +87,7 @@
       this._audio_is_playing = false;
 
       // assign custom render function
-      this.customRender = _audio_customRender;
+      this.__frameProcessors.push(_audio_customRender);
 
       this._audio_load();
     }

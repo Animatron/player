@@ -1758,6 +1758,7 @@ function Element(draw, onframe) {
     this.__painting = null; // current painters class, if painting
     this.__evtCache = [];
     this.__detachQueue = [];
+    this.__frameProcessors = [];
     this._initHandlers(); // TODO: make automatic
     var _me = this,
         default_on = this.on;
@@ -1802,79 +1803,85 @@ Element.prototype.transform = function(ctx) {
 Element.prototype.render = function(ctx, gtime) {
     if (this.disabled) return;
     this.rendering = true;
+    // context is saved even before decision, if we draw or not, for safety:
+    // because context anyway may be changed with user functions,
+    // like modifiers who return false (and we do not want to restrict
+    // user to do that)
     ctx.save();
-    var wasDrawn = false;
+    var drawMe = false;
 
-    if (this.customRender) {
-      wasDrawn = this.customRender(ctx, gtime);
-    } else {
-      // checks if any time jumps (including repeat
-      // modes) were performed
-      var ltime = this.ltime(gtime);
-      if (wasDrawn = (this.fits(ltime)
-                      && this.onframe(ltime)
-                      && this.prepare())) {
-          if (!this.__mask) {
-              // draw directly to context, if has no mask
-              this.transform(ctx);
-              this.draw(ctx);
-              this.visitChildren(function(elm) {
-                  elm.render(ctx, gtime);
-              });
-          } else {
-              // draw to back canvas, if has
-              this.__ensureHasMaskCanvas();
-              var mcvs = this.__maskCvs,
-                  mctx = this.__maskCtx,
-                  bcvs = this.__backCvs,
-                  bctx = this.__backCtx;
+    // checks if any time jumps (including repeat
+    // modes) were performed
+    var ltime = this.ltime(gtime);
+    drawMe = this.__preRender(gtime, ltime, ctx);
+    if (drawMe) {
+        drawMe = this.fits(ltime)
+                 && this.onframe(ltime)
+                 && this.prepare();
+    }
+    if (drawMe) {
+        // update gtime for children, if it was changed by ltime()
+        gtime = this.gtime(ltime);
+        if (!this.__mask) {
+            // draw directly to context, if has no mask
+            this.transform(ctx);
+            this.draw(ctx);
+            this.visitChildren(function(elm) {
+                elm.render(ctx, gtime);
+            });
+        } else {
+            // draw to back canvas, if has
+            this.__ensureHasMaskCanvas();
+            var mcvs = this.__maskCvs,
+                mctx = this.__maskCtx,
+                bcvs = this.__backCvs,
+                bctx = this.__backCtx;
 
-              var scene_width = this.scene.width,
-                  scene_height = this.scene.height,
-                  dbl_scene_width = scene_width * 2,
-                  dbl_scene_height = scene_height * 2;
+            var scene_width = this.scene.width,
+                scene_height = this.scene.height,
+                dbl_scene_width = scene_width * 2,
+                dbl_scene_height = scene_height * 2;
 
-              // at this point:
-              // mcvs.height is twice scene height
-              // mcvs.width  is twice scene width
+            // at this point:
+            // mcvs.height is twice scene height
+            // mcvs.width  is twice scene width
 
-              bctx.save();
-              bctx.clearRect(0, 0, dbl_scene_width,
-                                   dbl_scene_height);
+            bctx.save();
+            bctx.clearRect(0, 0, dbl_scene_width,
+                                 dbl_scene_height);
 
-              bctx.save();
-              bctx.translate(scene_width, scene_height);
-              this.transform(bctx);
-              this.visitChildren(function(elm) {
-                  elm.render(bctx, gtime);
-              });
-              this.draw(bctx);
-              bctx.restore();
-              bctx.globalCompositeOperation = 'destination-in';
+            bctx.save();
+            bctx.translate(scene_width, scene_height);
+            this.transform(bctx);
+            this.visitChildren(function(elm) {
+                elm.render(bctx, gtime);
+            });
+            this.draw(bctx);
+            bctx.restore();
+            bctx.globalCompositeOperation = 'destination-in';
 
-              mctx.save();
-              mctx.clearRect(0, 0, dbl_scene_width,
-                                   dbl_scene_height);
-              mctx.translate(scene_width, scene_height);
-              this.__mask.render(mctx, gtime);
-              mctx.restore();
+            mctx.save();
+            mctx.clearRect(0, 0, dbl_scene_width,
+                                 dbl_scene_height);
+            mctx.translate(scene_width, scene_height);
+            this.__mask.render(mctx, gtime);
+            mctx.restore();
 
-              bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
-                                         dbl_scene_height);
-              bctx.restore();
+            bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
+                                       dbl_scene_height);
+            bctx.restore();
 
-              ctx.drawImage(bcvs, -scene_width, -scene_height,
-                            dbl_scene_width, dbl_scene_height);
-          }
-      }
+            ctx.drawImage(bcvs, -scene_width, -scene_height,
+                          dbl_scene_width, dbl_scene_height);
+        }
     }
     // immediately when drawn, element becomes visible,
     // it is reasonable
-    this.visible = wasDrawn;
+    this.visible = drawMe;
     ctx.restore();
     this.__postRender();
     this.rendering = false;
-    if (wasDrawn) this.fire(C.X_DRAW,ctx);
+    if (drawMe) this.fire(C.X_DRAW,ctx);
 }
 // > Element.addModifier % (( configuration: Object,
 //                            modifier: Function(time: Float,
@@ -2124,7 +2131,7 @@ Element.prototype.m_on = function(type, handler) {
       function(t) { /* FIXME: handlers must have priority? */
         if (this.__evt_st & type) {
           var evts = this.__evts[type];
-          for (var i = 0; i < evts.length; i++) {
+          for (var i = 0, el = evts.length; i < el; i++) {
               if (handler.call(this,evts[i],t) === false) return false;
           }
         }
@@ -2731,6 +2738,13 @@ Element.prototype.__loadEvts = function(to) {
 Element.prototype.__clearEvts = function(from) {
     from.__evt_st = 0; from.__evts = {};
 }
+Element.prototype.__preRender = function(gtime, ltime, ctx) {
+    var cr = this.__frameProcessors;
+    for (var i = 0, cl = cr.length; i < cl; i++) {
+        if (cr(gtime, ltime, ctx) === false) return false;
+    }
+    return true;
+}
 Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
@@ -2874,7 +2888,7 @@ function provideEvents(subj, events) {
         return function() {
             var _hdls = {};
             this.handlers = _hdls;
-            for (var ei = 0; ei < evts.length; ei++) {
+            for (var ei = 0, el = evts.length; ei < el; ei++) {
                 _hdls[evts[ei]] = [];
             }
         };
@@ -2895,7 +2909,7 @@ function provideEvents(subj, events) {
         var name = C.__enmap[event];
         if (this['handle_'+name]) this['handle_'+name](evtobj);
         var _hdls = this.handlers[event];
-        for (var hi = 0; hi < _hdls.length; hi++) {
+        for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
             _hdls[hi].call(this, evtobj);
         }
     };
@@ -2923,7 +2937,7 @@ function provideEvents(subj, events) {
     /* FIXME: call fire/e_-funcs only from inside of their providers, */
     /* TODO: wrap them with event objects */
     var _event;
-    for (var ei = 0; ei < events.length; ei++) {
+    for (var ei = 0, el = events.length; ei < el; ei++) {
         _event = events[ei];
         subj.prototype['e_'+_event] = (function(event) {
             return function(evtobj) {
@@ -3467,7 +3481,7 @@ Path.BASE_STROKE = { 'width': 1.0,
 // > Path.visit % (visitor: Function[Segment, Any], data: Any)
 Path.prototype.visit = function(visitor, data) {
     var segments = this.segs;
-    for (var si = 0; si < segments.length; si++) {
+    for (var si = 0, sl = segments.length; si < sl; si++) {
         visitor(segments[si], data);
     }
 }
@@ -3591,12 +3605,13 @@ Path.prototype.bounds = function() {
     var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
-        var pts = segment.pts;
-        for (var pi = 0; pi < pts.length; pi+=2) {
+        var pts = segment.pts,
+            pnum = pts.length;
+        for (var pi = 0; pi < pnum; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 1; pi < pts.length; pi+=2) {
+        for (var pi = 1; pi < pnum; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
@@ -3615,8 +3630,9 @@ Path.prototype.rect = function() {
 /* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
-        var pts = segment.pts;
-        for (var pi = 0; pi < pts.length; pi+=2) {
+        var pts = segment.pts,
+            pnum = pts.length;
+        for (var pi = 0; pi < pnum; pi+=2) {
             var res = func(pts[pi], pts[pi+1]);
             if (res) {
                 pts[pi] = res[0];
