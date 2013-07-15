@@ -13,4 +13,6 @@ xdescribe("", function() {
 
     // TODO: tests that inaccessible image throws exception
 
+    // TODO: test changing shapes live (while drawing) actually affects the drawing process
+
 });

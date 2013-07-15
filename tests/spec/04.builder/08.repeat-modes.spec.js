@@ -18,14 +18,15 @@ describe("repeat modes", function() {
 
     var t_cmp = anm.__dev.t_cmp; // FIXME: test t_cmp separately
 
-    var t_adjust = anm.__dev.adjust;
-
+    // FIXME: replace these calls with _matchers.time calls
     function t_before      (t0, t1) { return t_cmp(t0, t1) <  0; }
     function t_before_or_eq(t0, t1) { return t_cmp(t0, t1) <= 0; }
     function t_after       (t0, t1) { return t_cmp(t0, t1) >  0; }
     function t_after_or_eq (t0, t1) { return t_cmp(t0, t1) >= 0; }
 
     beforeEach(function() {
+        this.addMatchers(_matchers.time);
+
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
@@ -43,10 +44,16 @@ describe("repeat modes", function() {
 
         doAsync(player, {
             prepare: function() {
-                var onframeSpy = spyOn(subj.v, 'onframe');
+                var realOnFrame = subj.v.onframe;
+                var onframe_call_t = null;
+                var onframeSpy = spyOn(subj.v, 'onframe').andCallFake(function(time) {
+                    onframe_call_t = time;
+                    realOnFrame.call(this, time);
+                });
                 afterFrameSpy = jasmine.createSpy('afterframe').andCallFake(function(glob_t) {
-                    var expected_result = func(glob_t);
-                    if (expected_result !== false) { expect(onframeSpy).toHaveBeenCalledWith(expected_result); }
+                    var expected_call_t = func(glob_t);
+                    if (expected_call_t !== false) { expect(onframeSpy).toHaveBeenCalled()
+                                                     expect(onframe_call_t).toHappenIn(t_cmp, expected_call_t); }
                     else { expect(onframeSpy).not.toHaveBeenCalled(); }
                     onframeSpy.reset();
                 });
@@ -108,6 +115,20 @@ describe("repeat modes", function() {
                     if (t_before(gtime, 3.2) ||
                         t_after(gtime, SCENE_DURATION / 8)) return false;
                     return gtime - 3.2;
+                });
+        });
+
+        xit("animation works once and properly affects child element", function() {
+            var scene = b('scene');
+            var onceElm = b('once').band([1, SCENE_DURATION / 2]).once();
+            var childElm = b('child').band([0.5, 1]);
+            scene.add(b('wrapper').add(onceElm.add(childElm)).band([2.2, SCENE_DURATION / 8]));
+
+            expectLocalTime(scene, childElm,
+                function(gtime) {
+                    if (t_before(gtime, 3.7) ||
+                        t_after(gtime, 4.2)) return false;
+                    return gtime - 3.7;
                 });
         });
 

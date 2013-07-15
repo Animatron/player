@@ -16,7 +16,7 @@ describe("as for known bugs,", function() {
 
     beforeEach(function() {
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
-        this.addMatchers(_matchers);
+        //this.addMatchers(_matchers);
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);

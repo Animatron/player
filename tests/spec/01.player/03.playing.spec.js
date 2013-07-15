@@ -19,7 +19,8 @@ describe("player, when speaking about playing,", function() {
     var canvasMock;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.calls);
+        this.addMatchers(_matchers.comparison);
 
         canvasMock = _mocks.factory.canvas();
 
