@@ -14,10 +14,10 @@
         define(['anm'], produce);
     } else if (typeof module != 'undefined') {
         // CommonJS / module
-        module.exports = produce(require('anm'));
+        module.exports = produce(require('./player.js'));
     } else if (typeof exports === 'object') {
         // CommonJS / exports
-        produce(require('anm'));
+        produce(require('./player.js'));
     } else {
         // Browser globals
         root[name] = produce(root.anm);
@@ -66,6 +66,7 @@ function Builder(obj) {
         this.v = new Element();
         this.v.name = this.n;
     }
+    this.__anm_iamBulder = true;
     this.x = this.v.xdata;
     this.bs = this.v.bstate;
     this.v.__b$ = this;
