@@ -25,7 +25,7 @@ describe("player, when created,", function() {
 
             anm.__dev._winf(window_mock);
 
-            this.addMatchers(_matchers);
+            this.addMatchers(_matchers.size);
         });
 
         afterEach(function() { canvas.__resetMock();

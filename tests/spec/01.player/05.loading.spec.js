@@ -10,8 +10,6 @@ describe("player, when speaking about loading scenes,", function() {
     var player;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
-
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
@@ -346,7 +344,7 @@ describe("regarding setting zoom, when loading a scene", function() {
 
             anm.__dev._winf(window_mock);
 
-            this.addMatchers(_matchers);
+            this.addMatchers(_matchers.size);
 
             scaleSpy = spyOn(canvas.getContext('2d'), 'scale');
 

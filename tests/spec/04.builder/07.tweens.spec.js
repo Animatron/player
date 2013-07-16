@@ -14,6 +14,7 @@ describe("tweens", function() {
 
     var t_cmp = anm.__dev.t_cmp; // FIXME: test t_cmp separately
 
+    // FIXME: replace these calls with _matchers.time calls
     function t_before      (t0, t1) { return t_cmp(t0, t1) <  0; }
     function t_before_or_eq(t0, t1) { return t_cmp(t0, t1) <= 0; }
     function t_after       (t0, t1) { return t_cmp(t0, t1) >  0; }
