@@ -13,7 +13,7 @@ describe("player, when speaking about modes,", function() {
     var FPS = 20, _fg;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.calls);
 
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
