@@ -234,26 +234,13 @@ function __roundTo(n, precision) {
 
 // #### other
 
-function __errorAs(name, _constructor, _toStr) {
-  // FIXME: breaks instanceof due to re-using same constructor
-  var _producer = _constructor ?
-    function (message) {
-      if (Error.captureStackTrace) Error.captureStackTrace(this, _constructor);
-      _constructor.apply(this, arguments);
-      if (!this.message) this.message = message || '';
-      Error.apply(this, arguments);
-    } :
-    function (message) {
+function __errorAs(name) {
+  return function (message) {
       if (Error.captureStackTrace) Error.captureStackTrace(this, this);
-      this.message = message || '';
-      Error.apply(this, arguments);
-    };
-  /* var _constructor = function(msg) { this.message = msg; } */
-  _producer.prototype = new Error(); //Error.prototype;
-  _producer.prototype.constructor = _producer;
-  _producer.prototype.name = name || 'Unknown';
-  _producer.prototype.toString = _toStr || function() { return this.name + (this.message ? ': ' + this.message : ''); }
-  return _producer;
+      var err = new Error(message || '');
+      err.name = name;
+      return err;
+  };
 }
 
 function __paramsToObj(pstr) {
@@ -1191,7 +1178,7 @@ Player.prototype.__onerror = function(err) {
   doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
   if (!doMute) {
-      this._drawErrorSplash(err);
+      try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
   }
 }
