@@ -441,7 +441,7 @@ Player.URL_ATTR = 'data-url';
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'height': DEF_CNVS_HEIGHT,
-                          'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ };
+                          'bgcolor': null/* DEF_CNVS_BG */ };
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'muteErrors': false,
@@ -505,7 +505,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       "anim": { "fps": 30,
 //                 "width": 400,
 //                 "height": 250,
-//                 "bgcolor": { color: "#fff" },
+//                 "bgcolor": "#fff",
 //                 "duration": 0 } }
 
 Player.prototype.init = function(cvs, opts) {
@@ -817,7 +817,7 @@ Player.prototype.changeZoom = function(ratio) {
 //     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
 //       "width": 640,
 //       "height": 480,
-//       ["bgcolor": { color: "#f00" },] // in canvas-friendly format
+//       ["bgcolor": "#f00",] // in canvas-friendly format
 //       ["duration": 10.0] // in seconds
 //     }
 Player.prototype.configureAnim = function(conf) {
@@ -1262,7 +1262,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
              'anim': { 'fps': undefined,
                        'width': params.w,
                        'height': params.h,
-                       'bgcolor': { color: params.bg ? "#" + params.bg : null },
+                       'bgcolor': params.bg ? ("#" + params.bg) : null,
                        'duration': undefined } };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
@@ -4826,7 +4826,7 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
 
     // evtPos(event) -> [ x, y ]
     // subscribeEvents(canvas, handlers: object) -> none
-    // subscribeSceneToEvents(scene, canvas) -> none
+    // subscribeSceneToEvents(canvas, scene) -> none
 
     // Framing
 
@@ -5017,7 +5017,7 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
                                    (height = __attrOr(cvs, 'height', undefined),
                                     height ? (height / pxRatio) : undefined))),
                          'bgcolor': cvs.hasAttribute('data-bgcolor')
-                                   ? { 'color': cvs.getAttribute('data-bgcolor') }
+                                   ? cvs.getAttribute('data-bgcolor')
                                    : undefined,
                          'duration': undefined } };
     }
@@ -5027,7 +5027,7 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
     $DE.hasUrlToLoad = function(cvs) {
         return cvs.getAttribute(Player.URL_ATTR);
     }
-    $DE.setTabindex = function(cvs, idx) {
+    $DE.setTabIndex = function(cvs, idx) {
         cvs.setAttribute('tabindex', idx);
     }
     $DE.getCanvasParams = function(cvs) {
@@ -5046,8 +5046,8 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
         var isObj = !(opts instanceof Array),
             _w = isObj ? opts.width : opts[0],
             _h = isObj ? opts.height : opts[1];
-        if (isObj && opts.bgcolor && opts.bgcolor.color) {
-            cvs.style.backgroundColor = opts.bgcolor.color;
+        if (isObj && opts.bgcolor) {
+            cvs.style.backgroundColor = opts.bgcolor;
         }
         cvs.__pxRatio = ratio;
         cvs.style.width = _w + 'px';
@@ -5144,27 +5144,27 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
         if (handlers.mouseover) cvs.addEventListener('mouseover', handlers.mouseover, false);
         if (handlers.mouseout)  cvs.addEventListener('mouseout',  handlers.mouseout,  false);
     }
-    $DE.subsribeSceneToEvents = function(scene, cvs) {
+    $DE.subscribeSceneToEvents = function(cvs, scene) {
         cvs.addEventListener('mouseup', function(evt) {
-            scene.fire(C.X_MUP, __mevt(evt, canvas));
+            scene.fire(C.X_MUP, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('mousedown', function(evt) {
-            scene.fire(C.X_MDOWN, __mevt(evt, canvas));
+            scene.fire(C.X_MDOWN, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('mousemove', function(evt) {
-            scene.fire(C.X_MMOVE, __mevt(evt, canvas));
+            scene.fire(C.X_MMOVE, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('mouseover', function(evt) {
-            scene.fire(C.X_MOVER, __mevt(evt, canvas));
+            scene.fire(C.X_MOVER, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('mouseout', function(evt) {
-            scene.fire(C.X_MOUT, __mevt(evt, canvas));
+            scene.fire(C.X_MOUT, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('click', function(evt) {
-            scene.fire(C.X_MCLICK, __mevt(evt, canvas));
+            scene.fire(C.X_MCLICK, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('dblclick', function(evt) {
-            scene.fire(C.X_MDCLICK, __mevt(evt, canvas));
+            scene.fire(C.X_MDCLICK, __mevt(evt, cvs));
         }, false);
         cvs.addEventListener('keyup', function(evt) {
             scene.fire(C.X_KUP, __kevt(evt));
@@ -5202,7 +5202,7 @@ Errors.A = {}; // Animation Errors
 Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
 Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
 Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player';
-Errors.P.NO_IMPORTER_TO_LOAD_WITH = 'Cannot load project without importer. Please define it';
+Errors.P.NO_IMPORTER_TO_LOAD_WITH = 'Cannot load this project without importer. Please define it';
 Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: {0}';
 Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
 Errors.P.CANVAS_NOT_VERIFIED = 'Canvas is not verified by the provider';
