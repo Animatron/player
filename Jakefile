@@ -83,7 +83,7 @@ var Files = {
             ANM_IMPORT: 'animatron-importer.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: [ 'animatron-importer.js' ],
-           MODULES: [ 'collisions.js' ] },
+           MODULES: [ 'collisions.js', 'audio.js' ] },
     Doc: { README: 'README.md',
            API: 'API.md' }
 }
