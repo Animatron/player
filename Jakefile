@@ -97,7 +97,8 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ])) },
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES[1] ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
