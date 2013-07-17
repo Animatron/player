@@ -21,7 +21,8 @@ describe("builder, regarding masks", function() {
     var SCENE_HEIGHT = 275;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.size);
+        this.addMatchers(_matchers.calls);
 
         mainCanvas = _mocks.factory.canvas();
 

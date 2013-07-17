@@ -18,14 +18,15 @@ describe("repeat modes", function() {
 
     var t_cmp = anm.__dev.t_cmp; // FIXME: test t_cmp separately
 
-    var t_adjust = anm.__dev.adjust;
-
+    // FIXME: replace these calls with _matchers.time calls
     function t_before      (t0, t1) { return t_cmp(t0, t1) <  0; }
     function t_before_or_eq(t0, t1) { return t_cmp(t0, t1) <= 0; }
     function t_after       (t0, t1) { return t_cmp(t0, t1) >  0; }
     function t_after_or_eq (t0, t1) { return t_cmp(t0, t1) >= 0; }
 
     beforeEach(function() {
+        this.addMatchers(_matchers.time);
+
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
 
@@ -43,10 +44,17 @@ describe("repeat modes", function() {
 
         doAsync(player, {
             prepare: function() {
-                var onframeSpy = spyOn(subj.v, 'onframe');
+                var realOnFrame = subj.v.onframe;
+                var onframe_call_t = null;
+                var onframeSpy = spyOn(subj.v, 'onframe').andCallFake(function(time) {
+                    onframe_call_t = time;
+                    realOnFrame.call(this, time);
+                });
                 afterFrameSpy = jasmine.createSpy('afterframe').andCallFake(function(glob_t) {
-                    var expected_result = func(glob_t);
-                    if (expected_result !== false) { expect(onframeSpy).toHaveBeenCalledWith(expected_result); }
+                    var expected_call_t = func(glob_t);
+                    // console.log('global', glob_t, 'expected', expected_call_t, 'actual', onframe_call_t);
+                    if (expected_call_t !== false) { expect(onframeSpy).toHaveBeenCalled()
+                                                     expect(onframe_call_t).toHappenIn(t_cmp, expected_call_t); }
                     else { expect(onframeSpy).not.toHaveBeenCalled(); }
                     onframeSpy.reset();
                 });
@@ -75,7 +83,8 @@ describe("repeat modes", function() {
         it("animation works once inside of another element", function() {
             var scene = b('scene');
             var onceElm = b('once').band([0, SCENE_DURATION / 3]).once();
-            scene.add(b('wrapper').add(onceElm).band([0, SCENE_DURATION / 2]));
+            scene.add(b('wrapper').band([0, SCENE_DURATION / 2])
+                                  .add(onceElm));
 
             expectLocalTime(scene, onceElm,
                 function(gtime) {
@@ -87,7 +96,8 @@ describe("repeat modes", function() {
         it("animation works once inside of another element in complex bands structure", function() {
             var scene = b('scene');
             var onceElm = b('once').band([1, SCENE_DURATION / 8]).once();
-            scene.add(b('wrapper').add(onceElm).band([2.2, SCENE_DURATION / 2]));
+            scene.add(b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                  .add(onceElm));
 
             expectLocalTime(scene, onceElm,
                 function(gtime) {
@@ -101,7 +111,8 @@ describe("repeat modes", function() {
         it("animation works once inside of tinier element in complex bands structure", function() {
             var scene = b('scene');
             var onceElm = b('once').band([1, SCENE_DURATION / 2]).once();
-            scene.add(b('wrapper').add(onceElm).band([2.2, SCENE_DURATION / 8]));
+            scene.add(b('wrapper').band([2.2, SCENE_DURATION / 8])
+                                  .add(onceElm));
 
             expectLocalTime(scene, onceElm,
                 function(gtime) {
@@ -109,6 +120,119 @@ describe("repeat modes", function() {
                         t_after(gtime, SCENE_DURATION / 8)) return false;
                     return gtime - 3.2;
                 });
+        });
+
+        describe("properly affects child element with its own mode", function() {
+
+            /*it("if child element has default repeat mode", function() {
+
+            });*/
+
+            it("if child element has once repeat mode", function() {
+                var scene = b('scene');
+                var onceElm = b('once').band([1, SCENE_DURATION / 6]).once();
+                var childElm = b('child').band([0.5, 1]).once();
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(onceElm.add(childElm))
+                );
+
+                var child_start = 2.2 + 1 + 0.5,
+                    child_end   = 2.2 + 1 + 1;
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        if (t_before(gtime, child_start) ||
+                            t_after(gtime, child_end)) return false;
+                        return gtime - child_start;
+                    });
+            });
+
+            it("if child element has loop repeat mode", function() {
+                var scene = b('scene');
+                var onceElm = b('once').band([1, SCENE_DURATION / 6]).once();
+                var childElm = b('child').band([0.5, 1]).loop();
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(onceElm.add(childElm))
+                );
+
+                var once_end = 2.2 + (SCENE_DURATION / 6),
+                    child_start = 2.2 + 1 + 0.5,
+                    child_duration = 1 - 0.5;
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        if (t_before(gtime, child_start) ||
+                            t_after(gtime, once_end)) return false;
+                        return (gtime - child_start) % child_duration;
+                    });
+            });
+
+            it("if child element has restricted-loop repeat mode", function() {
+                var scene = b('scene');
+                var onceElm = b('once').band([1, SCENE_DURATION / 6]).once();
+                var childElm = b('child').band([0.5, 1]).loop(3);
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(onceElm.add(childElm))
+                );
+
+                var child_start = 2.2 + 1 + 0.5,
+                    child_duration = 1 - 0.5,
+                    loop_end = child_start + (child_duration * 3);
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        if (t_before(gtime, child_start) ||
+                            t_after(gtime, loop_end)) return false;
+                        return (gtime - child_start) % child_duration;
+                    });
+            });
+
+            it("if child element has bounce repeat mode", function() {
+                var scene = b('scene');
+                var onceElm = b('once').band([1, SCENE_DURATION / 6]).once();
+                var childElm = b('child').band([0.5, 1]).bounce();
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(onceElm.add(childElm))
+                );
+
+                var once_end = 2.2 + (SCENE_DURATION / 6),
+                    child_start = 2.2 + 1 + 0.5,
+                    child_duration = 1 - 0.5;
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        var fits = Math.floor((gtime - child_start) / child_duration);
+                        if (t_before(gtime, child_start) ||
+                            t_after(gtime, once_end)) return false;
+                        return ((fits % 2) === 0)
+                               ? (gtime - child_start) % child_duration
+                               : child_duration - ((gtime - child_start) % child_duration);
+                    });
+            });
+
+            it("if child element has restricted-bounce repeat mode", function() {
+                var scene = b('scene');
+                var onceElm = b('once').band([1, SCENE_DURATION / 6]).once();
+                var childElm = b('child').band([0.5, 1]).bounce(3);
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(onceElm.add(childElm))
+                );
+
+                var child_start = 2.2 + 1 + 0.5,
+                    child_duration = 1 - 0.5,
+                    bounce_end = child_start + (child_duration * 3);
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        var fits = Math.floor((gtime - child_start) / child_duration);
+                        if (t_before(gtime, child_start) ||
+                            t_after(gtime, bounce_end)) return false;
+                        return ((fits % 2) === 0)
+                               ? (gtime - child_start) % child_duration
+                               : child_duration - ((gtime - child_start) % child_duration);
+                    });
+            });
+
         });
 
     });
@@ -130,7 +254,8 @@ describe("repeat modes", function() {
         it("animation stays inside of another element", function() {
             var scene = b('scene');
             var stayElm = b('stay').band([0, SCENE_DURATION / 3]).stay();
-            scene.add(b('wrapper').add(stayElm).band([0, SCENE_DURATION / 2]));
+            scene.add(b('wrapper').band([0, SCENE_DURATION / 2])
+                                  .add(stayElm));
 
             expectLocalTime(scene, stayElm,
                 function(gtime) {
@@ -144,7 +269,8 @@ describe("repeat modes", function() {
         it("animation stays inside of another element in complex bands structure", function() {
             var scene = b('scene');
             var stayElm = b('stay').band([1, SCENE_DURATION / 8]).stay();
-            scene.add(b('wrapper').add(stayElm).band([2.2, SCENE_DURATION / 2]));
+            scene.add(b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                  .add(stayElm));
 
             expectLocalTime(scene, stayElm,
                 function(gtime) {
@@ -159,7 +285,8 @@ describe("repeat modes", function() {
         it("animation stays inside of tinier element in complex bands structure", function() {
             var scene = b('scene');
             var stayElm = b('stay').band([1, SCENE_DURATION / 2]).stay();
-            scene.add(b('wrapper').add(stayElm).band([2.2, SCENE_DURATION / 8]));
+            scene.add(b('wrapper').band([2.2, SCENE_DURATION / 8])
+                                  .add(stayElm));
 
             expectLocalTime(scene, stayElm,
                 function(gtime) {
@@ -167,6 +294,80 @@ describe("repeat modes", function() {
                         t_after(gtime, (SCENE_DURATION / 8))) return false;
                     else return gtime - 3.2;
                 });
+        });
+
+        describe("properly affects child element with its own mode", function() {
+
+            it("if child element has once repeat mode and positioned in the middle of the parent", function() {
+                var scene = b('scene');
+                var stayElm = b('stay').band([1, SCENE_DURATION / 6]).stay();
+                var childElm = b('child').band([0.5, 1]).once();
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(stayElm.add(childElm))
+                );
+
+                var wrapper_end = SCENE_DURATION / 2,
+                    child_start = 2.2 + 1 + 0.5,
+                    child_end   = 2.2 + 1 + 1;
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        if (t_before(gtime, child_start)) return false;
+                        if (t_after(gtime, child_end)) return false;
+                        return gtime - child_start;
+                    });
+            });
+
+            it("if child element has once repeat mode and positioned in the end of the parent", function() {
+                var scene = b('scene');
+                var stayElm = b('stay').band([1, SCENE_DURATION / 6]).stay();
+                var parent_duration = (SCENE_DURATION / 6) - 1,
+                    loc_child_start = (parent_duration / 3) * 2,
+                    loc_child_end = parent_duration /*!->*/ + 1;
+                var childElm = b('child').band([ loc_child_start,
+                                                 loc_child_end ]).once();
+                scene.add(
+                    b('wrapper').band([2.2, SCENE_DURATION / 2])
+                                .add(stayElm.add(childElm))
+                );
+
+                var wrapper_end = SCENE_DURATION / 2,
+                    parent_end  = 2.2 + (SCENE_DURATION / 6),
+                    child_start = 2.2 + 1 + loc_child_start,
+                    child_end   = 2.2 + 1 + loc_child_end,
+                    child_duration = child_end - child_start;
+                /*console.log('parent_duration', parent_duration,
+                            'child_duration', child_duration);
+                console.log('loc_child_start', loc_child_start,
+                            'loc_child_end', loc_child_end);
+                console.log('child_start', child_start,
+                            'child_end', child_end);*/
+                expect(child_duration).toEqual(loc_child_end - loc_child_start);
+                expectLocalTime(scene, childElm,
+                    function(gtime) {
+                        if (t_before(gtime, child_start)
+                            || t_after(gtime, wrapper_end)) return false;
+                        if (t_after(gtime, parent_end)) return (child_duration /*!->*/ - 1);
+                        return gtime - child_start;
+                    });
+            });
+
+            /* it("if child element has loop repeat mode", function() {
+                // FIXME: TODO
+            });
+
+            it("if child element has restricted-loop repeat mode", function() {
+                // FIXME: TODO
+            });
+
+            it("if child element has bounce repeat mode", function() {
+                // FIXME: TODO
+            });
+
+            it("if child element has restricted-bounce repeat mode", function() {
+                // FIXME: TODO
+            }); */
+
         });
 
     });
@@ -187,7 +388,8 @@ describe("repeat modes", function() {
         it("animation loops properly inside of another element", function() {
             var scene = b('scene');
             var loopElm = b('loop').band([0, SCENE_DURATION / 8]).loop();
-            scene.add(b('wrapper').add(loopElm).band([0, SCENE_DURATION * (4 / 5)]));
+            scene.add(b('wrapper').band([0, SCENE_DURATION * (4 / 5)])
+                                  .add(loopElm));
 
             expectLocalTime(scene, loopElm,
                 function(gtime) {
@@ -234,6 +436,10 @@ describe("repeat modes", function() {
                     return (gtime - 3.2) % ((SCENE_DURATION * (2 / 5)) - 1);
                 });
         });
+
+        /* describe("properly affects child element with its own mode", function() {
+            // FIXME: TODO
+        }); */
 
         describe("with restriction", function() {
 
@@ -301,6 +507,10 @@ describe("repeat modes", function() {
                         return (gtime - 3.2) % ((SCENE_DURATION * (2 / 5)) - 1);
                     });
             });
+
+            /* describe("properly affects child element with its own mode", function() {
+                // FIXME: TODO
+            }); */
 
         });
 
@@ -379,6 +589,10 @@ describe("repeat modes", function() {
                 });
         });
 
+        /* describe("properly affects child element with its own mode", function() {
+            // FIXME: TODO
+        }); */
+
         describe("with restriction", function() {
 
             it("animation bounces specified number of times, when applied to root", function() {
@@ -456,6 +670,9 @@ describe("repeat modes", function() {
 
             });
 
+            /* describe("properly affects child element with its own mode", function() {
+                // FIXME: TODO
+            }); */
 
         });
 

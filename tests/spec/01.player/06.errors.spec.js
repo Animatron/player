@@ -17,7 +17,7 @@ describe("errors", function() {
     var FPS = 15, _fg;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.calls);
 
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);

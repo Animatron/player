@@ -28,7 +28,8 @@ describe("builder, regarding modifiers,", function() {
     var scene;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.calls);
+        this.addMatchers(_matchers.comparison);
 
         /* this.addMatchers({
             'toBeAdjusted': function(expected) {
