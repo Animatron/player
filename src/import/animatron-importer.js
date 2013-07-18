@@ -131,6 +131,7 @@ AnimatronImporter.prototype.findElement = function(id, source) {
 // collect required data from source layer
 AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     if (!to.name && clip.name) to.name = clip.name;
+    if (clip.visible === false) to.disabled = true; // to.visible = false;
     var x = to.xdata;
     x.lband = clip.band || [0, Infinity]; //FIMXE: remove, when it will be always set in project
     x.gband = in_band ? Bands.wrap(in_band, x.lband)
