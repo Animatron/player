@@ -3452,10 +3452,11 @@ C.PC_SQUARE = 'square';
 C.PC_BEVEL = 'bevel';
 
 // > Path % (str: String)
-function Path(str, fill, stroke) {
+function Path(str, fill, stroke, shadow) {
     this.str = str;
     this.fill = fill;
     this.stroke = stroke;
+    this.shadow = shadow;
     this.segs = [];
     this.parse(str);
 }
@@ -3505,6 +3506,7 @@ Path.prototype.apply = function(ctx) {
     var p = this;
     Path.applyF(ctx, p.fill || Path.DEFAULT_FILL,
                      p.stroke || Path.DEFAULT_STROKE,
+                     p.shadow,
              function() { p.visit(Path._applyVisitor, ctx); });
 
     /* ctx.save();
@@ -3697,11 +3699,12 @@ Path.prototype.clone = function() {
 Path.prototype.dispose = function() { }
 
 
-Path.applyF = function(ctx, fill, stroke, func) {
+Path.applyF = function(ctx, fill, stroke, shadow, func) {
     ctx.save();
     ctx.beginPath();
     Brush.fill(ctx, fill);
     Brush.stroke(ctx, stroke);
+    Brush.shadow(ctx, shadow);
     func();
 
     if (Brush._hasVal(fill)) ctx.fill();
@@ -4194,6 +4197,13 @@ Brush.stroke = function(ctx, stroke) {
 Brush.fill = function(ctx, fill) {
     if (!fill) return;
     ctx.fillStyle = Brush.create(ctx, fill);
+}
+Brush.shadow = function(ctx, shadow) {
+    if (!shadow) return;
+    ctx.shadowColor = shadow.color;
+    ctx.shadowBlur = shadow.blurRadius;
+    ctx.shadowOffsetX = shadow.offsetX;
+    ctx.shadowOffsetY = shadow.offsetY;
 }
 Brush._hasVal = function(fsval) {
     return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));
