@@ -644,14 +644,14 @@ Scene.prototype.handle__x = function(type, evt) {
             switch (type) {
                 case C.X_MCLICK: case C.X_MDCLICK: case C.X_MUP: case C.X_MDOWN: {
                     this.visitElems(function(elm) {
-                        if (elm.visible &&
+                        if (elm.shown &&
                             elm.contains(evt.pos)) elm.fire(type, evt);
                     });
                     return true;
                 }
                 case C.X_MMOVE: {
                     this.visitElems(function(elm) {
-                        if (elm.visible) {
+                        if (elm.shown) {
                             if (elm.contains(evt.pos)) {
                                 elm.fire(C.X_MMOVE, evt);
                                 if (elm.__wout) {
