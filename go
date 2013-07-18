@@ -131,7 +131,9 @@
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
-                DOMAIN = document.location.toString().indexOf('player-dev')>=0? 'animatron-snapshots-dev.s3.amazonaws.com': 'snapshots.animatron.com';
+                IS_DEV = document.location.toString().indexOf('player-dev')>=0,
+                DOMAIN = IS_DEV? 'animatron-snapshots-dev.s3.amazonaws.com': 'snapshots.animatron.com',
+                PLAYER_DOMAIN = IS_DEV? 'player-dev.animatron.com': 'player.animatron.com',
                 URL_PREFIX = PROTOCOL + DOMAIN,
                 SNAPSHOT_ID = _version_specified ? _before_amp.substring(0, _snapshot_id_len)
                                                  : _before_amp,
@@ -184,7 +186,7 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS(PROTOCOL + 'player.animatron.com/' + VERSION_ID + '/bundle/animatron.js', function () {
+                    _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + VERSION_ID + '/bundle/animatron.js', function () {
                         anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
                     });
                 } catch (e) {
