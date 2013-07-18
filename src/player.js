@@ -2741,7 +2741,7 @@ Element.prototype.__clearEvts = function(from) {
 Element.prototype.__preRender = function(gtime, ltime, ctx) {
     var cr = this.__frameProcessors;
     for (var i = 0, cl = cr.length; i < cl; i++) {
-        if (cr[i](gtime, ltime, ctx) === false) return false;
+        if (cr[i].call(this, gtime, ltime, ctx) === false) return false;
     }
     return true;
 }
