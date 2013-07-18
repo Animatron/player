@@ -62,12 +62,12 @@
   // Element functions
   // ----------------------------------------------------------------------------------------------------------------
 
-  var _audio_customRender = function(ctx, gtime) {
+  var _audio_customRender = function(gtime, ltime, ctx) {
     if (!this._audio_is_loaded || !P.playerIsPlaying) {
       return false;
     }
 
-    var ltime = this.ltime(gtime);
+    //var ltime = this.ltime(gtime);
     if (ltime >= 0 && !this._audio_is_playing) {
       this._audio_schedulePlay(ltime);
     }
@@ -87,7 +87,7 @@
       this._audio_is_playing = false;
 
       // assign custom render function
-      this.customRender = _audio_customRender;
+      this.__frameProcessors.push(_audio_customRender);
 
       this._audio_load();
     }

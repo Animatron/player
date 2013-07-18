@@ -131,12 +131,17 @@
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
-                DOMAIN = document.location.contains('player-dev')? 'animatron-snapshots-dev.s3.amazonaws.com': 'snapshots.animatron.com';
+                IS_DEV = document.location.toString().indexOf('player-dev')>=0,
+                DOMAIN = IS_DEV ? 'animatron-snapshots-dev.s3.amazonaws.com'
+                                : 'snapshots.animatron.com',
+                PLAYER_DOMAIN = IS_DEV ? 'player-dev.animatron.com'
+                                       : 'player.animatron.com',
                 URL_PREFIX = PROTOCOL + DOMAIN,
                 SNAPSHOT_ID = _version_specified ? _before_amp.substring(0, _snapshot_id_len)
                                                  : _before_amp,
-                VERSION_ID = _version_specified ? _before_amp.substring(_snapshot_id_len + 1)
-                                                : 'latest';
+                SNAPSHOT_VERSION_ID = _version_specified ? _before_amp.substring(_snapshot_id_len + 1)
+                                                         : 'latest',
+                PLAYER_VERSION_ID = SNAPSHOT_VERSION_ID;
 
             if (!SNAPSHOT_ID ||
                 !SNAPSHOT_ID.match(_snapshot_id_mask)) {
@@ -144,9 +149,9 @@
                 return;
             }
 
-            if (!VERSION_ID ||
-                !VERSION_ID.match(VERSION_MASK)) {
-                _u.reportError(new Error('Version ID \'' + VERSION_ID + '\' is incorrect'));
+            if (!SNAPSHOT_VERSION_ID ||
+                !SNAPSHOT_VERSION_ID.match(VERSION_MASK)) {
+                _u.reportError(new Error('Snapshot Version ID \'' + SNAPSHOT_VERSION_ID + '\' is incorrect'));
                 return;
             }
 
@@ -164,8 +169,18 @@
                 }
             }
             var _snapshotUrl_ = URL_PREFIX + '/' + SNAPSHOT_ID +
-                                (_version_specified ? ('-' + VERSION_ID)
+                                (_version_specified ? ('-' + SNAPSHOT_VERSION_ID)
                                                     : '') + (_params_ || '');
+
+            var temp_v = null;
+            if (temp_v = _u.extractVal('v')) {
+                if (!temp_v.match(VERSION_MASK)) {
+                    _u.reportError(new Error('Player Version ID \'' + temp_v + '\' is incorrect'));
+                    return;
+                }
+
+                PLAYER_VERSION_ID = temp_v;
+            }
 
             return function () {
                 try {
@@ -184,7 +199,7 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS(PROTOCOL + 'player.animatron.com/' + VERSION_ID + '/bundle/animatron.js', function () {
+                    _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js', function () {
                         anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
                     });
                 } catch (e) {

@@ -83,7 +83,7 @@ var Files = {
             ANM_IMPORT: 'animatron-importer.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: [ 'animatron-importer.js' ],
-           MODULES: [ 'collisions.js' ] },
+           MODULES: [ 'collisions.js', 'audio.js' ] },
     Doc: { README: 'README.md',
            API: 'API.md' }
 }
@@ -97,7 +97,8 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ])) },
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES[1] ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
@@ -130,6 +131,12 @@ var Docs = {
          _foot: Dirs.DOCS + '/_foot.html'
        }
     }
+};
+
+var Bucket = {
+    Release: { ALIAS: 'rls', NAME: 'player.animatron.com' },
+    Development: { ALIAS: 'dev', NAME: 'player-dev.animatron.com' },
+    Old: { ALIAS: 'old', NAME: 'animatron-player' }
 };
 
 var Validation = {
@@ -348,7 +355,7 @@ task('version', { async: true }, function(param) {
 
     // Show or write a version data
 
-    if (_vhash[_v]) {
+    if (_vhash[_v]) { // TODO: add force-version
 
         _print('Selected version exists, here\'s the detailed information about it:\n');
         if (!jake.program.opts.quiet) {
@@ -367,6 +374,8 @@ task('version', { async: true }, function(param) {
         _print('Selected version does not exists, applying the new one (' + _v + ') to a current state.\n');
 
         _print('Getting head revision sha and date.');
+
+        // TODO: ensure VERSION_LOG_FILE exists
 
         var _getCommitData = jake.createExec([
           [ Binaries.GIT,
@@ -498,13 +507,22 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                    'To assign a version to a `HEAD` '+
                    'use {jake version[<version>]}, then you are safe to push.',
                'Usage: {jake push-version} to push current version from VERSION file. '+
-                   'To push to `latest/`, use {jake push-version[latest]}.',
+                   'To push to `latest/`, use {jake push-version[latest]}. It is also '+
+                   'possible to select a bucket: so {jake push-version[latest,rls]} will '+
+                   'push to the release bucket (`dev` is default)',
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
+task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
 
-    var trg_dir = (param || VERSION);
+    var trg_bucket = Bucket.Development.NAME;
+    if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
+    if (_bucket == Bucket.Release.ALIAS) trg_bucket = Bucket.Release.NAME;
+    if (_bucket == Bucket.Old.ALIAS) trg_bucket = Bucket.Old.NAME;
+
+    _print('Selected bucket: ' + trg_bucket);
+
+    var trg_dir = (_version|| VERSION);
 
     _print('Collecting file paths to upload');
 
@@ -541,7 +559,7 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
 
         var s3 = require('aws2js').load('s3', creds[1], creds[2]);
 
-        s3.setBucket('animatron-player');
+        s3.setBucket(trg_bucket);
 
         s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
@@ -550,7 +568,7 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
             var files_count = files.length;
 
             files.forEach(function(file) {
-                s3.putFile(file[1], _loc(file[0]), 'public-read', { 'content-type': 'text/javascript' }, (function(file) {
+                s3.putFile(file[1], _loc(file[0]), 'public-read', { 'content-type': 'text/javascript' /*application/x-javascript*/ }, (function(file) {
                   return function(err,res) {
                     if (err) { _print(FAILED_MARKER); throw err; }
                     _print(file[0] + ' -> S3 as ' + file[1]);
@@ -559,6 +577,54 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(param) {
                 })(file));
             });
         });
+    });
+
+});
+
+desc(_dfit_nl(['Pushes `go` page to the S3.',
+               'Usage: {jake push-go} to push to `dev` bucket. '+
+                   'To push to another bucket, pass it as a param: '+
+                   '{jake push-go[rls]}',
+               'Affects: Only changes S3.',
+               'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
+                    '`aws2js` node.js module.']));
+task('push-go', [], { async: true }, function(_bucket) {
+
+    var trg_bucket = Bucket.Development.NAME;
+    if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
+    if (_bucket == Bucket.Release.ALIAS) trg_bucket = Bucket.Release.NAME;
+    if (_bucket == Bucket.Old.ALIAS) trg_bucket = Bucket.Old.NAME;
+
+    _print('Selected bucket: ' + trg_bucket);
+
+    _print('Ready to get credentials.');
+
+    var creds = [];
+    try {
+        creds = jake.cat(_loc('.s3'));
+    } catch(e) {
+        _print('No .s3 file which should contain credentials to upload with was found');
+        _print(FAILED_MARKER);
+        throw e;
+    }
+
+    creds = creds.split(/\s+/);
+
+    _print('Got credentials. Making a request.');
+
+    var s3 = require('aws2js').load('s3', creds[1], creds[2]);
+
+    s3.setBucket(trg_bucket);
+
+    var GO_FILE_NAME = 'go';
+
+    s3.putFile('/go', _loc(GO_FILE_NAME), 'public-read', { 'content-type': 'text/html' }, function(err, res) {
+
+        if (err) { _print(FAILED_MARKER); throw err; }
+        _print(_loc(GO_FILE_NAME) + ' -> s3 as /go');
+
+        complete();
+
     });
 
 });
