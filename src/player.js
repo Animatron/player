@@ -1556,7 +1556,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
 }
 Scene.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
-        if (elm.visible) elm.fire(type, evt);
+        if (elm.shown) elm.fire(type, evt);
     });
     return true;
 }
@@ -1743,7 +1743,8 @@ function Element(draw, onframe) {
     this.children = [];
     this.parent = null;
     this.scene = null;
-    this.visible = false;
+    this.visible = true; // user flag, set by user
+    this.shown = false; // system flag, set by engine
     this.registered = false;
     this.disabled = false;
     this.rendering = false;
@@ -1817,7 +1818,8 @@ Element.prototype.render = function(ctx, gtime) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
-                 && this.prepare();
+                 && this.prepare()
+                 && this.visible;
     }
     if (drawMe) {
         // update gtime for children, if it was changed by ltime()
@@ -1875,9 +1877,9 @@ Element.prototype.render = function(ctx, gtime) {
                           dbl_scene_width, dbl_scene_height);
         }
     }
-    // immediately when drawn, element becomes visible,
+    // immediately when drawn, element becomes shown,
     // it is reasonable
-    this.visible = drawMe;
+    this.shown = drawMe;
     ctx.restore();
     this.__postRender();
     this.rendering = false;
