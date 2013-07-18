@@ -4120,7 +4120,7 @@ Text.prototype.visitLines = function(func, data) {
 }
 Text.prototype.clone = function() {
     var c = new Text(this.lines, this.font,
-                     this.fill, this.stroke, this.shadows);
+                     this.fill, this.stroke, this.shadow);
     if (this.lines && Array.isArray(this.lines)) {
         c.lines = [].concat(this.lines);
     }
