@@ -568,7 +568,7 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _b
             var files_count = files.length;
 
             files.forEach(function(file) {
-                s3.putFile(file[1], _loc(file[0]), 'public-read', { 'content-type': 'text/javascript' }, (function(file) {
+                s3.putFile(file[1], _loc(file[0]), 'public-read', { 'content-type': 'text/javascript' /*application/x-javascript*/ }, (function(file) {
                   return function(err,res) {
                     if (err) { _print(FAILED_MARKER); throw err; }
                     _print(file[0] + ' -> S3 as ' + file[1]);
