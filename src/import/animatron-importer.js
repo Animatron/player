@@ -211,7 +211,7 @@ Convert.text = function(lines, font,
                     Convert.stroke(stroke));
 }
 Convert.shadow = function(src) {
-  if (!src || !src.offsetX) return null;
+  if (!src || src.offsetX == undefined) return null;
   var shadow = {};
   shadow.color = src.paint.rgba || src.paint.color;
   shadow.offsetX = src.offsetX;
