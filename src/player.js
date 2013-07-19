@@ -4084,11 +4084,12 @@ CSeg.prototype._calc_params = function(start) {
 // -----------------------------------------------------------------------------
 
 function Text(lines, font,
-              fill, stroke) {
+              fill, stroke, shadow) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
+    this.shadow = shadow;
     this._bnds = null;
 }
 
@@ -4109,7 +4110,9 @@ Text.prototype.apply = function(ctx, point, baseline) {
     ctx.font = this.font;
     ctx.textBaseline = baseline || Text.BASELINE_RULE;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
+
     if (Brush._hasVal(this.fill)) {
+        Brush.shadow(ctx, this.shadow);
         Brush.fill(ctx, this.fill);
         ctx.save();
         this.visitLines(function(line) {
@@ -4119,6 +4122,7 @@ Text.prototype.apply = function(ctx, point, baseline) {
         ctx.restore();
     }
     if (Brush._hasVal(this.stroke)) {
+        Brush.shadow(ctx, this.shadow);
         Brush.stroke(ctx, this.stroke);
         ctx.save();
         this.visitLines(function(line) {
@@ -4189,7 +4193,7 @@ Text.prototype.visitLines = function(func, data) {
 }
 Text.prototype.clone = function() {
     var c = new Text(this.lines, this.font,
-                     this.fill, this.stroke);
+                     this.fill, this.stroke, this.shadow);
     if (this.lines && Array.isArray(this.lines)) {
         c.lines = [].concat(this.lines);
     }

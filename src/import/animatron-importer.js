@@ -157,7 +157,7 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
     to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke, src.shadow)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,
-                                            src.fill, src.stroke)
+                                            src.fill, src.stroke, src.shadow)
                              : null;
 };
 
@@ -205,11 +205,12 @@ Convert.path = function(pathStr, fill, stroke, shadow) {
                     Convert.shadow(shadow));
 }
 Convert.text = function(lines, font,
-                        fill, stroke) {
+                        fill, stroke, shadow) {
     // (lines, font, stroke, fill)
     return new Text(lines, font,
                     Convert.fill(fill),
-                    Convert.stroke(stroke));
+                    Convert.stroke(stroke),
+                    Convert.shadow(shadow));
 }
 Convert.shadow = function(src) {
   if (!src || src.offsetX == undefined) return null;
