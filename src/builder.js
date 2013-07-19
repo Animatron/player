@@ -159,7 +159,7 @@ Builder.prototype.circle = function(pt, radius) {
     this.v._dimen = [ radius + radius, radius + radius ];
     this.paint(function(ctx) {
             var b = this.$.__b$;
-            Path.applyF(ctx, b.f, b.s,
+            Path.applyF(ctx, b.f, b.s, null/*strokes are not supported*/,
                 function() {
                     ctx.arc(0, 0, radius, 0, Math.PI*2, true);
                 });

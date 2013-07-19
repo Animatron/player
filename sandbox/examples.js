@@ -52,7 +52,7 @@ examples.push([ 0, [
 examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(',
-  '    b().path(\'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
+  '    b().path([0, 0], \'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
   '       .stroke(\'#336\', 3)',
   '       .fill(\'#674\')',
   '       .modify(function() {',
@@ -98,7 +98,7 @@ examples.push([ 0 /*version*/, [
 
 examples.push([ 0 /*version*/, [
   'return b()',
-  '  .add(b().path(\'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
+  '  .add(b().path([0, 0], \'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
   '  .add(b().rect([115, 90], [60, 60]))',
   '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);'
 ].join('\n') ]);
@@ -118,9 +118,16 @@ examples.push([ 0 /*version*/, [
 ].join('\n') ]);
 
 examples.push([ 0 /*version*/, [
-  'return b().image([-30, -30], \'./res/bender.jpg\')',
-  '           .rotate([0, 3], [0, Math.PI / 5])',
-  '           .xscale([0, 3], [.3, .1]);'
+  'return b().image([90, 120], \'./res/bender.jpg\')',
+  '          .rotate([0, 3], [0, Math.PI / 4])',
+  '          .trans([0, 3], [[200, 50], [0, 50]])',
+  '          .xscale([0, 3], [.3, .1]);'
+].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
+  'return b().sprite([1, 1], \'./res/sprite_sample.png\', [144, 59])',
+  '          .pvt([0, 0])',
+  '          .animate(0, [0, 30], 10)'
 ].join('\n') ]);
 
 /*
