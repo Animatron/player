@@ -604,7 +604,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 Player.__instance_listeners = [];
 
 Player.fireNewInstance = function(instance) {
-  for (var i in Player.__instance_listeners) {
+  for (var i = 0, il = Player.__instance_listeners.length;
+       i < il; i++) {
     Player.__instance_listeners[i].call(instance);
   }
 };
