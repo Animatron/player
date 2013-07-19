@@ -101,7 +101,7 @@ Transform.prototype.scale = function(sx, sy) {
 };
 
 Transform.prototype.transformPoint = function(px, py) {
-  return [ px * this.m[0] + py * this.m[2] + this.m[4], 
+  return [ px * this.m[0] + py * this.m[2] + this.m[4],
            px * this.m[1] + py * this.m[3] + this.m[5] ];
 };
 
@@ -128,3 +128,5 @@ Transform.prototype.inverted = function() {
   clone.invert();
   return clone;
 }
+
+if (typeof exports !== 'undefined') exports.Transform = Transform;

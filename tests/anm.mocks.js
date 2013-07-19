@@ -83,6 +83,7 @@ mocks.factory.context2d = function() {
         'rect': __nop,
         'drawImage': __nop,
         'scale': __nop,
+        'globalAlpha': 1,
         'globalCompositeOperation': 'source-over',
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
     };
@@ -114,6 +115,27 @@ mocks.factory.fullImporter = function() {
         'configureMeta': __nop,
         'load': __nop
     }
+}
+
+mocks.factory.transform = function() {
+    var _instance = {
+            'reset': __nop,
+            'multiply': __nop,
+            'invert': __nop,
+            'rotate': __nop,
+            'rotateDegrees': __nop,
+            'translate': __nop,
+            'scale': __nop,
+            'transformPoint': __nop,
+            'apply': __nop,
+            'clone': __nop,
+            'inverted': __nop
+        };
+    var _f = function() {
+        return _instance;
+    }
+    _f.instance = _instance;
+    return _f;
 }
 
 mocks.factory.cssStyle = function() {
