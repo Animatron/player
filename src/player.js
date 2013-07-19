@@ -3220,8 +3220,8 @@ Render.p_drawPivot = function(ctx, pvt) {
     if (!(pvt = pvt || this.pvt)) return;
     var dimen = this.$.dimen();
     var stokeStyle = dimen ? '#600' : '#f00';
-    if (!dimen) dimen = [ 0, 0 ];
     ctx.save();
+    // WHY it is required??
     ctx.translate(pvt[0] * dimen[0],
                   pvt[1] * dimen[1]);
     ctx.beginPath();
