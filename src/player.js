@@ -2877,8 +2877,8 @@ Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPivot);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawName);
     elm.__paint({ type: Element.DEBUG_PNT,
                      priority: 1 },
                    Render.p_drawMPath);
@@ -3218,7 +3218,7 @@ Render._drawFPS = __r_fps;
 
 Render.p_drawPivot = function(ctx, pvt) {
     if (!(pvt = pvt || this.pvt)) return;
-    var dimen = this.$.dimen();
+    var dimen = this.$.dimen() || [ 0, 0 ];
     var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
     // WHY it is required??

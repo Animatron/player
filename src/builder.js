@@ -156,17 +156,25 @@ Builder.prototype.rect = function(pt, rect) {
 //                    radius: Float) => Builder
 Builder.prototype.circle = function(pt, radius) {
     this.move(pt || [0, 0]);
-    this.v._dimen = [ radius + radius, radius + radius ];
+    var diameter = radius + radius,
+        dimen = [ diameter, diameter ];
+    this.v._dimen = dimen;
+    var pvt = this.pvt(),
+        center = [ pvt[0] * diameter,
+                   pvt[1] * diameter ];
     this.paint(function(ctx) {
             var b = this.$.__b$;
+            var pvt = b.pvt();
             Path.applyF(ctx, b.f, b.s, null/*strokes are not supported for the moment*/,
                 function() {
-                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
+                    ctx.arc(center[0], center[1],
+                            radius, 0, Math.PI*2, true);
                 });
         });
     // FIXME: move this line to the collisions module itself
+    // FIXME: should be auto-updatable
     if (modCollisions) this.v.reactAs(
-            Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
+            Builder.arcPath(center[0], center[1], radius, 0, 1, 12));
     return this;
 }
 // TODO:
@@ -276,18 +284,34 @@ Builder.prototype.nostroke = function() {
 C.R_TL = [ -0.5, -0.5 ]; C.R_TC = [ +0.0, -0.5 ]; C.R_TR = [ +0.5, -0.5 ];
 C.R_ML = [ -0.5, +0.0 ]; C.R_MC = [ +0.0, +0.0 ]; C.R_MR = [ +0.5, +0.0 ];
 C.R_BL = [ -0.5, +0.5 ]; C.R_BC = [ +0.0, +0.5 ]; C.R_BR = [ +0.5, +0.5 ];
-// > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder
-Builder.prototype.reg = function(pt) {
+// > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
+/*Builder.prototype.reg = function(pt) {
     var x = this.x;
+    if (!pt) return x.reg;
     x.reg = pt || x.reg;
     return this;
-}
-// > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder
+}*/
+// > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 Builder.prototype.pvt = function(pt) {
     var x = this.x;
     if (!pt) return x.pvt;
     x.pvt = pt;
     return this;
+}
+// > builder.pvtpt % (pt: Array[2,Float]) => Builder | Array[2,Float]
+Builder.prototype.pvtpt = function(pt) {
+    var x = this.x;
+    if (pt) {
+        var dimen = this.v.dimen();
+        x.pvt = [ dimen[0] ? (pt[0] / dimen[0]) : 0,
+                  dimen[1] ? (pt[1] / dimen[1]) : 0 ];
+        return this;
+    } else {
+        var pvt = x.pvt;
+        var dimen = this.v.dimen();
+        return [ dimen[0] * pvt[0],
+                 dimen[1] * pvt[1] ];
+    }
 }
 // > builder.init % (val: Object) => Builder
 Builder.prototype.init = function(state) {
