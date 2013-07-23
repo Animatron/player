@@ -90,7 +90,7 @@ Then, you'll just need to run:
 
 And you have all the variants of the files in `dist` folder.
 
-If you want to generate [doccoo](http://jashkenas.github.com/docco/) (install it first) docs, run:
+If you want to generate [docco](http://jashkenas.github.com/docco/) (install it first) docs, run:
 
     jake docs
 
@@ -107,7 +107,7 @@ Here's the contents of the `jake -T` call, which describes each existing task:
 
     jake default           # Get full distribution in the /dist directory.
                            # Exactly the same as calling {jake dist}.
-                           # Requires: `uglifyjs`.
+                           # Requires: `uglify-js`.
                            # Produces: /dist directory.
 
     jake clean             # Clean previous build artifacts.
@@ -116,7 +116,7 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                            # Called by <dist>.
                            # Depends on: <_prepare>, <_bundles>, <_organize>, <_vers
                            #        ionize>, <_minify>.
-                           # Requires: `uglifyjs`.
+                           # Requires: `uglify-js`.
                            # Produces: /dist directory.
 
     jake dist              # Clean previous build and create distribution files, so
@@ -124,7 +124,7 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                            #        ion for this version, including all required fil
                            #        es — sources and bundles.
                            # Coherently calls <clean> and <build>.
-                           # Requires: `uglifyjs`.
+                           # Requires: `uglify-js`.
                            # Produces: /dist directory.
 
     jake test              # Run tests for the sources (not the distribution).
@@ -140,7 +140,7 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                            #        for Python(and Python is used only because of th
                            #        is module).
                            # Produces: /doc/player.html, /doc/builder.html, /doc/API
-                           #        .html, /doc/README.html, /doc/doccoo.css.
+                           #        .html, /doc/README.html, /doc/docco.css.
 
     jake anm-scene-valid   # Validate Animatron scene JSON file.
                            # Uses /src/import/animatron-project-VERSION.orderly as v
@@ -209,22 +209,22 @@ Versions of software used for development (only `node`, `jake` and `uglifyjs` ar
 
 * `node`: 0.8.9
 * `npm` (node.js): 1.2.8
-* `jake` (node.js): 0.5.14
-* `uglifyjs` (node.js): 2.2.5
-* `phantomjs`: 1.7.0
+* `jake` (node.js): 0.5.14 _(global installation recommended)_
+* `uglify-js` (node.js): 2.2.5 _(global installation recommended)_
+* `phantomjs`: 1.7.0 _(global installation recommended)_
 * `jasmine-node`: 1.7.1
-* `doccoo` (node.js): 0.6.2
+* `docco` (node.js): 0.6.2
 * `markdown` (Python module): ?
 * `orderly` (node.js): 1.1.0
 * `jsonschema` (node.js): 0.3.2
-* `aws2js` (node.js): 0.8.3
+* `aws2js` (node.js): 0.8.3 (requires `make`)
 * `walk` (node.js): 2.2.1
 
 Requirements for different actions are:
 
-* Building a distribution: `node`, `jake`, `uglifyjs`
+* Building a distribution: `node`, `jake`, `uglify-js`
 * Testing sources: `node`, `jake`, `jasmine-node`, `phantomjs`
-* Build HTML documentation: `node`, `jake`, `doccoo`, `python`, Python `markdown` module
+* Build HTML documentation: `node`, `jake`, `docco`, `python`, Python `markdown` module
 * Validate Animatron scenes: `node`, `jake`, `orderly`, `jsonschema`
 * Putting Files to S3: `node`, `jake`, `aws2js`, `walk`
 

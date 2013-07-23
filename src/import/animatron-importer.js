@@ -133,7 +133,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     if (!to.name && clip.name) to.name = clip.name;
     if (clip.visible === false) to.disabled = true; // to.visible = false;
     var x = to.xdata;
-    x.lband = clip.band || [0, Infinity]; //FIMXE: remove, when it will be always set in project
+    x.lband = Convert.band(clip.band);
     x.gband = in_band ? Bands.wrap(in_band, x.lband)
                       : x.lband;
     x.reg = clip.reg || [0, 0];
@@ -291,6 +291,12 @@ Convert.gradient = function(src) {
         stops: stops,
         bounds: src.bounds
     };
+}
+Convert.band = function(from) {
+    if (!from) return [ 0, Infinity ];
+    if (from.length == 2) return from;
+    if (from.length == 1) return [ from[0], Infinity ];
+    return [ 0, Infinity ];
 }
 Convert.mode = function(from) {
     if (!from) return C.R_ONCE;

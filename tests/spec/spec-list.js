@@ -51,7 +51,8 @@ var _specs = {
                    '17.compositing',
                    '18.masks',
                    '19.helpers',
-                   '20.image' ],
+                   '20.image',
+                   '21.statics-and-pivot' ],
    '05.collisions': [ 'stub' ],
    '06.bugs': [ 'bugs' ]
 };

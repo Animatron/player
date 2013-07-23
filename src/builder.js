@@ -7,7 +7,25 @@
  * @VERSION
  */
 
-window.Builder = (function() { // anonymous wrapper to exclude global context clash
+(function(root, name, produce) {
+    // Cross-platform injector
+    if (window && window.__anm_force_window_scope) { // FIXME: Remove
+        // Browser globals
+        root[name] = produce(root.anm);
+    } else if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(['anm'], produce);
+    } else if (typeof module != 'undefined') {
+        // CommonJS / module
+        module.exports = produce(require('anm'));
+    } else if (typeof exports === 'object') {
+        // CommonJS / exports
+        produce(require('anm'));
+    } else {
+        // Browser globals
+        root[name] = produce(root.anm);
+    }
+})(this, 'Builder'/*, 'anm/builder'*/, function(anm) {
 
 var Path = anm.Path;
 var Element = anm.Element;
@@ -35,7 +53,6 @@ function Builder(obj) {
     if (!obj) {
         this.n = '';
         this.v = new Element();
-        this.x = this.v.xdata;
     } else if (obj instanceof Builder) {
         this.n = obj.n;
         this.v = obj.v.deepClone();
@@ -47,13 +64,13 @@ function Builder(obj) {
     } else if (obj instanceof Element) {
         this.n = obj.name;
         this.v = obj;
-        this.x = obj.xdata;
     } else if (is.str(obj)) {
         this.n = obj;
         this.v = new Element();
         this.v.name = this.n;
-        this.x = this.v.xdata;
     }
+    this.x = this.v.xdata;
+    this.bs = this.v.bstate;
     this.v.__b$ = this;
     this.f = this._extractFill(Builder.DEFAULT_FILL);
     this.s = this._extractStroke(Builder.DEFAULT_STROKE);
@@ -110,19 +127,24 @@ Builder.prototype.remove = function(what) {
 
 // TODO: move shapes to B.P.rect/... ?
 
-// > builder.path % (path: String | Path,
-//                   [pt: Array[2,Integer]]) => Builder
-// FIXME: change to (pt, path)
-Builder.prototype.path = function(path, pt) {
+// > builder.path % (pt: Array[2,Integer],
+//                   path: String | Path) => Builder
+Builder.prototype.path = function(pt, path) {
+    this.move(pt || [0, 0]);
     var path = Builder.__path(path, this.x.path);
     this.x.path = path;
-    path.normalize();
-    this.x.reg = [0, 0];
-    this.x.pos = pt || [0, 0];
     if (!path.fill) { path.fill = this.f; }
     else { this.f = path.fill; }
     if (!path.stroke) { path.stroke = this.s; }
     else { this.s = path.stroke; }
+    return this;
+}
+// > builder.npath % (pt: Array[2,Integer],
+//                   path: String | Path) => Builder
+Builder.prototype.npath = function(pt, path) {
+    var _npath = Builder.__path(path, this.x.path).clone();
+    _npath.normalize();
+    this.path(pt, _npath);
     return this;
 }
 // > builder.rect % (pt: Array[2,Integer],
@@ -130,35 +152,43 @@ Builder.prototype.path = function(path, pt) {
 Builder.prototype.rect = function(pt, rect) {
     var rect = is.arr(rect) ? rect : [ rect, rect ];
     var w = rect[0], h = rect[1];
-    this.path([[0, 0], [w, 0],
-               [w, h], [0, h],
-               [0, 0]], pt);
+    this.path(pt, [[0, 0], [w, 0],
+                   [w, h], [0, h],
+                   [0, 0]]);
+    return this;
+}
+// > builder.circle % (pt: Array[2,Integer],
+//                    radius: Float) => Builder
+Builder.prototype.circle = function(pt, radius) {
+    this.move(pt || [0, 0]);
+    var diameter = radius + radius,
+        dimen = [ diameter, diameter ];
+    this.v._dimen = dimen;
+    var pvt = this.pvt(),
+        center = [ pvt[0] * diameter,
+                   pvt[1] * diameter ];
+    this.paint(function(ctx) {
+            var b = this.$.__b$;
+            var pvt = b.pvt();
+            Path.applyF(ctx, b.f, b.s, null/*strokes are not supported for the moment*/,
+                function() {
+                    ctx.arc(center[0], center[1],
+                            radius, 0, Math.PI*2, true);
+                });
+        });
+    // FIXME: move this line to the collisions module itself
+    // FIXME: should be auto-updatable
+    if (modCollisions) this.v.reactAs(
+            Builder.arcPath(center[0], center[1], radius, 0, 1, 12));
     return this;
 }
 // TODO:
-/* Builder.prototype.oval = function(pt, radius, ratio) {
-// > builder.oval % (pt: Array[2,Integer],
-//                       radius: Float) => Builder
-} */
-Builder.prototype.circle = function(pt, radius) {
-    this.x.pos = pt;
-    this.x.reg = [ 0, 0 ];
-    this.x.__bounds = [ -radius, -radius, radius, radius];
-    this.paint(function(ctx) {
-            var b = this.$.__b$;
-            Path.applyF(ctx, b.f, b.s,
-                function() {
-                    ctx.arc(0, 0, radius, 0, Math.PI*2, true);
-                });
-        });
-    if (modCollisions) this.v.reactAs(
-            Builder.arcPath(0/*pt[0]*/,0/*pt[1]*/,radius, 0, 1, 12));
-    return this;
-}
+/*Builder.prototype.oval = function(pt, hradius, vradius) {
+}*/
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src, callback) {
-    this.x.pos = pt;
+    this.move(pt || [0, 0]);
     if (src) {
         var b = this;
         this.x.sheet =
@@ -171,11 +201,10 @@ Builder.prototype.image = function(pt, src, callback) {
 //                   [size: Float],
 //                   [font: String | Array]) => Builder
 Builder.prototype.text = function(pt, lines, size, font) {
-    this.x.pos = pt;
+    this.move(pt || [0, 0]);
     var text = lines instanceof Text ? lines
                      : new Text(lines, Builder.font(font, size));
     this.x.text = text;
-    this.x.reg = [ 0, 0 ];
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
     if (!text.fill) { text.fill = this.f; }
@@ -187,7 +216,7 @@ Builder.prototype.text = function(pt, lines, size, font) {
 //                     [tile_spec: Array[2,Integer] | Function],
 //                     [callback: Function(Image)]) => Builder
 Builder.prototype.sprite = function(pt, src, tile_spec, callback) {
-    this.x.pos = pt;
+    this.move(pt || [0, 0]);
     var animator;
     if (is.str(src)) {
         animator = Builder.sheet(src, tile_spec, callback)(this.v);
@@ -257,58 +286,100 @@ Builder.prototype.nostroke = function() {
 
 // * STATIC MODIFICATION *
 
-// > builder.reg % (pt: Array[2,Integer]) => Builder
-Builder.prototype.reg = function(pt) {
+C.R_TL = [ 0.0, 0.0 ]; C.R_TC = [ 0.5, 0.0 ]; C.R_TR = [ 1.0, 0.0 ];
+C.R_ML = [ 0.0, 0.5 ]; C.R_MC = [ 0.5, 0.5 ]; C.R_MR = [ 1.0, 0.5 ];
+C.R_BL = [ 0.0, 1.0 ]; C.R_BC = [ 0.5, 1.0 ]; C.R_BR = [ 1.0, 1.0 ];
+// > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
+/*Builder.prototype.reg = function(pt) {
     var x = this.x;
-    x.reg = pt;
+    if (!pt) return x.reg;
+    x.reg = pt || x.reg;
+    return this;
+}*/
+// > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
+Builder.prototype.pvt = function(pt) {
+    var x = this.x;
+    if (!pt) return x.pvt;
+    x.pvt = pt;
     return this;
 }
-C.R_TL = 1; C.R_TC = 5; C.R_TR = 2;
-C.R_ML = 6; C.R_MC = 0; C.R_MR = 7;
-C.R_BL = 3; C.R_BC = 8; C.R_BR = 4;
-// > builder.reg % (side: C.R_*) => Builder
-Builder.prototype.regAt = function(side) {
-    var x = this.x, _new = x.reg;
-    var b = this.v.lbounds();
-    if (!b) return this; // throw error?
-    var w = b[2] - b[0],
-        h = b[3] - b[1];
-    switch (side) {
-        case C.R_TL: _new = [ -w/2, -h/2 ]; break;
-        case C.R_TC: _new = [    0, -h/2 ]; break;
-        case C.R_TR: _new = [  w/2, -h/2 ]; break;
-
-        case C.R_ML: _new = [ -w/2,    0 ]; break;
-        case C.R_MC: _new = [    0,    0 ]; break;
-        case C.R_MR: _new = [  w/2,    0 ]; break;
-
-        case C.R_BL: _new = [ -w/2,  h/2 ]; break;
-        case C.R_BC: _new = [    0,  h/2 ]; break;
-        case C.R_BR: _new = [  w/2,  h/2 ]; break;
+// > builder.pvtpt % (pt: Array[2,Float]) => Builder | Array[2,Float]
+Builder.prototype.pvtpt = function(pt) {
+    var x = this.x;
+    if (pt) {
+        var dimen = this.v.dimen();
+        x.pvt = [ dimen[0] ? (pt[0] / dimen[0]) : 0,
+                  dimen[1] ? (pt[1] / dimen[1]) : 0 ];
+        return this;
+    } else {
+        var pvt = x.pvt;
+        var dimen = this.v.dimen();
+        return [ dimen[0] * pvt[0],
+                 dimen[1] * pvt[1] ];
     }
-    x.reg = _new;
+}
+// > builder.init % (val: Object) => Builder
+Builder.prototype.init = function(state) {
+    this.v.bstate = state;
+    this.bs = state;
     return this;
 }
 // > builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
-    var x = this.x;
-    x.pos = [ x.pos[0] + pt[0],
-              x.pos[1] + pt[1] ];
+    this.bs.x = pt[0];
+    this.bs.y = pt[1];
     return this;
 }
 // > builder.pos % ([pt: Array[2,Integer]]) => Array[2] | Builder
 Builder.prototype.pos = function(pt) {
-    if (pt) {
-        this.x.pos = [ pt[0], pt[1] ];
-        return this;
-    } else return this.x.pos;
+    return pt ? this.move(pt) : [ this.bs.x, this.bs.y ];
 }
-// > builder.zoom % (val: Array[2,Float]) => Builder
+// > builder.dpos % () => Array[2]
+Builder.prototype.dpos = function() {
+    return this.v.getPosition();
+}
+// > builder.apos % () => Array[2]
+Builder.prototype.apos = function() {
+    var pos = this.dpos(),
+        off = this.offset();
+    return [ off[0] + pos[0], off[1] + pos[1] ];
+}
+// > builder.offset % () => Array[2]
+Builder.prototype.offset = function() {
+    return this.v.offset();
+}
+// > builder.zoom % (val: Float) => Builder
 Builder.prototype.zoom = function(val) {
     if (this.x.path) {
         this.x.path.zoom(val);
-        this.path(this.x.path); // will normalize it
+        //this.path(this.x.path); // will normalize it
+    } else {
+        this.size([ val, val ]);
     }
+    return this;
+}
+// > builder.size % (val: Array[2,Float]) => Builder
+Builder.prototype.size = function(val) {
+    this.bs.sx = val[0];
+    this.bs.sy = val[1];
+    return this;
+}
+// > builder.resize % (val: Array[2,Float]) => Builder
+Builder.prototype.resize = Builder.prototype.size;
+// > builder.proportions % (val: Array[2,Float]) => Builder
+Builder.prototype.proportions = Builder.prototype.size;
+// > builder.angle % (val: Float) => Builder
+Builder.prototype.angle = function(val) {
+    this.bs.angle = val;
+    return this;
+}
+// > builder.slope % (val: Float) => Builder
+Builder.prototype.slope = Builder.prototype.angle;
+// > builder.turn % (val: Float) => Builder
+Builder.prototype.turn = Builder.prototype.angle;
+// > builder.opacity % (val: Float) => Builder
+Builder.prototype.opacity = function(val) {
+    this.bs.alpha = val;
     return this;
 }
 // > builder.bounds % (val: Array[4,Float]) => Builder
@@ -794,7 +865,7 @@ function _get_frame(start, t, anim) {
     var frames = anim[0],
         fps = anim[1],
         step = (frames.length > 2) ? frames[2] : 1,
-        repeat = (frames.length > 3) ? frames[3] : false,
+        repeat = (frames.length > 3) ? frames[3] : (anim[2] || false),
         start_frame = frames[0],
         end_frame = frames[1],
         dt = __t(t - start);
@@ -816,7 +887,6 @@ function _Animator(sheet, elm) {
         var frame = _get_frame(me.start, t, me.cur_anim);
         if (frame >= 0) {
             sheet.cur_region = frame;
-
         } else {
             sheet.cur_region = -1; // FIXME: use default frame
             me.cur_anim = null;
@@ -840,16 +910,16 @@ _Animator.prototype.animate = function(t, frames, fps, repeat) {
 //                    [tile_selector: Array[2,Integer] | Function(Integer) => Array[4,Integer]],
 //                    [callback: Function(Image)]) => Builder
 Builder.sheet = function(src, tile_spec, callback) {
-    var sheet = new Sheet(src, function(img, sheet) {
+    var sheet = new Sheet(src, function(img) {
         if (is.arr(tile_spec)) {
             var tdimen = tile_spec,
-                sdimen = sheet.dimen,
+                sdimen = this.dimen(),
                 h_factor = Math.floor(sdimen[0] / tdimen[0]);
-            sheet.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
+            this.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
                                                h_pos = n % h_factor;
                                            return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
         } else if (is.fun(tile_spec)) {
-            sheet.region_f = tile_spec;
+            this.region_f = tile_spec;
         }
         if (callback) callback();
     });
@@ -898,4 +968,4 @@ Element.prototype.clone = function() {
 
 return Builder;
 
-})(); // end of anonymous wrapper
+});

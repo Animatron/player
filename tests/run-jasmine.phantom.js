@@ -78,6 +78,8 @@ page.open(url, function(success) {
                 console.log("__error__");
             }
 
+            window.__anm_force_window_scope = true;
+
             run_tests(function(results) {
                 window.__jasmineResults = results;
                 console.log("__done__");
