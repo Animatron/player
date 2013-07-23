@@ -92,13 +92,13 @@ textarea, .CodeMirror {
 	height: 98%;
 }
 
-@media screen and (max-width: 870px) {
+@media screen and (min-width: 400px) and (max-width: 720px) {
 	#right-pane {
 		display: none;
 	}
 }
 
-@media screen and (min-width: 870px) and (max-width: 1080px) {
+/* @media screen and (min-width: 720px) and (max-width: 920px) {
 	#left-pane {
 		max-width: 200px;
 	}
@@ -108,13 +108,70 @@ textarea, .CodeMirror {
     }
 
 	#right-pane {
-		min-width: 68%;
+		min-width: 500px;
+	}
+}*/
+
+@media screen and (min-width: 720px) and (max-width: 865px) {
+	#left-pane {
+		max-width: 250px;
+	}
+
+	select#examples-list {
+    	max-width: 250px;
+    }
+
+	#right-pane {
+		min-width: 330px;
+		font-size: 0.8em;
+	}
+}
+
+@media screen and (min-width: 865px) and (max-width: 920px) {
+	#left-pane {
+		max-width: 300px;
+	}
+
+	select#examples-list {
+    	max-width: 300px;
+    }
+
+	#right-pane {
+		min-width: 400px;
+	}
+}
+
+@media screen and (min-width: 920px) and (max-width: 960px) {
+	#left-pane {
+		max-width: 300px;
+	}
+
+	select#examples-list {
+    	max-width: 300px;
+    }
+
+	#right-pane {
+		min-width: 400px;
+	}
+}
+
+@media screen and (min-width: 960px) and (max-width: 1080px) {
+	#left-pane {
+		max-width: 350px;
+	}
+
+    select#examples-list {
+    	max-width: 350px;
+    }
+
+	#right-pane {
+		min-width: 460px;
 	}
 }
 
 @media screen and (min-width: 1080px) {
 	#right-pane {
-		min-width: 54%;
+		min-width: 600px;
 	}
 }
 

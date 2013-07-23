@@ -25,6 +25,8 @@
 
     <script type="text/javascript">
       function run_tests(on_finish, phantom) {
+        window.__anm_force_window_scope = true;
+
         queue(require)(
                 [ _files['jasmine'],
                   // _files['jasmine.html'],

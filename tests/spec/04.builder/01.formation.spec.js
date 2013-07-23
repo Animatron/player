@@ -332,7 +332,7 @@ describe("builder, regarding its formation techniques,", function() {
 
             it("should clone path object of given builder's element, not to copy", function() {
                 var path = B.path([[0, 0], [10, 10]]);
-                to_clone = b().path(path);
+                to_clone = b().path([0, 0], path);
                 instance = b(to_clone);
                 var fill_color = '#456789';
                 to_clone.fill(fill_color);
@@ -344,7 +344,7 @@ describe("builder, regarding its formation techniques,", function() {
                 expect(instance.x.path.fill.color).not.toBe(fill_color);
 
                 path = B.path([[0, 0], [10, 10]]);
-                to_clone = b().path(path).fill(fill_color);
+                to_clone = b().path([0, 0], path).fill(fill_color);
                 instance = b(to_clone);
 
                 expect(instance.x.path).toBeDefined();
@@ -518,7 +518,7 @@ describe("builder, regarding its formation techniques,", function() {
                 expect(instance.v.__data.foo).toBe(42);
             });
 
-            it("should clone position and registration point of given builder's element, not to copy", function() {
+            it("should clone position and pivot point of given builder's element, not to copy", function() {
                 var pos = [ 1024, 768 ];
                 to_clone = b();
                 to_clone.x.pos = pos;
@@ -537,23 +537,23 @@ describe("builder, regarding its formation techniques,", function() {
                 expect(to_clone.x.pos[1]).toBe(7);
                 expect(instance.x.pos[1]).toBe(768);
 
-                var reg = [ 1024, 768 ];
+                var pvt = [ .7, .9 ];
                 to_clone = b();
-                to_clone.x.reg = reg;
+                to_clone.x.pvt = pvt;
                 instance = b(to_clone);
 
                 expect(to_clone.x).toBe(to_clone.v.xdata);
                 expect(instance.x).toBe(instance.v.xdata);
-                expect(to_clone.x.reg).toBe(reg);
-                expect(instance.x.reg).not.toBe(reg);
+                expect(to_clone.x.pvt).toBe(pvt);
+                expect(instance.x.pvt).not.toBe(pvt);
 
-                reg[0] = 5;
-                expect(to_clone.x.reg[0]).toBe(5);
-                expect(instance.x.reg[0]).toBe(1024);
+                pvt[0] = 1;
+                expect(to_clone.x.pvt[0]).toBe(1);
+                expect(instance.x.pvt[0]).toBe(.7);
 
-                reg[1] = 7;
-                expect(to_clone.x.reg[1]).toBe(7);
-                expect(instance.x.reg[1]).toBe(768);
+                pvt[1] = 7;
+                expect(to_clone.x.pvt[1]).toBe(7);
+                expect(instance.x.pvt[1]).toBe(.9);
             });
 
             it("should clone bands of given builder's element, not to copy", function() {

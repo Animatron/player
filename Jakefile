@@ -11,8 +11,8 @@
 //    jake: 0.5.14
 //    phantomjs: 1.7.0
 //    jasmine-node: 1.7.1
-//    uglifyjs: 2.2.5
-//    doccoo: 0.6.2
+//    uglify-js: 2.2.5
+//    docco: 0.6.2
 //    python markdown: ?
 //    orderly: 1.1.0
 //    jsonschema: 0.3.2
@@ -222,7 +222,7 @@ desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                'Requires: `docco`, Python installed, `markdown` module for Python'+
                   '(and Python is used only because of this module).',
                'Produces: /doc/player.html, /doc/builder.html, '+
-                  '/doc/API.html, /doc/README.html, /doc/doccoo.css.']));
+                  '/doc/API.html, /doc/README.html, /doc/docco.css.']));
 task('docs', { async: true }, function() {
     _print('Generating docs');
 

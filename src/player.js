@@ -49,11 +49,37 @@
 
 // So, let's start
 
-// `anm` is a player namespace; the function next to it is just a huge closure which covers the whole file and
-// is executed immediately after defenition, it allows us to hold all private things inside and to turn
-// only the considered classes and methods in public. `to_export` object in the end of the file is the one
-// that collects public things and returned from closure in the end.
-var anm = (function(_window) {
+// Module Definition
+// -----------------------------------------------------------------------------
+
+(function(name, produce) {
+    // Cross-platform injector
+    var _wnd = (typeof window !== 'undefined') ? window : {
+        'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
+        'devicePixelRatio': 1,
+        'addEventListener': function() {},
+        'removeEventListener': function() {}
+    };
+    var _doc = (typeof document !== 'undefined') ? document : null;
+    // TODO: var _factory = __anm_factory || { /*...*/ };
+    if (_wnd.__anm_force_window_scope) { // FIXME: Remove
+        _wnd[name] = _wnd[name] || {};
+        produce(_wnd, _doc)(_wnd[name]);
+    } else if (typeof define === 'function' && define.amd) {
+        // AMD. Register as an anonymous module.
+        define(produce(_wnd, _doc));
+    } else if (typeof module != 'undefined') {
+        // CommonJS / module
+        module.exports = produce(_wnd, _doc)({});
+    } else if (typeof exports === 'object') {
+        // CommonJS / exports
+        produce(_wnd, _doc)(exports);
+    } else {
+        // Browser globals
+        _wnd[name] = _wnd[name] || {};
+        produce(_wnd, _doc)(_wnd[name]);
+    }
+})('anm'/*, 'anm/player'*/, function($wnd, $doc) {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -66,25 +92,25 @@ var anm = (function(_window) {
    https://gist.github.com/1579671 */
 
 var __frameFunc = function() {
-           return _window.requestAnimationFrame ||
-                  _window.webkitRequestAnimationFrame ||
-                  _window.mozRequestAnimationFrame ||
-                  _window.oRequestAnimationFrame ||
-                  _window.msRequestAnimationFrame ||
-                  _window.__anm__frameGen ||
+           return $wnd.requestAnimationFrame ||
+                  $wnd.webkitRequestAnimationFrame ||
+                  $wnd.mozRequestAnimationFrame ||
+                  $wnd.oRequestAnimationFrame ||
+                  $wnd.msRequestAnimationFrame ||
+                  $wnd.__anm__frameGen ||
                   function(callback){
-                    return _window.setTimeout(callback, 1000 / 60);
+                    return $wnd.setTimeout(callback, 1000 / 60);
                   } };
 
 var __clearFrameFunc = function() {
-           return _window.cancelAnimationFrame ||
-                  _window.webkitCancelAnimationFrame ||
-                  _window.mozCancelAnimationFrame ||
-                  _window.oCancelAnimationFrame ||
-                  _window.msCancelAnimationFrame ||
-                  _window.__anm__frameRem ||
+           return $wnd.cancelAnimationFrame ||
+                  $wnd.webkitCancelAnimationFrame ||
+                  $wnd.mozCancelAnimationFrame ||
+                  $wnd.oCancelAnimationFrame ||
+                  $wnd.msCancelAnimationFrame ||
+                  $wnd.__anm__frameRem ||
                   function(id){
-                    return _window.clearTimeout(id);
+                    return $wnd.clearTimeout(id);
                   } };
 
 // assigns to call a function on next animation frame
@@ -222,14 +248,14 @@ function find_pos(elm) {
 function ajax(url, callback/*, errback*/) {
     var req = false;
 
-    if (!_window.ActiveXObject) {
-        req = new XMLHttpRequest();
+    if (!$wnd.ActiveXObject) {
+        req = new $wnd.XMLHttpRequest();
     } else {
         try {
-            req = new ActiveXObject("Msxml2.XMLHTTP");
+            req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
         } catch (e1) {
             try {
-                req = new ActiveXObject("Microsoft.XMLHTTP");
+                req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
             } catch (e2) {
                 throw new SysErr('No AJAX/XMLHttp support');
             }
@@ -264,7 +290,7 @@ function ajax(url, callback/*, errback*/) {
 // ### Canvas-related Utilities
 /* ---------------------------- */
 
-function getPxRatio() { return _window.devicePixelRatio || 1; }
+function getPxRatio() { return $wnd.devicePixelRatio || 1; }
 
 var DEF_CNVS_WIDTH = 400;
 var DEF_CNVS_HEIGHT = 250;
@@ -285,7 +311,7 @@ function canvasOpts(canvas, opts, ratio) {
 }
 
 function newCanvas(dimen, ratio) {
-    var _canvas = document.createElement('canvas');
+    var _canvas = $doc.createElement('canvas');
     canvasOpts(_canvas, dimen, ratio);
     return _canvas;
 }
@@ -391,10 +417,10 @@ function _strf(str, subst) {
 var trashBin = null;
 function disposeElm(domElm) {
     if (!trashBin) {
-        trashBin = document.createElement('div');
+        trashBin = $doc.createElement('div');
         trashBin.id = 'trash-bin';
         trashBin.style.display = 'none';
-        document.body.appendChild(trashBin);
+        $doc.body.appendChild(trashBin);
     }
     trashBin.appendChild(domElm);
     trashBin.innerHTML = '';
@@ -581,7 +607,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 Player.__instance_listeners = [];
 
 Player.fireNewInstance = function(instance) {
-  for (var i in Player.__instance_listeners) {
+  for (var i = 0, il = Player.__instance_listeners.length;
+       i < il; i++) {
     Player.__instance_listeners[i].call(instance);
   }
 };
@@ -855,7 +882,7 @@ Player.prototype.onerror = function(callback) {
 provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (__str(cvs)) {
-        this.canvas = document.getElementById(cvs);
+        this.canvas = $doc.getElementById(cvs);
         if (!this.canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [cvs]));
         this.id = cvs;
     } else {
@@ -1032,8 +1059,8 @@ Player.__getPosAndRedraw = function(player) {
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    _window.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
-    _window.addEventListener('resize', Player.__getPosAndRedraw(this), false);
+    $wnd.addEventListener('scroll', Player.__getPosAndRedraw(this), false);
+    $wnd.addEventListener('resize', Player.__getPosAndRedraw(this), false);
     this.canvas.addEventListener('mouseover', (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -1081,6 +1108,8 @@ Player.prototype._drawSplash = function() {
         rsize = 120;
     ctx.save();
 
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+
     var ratio = this.state.ratio;
     if (ratio != 1) ctx.scale(ratio, ratio);
 
@@ -1119,9 +1148,22 @@ Player.prototype._drawLoadingSplash = function(text) {
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
     ctx.fillText(text || Strings.LOADING, 20, 25);
+    ctx.restore();
+}
+Player.prototype._drawErrorSplash = function(e) {
+    this._drawSplash();
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#006';
+    ctx.font = '14px sans-serif';
+    ctx.fillText(Strings.ERROR +
+                 (e ? ': ' + (e.message || (typeof Error))
+                    : '') + '.', 20, 25);
     ctx.restore();
 }
 Player.prototype.toString = function() {
@@ -1275,7 +1317,10 @@ Player.prototype.__onerror = function(err) {
 
   doMute = (this.__err_handler && this.__err_handler(err)) || doMute;
 
-  if (!doMute) throw err;
+  if (!doMute) {
+      this._drawErrorSplash(err);
+      throw err;
+  }
 }
 Player.prototype.__callSafe = function(f) {
   try {
@@ -1319,8 +1364,8 @@ Player.prototype.__makeSafe = function(methods) {
     }})(this);
 } */
 Player._saveCanvasPos = function(cvs) {
-    var gcs = (document.defaultView &&
-               document.defaultView.getComputedStyle); // last is assigned
+    var gcs = ($doc.defaultView &&
+               $doc.defaultView.getComputedStyle); // last is assigned
 
     // computed padding-left
     var cpl = gcs ?
@@ -1335,7 +1380,7 @@ Player._saveCanvasPos = function(cvs) {
         cbt = gcs ?
           (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
 
-    var html = document.body.parentNode,
+    var html = $doc.body.parentNode,
         htol = html.offsetLeft,
         htot = html.offsetTop;
 
@@ -1700,6 +1745,9 @@ C.AC_NAMES[C.C_DARKER] = 'darker';
 C.AC_NAMES[C.C_COPY] = 'copy';
 C.AC_NAMES[C.C_XOR] = 'xor';
 
+Element.DEFAULT_PVT = [ 0.5, 0.5 ];
+//Element.DEFAULT_REG = [ 0.5, 0.5 ];
+
 Element.TYPE_MAX_BIT = 16;
 Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
     // they are: (type << TYPE_MAX_BIT) | (priot << PRRT_MAX_BIT) | i
@@ -1738,7 +1786,9 @@ Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
+    this.bstate = Element.createBaseState();
     this.state = Element.createState(this);
+    this.astate = null;
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
@@ -1795,10 +1845,16 @@ Element.prototype.drawTo = function(ctx) {
 Element.prototype.draw = Element.prototype.drawTo
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
-    var s = this.state;
-    s._matrix = Element._getMatrixOf(s, s._matrix);
-    ctx.globalAlpha *= s.alpha;
+    var s = this.state,
+        bs = this.bstate,
+        as = Element._mergeStates(bs, s);
+    this.astate = as;
+    s._matrix = Element._getMatrixOf(as, s._matrix);
+    ctx.globalAlpha *= as.alpha;
     s._matrix.apply(ctx);
+    as._matrix = s._matrix;
+    // FIXME: do not store matrix in a state here,
+    // but return it
 }
 // > Element.render % (ctx: Context, gtime: Float)
 Element.prototype.render = function(ctx, gtime) {
@@ -2255,15 +2311,20 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
     var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
     var state = this.unlock();
-    return success ? state : null;
+    return success ? Element._mergeStates(this.bstate, state) : null;
+}
+Element.prototype.getPosition = function() {
+    return [ this.bstate.x + this.state.x,
+             this.bstate.y + this.state.y ];
 }
 Element.prototype.offset = function() {
     var xsum = 0, ysum = 0;
     var p = this.parent;
     while (p) {
-        var ps = p.state;
-        xsum += ps.lx + ps.x;
-        ysum += ps.ly + ps.y;
+        var pbs = p.bstate,
+            ps = p.state;
+        xsum += pbs.x + ps.x;
+        ysum += pbs.y + ps.y;
         p = p.parent;
     }
     return [ xsum, ysum ];
@@ -2276,9 +2337,15 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
+Element.prototype.dimen = function() {
+    // TODO: allow to set _dimen?
+    if (this._dimen) return this._dimen;
+    var x = this.xdata;
+    var subj = x.path || x.text || x.sheet;
+    if (subj) return subj.dimen();
+}
 Element.prototype.lbounds = function() {
     var x = this.xdata;
-    if (x.__bounds) return x.__bounds; // ? it is not saved
     var subj = x.path || x.text || x.sheet;
     if (subj) return subj.bounds();
 }
@@ -2306,8 +2373,8 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     this.__maskCtx = this.__maskCvs.getContext('2d');
     this.__backCvs = newCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
     this.__backCtx = this.__backCvs.getContext('2d');
-    /* document.body.appendChild(this.__maskCvs); */
-    /* document.body.appendChild(this.__backCvs); */
+    /* $doc.body.appendChild(this.__maskCvs); */
+    /* $doc.body.appendChild(this.__backCvs); */
 }
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
@@ -2415,7 +2482,8 @@ Element.prototype.deepClone = function() {
     if (src_x.text) trg_x.text = src_x.text.clone();
     if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
     trg_x.pos = [].concat(src_x.pos);
-    trg_x.reg = [].concat(src_x.reg);
+    trg_x.pvt = [].concat(src_x.pvt);
+    //trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
     trg_x.gband = [].concat(src_x.gband);
     trg_x.keys = obj_clone(src_x.keys);
@@ -2435,8 +2503,6 @@ Element.prototype._addChildren = function(elms) {
 Element.prototype._stateStr = function() {
     var state = this.state;
     return "x: " + s.x + " y: " + s.y + '\n' +
-           "lx: " + s.lx + " ly: " + s.ly + '\n' +
-           "rx: " + s.rx + " ry: " + s.ry + '\n' +
            "sx: " + s.sx + " sy: " + s.sy + '\n' +
            "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
@@ -2656,7 +2722,7 @@ Element.prototype.__mbefore = function(t, type) {
 }
 Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === Element.USER_MOD)) {
-        this.__lmatrix = Element._getIMatrixOf(this.state);
+        this.__lmatrix = Element._getIMatrixOf(this.bstate, this.state);
     }*/
     /*if (!result || (type === Element.EVENT_MOD)) {
         this.__clearEvtState();
@@ -2754,8 +2820,6 @@ Element.prototype.__postRender = function() {
 Element.prototype.__resetState = function() {
     var s = this.state;
     s.x = 0; s.y = 0;
-    s.lx = 0; s.ly = 0;
-    s.rx = 0; s.ry = 0;
     s.angle = 0; s.alpha = 1;
     s.sx = 1; s.sy = 1;
     s.p = null; s.t = null; s.key = null;
@@ -2764,11 +2828,19 @@ Element.prototype.__resetState = function() {
     s._matrix.reset();
 }
 
+// base (initial) state of the element
+Element.createBaseState = function() {
+    return { 'x': 0, 'y': 0,   // dynamic position
+             'angle': 0,       // rotation angle
+             'sx': 1, 'sy': 1, // scale by x / by y
+             'alpha': 1,       // opacity
+             'p': null, 't': null, 'key': null };
+                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
+                               // if both are null — stays as defined
+}
 // state of the element
 Element.createState = function(owner) {
     return { 'x': 0, 'y': 0,   // dynamic position
-             'lx': 0, 'ly': 0, // static position
-             'rx': 0, 'ry': 0, // registration point shift
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
              'alpha': 1,       // opacity
@@ -2782,8 +2854,8 @@ Element.createState = function(owner) {
 };
 // geometric data of the element
 Element.createXData = function(owner) {
-    return { 'pos': [0, 0],      // position in parent clip space
-             'reg': [0, 0],      // registration point
+    return { 'pvt': Element.DEFAULT_PVT,      // pivot
+             /*'reg': Element.DEFAULT_REG,*/  // registration point
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
@@ -2800,21 +2872,20 @@ Element.createXData = function(owner) {
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
     /* if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband); */
-    elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
-    elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
+    // elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
+    // elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
 }
 Element.__addSysPainters = function(elm) {
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_usePivot);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawReg);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
-    /* elm.__paint({ type: Element.DEBUG_PNT,
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawName);
+    elm.__paint({ type: Element.DEBUG_PNT,
                      priority: 1 },
-                   Render.p_drawMPath); */
-
-    elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
+                   Render.p_drawMPath);
 }
 Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
@@ -2837,28 +2908,33 @@ Element.__addTweenModifier = function(elm, conf) {
                           data: conf.data }, m_tween);
 }
 Element.__convertEasing = function(easing, data, relative) {
-  if (!easing) return null;
-  if (__str(easing)) {
-      var f = EasingImpl[easing](data);
-      return relative ? f : function(t, len) { return f(t / len, len) * len; }
-  }
-  if (__fun(easing) && !data) return easing;
-  if (__fun(easing) && data) return easing(data);
-  if (easing.type) {
-    var f = EasingImpl[easing.type](easing.data || data);
-    return relative ? f : function(t, len) { return f(t / len, len) * len; }
-  }
-  if (easing.f) return easing.f(easing.data || data);
+    if (!easing) return null;
+    if (__str(easing)) {
+        var f = EasingImpl[easing](data);
+        return relative ? f : function(t, len) { return f(t / len, len) * len; }
+    }
+    if (__fun(easing) && !data) return easing;
+    if (__fun(easing) && data) return easing(data);
+    if (easing.type) {
+        var f = EasingImpl[easing.type](easing.data || data);
+        return relative ? f : function(t, len) { return f(t / len, len) * len; }
+    }
+    if (easing.f) return easing.f(easing.data || data);
 }
-
+Element._mergeStates = function(s1, s2) {
+    return {
+        x: s1.x + s2.x, y: s1.y + s2.y,
+        sx: s1.sx * s2.sx, sy: s1.sy * s2.sy,
+        angle: s1.angle + s2.angle,
+        alpha: s1.alpha * s2.alpha
+    }
+}
 Element._getMatrixOf = function(s, m) {
     var _t = (m ? (m.reset(), m)
                 : new Transform());
-    _t.translate(s.lx, s.ly);
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);
     _t.scale(s.sx, s.sy);
-    _t.translate(-s.rx, -s.ry);
     return _t;
 }
 Element._getIMatrixOf = function(s, m) {
@@ -3144,13 +3220,17 @@ Render.loop = __r_loop;
 Render.at = __r_at;
 Render._drawFPS = __r_fps;
 
-Render.p_drawReg = function(ctx, reg) {
-    if (!(reg = reg || this.reg)) return;
+Render.p_drawPivot = function(ctx, pvt) {
+    if (!(pvt = pvt || this.pvt)) return;
+    var dimen = this.$.dimen() || [ 0, 0 ];
+    var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
-    ctx.translate(reg[0],reg[1]);
+    // WHY it is required??
+    ctx.translate(pvt[0] * dimen[0],
+                  pvt[1] * dimen[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
-    ctx.strokeStyle = '#600';
+    ctx.strokeStyle = stokeStyle;
     ctx.moveTo(0, -10);
     ctx.lineTo(0, 0);
     ctx.moveTo(3, 0);
@@ -3180,12 +3260,22 @@ Render.p_applyAComp = function(ctx) {
     if (this.acomp) ctx.globalCompositeOperation = C.AC_NAMES[this.acomp];
 }
 
-Render.h_drawMPath = function(ctx, mPath) {
-    if (!(mPath = mPath || this.state._mpath)) return;
+Render.p_usePivot = function(ctx) {
+    var dimen = this.$.dimen(),
+        pvt = this.pvt;
+    if (!dimen) return;
+    if ((pvt[0] === 0) && (pvt[1] === 0)) return;
+    ctx.translate(-(pvt[0] * dimen[0]),
+                  -(pvt[1] * dimen[1]));
+}
+
+Render.p_drawMPath = function(ctx, mPath) {
+    if (!(mPath = mPath || this.$.state._mpath)) return;
     ctx.save();
-    var s = this.state;
-    ctx.translate(s.lx, s.ly);
+    //var s = this.$.astate;
     mPath.cstroke('#600', 2.0);
+    //ctx.translate(-s.x, -s.y);
+    //ctx.rotate(-s.angle);
     ctx.beginPath();
     mPath.apply(ctx);
     ctx.closePath();
@@ -3196,18 +3286,6 @@ Render.h_drawMPath = function(ctx, mPath) {
 Render.m_checkBand = function(time, duration, band) {
     if (band[0] > (duration * time)) return false; // exit
     if (band[1] < (duration * time)) return false; // exit
-}
-
-Render.m_saveReg = function(time, duration, reg) {
-    if (!(reg = reg || this.$.xdata.reg)) return;
-    this.rx = reg[0];
-    this.ry = reg[1];
-}
-
-Render.m_applyPos = function(time, duration, pos) {
-    if (!(pos = pos || this.$.xdata.pos)) return;
-    this.lx = pos[0];
-    this.ly = pos[1];
 }
 
 // Bands
@@ -3621,6 +3699,10 @@ Path.prototype.bounds = function() {
         }
     });
     return [ minX, minY, maxX, maxY ];
+}
+Path.prototype.dimen = function() {
+    var bounds = this.bounds();
+    return [ bounds[2], bounds[3] ];
 }
 Path.prototype.rect = function() {
     var b = this.bounds();
@@ -4083,14 +4165,14 @@ Text.prototype.accent = function(height) {
 }
 Text._createBuffer = function() {
     /* FIXME: dispose buffer when text is removed from scene */
-    var _div = document.createElement('div');
+    var _div = $doc.createElement('div');
     _div.style.visibility = 'hidden';
     _div.style.position = 'absolute';
     _div.style.top = -10000 + 'px';
     _div.style.left = -10000 + 'px';
-    var _span = document.createElement('span');
+    var _span = $doc.createElement('span');
     _div.appendChild(_span);
-    document.body.appendChild(_div);
+    $doc.body.appendChild(_div);
     return _span;
 }
 Text.prototype.cstroke = function(color, width, cap, join) {
@@ -4223,7 +4305,7 @@ Sheet.instances = 0;
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
     this.src = src;
-    this.dimen = /*dimen ||*/ [0, 0];
+    this._dimen = /*dimen ||*/ [0, 0];
     this.regions = [ [ 0, 0, 1, 1 ] ]; // for image, sheet contains just one image
     this.regions_f = null;
     // this.aliases = {}; // map of names to regions (or regions ranges)
@@ -4243,7 +4325,7 @@ Sheet.prototype.load = function(callback) {
     function whenDone(image) {
         me._image = image;
         // if (me.regions.length == 1) me._drawToCache();
-        me.dimen = [ image.width, image.height ];
+        me._dimen = [ image.width, image.height ];
         me.ready = true;
         me._drawToCache();
         if (callback) callback.call(me, image);
@@ -4278,9 +4360,9 @@ Sheet.prototype._drawToCache = function() {
         this._cvs_cache = this._image.__cvs;
         return;
     }
-    var _canvas = newCanvas(this.dimen, 1 /* FIXME: use real ratio */);
+    var _canvas = newCanvas(this._dimen, 1 /* FIXME: use real ratio */);
     var _ctx = _canvas.getContext('2d');
-    _ctx.drawImage(this._image, 0, 0, this.dimen[0], this.dimen[1]);
+    _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
     this._cvs_cache = _canvas;
 }
@@ -4291,7 +4373,7 @@ Sheet.prototype.apply = function(ctx) {
     if (this.region_f) { region = this.region_f(this.cur_region); }
     else {
         var r = this.regions[this.cur_region],
-            d = this.dimen;
+            d = this._dimen;
         region = [ r[0] * d[0], r[1] * d[1],
                    r[2] * d[0], r[3] * d[1] ];
     }
@@ -4299,11 +4381,21 @@ Sheet.prototype.apply = function(ctx) {
     ctx.drawImage(this._cvs_cache, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
+Sheet.prototype.dimen = function() {
+    /* if (!this.ready || !this._active_region) return [0, 0];
+    var r = this._active_region;
+    return [ r[2], r[3] ]; */
+    return this._dimen;
+}
 Sheet.prototype.bounds = function() {
     // TODO: when using current_region, bounds will depend on that region
     if (!this.ready || !this._active_region) return [0, 0, 0, 0];
     var r = this._active_region;
     return [ 0, 0, r[2], r[3] ];
+}
+Sheet.prototype.rect = function() {
+    // TODO: when using current_region, bounds will depend on that region
+    throw new Error('Not Implemented. Why?');
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);
@@ -4384,7 +4476,7 @@ Controls.prototype.update = function(parent) {
     this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
-                                      : document.body;
+                                      : $doc.body;
         /* FIXME: a dirty hack? */
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
@@ -4499,7 +4591,7 @@ Controls.prototype.reset = function() {
 }
 Controls.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
-                    : document.body).removeChild(this.canvas);
+                    : $doc.body).removeChild(this.canvas);
 }
 Controls.prototype.handle_mdown = function(event) {
     if (this.hidden) return;
@@ -4740,7 +4832,7 @@ InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
-                    : document.body).removeChild(this.canvas);
+                    : $doc.body).removeChild(this.canvas);
 }
 InfoBlock.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
@@ -4777,7 +4869,7 @@ InfoBlock.prototype.update = function(parent) {
     this.canvas = _canvas;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
-                                      : document.body;
+                                      : $doc.body;
         /* FIXME: a dirty hack */
         if (this._inParent) { appendTo.style.position = 'relative'; }
         appendTo.appendChild(_canvas);
@@ -4915,59 +5007,61 @@ Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
 // Exports
 // -----------------------------------------------------------------------------
 
-var to_export = {
+return function($trg) {
 
-    'C': C, // constants
-    'M': M, // modules
-    'Player': Player,
-    'Scene': Scene,
-    'Element': Element,
-    'Clip': Clip,
-    'Path': Path, 'Text': Text, 'Sheet': Sheet, 'Image': _Image,
-    'Tweens': Tweens, 'Tween': Tween, 'Easing': Easing,
-    'Render': Render, 'Bands': Bands, // why Render and Bands classes are visible to pulic?
-    'MSeg': MSeg, 'LSeg': LSeg, 'CSeg': CSeg,
-    'Errors': Errors, 'SystemError': SystemError,
-                      'PlayerError': PlayerError,
-                      'AnimationError': AnimationError,
-    'MODULES': {},
+    if (!$trg) $trg = {};
 
-    'obj_clone': obj_clone,
+    if (!$trg.MODULES)  $trg.MODULES = {};
+    if (!$trg._globals) $trg._globals = {};
 
-    'createPlayer': function(cvs, opts) { var p = new Player();
-                                          p.init(cvs, opts); return p; },
-    'ajax': ajax,
-    '_typecheck': { builder: __builder,
-                    arr: __arr,
-                    num: __num,
-                    obj: __obj,
-                    fun: __fun,
-                    str: __str },
-    '_valcheck': { finite: __finite,
-                   nan: __nan },
-    '__dev': { '_win': function() { return _window },
-               '_winf': function(w) { _window = w; },
-               'strf': _strf,
-               'adjust': __adjust,
-               't_cmp': __t_cmp,
-               'TIME_PRECISION': TIME_PRECISION/*,
-               'Controls': Controls, 'Info': InfoBlock*/ },
+    function __createPlayer(cvs, opts) { var p = new Player();
+                                         p.init(cvs, opts); return p; }
 
-};
+    var __globals = {
+        'createPlayer': __createPlayer
+    }
+    for (prop in __globals) {
+        $trg._globals[prop] = __globals[prop];
+        $wnd[prop] = __globals[prop];
+    }
 
-to_export._$ = to_export.createPlayer;
-/*to_export.__js_pl_all = this;*/
-to_export.__inject = function(as, to) {
-  to[as] = to_export;
-  to.createPlayer = to_export.createPlayer;
-};
+    /*$trg.__js_pl_all = this;*/
 
-return to_export;
+    $trg.createPlayer = __createPlayer;
+    $trg._$ = __createPlayer;
 
-})(window);
+    $trg.C = C; // constants
+    $trg.M = M; // modules
+    $trg.Player = Player;
+    $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
+    $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
+    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
+    $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
+    $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
+    $trg.Errors = Errors; $trg.SystemError = SystemError;
+                          $trg.PlayerError = PlayerError;
+                          $trg.AnimationError = AnimationError;
 
-// We add all required public things as the child objects of given namespace (`anm`) to the given global object
-// (`window` or `exports`, it depends on platform, browser or some server-side JS like __node.js__)
-anm.__inject('anm', typeof window !== "undefined"
-                    ? window
-                    : exports);
+    $trg.obj_clone = obj_clone; $trg.ajax = ajax;
+
+    $trg._typecheck = { builder: __builder,
+                        arr: __arr,
+                        num: __num,
+                        obj: __obj,
+                        fun: __fun,
+                        str: __str };
+    $trg._valcheck = { finite: __finite,
+                       nan: __nan };
+    $trg.__dev = { '_win': function() { return $wnd },
+                   '_winf': function(w) { $wnd = w; },
+                   'strf': _strf,
+                   'adjust': __adjust,
+                   't_cmp': __t_cmp,
+                   'TIME_PRECISION': TIME_PRECISION/*,
+                   'Controls': Controls, 'Info': InfoBlock*/ };
+
+    return $trg;
+
+}
+
+});

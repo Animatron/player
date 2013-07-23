@@ -20,10 +20,10 @@ describe("image", function() {
              var test_elm = b();
              var callbackSpy = jasmine.createSpy('callback');
              runs(function() {
-                 test_elm.image([0,0], "test.png", callbackSpy);
+                 test_elm.image([0,0], 'test.png', callbackSpy);
              });
              waitsFor(function() { return test_elm.x.sheet &&
-                                          test_elm.x.sheet.ready; }, "Image should load properly", 800);
+                                          test_elm.x.sheet.ready; }, 'Image should load properly', 800);
              runs(function() {
                 expect(test_elm.x.sheet).toBeDefined();
                 expect(test_elm.x.sheet._image).toBeDefined();
@@ -47,7 +47,7 @@ describe("image", function() {
                 elm1.image([0,0], test_url, callback1Spy);
             });
             waitsFor(function() {return elm1.x.sheet &&
-                                        elm1.x.sheet.ready;}, "Image should load properly", 800);
+                                        elm1.x.sheet.ready;}, 'Image should load properly', 800);
             runs(function() {
                 expect(imgSpy).toHaveBeenCalled();
                 expect(callback1Spy).toHaveBeenCalled();
@@ -61,7 +61,7 @@ describe("image", function() {
                 elm2.image([0,0], test_url, callback2Spy);
             });
             waitsFor(function() {return elm2.x.sheet &&
-                                        elm2.x.sheet.ready;}, "Image should load properly", 800);
+                                        elm2.x.sheet.ready;}, 'Image should load properly', 800);
             runs(function() {
                 expect(imgSpy).not.toHaveBeenCalled();
                 expect(callback2Spy).toHaveBeenCalled();
@@ -86,7 +86,7 @@ describe("image", function() {
                 elm1.image([0,0], test_url, callback1Spy);
             });
             waitsFor(function() {return elm1.x.sheet &&
-                                        elm1.x.sheet.ready;}, "Image should load properly", 800);
+                                        elm1.x.sheet.ready;}, 'Image should load properly', 800);
             runs(function() {
                 expect(imgSpy).toHaveBeenCalled();
                 expect(callback1Spy).toHaveBeenCalled();
@@ -100,7 +100,7 @@ describe("image", function() {
                 elm2.image([0,0], test_url + '.foo', callback2Spy);
             });
             waitsFor(function() {return elm2.x.sheet &&
-                                        elm2.x.sheet.ready;}, "Image should load properly", 800);
+                                        elm2.x.sheet.ready;}, 'Image should load properly', 800);
             runs(function() {
                 expect(imgSpy).toHaveBeenCalled();
                 expect(callback2Spy).toHaveBeenCalled();

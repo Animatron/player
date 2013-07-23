@@ -52,7 +52,7 @@ examples.push([ 0, [
 examples.push([ 0 /*version*/, [
   'return b()',
   '  .add(',
-  '    b().path(\'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
+  '    b().path([0, 0], \'M0 0 L40 40 C10 150 50 70 6 40 Z\')',
   '       .stroke(\'#336\', 3)',
   '       .fill(\'#674\')',
   '       .modify(function() {',
@@ -74,7 +74,7 @@ examples.push([ 0 /*version*/, [
   '// See API Documentation (link is below)',
   'var scene = new anm.Scene();',
   'var elem = new anm.Element();',
-  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 Z\',',
+  'elem.xdata.path = new anm.Path(\'M36 35 L35 70 L90 70 L50 20 L36 35 Z\',',
   '                      { color: \'#f00\' },',
   '                      { width: 2, color: \'#300\' });',
   'elem.addTween({',
@@ -98,7 +98,7 @@ examples.push([ 0 /*version*/, [
 
 examples.push([ 0 /*version*/, [
   'return b()',
-  '  .add(b().path(\'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
+  '  .add(b().path([0, 0], \'M050 0 L20 20 C60 110 90 140 160 120 Z\'))',
   '  .add(b().rect([115, 90], [60, 60]))',
   '  .rotate([0, 3], [-(Math.PI / 2), Math.PI / 2]);'
 ].join('\n') ]);
@@ -117,8 +117,34 @@ examples.push([ 0 /*version*/, [
   '    b(\'def-rect\').rect([115, 90], [60, 60]));'
 ].join('\n') ]);
 
-examples.push([0 /*version*/, [
-  'return b().image([-30, -30], \'./res/bender.jpg\')',
-  '           .rotate([0, 3], [0, Math.PI / 5])',
-  '           .xscale([0, 3], [.3, .1]);'
+examples.push([ 0 /*version*/, [
+  'return b().image([90, 120], \'./res/bender.jpg\')',
+  '          .rotate([0, 3], [0, Math.PI / 4])',
+  '          .trans([0, 3], [[200, 50], [0, 50]])',
+  '          .xscale([0, 3], [.3, .1]);'
 ].join('\n') ]);
+
+examples.push([ 0 /*version*/, [
+  'return b().sprite([1, 1], \'./res/sprite_sample.png\', [144, 59])',
+  '          .pvt([0, 0])',
+  '          .animate(0, [0, 30], 10)'
+].join('\n') ]);
+
+/*
+return b('scene')
+  //.add(b('rect').rect([0, 0], 90).fill('rgba(255,255,0,.4)'))
+  //.add(b('rect').rect([0, 0], 90).fill('rgba(255,255,0,.4)').pvt([-.5, -.5]))
+  //.add(b('circle').circle([0, 0], 45).fill('rgba(90,0,90,.4)').pvt([.5, .5]))
+  //.add(b('circle').circle([0, 0], 145).fill('rgba(90,0,90,.4)').pvt([0, 0]))
+  //.add(b('path1').path([110, 110], 'M0 0 L90 90 L0 90 L0 0 Z').fill('rgba(90,90,0,.4)')
+  //                                                 .stroke('#000', 5).pvt([1, 1]))
+  //.add(b('path2').npath([110, 110], 'M50 50 L90 90 L50 90 L50 50 Z').fill('rgba(90,90,0,.4)')
+  //                                                 .stroke('#000', 5).pvt([1, 1]))
+  //.add(b('path3').path([110, 110], 'M0 0 L90 90 L0 90 L0 0 Z').fill('rgba(90,90,0,.4)')
+  //                                                 .stroke('#000', 5).pvt([0, .5]))
+  //.add(b('image').image([0, 0], './res/sprite.png'))
+  //.add(b('text').text([0, 0], './res/sprite.png'))
+  //.add(b('sprite').sprite([1, 1], './res/sprite_sample.png', [144, 59]).pvt([0, 0])
+  //        .animate(0, [0, 30], 10).opacity(.5))
+;
+*/
