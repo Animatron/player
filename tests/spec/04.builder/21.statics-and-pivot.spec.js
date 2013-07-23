@@ -312,7 +312,7 @@ describe("static modification", function() {
             player.drawAt(4);
         });
 
-        it("applies all changes done with init()", function() {
+        xit("applies all changes done with init()", function() {
             this.fail('TODO');
         });
 
@@ -322,9 +322,9 @@ describe("static modification", function() {
 
     });
 
-    describe("pivot", function() {
+    xdescribe("pivot", function() {
 
-        it("should be implemented", function() {
+        xit("should be implemented", function() {
             this.fail('TODO');
         });
 

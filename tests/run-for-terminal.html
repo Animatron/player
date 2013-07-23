@@ -38,6 +38,8 @@
        */
 
       function run_tests(on_finish, specs_to_run) {
+        window.__anm_force_window_scope = true;
+
         queue(require)(
                 [ _files['jasmine'],
                   // _files['jasmine.html'],

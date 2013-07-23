@@ -62,7 +62,10 @@
     };
     var _doc = (typeof document !== 'undefined') ? document : null;
     // TODO: var _factory = __anm_factory || { /*...*/ };
-    if (typeof define === 'function' && define.amd) {
+    if (_wnd.__anm_force_window_scope) { // FIXME: Remove
+        _wnd[name] = _wnd[name] || {};
+        produce(_wnd, _doc)(_wnd[name]);
+    } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(produce(_wnd, _doc));
     } else if (typeof module != 'undefined') {
@@ -2478,6 +2481,7 @@ Element.prototype.deepClone = function() {
     if (src_x.path) trg_x.path = src_x.path.clone();
     if (src_x.text) trg_x.text = src_x.text.clone();
     if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
+    trg_x.pos = [].concat(src_x.pos);
     trg_x.pvt = [].concat(src_x.pvt);
     //trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);

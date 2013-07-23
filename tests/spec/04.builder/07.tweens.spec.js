@@ -345,13 +345,13 @@ describe("tweens", function() {
                         bs = { x: 0, y: 0,
                            sx: 1, sy: 1,
                            angle: 0, alpha: 1 };
-                    } },
+                    } }/* TODO: finish ,
                     { description: "changed base state",
                     prepare: function() {
                         bs = { x: 32, y: 17.5,
                            sx: 1.7, sy: 30,
                            angle: Math.PI / 5, alpha: 0.75 };
-                    } } ], function() {
+                    } }*/ ], function() {
 
           describe("the way tweens apply, by type;", function() {
 

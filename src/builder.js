@@ -9,7 +9,10 @@
 
 (function(root, name, produce) {
     // Cross-platform injector
-    if (typeof define === 'function' && define.amd) {
+    if (window && window.__anm_force_window_scope) { // FIXME: Remove
+        // Browser globals
+        root[name] = produce(root.anm);
+    } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(['anm'], produce);
     } else if (typeof module != 'undefined') {
@@ -139,7 +142,9 @@ Builder.prototype.path = function(pt, path) {
 // > builder.npath % (pt: Array[2,Integer],
 //                   path: String | Path) => Builder
 Builder.prototype.npath = function(pt, path) {
-    this.path(pt, Builder.__path(path, this.x.path).clone().normalize());
+    var _npath = Builder.__path(path, this.x.path).clone();
+    _npath.normalize();
+    this.path(pt, _npath);
     return this;
 }
 // > builder.rect % (pt: Array[2,Integer],
