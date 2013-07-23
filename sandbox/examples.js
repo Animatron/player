@@ -147,5 +147,4 @@ return b('scene')
   //.add(b('sprite').sprite([1, 1], './res/sprite_sample.png', [144, 59]).pvt([0, 0])
   //        .animate(0, [0, 30], 10).opacity(.5))
 ;
-
 */
