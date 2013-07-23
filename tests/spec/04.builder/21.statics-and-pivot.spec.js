@@ -330,4 +330,7 @@ describe("static modification", function() {
 
     });
 
+    // TODO: test normalized paths!
+    // TODO: test constants!
+
 });

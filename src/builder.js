@@ -286,9 +286,9 @@ Builder.prototype.nostroke = function() {
 
 // * STATIC MODIFICATION *
 
-C.R_TL = [ -0.5, -0.5 ]; C.R_TC = [ +0.0, -0.5 ]; C.R_TR = [ +0.5, -0.5 ];
-C.R_ML = [ -0.5, +0.0 ]; C.R_MC = [ +0.0, +0.0 ]; C.R_MR = [ +0.5, +0.0 ];
-C.R_BL = [ -0.5, +0.5 ]; C.R_BC = [ +0.0, +0.5 ]; C.R_BR = [ +0.5, +0.5 ];
+C.R_TL = [ 0.0, 0.0 ]; C.R_TC = [ 0.5, 0.0 ]; C.R_TR = [ 1.0, 0.0 ];
+C.R_ML = [ 0.0, 0.5 ]; C.R_MC = [ 0.5, 0.5 ]; C.R_MR = [ 1.0, 0.5 ];
+C.R_BL = [ 0.0, 1.0 ]; C.R_BC = [ 0.5, 1.0 ]; C.R_BR = [ 1.0, 1.0 ];
 // > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 /*Builder.prototype.reg = function(pt) {
     var x = this.x;
@@ -348,11 +348,13 @@ Builder.prototype.apos = function() {
 Builder.prototype.offset = function() {
     return this.v.offset();
 }
-// > builder.zoom % (val: Array[2,Float]) => Builder
+// > builder.zoom % (val: Float) => Builder
 Builder.prototype.zoom = function(val) {
     if (this.x.path) {
         this.x.path.zoom(val);
         //this.path(this.x.path); // will normalize it
+    } else {
+        this.size([ val, val ]);
     }
     return this;
 }
