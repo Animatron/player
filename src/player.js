@@ -56,7 +56,11 @@
     // Cross-platform injector
     var _wnd = (typeof window !== 'undefined') ? window : null;
     var _doc = (typeof document !== 'undefined') ? document : null;
-    if (typeof define === 'function' && define.amd) {
+    // TODO: var _factory = __anm_factory || { /*...*/ };
+    if (_wnd.__anm_force_window_scope) { // FIXME: Remove
+        _wnd[name] = _wnd[name] || {};
+        produce(_wnd, _doc)(_wnd[name]);
+    } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(produce(_wnd, _doc));
     } else if (typeof module != 'undefined') {
@@ -463,7 +467,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
 Player.__instance_listeners = [];
 
 Player.fireNewInstance = function(instance) {
-  for (var i in Player.__instance_listeners) {
+  for (var i = 0, il = Player.__instance_listeners.length;
+       i < il; i++) {
     Player.__instance_listeners[i].call(instance);
   }
 };
@@ -1004,6 +1009,7 @@ Player.prototype._drawLoadingSplash = function(text) {
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
     ctx.fillText(text || Strings.LOADING, 20, 25);
@@ -1014,8 +1020,9 @@ Player.prototype._drawErrorSplash = function(e) {
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
-    ctx.fillStyle = '#600';
-    ctx.font = '16px sans-serif';
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.fillStyle = '#006';
+    ctx.font = '14px sans-serif';
     ctx.fillText(Strings.ERROR +
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 35);
@@ -1394,7 +1401,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
 }
 Scene.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
-        if (elm.visible) elm.fire(type, evt);
+        if (elm.shown) elm.fire(type, evt);
     });
     return true;
 }
@@ -1505,8 +1512,8 @@ C.AC_NAMES[C.C_DARKER] = 'darker';
 C.AC_NAMES[C.C_COPY] = 'copy';
 C.AC_NAMES[C.C_XOR] = 'xor';
 
-Element.DEFAULT_PVT = [ 0, 0 ];
-Element.DEFAULT_REG = [ 0, 0 ];
+Element.DEFAULT_PVT = [ 0.5, 0.5 ];
+//Element.DEFAULT_REG = [ 0.5, 0.5 ];
 
 Element.TYPE_MAX_BIT = 16;
 Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
@@ -1553,7 +1560,8 @@ function Element(draw, onframe) {
     this.children = [];
     this.parent = null;
     this.scene = null;
-    this.visible = false;
+    this.visible = true; // user flag, set by user
+    this.shown = false; // system flag, set by engine
     this.registered = false;
     this.disabled = false;
     this.rendering = false;
@@ -1612,6 +1620,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= as.alpha;
     s._matrix.apply(ctx);
     as._matrix = s._matrix;
+    // FIXME: do not store matrix in a state here,
+    // but return it
 }
 // > Element.render % (ctx: Context, gtime: Float)
 Element.prototype.render = function(ctx, gtime) {
@@ -1631,7 +1641,8 @@ Element.prototype.render = function(ctx, gtime) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
-                 && this.prepare();
+                 && this.prepare()
+                 && this.visible;
     }
     if (drawMe) {
         // update gtime for children, if it was changed by ltime()
@@ -1689,9 +1700,9 @@ Element.prototype.render = function(ctx, gtime) {
                           dbl_scene_width, dbl_scene_height);
         }
     }
-    // immediately when drawn, element becomes visible,
+    // immediately when drawn, element becomes shown,
     // it is reasonable
-    this.visible = drawMe;
+    this.shown = drawMe;
     ctx.restore();
     this.__postRender();
     this.rendering = false;
@@ -2237,8 +2248,9 @@ Element.prototype.deepClone = function() {
     if (src_x.path) trg_x.path = src_x.path.clone();
     if (src_x.text) trg_x.text = src_x.text.clone();
     if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
+    trg_x.pos = [].concat(src_x.pos);
     trg_x.pvt = [].concat(src_x.pvt);
-    trg_x.reg = [].concat(src_x.reg);
+    //trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
     trg_x.gband = [].concat(src_x.gband);
     trg_x.keys = obj_clone(src_x.keys);
@@ -2564,7 +2576,7 @@ Element.prototype.__clearEvts = function(from) {
 Element.prototype.__preRender = function(gtime, ltime, ctx) {
     var cr = this.__frameProcessors;
     for (var i = 0, cl = cr.length; i < cl; i++) {
-        if (cr(gtime, ltime, ctx) === false) return false;
+        if (cr[i].call(this, gtime, ltime, ctx) === false) return false;
     }
     return true;
 }
@@ -2610,7 +2622,7 @@ Element.createState = function(owner) {
 // geometric data of the element
 Element.createXData = function(owner) {
     return { 'pvt': Element.DEFAULT_PVT,      // pivot
-             'reg': Element.DEFAULT_REG,      // registration point
+             /*'reg': Element.DEFAULT_REG,*/  // registration point
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
@@ -2636,13 +2648,11 @@ Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPvt);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
-    /* elm.__paint({ type: Element.DEBUG_PNT,
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawName);
+    elm.__paint({ type: Element.DEBUG_PNT,
                      priority: 1 },
-                   Render.p_drawMPath); */
-
-    elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
+                   Render.p_drawMPath);
 }
 Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
@@ -2967,16 +2977,17 @@ Render.loop = __r_loop;
 Render.at = __r_at;
 Render._drawFPS = __r_fps;
 
-Render.p_drawPvt = function(ctx, pvt) {
+Render.p_drawPivot = function(ctx, pvt) {
     if (!(pvt = pvt || this.pvt)) return;
-    var dimen = this.$.dimen();
-    if (!dimen) return;
+    var dimen = this.$.dimen() || [ 0, 0 ];
+    var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
+    // WHY it is required??
     ctx.translate(pvt[0] * dimen[0],
                   pvt[1] * dimen[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
-    ctx.strokeStyle = '#600';
+    ctx.strokeStyle = stokeStyle;
     ctx.moveTo(0, -10);
     ctx.lineTo(0, 0);
     ctx.moveTo(3, 0);
@@ -3015,12 +3026,14 @@ Render.p_usePivot = function(ctx) {
                   -(pvt[1] * dimen[1]));
 }
 
-Render.h_drawMPath = function(ctx, mPath) {
-    if (!(mPath = mPath || this.state._mpath)) return;
+Render.p_drawMPath = function(ctx, mPath) {
+    if (!(mPath = mPath || this.$.state._mpath)) return;
     ctx.save();
-    var s = this.state;
-    Render.p_usePivot.call(this.xdata, ctx);
+    //var s = this.$.astate;
+    //Render.p_usePivot.call(this.xdata, ctx);
     mPath.cstroke('#600', 2.0);
+    //ctx.translate(-s.x, -s.y);
+    //ctx.rotate(-s.angle);
     ctx.beginPath();
     mPath.apply(ctx);
     ctx.closePath();
@@ -3277,10 +3290,11 @@ C.PC_SQUARE = 'square';
 C.PC_BEVEL = 'bevel';
 
 // > Path % (str: String)
-function Path(str, fill, stroke) {
+function Path(str, fill, stroke, shadow) {
     this.str = str;
     this.fill = fill;
     this.stroke = stroke;
+    this.shadow = shadow;
     this.segs = [];
     this.parse(str);
 }
@@ -3330,6 +3344,7 @@ Path.prototype.apply = function(ctx) {
     var p = this;
     Path.applyF(ctx, p.fill || Path.DEFAULT_FILL,
                      p.stroke || Path.DEFAULT_STROKE,
+                     p.shadow,
              function() { p.visit(Path._applyVisitor, ctx); });
 
     /* ctx.save();
@@ -3526,11 +3541,12 @@ Path.prototype.clone = function() {
 Path.prototype.dispose = function() { }
 
 
-Path.applyF = function(ctx, fill, stroke, func) {
+Path.applyF = function(ctx, fill, stroke, shadow, func) {
     ctx.save();
     ctx.beginPath();
     Brush.fill(ctx, fill);
     Brush.stroke(ctx, stroke);
+    Brush.shadow(ctx, shadow);
     func();
 
     if (Brush._hasVal(fill)) ctx.fill();
@@ -3835,11 +3851,12 @@ CSeg.prototype._calc_params = function(start) {
 // -----------------------------------------------------------------------------
 
 function Text(lines, font,
-              fill, stroke) {
+              fill, stroke, shadow) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
+    this.shadow = shadow;
     this._bnds = null;
 }
 
@@ -3860,7 +3877,9 @@ Text.prototype.apply = function(ctx, point, baseline) {
     ctx.font = this.font;
     ctx.textBaseline = baseline || Text.BASELINE_RULE;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
+
     if (Brush._hasVal(this.fill)) {
+        Brush.shadow(ctx, this.shadow);
         Brush.fill(ctx, this.fill);
         ctx.save();
         this.visitLines(function(line) {
@@ -3870,6 +3889,7 @@ Text.prototype.apply = function(ctx, point, baseline) {
         ctx.restore();
     }
     if (Brush._hasVal(this.stroke)) {
+        Brush.shadow(ctx, this.shadow);
         Brush.stroke(ctx, this.stroke);
         ctx.save();
         this.visitLines(function(line) {
@@ -3919,7 +3939,7 @@ Text.prototype.visitLines = function(func, data) {
 }
 Text.prototype.clone = function() {
     var c = new Text(this.lines, this.font,
-                     this.fill, this.stroke);
+                     this.fill, this.stroke, this.shadow);
     if (this.lines && Array.isArray(this.lines)) {
         c.lines = [].concat(this.lines);
     }
@@ -3999,6 +4019,13 @@ Brush.stroke = function(ctx, stroke) {
 Brush.fill = function(ctx, fill) {
     if (!fill) return;
     ctx.fillStyle = Brush.create(ctx, fill);
+}
+Brush.shadow = function(ctx, shadow) {
+    if (!shadow) return;
+    ctx.shadowColor = shadow.color;
+    ctx.shadowBlur = shadow.blurRadius;
+    ctx.shadowOffsetX = shadow.offsetX;
+    ctx.shadowOffsetY = shadow.offsetY;
 }
 Brush._hasVal = function(fsval) {
     return (fsval && (fsval.color || fsval.lgrad || fsval.rgrad));

@@ -59,17 +59,33 @@
     this._audio.play();
   };
 
+  E.prototype._audio_stopPlay = function() {
+    this._audio.pause();
+    var ndx = P.__playing_audio.indexOf(this);
+    if (ndx >= 0) {
+      P.__playing_audio.splice(ndx, 1);
+    }
+
+    this._audio_is_playing = false;
+  };
+
   // Element functions
   // ----------------------------------------------------------------------------------------------------------------
 
-  var _audio_customRender = function(ctx, gtime) {
+  var _audio_customRender = function(gtime, ltime, ctx) {
     if (!this._audio_is_loaded || !P.playerIsPlaying) {
       return false;
     }
 
-    var ltime = this.ltime(gtime);
-    if (ltime >= 0 && !this._audio_is_playing) {
+    var bandEnded = ltime + this.xdata.lband[0] >= this.xdata.lband[1];
+
+    //var ltime = this.ltime(gtime);
+    if (!this._audio_is_playing && ltime >= 0 && !bandEnded) {
       this._audio_schedulePlay(ltime);
+    }
+
+    if (this._audio_is_playing && bandEnded) {
+      this._audio_stopPlay();
     }
 
     return false;
