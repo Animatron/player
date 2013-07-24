@@ -4181,10 +4181,10 @@ Text.prototype.dimen = function() {
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
-    if (__str(this.lines)) {
-        buff.textContent = this.lines;
-    } else {
+    if (this.lines instanceof Array) {
         buff.textContent = this.lines.join('<br/>');
+    } else {
+        buff.textContent = this.lines.toString();
     }
     return (this._dimen = [ buff.offsetWidth,
                             buff.offsetHeight ]);
@@ -4224,14 +4224,14 @@ Text.prototype.cfill = function(color) {
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
-    if (__str(lines)) {
-        func(lines, data);
-    } else {
+    if (lines instanceof Array) {
         var line;
         for (var i = 0, ilen = lines.length; i < ilen; i++) {
             line = lines[i];
             func(line, data);
         }
+    } else {
+        func(lines.toString(), data);
     }
 }
 Text.prototype.clone = function() {
