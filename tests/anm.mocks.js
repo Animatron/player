@@ -85,6 +85,7 @@ mocks.factory.context2d = function() {
         'scale': __nop,
         'globalAlpha': 1,
         'globalCompositeOperation': 'source-over',
+        'setTransform': __nop,
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
     };
 };

@@ -62,7 +62,10 @@
     };
     var _doc = (typeof document !== 'undefined') ? document : null;
     // TODO: var _factory = __anm_factory || { /*...*/ };
-    if (typeof define === 'function' && define.amd) {
+    if (_wnd.__anm_force_window_scope) { // FIXME: Remove
+        _wnd[name] = _wnd[name] || {};
+        produce(_wnd, _doc)(_wnd[name]);
+    } else if (typeof define === 'function' && define.amd) {
         // AMD. Register as an anonymous module.
         define(produce(_wnd, _doc));
     } else if (typeof module != 'undefined') {
@@ -1145,6 +1148,7 @@ Player.prototype._drawLoadingSplash = function(text) {
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
     ctx.fillText(text || Strings.LOADING, 20, 25);
@@ -1154,8 +1158,9 @@ Player.prototype._drawErrorSplash = function(e) {
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
-    ctx.font = '12px sans-serif';
+    ctx.font = '14px sans-serif';
     ctx.fillText(Strings.ERROR +
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 25);
@@ -1740,8 +1745,8 @@ C.AC_NAMES[C.C_DARKER] = 'darker';
 C.AC_NAMES[C.C_COPY] = 'copy';
 C.AC_NAMES[C.C_XOR] = 'xor';
 
-Element.DEFAULT_PVT = [ 0, 0 ];
-Element.DEFAULT_REG = [ 0, 0 ];
+Element.DEFAULT_PVT = [ 0.5, 0.5 ];
+//Element.DEFAULT_REG = [ 0.5, 0.5 ];
 
 Element.TYPE_MAX_BIT = 16;
 Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
@@ -1848,6 +1853,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= as.alpha;
     s._matrix.apply(ctx);
     as._matrix = s._matrix;
+    // FIXME: do not store matrix in a state here,
+    // but return it
 }
 // > Element.render % (ctx: Context, gtime: Float)
 Element.prototype.render = function(ctx, gtime) {
@@ -2474,8 +2481,9 @@ Element.prototype.deepClone = function() {
     if (src_x.path) trg_x.path = src_x.path.clone();
     if (src_x.text) trg_x.text = src_x.text.clone();
     if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
+    trg_x.pos = [].concat(src_x.pos);
     trg_x.pvt = [].concat(src_x.pvt);
-    trg_x.reg = [].concat(src_x.reg);
+    //trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
     trg_x.gband = [].concat(src_x.gband);
     trg_x.keys = obj_clone(src_x.keys);
@@ -2847,7 +2855,7 @@ Element.createState = function(owner) {
 // geometric data of the element
 Element.createXData = function(owner) {
     return { 'pvt': Element.DEFAULT_PVT,      // pivot
-             'reg': Element.DEFAULT_REG,      // registration point
+             /*'reg': Element.DEFAULT_REG,*/  // registration point
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
@@ -2873,13 +2881,11 @@ Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawPvt);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawName);
-    /* elm.__paint({ type: Element.DEBUG_PNT,
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawName);
+    elm.__paint({ type: Element.DEBUG_PNT,
                      priority: 1 },
-                   Render.p_drawMPath); */
-
-    elm.on(C.X_DRAW, Render.h_drawMPath); // to call out of the 2D context changes
+                   Render.p_drawMPath);
 }
 Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
@@ -3214,16 +3220,17 @@ Render.loop = __r_loop;
 Render.at = __r_at;
 Render._drawFPS = __r_fps;
 
-Render.p_drawPvt = function(ctx, pvt) {
+Render.p_drawPivot = function(ctx, pvt) {
     if (!(pvt = pvt || this.pvt)) return;
-    var dimen = this.$.dimen();
-    if (!dimen) return;
+    var dimen = this.$.dimen() || [ 0, 0 ];
+    var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
+    // WHY it is required??
     ctx.translate(pvt[0] * dimen[0],
                   pvt[1] * dimen[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
-    ctx.strokeStyle = '#600';
+    ctx.strokeStyle = stokeStyle;
     ctx.moveTo(0, -10);
     ctx.lineTo(0, 0);
     ctx.moveTo(3, 0);
@@ -3262,12 +3269,13 @@ Render.p_usePivot = function(ctx) {
                   -(pvt[1] * dimen[1]));
 }
 
-Render.h_drawMPath = function(ctx, mPath) {
-    if (!(mPath = mPath || this.state._mpath)) return;
+Render.p_drawMPath = function(ctx, mPath) {
+    if (!(mPath = mPath || this.$.state._mpath)) return;
     ctx.save();
-    var s = this.state;
-    Render.p_usePivot.call(this, ctx);
+    //var s = this.$.astate;
     mPath.cstroke('#600', 2.0);
+    //ctx.translate(-s.x, -s.y);
+    //ctx.rotate(-s.angle);
     ctx.beginPath();
     mPath.apply(ctx);
     ctx.closePath();
