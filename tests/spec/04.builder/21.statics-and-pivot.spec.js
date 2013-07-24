@@ -332,5 +332,7 @@ describe("static modification", function() {
 
     // TODO: test normalized paths!
     // TODO: test constants!
+    // TODO: test xdata.reg (non-relative shift) among with xdata.pvt (relative shift)
+    // TODO: test coordinates in painters
 
 });

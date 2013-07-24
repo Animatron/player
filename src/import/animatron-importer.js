@@ -71,7 +71,6 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     var target = new Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?,
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
-    this._collectDynamicData(target, clip, in_band);
     if (clip.eid) {
         var inner = this.findElement(clip.eid, source);
         if (!inner.eid && !inner.layers) {
@@ -113,6 +112,7 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             }
         }
     }
+    this._collectDynamicData(target, clip, in_band);
     // FIXME: it is a not good way to do it, ask tool developers to return band for such elements
     if ((target.xdata.mode != C.R_ONCE) &&
         (target.children.length > 0) &&
@@ -136,7 +136,8 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     x.lband = Convert.band(clip.band);
     x.gband = in_band ? Bands.wrap(in_band, x.lband)
                       : x.lband;
-    x.reg = clip.reg || [0, 0];
+    x.pvt = [ 0, 0 ];
+    x.reg = clip.reg || [ 0, 0 ];
     // 'on-end' is the old-style end, 'end' is the current-style
     x.mode = clip['end'] ? Convert.mode(clip['end'].type)
                          : Convert.oldschool_mode(clip['on-end']);
