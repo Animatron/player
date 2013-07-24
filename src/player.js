@@ -4181,7 +4181,7 @@ Text.prototype.dimen = function() {
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
-    if (this.lines instanceof Array) {
+    if (__arr(this.lines)) {
         buff.textContent = this.lines.join('<br/>');
     } else {
         buff.textContent = this.lines.toString();
@@ -4224,7 +4224,7 @@ Text.prototype.cfill = function(color) {
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
-    if (lines instanceof Array) {
+    if (__arr(lines)) {
         var line;
         for (var i = 0, ilen = lines.length; i < ilen; i++) {
             line = lines[i];
