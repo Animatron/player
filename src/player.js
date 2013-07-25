@@ -637,6 +637,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__startTime = Date.now();
     state.__redraws = 0;
     state.__rsec = 0;
+    state.__prevt = 0;
 
     state.__supressFrames = false;
 
@@ -862,9 +863,11 @@ Player.prototype.drawAt = function(time) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     this.anim.reset();
+
+    thi
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, this.ctx, this.state, this.anim,
+    __r_at(time, 0, this.ctx, this.state, this.anim,
            this.__userBeforeRender, this.__userAfterRender);
 
     if (this.controls) {
@@ -1384,7 +1387,7 @@ Scene.prototype.visitRoots = function(visitor, data) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.render = function(ctx, time, zoom) {
+Scene.prototype.render = function(ctx, time, dt, zoom) {
     ctx.save();
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -1394,7 +1397,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
         ctx.fillRect(0, 0, this.width, this.height);
     }
     this.visitRoots(function(elm) {
-        elm.render(ctx, time);
+        elm.render(ctx, time, dt);
     });
     ctx.restore();
     this.fire(C.X_DRAW,ctx);
@@ -1549,7 +1552,7 @@ Element.ALL_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT,
 Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 
 // > Element % (draw: Function(ctx: Context),
-//               onframe: Function(time: Float))
+//              onframe: Function(time: Float))
 function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
@@ -1600,13 +1603,13 @@ Element.prototype.prepare = function() {
     this.state._matrix.reset();
     return true;
 }
-// > Element.onframe % (gtime: Float) => Boolean
-Element.prototype.onframe = function(ltime) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime);
+// > Element.onframe % (ltime: Float, dt: Float) => Boolean
+Element.prototype.onframe = function(ltime, dt) {
+    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, dt);
 }
-// > Element.drawTo % (ctx: Context)
-Element.prototype.drawTo = function(ctx) {
-    return this.__callPainters(Element.ALL_PAINTERS, ctx);
+// > Element.drawTo % (ctx: Context, t: Float, dt: Float)
+Element.prototype.drawTo = function(ctx, t, dt) {
+    return this.__callPainters(Element.ALL_PAINTERS, ctx, t, dt);
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.drawTo
@@ -1623,8 +1626,8 @@ Element.prototype.transform = function(ctx) {
     // FIXME: do not store matrix in a state here,
     // but return it
 }
-// > Element.render % (ctx: Context, gtime: Float)
-Element.prototype.render = function(ctx, gtime) {
+// > Element.render % (ctx: Context, gtime: Float, dt: Float)
+Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
     this.rendering = true;
     // context is saved even before decision, if we draw or not, for safety:
@@ -1640,7 +1643,7 @@ Element.prototype.render = function(ctx, gtime) {
     drawMe = this.__preRender(gtime, ltime, ctx);
     if (drawMe) {
         drawMe = this.fits(ltime)
-                 && this.onframe(ltime)
+                 && this.onframe(ltime, dt)
                  && this.prepare()
                  && this.visible;
     }
@@ -1650,9 +1653,9 @@ Element.prototype.render = function(ctx, gtime) {
         if (!this.__mask) {
             // draw directly to context, if has no mask
             this.transform(ctx);
-            this.draw(ctx);
+            this.draw(ctx, ltime, dt);
             this.visitChildren(function(elm) {
-                elm.render(ctx, gtime);
+                elm.render(ctx, gtime, dt);
             });
         } else {
             // draw to back canvas, if has
@@ -1679,9 +1682,9 @@ Element.prototype.render = function(ctx, gtime) {
             bctx.translate(scene_width, scene_height);
             this.transform(bctx);
             this.visitChildren(function(elm) {
-                elm.render(bctx, gtime);
+                elm.render(bctx, gtime, dt);
             });
-            this.draw(bctx);
+            this.draw(bctx, ltime, dt);
             bctx.restore();
             bctx.globalCompositeOperation = 'destination-in';
 
@@ -1689,7 +1692,7 @@ Element.prototype.render = function(ctx, gtime) {
             mctx.clearRect(0, 0, dbl_scene_width,
                                  dbl_scene_height);
             mctx.translate(scene_width, scene_height);
-            this.__mask.render(mctx, gtime);
+            this.__mask.render(mctx, gtime, dt);
             mctx.restore();
 
             bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
@@ -2076,7 +2079,7 @@ Element.prototype.unlock = function() {
 }
 Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
-    var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t);
+    var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t, 0);
     var state = this.unlock();
     return success ? Element._mergeStates(this.bstate, state) : null;
 }
@@ -2322,7 +2325,7 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
                     __adjust(elm_duration) ];
   return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
-Element.prototype.__callModifiers = function(order, ltime) {
+Element.prototype.__callModifiers = function(order, ltime, dt) {
     return (function(elm) {
 
         // save the previous state
@@ -2352,7 +2355,7 @@ Element.prototype.__callModifiers = function(order, ltime) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime[0], lbtime[1], conf.data);
+                return modifier.call(elm._state, lbtime[0], dt, lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -2383,11 +2386,11 @@ Element.prototype.__callModifiers = function(order, ltime) {
         return true;
     })(this);
 }
-Element.prototype.__callPainters = function(order, ctx) {
+Element.prototype.__callPainters = function(order, ctx, t, dt) {
     (function(elm) {
         elm.__forAllPainters(order,
             function(painter, conf) { /* each painter */
-                painter.call(elm.xdata, ctx, conf.data);
+                painter.call(elm.xdata, ctx, conf.data, t, dt);
             }, function(type) { /* before each new type */
                 elm.__painting = type;
                 elm.__pbefore(ctx, type);
@@ -2665,8 +2668,8 @@ Element.__addTweenModifier = function(elm, conf) {
     if (conf.relative) {
       m_tween = tween_f;
     } else {
-      m_tween = function(t, duration, data) {
-        return tween_f.call(this, t / duration, duration, data);
+      m_tween = function(t, dt, duration, data) {
+        return tween_f.call(this, t / duration, dt, duration, data);
       };
     }
     return elm.__modify({ type: Element.TWEEN_MOD,
@@ -2880,8 +2883,11 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
     var msec = (Date.now() - pl_state.__startTime);
     var sec = msec / 1000;
 
-    var time = (sec * pl_state.speed) + pl_state.from;
+    var time = (sec * pl_state.speed) + pl_state.from,
+        dt = time - pl_state.__prevt;
     pl_state.time = time;
+    pl_state.__dt = dt;
+    pl_state.__prevt = time;
 
     if (before) {
         if (!before(time)) return;
@@ -2895,7 +2901,7 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
     }
     pl_state.__redraws++;
 
-    __r_at(time, ctx, pl_state, scene, before_render, after_render);
+    __r_at(time, dt, ctx, pl_state, scene, before_render, after_render);
 
     // show fps
     if (pl_state.debug) { // TODO: move to player.onrender
@@ -2912,7 +2918,7 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
         __r_loop(ctx, pl_state, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, ctx, pl_state, scene, before, after) {
+function __r_at(time, dt, ctx, pl_state, scene, before, after) {
     ctx.save();
     var ratio = pl_state.ratio;
     if (ratio != 1) ctx.scale(ratio, ratio);
@@ -2922,7 +2928,7 @@ function __r_at(time, ctx, pl_state, scene, before, after) {
         ctx.clearRect(0, 0, scene.width,
                           scene.height);
         if (before) before(time, ctx);
-        scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+        scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
         if (after) after(time, ctx);
         ctx.restore();
     } else {
@@ -2931,7 +2937,7 @@ function __r_at(time, ctx, pl_state, scene, before, after) {
             function(_scale) {
               ctx.clearRect(0, 0, scene.width, scene.height);
               if (before) before(time, ctx);
-              scene.render(ctx, time, pl_state.zoom/*, pl_state.afps*/);
+              scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
               if (after) after(time, ctx);
               ctx.restore();
             });
@@ -3158,14 +3164,14 @@ Tween.TWEENS_COUNT = 6;
 var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
-      return function(t, duration, data) {
+      return function(t, dt, duration, data) {
         this.angle = data[0] * (1 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
 Tweens[C.T_TRANSLATE] =
     function() {
-      return function(t, duration, data) {
+      return function(t, dt, duration, data) {
           var p = data.pointAt(t);
           this._mpath = data;
           this.x = p[0];
@@ -3174,27 +3180,27 @@ Tweens[C.T_TRANSLATE] =
     };
 Tweens[C.T_ALPHA] =
     function() {
-      return function(t, duration, data) {
+      return function(t, dt, duration, data) {
         this.alpha = data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
     function() {
-      return function(t, duration, data) {
+      return function(t, dt, duration, data) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 Tweens[C.T_ROT_TO_PATH] =
     function() {
-      return function(t, duration, data) {
+      return function(t, dt, duration, data) {
         var path = this._mpath;
         if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 Tweens[C.T_SHEAR] =
     function() {
-      return function(t, duration, data) {
+      return function(t, dt, duration, data) {
         // TODO
       };
     };
