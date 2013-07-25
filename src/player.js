@@ -1513,7 +1513,7 @@ C.AC_NAMES[C.C_COPY] = 'copy';
 C.AC_NAMES[C.C_XOR] = 'xor';
 
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
-//Element.DEFAULT_REG = [ 0.5, 0.5 ];
+Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
 Element.TYPE_MAX_BIT = 16;
 Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
@@ -2250,7 +2250,7 @@ Element.prototype.deepClone = function() {
     if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
     trg_x.pos = [].concat(src_x.pos);
     trg_x.pvt = [].concat(src_x.pvt);
-    //trg_x.reg = [].concat(src_x.reg);
+    trg_x.reg = [].concat(src_x.reg);
     trg_x.lband = [].concat(src_x.lband);
     trg_x.gband = [].concat(src_x.gband);
     trg_x.keys = obj_clone(src_x.keys);
@@ -2621,8 +2621,8 @@ Element.createState = function(owner) {
 };
 // geometric data of the element
 Element.createXData = function(owner) {
-    return { 'pvt': Element.DEFAULT_PVT,      // pivot
-             /*'reg': Element.DEFAULT_REG,*/  // registration point
+    return { 'pvt': Element.DEFAULT_PVT,      // pivot (relative to dimensions)
+             'reg': Element.DEFAULT_REG,      // registration point (static values)
              'path': null,     // Path instanse, if it is a shape
              'text': null,     // Text data, if it is a text (`path` holds stroke and fill)
              'sheet': null,    // Sheet instance, if it is an image or a sprite sheet
@@ -2644,11 +2644,13 @@ Element.__addSysModifiers = function(elm) {
 }
 Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_usePivot);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_useReg);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
 }
 Element.__addDebugRender = function(elm) {
     elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
+    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawReg);
     elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawName);
     elm.__paint({ type: Element.DEBUG_PNT,
                      priority: 1 },
@@ -2998,6 +3000,32 @@ Render.p_drawPivot = function(ctx, pvt) {
     ctx.restore();
 }
 
+Render.p_drawReg = function(ctx, reg) {
+    if (!(reg = reg || this.reg)) return;
+    ctx.save();
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = '#00f';
+    ctx.fillStyle = 'rgba(0,0,255,.3)';
+    // WHY it is required??
+    ctx.translate(reg[0], reg[1]);
+    ctx.beginPath();
+    ctx.moveTo(-4, -4);
+    ctx.lineTo(4, -4);
+    ctx.lineTo(4, 4);
+    ctx.lineTo(-4, 4);
+    ctx.lineTo(-4, -4);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.beginPath();
+    ctx.moveTo(0, -10);
+    ctx.lineTo(0, 0);
+    ctx.moveTo(3, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+}
+// TODO: p_drawReg
+
 Render.p_drawXData = function(ctx) {
     var subj = this.path || this.text || this.sheet;
     if (!subj) return;
@@ -3015,6 +3043,12 @@ Render.p_drawName = function(ctx, name) {
 
 Render.p_applyAComp = function(ctx) {
     if (this.acomp) ctx.globalCompositeOperation = C.AC_NAMES[this.acomp];
+}
+
+Render.p_useReg = function(ctx) {
+    var reg = this.reg;
+    if ((reg[0] === 0) && (reg[1] === 0)) return;
+    ctx.translate(-reg[0], -reg[1]);
 }
 
 Render.p_usePivot = function(ctx) {
@@ -3927,14 +3961,14 @@ Text.prototype.cfill = function(color) {
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
-    if (__str(lines)) {
-        func(lines, data);
-    } else {
+    if (__arr(lines)) {
         var line;
         for (var i = 0, ilen = lines.length; i < ilen; i++) {
             line = lines[i];
             func(line, data);
         }
+    } else {
+        func(lines.toString(), data);
     }
 }
 Text.prototype.clone = function() {
@@ -4950,11 +4984,10 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
             buff = $DE.__textBuf;
         }
         return function(text) {
-            buff.style.font = text.font;
-            if (__str(text.lines)) {
-                buff.textContent = text.lines;
+            if (__arr(this.lines)) {
+                buff.textContent = this.lines.join('<br/>');
             } else {
-                buff.textContent = text.lines.join('<br/>');
+                buff.textContent = this.lines.toString();
             }
             // TODO: test if lines were changed, and if not,
             //       use cached value

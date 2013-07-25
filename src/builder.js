@@ -291,12 +291,12 @@ C.R_TL = [ 0.0, 0.0 ]; C.R_TC = [ 0.5, 0.0 ]; C.R_TR = [ 1.0, 0.0 ];
 C.R_ML = [ 0.0, 0.5 ]; C.R_MC = [ 0.5, 0.5 ]; C.R_MR = [ 1.0, 0.5 ];
 C.R_BL = [ 0.0, 1.0 ]; C.R_BC = [ 0.5, 1.0 ]; C.R_BR = [ 1.0, 1.0 ];
 // > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
-/*Builder.prototype.reg = function(pt) {
+Builder.prototype.reg = function(pt) {
     var x = this.x;
     if (!pt) return x.reg;
     x.reg = pt || x.reg;
     return this;
-}*/
+}
 // > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 Builder.prototype.pvt = function(pt) {
     var x = this.x;
