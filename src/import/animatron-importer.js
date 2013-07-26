@@ -144,9 +144,17 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
     x.nrep = (clip['end'] && (clip['end'].counter !== undefined))
                          ? clip['end'].counter : Infinity;
     if (clip.tweens) {
+        var translate;
         for (var tweens = clip.tweens, ti = 0, tl = tweens.length;
              ti < tl; ti++) {
+            if (tweens[ti].type == 'Translate') translate = tweens[ti];
             to.addTween(Convert.tween(tweens[ti]));
+        }
+        if (translate && clip['rotate-to-path']) {
+            to.addTween({
+                type: C.T_ROT_TO_PATH,
+                band: translate.band
+            });
         }
     }
 };
