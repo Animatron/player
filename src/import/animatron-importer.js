@@ -71,13 +71,14 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
     var target = new Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?,
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
+    var props = analyze_id(clip.id);
     if (clip.eid) {
         var inner = this.findElement(clip.eid, source);
         if (!inner.eid && !inner.layers) {
             // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
-            this._collectStaticData(target, inner);
+            this._collectStaticData(target, inner, props);
             if (target.collectCustomData) {
-              target.collectCustomData(inner);
+                target.collectCustomData(inner);
             }
         } else {
             // FIXME: consider returning this element, but not adding it
@@ -89,7 +90,7 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
         // in animatron. layers are in reverse order
         for (var li = _layers.length; li--;) {
             var layer_src = _layers[li],
-                layer_trg = this.importElement(layer_src, source, target.xdata.gband);
+                layer_trg = this.importElement(layer_src, source, target.xdata.gband, props);
             if (!layer_src.masked) {
                 // layer is a normal one
                 target.add(layer_trg);
@@ -112,7 +113,7 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
             }
         }
     }
-    this._collectDynamicData(target, clip, in_band);
+    this._collectDynamicData(target, clip, in_band, props);
     // FIXME: it is a not good way to do it, ask tool developers to return band for such elements
     if ((target.xdata.mode != C.R_ONCE) &&
         (target.children.length > 0) &&
@@ -129,13 +130,19 @@ AnimatronImporter.prototype.findElement = function(id, source) {
 }
 
 // collect required data from source layer
-AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
+AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band, props) {
     if (!to.name && clip.name) to.name = clip.name;
     if (clip.visible === false) to.disabled = true; // to.visible = false;
     var x = to.xdata;
-    x.lband = Convert.band(clip.band);
-    x.gband = in_band ? Bands.wrap(in_band, x.lband)
-                      : x.lband;
+    if (props.isGlobalBand) {
+        x.gband = clip.band;
+        x.lband = [ clip.band[0] - in_band[0],
+                    clip.band[1] - in_band[1] ];
+    } else {
+        x.lband = Convert.band(clip.band);
+        x.gband = in_band ? Bands.wrap(in_band, x.lband)
+                          : x.lband;
+    }
     x.pvt = [ 0, 0 ];
     x.reg = clip.reg || [ 0, 0 ];
     // 'on-end' is the old-style end, 'end' is the current-style
@@ -158,11 +165,10 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
         }
     }
 };
-AnimatronImporter.prototype._collectStaticData = function(to, src) {
+AnimatronImporter.prototype._collectStaticData = function(to, src, props) {
     if (!to.name) to.name = src.name;
-    // todo: make opposite check (if IS IMAGE or SHEET, etc)
-    var isAudio = src.id.substr(src.id.length - 2) === "0e";
-    to.xdata.sheet = src.url && !isAudio ? new anm.Sheet(src.url) : null;
+
+    to.xdata.sheet = (src.url && !props.isAudio) ? new anm.Sheet(src.url) : null;
     to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke, src.shadow)
                              : null;
     to.xdata.text = src.text ? Convert.text(src.text, src.font,
@@ -171,6 +177,15 @@ AnimatronImporter.prototype._collectStaticData = function(to, src) {
 };
 
 // ** CONVERTION **
+
+function analyze_id(id) {
+    if (id.length !== 24) throw new Error('Invalid element id ' + id);
+    return {
+        hasGlobalBand: (id.substring(id.length - 2) === "09"),
+        // todo: make opposite check (if IS IMAGE or SHEET, etc)
+        isAudio: (id.substring(id.length - 2) === "0e")
+    };
+}
 
 var Convert = {}
 Convert.tween = function(tween) {
