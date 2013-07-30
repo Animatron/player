@@ -1,3 +1,31 @@
+v0.9.14 / Fri Jul 26 2013 14:18:06 +0200 / 09f66d20225dee4ac861947bb45d61e34dbd25fd
+===================================================================================
+
+Features:
+
+* Base state (static state for every element)
+* Pivot support
+
+Fixes:
+
+* Sandbox stability
+* Rotate-to-path tween when importing from Animatron
+* Sevearal more importing fixes
+* Rendering numbers for text (by @ahollenbach)
+
+v0.9.13 / Fri Jul 19 2013 14:10:43 +0200 / e9c5025e17afb435481414d5f0435cb430289299
+===================================================================================
+
+Features:
+
+* Basic audio support
+* Shadows by @alexeypegov
+
+Fixes:
+
+* Calculate internal time for children
+* Do not show invisible elements
+
 v0.9.122 / Tue Jul 02 2013 01:19:41 +0200 / 9287bed0629f395268cc8dd98c1fba86d44228fc
 ====================================================================================
 
