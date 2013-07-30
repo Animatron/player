@@ -64,16 +64,26 @@ AnimatronImporter.prototype.load = function(prj) {
 
 AnimatronImporter.prototype.importScene = function(scene_id, source) {
     var scene = new Scene();
-    scene.add(this.importElement(this.findElement(scene_id, source), source));
+    scene.add(this.importNode(this.findNode(scene_id, source), source));
     return scene;
 }
-AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
-    var target = new Element();
+AnimatronImporter.prototype.importElement = function(trg, src, props) {
+
+}
+AnimatronImporter.prototype.importLayer = function(trg, src) {
+
+}
+AnimatronImporter.prototype.importNode = function(trg, src, in_band) {
+//AnimatronImporter.prototype.importElement = function(trg, src, in_band) {
+    if (src.eid) return this.importElement(src);
+    if (src.layers) return this.importLayer(src);
+
+    /*var target = new Element();
     // ( id, name?, reg?, band?, eid?, tweens?, layers?,
     //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
-    var props = analyze_id(clip.id);
     if (clip.eid) {
         var inner = this.findElement(clip.eid, source);
+        var props = analyze_id(clip.eid);
         if (!inner.eid && !inner.layers) {
             // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
             this._collectStaticData(target, inner, props);
@@ -120,17 +130,17 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
         (!test.finite(target.xdata.gband[1]))) {
         target.makeBandFit();
     }
-    return target;
+    return target; */
 }
-AnimatronImporter.prototype.findElement = function(id, source) {
+AnimatronImporter.prototype.findNode = function(id, source) {
     for (var i = 0; i < source.length; i++) {
         if (source[i].id === id) return source[i];
     }
-    throw new Error("Element with id " + id + " was not found in passed source");
+    throw new Error("Node with id " + id + " was not found in passed source");
 }
 
 // collect required data from source layer
-AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band, props) {
+AnimatronImporter.prototype._collectLayerData = function(to, clip, in_band, props) {
     if (!to.name && clip.name) to.name = clip.name;
     if (clip.visible === false) to.disabled = true; // to.visible = false;
     var x = to.xdata;
@@ -165,7 +175,7 @@ AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band, pr
         }
     }
 };
-AnimatronImporter.prototype._collectStaticData = function(to, src, props) {
+AnimatronImporter.prototype._collectElementData = function(to, src, props) {
     if (!to.name) to.name = src.name;
 
     to.xdata.sheet = (src.url && !props.isAudio) ? new anm.Sheet(src.url) : null;
