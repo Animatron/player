@@ -107,9 +107,9 @@ AnimatronImporter.prototype.convertNode = function(src, all) {
         for (var li = _layers.length; li--;) {
             var lsrc = _layers[li],
                 ltype = extract_type(lsrc.eid);
-            // recursively check if layer element is a group or not and returns the element
+            // recursively check if layer element is a group or not and return the element
             var ltrg = this.convertNode(this.findNode(lsrc.eid, all), all);
-            if (!ltrg.name) ltrg.name = lsrc.name;
+            if (!ltrg.name) { ltrg.name = lsrc.name; }
             this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
             if (!lsrc.masked) {
                 // layer is a normal one
@@ -169,9 +169,11 @@ AnimatronImporter.prototype._transferLayerData = function(src, trg, in_band, typ
     if (src.visible === false) trg.disabled = true; // to.visible = false;
     var x = trg.xdata;
     if (type == TYPE_GROUP) {
-        x.gband = src.band;
-        x.lband = [ src.band[0] - in_band[0],
-                    src.band[1] - in_band[0] ];
+        x.gband = [ 0, Infinity ];
+        x.lband = [ 0, Infinity ];
+        // x.gband = Convert.band(src.band);
+        // x.lband = [ x.gband[0] - in_band[0],
+        //             x.gband[1] - in_band[0] ];
     } else {
         x.lband = Convert.band(src.band);
         x.gband = in_band ? Bands.wrap(in_band, x.lband)
@@ -368,7 +370,7 @@ Convert.band = function(from) {
     return [ 0, Infinity ];
 }
 Convert.mode = function(from) {
-    if (!from) return C.R_ONCE;
+    if (!from) return C.R_LOOP;
     if (from === "once") return C.R_ONCE;
     if (from === "stay") return C.R_STAY;
     if (from === "loop") return C.R_LOOP;
