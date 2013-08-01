@@ -110,6 +110,8 @@ AnimatronImporter.prototype.convertNode = function(src, all) {
             // recursively check if layer element is a group or not and return the element
             var ltrg = this.convertNode(this.findNode(lsrc.eid, all), all);
             if (!ltrg.name) { ltrg.name = lsrc.name; }
+            // transfer layer data from the layer source into the
+            // target — contains bands, tweens and pivot
             this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
             if (!lsrc.masked) {
                 // layer is a normal one
@@ -140,6 +142,8 @@ AnimatronImporter.prototype.convertNode = function(src, all) {
         (type == TYPE_CURVE) || (type == AUDIO)       || (type == LINE)*/) {
         trg = new Element();
         trg.name = src.name;
+        // transfer shape data from the source into the
+        // target — contains either path, text or image
         this._transferShapeData(src, trg, type);
         // FIXME: fire an event instead (event should inform about type of the importer)
         if (trg.importCustomData) trg.importCustomData(src);
@@ -169,8 +173,8 @@ AnimatronImporter.prototype._transferLayerData = function(src, trg, in_band, typ
     if (src.visible === false) trg.disabled = true; // to.visible = false;
     var x = trg.xdata;
     if (type == TYPE_GROUP) {
-        x.gband = [ 0, Infinity ];
-        x.lband = [ 0, Infinity ];
+        x.gband = [ 0, src.band[1] ];
+        x.lband = [ 0, src.band[1] ];
         // x.gband = Convert.band(src.band);
         // x.lband = [ x.gband[0] - in_band[0],
         //             x.gband[1] - in_band[0] ];
@@ -370,7 +374,7 @@ Convert.band = function(from) {
     return [ 0, Infinity ];
 }
 Convert.mode = function(from) {
-    if (!from) return C.R_LOOP;
+    if (!from) return C.R_ONCE;
     if (from === "once") return C.R_ONCE;
     if (from === "stay") return C.R_STAY;
     if (from === "loop") return C.R_LOOP;
