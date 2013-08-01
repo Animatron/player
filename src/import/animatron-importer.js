@@ -70,22 +70,6 @@ AnimatronImporter.prototype.importScene = function(scene_id, source) {
     scene.add(this.convertNode(node, source));
     return scene;
 }
-AnimatronImporter.prototype._importElement = function(src, all) {
-    var props = analyze_id(src.id);
-    var result = new Element();
-    result.name = src.name;
-    this._transferStatics(src, result, props);
-    if (result.importCustomData) result.importCustomData(src);
-}
-AnimatronImporter.prototype._importElementWrapper = function(src, all) {
-    var inner_src = this.findElement(src.eid, all);
-    var result = new Element();
-    var
-}
-AnimatronImporter.prototype._importGroup = function(src, all) {
-    var props = analyze_id(src.id);
-    var result = new Element();
-}
 
 var TYPE_UNKNOWN = "00",
     TYPE_CLIP    = "01",
@@ -104,33 +88,38 @@ var TYPE_UNKNOWN = "00",
     TYPE_AUDIO   = "0e",
     TYPE_LINE    = "0f";
 
-
-AnimatronImporter.prototype.convertNode = function(src, all, in_band) {
+AnimatronImporter.prototype.convertNode = function(src, all) {
 //AnimatronImporter.prototype.importElement = function(trg, src, in_band) {
     var trg;
     var type = extract_type(src.id);
     // TODO: move to Converters object?
+    // if a node is a group type
     if ((type == TYPE_CLIP) || (type == TYPE_GROUP) || (type == TYPE_SCENE)) {
         trg = new Element();
         trg.name = src.name;
-
+        // transfer repetition data from the source layer
+        // into the target (incl. end or on-end action)
+        this._transferRepetitionData(src, trg);
+        // iterate through the layers
         var _layers = src.layers,
             _layers_targets = [];
-        // in animatron. layers are in reverse order
+        // in Animatron. layers are in reverse order
         for (var li = _layers.length; li--;) {
-            var layer_src = _layers[li],
-                layer_trg = this.convertNode(layer_src, source, trg.xdata.gband);
-            this._transferLayerData(src, trg, in_band, type);
-            if (!layer_src.masked) {
+            var lsrc = _layers[li],
+                ltype = extract_type(lsrc.eid);
+            // recursively check if layer element is a group or not and returns the element
+            var ltrg = this.convertNode(this.findNode(lsrc.eid, all), all);
+            if (!ltrg.name) ltrg.name = lsrc.name;
+            this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
+            if (!lsrc.masked) {
                 // layer is a normal one
-                var statics =
-                trg.add(layer_trg);
-                _layers_targets.push(layer_trg);
+                trg.add(ltrg);
+                _layers_targets.push(ltrg);
             } else {
                 // layer is a mask, apply it to the required number
                 // of previously collected layers
-                var mask = layer_trg,
-                    maskedToGo = layer_src.masked, // layers below to apply mask
+                var mask = ltrg,
+                    maskedToGo = lsrc.masked, // layers below to apply mask
                     ltl = _layers_targets.length;
                 if (maskedToGo > ltl) {
                     throw new Error('No layers collected to apply mask')
@@ -152,74 +141,16 @@ AnimatronImporter.prototype.convertNode = function(src, all, in_band) {
         trg = new Element();
         trg.name = src.name;
         this._transferShapeData(src, trg, type);
-        var x = trg.xdata;
-        x.lband = Convert.band(clip.band);
-        x.gband = in_band ? Bands.wrap(in_band, x.lband)
-                          : x.lband;
         // FIXME: fire an event instead (event should inform about type of the importer)
         if (trg.importCustomData) trg.importCustomData(src);
     }
-    if (trg &&
+    /*if (trg &&
         (trg.xdata.mode != C.R_ONCE) &&
         (trg.children.length > 0) &&
         (!test.finite(trg.xdata.gband[1]))) {
         trg.makeBandFit();
-    }
+    }*/
     return trg;
-
-    /*var target = new Element();
-    // ( id, name?, reg?, band?, eid?, tweens?, layers?,
-    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
-    if (clip.eid) {
-        var inner = this.findElement(clip.eid, source);
-        var props = analyze_id(clip.eid);
-        if (!inner.eid && !inner.layers) {
-            // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
-            this._collectStaticData(target, inner, props);
-            if (target.collectCustomData) {
-                target.collectCustomData(inner);
-            }
-        } else {
-            // FIXME: consider returning this element, but not adding it
-            target.add(this.importElement(inner, source, target.xdata.gband));
-        }
-    } else if (clip.layers) {
-        var _layers = clip.layers,
-            _layers_targets = [];
-        // in animatron. layers are in reverse order
-        for (var li = _layers.length; li--;) {
-            var layer_src = _layers[li],
-                layer_trg = this.importElement(layer_src, source, target.xdata.gband, props);
-            if (!layer_src.masked) {
-                // layer is a normal one
-                target.add(layer_trg);
-                _layers_targets.push(layer_trg);
-            } else {
-                // layer is a mask, apply it to the required number
-                // of previously collected layers
-                var mask = layer_trg,
-                    maskedToGo = layer_src.masked, // layers below to apply mask
-                    ltl = _layers_targets.length;
-                if (maskedToGo > ltl) {
-                    throw new Error('No layers collected to apply mask')
-                };
-                while (maskedToGo) {
-                    var masked = _layers_targets[ltl-maskedToGo];
-                    //console.log(mask.name + '->' + masked.name);
-                    masked.setMask(mask);
-                    maskedToGo--;
-                }
-            }
-        }
-    }
-    this._collectDynamicData(target, clip, in_band, props);
-    // FIXME: it is a not good way to do it, ask tool developers to return band for such elements
-    if ((target.xdata.mode != C.R_ONCE) &&
-        (target.children.length > 0) &&
-        (!test.finite(target.xdata.gband[1]))) {
-        target.makeBandFit();
-    }
-    return target; */
 }
 AnimatronImporter.prototype.findNode = function(id, source) {
     for (var i = 0; i < source.length; i++) {
@@ -228,48 +159,49 @@ AnimatronImporter.prototype.findNode = function(id, source) {
     throw new Error("Node with id " + id + " was not found in passed source");
 }
 AnimatronImporter.prototype._transferShapeData = function(src, trg, type) {
-    if (src.url && (type == TYPE_IMAGE)) trg.xdata.sheet = new anm.Sheet(src.url);
-    trg.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke, src.shadow)
-                              : null;
-    trg.xdata.text = src.text ? Convert.text(src.text, src.font,
-                                             src.fill, src.stroke, src.shadow)
-                              : null;
+    if (src.url && (type == TYPE_IMAGE)) trg.xdata.sheet = Convert.sheet(src.url, src.size);
+    if (src.path) trg.xdata.path = Convert.path(src.path, src.fill, src.stroke, src.shadow);
+    if (src.text) trg.xdata.path = Convert.text(src.text, src.font,
+                                                src.fill, src.stroke, src.shadow);
 }
 // collect required data from source layer
 AnimatronImporter.prototype._transferLayerData = function(src, trg, in_band, type) {
-    if (!to.name && clip.name) to.name = clip.name;
-    if (clip.visible === false) to.disabled = true; // to.visible = false;
-    var x = to.xdata;
-    if (props.isGlobalBand) {
-        x.gband = clip.band;
-        x.lband = [ clip.band[0] - in_band[0],
-                    clip.band[1] - in_band[1] ];
+    if (src.visible === false) trg.disabled = true; // to.visible = false;
+    var x = trg.xdata;
+    if (type == TYPE_GROUP) {
+        x.gband = src.band;
+        x.lband = [ src.band[0] - in_band[0],
+                    src.band[1] - in_band[0] ];
     } else {
-        x.lband = Convert.band(clip.band);
+        x.lband = Convert.band(src.band);
         x.gband = in_band ? Bands.wrap(in_band, x.lband)
                           : x.lband;
     }
     x.pvt = [ 0, 0 ];
-    x.reg = clip.reg || [ 0, 0 ];
-    // 'on-end' is the old-style end, 'end' is the current-style
-    x.mode = clip['end'] ? Convert.mode(clip['end'].type)
-                         : Convert.oldschool_mode(clip['on-end']);
-    x.nrep = (clip['end'] && (clip['end'].counter !== undefined))
-                         ? clip['end'].counter : Infinity;
-    if (clip.tweens) {
+    x.reg = src.reg || [ 0, 0 ];
+    if (src.tweens) {
         var translate;
-        for (var tweens = clip.tweens, ti = 0, tl = tweens.length;
+        for (var tweens = src.tweens, ti = 0, tl = tweens.length;
              ti < tl; ti++) {
             if (tweens[ti].type == 'Translate') translate = tweens[ti];
-            to.addTween(Convert.tween(tweens[ti]));
+            trg.addTween(Convert.tween(tweens[ti]));
         }
-        if (translate && clip['rotate-to-path']) {
-            to.addTween({
+        if (translate && src['rotate-to-path']) {
+            trg.addTween({
                 type: C.T_ROT_TO_PATH,
                 band: translate.band
             });
         }
     }
+};
+AnimatronImporter.prototype._transferRepetitionData = function(src, trg) {
+    // 'on-end' is the old-style end, 'end' is the current-style
+    var x = trg.xdata;
+    x.mode = src['end'] ? Convert.mode(src['end'].type)
+                        : Convert.oldschool_mode(src['on-end']);
+    x.nrep = (src['end'] && (src['end'].counter !== undefined))
+                        ? src['end'].counter : Infinity;
+
 };
 
 // ** CONVERTION **
@@ -343,6 +275,11 @@ Convert.text = function(lines, font,
                     Convert.fill(fill),
                     Convert.stroke(stroke),
                     Convert.shadow(shadow));
+}
+Convert.sheet = function(url, size) {
+    var sheet = new anm.Sheet(url);
+    sheet._dimen = size;
+    return sheet;
 }
 Convert.shadow = function(src) {
   if (!src || src.offsetX == undefined) return null;
