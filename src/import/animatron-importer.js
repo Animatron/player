@@ -97,9 +97,6 @@ AnimatronImporter.prototype.convertNode = function(src, all) {
     if ((type == TYPE_CLIP) || (type == TYPE_GROUP) || (type == TYPE_SCENE)) {
         trg = new Element();
         trg.name = src.name;
-        // transfer repetition data from the source layer
-        // into the target (incl. end or on-end action)
-        this._transferRepetitionData(src, trg);
         // iterate through the layers
         var _layers = src.layers,
             _layers_targets = [];
@@ -134,6 +131,9 @@ AnimatronImporter.prototype.convertNode = function(src, all) {
                 }
             }
         }
+        // transfer repetition data from the source layer
+        // into the target (incl. end or on-end action)
+        this._transferRepetitionData(src, trg);
     } else if
       ((type != TYPE_UNKNOWN)
       /*(type == TYPE_PATH)  || (type == TYPE_TEXT)   || (type == TYPE_RECT)    ||
@@ -208,6 +208,11 @@ AnimatronImporter.prototype._transferRepetitionData = function(src, trg) {
     x.nrep = (src['end'] && (src['end'].counter !== undefined))
                         ? src['end'].counter : Infinity;
 
+    if (x.mode == C.R_LOOP) {
+        trg.travelChildren(function(child) {
+            child.xdata.mode = C.R_STAY;
+        });
+    }
 };
 
 // ** CONVERTION **
