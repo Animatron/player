@@ -210,7 +210,7 @@ AnimatronImporter.prototype._transferRepetitionData = function(src, trg) {
 
     if (x.mode == C.R_LOOP) {
         trg.travelChildren(function(child) {
-            child.xdata.mode = C.R_STAY;
+            child.xdata.mode = C.R_LOOP;
         });
     }
 };
