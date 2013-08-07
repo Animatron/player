@@ -208,7 +208,7 @@ AnimatronImporter.prototype._transferRepetitionData = function(src, trg) {
     x.nrep = (src['end'] && (src['end'].counter !== undefined))
                         ? src['end'].counter : Infinity;
 
-    if (x.mode == C.R_LOOP) {
+    if (src['end'] && (x.mode == C.R_LOOP)) {
         trg.travelChildren(function(child) {
             child.xdata.mode = C.R_LOOP;
         });
