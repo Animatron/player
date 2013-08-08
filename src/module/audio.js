@@ -93,7 +93,7 @@
 
   E._audio_cache = {};
 
-  E.prototype.collectCustomData = function(object) {
+  E.prototype.importCustomData = function(object) {
     if (object.id.length > 2 && "0e" === object.id.substr(object.id.length - 2)) {
       this._audio_band_offset = object.bandOffset;
       this._audio_url = object.url;
