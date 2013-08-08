@@ -64,41 +64,61 @@ AnimatronImporter.prototype.load = function(prj) {
 
 AnimatronImporter.prototype.importScene = function(scene_id, source) {
     var scene = new Scene();
-    scene.add(this.importElement(this.findElement(scene_id, source), source));
+    var node = this.findNode(scene_id, source);
+    if (!node) throw new Error("Scene was not found by ID");
+    if (extract_type(node.id) != TYPE_SCENE) throw new Error("Given Scene ID points to something else");
+    scene.add(this.convertNode(node, source));
     return scene;
 }
-AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
-    var target = new Element();
-    // ( id, name?, reg?, band?, eid?, tweens?, layers?,
-    //   visible?, outline?, locked?, outline-color?, dynamic?, opaque?, masked?, on-end? )
-    if (clip.eid) {
-        var inner = this.findElement(clip.eid, source);
-        if (!inner.eid && !inner.layers) {
-            // -> ( id, name?, url?, text?, stroke?, fill?, path?, round-rect? )
-            this._collectStaticData(target, inner);
-            if (target.collectCustomData) {
-              target.collectCustomData(inner);
-            }
-        } else {
-            // FIXME: consider returning this element, but not adding it
-            target.add(this.importElement(inner, source, target.xdata.gband));
-        }
-    } else if (clip.layers) {
-        var _layers = clip.layers,
+
+var TYPE_UNKNOWN = "00",
+    TYPE_CLIP    = "01",
+    TYPE_SCENE   = "02",
+    TYPE_PATH    = "03",
+    TYPE_TEXT    = "04",
+    TYPE_RECT    = "05",
+    TYPE_OVAL    = "06",
+    TYPE_PENCIL  = "07",
+    TYPE_IMAGE   = "08",
+    TYPE_GROUP   = "09",
+    TYPE_BRUSH   = "0a",
+    TYPE_STAR    = "0b",
+    TYPE_POLYGON = "0c",
+    TYPE_CURVE   = "0d",
+    TYPE_AUDIO   = "0e",
+    TYPE_LINE    = "0f";
+
+AnimatronImporter.prototype.convertNode = function(src, all) {
+//AnimatronImporter.prototype.importElement = function(trg, src, in_band) {
+    var trg;
+    var type = extract_type(src.id);
+    // TODO: move to Converters object?
+    // if a node is a group type
+    if ((type == TYPE_CLIP) || (type == TYPE_GROUP) || (type == TYPE_SCENE)) {
+        trg = new Element();
+        trg.name = src.name;
+        // iterate through the layers
+        var _layers = src.layers,
             _layers_targets = [];
-        // in animatron. layers are in reverse order
+        // in Animatron. layers are in reverse order
         for (var li = _layers.length; li--;) {
-            var layer_src = _layers[li],
-                layer_trg = this.importElement(layer_src, source, target.xdata.gband);
-            if (!layer_src.masked) {
+            var lsrc = _layers[li],
+                ltype = extract_type(lsrc.eid);
+            // recursively check if layer element is a group or not and return the element
+            var ltrg = this.convertNode(this.findNode(lsrc.eid, all), all);
+            if (!ltrg.name) { ltrg.name = lsrc.name; }
+            // transfer layer data from the layer source into the
+            // target — contains bands, tweens and pivot
+            this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
+            if (!lsrc.masked) {
                 // layer is a normal one
-                target.add(layer_trg);
-                _layers_targets.push(layer_trg);
+                trg.add(ltrg);
+                _layers_targets.push(ltrg);
             } else {
                 // layer is a mask, apply it to the required number
                 // of previously collected layers
-                var mask = layer_trg,
-                    maskedToGo = layer_src.masked, // layers below to apply mask
+                var mask = ltrg,
+                    maskedToGo = lsrc.masked, // layers below to apply mask
                     ltl = _layers_targets.length;
                 if (maskedToGo > ltl) {
                     throw new Error('No layers collected to apply mask')
@@ -111,66 +131,112 @@ AnimatronImporter.prototype.importElement = function(clip, source, in_band) {
                 }
             }
         }
+        // transfer repetition data from the source layer
+        // into the target (incl. end or on-end action)
+        this._transferRepetitionData(src, trg);
+    } else if
+      ((type != TYPE_UNKNOWN)
+      /*(type == TYPE_PATH)  || (type == TYPE_TEXT)   || (type == TYPE_RECT)    ||
+        (type == TYPE_OVAL)  || (type == TYPE_PENCIL) || (type == TYPE_IMAGE)   ||
+        (type == TYPE_BRUSH) || (type == TYPE_STAR)   || (type == TYPE_POLYGON) ||
+        (type == TYPE_CURVE) || (type == AUDIO)       || (type == LINE)*/) {
+        trg = new Element();
+        trg.name = src.name;
+        // transfer shape data from the source into the
+        // target — contains either path, text or image
+        this._transferShapeData(src, trg, type);
+        // FIXME: fire an event instead (event should inform about type of the importer)
+        if (trg.importCustomData) trg.importCustomData(src);
     }
-    this._collectDynamicData(target, clip, in_band);
-    // FIXME: it is a not good way to do it, ask tool developers to return band for such elements
-    if ((target.xdata.mode != C.R_ONCE) &&
-        (target.children.length > 0) &&
-        (!test.finite(target.xdata.gband[1]))) {
-        target.makeBandFit();
-    }
-    return target;
+    /*if (trg &&
+        (trg.xdata.mode != C.R_ONCE) &&
+        (trg.children.length > 0) &&
+        (!test.finite(trg.xdata.gband[1]))) {
+        trg.makeBandFit();
+    }*/
+    return trg;
 }
-AnimatronImporter.prototype.findElement = function(id, source) {
+AnimatronImporter.prototype.findNode = function(id, source) {
     for (var i = 0; i < source.length; i++) {
         if (source[i].id === id) return source[i];
     }
-    throw new Error("Element with id " + id + " was not found in passed source");
+    throw new Error("Node with id " + id + " was not found in passed source");
 }
-
+AnimatronImporter.prototype._transferShapeData = function(src, trg, type) {
+    if (src.url && (type == TYPE_IMAGE)) trg.xdata.sheet = Convert.sheet(src.url, src.size);
+    if (src.path) trg.xdata.path = Convert.path(src.path, src.fill, src.stroke, src.shadow);
+    if (src.text) trg.xdata.path = Convert.text(src.text, src.font,
+                                                src.fill, src.stroke, src.shadow);
+}
 // collect required data from source layer
-AnimatronImporter.prototype._collectDynamicData = function(to, clip, in_band) {
-    if (!to.name && clip.name) to.name = clip.name;
-    if (clip.visible === false) to.disabled = true; // to.visible = false;
-    var x = to.xdata;
-    x.lband = Convert.band(clip.band);
-    x.gband = in_band ? Bands.wrap(in_band, x.lband)
-                      : x.lband;
+AnimatronImporter.prototype._transferLayerData = function(src, trg, in_band, type) {
+    if (src.visible === false) trg.disabled = true; // to.visible = false;
+    var x = trg.xdata;
+    if (type == TYPE_GROUP) {
+        x.gband = [ 0, src.band[1] ];
+        x.lband = [ 0, src.band[1] ];
+        // x.gband = Convert.band(src.band);
+        // x.lband = [ x.gband[0] - in_band[0],
+        //             x.gband[1] - in_band[0] ];
+    } else {
+        x.lband = Convert.band(src.band);
+        x.gband = in_band ? Bands.wrap(in_band, x.lband)
+                          : x.lband;
+    }
     x.pvt = [ 0, 0 ];
-    x.reg = clip.reg || [ 0, 0 ];
-    // 'on-end' is the old-style end, 'end' is the current-style
-    x.mode = clip['end'] ? Convert.mode(clip['end'].type)
-                         : Convert.oldschool_mode(clip['on-end']);
-    x.nrep = (clip['end'] && (clip['end'].counter !== undefined))
-                         ? clip['end'].counter : Infinity;
-    if (clip.tweens) {
+    x.reg = src.reg || [ 0, 0 ];
+    if (src.tweens) {
         var translate;
-        for (var tweens = clip.tweens, ti = 0, tl = tweens.length;
+        for (var tweens = src.tweens, ti = 0, tl = tweens.length;
              ti < tl; ti++) {
             if (tweens[ti].type == 'Translate') translate = tweens[ti];
-            to.addTween(Convert.tween(tweens[ti]));
+            trg.addTween(Convert.tween(tweens[ti]));
         }
-        if (translate && clip['rotate-to-path']) {
-            to.addTween({
+        if (translate && src['rotate-to-path']) {
+            trg.addTween({
                 type: C.T_ROT_TO_PATH,
                 band: translate.band
             });
         }
     }
 };
-AnimatronImporter.prototype._collectStaticData = function(to, src) {
-    if (!to.name) to.name = src.name;
-    // todo: make opposite check (if IS IMAGE or SHEET, etc)
-    var isAudio = src.id.substr(src.id.length - 2) === "0e";
-    to.xdata.sheet = src.url && !isAudio ? new anm.Sheet(src.url) : null;
-    to.xdata.path = src.path ? Convert.path(src.path, src.fill, src.stroke, src.shadow)
-                             : null;
-    to.xdata.text = src.text ? Convert.text(src.text, src.font,
-                                            src.fill, src.stroke, src.shadow)
-                             : null;
+AnimatronImporter.prototype._transferRepetitionData = function(src, trg) {
+    // 'on-end' is the old-style end, 'end' is the current-style
+    var x = trg.xdata;
+    x.mode = src['end'] ? Convert.mode(src['end'].type)
+                        : Convert.oldschool_mode(src['on-end']);
+    x.nrep = (src['end'] && (src['end'].counter !== undefined))
+                        ? src['end'].counter : Infinity;
+
+    if (src['end'] && (x.mode == C.R_LOOP)) {
+        trg.travelChildren(function(child) {
+            child.xdata.mode = C.R_LOOP;
+        });
+    }
 };
 
 // ** CONVERTION **
+
+var TYPE_UNKNOWN = "00",
+    TYPE_CLIP    = "01",
+    TYPE_SCENE   = "02",
+    TYPE_PATH    = "03",
+    TYPE_TEXT    = "04",
+    TYPE_RECT    = "05",
+    TYPE_OVAL    = "06",
+    TYPE_PENCIL  = "07",
+    TYPE_IMAGE   = "08",
+    TYPE_GROUP   = "09",
+    TYPE_BRUSH   = "0a",
+    TYPE_STAR    = "0b",
+    TYPE_POLYGON = "0c",
+    TYPE_CURVE   = "0d",
+    TYPE_AUDIO   = "0e",
+    TYPE_LINE    = "0f";
+function extract_type(id) {
+    if (id.length !== 24) throw new Error('Invalid element id ' + id);
+    return id.substring(id.length - 2);
+}
 
 var Convert = {}
 Convert.tween = function(tween) {
@@ -220,6 +286,11 @@ Convert.text = function(lines, font,
                     Convert.fill(fill),
                     Convert.stroke(stroke),
                     Convert.shadow(shadow));
+}
+Convert.sheet = function(url, size) {
+    var sheet = new anm.Sheet(url);
+    sheet._dimen = size;
+    return sheet;
 }
 Convert.shadow = function(src) {
   if (!src || src.offsetX == undefined) return null;

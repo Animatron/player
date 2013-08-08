@@ -1,0 +1,275 @@
+// http://orderly-json.org/docs
+// to validate on the fly:
+// http://orderly-json.org/tryit && http://jsonschemalint.com/
+
+object {
+
+    // meta
+    object {
+        string id; // 23-char hash
+        integer created?; // timestamp
+        integer modified?; // timestamp
+        number modificationTime?; // timestamp
+        string author;
+        string description;
+        string name;
+        string copyright;
+        number version?;
+        number duration?; // float
+        integer numberOfScenes?;
+        union {
+            null;
+            string [ "Public", "Unlisted" ];
+        } projectAccessType?;
+        boolean projectAccessReadOnly?;
+    } meta;
+
+    // data
+    object {
+
+        // swatches
+        array [
+            union { // *brush*
+                null;
+                object {
+                    string color;
+                    string rgba?;
+                    number alpha?;
+                };
+                object {
+                    number r0?; number r1?;
+                    number x0; number y0;
+                    number x1; number y1;
+                    array [ string ] colors;
+                    array [ string ] rgbas?;
+                    array [ number ] offsets;
+                    array { number; number; number; number; } bounds;
+                    number alpha?;
+                };
+            }
+        ] swatches?;
+
+    } data?;
+
+    // anim
+    object {
+
+        array { number; number; } dimension;
+        number framerate;
+
+        array [ string ] scenes;
+
+        // background
+        union { // *brush*
+            null;
+            object {
+                string color;
+                string rgba?;
+                number alpha?;
+            };
+            object {
+                number r0?; number r1?;
+                number x0; number y0;
+                number x1; number y1;
+                array [ string ] colors;
+                array [ string ] rgbas?;
+                array [ number ] offsets;
+                array { number; number; number; number; } bounds;
+                number alpha?;
+            };
+        } background;
+
+        // elements
+        array [
+
+            union {
+
+                // empty object
+                object {
+                    string id;
+                    string name?;
+                };
+
+                // image
+                object {
+                    string id;
+                    string name?;
+                    string url;
+                    array { number; number; } size?;
+                };
+
+                // audio
+                object {
+                    string id;
+                    string name?;
+                    string url;
+                    number bandOffset;
+                };
+
+                // static element
+                object {
+
+                    string id;
+                    string name?;
+
+                    string path?; // TODO: split path and texts
+                    string original_path <path>?;
+
+                    string font <text>?;
+                    string text?;
+                    boolean underline <text>?;
+                    string "text-align" <text>?;
+
+                    number brushWidth?;
+                    number errorThreshold?;
+
+                    array { number; number; number; number; } "round-rect"?;
+                    array { number; number; number; } "star_options"?;
+
+                    // stroke
+                    union {
+
+                        object {};
+
+                        object {
+
+                            number width <paint>?;
+
+                            // paint
+                            union { // *brush*
+                                null;
+                                object {  // *color*
+                                    string color;
+                                    string rgba?;
+                                    number alpha?;
+                                };
+                                object { // *gradient*
+                                    number r0?; number r1?;
+                                    number x0; number y0;
+                                    number x1; number y1;
+                                    array [ string ] colors;
+                                    array [ string ] rgbas?;
+                                    array [ number ] offsets;
+                                    array { number; number; number; number; } bounds;
+                                    number alpha?;
+                                };
+                            } paint;
+
+                            string cap?; // TODO: enum
+                            string join?; // TODO: enum
+                            number limit?;
+
+                        };
+
+                    } stroke;
+
+                    // fill
+                    union { // *brush*
+                        object {};
+                        object { // *color*
+                            string color;
+                            string rgba?;
+                            number alpha?;
+                        };
+                        object { // *gradient*
+                            number r0?; number r1?;
+                            number x0; number y0;
+                            number x1; number y1;
+                            array [ string ] colors;
+                            array [ string ] rgbas?;
+                            array [ number ] offsets;
+                            array { number; number; number; number; } bounds;
+                            number alpha?;
+                        };
+                    } fill;
+
+                    // shadow
+                    union {
+                        object {};
+                        object {
+                            object { // *color*
+                                string color;
+                                string rgba?;
+                                number alpha?;
+                            } paint;
+                            number blur;
+                            number offsetX;
+                            number offsetY;
+                        };
+                    } shadow;
+
+                };
+
+                // dynamic element
+                object {
+                    string id;
+                    string name?;
+
+                    // layers
+                    array [
+                        object { // *layer-data*
+                            string id;
+                            string eid?; // there may be no eid if layer is empty + TODO: split in ones with eid with ones without & s.o., ...
+                            string name?;
+                            array { number; number; } band;
+                            union {
+                                array { string; string; };  // should be only number; number;
+                                array { number; number; };
+                            } reg;
+
+                            boolean visible;
+                            boolean outline;
+                            boolean locked;
+                            boolean opaque;
+                            boolean "rotate-to-path";
+
+                            string "outline-color"?;
+
+                            number masked?;
+                            array [
+                                string [ "Translate", "Rotate", "Scale", "Alpha", "Shear", "rotate-to-path" ]
+                            ] "last-frames-defined"?;
+                            string "saved-tweens"?; // "[{\"type\":\"Scale\",..."
+
+                            // tweens
+                            array [
+                                object {
+                                    string type [ "Translate", "Rotate", "Scale", "Alpha", "Shear", "rotate-to-path" ];
+                                    array { number; number; } band;
+                                    array [ number ] data?;
+                                    string path?;
+                                    object {
+                                        string name; // Unknown, Ease In Out, ...
+                                        string path?;
+                                    } easing?;
+                                }
+                            ] tweens?;
+
+                        }
+                    ] layers;
+
+                    object { // *end-mode*
+                        string type [ "once", "stay", "loop", "bounce" ];
+                        number counter?;
+                    } end?;
+
+                };
+
+                // library
+                object {
+                    string id;
+                    string name [ "$$$LIBRARY$$$" ];
+
+                    object { // *end-mode*
+                        string type [ "once", "stay", "loop", "bounce" ];
+                        number counter?;
+                    } end?; // FIXME: probably an error of including it here
+                };
+
+            }
+
+        ] elements;
+
+    } anim;
+
+};
