@@ -1,3 +1,15 @@
+v0.9.1401 / Thu Aug 08 2013 03:29:03 +0200 / 3f2468a1312c1f382d9a79527cfdd858a9858ce5
+=====================================================================================
+
+Features:
+
+* Refactored Animatron Importer
+
+Fixes:
+
+* Animatron Importer now understands passes loop mode to the children to fix current difference with editor
+* Animatron Importer now correctly applies global bands to groups imported from editor
+
 v0.9.14 / Fri Jul 26 2013 14:18:06 +0200 / 09f66d20225dee4ac861947bb45d61e34dbd25fd
 ===================================================================================
 
