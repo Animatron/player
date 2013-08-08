@@ -21,7 +21,7 @@ describe("importing masks", function() {
               { name: "masks-inside", layers: [
                 { name: "bg" },
                 { name: "mask",
-                  masked: 2,
+                  '#masked': 2,
                   layers: [ { name: "mask-part-1" },
                             { name: "mask-part-2" } ] },
                 { name: "masked1" },
@@ -39,7 +39,7 @@ describe("importing masks", function() {
         try {
             scene.findByName('mask');
         } catch(e) {
-            expect(e.message).toBe("Not found");
+            expect(e.message).toBe("mask was not found");
         }
 
         expect(masksInside.children.length).toBe(4);
