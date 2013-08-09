@@ -261,16 +261,24 @@ Convert.tweenType = function(from) {
     if (from === 'Shear') return C.T_SHEAR;
 }
 Convert.tweenData = function(type, tween) {
-    if (!tween.data) {
+    var data = tween.data;
+    if (!data) {
         if (tween.path) return new Path(tween.path);
         return null;
     }
-    if (type === C.T_SCALE) {
-        var data = tween.data;
-        return [ [ data[0], data[1] ],
-                 [ data[2], data[3] ] ];
+    if (type === C.T_ROTATE) {
+        if (data.length == 2) return data;
+        if (data.length == 1) return [ data[0], data[0] ];
     }
-    return tween.data;
+    if (type === C.T_SCALE) {
+        if (data.length == 4) return [ [ data[0], data[1] ],
+                                       [ data[2], data[3] ] ];
+        if (data.length == 2) return [ [ data[0], data[0] ],
+                                       [ data[1], data[1] ] ];
+        if (data.length == 1) return [ [ data[0], data[0] ],
+                                       [ data[0], data[0] ] ];
+    }
+    return data;
 }
 Convert.path = function(pathStr, fill, stroke, shadow) {
     // ()
