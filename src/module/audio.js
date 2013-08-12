@@ -93,10 +93,15 @@
 
   E._audio_cache = {};
 
-  E.prototype.importCustomData = function(object) {
-    if (object.id.length > 2 && "0e" === object.id.substr(object.id.length - 2)) {
-      this._audio_band_offset = object.bandOffset;
-      this._audio_url = object.url;
+  E.prototype.importCustomData = function(object, type, importer) {
+    if ("0e" == type) {
+      if (importer == "ANM") {
+        this._audio_band_offset = object.bandOffset;
+        this._audio_url = object.url;
+      } else if (importer == "ANM_PUBLISH") {
+        this._audio_band_offset = object.bo;
+        this._audio_url = object.u;
+      }
       this.isAudio = true;
       this._audio = null;
       this._audio_is_loaded = false;

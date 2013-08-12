@@ -9,9 +9,9 @@
 
 // see ./animatron-project-@VERSION.orderly for a readable scheme of accepted project
 
-var AnimatronImporter = (function() {
+var AnimatronPublishImporter = (function() {
 
-var IMPORTER_ID = 'ANM';
+var IMPORTER_ID = 'ANM_PUBLISH';
 
 function __MYSELF() { }
 
@@ -98,21 +98,21 @@ __MYSELF.prototype.convertNode = function(src, all) {
     // if a node is a group type
     if ((type == TYPE_CLIP) || (type == TYPE_GROUP) || (type == TYPE_SCENE)) {
         trg = new Element();
-        trg.name = src.name;
+        trg.name = src.n; // ^src.name
         // iterate through the layers
-        var _layers = src.layers,
+        var _layers = src.l, // ^src.layers
             _layers_targets = [];
         // in Animatron. layers are in reverse order
         for (var li = _layers.length; li--;) {
             var lsrc = _layers[li],
-                ltype = extract_type(lsrc.eid);
+                ltype = extract_type(lsrc.e); // ^lsrc.eid
             // recursively check if layer element is a group or not and return the element
-            var ltrg = this.convertNode(this.findNode(lsrc.eid, all), all);
-            if (!ltrg.name) { ltrg.name = lsrc.name; }
+            var ltrg = this.convertNode(this.findNode(lsrc.e, all), all);
+            if (!ltrg.name) { ltrg.name = lsrc.n; } // ^lsrc.name
             // transfer layer data from the layer source into the
             // target — contains bands, tweens and pivot
             this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
-            if (!lsrc.masked) {
+            if (!lsrc.m) { // ^lsrc.masked
                 // layer is a normal one
                 trg.add(ltrg);
                 _layers_targets.push(ltrg);
@@ -120,7 +120,7 @@ __MYSELF.prototype.convertNode = function(src, all) {
                 // layer is a mask, apply it to the required number
                 // of previously collected layers
                 var mask = ltrg,
-                    maskedToGo = lsrc.masked, // layers below to apply mask
+                    maskedToGo = lsrc.m, // layers below to apply mask ^lsrc.masked
                     ltl = _layers_targets.length;
                 if (maskedToGo > ltl) {
                     throw new Error('No layers collected to apply mask')
@@ -143,7 +143,7 @@ __MYSELF.prototype.convertNode = function(src, all) {
         (type == TYPE_BRUSH) || (type == TYPE_STAR)   || (type == TYPE_POLYGON) ||
         (type == TYPE_CURVE) || (type == AUDIO)       || (type == LINE)*/) {
         trg = new Element();
-        trg.name = src.name;
+        trg.name = src.n; // ^src.name
         // transfer shape data from the source into the
         // target — contains either path, text or image
         this._transferShapeData(src, trg, type);
@@ -165,39 +165,41 @@ __MYSELF.prototype.findNode = function(id, source) {
     throw new Error("Node with id " + id + " was not found in passed source");
 }
 __MYSELF.prototype._transferShapeData = function(src, trg, type) {
-    if (src.url && (type == TYPE_IMAGE)) trg.xdata.sheet = Convert.sheet(src.url, src.size);
-    if (src.path) trg.xdata.path = Convert.path(src.path, src.fill, src.stroke, src.shadow);
-    if (src.text) trg.xdata.text = Convert.text(src.text, src.font,
-                                                src.fill, src.stroke, src.shadow);
+    // ^src.url ^src.size
+    if (src.u && (type == TYPE_IMAGE)) trg.xdata.sheet = Convert.sheet(src.u, src.s);
+    // ^src.path ^src.fill ^src.stroke ^src.shadow
+    if (src.p) trg.xdata.path = Convert.path(src.p, src.f, src.s, src.w);
+    // ^src.text ^src.font ^src.fill ^src.stroke ^src.shadow
+    if (src.t) trg.xdata.text = Convert.text(src.t, src.d, src.f, src.s, src.w);
 }
 // collect required data from source layer
 __MYSELF.prototype._transferLayerData = function(src, trg, in_band, type) {
-    if (src.visible === false) trg.disabled = true; // to.visible = false;
+    if (src.v === false) trg.disabled = true; // ^src.visible
     var x = trg.xdata;
     if (type == TYPE_GROUP) {
-        x.gband = [ 0, src.band[1] ];
-        x.lband = [ 0, src.band[1] ];
+        x.gband = [ 0, src.b[1] ]; // ^src.band
+        x.lband = [ 0, src.b[1] ]; // ^src.band
         // x.gband = Convert.band(src.band);
         // x.lband = [ x.gband[0] - in_band[0],
         //             x.gband[1] - in_band[0] ];
     } else {
-        x.lband = Convert.band(src.band);
+        x.lband = Convert.band(src.b); // ^src.band
         x.gband = in_band ? Bands.wrap(in_band, x.lband)
                           : x.lband;
     }
     x.pvt = [ 0, 0 ];
-    x.reg = src.reg || [ 0, 0 ];
-    if (src.tweens) {
+    x.reg = src.r || [ 0, 0 ]; // ^src.reg
+    if (src.t) { // ^src.tweens
         var translate;
-        for (var tweens = src.tweens, ti = 0, tl = tweens.length;
+        for (var tweens = src.t, ti = 0, tl = tweens.length;
              ti < tl; ti++) {
             if (tweens[ti].type == 'Translate') translate = tweens[ti];
             trg.addTween(Convert.tween(tweens[ti]));
         }
-        if (translate && src['rotate-to-path']) {
+        if (translate && src.p) { // ^src[rotate-to-path]
             trg.addTween({
                 type: C.T_ROT_TO_PATH,
-                band: translate.band
+                band: translate.b // ^translate.band
             });
         }
     }
