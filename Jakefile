@@ -79,11 +79,16 @@ var SubDirs = {
 
 var Files = {
     Main: { PLAYER: 'player.js',
-            BUILDER: 'builder.js',
-            ANM_IMPORT: 'animatron-importer.js' },
+            BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
-           IMPORTERS: [ 'animatron-importer.js' ],
-           MODULES: [ 'collisions.js', 'audio.js' ] },
+           IMPORTERS: { _ALL_: [ 'animatron-importer.js',
+                                 'animatron-publish-importer.js' ],
+                        ANM: 'animatron-importer.js',
+                        ANM_PUBLISH: 'animatron-publish-importer.js' },
+           MODULES: { _ALL_: [ 'collisions.js',
+                               'audio.js' ],
+                      COLLISIONS: 'collisions.js',
+                      AUDIO: 'audio.js' } },
     Doc: { README: 'README.md',
            API: 'API.md' }
 }
@@ -97,8 +102,14 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Main.ANM_IMPORT ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES[1] ])) }, // include audio module
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
+    { name: 'Animatron-Publish',
+      file: 'animatron-publish',
+      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_PUBLISH ])) // animatron-publish-importer.js
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
@@ -108,7 +119,7 @@ var Bundles = [
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES ))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ ))
         .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
 ];
 
@@ -700,13 +711,13 @@ task('_organize', function() {
     });
 
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
-    Files.Ext.MODULES.forEach(function(moduleFile) {
+    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
         jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.MODULES + '/' + moduleFile),
                  _loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
     });
 
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
-    Files.Ext.IMPORTERS.forEach(function(importerFile) {
+    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
         jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.IMPORTERS + '/' + importerFile),
                  _loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
     });
@@ -733,13 +744,13 @@ task('_versionize', function() {
 
     _print('.. Modules');
 
-    Files.Ext.MODULES.forEach(function(moduleFile) {
+    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
         versionize(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
-    Files.Ext.IMPORTERS.forEach(function(importerFile) {
+    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
         versionize(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
@@ -824,7 +835,7 @@ task('_minify', { async: true }, function() {
     _print('.. Modules');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
-    Files.Ext.MODULES.forEach(function(moduleFile) {
+    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
         minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
                             _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
@@ -832,7 +843,7 @@ task('_minify', { async: true }, function() {
     _print('.. Importers');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS);
-    Files.Ext.IMPORTERS.forEach(function(importerFile) {
+    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
         minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
                             _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
