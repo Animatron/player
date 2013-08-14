@@ -1,3 +1,14 @@
+v0.9.1402 / Wed Aug 14 2013 19:57:00 +0200 / 583039ea2af4a409bd7c06ba373d8ab7a1d7ab59
+=====================================================================================
+
+Fixes:
+
+* Supports collapsed data for tweens, imported from Animatron Editor
+
+Features:
+
+* Adds the `animatron-publish` imported and `animatron-publish` bundle, they provide support of new minimized format from Editor
+
 v0.9.1401 / Thu Aug 08 2013 03:29:03 +0200 / 3f2468a1312c1f382d9a79527cfdd858a9858ce5
 =====================================================================================
 
