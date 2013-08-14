@@ -207,12 +207,11 @@ __MYSELF.prototype._transferLayerData = function(src, trg, in_band, type) {
 __MYSELF.prototype._transferRepetitionData = function(src, trg) {
     // 'on-end' is the old-style end, 'end' is the current-style
     var x = trg.xdata;
-    x.mode = src['end'] ? Convert.mode(src['end'].type)
-                        : Convert.oldschool_mode(src['on-end']);
-    x.nrep = (src['end'] && (src['end'].counter !== undefined))
-                        ? src['end'].counter : Infinity;
+    x.mode = Convert.mode(src.e ? src.e.type : null) // ^src.end
+    x.nrep = (src.e && (src.e.c !== undefined)) // ^src.end ^src.end.counter
+             ? src.e.c : Infinity;
 
-    if (src['end'] && (x.mode == C.R_LOOP)) {
+    if (src.e && (x.mode == C.R_LOOP)) { // ^src.end
         trg.travelChildren(function(child) {
             child.xdata.mode = C.R_LOOP;
         });
@@ -246,28 +245,28 @@ var Convert = {}
 Convert.tween = function(tween) {
     // (type, band, path?, easing?)
     var _t = tween,
-        _type = Convert.tweenType(_t.type);
+        _type = Convert.tweenType(_t.t); // ^_t.type
 
     return {
-        'band': _t.band,
+        'band': _t.b, // ^_t.band
         'type': _type,
         'data': Convert.tweenData(_type, _t),
-        'easing': Convert.easing(_t.easing)
+        'easing': Convert.easing(_t.e) // ^_t.easing
     };
 };
 Convert.tweenType = function(from) {
     if (!from) return null;
-    if (from === 'Rotate') return C.T_ROTATE;
-    if (from === 'Translate') return C.T_TRANSLATE;
-    if (from === 'Alpha') return C.T_ALPHA;
-    if (from === 'Scale') return C.T_SCALE;
-    if (from === 'rotate-to-path') return C.T_ROT_TO_PATH;
-    if (from === 'Shear') return C.T_SHEAR;
+    if (from === 'r') return C.T_ROTATE;
+    if (from === 't') return C.T_TRANSLATE;
+    if (from === 'a') return C.T_ALPHA;
+    if (from === 's') return C.T_SCALE;
+    if (from === 'p') return C.T_ROT_TO_PATH;
+    if (from === 'h') return C.T_SHEAR;
 }
 Convert.tweenData = function(type, tween) {
-    var data = tween.data;
+    var data = tween.d; // ^tween.data
     if (!data) {
-        if (tween.path) return new Path(tween.path);
+        if (tween.p) return new Path(tween.p); // ^tween.path
         return null;
     }
     if (type === C.T_ROTATE) {
@@ -305,23 +304,24 @@ Convert.sheet = function(url, size) {
     return sheet;
 }
 Convert.shadow = function(src) {
-  if (!src || src.offsetX == undefined) return null;
+  if (!src || src.x == undefined) return null; // ^src.offsetX
   var shadow = {};
-  shadow.color = src.paint.rgba || src.paint.color;
-  shadow.offsetX = src.offsetX;
-  shadow.offsetY = src.offsetY;
-  shadow.blurRadius = src.blur;
+  shadow.color = src.p.r || src.p.c; // ^shadow.paint.rgba ^shadow.paint.color
+  shadow.offsetX = src.x; // ^src.offsetX
+  shadow.offsetY = src.y; // ^src.offsetY
+  shadow.blurRadius = src.b; // ^src.blur
   return shadow;
 };
 Convert.easing = function(from) {
     // (name, path?)
     if (!from) return null;
     return {
-          type: Convert.easingType(from.name),
-          data: from.path ? (new Path('M0 0 ' + from.path + ' Z')) : null
+          type: Convert.easingType(from.n), // ^from.name
+          data: from.p ? (new Path('M0 0 ' + from.p + ' Z')) : null  // ^from.path
         };
 }
 Convert.easingType = function(from) {
+    // TODO!!
     if (!from) return null;
     if (from === 'Unknown') return C.E_PATH;
     if (from === 'Default') return C.E_DEF;
