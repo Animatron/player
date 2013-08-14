@@ -381,17 +381,18 @@ Convert.gradient = function(src) {
     for (var i = 0; i < offsets.length; i++) {
         stops.push([
             offsets[i],
-            src.r ? src.r[i] // ^src.rgbas
-                  : src.c[i] // ^src.colors
+            src.s ? src.s[i] // ^src.stops
+                  : (src.r ? src.r[i] // ^src.rgbas
+                           : src.c[i]) // ^src.colors
         ]);
     }
     var pts = src.x; // ^src.x0, y0, x1, y1, [r0, r1]
-    if ((pts.length != 4) || (pts.length != 6)) throw new Error('Unknown type of graient with ' + pts.length + ' points');
+    if ((pts.length != 4) && (pts.length != 6)) throw new Error('Unknown type of graient with ' + pts.length + ' points');
     return {
-        r: (pt) ? [ src.r0, src.r1 ] : null,
-        dir: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
+        r: (pts.length == 6) ? [ pts[4], pts[5] ] : null,
+        dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
         stops: stops,
-        bounds: src.bounds
+        bounds: src.b // ^src.bounds
     };
 }
 Convert.band = function(from) {
@@ -402,16 +403,10 @@ Convert.band = function(from) {
 }
 Convert.mode = function(from) {
     if (!from) return C.R_ONCE;
-    if (from === "once") return C.R_ONCE;
-    if (from === "stay") return C.R_STAY;
-    if (from === "loop") return C.R_LOOP;
-    if (from === "bounce") return C.R_BOUNCE; // FIXME: last is not for sure
-}
-Convert.oldschool_mode = function(from) {
-    if (!from) return C.R_ONCE;
-    if (from === "STOP") return C.R_ONCE;
-    if (from === "LOOP") return C.R_LOOP;
-    if (from === "BOUNCE") return C.R_BOUNCE; // FIXME: last is not for sure
+    if (from === "o") return C.R_ONCE;
+    if (from === "s") return C.R_STAY;
+    if (from === "l") return C.R_LOOP;
+    if (from === "b") return C.R_BOUNCE;
 }
 
 return __MYSELF;
