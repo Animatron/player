@@ -123,7 +123,8 @@ __MYSELF.prototype.convertNode = function(src, all) {
                     maskedToGo = lsrc.m, // layers below to apply mask ^lsrc.masked
                     ltl = _layers_targets.length;
                 if (maskedToGo > ltl) {
-                    throw new Error('No layers collected to apply mask')
+                    throw new Error('No layers collected to apply mask, expected ' + maskedToGo
+                                    + ', got ' + ltl);
                 };
                 while (maskedToGo) {
                     var masked = _layers_targets[ltl-maskedToGo];
@@ -334,18 +335,22 @@ Convert.stroke = function(stroke) {
     // cap, join, limit)
     if (!stroke) return stroke;
     var brush = {};
-    brush.width = stroke.width;
-    brush.cap = stroke.cap;
-    brush.join = stroke.join;
-    if (stroke.paint) {
-        var paint = stroke.paint;
-        if (paint.rgba || paint.color) {
-            brush.color = paint.rgba || paint.color;
-        } else if ((typeof paint.r0 !== 'undefined')
-                && (typeof paint.r1 !== 'undefined')) {
-            brush.rgrad = Convert.gradient(paint);
-        } else if (stroke.paint.colors) {
-            brush.lgrad = Convert.gradient(paint);
+    brush.width = stroke.w; // ^stroke.width
+    brush.cap = stroke.c; // ^stroke.cap
+    brush.join = stroke.j; // ^stroke.join
+    if (stroke.p) { // ^stroke.paint
+        var paint = stroke.p, // ^stroke.paint
+            pts = paint.x; // ^stroke.x0, y0, x1, y1, [r0, r1]
+        if (pts) {
+            if (pts.length == 4) {
+                brush.lgrad = Convert.gradient(paint);
+            } else if (pts.length == 6) {
+                brush.rgrad = Convert.gradient(paint);
+            } else {
+                throw new Error('Unknown type of gradient with ' + pts.length + ' points');
+            }
+        } else {
+            brush.color = paint.r || paint.c; // ^paint.rgba ^paint.color
         }
     }
     return brush;
@@ -354,31 +359,36 @@ Convert.fill = function(fill) {
     // (color | colors | rgba | rgbas | r0, r1)
     if (!fill) return null;
     var brush = {};
-    if (!fill) {
-        brush.color = "rgba(0,0,0,0)";
-    } else if (fill.rgba || fill.color) {
-        brush.color = fill.rgba || fill.color;
-    } else if ((typeof fill.r0 !== 'undefined')
-            && (typeof fill.r1 !== 'undefined')) {
-        brush.rgrad = Convert.gradient(fill);
-    } else if (fill.rgbas || fill.colors) {
-        brush.lgrad = Convert.gradient(fill);
+
+    var pts = fill.x; // ^fill.x0, y0, x1, y1, [r0, r1]
+    if (pts) {
+        if (pts.length == 4) {
+            brush.lgrad = Convert.gradient(fill);
+        } else if (pts.length == 6) {
+            brush.rgrad = Convert.gradient(fill);
+        } else {
+            throw new Error('Unknown type of gradient with ' + pts.length + ' points');
+        }
+    } else {
+        brush.color = fill.r || fill.c; // ^fill.rgba ^fill.color
     }
     return brush;
 }
 Convert.gradient = function(src) {
     // (bounds, offsets, colors, x1, y1, r0?, r1?, alpha)
     var stops = [],
-        offsets = src.offsets;
+        offsets = src.o; // ^src.offsets
     for (var i = 0; i < offsets.length; i++) {
         stops.push([
             offsets[i],
-            src.rgbas ? src.rgbas[i]
-                     : src.colors[i]
+            src.r ? src.r[i] // ^src.rgbas
+                  : src.c[i] // ^src.colors
         ]);
     }
+    var pts = src.x; // ^src.x0, y0, x1, y1, [r0, r1]
+    if ((pts.length != 4) || (pts.length != 6)) throw new Error('Unknown type of graient with ' + pts.length + ' points');
     return {
-        r: (typeof src.r0 !== 'undefined') ? [ src.r0, src.r1 ] : null,
+        r: (pt) ? [ src.r0, src.r1 ] : null,
         dir: [ [ src.x0, src.y0 ], [ src.x1, src.y1 ] ],
         stops: stops,
         bounds: src.bounds
