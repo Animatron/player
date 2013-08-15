@@ -45,6 +45,10 @@ var __b_cache = {};
 
 //var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') };
 
+function check_args(args, method) {
+    if (args.length > 1) throw new Error('Wrong number of arguments in .' + method + ' method.');
+}
+
 // =============================================================================
 // === BUILDER =================================================================
 
@@ -90,7 +94,7 @@ Builder._$ = function(obj) {
 
 Builder.__path = function(val, join) {
     return is.arr(val)
-           ? Builder.path(val)
+           ? Builder.path(val, join)
            : ((val instanceof Path) ? val
               : Path.parse(val, join))
 }
@@ -151,27 +155,24 @@ Builder.prototype.npath = function(pt, path) {
 // > builder.rect % (pt: Array[2,Integer],
 //                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var rect = is.arr(rect) ? rect : [ rect, rect ];
-    var w = rect[0], h = rect[1];
-    this.path(pt, [[0, 0], [w, 0],
-                   [w, h], [0, h],
-                   [0, 0]]);
+    this.path(pt, Builder.rect(rect));
     return this;
 }
-// > builder.circle % (pt: Array[2,Integer],
-//                    radius: Float) => Builder
-Builder.prototype.circle = function(pt, radius) {
+// > builder.oval % (pt: Array[2,Integer],
+//                   radius: Float | Array[2, Float]) => Builder
+Builder.prototype.oval = function(pt, radius) {
     this.move(pt || [0, 0]);
-    var diameter = radius + radius,
-        dimen = [ diameter, diameter ];
+    var dimen = is.arr(radius) ? [ radius[0] + radius[0], radius[1] + radius[1] ]
+                               : [ radius + radius, radius + radius ],
+        scale = is.arr(radius) ? [ /* TODO */ ]
+                               : null;
     this.v._dimen = dimen;
     var pvt = this.pvt(),
-        center = [ pvt[0] * diameter,
-                   pvt[1] * diameter ];
+        center = [ pvt[0] * dimen[0],
+                   pvt[1] * dimen[1] ];
     this.paint(function(ctx) {
             var b = this.$.__b$;
-            var pvt = b.pvt();
-            Path.applyF(ctx, b.f, b.s, null/*strokes are not supported for the moment*/,
+            Path.applyF(ctx, b.f, b.s, null/*shadows are not supported for the moment*/,
                 function() {
                     ctx.arc(center[0], center[1],
                             radius, 0, Math.PI*2, true);
@@ -204,7 +205,7 @@ Builder.prototype.image = function(pt, src, callback) {
 Builder.prototype.text = function(pt, lines, size, font) {
     this.move(pt || [0, 0]);
     var text = lines instanceof Text ? lines
-                     : new Text(lines, Builder.font(font, size));
+                     : Builder.text(lines, size, font);
     this.x.text = text;
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
@@ -292,6 +293,7 @@ C.R_ML = [ 0.0, 0.5 ]; C.R_MC = [ 0.5, 0.5 ]; C.R_MR = [ 1.0, 0.5 ];
 C.R_BL = [ 0.0, 1.0 ]; C.R_BC = [ 0.5, 1.0 ]; C.R_BR = [ 1.0, 1.0 ];
 // > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 Builder.prototype.reg = function(pt) {
+    check_args(arguments, 'reg');
     var x = this.x;
     if (!pt) return x.reg;
     x.reg = pt || x.reg;
@@ -299,6 +301,7 @@ Builder.prototype.reg = function(pt) {
 }
 // > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 Builder.prototype.pvt = function(pt) {
+    check_args(arguments, 'pvt');
     var x = this.x;
     if (!pt) return x.pvt;
     x.pvt = pt;
@@ -306,6 +309,7 @@ Builder.prototype.pvt = function(pt) {
 }
 // > builder.pvtpt % (pt: Array[2,Float]) => Builder | Array[2,Float]
 Builder.prototype.pvtpt = function(pt) {
+    check_args(arguments, 'pvtpt');
     var x = this.x;
     if (pt) {
         var dimen = this.v.dimen();
@@ -327,12 +331,14 @@ Builder.prototype.init = function(state) {
 }
 // > builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
+    check_args(arguments, 'move');
     this.bs.x = pt[0];
     this.bs.y = pt[1];
     return this;
 }
 // > builder.pos % ([pt: Array[2,Integer]]) => Array[2] | Builder
 Builder.prototype.pos = function(pt) {
+    check_args(arguments, 'pos');
     return pt ? this.move(pt) : [ this.bs.x, this.bs.y ];
 }
 // > builder.dpos % () => Array[2]
@@ -361,6 +367,7 @@ Builder.prototype.zoom = function(val) {
 }
 // > builder.size % (val: Array[2,Float]) => Builder
 Builder.prototype.size = function(val) {
+    check_args(arguments, 'size');
     this.bs.sx = val[0];
     this.bs.sy = val[1];
     return this;
@@ -385,6 +392,7 @@ Builder.prototype.opacity = function(val) {
 }
 // > builder.bounds % (val: Array[4,Float]) => Builder
 Builder.prototype.bounds = function(bounds) {
+    check_args(arguments, 'bounds');
     if (!bounds.length === 4) throw new Error('Incorrect bounds');
     this.x.__bounds = bounds;
     return this;
@@ -394,6 +402,7 @@ Builder.prototype.bounds = function(bounds) {
 
 // > builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
+    check_args(arguments, 'band');
     this.v.setBand(band);
     return this;
 }
@@ -815,22 +824,37 @@ Builder.rgrad = function(dir, rad, stops) {
         stops: stops
     };
 }
-Builder.path = function(points) {
+Builder.path = function(points, src) {
     var p = new Path();
-    p.add(new MSeg([points[0][0], points[0][1]]));
-    var i = 1, pl = points.length;
-    for (; i < pl; i++) {
-        var pts = points[i];
-        if (pts.length < 3) {
-            p.add(new LSeg([ pts[0], pts[1] ]));
-        } else {
-            p.add(new CSeg([ pts[0], pts[1],
-                             pts[2], pts[3],
-                             pts[4], pts[5] ]));
+    if (src) p.load(src);
+    if (is.str(points)) {
+        p.parse(points);
+    } else if (is.arr(points)) {
+        p.add(new MSeg([points[0][0], points[0][1]]));
+        var i = 1, pl = points.length;
+        for (; i < pl; i++) {
+            var pts = points[i];
+            if (pts.length < 3) {
+                p.add(new LSeg([ pts[0], pts[1] ]));
+            } else {
+                p.add(new CSeg([ pts[0], pts[1],
+                                 pts[2], pts[3],
+                                 pts[4], pts[5] ]));
+            }
         }
     }
     /*p.add(new MSeg([ points[pl-1][0], points[pl-1][1] ]));*/
     return p;
+}
+Builder.rect = function(rect) {
+    var rect = is.arr(rect) ? rect : [ rect, rect ];
+    var w = rect[0], h = rect[1];
+    return Builder.path([[0, 0], [w, 0],
+                         [w, h], [0, h],
+                         [0, 0]]);
+}
+Builder.text = function(lines, size, font) {
+    return new Text(lines, Builder.font(size, font));
 }
 Builder.easing = function(func, data) {
     return {
@@ -850,7 +874,7 @@ Builder.easingC = function(seg) {
 Builder.tween = function() {
     // FIXME: TODO
 }
-Builder.font = function(name, size) {
+Builder.font = function(size, name) {
     var fface = name || Builder.DEFAULT_FFACE;
         fface = (is.str(fface)) ? fface : fface.join(',');
     var fsize = (size != null) ? size : Builder.DEFAULT_FSIZE;
@@ -958,6 +982,43 @@ Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps
         res.push([xx, yy]);
     }
     return Builder.path(res);
+}
+Builder._path = function(ctx, pos, path, fill, stroke, stroke_w) {
+    var p = B.path(path);
+    ctx.save();
+    ctx.translate(pos[0], pos[1]);
+    if (fill) p.fill = { color: fill };
+    if (stroke) p.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                             color: stroke };
+    p.apply(ctx);
+    ctx.restore();
+}
+Builder._text = function(ctx, pos, text, size, font, fill, stroke, stroke_w) {
+    var t = B.text(text, size, font);
+    if (fill) t.fill = { color: fill };
+    if (stroke) t.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                             color: stroke };
+    t.apply(ctx, pos, 'top');
+    ctx.restore();
+}
+Builder._image = function(ctx, pos, src, size) {
+
+}
+/* Builder._sheet = function(ctx, pos, sheet) {
+
+} */
+Builder._rect = function(ctx, pos, rect, fill, stroke, stroke_w) {
+    var r = Builder.rect(rect);
+    ctx.save();
+    ctx.translate(pos[0], pos[1]);
+    if (fill) r.fill = { color: fill };
+    if (stroke) r.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                             color: stroke };
+    r.apply(ctx);
+    ctx.restore();
+}
+Builder._oval = function(ctx, pos, r1, r2, fill, stroke, stroke_w) {
+
 }
 
 var prevClone = Element.prototype.clone;

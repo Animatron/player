@@ -3572,10 +3572,17 @@ Path.prototype.duplicate = function() {
     });
     return seg_copy;
 }
+// load only stroke/fill/shadow
+Path.prototype.load = function(src) {
+    if (src.stroke) this.stroke = obj_clone(src.stroke);
+    if (src.fill) this.fill = obj_clone(src.fill);
+    if (src.shadow) this.shadow = obj_clone(src.shadow);
+}
 Path.prototype.clone = function() {
     var clone = this.duplicate();
     if (this.stroke) clone.stroke = obj_clone(this.stroke);
     if (this.fill) clone.fill = obj_clone(this.fill);
+    if (this.shadow) clone.shadow = obj_clone(this.shadow);;
     return clone;
 }
 Path.prototype.dispose = function() { }
@@ -3909,14 +3916,14 @@ Text.DEFAULT_FILL = { 'color': '#000' };
 Text.BASELINE_RULE = 'bottom';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
-Text.prototype.apply = function(ctx, point, baseline) {
+Text.prototype.apply = function(ctx, pos, baseline) {
     ctx.save();
-    var point = point || [0, 0],
+    var pos = pos || [0, 0],
         dimen = this.dimen(),
         accent = this.accent(dimen[1]);
     ctx.font = this.font;
     ctx.textBaseline = baseline || Text.BASELINE_RULE;
-    ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
+    ctx.translate(pos[0]/* + (dimen[0] / 2)*/, pos[1]);
 
     if (Brush._hasVal(this.fill)) {
         Brush.shadow(ctx, this.shadow);
@@ -4990,10 +4997,10 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
             buff = $DE.__textBuf;
         }
         return function(text) {
-            if (__arr(this.lines)) {
-                buff.textContent = this.lines.join('<br/>');
+            if (__arr(text.lines)) {
+                buff.textContent = text.lines.join('<br/>');
             } else {
-                buff.textContent = this.lines.toString();
+                buff.textContent = text.lines.toString();
             }
             // TODO: test if lines were changed, and if not,
             //       use cached value

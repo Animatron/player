@@ -28,7 +28,7 @@ examples.push([ 0 /*version*/, [
   '  var cx = circles[i][0],',
   '      cy = circles[i][1],',
   '      cr = circles[i][2];',
-  '  o.add(b().circle([cx, cy], cr)',
+  '  o.add(b().oval([cx, cy], cr)',
   '           .stroke(\'#333\', 2).fill(\'#366\')',
   '           .alpha([1.3, 3], [1, .4])',
   '           .modify(function(t, duration) {',
