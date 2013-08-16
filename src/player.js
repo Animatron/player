@@ -3594,7 +3594,7 @@ Path.applyF = function(ctx, fill, stroke, shadow, func) {
     Brush.fill(ctx, fill);
     Brush.stroke(ctx, stroke);
     Brush.shadow(ctx, shadow);
-    func();
+    func(ctx);
 
     if (Brush._hasVal(fill)) ctx.fill();
     if (Brush._hasVal(stroke)) ctx.stroke();

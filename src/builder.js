@@ -164,8 +164,17 @@ Builder.prototype.oval = function(pt, radius) {
     this.move(pt || [0, 0]);
     var dimen = is.arr(radius) ? [ radius[0] + radius[0], radius[1] + radius[1] ]
                                : [ radius + radius, radius + radius ],
-        scale = is.arr(radius) ? [ /* TODO */ ]
-                               : null;
+        scale = null,
+        d_rad = radius;
+    if (is.arr(radius)) {
+        if ((dimen[0] < dimen[1]) && (dimen[1] > 0)) {
+            scale = [ dimen[0] / dimen[1], 1 ];
+            d_rad = radius[1];
+        } else if ((dimen[0] > dimen[1]) && (dimen[0] > 0)) {
+            scale = [ 1, dimen[1] / dimen[0] ];
+            d_rad = radius[0];
+        }
+    }
     this.v._dimen = dimen;
     var pvt = this.pvt(),
         center = [ pvt[0] * dimen[0],
@@ -174,14 +183,16 @@ Builder.prototype.oval = function(pt, radius) {
             var b = this.$.__b$;
             Path.applyF(ctx, b.f, b.s, null/*shadows are not supported for the moment*/,
                 function() {
+                    if (scale) ctx.scale(scale[0], scale[1]);
                     ctx.arc(center[0], center[1],
-                            radius, 0, Math.PI*2, true);
+                            d_rad, 0, Math.PI*2, true);
                 });
         });
     // FIXME: move this line to the collisions module itself
     // FIXME: should be auto-updatable
+    // FIXME: ovals (different radii) are not supported
     if (modCollisions) this.v.reactAs(
-            Builder.arcPath(center[0], center[1], radius, 0, 1, 12));
+            Builder.arcPath(center[0], center[1], d_rad, 0, 1, 12));
     return this;
 }
 // TODO:
@@ -941,8 +952,8 @@ Builder.sheet = function(src, tile_spec, callback) {
                 sdimen = this.dimen(),
                 h_factor = Math.floor(sdimen[0] / tdimen[0]);
             this.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
-                                               h_pos = n % h_factor;
-                                           return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
+                                              h_pos = n % h_factor;
+                                          return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
         } else if (is.fun(tile_spec)) {
             this.region_f = tile_spec;
         }
@@ -1001,9 +1012,9 @@ Builder._text = function(ctx, pos, text, size, font, fill, stroke, stroke_w) {
     t.apply(ctx, pos, 'top');
     ctx.restore();
 }
-Builder._image = function(ctx, pos, src, size) {
-
-}
+/* Builder._image = function(ctx, pos, src, size) {
+    // TODO
+} */
 /* Builder._sheet = function(ctx, pos, sheet) {
 
 } */
@@ -1017,8 +1028,29 @@ Builder._rect = function(ctx, pos, rect, fill, stroke, stroke_w) {
     r.apply(ctx);
     ctx.restore();
 }
-Builder._oval = function(ctx, pos, r1, r2, fill, stroke, stroke_w) {
-
+Builder._oval = function(ctx, pos, radius, fill, stroke, stroke_w) {
+    var dimen = is.arr(radius) ? [ radius[0] + radius[0], radius[1] + radius[1] ]
+                               : [ radius + radius, radius + radius ],
+        scale = null,
+        d_rad = radius;
+    if (is.arr(radius)) {
+        if ((dimen[0] < dimen[1]) && (dimen[1] > 0)) {
+            scale = [ dimen[0] / dimen[1], 1 ];
+            d_rad = radius[1];
+        } else if ((dimen[0] > dimen[1]) && (dimen[0] > 0)) {
+            scale = [ 1, dimen[1] / dimen[0] ];
+            d_rad = radius[0];
+        }
+    }
+    Path.applyF(ctx, fill ? { color: fill } : Path.DEFAULT_FILL,
+                     stroke ? { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                                color: stroke }
+                            : Path.DEFAULT_STROKE, null,
+        function(ctx) {
+            ctx.translate(pos[0], pos[1]);
+            if (scale) ctx.scale(scale[0], scale[1]);
+            ctx.arc(0, 0, d_rad, 0, Math.PI*2, true);
+        });
 }
 
 var prevClone = Element.prototype.clone;
