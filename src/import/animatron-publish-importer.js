@@ -23,9 +23,40 @@ var C = anm.C,
     Bands = anm.Bands,
     test = anm._valcheck;
 
-// ** META / PARAMS **
+__MYSELF.prototype.configureMeta = Import.meta;
 
-__MYSELF.prototype.configureMeta = function(prj) {
+__MYSELF.prototype.configureAnim = Import.anim;
+
+__MYSELF.prototype.load = Import.project;
+
+/* CODE */
+
+var Import = {};
+
+Import._find = function(idx, src) {
+    var res = src[idx];
+    if (!res) throw new Error('Element with index ' + idx + ' was not found in ' + src);
+    return src[idx];
+}
+Import._type = function(src) {
+    return src[0];
+}
+
+Import.project = function(prj) {
+    var scenes_ids = prj.anim.scenes;
+    if (!scenes_ids.length) throw new Error('No scenes found in given project');
+    var root = new Scene(),
+        elems = prj.anim.elements;
+    for (var i = 0, il = scenes_ids.length; i < il; i++) {
+        var node_src = Import._find(scenes_ids[i], elems);
+        if (Import._type(node_src) != TYPE_SCENE) throw new Error('Given Scene ID ' + scenes_ids[i] + ' points to something else');
+        root.add(Import.node(node_src, elems));
+    }
+    if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
+    if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
+    return root;
+}
+Import.meta = function(prj) {
     // ( id, name, author, copyright, version, description, modificationTime, numberOfScenes )
     var _m = prj.meta;
     return {
@@ -36,8 +67,8 @@ __MYSELF.prototype.configureMeta = function(prj) {
         'description': _m.description,
         'duration': _m.duration
     };
-};
-__MYSELF.prototype.configureAnim = function(prj) {
+}
+Import.anim = function(prj) {
     // ( framerate, dimension, background, duration,
     //   elements, scenes )
     var _a = prj.anim;
@@ -45,11 +76,152 @@ __MYSELF.prototype.configureAnim = function(prj) {
         'fps': _a.framerate,
         'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
         'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgcolor': _a.background ? Convert.fill(_a.background) : null,
+        'bgcolor': _a.background ? Import.fill(_a.background) : null
     }
 }
 
-// ** PROJECT **
+var TYPE_UNKNOWN =  0,
+    TYPE_CLIP    =  1,
+    TYPE_SCENE   =  2,
+    TYPE_PATH    =  3,
+    TYPE_TEXT    =  4,
+    TYPE_RECT    =  5,
+    TYPE_OVAL    =  6,
+    TYPE_PENCIL  =  7,
+    TYPE_IMAGE   =  8,
+    TYPE_GROUP   =  9,
+    TYPE_BRUSH   = 10,
+    TYPE_STAR    = 11,
+    TYPE_POLYGON = 12,
+    TYPE_CURVE   = 13,
+    TYPE_AUDIO   = 14,
+    TYPE_LINE    = 15;
+
+Import.node = function(src, parent, all) {
+
+    var type = Import._type(src);
+    if ((type == TYPE_CLIP) ||
+        (type == TYPE_SCENE) ||
+        (type == TYPE_GROUP)) {
+
+        return Import.branch(type, src, all);
+
+    } else if (type != TYPE_UNKNOWN) {
+
+        var trg = Import.leaf(type, src, parent);
+        // FIXME: fire an event instead (event should inform about type of the importer)
+        if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
+
+    }
+
+}
+Import.branch = function(type, src, all) {
+    var trg = new Element();
+    trg.name = src[1];
+    // iterate through the layers
+    var _layers = src[2],
+        _layers_targets = [];
+    // in Animatron. layers are in reverse order
+    for (var li = _layers.length; li--;) {
+        var lsrc = _layers[li],
+            ltype = Import._type(lsrc[2]);
+        // recursively check if layer element is a group or not and return the element
+        var ltrg = Import.node(Import._find(lsrc.e, all), all);
+        if (!ltrg.name) { ltrg.name = lsrc[0]; }
+        // transfer layer data from the layer source into the
+        // target — contains bands, tweens and pivot
+        this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
+        if (!lsrc.m) { // ^lsrc.masked
+            // layer is a normal one
+            trg.add(ltrg);
+            _layers_targets.push(ltrg);
+        } else {
+            // layer is a mask, apply it to the required number
+            // of previously collected layers
+            var mask = ltrg,
+                maskedToGo = lsrc.m, // layers below to apply mask ^lsrc.masked
+                ltl = _layers_targets.length;
+            if (maskedToGo > ltl) {
+                throw new Error('No layers collected to apply mask, expected ' + maskedToGo
+                                + ', got ' + ltl);
+            };
+            while (maskedToGo) {
+                var masked = _layers_targets[ltl-maskedToGo];
+                //console.log(mask.name + '->' + masked.name);
+                masked.setMask(mask);
+                maskedToGo--;
+            }
+        }
+    }
+    // transfer repetition data from the source layer
+    // into the target (incl. end or on-end action)
+    this._transferRepetitionData(src, trg);
+}
+Import.leaf = function(type, src, parent) {
+    var trg = new Element();
+    if (parent.name) trg.name = '>' + parent.name;
+    var x = trg.xdata;
+         if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
+    else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }
+    else if (type != TYPE_AUDIO) { x.path  = Import.shape(src); }
+    if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
+}
+
+Import.fill = Import.brush;
+Import.stroke = function(src) {
+    var stroke = Import.brush(src[1]);
+    stroke.width = src[0];
+    stroke.cap = src[2];
+    stroke.join = src[3];
+    stroke.mitter = src[4];
+    return stroke;
+}
+Import.shadow = function(src) {
+    var shadow = {};
+    shadow.offsetX = src[0];
+    shadow.offsetY = src[1];
+    shadow.blurRadius = src[2];
+    shadow.color = src[3];
+    return shadow;
+}
+Import.brush = function(src) {
+    if (is.str(src)) {
+        return { color: src };
+    } else if (is.arr(src)) {
+        return Import.grad(src);
+    } else throw new Error('Unknown type of brush');
+}
+Import.grad = function(src) {
+    var pts = src[0],
+        colors = src[1],
+        offsets = src[2];
+    if (colors.length != offsets.length) {
+        throw new Error('Number of colors do not corresponds to number of offsets in gradient');
+    }
+    var stops = [];
+    for (var i = 0; i < offsets.length; i++) {
+        stops.push(offsets[i], colors[i]);
+    }
+    if ((pts.length != 4) && (pts.length != 6)) {
+        throw new Error('Unknown type of graient with ' + pts.length + ' points');
+    }
+    if (pts.length == 4) {
+        return { lgrad: {
+            dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
+            stops: stops
+        } };
+    } else if (pts.length == 6) {
+        return { rgrad: {
+            r: [ pts[4], pts[5] ],
+            dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
+            stops: stops
+        } };
+    }
+}
+
+
+
+
 
 __MYSELF.prototype.load = function(prj) {
     // ( framerate, dimension, background, duration,
@@ -61,34 +233,6 @@ __MYSELF.prototype.load = function(prj) {
     if (prj.anim.background) scene.bgfill = Convert.fill(prj.anim.background);
     return scene;
 };
-
-// ** ELEMENTS **
-
-__MYSELF.prototype.importScene = function(scene_id, source) {
-    var scene = new Scene();
-    var node = this.findNode(scene_id, source);
-    if (!node) throw new Error("Scene was not found by ID");
-    if (extract_type(node.id) != TYPE_SCENE) throw new Error("Given Scene ID points to something else");
-    scene.add(this.convertNode(node, source));
-    return scene;
-}
-
-var TYPE_UNKNOWN = "00",
-    TYPE_CLIP    = "01",
-    TYPE_SCENE   = "02",
-    TYPE_PATH    = "03",
-    TYPE_TEXT    = "04",
-    TYPE_RECT    = "05",
-    TYPE_OVAL    = "06",
-    TYPE_PENCIL  = "07",
-    TYPE_IMAGE   = "08",
-    TYPE_GROUP   = "09",
-    TYPE_BRUSH   = "0a",
-    TYPE_STAR    = "0b",
-    TYPE_POLYGON = "0c",
-    TYPE_CURVE   = "0d",
-    TYPE_AUDIO   = "0e",
-    TYPE_LINE    = "0f";
 
 __MYSELF.prototype.convertNode = function(src, all) {
 //__MYSELF.prototype.importElement = function(trg, src, in_band) {
@@ -159,12 +303,6 @@ __MYSELF.prototype.convertNode = function(src, all) {
     }*/
     return trg;
 }
-__MYSELF.prototype.findNode = function(id, source) {
-    for (var i = 0; i < source.length; i++) {
-        if (source[i].id === id) return source[i];
-    }
-    throw new Error("Node with id " + id + " was not found in passed source");
-}
 __MYSELF.prototype._transferShapeData = function(src, trg, type) {
     // ^src.url ^src.size
     if (src.u && (type == TYPE_IMAGE)) trg.xdata.sheet = Convert.sheet(src.u, src.s);
@@ -218,29 +356,6 @@ __MYSELF.prototype._transferRepetitionData = function(src, trg) {
         });
     }
 };
-
-// ** CONVERTION **
-
-var TYPE_UNKNOWN = "00",
-    TYPE_CLIP    = "01",
-    TYPE_SCENE   = "02",
-    TYPE_PATH    = "03",
-    TYPE_TEXT    = "04",
-    TYPE_RECT    = "05",
-    TYPE_OVAL    = "06",
-    TYPE_PENCIL  = "07",
-    TYPE_IMAGE   = "08",
-    TYPE_GROUP   = "09",
-    TYPE_BRUSH   = "0a",
-    TYPE_STAR    = "0b",
-    TYPE_POLYGON = "0c",
-    TYPE_CURVE   = "0d",
-    TYPE_AUDIO   = "0e",
-    TYPE_LINE    = "0f";
-function extract_type(id) {
-    if (id.length !== 24) throw new Error('Invalid element id ' + id);
-    return id.substring(id.length - 2);
-}
 
 var Convert = {}
 Convert.tween = function(tween) {

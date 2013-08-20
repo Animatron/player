@@ -219,22 +219,6 @@ __MYSELF.prototype._transferRepetitionData = function(src, trg) {
 
 // ** CONVERTION **
 
-var TYPE_UNKNOWN = "00",
-    TYPE_CLIP    = "01",
-    TYPE_SCENE   = "02",
-    TYPE_PATH    = "03",
-    TYPE_TEXT    = "04",
-    TYPE_RECT    = "05",
-    TYPE_OVAL    = "06",
-    TYPE_PENCIL  = "07",
-    TYPE_IMAGE   = "08",
-    TYPE_GROUP   = "09",
-    TYPE_BRUSH   = "0a",
-    TYPE_STAR    = "0b",
-    TYPE_POLYGON = "0c",
-    TYPE_CURVE   = "0d",
-    TYPE_AUDIO   = "0e",
-    TYPE_LINE    = "0f";
 function extract_type(id) {
     if (id.length !== 24) throw new Error('Invalid element id ' + id);
     return id.substring(id.length - 2);

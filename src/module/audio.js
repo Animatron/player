@@ -94,13 +94,14 @@
   E._audio_cache = {};
 
   E.prototype.importCustomData = function(object, type, importer) {
-    if ("0e" == type) {
+    if (("0e" == type)/*ANM*/ ||
+        (14 == type)/*ANM_PUBLISH*/) {
       if (importer == "ANM") {
         this._audio_band_offset = object.bandOffset;
         this._audio_url = object.url;
       } else if (importer == "ANM_PUBLISH") {
-        this._audio_band_offset = object.bo;
-        this._audio_url = object.u;
+        this._audio_url = object[1];
+        this._audio_band_offset = object[2];
       }
       this.isAudio = true;
       this._audio = null;
