@@ -100,6 +100,14 @@
         this._audio_band_offset = object.bandOffset;
         this._audio_url = object.url;
       } else if (importer == "ANM_PUBLISH") {
+        /** audio **/
+        /*
+         * array {
+         *     14;                         // 0
+         *     string;                     // 1, url
+         *     number;                     // 2, band offset
+         * } *audio_element*;
+         */
         this._audio_url = object[1];
         this._audio_band_offset = object[2];
       }

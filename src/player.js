@@ -3382,7 +3382,7 @@ C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
 
-var Tween = {};
+var Tween = {}; // FIXME: make tween a class
 var Easing = {};
 
 // tween order
@@ -4127,12 +4127,13 @@ CSeg.prototype._calc_params = function(start) {
 // -----------------------------------------------------------------------------
 
 function Text(lines, font,
-              fill, stroke, shadow) {
+              fill, stroke, shadow, align) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
     this.shadow = shadow;
+    this.align = align;
     this._bnds = null;
 }
 
@@ -4142,7 +4143,8 @@ Text.DEFAULT_FFACE = 'sans-serif';
 Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
-Text.BASELINE_RULE = 'bottom';
+Text.DEFAULT_ALIGN = 'left';
+Text.BASELINE_RULE = 'bottom';//'alphabetic';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
 Text.prototype.apply = function(ctx, point, baseline) {
@@ -4151,7 +4153,8 @@ Text.prototype.apply = function(ctx, point, baseline) {
         dimen = this.dimen(),
         accent = this.accent(dimen[1]);
     ctx.font = this.font;
-    ctx.textBaseline = baseline || Text.BASELINE_RULE;
+    ctx.textBaseline = baseline || Text.BASELINE_RULE; // FIXME: store inside
+    ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
 
     if (Brush._hasVal(this.fill)) {
