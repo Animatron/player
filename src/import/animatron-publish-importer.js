@@ -13,23 +13,14 @@ var AnimatronPublishImporter = (function() {
 
 var IMPORTER_ID = 'ANM_PUBLISH';
 
-function __MYSELF() { }
-
 var C = anm.C,
     Scene = anm.Scene,
     Element = anm.Element,
     Path = anm.Path,
     Text = anm.Text,
     Bands = anm.Bands,
-    test = anm._valcheck;
-
-__MYSELF.prototype.configureMeta = Import.meta;
-
-__MYSELF.prototype.configureAnim = Import.anim;
-
-__MYSELF.prototype.load = Import.project;
-
-/* CODE */
+    is = anm._typecheck;
+    //test = anm._valcheck
 
 var Import = {};
 
@@ -76,7 +67,7 @@ Import.meta = function(prj) {
         'copyright': _m.copyright,
         'version': _m.version,
         'description': _m.description,
-        'duration': _m.duration
+        'duration': _m.duration,
         'created': _m.created,
         'modified': _m.modified
     };
@@ -129,7 +120,7 @@ var TYPE_UNKNOWN =  0,
  * } *element*;
  */
 // -> Element
-Import.node = function(src, parent, all) {
+Import.node = function(src, all, parent) {
     var type = Import._type(src);
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
@@ -143,8 +134,8 @@ Import.node = function(src, parent, all) {
     }
 }
 var L_ROT_TO_PATH = 1,
-    L_OPAQUE_TRANSFORM = 2,
-    L_HIDDEN = 4;
+    L_OPAQUE_TRANSFORM = 2;
+    //L_HIDDEN = 256; // IMPL?
 /** branch (clip) **/
 /*
  * array {
@@ -179,12 +170,12 @@ Import.branch = function(type, src, all) {
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(Import._find(lsrc.e, all), all);
+        var ltrg = Import.node(Import._find(lsrc[2], all), all, trg);
         if (!ltrg.name) { ltrg.name = lsrc[0]; }
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];
-        if (flags & B_HIDDEN) trg.disabled = true;
+        //if (flags & L_HIDDEN) trg.disabled = true;
         var x = trg.xdata,
             b = Import.band(lsrc[1]);
         if (type == TYPE_GROUP) {
@@ -200,7 +191,7 @@ Import.branch = function(type, src, all) {
         // apply tweens
         if (lsrc[7]) {
             var translate;
-            for (var tweens = src[7], ti = 0, tl = tweens.length;
+            for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (t.type == C.T_TRANSLATE) translate = t;
@@ -261,12 +252,13 @@ Import.branch = function(type, src, all) {
 // -> Element
 Import.leaf = function(type, src, parent) {
     var trg = new Element();
-    if (parent.name) trg.name = '>' + parent.name;
+    if (parent && parent.name) trg.name = '>' + parent.name;
     var x = trg.xdata;
          if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }
     else if (type != TYPE_AUDIO) { x.path  = Import.path(src); }
     if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
+    return trg;
 }
 
 /** band **/
@@ -290,9 +282,9 @@ Import.band = function(src) {
 // -> Path
 Import.path = function(src) {
     return new Path(src[4], // Import.pathval
-                    Convert.fill(src[1]),
-                    Convert.stroke(src[2]),
-                    Convert.shadow(src[3]));
+                    Import.fill(src[1]),
+                    Import.stroke(src[2]),
+                    Import.shadow(src[3]));
 }
 /** text **/
 /*
@@ -310,9 +302,9 @@ Import.path = function(src) {
 // -> Text
 Import.text = function(src) {
     return new Text(src[6], src[4],
-                    Convert.fill(src[1]),
-                    Convert.stroke(src[2]),
-                    Convert.shadow(src[3]),
+                    Import.fill(src[1]),
+                    Import.stroke(src[2]),
+                    Import.shadow(src[3]),
                     src[5]);
 }
 /** sheet (image) **/
@@ -401,16 +393,17 @@ Import.tween = function(src) {
 /** tweentype **/
 // -> Type
 Import.tweentype = function(src) {
-    if (from === 0) return C.T_ALPHA;
-    if (from === 1) return C.T_ROTATE;
-    if (from === 2) return C.T_SCALE;
-    if (from === 3) return C.T_SHEAR;
-    if (from === 4) return C.T_TRANSLATE;
-    //if (from === 5) return C.T_ROT_TO_PATH;
+    if (src === 0) return C.T_ALPHA;
+    if (src === 1) return C.T_ROTATE;
+    if (src === 2) return C.T_SCALE;
+    if (src === 3) return C.T_SHEAR;
+    if (src === 4) return C.T_TRANSLATE;
+    //if (src === 5) return C.T_ROT_TO_PATH;
 }
 /** tweendata **/
 // -> Any
 Import.tweendata = function(type, src) {
+    if (!src) return null;
     if (type == C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
         (type === C.T_ALPHA)) {
@@ -450,7 +443,7 @@ Import.easingtype = function(src) {
     if (src === 2) return C.E_IN;
     if (src === 3) return C.E_OUT;
     if (src === 4) return C.E_INOUT;
-
+}
 /** mode **/
 Import.mode = function(src) {
     if (!src) return C.R_ONCE;
@@ -458,6 +451,22 @@ Import.mode = function(src) {
     if (src === 1) return C.R_LOOP;
     if (src === 2) return C.R_BOUNCE;
     if (src === 3) return C.R_STAY;
+}
+/** brush (paint) **/
+/*
+ * union {
+ *     string;          // color in rgba(), rgb, #xxxxxx or word format
+ *     *lgrad*;         // linear gradient
+ *     *rgrad*;         // radial gradient
+ * } *paint*;
+ */
+Import.brush = function(src) {
+    if (!src) return null;
+    if (is.str(src)) {
+        return { color: src };
+    } else if (is.arr(src)) {
+        return Import.grad(src);
+    } else throw new Error('Unknown type of brush');
 }
 /** fill **/
 Import.fill = Import.brush;
@@ -478,6 +487,7 @@ Import.fill = Import.brush;
  * } *stroke*;
  */
 Import.stroke = function(src) {
+    if (!src) return null;
     var stroke = Import.brush(src[1]);
     stroke.width = src[0];
     stroke.cap = src[2];
@@ -495,27 +505,13 @@ Import.stroke = function(src) {
  * } *shadow*;
  */
 Import.shadow = function(src) {
+    if (!src) return null;
     var shadow = {};
     shadow.offsetX = src[0];
     shadow.offsetY = src[1];
     shadow.blurRadius = src[2];
     shadow.color = src[3];
     return shadow;
-}
-/** brush (paint) **/
-/*
- * union {
- *     string;          // color in rgba(), rgb, #xxxxxx or word format
- *     *lgrad*;         // linear gradient
- *     *rgrad*;         // radial gradient
- * } *paint*;
- */
-Import.brush = function(src) {
-    if (is.str(src)) {
-        return { color: src };
-    } else if (is.arr(src)) {
-        return Import.grad(src);
-    } else throw new Error('Unknown type of brush');
 }
 /** lgrad **/
 /*
@@ -575,6 +571,14 @@ Import.grad = function(src) {
 Import.pathval = function(src) {
     return new Path(src);
 }
+
+function __MYSELF() { }
+
+__MYSELF.prototype.configureMeta = Import.meta;
+
+__MYSELF.prototype.configureAnim = Import.anim;
+
+__MYSELF.prototype.load = Import.project;
 
 return __MYSELF;
 
