@@ -176,7 +176,7 @@ Import.branch = function(type, src, all) {
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         //if (flags & L_HIDDEN) trg.disabled = true;
-        var x = trg.xdata,
+        var x = ltrg.xdata,
             b = Import.band(lsrc[1]);
         if (type == TYPE_GROUP) {
             x.gband = [ 0, b[1] ];
@@ -195,14 +195,32 @@ Import.branch = function(type, src, all) {
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (t.type == C.T_TRANSLATE) translate = t;
-                trg.addTween(t);
+                ltrg.addTween(t);
             }
             if (translate && (flags & L_ROT_TO_PATH)) {
-                trg.addTween({
+                ltrg.addTween({
                     type: C.T_ROT_TO_PATH,
                     band: t.band
                 });
             }
+        }
+
+        /** end-action **/
+        /*
+         * union {
+         *    array { number; };          // end action without counter, currently just one: 0 for "once"
+         *    array { number; number; };  // end action with counter. first number is type: 1-loop, 2-bounce, second number is counter: 0-infinite
+         * } *end-action*;
+         */
+        // transfer repetition data
+        x.mode = Import.mode(lsrc[5][0]);
+        if (lsrc[5].length > 1) {
+            x.nrep = lsrc[5][1] || Infinity;
+        }
+        if (x.mode == C.R_LOOP) {
+            ltrg.travelChildren(function(child) {
+                child.xdata.mode = C.R_LOOP;
+            });
         }
 
         // if do not masks any layers, just add to target
@@ -226,25 +244,6 @@ Import.branch = function(type, src, all) {
                 togo--;
             }
         }
-
-        /** end-action **/
-        /*
-         * union {
-         *    array { number; };          // end action without counter, currently just one: 0 for "once"
-         *    array { number; number; };  // end action with counter. first number is type: 1-loop, 2-bounce, second number is counter: 0-infinite
-         * } *end-action*;
-         */
-        // transfer repetition data
-        x.mode = Import.mode(lsrc[5][0]);
-        if (lsrc[5].length > 1) {
-            x.nrep = lsrc[5][1] || Infinity;
-        }
-        if (x.mode == C.R_LOOP) {
-            trg.travelChildren(function(child) {
-                child.xdata.mode = C.R_LOOP;
-            });
-        }
-
     }
     return trg;
 }
@@ -550,7 +549,7 @@ Import.grad = function(src) {
     }
     var stops = [];
     for (var i = 0; i < offsets.length; i++) {
-        stops.push(offsets[i], colors[i]);
+        stops.push([ offsets[i], colors[i] ]);
     }
     if (pts.length == 4) {
         return { lgrad: {

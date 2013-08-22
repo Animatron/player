@@ -41,7 +41,7 @@
   }
 
   P.addNewInstanceListener(function() {
-     var player = this;
+    var player = this;
     player.on('play', onPlay);
     player.on('pause', onPause);
     player.on('stop', onStop);
