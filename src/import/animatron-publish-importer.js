@@ -187,6 +187,10 @@ Import.branch = function(type, src, all) {
         }
         x.pvt = [ 0, 0 ];
         x.reg = lsrc[4] || [ 0, 0 ];
+        /* if (lsrc[4]) {
+            ltrg.bstate.x = lsrc[4][0];
+            ltrg.bstate.y = lsrc[4][1];
+        }; */
 
         // apply tweens
         if (lsrc[7]) {
