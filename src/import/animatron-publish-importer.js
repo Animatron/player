@@ -493,8 +493,8 @@ Import.stroke = function(src) {
     if (!src) return null;
     var stroke = Import.brush(src[1]);
     stroke.width = src[0];
-    stroke.cap = src[2];
-    stroke.join = src[3];
+    stroke.cap = src[2] || C.PC_ROUND;
+    stroke.join = src[3] || C.PC_ROUND;
     stroke.mitter = src[4];
     return stroke;
 }
