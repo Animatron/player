@@ -4133,7 +4133,7 @@ function Text(lines, font,
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
     this.shadow = shadow;
-    this.align = align;
+    this.align = align || Text.DEFAULT_ALIGN;
     this._bnds = null;
 }
 
@@ -4144,7 +4144,7 @@ Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.DEFAULT_ALIGN = 'left';
-Text.BASELINE_RULE = 'bottom';//'alphabetic';
+Text.BASELINE_RULE = 'alphabetic';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
 Text.prototype.apply = function(ctx, point, baseline) {
@@ -4184,6 +4184,8 @@ Text.prototype.dimen = function() {
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
     var buff = Text.__buff;
     buff.style.font = this.font;
+    buff.style.textAlign = this.align;
+    //buff.style.verticalAlign = baseline
     if (__arr(this.lines)) {
         buff.textContent = this.lines.join('<br/>');
     } else {
