@@ -14,6 +14,8 @@ describe("static modification", function() {
         expect(bs.angle).toBe(0);
         expect(bs.sx).toBe(1);
         expect(bs.sy).toBe(1);
+        expect(bs.hx).toBe(1);
+        expect(bs.hy).toBe(1);
         expect(bs.alpha).toBe(1);
         expect(bs.p).toBe(null);
         expect(bs.t).toBe(null);
@@ -28,6 +30,8 @@ describe("static modification", function() {
         expect(s.angle).toBe(0);
         expect(s.sx).toBe(1);
         expect(s.sy).toBe(1);
+        expect(s.hx).toBe(1);
+        expect(s.hy).toBe(1);
         expect(s.alpha).toBe(1);
         expect(s.p).toBe(null);
         expect(s.t).toBe(null);
@@ -42,6 +46,7 @@ describe("static modification", function() {
                 x: 20.5, y: 1355,
                 angle: 3 * Math.PI / 2,
                 sx: 22.46, sy: 0.015,
+                hx: 12.3, hy: 15.5,
                 alpha: 0.84,
                 // TODO: test p, t, and key
             }
@@ -52,6 +57,8 @@ describe("static modification", function() {
             expect(bs.angle).toBe(ts.angle);
             expect(bs.sx).toBe(ts.sx);
             expect(bs.sy).toBe(ts.sy);
+            expect(bs.hx).toBe(ts.hx);
+            expect(bs.hy).toBe(ts.hy);
             expect(bs.alpha).toBe(ts.alpha);
         });
 
@@ -115,6 +122,18 @@ describe("static modification", function() {
             expect(elm_v.state.sy).toBe(1);
             expect(elm_v.bstate.sx).toBe(1006.27);
             expect(elm_v.bstate.sy).toBe(123);
+        });
+
+        it("allows to change base shear", function() {
+            var elm = b(),
+                elm_v = elm.v;
+            expect(elm_v.state.hx).toBe(1);
+            expect(elm_v.state.hy).toBe(1);
+            elm.skew([8.1, 17.2]);
+            expect(elm_v.state.hx).toBe(1);
+            expect(elm_v.state.hy).toBe(1);
+            expect(elm_v.bstate.hx).toBe(8.1);
+            expect(elm_v.bstate.hy).toBe(17.2);
         });
 
         it("allows to change base alpha", function() {
@@ -274,6 +293,39 @@ describe("static modification", function() {
             player.drawAt(4);
             expect(scaleSpy).toHaveBeenCalledWith(12, 2.6);
             scaleSpy.reset();
+        });
+
+        it("applies base shear change", function() {
+            var elm = b(),
+                elm_v = elm.v;
+
+            var shearSpy = spyOn(Transform_mock.instance, 'shear');
+
+            elm.skew([0.1, 2.5]);
+
+            player.load(elm).drawAt(0);
+
+            expect(shearSpy).toHaveBeenCalledWith(0.1, 2.5);
+            shearSpy.reset();
+
+            elm.shear([2, 6], [[2, 7.2], [9, 3]]);
+
+            player.drawAt(0);
+            expect(shearSpy).toHaveBeenCalledWith(0.1, 2.5);
+            shearSpy.reset();
+
+            player.drawAt(2);
+            expect(shearSpy).toHaveBeenCalledWith(0.2, 18);
+            shearSpy.reset();
+
+            player.drawAt(4);
+            expect(shearSpy).toHaveBeenCalledWith(0.2  + ((0.9 - 0.2) / 2),
+                                                  18   + ((7.5 -  18) / 2));
+            shearSpy.reset();
+
+            player.drawAt(6);
+            expect(shearSpy).toHaveBeenCalledWith(0.9, 7.5);
+            shearSpy.reset();
         });
 
         it("applies base alpha change", function() {
