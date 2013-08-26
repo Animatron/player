@@ -562,8 +562,8 @@ Import.grad = function(src) {
         } };
     } else if (pts.length == 6) {
         return { rgrad: {
-            r: [ pts[4], pts[5] ],
-            dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
+            r: [ pts[2], pts[5] ],
+            dir: [ [ pts[0], pts[1] ], [ pts[3], pts[4] ] ],
             stops: stops
         } };
     } else {
