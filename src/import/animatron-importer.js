@@ -256,7 +256,7 @@ Convert.tweenData = function(type, tween) {
         if (data.length == 2) return data;
         if (data.length == 1) return [ data[0], data[0] ];
     }
-    if (type === C.T_SCALE) {
+    if ((type === C.T_SCALE) || (type === C.T_SHEAR)) {
         if (data.length == 4) return [ [ data[0], data[1] ],
                                        [ data[2], data[3] ] ];
         if (data.length == 2) return [ [ data[0], data[0] ],
