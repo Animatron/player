@@ -14,8 +14,8 @@ describe("static modification", function() {
         expect(bs.angle).toBe(0);
         expect(bs.sx).toBe(1);
         expect(bs.sy).toBe(1);
-        expect(bs.hx).toBe(1);
-        expect(bs.hy).toBe(1);
+        expect(bs.hx).toBe(0);
+        expect(bs.hy).toBe(0);
         expect(bs.alpha).toBe(1);
         expect(bs.p).toBe(null);
         expect(bs.t).toBe(null);
@@ -30,8 +30,8 @@ describe("static modification", function() {
         expect(s.angle).toBe(0);
         expect(s.sx).toBe(1);
         expect(s.sy).toBe(1);
-        expect(s.hx).toBe(1);
-        expect(s.hy).toBe(1);
+        expect(s.hx).toBe(0);
+        expect(s.hy).toBe(0);
         expect(s.alpha).toBe(1);
         expect(s.p).toBe(null);
         expect(s.t).toBe(null);
@@ -127,11 +127,11 @@ describe("static modification", function() {
         it("allows to change base shear", function() {
             var elm = b(),
                 elm_v = elm.v;
-            expect(elm_v.state.hx).toBe(1);
-            expect(elm_v.state.hy).toBe(1);
+            expect(elm_v.state.hx).toBe(0);
+            expect(elm_v.state.hy).toBe(0);
             elm.skew([8.1, 17.2]);
-            expect(elm_v.state.hx).toBe(1);
-            expect(elm_v.state.hy).toBe(1);
+            expect(elm_v.state.hx).toBe(0);
+            expect(elm_v.state.hy).toBe(0);
             expect(elm_v.bstate.hx).toBe(8.1);
             expect(elm_v.bstate.hy).toBe(17.2);
         });
@@ -315,16 +315,16 @@ describe("static modification", function() {
             shearSpy.reset();
 
             player.drawAt(2);
-            expect(shearSpy).toHaveBeenCalledWith(0.2, 18);
+            expect(shearSpy).toHaveBeenCalledWith(2.1, 9.7);
             shearSpy.reset();
 
             player.drawAt(4);
-            expect(shearSpy).toHaveBeenCalledWith(0.2  + ((0.9 - 0.2) / 2),
-                                                  18   + ((7.5 -  18) / 2));
+            expect(shearSpy).toHaveBeenCalledWith(2.1  + ((9 - 2  ) / 2),
+                                                  9.7  + ((3 - 7.2) / 2));
             shearSpy.reset();
 
             player.drawAt(6);
-            expect(shearSpy).toHaveBeenCalledWith(0.9, 7.5);
+            expect(shearSpy).toHaveBeenCalledWith(9.1, 5.5);
             shearSpy.reset();
         });
 

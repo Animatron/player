@@ -2833,7 +2833,7 @@ Element.createBaseState = function() {
     return { 'x': 0, 'y': 0,   // dynamic position
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
-             'hx': 1, 'hy': 1, // shear by x / by y
+             'hx': 0, 'hy': 0, // shear by x / by y
              'alpha': 1,       // opacity
              'p': null, 't': null, 'key': null };
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
@@ -2844,7 +2844,7 @@ Element.createState = function(owner) {
     return { 'x': 0, 'y': 0,   // dynamic position
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
-             'hx': 1, 'hy': 1, // shear by x / by y
+             'hx': 0, 'hy': 0, // shear by x / by y
              'alpha': 1,       // opacity
              'p': null, 't': null, 'key': null,
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
@@ -2929,7 +2929,7 @@ Element._mergeStates = function(s1, s2) {
     return {
         x: s1.x + s2.x, y: s1.y + s2.y,
         sx: s1.sx * s2.sx, sy: s1.sy * s2.sy,
-        hx: s1.hx * s2.hx, hy: s1.hy * s2.hy,
+        hx: s1.hx + s2.hx, hy: s1.hy + s2.hy,
         angle: s1.angle + s2.angle,
         alpha: s1.alpha * s2.alpha
     }
@@ -2939,8 +2939,8 @@ Element._getMatrixOf = function(s, m) {
                 : new Transform());
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);
-    _t.shear(s.hx, s.hy);
     _t.scale(s.sx, s.sy);
+    _t.shear(s.hx, s.hy);
     return _t;
 }
 Element._getIMatrixOf = function(s, m) {
