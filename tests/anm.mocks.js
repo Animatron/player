@@ -127,6 +127,7 @@ mocks.factory.transform = function() {
             'rotateDegrees': __nop,
             'translate': __nop,
             'scale': __nop,
+            'shear': __nop,
             'transformPoint': __nop,
             'apply': __nop,
             'clone': __nop,

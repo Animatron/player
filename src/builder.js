@@ -387,6 +387,12 @@ Builder.prototype.size = function(val) {
 Builder.prototype.resize = Builder.prototype.size;
 // > builder.proportions % (val: Array[2,Float]) => Builder
 Builder.prototype.proportions = Builder.prototype.size;
+// > builder.skew % (val: Array[2,Integer]) => Builder
+Builder.prototype.skew = function(val) {
+    this.bs.hx = val[0];
+    this.bs.hy = val[1];
+    return this;
+}
 // > builder.angle % (val: Float) => Builder
 Builder.prototype.angle = function(val) {
     this.bs.angle = val;
@@ -483,6 +489,19 @@ Builder.prototype.scale = function(band, values, easing) {
 //                     [easing: String]) => Builder
 Builder.prototype.xscale = function(band, values, easing) {
     return this.scale(band, [ [ values[0], values[0] ],
+                              [ values[1], values[1] ] ], easing);
+}
+// > builder.shear % (band: Array[2,Float],
+//                    values: Array[2,Array[2, Float]],
+//                    [easing: String]) => Builder
+Builder.prototype.shear = function(band, values, easing) {
+    return this.tween(C.T_SHEAR, band, values, easing);
+}
+// > builder.xshear % (band: Array[2,Float],
+//                     values: Array[2, Float],
+//                     [easing: String]) => Builder
+Builder.prototype.xshear = function(band, values, easing) {
+    return this.shear(band, [ [ values[0], values[0] ],
                               [ values[1], values[1] ] ], easing);
 }
 // > builder.trans % (band: Array[2,Float],

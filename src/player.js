@@ -2603,6 +2603,7 @@ Element.createBaseState = function() {
     return { 'x': 0, 'y': 0,   // dynamic position
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
+             'hx': 0, 'hy': 0, // shear by x / by y
              'alpha': 1,       // opacity
              'p': null, 't': null, 'key': null };
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
@@ -2613,6 +2614,7 @@ Element.createState = function(owner) {
     return { 'x': 0, 'y': 0,   // dynamic position
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
+             'hx': 0, 'hy': 0, // shear by x / by y
              'alpha': 1,       // opacity
              'p': null, 't': null, 'key': null,
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
@@ -2697,6 +2699,7 @@ Element._mergeStates = function(s1, s2) {
     return {
         x: s1.x + s2.x, y: s1.y + s2.y,
         sx: s1.sx * s2.sx, sy: s1.sy * s2.sy,
+        hx: s1.hx + s2.hx, hy: s1.hy + s2.hy,
         angle: s1.angle + s2.angle,
         alpha: s1.alpha * s2.alpha
     }
@@ -2707,6 +2710,7 @@ Element._getMatrixOf = function(s, m) {
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);
     _t.scale(s.sx, s.sy);
+    _t.shear(s.hx, s.hy);
     return _t;
 }
 Element._getIMatrixOf = function(s, m) {
@@ -3146,7 +3150,7 @@ C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
 
-var Tween = {};
+var Tween = {}; // FIXME: make tween a class
 var Easing = {};
 
 // tween order
@@ -3201,7 +3205,8 @@ Tweens[C.T_ROT_TO_PATH] =
 Tweens[C.T_SHEAR] =
     function() {
       return function(t, dt, duration, data) {
-        // TODO
+        this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 
@@ -3898,12 +3903,13 @@ CSeg.prototype._calc_params = function(start) {
 // -----------------------------------------------------------------------------
 
 function Text(lines, font,
-              fill, stroke, shadow) {
+              fill, stroke, shadow, align) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
     this.shadow = shadow;
+    this.align = align || Text.DEFAULT_ALIGN;
     this._bnds = null;
 }
 
@@ -3913,7 +3919,8 @@ Text.DEFAULT_FFACE = 'sans-serif';
 Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
-Text.BASELINE_RULE = 'bottom';
+Text.DEFAULT_ALIGN = 'left';
+Text.BASELINE_RULE = 'alphabetic';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
 Text.prototype.apply = function(ctx, pos, baseline) {
@@ -3922,9 +3929,9 @@ Text.prototype.apply = function(ctx, pos, baseline) {
         dimen = this.dimen(),
         accent = this.accent(dimen[1]);
     ctx.font = this.font;
-    ctx.textBaseline = baseline || Text.BASELINE_RULE;
+    ctx.textBaseline = baseline || Text.BASELINE_RULE; // FIXME: store inside
+    ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     ctx.translate(pos[0]/* + (dimen[0] / 2)*/, pos[1]);
-
     if (Brush._hasVal(this.fill)) {
         Brush.shadow(ctx, this.shadow);
         Brush.fill(ctx, this.fill);
@@ -4997,6 +5004,9 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
             buff = $DE.__textBuf;
         }
         return function(text) {
+          buff.style.font = text.font;
+          buff.style.textAlign = text.align;
+          //buff.style.verticalAlign = baseline
             if (__arr(text.lines)) {
                 buff.textContent = text.lines.join('<br/>');
             } else {
