@@ -19,6 +19,8 @@
 
 // Remember that this does not account for any CSS transforms applied to the canvas
 
+// TODO: use somewhat closer to AfineTransform from
+
 function Transform() {
   this.m = [1,0,0,1,0,0];
 }
@@ -107,10 +109,15 @@ Transform.prototype.transformPoint = function(px, py) {
 
 // customized methods
 
+Transform.prototype.shear = function(hx, hy) {
+  this.m[1] += hx;
+  this.m[2] += hy;
+};
+
 Transform.prototype.apply = function(ctx) {
   var m = this.m;
   ctx.transform(m[0], m[1], m[2], m[3], m[4], m[5]);
-}
+};
 
 Transform.prototype.clone = function() {
   var cl = new Transform();
@@ -121,12 +128,17 @@ Transform.prototype.clone = function() {
   cl.m[4] = this.m[4];
   cl.m[5] = this.m[5];
   return cl;
-}
+};
 
 Transform.prototype.inverted = function() {
   var clone = this.clone();
   clone.invert();
   return clone;
-}
+};
+
+/* TODO:?
+Transform.prototype.extract = function() {
+
+} */
 
 if (typeof exports !== 'undefined') exports.Transform = Transform;
