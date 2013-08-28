@@ -219,22 +219,6 @@ __MYSELF.prototype._transferRepetitionData = function(src, trg) {
 
 // ** CONVERTION **
 
-var TYPE_UNKNOWN = "00",
-    TYPE_CLIP    = "01",
-    TYPE_SCENE   = "02",
-    TYPE_PATH    = "03",
-    TYPE_TEXT    = "04",
-    TYPE_RECT    = "05",
-    TYPE_OVAL    = "06",
-    TYPE_PENCIL  = "07",
-    TYPE_IMAGE   = "08",
-    TYPE_GROUP   = "09",
-    TYPE_BRUSH   = "0a",
-    TYPE_STAR    = "0b",
-    TYPE_POLYGON = "0c",
-    TYPE_CURVE   = "0d",
-    TYPE_AUDIO   = "0e",
-    TYPE_LINE    = "0f";
 function extract_type(id) {
     if (id.length !== 24) throw new Error('Invalid element id ' + id);
     return id.substring(id.length - 2);
@@ -268,15 +252,15 @@ Convert.tweenData = function(type, tween) {
         if (tween.path) return new Path(tween.path);
         return null;
     }
-    if (type === C.T_ROTATE) {
+    if ((type === C.T_ROTATE) || (type === C.T_ALPHA)) {
         if (data.length == 2) return data;
         if (data.length == 1) return [ data[0], data[0] ];
     }
-    if (type === C.T_SCALE) {
+    if ((type === C.T_SCALE) || (type === C.T_SHEAR)) {
         if (data.length == 4) return [ [ data[0], data[1] ],
                                        [ data[2], data[3] ] ];
-        if (data.length == 2) return [ [ data[0], data[0] ],
-                                       [ data[1], data[1] ] ];
+        if (data.length == 2) return [ [ data[0], data[1] ],
+                                       [ data[0], data[1] ] ];
         if (data.length == 1) return [ [ data[0], data[0] ],
                                        [ data[0], data[0] ] ];
     }

@@ -41,7 +41,7 @@
   }
 
   P.addNewInstanceListener(function() {
-     var player = this;
+    var player = this;
     player.on('play', onPlay);
     player.on('pause', onPause);
     player.on('stop', onStop);
@@ -94,13 +94,22 @@
   E._audio_cache = {};
 
   E.prototype.importCustomData = function(object, type, importer) {
-    if ("0e" == type) {
+    if (("0e" == type)/*ANM*/ ||
+        (14 == type)/*ANM_PUBLISH*/) {
       if (importer == "ANM") {
         this._audio_band_offset = object.bandOffset;
         this._audio_url = object.url;
       } else if (importer == "ANM_PUBLISH") {
-        this._audio_band_offset = object.bo;
-        this._audio_url = object.u;
+        /** audio **/
+        /*
+         * array {
+         *     14;                         // 0
+         *     string;                     // 1, url
+         *     number;                     // 2, band offset
+         * } *audio_element*;
+         */
+        this._audio_url = object[1];
+        this._audio_band_offset = object[2];
       }
       this.isAudio = true;
       this._audio = null;
