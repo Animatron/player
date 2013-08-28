@@ -864,7 +864,6 @@ Player.prototype.drawAt = function(time) {
     }
     this.anim.reset();
 
-    thi
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
     __r_at(time, 0, this.ctx, this.state, this.anim,
@@ -4306,7 +4305,7 @@ Controls.prototype.update = function(parent) {
                                     _bp[1]+(_h*_ratio) ]; */
 }
 Controls.prototype.subscribeEvents = function(canvas) {
-    ENGINE.subscribeEvents({
+    ENGINE.subscribeEvents(canvas, {
         mousedown: (function(controls) {
                 return function(evt) {
                     controls.fire(C.X_MDOWN, evt);
