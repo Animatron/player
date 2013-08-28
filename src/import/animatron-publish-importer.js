@@ -417,8 +417,8 @@ Import.tweendata = function(type, src) {
         (type === C.T_SHEAR)) {
         if (src.length == 4) return [ [ src[0], src[1] ],
                                       [ src[2], src[3] ] ];
-        if (src.length == 2) return [ [ src[0], src[0] ],
-                                      [ src[1], src[1] ] ];
+        if (src.length == 2) return [ [ src[0], src[1] ],
+                                      [ src[0], src[1] ] ];
         if (src.length == 1) return [ [ src[0], src[0] ],
                                       [ src[0], src[0] ] ];
     }
