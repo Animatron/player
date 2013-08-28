@@ -52,8 +52,10 @@
                   _files['anm.import'],
                   _files['tst.matchers'],
                   _files['tst.mocks'],
-                  _files['tst.utils']
+                  _files['tst.utils'],
+                  _files['tst.engine']
           ], function() {
+            anm.switchEngineTo(TestEngine);
             loadJasmine(window, [ new jasmine.TapReporter(),
                                   new jasmine.PhantomReporter({ onFinish: on_finish }) ],
                                 [ specs_to_run || '*' ]);

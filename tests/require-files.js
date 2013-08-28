@@ -23,6 +23,7 @@ var _files = {
 
     'tst.matchers': './anm.matchers.js',
     'tst.mocks': './anm.mocks.js',
-    'tst.utils': './anm.testutils.js'
+    'tst.utils': './anm.testutils.js',
+    'tst.engine': './anm.test-engine.js'
 
 };

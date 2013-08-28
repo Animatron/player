@@ -1634,7 +1634,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // because context anyway may be changed with user functions,
     // like modifiers who return false (and we do not want to restrict
     // user to do that)
-    ctx.save();
     var drawMe = false;
 
     // checks if any time jumps (including repeat
@@ -1648,65 +1647,69 @@ Element.prototype.render = function(ctx, gtime, dt) {
                  && this.visible;
     }
     if (drawMe) {
-        // update gtime for children, if it was changed by ltime()
-        gtime = this.gtime(ltime);
-        if (!this.__mask) {
-            // draw directly to context, if has no mask
-            this.transform(ctx);
-            this.draw(ctx, ltime, dt);
-            this.visitChildren(function(elm) {
-                elm.render(ctx, gtime, dt);
-            });
-        } else {
-            // draw to back canvas, if has
-            this.__ensureHasMaskCanvas();
-            var mcvs = this.__maskCvs,
-                mctx = this.__maskCtx,
-                bcvs = this.__backCvs,
-                bctx = this.__backCtx;
+        ctx.save();
+        try {
+            // update gtime for children, if it was changed by ltime()
+            gtime = this.gtime(ltime);
+            if (!this.__mask) {
+                // draw directly to context, if has no mask
+                this.transform(ctx);
+                this.draw(ctx, ltime, dt);
+                this.visitChildren(function(elm) {
+                    elm.render(ctx, gtime, dt);
+                });
+            } else {
+                // draw to back canvas, if has
+                this.__ensureHasMaskCanvas();
+                var mcvs = this.__maskCvs,
+                    mctx = this.__maskCtx,
+                    bcvs = this.__backCvs,
+                    bctx = this.__backCtx;
 
-            var scene_width = this.scene.width,
-                scene_height = this.scene.height,
-                dbl_scene_width = scene_width * 2,
-                dbl_scene_height = scene_height * 2;
+                var scene_width = this.scene.width,
+                    scene_height = this.scene.height,
+                    dbl_scene_width = scene_width * 2,
+                    dbl_scene_height = scene_height * 2;
 
-            // at this point:
-            // mcvs.height is twice scene height
-            // mcvs.width  is twice scene width
+                // at this point:
+                // mcvs.height is twice scene height
+                // mcvs.width  is twice scene width
 
-            bctx.save();
-            bctx.clearRect(0, 0, dbl_scene_width,
-                                 dbl_scene_height);
+                bctx.save();
+                bctx.clearRect(0, 0, dbl_scene_width,
+                                     dbl_scene_height);
 
-            bctx.save();
-            bctx.translate(scene_width, scene_height);
-            this.transform(bctx);
-            this.visitChildren(function(elm) {
-                elm.render(bctx, gtime, dt);
-            });
-            this.draw(bctx, ltime, dt);
-            bctx.restore();
-            bctx.globalCompositeOperation = 'destination-in';
+                bctx.save();
+                bctx.translate(scene_width, scene_height);
+                this.transform(bctx);
+                this.visitChildren(function(elm) {
+                    elm.render(bctx, gtime, dt);
+                });
+                this.draw(bctx, ltime, dt);
+                bctx.restore();
+                bctx.globalCompositeOperation = 'destination-in';
 
-            mctx.save();
-            mctx.clearRect(0, 0, dbl_scene_width,
-                                 dbl_scene_height);
-            mctx.translate(scene_width, scene_height);
-            this.__mask.render(mctx, gtime, dt);
-            mctx.restore();
+                mctx.save();
+                mctx.clearRect(0, 0, dbl_scene_width,
+                                     dbl_scene_height);
+                mctx.translate(scene_width, scene_height);
+                this.__mask.render(mctx, gtime, dt);
+                mctx.restore();
 
-            bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
-                                       dbl_scene_height);
-            bctx.restore();
+                bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
+                                           dbl_scene_height);
+                bctx.restore();
 
-            ctx.drawImage(bcvs, -scene_width, -scene_height,
-                          dbl_scene_width, dbl_scene_height);
+                ctx.drawImage(bcvs, -scene_width, -scene_height,
+                              dbl_scene_width, dbl_scene_height);
+            }
+        } finally {
+            ctx.restore();
         }
     }
     // immediately when drawn, element becomes shown,
     // it is reasonable
     this.shown = drawMe;
-    ctx.restore();
     this.__postRender();
     this.rendering = false;
     if (drawMe) this.fire(C.X_DRAW,ctx);
@@ -2930,7 +2933,7 @@ function __r_at(time, dt, ctx, pl_state, scene, before, after) {
                        (pl_state.height != scene.height);
     if (!size_differs) {
         ctx.clearRect(0, 0, scene.width,
-                          scene.height);
+                            scene.height);
         if (before) before(time, ctx);
         scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
         if (after) after(time, ctx);
@@ -2955,8 +2958,8 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
         vcoord = (ph - sh * x) / 2;
     var scaled = (xw != 1) || (xh != 1);
     if (scaled) {
-        ctx.save();
-        ctx.save();
+        ctx.save(); // first open
+        ctx.save(); // second open
         ctx.fillStyle = '#000';
         if (hcoord != 0) {
           ctx.fillRect(0, 0, hcoord, ph);
@@ -2966,7 +2969,7 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
           ctx.fillRect(0, 0, pw, vcoord);
           ctx.fillRect(0, vcoord + (sh * x), pw, vcoord);
         }
-        ctx.restore();
+        ctx.restore(); // second closed
         ctx.beginPath();
         ctx.rect(hcoord, vcoord, sw * x, sh * x);
         ctx.clip();
@@ -2975,7 +2978,7 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
     }
     draw_f(x);
     if (scaled) {
-        ctx.restore();
+        ctx.restore(); // first closed
     }
 }
 function __r_fps(ctx, fps, time) {
@@ -5260,9 +5263,9 @@ function DomEngine($wnd, $doc) { return (function() { // wrapper here is just to
         }, false);
     }
 
-    return $DE; })();
+    return $DE;
 
-};
+})(); };
 
 // Strings
 // -----------------------------------------------------------------------------
@@ -5376,6 +5379,7 @@ return function($trg) {
                        nan: __nan };
     $trg.__dev = { '_win': function() { return $wnd },
                    '_winf': function(w) { $wnd = w; },
+                   '_DomEngine': DomEngine,
                    'strf': _strf,
                    'adjust': __adjust,
                    't_cmp': __t_cmp,
