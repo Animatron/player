@@ -252,15 +252,15 @@ Convert.tweenData = function(type, tween) {
         if (tween.path) return new Path(tween.path);
         return null;
     }
-    if (type === C.T_ROTATE) {
+    if ((type === C.T_ROTATE) || (type === C.T_ALPHA)) {
         if (data.length == 2) return data;
         if (data.length == 1) return [ data[0], data[0] ];
     }
     if ((type === C.T_SCALE) || (type === C.T_SHEAR)) {
         if (data.length == 4) return [ [ data[0], data[1] ],
                                        [ data[2], data[3] ] ];
-        if (data.length == 2) return [ [ data[0], data[0] ],
-                                       [ data[1], data[1] ] ];
+        if (data.length == 2) return [ [ data[0], data[1] ],
+                                       [ data[0], data[1] ] ];
         if (data.length == 1) return [ [ data[0], data[0] ],
                                        [ data[0], data[0] ] ];
     }
