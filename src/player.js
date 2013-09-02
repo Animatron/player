@@ -1388,17 +1388,18 @@ Scene.prototype.visitRoots = function(visitor, data) {
 }
 Scene.prototype.render = function(ctx, time, dt, zoom) {
     ctx.save();
-    if (zoom != 1) {
-        ctx.scale(zoom, zoom);
-    }
-    if (this.bgfill) {
-        ctx.fillStyle = Brush.create(ctx, this.bgfill);
-        ctx.fillRect(0, 0, this.width, this.height);
-    }
-    this.visitRoots(function(elm) {
-        elm.render(ctx, time, dt);
-    });
-    ctx.restore();
+    try {
+        if (zoom != 1) {
+            ctx.scale(zoom, zoom);
+        }
+        if (this.bgfill) {
+            ctx.fillStyle = Brush.create(ctx, this.bgfill);
+            ctx.fillRect(0, 0, this.width, this.height);
+        }
+        this.visitRoots(function(elm) {
+            elm.render(ctx, time, dt);
+        });
+    } finally { ctx.restore(); }
     this.fire(C.X_DRAW,ctx);
 }
 Scene.prototype.handle__x = function(type, evt) {
@@ -1674,37 +1675,35 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // mcvs.height is twice scene height
                 // mcvs.width  is twice scene width
 
-                bctx.save();
+                bctx.save(); // bctx first open
                 bctx.clearRect(0, 0, dbl_scene_width,
                                      dbl_scene_height);
 
-                bctx.save();
+                bctx.save(); // bctx second open
                 bctx.translate(scene_width, scene_height);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
                 this.draw(bctx, ltime, dt);
-                bctx.restore();
+                bctx.restore(); // bctx second closed
                 bctx.globalCompositeOperation = 'destination-in';
 
-                mctx.save();
+                mctx.save(); // mctx first open
                 mctx.clearRect(0, 0, dbl_scene_width,
                                      dbl_scene_height);
                 mctx.translate(scene_width, scene_height);
                 this.__mask.render(mctx, gtime, dt);
-                mctx.restore();
+                mctx.restore(); // mctx first closed
 
                 bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
                                            dbl_scene_height);
-                bctx.restore();
+                bctx.restore(); // bctx first closed
 
                 ctx.drawImage(bcvs, -scene_width, -scene_height,
                               dbl_scene_width, dbl_scene_height);
             }
-        } finally {
-            ctx.restore();
-        }
+        } finally { ctx.restore(); }
     }
     // immediately when drawn, element becomes shown,
     // it is reasonable
@@ -2931,21 +2930,23 @@ function __r_at(time, dt, ctx, pl_state, scene, before, after) {
     var size_differs = (pl_state.width  != scene.width) ||
                        (pl_state.height != scene.height);
     if (!size_differs) {
-        ctx.clearRect(0, 0, scene.width,
-                            scene.height);
-        if (before) before(time, ctx);
-        scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
-        if (after) after(time, ctx);
-        ctx.restore();
+        try {
+            ctx.clearRect(0, 0, scene.width,
+                                scene.height);
+            if (before) before(time, ctx);
+            scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
+            if (after) after(time, ctx);
+        } finally { ctx.restore(); }
     } else {
         __r_with_ribbons(ctx, pl_state.width, pl_state.height,
                               scene.width, scene.height,
             function(_scale) {
-              ctx.clearRect(0, 0, scene.width, scene.height);
-              if (before) before(time, ctx);
-              scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
-              if (after) after(time, ctx);
-              ctx.restore();
+                try {
+                  ctx.clearRect(0, 0, scene.width, scene.height);
+                  if (before) before(time, ctx);
+                  scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
+                  if (after) after(time, ctx);
+                } finally { ctx.restore(); }
             });
     }
 }
@@ -4554,18 +4555,18 @@ Controls.__progress = function(ctx, _w, front, back, time, duration) {
         darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
                            Math.max(bgspec[1] - 30, 0),
                            Math.max(bgspec[2] - 30, 0), .9);
-    ctx.save();
+    ctx.save(); // first open
     Controls.__separator(ctx, 0, 0, front, darkback);
     ctx.translate(_sw + _m, 0);
     // back
-    ctx.save();
+    ctx.save(); // second open
     ctx.fillStyle = back;
     Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
     ctx.fill();
-    ctx.restore();
+    ctx.restore(); // second closed
     if (duration == 0) return;
     // front
-    ctx.save();
+    ctx.save(); // second open
     ctx.fillStyle = front;
     ctx.globalAlpha *= .95;
     if (__t_cmp(time, duration) >= 0) {
@@ -4574,9 +4575,9 @@ Controls.__progress = function(ctx, _w, front, back, time, duration) {
       Controls.__semiRoundRect(ctx, 0, _ly + 1, _px, _lh, 5);
     }
     ctx.fill();
-    ctx.restore();
+    ctx.restore(); // second closed
     // end
-    ctx.restore();
+    ctx.restore(); // first closed
 }
 Controls.__separator = function(ctx, x, y, color, shadowcolor) {
     var _bh = Controls._BH,

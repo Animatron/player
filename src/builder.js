@@ -1029,7 +1029,6 @@ Builder._text = function(ctx, pos, text, size, font, fill, stroke, stroke_w) {
     if (stroke) t.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
                              color: stroke };
     t.apply(ctx, pos, 'bottom');
-    ctx.restore();
 }
 /* Builder._image = function(ctx, pos, src, size) {
     // TODO
