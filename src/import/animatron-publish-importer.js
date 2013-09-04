@@ -148,16 +148,23 @@ var L_ROT_TO_PATH = 1,
 Import.branch = function(type, src, all) {
     var trg = new Element();
     trg.name = src[1];
-    var _layers = src[2],
+    var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
+    if (type == TYPE_SCENE) {
+        trg.xdata.gband = [ 0, src[2] ];
+        trg.xdata.lband = [ 0, src[2] ];
+    } else {
+        trg.xdata.gband = [ 0, Infinity ];
+        trg.xdata.lband = [ 0, Infinity ];
+    }
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
         /** layer **/
         /*
          * array {
-         *     string;                     // 0, name
-         *     *band*;                     // 1, band, default is absent, default is [0, infinity]
-         *     number;                     // 2, index of element in the elements array
+         *     number;                     // 0, index of element in the elements array
+         *     string;                     // 1, name
+         *     *band*;                     // 2, band, default is absent, default is [0, infinity]
          *     number;                     // 3, if more than zero the number of masked layers under this one
          *     array { number; number; };  // 4, registration point, default is [0,0]
          *     *end-action*;               // 5, end action for this layer
@@ -166,18 +173,18 @@ Import.branch = function(type, src, all) {
          * } *layer*;
          */
         var lsrc = _layers[li],
-            ltype = Import._type(lsrc[2]);
+            ltype = Import._type(lsrc[0]);
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(Import._find(lsrc[2], all), all, trg);
-        if (!ltrg.name) { ltrg.name = lsrc[0]; }
+        var ltrg = Import.node(Import._find(lsrc[0], all), all, trg);
+        if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         //if (flags & L_HIDDEN) trg.disabled = true;
         var x = ltrg.xdata,
-            b = Import.band(lsrc[1]);
+            b = Import.band(lsrc[2]);
         if (type == TYPE_GROUP) {
             x.gband = [ 0, b[1] ];
             x.lband = [ 0, b[1] ];
@@ -217,14 +224,13 @@ Import.branch = function(type, src, all) {
          * } *end-action*;
          */
         // transfer repetition data
-        x.mode = Import.mode(lsrc[5][0]);
-        if (lsrc[5].length > 1) {
-            x.nrep = lsrc[5][1] || Infinity;
-        }
-        if (x.mode == C.R_LOOP) {
-            ltrg.travelChildren(function(child) {
-                child.xdata.mode = C.R_LOOP;
-            });
+        if (lsrc[5]) {
+            x.mode = Import.mode(lsrc[5][0]);
+            if (lsrc[5].length > 1) {
+                x.nrep = lsrc[5][1] || Infinity;
+            }
+        } else {
+            x.mode = Import.mode(null);
         }
 
         // if do not masks any layers, just add to target
