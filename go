@@ -199,8 +199,8 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js', function () {
-                        anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
+                    _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID + '/bundle/animatron-publish.js', function () {
+                        anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronPublishImporter());
                     });
                 } catch (e) {
                     _u.reportError(e);
