@@ -1,3 +1,49 @@
+v0.9.1403 / Wed Aug 28 2013 12:05:15 -0700 / 84bf790ab3408ec9356d96e972c924be57bd3b56
+=====================================================================================
+
+Importer for minimized format is rewritten to support compact (array-based) format
+
+Features:
+
+* Shear/skew tween
+* Compact (array-based) format support
+
+Incompatibilities b/w Editor and Player:
+
+Fixed:
+* Text size
+* Import of Scale and Alpha tweens
+
+Still not fixed:
+
+* Text Underline
+* Speed of the Translate tween with a long path
+* End modes for clips are not stable, so not fixing
+* Importing partial scenes
+
+v0.9.1402 / Wed Aug 14 2013 19:57:00 +0200 / 583039ea2af4a409bd7c06ba373d8ab7a1d7ab59
+=====================================================================================
+
+Fixes:
+
+* Supports collapsed data for tweens, imported from Animatron Editor
+
+Features:
+
+* Adds the `animatron-publish` imported and `animatron-publish` bundle, they provide support of new minimized format from Editor
+
+v0.9.1401 / Thu Aug 08 2013 03:29:03 +0200 / 3f2468a1312c1f382d9a79527cfdd858a9858ce5
+=====================================================================================
+
+Features:
+
+* Refactored Animatron Importer
+
+Fixes:
+
+* Animatron Importer now understands passes loop mode to the children to fix current difference with editor
+* Animatron Importer now correctly applies global bands to groups imported from editor
+
 v0.9.14 / Fri Jul 26 2013 14:18:06 +0200 / 09f66d20225dee4ac861947bb45d61e34dbd25fd
 ===================================================================================
 
