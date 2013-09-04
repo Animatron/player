@@ -1,3 +1,13 @@
+v0.9.1404 / Wed Sep 04 2013 17:50:07 +0200 / a11b274934692ecf0740d40f18335a9e4b11cb73
+=====================================================================================
+
+Fixes for the Compact a.k.a. Publish importer and to the `go` page:
+
+* Supports duration of scenes
+* Properly imports bands
+* Supports element ID to be the first element of a layer's description array
+* Properly tests end-mode for null
+
 v0.9.1403 / Wed Aug 28 2013 12:05:15 -0700 / 84bf790ab3408ec9356d96e972c924be57bd3b56
 =====================================================================================
 
