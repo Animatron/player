@@ -520,7 +520,8 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Usage: {jake push-version} to push current version from VERSION file. '+
                    'To push to `latest/`, use {jake push-version[latest]}. It is also '+
                    'possible to select a bucket: so {jake push-version[latest,rls]} will '+
-                   'push to the release bucket (`dev` is default)',
+                   'push latest version to the release bucket (`dev` is default) and '+
+                   '{jake push-version[,rls]} will push there a current version from VERSION file.',
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
