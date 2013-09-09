@@ -276,7 +276,7 @@ Import.leaf = function(type, src, parent) {
 /** band **/
 // -> Array[2, Float]
 Import.band = function(src) {
-    if (!src) return [ 0, Infinity ];
+    if (!src || !src.length) return [ 0, Infinity ];
     if (src.length == 1) return [ src[0], Infinity ];
     if (src.length == 2) return src;
     throw new Error('Unknown format of band: ' + src);
