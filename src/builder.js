@@ -7,25 +7,9 @@
  * @VERSION
  */
 
-(function(root, name, produce) {
-    // Cross-platform injector
-    if (window && window.__anm_force_window_scope) { // FIXME: Remove
-        // Browser globals
-        root[name] = produce(root.anm);
-    } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
-        define(['anm'], produce);
-    } else if (typeof module != 'undefined') {
-        // CommonJS / module
-        module.exports = produce(require('anm'));
-    } else if (typeof exports === 'object') {
-        // CommonJS / exports
-        produce(require('anm'));
-    } else {
-        // Browser globals
-        root[name] = produce(root.anm);
-    }
-})(this, 'Builder'/*, 'anm/builder'*/, function(anm) {
+(((typeof __anm !== 'undefined') && __anm.registerUsingAnm) || function() {
+    throw new Error('Player namespace is not initialized');
+})('Builder', function(anm) {
 
 var Path = anm.Path;
 var Element = anm.Element;
