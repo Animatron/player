@@ -54,6 +54,9 @@ __MYSELF.prototype.configureAnim = function(prj) {
 __MYSELF.prototype.load = function(prj) {
     // ( framerate, dimension, background, duration,
     //   elements, scenes )
+    //if (window && window.console && window.__anm_conf && window.__anm_conf.logImport) console.log(prj);
+    if (console && (typeof __anm_conf !== 'undefined') && __anm_conf.logImport) console.log(prj);
+    if (typeof __anm !== 'undefined') __anm.lastImportedProject = prj;
     // FIXME: allow importing several scenes
     var scene =  this.importScene(prj.anim.scenes[0],
                                   prj.anim.elements);

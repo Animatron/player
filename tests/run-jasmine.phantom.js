@@ -78,7 +78,8 @@ page.open(url, function(success) {
                 console.log("__error__");
             }
 
-            window.__anm_force_window_scope = true;
+            if (!window.__anm_conf) window.__anm_conf = {};
+            window.__anm_conf.forceWindowScope = true;
 
             run_tests(function(results) {
                 window.__jasmineResults = results;

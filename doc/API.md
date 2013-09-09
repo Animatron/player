@@ -91,7 +91,7 @@ There is always a fresh copy of player's latest version lying in S3 cloud. To us
     1. __Develop__ ([`bundle/develop.js`](http://player.animatron.com/latest/bundle/develop.js)): vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM (described below in [Builder](#builder) section) — it will work ok for developing any general (in terms of code complexity) games or script-based animations.
     1. __Hardcore__ ([`bundle/hardcore.js`](http://player.animatron.com/latest/bundle/hardcore.js)): vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games
 * If you want to ensure in which files you do actually add, follow these steps:
-    * For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js) and [`player.js`](http://player.animatron.com/latest/player.js)
+    * For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js), [`anm.js`](http://player.animatron.com/latest/anm.js) and [`player.js`](http://player.animatron.com/latest/player.js)
     * If you plan to program animation in an easy way, include [`builder.js`](http://player.animatron.com/latest/builder.js) next to them.
     * If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
     * If you want to use some hardcore module, i.e. collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) __before__ the builder file (builder will add some features to itself depending on enabled modules), if it is used, or just in any place after player file, if it is not. The same for other modules.
@@ -102,7 +102,7 @@ See examples from Local Copy-related chapter below on how to load scenes and pla
 
 ###### 2.2.a. ######
 
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the  [`anm.player.js`](https://raw.github.com/Animatron/player/master/src/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the [`anm.js`](https://raw.github.com/Animatron/player/master/src/anm.js), [`player.js`](https://raw.github.com/Animatron/player/master/src/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>
@@ -110,6 +110,7 @@ To do so, either clone [the repository](https://github.com/Animatron/player) or 
       <head>
         <title>My Great Page</title>
      ➭  <script src="./src/vendor/matrix.js" type="text/javascript"></script>
+     ➭  <script src="./src/anm.js" type="text/javascript"></script>
      ➭  <script src="./src/player.js" type="text/javascript"></script>
      ➭  <!-- importer or scene files go here, if one required -->
      ➭  <script type="text/javascript">

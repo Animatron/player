@@ -78,7 +78,8 @@ var SubDirs = {
 };
 
 var Files = {
-    Main: { PLAYER: 'player.js',
+    Main: { INIT: 'anm.js',
+            PLAYER: 'player.js',
             BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: { _ALL_: [ 'animatron-importer.js',
@@ -97,28 +98,33 @@ var Bundles = [
     { name: 'Standard',
       file: 'standard',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER ])) },
+        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
+                                                         Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
+                                                              Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Animatron-Publish',
       file: 'animatron-publish',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
+                                                              Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_PUBLISH ])) // animatron-publish-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER,
+        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
+                                                         Files.Main.PLAYER,
                                                          Files.Main.BUILDER ])) },
     { name: 'Hardcore',
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.INIT,
+                                                          Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ ))
         .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
 ];
@@ -700,6 +706,8 @@ task('_organize', function() {
 
     _print('Copy files to ' + Dirs.AS_IS + '..');
 
+    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.INIT),
+             _loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.PLAYER),
              _loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.BUILDER),
@@ -740,6 +748,7 @@ task('_versionize', function() {
 
     _print('.. Main files');
 
+    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
 
@@ -820,6 +829,8 @@ task('_minify', { async: true }, function() {
 
     _print('.. Main files');
 
+    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
+                        _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
                         _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
