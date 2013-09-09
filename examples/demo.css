@@ -38,6 +38,24 @@ canvas[anm-player=true] {
 	border: 1px solid #ccc;
 }
 
+textarea {
+	display: block;
+	width: 550px;
+	height: 300px;
+	font-family: monospace;
+	margin: 10px 20px;
+	border-color: #ccc;
+	font-size: 1.1em;
+}
+
+label {
+	font-weight: bold;
+}
+
+button {
+	font-size: 1.2em;
+}
+
 #copyright {
 	color: #666;
 	font-size: 0.8em;
