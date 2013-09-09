@@ -52,34 +52,9 @@
 // Module Definition
 // -----------------------------------------------------------------------------
 
-(function(name, produce) {
-    // Cross-platform injector
-    var _wnd = (typeof window !== 'undefined') ? window : {
-        'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
-        'devicePixelRatio': 1,
-        'addEventListener': function() {},
-        'removeEventListener': function() {}
-    };
-    var _doc = (typeof document !== 'undefined') ? document : null;
-    // TODO: var _factory = __anm_factory || { /*...*/ };
-    if (_wnd.__anm_force_window_scope) { // FIXME: Remove
-        _wnd[name] = _wnd[name] || {};
-        produce(_wnd, _doc)(_wnd[name]);
-    } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
-        define(produce(_wnd, _doc));
-    } else if (typeof module != 'undefined') {
-        // CommonJS / module
-        module.exports = produce(_wnd, _doc)({});
-    } else if (typeof exports === 'object') {
-        // CommonJS / exports
-        produce(_wnd, _doc)(exports);
-    } else {
-        // Browser globals
-        _wnd[name] = _wnd[name] || {};
-        produce(_wnd, _doc)(_wnd[name]);
-    }
-})('anm'/*, 'anm/player'*/, function($wnd, $doc) {
+(((typeof __anm !== 'undefined') && __anm.registerPlayer) || function() {
+    throw new Error('Player namespace is not initialized');
+})(function($glob, $wnd, $doc) {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -5066,7 +5041,7 @@ return function($trg) {
     }
     for (prop in __globals) {
         $trg._globals[prop] = __globals[prop];
-        $wnd[prop] = __globals[prop];
+        $glob[prop] = __globals[prop];
     }
 
     /*$trg.__js_pl_all = this;*/

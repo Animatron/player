@@ -44,6 +44,9 @@ Import._type = function(src) {
  */
 // -> Scene
 Import.project = function(prj) {
+    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) console.log(prj);
+    if (console && (typeof __anm_conf !== 'undefined') && __anm_conf.logImport) console.log(prj);
+    if (typeof __anm !== 'undefined') __anm.lastImportedProject = prj;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) throw new Error('No scenes found in given project');
     var root = new Scene(),

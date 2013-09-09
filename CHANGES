@@ -1,3 +1,17 @@
+v0.9.1404 / Mon Sep 09 2013 18:03:37 +0200 / 744d959402831f0767d8e183c5fc156df045bd9c
+=====================================================================================
+
+Features:
+
+* Support for the init file (anm.js), which configures the namespace, manages the way of player initialization process, prepares and stores some private global configuration.
+
+Fixes for the Compact a.k.a. Publish importer and to the `go` page:
+
+* Supports duration of scenes
+* Properly imports bands
+* Supports element ID to be the first element of a layer's description array
+* Properly tests end-mode for null
+
 v0.9.1403 / Wed Aug 28 2013 12:05:15 -0700 / 84bf790ab3408ec9356d96e972c924be57bd3b56
 =====================================================================================
 

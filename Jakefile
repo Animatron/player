@@ -78,7 +78,8 @@ var SubDirs = {
 };
 
 var Files = {
-    Main: { PLAYER: 'player.js',
+    Main: { INIT: 'anm.js',
+            PLAYER: 'player.js',
             BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: { _ALL_: [ 'animatron-importer.js',
@@ -97,28 +98,33 @@ var Bundles = [
     { name: 'Standard',
       file: 'standard',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER ])) },
+        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
+                                                         Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
+                                                              Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Animatron-Publish',
       file: 'animatron-publish',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
+                                                              Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_PUBLISH ])) // animatron-publish-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER,
+        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
+                                                         Files.Main.PLAYER,
                                                          Files.Main.BUILDER ])) },
     { name: 'Hardcore',
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.INIT,
+                                                          Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ ))
         .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
 ];
@@ -344,7 +350,8 @@ desc(_dfit_nl(['Get current version or apply a new version to the '+
                   '{jake version[v0.8]} to set current version '+
                   'to a new one (do not forget to push tags). '+
                   'If this version exists, you will get detailed information about it. '+
-                  'To remove a previous version, use <rm-version> task.',
+                  'To remove a previous version, use <rm-version> task. '+
+                  'Use {jake version[+v0.8]} to force creating a version even if it exists.',
                'Affects: (if creates a new version) '+
                   'VERSION, VERSIONS files and a git tag.']));
 task('version', { async: true }, function(param) {
@@ -352,7 +359,9 @@ task('version', { async: true }, function(param) {
 
     // Read versions
 
-    var _v = _version(param);
+    var _forced = (param.indexOf('+') == 0);
+
+    var _v = _version(_forced ? param.substring(1) : param);
     _print('Current version: ' + VERSION);
     _print('Selected version: ' + _v + '\n');
 
@@ -366,7 +375,7 @@ task('version', { async: true }, function(param) {
 
     // Show or write a version data
 
-    if (_vhash[_v]) { // TODO: add force-version
+    if (_vhash[_v] && !_forced) { // TODO: add force-version
 
         _print('Selected version exists, here\'s the detailed information about it:\n');
         if (!jake.program.opts.quiet) {
@@ -520,7 +529,8 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Usage: {jake push-version} to push current version from VERSION file. '+
                    'To push to `latest/`, use {jake push-version[latest]}. It is also '+
                    'possible to select a bucket: so {jake push-version[latest,rls]} will '+
-                   'push to the release bucket (`dev` is default)',
+                   'push latest version to the release bucket (`dev` is default) and '+
+                   '{jake push-version[,rls]} will push there a current version from VERSION file.',
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
@@ -699,6 +709,8 @@ task('_organize', function() {
 
     _print('Copy files to ' + Dirs.AS_IS + '..');
 
+    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.INIT),
+             _loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.PLAYER),
              _loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.BUILDER),
@@ -739,6 +751,7 @@ task('_versionize', function() {
 
     _print('.. Main files');
 
+    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
 
@@ -819,6 +832,8 @@ task('_minify', { async: true }, function() {
 
     _print('.. Main files');
 
+    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
+                        _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
                         _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
