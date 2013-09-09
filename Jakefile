@@ -350,7 +350,8 @@ desc(_dfit_nl(['Get current version or apply a new version to the '+
                   '{jake version[v0.8]} to set current version '+
                   'to a new one (do not forget to push tags). '+
                   'If this version exists, you will get detailed information about it. '+
-                  'To remove a previous version, use <rm-version> task.',
+                  'To remove a previous version, use <rm-version> task. '+
+                  'Use {jake version[+v0.8]} to force creating a version even if it exists.',
                'Affects: (if creates a new version) '+
                   'VERSION, VERSIONS files and a git tag.']));
 task('version', { async: true }, function(param) {
@@ -358,7 +359,9 @@ task('version', { async: true }, function(param) {
 
     // Read versions
 
-    var _v = _version(param);
+    var _forced = (param.indexOf('+') == 0);
+
+    var _v = _version(_forced ? param.substring(1) : param);
     _print('Current version: ' + VERSION);
     _print('Selected version: ' + _v + '\n');
 
@@ -372,7 +375,7 @@ task('version', { async: true }, function(param) {
 
     // Show or write a version data
 
-    if (_vhash[_v]) { // TODO: add force-version
+    if (_vhash[_v] && !_forced) { // TODO: add force-version
 
         _print('Selected version exists, here\'s the detailed information about it:\n');
         if (!jake.program.opts.quiet) {

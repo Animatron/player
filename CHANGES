@@ -1,5 +1,9 @@
-v0.9.1404 / Wed Sep 04 2013 17:50:07 +0200 / a11b274934692ecf0740d40f18335a9e4b11cb73
+v0.9.1404 / Mon Sep 09 2013 18:03:37 +0200 / 744d959402831f0767d8e183c5fc156df045bd9c
 =====================================================================================
+
+Features:
+
+* Support for the init file (anm.js), which configures the namespace, manages the way of player initialization process, prepares and stores some private global configuration.
 
 Fixes for the Compact a.k.a. Publish importer and to the `go` page:
 
