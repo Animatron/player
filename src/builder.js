@@ -631,18 +631,13 @@ Builder.prototype.on = function(type, handler) {
     this.v.m_on(type, handler);
     return this;
 }
-// > builder.on % (type: String, handler: Function(evt: Event, t: Float)) => Builder
-Builder.prototype.on = function(type, handler) {
-    this.v.m_on(type, handler);
-    return this;
-}
 // > builder.off % (handler: Function) => Builder
 Builder.prototype.off = Builder.prototype.unmodify;
 // > builder.unhandle % (handler: Function) => Builder
 Builder.prototype.unhandle = Builder.prototype.unmodify;
 // > builder.onstart % (handler: Function(t: Float)) => Builder
 Builder.prototype.onstart = function(handler) {
-    this.on(C.X_START, handler);
+    this.v.on(C.X_START, handler);
     return this;
 }
 // > builder.onbirth % (handler: Function(t: Float)) => Builder
@@ -651,7 +646,7 @@ Builder.prototype.onbirth = Builder.prototype.onstart;
 Builder.prototype.onborn = Builder.prototype.onstart;
 // > builder.onstop % (handler: Function(t: Float)) => Builder
 Builder.prototype.onstop = function(handler) {
-    this.on(C.X_STOP, handler);
+    this.v.on(C.X_STOP, handler);
     return this;
 }
 // > builder.ondeath % (handler: Function(t: Float)) => Builder

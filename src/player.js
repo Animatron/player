@@ -1860,6 +1860,8 @@ Element.prototype.render = function(ctx, gtime) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     drawMe = this.__preRender(gtime, ltime, ctx);
+    // fire band start/end events
+    this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
@@ -1867,8 +1869,6 @@ Element.prototype.render = function(ctx, gtime) {
                  && this.visible;
     }
     if (drawMe) {
-        // fire band start/end events
-        this.inform(ltime);
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
