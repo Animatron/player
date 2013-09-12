@@ -21,10 +21,14 @@
   <script type="text/javascript" src="./spec/spec-list.js"></script>
 
   <script type="text/javascript">
+      if (!window.__anm_conf) window.__anm_conf = {};
+      window.__anm_conf.forceWindowScope = true;
+
       queue(require)(
               [ _files['jasmine'],
                 _files['jasmine.html'],
                 _files['vnd.matrix'],
+                _files['anm.init'],
                 _files['anm.player'],
                 _files['anm.builder'],
                 _files['tst.matchers'],

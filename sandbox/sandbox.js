@@ -41,32 +41,30 @@ function sandbox() {
                 lineNumbers: true,
                 //gutters: ['cm-margin-gutter'],
                 matchBrackets: true,
-                wrapLines: true,
-                autofocus: true });
+                wrapLines: true/*,
+                autofocus: true*/ });
     this.cm.setValue((lastCode.length > 0) ? lastCode : defaultCode);
     //this.cm.setValue('return <your code here>;');
     this.cm.setSize(null, '66%');
     this.cm.on('focus', function() {
-      document.body.className = 'blur';
+        document.body.className = 'blur';
     });
     this.cm.on('blur', function() {
-      document.body.className = '';
+        document.body.className = '';
     });
     this.cm.on('change', function() {
-      refresh();
+        wereErrors = false;
+        refreshFromCurrentMoment();
     });
 
     var s = this;
 
-    var curInterval = null,
+    var curTimeouts = [],
         refreshRate = localStorage ? load_refresh_rate() : DEFAULT_REFRESH_RATE;
-    var lastRefresh = undefined,
-        lastPlayedFrom = undefined;
 
-    function resetTime() {
-        lastRefresh = undefined;
-        lastPlayedFrom = undefined;
-    }
+    var lastPlay = -1,
+        lastSequence = -1,
+        wereErrors = false;
 
     function makeSafe(code) {
         return ['(function(){',
@@ -74,36 +72,30 @@ function sandbox() {
                 '})();'].join('\n');
     }
 
-    function refresh() {
-        var playFrom = 0;
-        var now = new Date();
-        if (lastRefresh != undefined) {
-            var t_diff = (now - lastRefresh),
-                playFrom = ((lastPlayedFrom || 0) + t_diff) % refreshRate;
-            lastPlayedFrom = playFrom;
-            playFrom /= 1000;
-        }
-        lastRefresh = now;
+    function playFrom(from, rate) {
         s.errorsElm.style.display = 'none';
         try {
-            s.player.stop();
+            _player.stop();
             var userCode = s.cm.getValue();
             if (localStorage) save_current_code(userCode);
             var safeCode = makeSafe(userCode);
             var scene = eval(safeCode);
-            player.load(scene, refreshRate / 1000);
-            player.play(playFrom);
+            _player.load(scene, rate / 1000);
+            _player.play(from / 1000);
+            lastPlay = Date.now() - from;
         } catch(e) {
             onerror(e);
         }
     };
 
     function onerror(e) {
+        ensureToCancelTimeouts();
+        wereErrors = true;
         var e2;
         try {
-          s.player.anim = null;
-          s.player.stop();
-          s.player.drawSplash();
+          _player.anim = null;
+          _player.stop();
+          _player._drawErrorSplash(e);
         } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
@@ -116,18 +108,46 @@ function sandbox() {
 
     this.player.onerror(onerror);
 
-    function updateInterval(to) {
-        if (curInterval) clearTimeout(curInterval);
-        //setTimeout(function() {
-            refreshRate = to;
-            save_refresh_rate(refreshRate);
-            resetTime();
-            var refresher = function() {
-              refresh();
-              curInterval = setTimeout(refresher, to);
+    function ensureToCancelTimeouts() {
+        var count = curTimeouts.length;
+        //console.log('removing all of the timeouts (' + count + ')');
+        while (count) {
+            var timeout = curTimeouts[--count];
+            //console.log('cancelling timeout #' + timeout[0] + ' (' + timeout[1] + ')');
+            clearTimeout(timeout[0]);
+        }
+        curTimeouts = [];
+    }
+
+    function refreshFromStart() {
+        //console.log('refresh from start');
+        runSequence(refreshRate, 0);
+    }
+
+    function refreshFromCurrentMoment() {
+        //console.log('refresh from current moment');
+        runSequence(refreshRate, (Date.now() - lastPlay) % refreshRate);
+    }
+
+    function runSequence(rate, startAt) {
+        var sequenceId = ++lastSequence,
+            timeoutId = 0;
+        //console.log('runSequence #' + sequenceId);
+        ensureToCancelTimeouts();
+        refreshRate = rate;
+        save_refresh_rate(rate);
+        var _refresher = function(from, seqId, tId) {
+            return function() {
+                if (wereErrors) return;
+                //console.log('starting to play from ', from, ', refresher id is ',
+                //             seqId + '-' + tId, new Date());
+                playFrom(from, rate);
+                var nextTimeout = seqId + '-' + (tId + 1);
+                curTimeouts.push([ setTimeout(_refresher(0, seqId, tId + 1), rate - from), nextTimeout ]);
+                //console.log('sheduled next refresh to ', rate - from, 'ms (#', nextTimeout, ')');
             }
-            refresher();
-        //}, 1);
+        };
+        _refresher(startAt || 0, sequenceId, timeoutId)();
     }
 
     if (localStorage) {
@@ -139,14 +159,14 @@ function sandbox() {
     }
 
     this.selectElm.onchange = function() {
-        console.log('select fired onchange');
         s.cm.setValue(examples[this.selectedIndex][1]);
-        refresh();
+        wereErrors = false;
+        refreshFromStart();
     }
 
     this.debugElm.onchange = function() {
         s.player.debug = !s.player.debug;
-        refresh();
+        refreshFromCurrentMoment();
     }
 
     var tangleModel = {
@@ -155,11 +175,11 @@ function sandbox() {
         },
         update: function () {
             this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
-            updateInterval(this.secPeriod * 1000);
+            runSequence(this.secPeriod * 1000, 0);
         }
     };
 
-    updateInterval(refreshRate);
+    runSequence(refreshRate, 0);
 
     new Tangle(this.tangleElm, tangleModel);
 
@@ -167,7 +187,7 @@ function sandbox() {
       if (_player) {
         _player.mode = C[radio.value];
         _player._checkMode();
-        refresh();
+        refreshFromStart();
       }
     }
 

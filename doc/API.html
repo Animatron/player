@@ -82,7 +82,7 @@
 </ol>
 </li>
 <li>If you want to ensure in which files you do actually add, follow these steps:<ul>
-<li>For most of the cases you need just <a href="http://player.animatron.com/latest/vendor/matrix.js"><code>vendor/matrix.js</code></a> and <a href="http://player.animatron.com/latest/player.js"><code>player.js</code></a></li>
+<li>For most of the cases you need just <a href="http://player.animatron.com/latest/vendor/matrix.js"><code>vendor/matrix.js</code></a>, <a href="http://player.animatron.com/latest/anm.js"><code>anm.js</code></a> and <a href="http://player.animatron.com/latest/player.js"><code>player.js</code></a></li>
 <li>If you plan to program animation in an easy way, include <a href="http://player.animatron.com/latest/builder.js"><code>builder.js</code></a> next to them.</li>
 <li>If you want to import animations from Animatron tool, include <a href="http://player.animatron.com/latest/import/animatron-importer.js"><code>import/animatron-importer.js</code></a> then. The same for other importers.</li>
 <li>If you want to use some hardcore module, i.e. collisions module, include <a href="http://player.animatron.com/latest/module/collisions.js"><code>module/collisions.js</code></a> <strong>before</strong> the builder file (builder will add some features to itself depending on enabled modules), if it is used, or just in any place after player file, if it is not. The same for other modules.</li>
@@ -92,13 +92,14 @@
 <p>See examples from Local Copy-related chapter below on how to load scenes and play them, just replace there local paths with remote ones, if you want to use them.</p>
 <h5>2.2. Use Player from Local Copy</h5>
 <h6>2.2.a.</h6>
-<p>To do so, either clone <a href="https://github.com/Animatron/player">the repository</a> or just download the  <a href="https://raw.github.com/Animatron/player/master/src/player.js"><code>anm.player.js</code></a> and <a href="https://raw.github.com/Animatron/player/master/src/vendor/matrix.js"><code>matrix.js</code></a> <sub>(the last one is a super-tiny <a href="http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix">proxy for transformation matrix</a>, thanks to <a href="http://simonsarris.com/">Simon Sarris</a>)</sub> files in raw format. Now, include them in your HTML file:</p>
+<p>To do so, either clone <a href="https://github.com/Animatron/player">the repository</a> or just download the <a href="https://raw.github.com/Animatron/player/master/src/anm.js"><code>anm.js</code></a>, <a href="https://raw.github.com/Animatron/player/master/src/player.js"><code>player.js</code></a> and <a href="https://raw.github.com/Animatron/player/master/src/vendor/matrix.js"><code>matrix.js</code></a> <sub>(the last one is a super-tiny <a href="http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix">proxy for transformation matrix</a>, thanks to <a href="http://simonsarris.com/">Simon Sarris</a>)</sub> files in raw format. Now, include them in your HTML file:</p>
 <pre><code>&lt;!DOCTYPE html&gt;
 &lt;html&gt;
 
   &lt;head&gt;
     &lt;title&gt;My Great Page&lt;/title&gt;
  ➭  &lt;script src="./src/vendor/matrix.js" type="text/javascript"&gt;&lt;/script&gt;
+ ➭  &lt;script src="./src/anm.js" type="text/javascript"&gt;&lt;/script&gt;
  ➭  &lt;script src="./src/player.js" type="text/javascript"&gt;&lt;/script&gt;
  ➭  &lt;!-- importer or scene files go here, if one required --&gt;
  ➭  &lt;script type="text/javascript"&gt;

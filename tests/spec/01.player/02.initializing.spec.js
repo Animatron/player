@@ -12,7 +12,7 @@ describe("player, when speaking about initialization,", function() {
     var FPS = 40, _fg;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.calls);
 
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
         _fake(_Fake.CVS_POS);
@@ -45,7 +45,11 @@ describe("player, when speaking about initialization,", function() {
     it("should show splash screen when initialized", function() {
         var splashSpy = spyOn(player, '_drawSplash');
         player.init('test-id');
-        expect(splashSpy).toHaveBeenCalledOnce();
+        expect(splashSpy).toHaveBeenCalled/*Once*/();
+        // canvas may be resized or re-rendered several times,
+        // so splash may be drawn several times also
+        // for the moment first call is from forceRedraw when reconfiguring canvas at start
+        // and second one when stopping player in postInit()
     });
 
     it("should not draw anything except splash when intialized", function() {
@@ -97,10 +101,10 @@ describe("player, when speaking about initialization,", function() {
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
 
-    it("duration should be 0 when no scene loaded", function() {
+    it("duration should not be defined when no scene loaded", function() {
         player.init('test-id');
         expect(player.anim).toBe(null);
-        expect(player.state.duration).toBe(0);
+        expect(player.state.duration).not.toBeDefined();
     });
 
     it("zoom should be 1 when no scene loaded", function() {
@@ -137,6 +141,7 @@ describe("player, when speaking about initialization,", function() {
     // test if configuration (options) correctly applied (including modules?)
     // test configuration through data-attributes, including loop-mode
     // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
+    // ensure that canvas attributes has higher priority for player size and properly applied for different ratios
     // test that drawAt (scene preview) is only called for VIDEO mode
     // test createPlayer itself
     // test width and height behaviour

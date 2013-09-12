@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+
+<html>
+<head>
+  <title>anm.js</title>
+  <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+  <meta name="viewport" content="width=device-width, target-densitydpi=160dpi, initial-scale=1.0; maximum-scale=1.0; user-scalable=0;">
+  <link rel="stylesheet" media="all" href="docco.css" />
+</head>
+<body>
+  <div id="container">
+    <div id="background"></div>
+    
+      <ul id="jump_to">
+        <li>
+          <a class="large" href="javascript:void(0);">Jump To &hellip;</a>
+          <a class="small" href="javascript:void(0);">+</a>
+          <div id="jump_wrapper">
+          <div id="jump_page">
+            
+              
+              <a class="source" href="anm.html">
+                anm.js
+              </a>
+            
+              
+              <a class="source" href="builder.html">
+                builder.js
+              </a>
+            
+              
+              <a class="source" href="player.html">
+                player.js
+              </a>
+            
+          </div>
+        </li>
+      </ul>
+    
+    <ul class="sections">
+        
+          <li id="title">
+              <div class="annotation">
+                  <h1>anm.js</h1>
+              </div>
+          </li>
+        
+        
+        
+        <li id="section-1">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-1">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre><span class="comment">/*
+ * Copyright (c) 2011-2013 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ *
+ * @VERSION
+ */</span></pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-2">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-2">&#182;</a>
+              </div>
+              <p>HERE SHOULD GO THE INITIALISATION OF ANM NAMESPACE WITH HELPERS AND GLOBALS</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>(<span class="keyword">function</span>() {
+
+    <span class="keyword">var</span> PRIVATE_NAMESPACE = <span class="string">'__anm'</span>,
+        PRIVATE_CONF = <span class="string">'__anm_conf'</span>,
+        PUBLIC_NAMESPACE = <span class="string">'anm'</span>;
+
+    <span class="keyword">var</span> _GLOBAL_ = (<span class="keyword">typeof</span> window !== <span class="string">'undefined'</span>) ? window : GLOBAL;
+    <span class="keyword">var</span> _window = (<span class="keyword">typeof</span> window !== <span class="string">'undefined'</span>) ? window : <span class="literal">null</span>,
+        _document = (<span class="keyword">typeof</span> document !== <span class="string">'undefined'</span>) ? document : <span class="literal">null</span>;
+
+    <span class="keyword">if</span> (!_GLOBAL_) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Failed to find global namespace'</span>);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-3">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-3">&#182;</a>
+              </div>
+              <p>TODO: try the way of jasmine.getGlobal()</p>
+<p>private developer-related configuration
+window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> (!_GLOBAL_[PRIVATE_CONF]) {
+        _GLOBAL_[PRIVATE_CONF] = {
+            logImport: <span class="literal">false</span>,
+            forceWindowScope: <span class="literal">false</span>
+        }
+    }
+    <span class="keyword">var</span> _conf = _GLOBAL_[PRIVATE_CONF];</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-4">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <p>TODO: Later, player should be placed in anm.Player and
+             builder should be placed in anm.Builder</p>
+<p>a function to register some sub-namespace or object (like &#39;anm.*&#39;) in window or as module</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">var</span> registerUsingAnm = (<span class="keyword">function</span>(_namespace, _glob, _wnd, _conf) {
+        <span class="keyword">return</span> <span class="keyword">function</span>(name, produce) {
+            <span class="keyword">var</span> isBrowser = _wnd || _conf.forceWindowScope,
+                isAmd = (<span class="keyword">typeof</span> define === <span class="string">'function'</span> &amp;&amp; define.amd),
+                isCommonJSModule = (<span class="keyword">typeof</span> module != <span class="string">'undefined'</span>),
+                isCommonJSExports = (<span class="keyword">typeof</span> exports === <span class="string">'object'</span>);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              <p>FIXME: Remove, replace with Engine injector</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">if</span> (isBrowser) {
+                _glob[name] = produce(_glob[_namespace]);
+            } <span class="keyword">else</span> <span class="keyword">if</span> (isAmd) {
+                define([_namespace], produce);
+            } <span class="keyword">else</span> <span class="keyword">if</span> (isCommonJSModule) {
+                module.exports = produce(require(_namespace));
+            } <span class="keyword">else</span> <span class="keyword">if</span> (isCommonJSExports) {
+                produce(require(_namespace));
+            } <span class="keyword">else</span> {
+                _glob[name] = produce(_glob[_namespace]);
+            }
+        }
+    })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _conf);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <p>a function to register a player namespace (currently: &#39;anm&#39;) in window or as module</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">var</span> registerPlayer = (<span class="keyword">function</span>(_namespace, _glob, _wnd, _doc, _conf) {
+        <span class="comment">/*var _wnd_mock = {
+                    'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
+                    'devicePixelRatio': 1,
+                    'addEventListener': function() {},
+                    'removeEventListener': function() {}
+                };*/</span>
+
+        <span class="keyword">return</span> <span class="keyword">function</span>(produce) {
+            <span class="keyword">var</span> isBrowser = _wnd || _conf.forceWindowScope,
+                isAmd = (<span class="keyword">typeof</span> define === <span class="string">'function'</span> &amp;&amp; define.amd),
+                isCommonJSModule = (<span class="keyword">typeof</span> module != <span class="string">'undefined'</span>),
+                isCommonJSExports = (<span class="keyword">typeof</span> exports === <span class="string">'object'</span>);</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
+              </div>
+              <p>FIXME: Remove, replace with Engine injector</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">if</span> (isBrowser) {
+                _wnd[_namespace] = _wnd[_namespace] || {};
+                produce(_glob, _wnd, _doc)(_wnd[_namespace]);
+            } <span class="keyword">else</span> <span class="keyword">if</span> (isAmd) {
+                define(produce(_glob, _wnd, _doc));
+            } <span class="keyword">else</span> <span class="keyword">if</span> (isCommonJSModule) {
+                module.exports = produce(_glob, _wnd, _doc)({});
+            } <span class="keyword">else</span> <span class="keyword">if</span> (isCommonJSExports) {
+                produce(_glob, _wnd, _doc)(exports);
+            } <span class="keyword">else</span> {
+                _wnd[_namespace] = _wnd[_namespace] || {};
+                produce(_glob, _wnd, _doc)(_wnd[_namespace]);
+            }
+        }
+    })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _document, _conf);
+
+    <span class="keyword">var</span> foo = {}</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-8">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-8">&#182;</a>
+              </div>
+              <p>an object to store private functions inside
+window.<strong>anm || GLOBAL.</strong>anm</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    _GLOBAL_[PRIVATE_NAMESPACE] = {
+        global: _GLOBAL_,
+        <span class="string">'undefined'</span>: foo.___undefined___,
+        conf: _conf,
+        namespace: PUBLIC_NAMESPACE,
+        registerPlayer: registerPlayer,
+        registerUsingAnm: registerUsingAnm</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-9">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-9">&#182;</a>
+              </div>
+              <p>TODO: player instances listeners (look Player.addNewInstanceListener)</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-10">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-10">&#182;</a>
+              </div>
+              <p>FIXME: support Engines (DOM/NodeJS/...) from this point</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>})();</pre></div></div>
+            
+        </li>
+        
+    </ul>
+  </div>
+</body>
+</html>

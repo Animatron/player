@@ -7,4 +7,7 @@
 
 xdescribe("importing bands", function() {
 
+// TODO: test groups (id ends with 09) to use global bands for all children,
+//       as the opposite for other types of elements
+
 });

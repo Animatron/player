@@ -11,8 +11,12 @@ _Fake.CVS_POS = 1; // canvas position
 //_Fake.GET_CANVAS = 2; // asking for canvas
 //_Fake.JSM_CLOCK = 3; // disable jasmine clock
 //_Fake.FRAME_GEN = 4; // frame calls
+//_Fake.IMAGES = 5; // images objects
 
 var _window = jasmine.getGlobal();
+var _anm_window = anm.__dev._win;
+
+var JSON = JSON || Json;
 
 function _fake(what) {
     if (!what) throw new Error('Please specify what to fake');
@@ -25,6 +29,7 @@ function _fake(what) {
                                       else { return __stubCanvas(); }; break; */
             //case _Fake.JSM_CLOCK: __disableJsmClock(); break;
             //case _Fake.FRAME_GEN: _mockFrameGen(/*60*/); break;
+            //case _Fake.IMAGES: __stubImages(); break;
             default: throw new Error('Unknown option ' + option);
         }
     });
@@ -36,6 +41,7 @@ function __stubSavePos() { spyOn(anm.Player, '_saveCanvasPos').andCallFake(_mock
 /*function __stubCanvas() { var canvasStub = _mocks.factory.canvas();
                             spyOn(document, 'getElementById').andReturn(canvasStub);
                             return canvasStub; } */
+/* function __stubImages() { spyOn(_window, 'Image').andCallFake(ImgFake); }*/
 
 var _FrameGen = (function() {
 
@@ -82,8 +88,8 @@ var _FrameGen = (function() {
 
         if (_window) {
 
-            if (requestSpy) throw new Error(ID_STR + ': Already running a request spy from ' + requestSpy.__fg_id);
-            if (cancelSpy)  throw new Error(ID_STR + ': Already running a cancel spy from '  +  cancelSpy.__fg_id);
+            if (requestSpy) throw new Error(ID_STR + ': Already running a request spy from ' + requestSpy.__fg_id + ', ensure to stop previous one');
+            if (cancelSpy)  throw new Error(ID_STR + ': Already running a cancel spy from '  +  cancelSpy.__fg_id + ', ensure to finish stopping generator before');
 
             var period = 1000 / (fps || 60);
 
@@ -159,8 +165,8 @@ var _FrameGen = (function() {
 
         if (!INSTANCE.running) throw new Error(ID_STR + ' is already stopped!');
 
-        if (!requestSpy.__fg_id == id) throw new Error(ID_STR + ': ' + requestSpy.__fg_id + ' was launched before stopping this frame-generator');
-        if (!cancelSpy.__fg_id == id)  throw new Error(ID_STR + ': ' +  cancelSpy.__fg_id + ' was launched before stopping this frame-generator');
+        if (!requestSpy.__fg_id == id) throw new Error(ID_STR + ': ' + requestSpy.__fg_id + ' was launched before stopping this frame-generator, so there is a possible leak');
+        if (!cancelSpy.__fg_id == id)  throw new Error(ID_STR + ': ' +  cancelSpy.__fg_id + ' was launched before stopping this frame-generator, so there is a possible leak');
 
         // console.log(ID_STR + ': Clock emulation disabled');
 
@@ -307,7 +313,10 @@ function doAsync(player, conf) {
     try {
         if (!_scene) _scene = conf.prepare ? conf.prepare.call(player) : undefined;
 
-        if (_scene) player.load(_scene);
+        if (_scene) {
+            if (!__array(_scene)) { player.load(_scene); }
+            else { player.load.apply(player, _scene); }
+        }
         _timeout = conf.timeout || (_scene ? (_scene.duration + .2) : 2);
         _timeout *= 1000;
     } catch(err) { reportOrThrow(err); }
@@ -354,6 +363,98 @@ function doAsync(player, conf) {
             player.stop();
         } catch(err) { reportOrThrow(err); }
     });
+
+}
+
+var AjaxFaker = (function() {
+
+    var started = false;
+
+    var subscribers = {};
+
+    var realXMLHttpRequest = _window.XMLHttpRequest,
+        realActiveXObject = _window.ActiveXObject;
+
+    function FakeXMLXttpRequest() {
+        this.lastURL = null;
+        this.readyState = 4;
+        this.status = 200;
+    }
+
+    FakeXMLXttpRequest.prototype.open = function(meth, url) { this.lastURL = url; };
+    FakeXMLXttpRequest.prototype.send = function() {
+        if (!this.lastURL) throw new Error('No request was opened');
+        var result = null;
+        var _s = subscribers[this.lastURL];
+        if (_s) {
+            for (var i = 0; i < _s.length; i++) {
+                result = _s[i](this.lastURL);
+            }
+        };
+        this.responseText = result;
+        if (this.onreadystatechange) this.onreadystatechange({ responseText: result });
+    };
+
+    function __start() {
+        if (started) throw new Error('Ajax Faker is already started!');
+        started = true;
+
+        _window.ActiveXObject = null;
+
+        _window.XMLHttpRequest = FakeXMLXttpRequest;
+    }
+
+    function __stop() {
+        if (!started) throw new Error('Ajax Faker is already stopped!');
+        started = false;
+
+        _window.XMLHttpRequest = realXMLHttpRequest;
+        _window.ActiveXObject = realActiveXObject;
+    }
+
+    function __subscribe(url, f) {
+        if (!subscribers[url]) subscribers[url] = [];
+        subscribers[url].push(f);
+    }
+
+    /* function __unsubscribe(url) {
+        subscribers[url] = null;
+    } */
+
+    return { start: __start,
+             subscribe: __subscribe,
+             /* unsubscribe: __unsubscribe, */
+             stop: __stop,
+             isStarted: function() { return started; } }
+
+})();
+
+var _running_img_fakes = [];
+function ImgFake() {
+    this.src = null;
+    var me = this;
+    this.__anm_interval = setInterval(function() {
+        if (me.__anm_load_called) return;
+        if (me.src != null) {
+            me.__anm_load_called = true;
+            me.onload();
+        }
+    }, 200);
+    _running_img_fakes.push(this);
+    setTimeout(function() {
+        if (!me.stopped) {
+            clearInterval(me.__anm_interval);
+            throw new Error('Please stop ImgFake when you do not need it with ImgFake.__stopFakes static method');
+            if (me.src == null) throw new Error('Also, notice that you have not assigned anything to src of the image');
+        }
+    }, 5000);
+}
+ImgFake.prototype = Image.prototype;
+ImgFake.__stopFakes = function() {
+    var i = _running_img_fakes.length;
+    while (i--) { var fake = _running_img_fakes[i];
+                  clearInterval(fake.__anm_interval);
+                  fake.stopped = true; }
 
 }
 
@@ -425,4 +526,12 @@ function __deepInfo(elm, level) {
 
 function __builderInfo(bld) {
     return __deepInfo(bld.v);
+}
+
+function setCanvasSize(canvas, size) {
+    var pxRatio = _anm_window().devicePixelRatio || 1;
+    canvas.setAttribute('width',  size[0] * pxRatio);
+    canvas.setAttribute('height', size[1] * pxRatio);
+    canvas.style.width  = size[0] + 'px';
+    canvas.style.height = size[1] + 'px';
 }

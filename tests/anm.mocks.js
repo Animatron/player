@@ -9,7 +9,7 @@ var _mocks = (function() {
 
 var mocks = {};
 
-var _empty = function() {};
+var __nop = function() {};
 
 mocks.saveCanvasFake = function(cvs) {
     cvs.__rOffsetLeft = 40;
@@ -17,6 +17,12 @@ mocks.saveCanvasFake = function(cvs) {
 };
 
 mocks.factory = {};
+
+mocks.factory.window = function() {
+    return {
+        addEventListener: __nop
+    };
+}
 
 var canvasMocksCount = 0;
 mocks.factory.canvas = function(id) {
@@ -33,7 +39,7 @@ mocks.factory.canvas = function(id) {
         'setAttribute': function(attr, val) { this.__attrs[attr] = val; },
         'getAttribute': function(attr) { return this.__attrs[attr]; },
         'style': mocks.factory.cssStyle(),
-        'addEventListener': _empty,
+        'addEventListener': __nop,
         'width': undefined,
         'height': undefined,
         '__resetMock': function() { this.__attrs = {};
@@ -61,29 +67,32 @@ mocks.factory.context2d = function() {
             this.globalAlpha = this.__copy.globalAlpha;
             this.globalCompositeOperation = this.__copy.globalCompositeOperation;
         },
-        'fillRect': _empty,
-        'clearRect': _empty,
-        'fillText': _empty,
-        'strokeRect': _empty,
-        'translate': _empty,
-        'transform': _empty,
-        'beginPath': _empty,
-        'closePath': _empty,
-        'moveTo': _empty,
-        'lineTo': _empty,
-        'fill': _empty,
-        'stroke': _empty,
-        'clip': _empty,
-        'drawImage': _empty,
-        'scale': _empty,
+        'fillRect': __nop,
+        'clearRect': __nop,
+        'fillText': __nop,
+        'strokeRect': __nop,
+        'translate': __nop,
+        'transform': __nop,
+        'beginPath': __nop,
+        'closePath': __nop,
+        'moveTo': __nop,
+        'lineTo': __nop,
+        'fill': __nop,
+        'stroke': __nop,
+        'clip': __nop,
+        'rect': __nop,
+        'drawImage': __nop,
+        'scale': __nop,
+        'globalAlpha': 1,
         'globalCompositeOperation': 'source-over',
+        'setTransform': __nop,
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
     };
 };
 
 mocks.factory.linearGradient = function() {
     return {
-        'addColorStop': _empty
+        'addColorStop': __nop
     };
 };
 
@@ -91,8 +100,44 @@ mocks.factory.element = function(id) {
     return {
         'id': id || 'some-id',
         'style': mocks.factory.cssStyle(),
-        'appendChild': _empty
+        'appendChild': __nop
     }
+}
+
+mocks.factory.importer = function() {
+    return {
+        'load': __nop
+    }
+}
+
+mocks.factory.fullImporter = function() {
+    return {
+        'configureAnim': __nop,
+        'configureMeta': __nop,
+        'load': __nop
+    }
+}
+
+mocks.factory.transform = function() {
+    var _instance = {
+            'reset': __nop,
+            'multiply': __nop,
+            'invert': __nop,
+            'rotate': __nop,
+            'rotateDegrees': __nop,
+            'translate': __nop,
+            'scale': __nop,
+            'shear': __nop,
+            'transformPoint': __nop,
+            'apply': __nop,
+            'clone': __nop,
+            'inverted': __nop
+        };
+    var _f = function() {
+        return _instance;
+    }
+    _f.instance = _instance;
+    return _f;
 }
 
 mocks.factory.cssStyle = function() {

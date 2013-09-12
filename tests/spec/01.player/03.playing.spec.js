@@ -16,10 +16,13 @@ describe("player, when speaking about playing,", function() {
 
     var FPS = 60, _fg;
 
-    var canvasMock = _mocks.factory.canvas();
+    var canvasMock;
 
     beforeEach(function() {
-        this.addMatchers(_matchers);
+        this.addMatchers(_matchers.calls);
+        this.addMatchers(_matchers.comparison);
+
+        canvasMock = _mocks.factory.canvas();
 
         spyOn(document, 'getElementById').andReturn(canvasMock);
         _fake(_Fake.CVS_POS);
@@ -46,7 +49,7 @@ describe("player, when speaking about playing,", function() {
         var scene = new anm.Scene();
         scene.add(new anm.Element());
         player.load(scene);
-        expect(player.state.duration).toBe(anm.Element.DEFAULT_LEN);
+        expect(player.state.duration).toBe(anm.Scene.DEFAULT_LEN);
     });
 
     it("should try to draw stop-frame of an empty scene at 0, " +
@@ -75,7 +78,7 @@ describe("player, when speaking about playing,", function() {
         expect(stopSpy).toHaveBeenCalledOnce();
         expect(drawSpy).toHaveBeenCalledOnce();
         // P.S. draws at PREVIEW_POS only in C.M_VIDEO mode
-        expect(drawSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_VIDEO_DURATION
+        expect(drawSpy).toHaveBeenCalledWith(anm.Scene.DEFAULT_LEN
                                            * anm.Player.PREVIEW_POS);
         expect(player.state.time).toBe(anm.Player.NO_TIME);
     });
@@ -143,7 +146,7 @@ describe("player, when speaking about playing,", function() {
         it("should have state.happens equal to stopped, " +
            "if requested time exceeds scene duration when asking to play", function() {
             player.load(new anm.Scene());
-            expect(player.anim).not.toBe(null);
+            expect(player.anim).not.toBe(null); // 0 duration for an empty scene is checked above
             runs(function() {
                 player.play();
                 expect(player.state.happens).toBe(C.PLAYING);
@@ -316,10 +319,11 @@ describe("player, when speaking about playing,", function() {
                 elem.addPainter(painterSpy);
                 scene.add(elem);
 
+                scene.setDuration(duration);
+
                 return scene;
             },
             run: function() {
-                expect(scene.duration).toBe(duration); // FIXME: move to a separate test
                 expect(modifierSpy).toHaveBeenCalledOnce(); // for preview
                 expect(painterSpy).toHaveBeenCalledOnce(); // for preview
                 modifierSpy.reset();
@@ -558,7 +562,7 @@ describe("player, when speaking about playing,", function() {
 
             doAsync(player, {
                 prepare: function() {
-                    player.load(scene);
+                    player.load(scene, duration);
 
                     modifierSpy.reset();
                     painterSpy.reset();
@@ -596,7 +600,7 @@ describe("player, when speaking about playing,", function() {
             elem.setBand([0, duration]);
             scene.add(elem);
 
-            player.load(scene);
+            player.load(scene, duration);
 
             try {
                 player.drawAt(duration + 0.05);
@@ -640,9 +644,10 @@ describe("player, when speaking about playing,", function() {
             elem.addModifier(modifierSpy);
             elem.addPainter(painterSpy);
             scene.add(elem);
+            scene.setDuration(duration);
 
             expect(modifierSpy).not.toHaveBeenCalled();
-            expect(painterSpy).not.toHaveBeenCalled()
+            expect(painterSpy).not.toHaveBeenCalled();
 
             player.load(scene);
 
@@ -666,7 +671,7 @@ describe("player, when speaking about playing,", function() {
 
     });
 
-    var DEFAULT_VIDEO_DURATION = anm.Scene.DEFAULT_VIDEO_DURATION;
+    var DEFAULT_SCENE_LENGTH = anm.Scene.DEFAULT_LEN;
     var DEFAULT_ELEMENT_LENGTH = anm.Element.DEFAULT_LEN;
 
     describe("scene duration", function() {
@@ -677,6 +682,8 @@ describe("player, when speaking about playing,", function() {
 
         var big_band = [-10, 101.2];
 
+        var wasManuallySet = false;
+
         beforeEach(function() {
             scene = new anm.Scene();
         });
@@ -684,42 +691,63 @@ describe("player, when speaking about playing,", function() {
         varyAll([
 
             { description: "in case of empty scene, duration will be the default duration of the video",
-              prepare: function() { expected_duration = 0; } },
+              prepare: function() { wasManuallySet = false; expected_duration = 0; } },
 
-            { description: "in case of scene with no-band element, duration will be the default length of an element",
-              prepare: function() { scene.add(new anm.Element());
-                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
+            { description: "in case of scene with no-band element, duration will be the default length of the scene",
+              prepare: function() { wasManuallySet = false;
+                                    scene.add(new anm.Element());
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with several no-band elements, duration will be the default length of an element",
-              prepare: function() { var root = new anm.Element();
+            { description: "in case of scene with several no-band elements, duration will be the default length of the scene",
+              prepare: function() { wasManuallySet = false;
+                                    var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
                                     root.add(inner);
                                     inner.add(new anm.Element());
                                     scene.add(root);
                                     scene.add(new anm.Element());
-                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with an element that has a simple band, duration will be equal to a band duration",
-              prepare: function() { var elm = new anm.Element();
+            { description: "in case of scene with an element that has a simple band, duration will still be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var elm = new anm.Element();
                                     elm.setBand([0, 5]);
                                     scene.add(elm);
-                                    expected_duration = 5; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with an element that has a shifted band, duration will be equal to band end",
-              prepare: function() { var elm = new anm.Element();
+            { description: "in case of scene with an element that has a shifted band, duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var elm = new anm.Element();
+                                    elm.setBand([2, 7]);
+                                    scene.add(elm);
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
+
+            { description: "in case of scene with an element that has a band getting further than default scene length, duration will still be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var elm = new anm.Element();
                                     elm.setBand([2, 15]);
                                     scene.add(elm);
-                                    expected_duration = 15; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with an element that has a negative band, duration will be equal to a band end",
-              prepare: function() { var elm = new anm.Element();
+            { description: "when duration was set manually to a scene, expected duration is this very duration",
+              prepare: function() { wasManuallySet = true;
+                                    var elm = new anm.Element();
+                                    elm.setBand([2, 15]);
+                                    scene.add(elm);
+                                    scene.setDuration(25.587);
+                                    expected_duration = 25.587; } },
+
+            { description: "in case of scene with an element that has a negative band, duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var elm = new anm.Element();
                                     elm.setBand([-12, 50]);
                                     scene.add(elm);
-                                    expected_duration = 50; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with some element that has a shifted band inside (set before adding), duration will be equal to a root duration (default one, since it wasn't set)",
-              prepare: function() { var root = new anm.Element();
+            { description: "in case of scene with some element that has a shifted band inside (set before adding), duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
                                     inner.setBand([2, 17]);
@@ -727,10 +755,11 @@ describe("player, when speaking about playing,", function() {
                                     inner.add(new anm.Element());
                                     scene.add(root);
                                     scene.add(new anm.Element());
-                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
             { description: "in case of scene with some element that has a shifted band inside (set after adding), duration will be equal to a root duration (default one, since it wasn't set)",
-              prepare: function() { var root = new anm.Element();
+              prepare: function() { wasManuallySet = false;
+                                    var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
                                     root.add(inner);
@@ -738,10 +767,11 @@ describe("player, when speaking about playing,", function() {
                                     scene.add(root);
                                     scene.add(new anm.Element());
                                     inner.setBand([2, 17]);
-                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with some element that has a shifted band inside (set before adding) and root has a band, duration will be equal to a root duration",
-              prepare: function() { var root = new anm.Element();
+            { description: "in case of scene with some element that has a shifted band inside (set before adding) and root has a band,  duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
                                     inner.setBand([2, 17]);
@@ -750,10 +780,11 @@ describe("player, when speaking about playing,", function() {
                                     root.setBand([-2, 12]);
                                     scene.add(root);
                                     scene.add(new anm.Element());
-                                    expected_duration = 12; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with some element that has a shifted band inside (set after adding) and root has a band, duration will be equal to a root duration",
-              prepare: function() { var root = new anm.Element();
+            { description: "in case of scene with some element that has a shifted band inside (set after adding) and root has a band,  duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.add(new anm.Element());
                                     root.add(inner);
@@ -762,10 +793,11 @@ describe("player, when speaking about playing,", function() {
                                     scene.add(new anm.Element());
                                     root.setBand([-2, 12]);
                                     inner.setBand([2, 17]);
-                                    expected_duration = 12; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
             { description: "when one of the roots has duration less than default, scene will have default duration",
-              prepare: function() { expect(DEFAULT_ELEMENT_LENGTH).toBeGreaterThan(2);
+              prepare: function() { wasManuallySet = false;
+                                    expect(DEFAULT_ELEMENT_LENGTH).toBeGreaterThan(2);
                                     var root = new anm.Element();
                                     var inner = new anm.Element();
                                     root.setBand([-9, DEFAULT_ELEMENT_LENGTH - 2]);
@@ -775,10 +807,11 @@ describe("player, when speaking about playing,", function() {
                                     scene.add(root);
                                     scene.add(new anm.Element());
                                     inner.setBand([2, 17]);
-                                    expected_duration = DEFAULT_ELEMENT_LENGTH; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with several elements that has different bands, duration will be minimum-start + maximum-reachable root band",
-              prepare: function() { var root1 = new anm.Element();
+            { description: "in case of scene with several elements that has different bands, duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var root1 = new anm.Element();
                                     var root2 = new anm.Element();
                                     var root3 = new anm.Element();
                                     var root4 = new anm.Element();
@@ -801,10 +834,11 @@ describe("player, when speaking about playing,", function() {
                                     root3.add(inner4);
                                     root3.setBand([2, 36]);
                                     root4.setBand([-40, 4]);
-                                    expected_duration = 36; } },
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } },
 
-            { description: "in case of scene with several elements that has different bands and some top-level of them has a negative band, duration still will be 0 + maximum-reachable root band",
-              prepare: function() { var root1 = new anm.Element();
+            { description: "in case of scene with several elements that has different bands and some top-level of them has a negative band,  duration will be equal to default scene length",
+              prepare: function() { wasManuallySet = false;
+                                    var root1 = new anm.Element();
                                     var root2 = new anm.Element();
                                     var root3 = new anm.Element();
                                     var root4 = new anm.Element();
@@ -827,14 +861,15 @@ describe("player, when speaking about playing,", function() {
                                     root3.add(inner4);
                                     root3.setBand([2, 2]);
                                     root4.setBand([-40, 12.5]);
-                                    expected_duration = 12.5; } }
+                                    expected_duration = DEFAULT_SCENE_LENGTH; } }
 
             // TODO: test what happens if element was live-removed from a scene
 
         ], function() {
 
-            it("and should stay as expected just after the creation", function() {
-                expect(scene.duration).toBe(expected_duration);
+            it("and should be not defined just after the creation (if wasn't set manually)", function() {
+                if (!wasManuallySet) { expect(scene.duration).not.toBeDefined(); }
+                else { expect(scene.duration).toBe(expected_duration); }
             });
 
             it("and should remain with its value when loaded into player", function() {
@@ -878,14 +913,14 @@ describe("player, when speaking about playing,", function() {
                 player.stop();
             });
 
-            it("and should change duration if some element with band was added before playing", function() {
+            it("and should not change duration if some element with band was added before playing", function() {
                 player.load(scene);
                 var big_band_elm = new anm.Element();
                 big_band_elm.setBand(big_band);
                 scene.add(big_band_elm);
                 player.play();
-                expect(scene.duration).toBe(big_band[1]);
-                expect(player.state.duration).toEqual(scene.duration);
+                expect(scene.duration).toBe(expected_duration);
+                expect(player.state.duration).toEqual(expected_duration);
                 player.stop();
             });
 
@@ -895,7 +930,7 @@ describe("player, when speaking about playing,", function() {
                 var big_band_elm = new anm.Element();
                 big_band_elm.setBand(big_band);
                 scene.add(big_band_elm);
-                expect(scene.duration).toBe(big_band[1]);
+                expect(scene.duration).toBe(expected_duration);
                 expect(player.state.duration).toBe(expected_duration);
                 player.stop();
             });
@@ -904,6 +939,7 @@ describe("player, when speaking about playing,", function() {
 
     });
 
+    // test setDuration for player
     // ensure drawAt and playing are the similar calls and produce the same results
     // test passing stopAt value to play() method (state.stop)
     // state.from
@@ -915,5 +951,6 @@ describe("player, when speaking about playing,", function() {
     // should not call modifiers/painters while stopped/paused
     /// test if while preview is shown at preview time pos, only for video mode, controls are at 0
     // errors
+    // test continues playing with all parameters when forceRedraw was called
 
 });

@@ -7,20 +7,13 @@
 
 describe("player, when created,", function() {
 
-    var initialPixelRatio = window.devicePixelRatio;
+    var initialRatio = anm.__dev._win().devicePixelRatio;
 
     describe("regarding canvas size", function() {
 
         var canvas,
             canvasId = 'my-canvas';
-
-        function setCanvasSize(canvas, size) {
-            var pxRatio = window.devicePixelRatio || 1;
-            canvas.setAttribute('width',  size[0] * pxRatio);
-            canvas.setAttribute('height', size[1] * pxRatio);
-            canvas.style.width  = size[0] + 'px';
-            canvas.style.height = size[1] + 'px';
-        }
+        var window_mock = _mocks.factory.window();
 
         beforeEach(function() {
             canvas = _mocks.factory.canvas(canvasId);
@@ -30,52 +23,20 @@ describe("player, when created,", function() {
             });
             _fake(_Fake.CVS_POS);
 
-            this.addMatchers({
-                toHaveSizeDefined: function() {
-                    var actual = this.actual;
-                    var notText = this.isNot ? " not" : "";
+            anm.__dev._winf(window_mock);
 
-                    var pxRatio = window.devicePixelRatio;
-
-                    this.message = function () {
-                        return "Expected " + actual + notText + " to have size defined";
-                    }
-
-                    return (typeof actual.width !== 'undefined') &&
-                           (typeof actual.height !== 'undefined') &&
-                           (typeof actual.getAttribute('width') !== 'undefined') &&
-                           (typeof actual.getAttribute('height') !== 'undefined') &&
-                           (typeof actual.style.width !== 'undefined') &&
-                           (typeof actual.style.height !== 'undefined');
-                },
-                toHaveSize: function(expected) {
-                    var actual = this.actual;
-                    var notText = this.isNot ? " not" : "";
-
-                    var pxRatio = window.devicePixelRatio || 1;
-
-                    this.message = function () {
-                        return "Expected " + actual + notText + " to have size equal to " + expected + ", " +
-                               "but it has " + actual.getAttribute('width') + "x" + actual.getAttribute('height') + " " +
-                               "and " + actual.style.width + ":" + actual.style.height + " in CSS";
-                    }
-
-                    return (actual.getAttribute('width')  == (expected[0] * pxRatio)) &&
-                           (actual.getAttribute('height') == (expected[1] * pxRatio)) &&
-                           (actual.style.width  == (expected[0] + 'px')) &&
-                           (actual.style.height == (expected[1] + 'px'));
-                }
-            })
+            this.addMatchers(_matchers.size);
         });
 
-        afterEach(function() { canvas.__resetMock(); });
+        afterEach(function() { canvas.__resetMock();
+                               anm.__dev._winf(window /* actual window */); });
 
-        varyAll([{ description: "with standard display", prepare: function() { window.devicePixelRatio = undefined; },
-                                                         after:   function() { window.devicePixelRatio = initialPixelRatio; } },
-                 { description: "with retina display", prepare: function() { window.devicePixelRatio = 2; },
-                                                       after: function() { window.devicePixelRatio = initialPixelRatio; } },
-                 { description: "with 3.14 pixel ratio display", prepare: function() { window.devicePixelRatio = 3.14; },
-                                                                 after: function() { window.devicePixelRatio = initialPixelRatio; } }],
+        varyAll([{ description: "with standard display", prepare: function() { window_mock.devicePixelRatio = undefined; },
+                                                         after:   function() { window_mock.devicePixelRatio = initialRatio; } },
+                 { description: "with retina display", prepare: function() { window_mock.devicePixelRatio = 2; },
+                                                       after: function() { window_mock.devicePixelRatio = initialRatio; } },
+                 { description: "with 3.14 pixel ratio display", prepare: function() { window_mock.devicePixelRatio = 3.14; },
+                                                                 after: function() { window_mock.devicePixelRatio = initialRatio; } }],
                  function() {
 
             it("should use default canvas size, if there is no size specified either in element or in options", function() {
@@ -126,6 +87,7 @@ describe("player, when created,", function() {
                     test_h = 741;
                 expect(test_w).not.toEqual(anm.Player.DEFAULT_CANVAS.width);
                 expect(test_h).not.toEqual(anm.Player.DEFAULT_CANVAS.height);
+                // pay attention that size is set multiplied to the ratio here
                 setCanvasSize(canvas, [ test_w, test_h ]);
                 createPlayer(canvasId);
                 expect(canvas).not.toHaveSize([ anm.Player.DEFAULT_CANVAS.width,
@@ -219,6 +181,7 @@ describe("player, when created,", function() {
 
     });
 
+    // test setting zoom from properties
     // also check that zoom was changed for scene.render when pixelRatio was changed
     // check new canvas __pxRatio attr was set
     // ensure that state.zoom wasn't changed, but state.ratio is used to render scene
@@ -229,6 +192,8 @@ describe("player, when created,", function() {
     // TODO: ensure controls and info blocks are rendered properly for different ratios
     // TODO: data- attributes
     // TODO: player.forSnapshot
+    // canvas bg can use only solid colors or rgba and it should be transparent by default, overwritten only with options.
+    // project bg may be either any gradient or any type of color, it should be used only when rendering project itself
 
     xit("not passes", function() {
         this.fail();
