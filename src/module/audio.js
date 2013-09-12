@@ -29,7 +29,8 @@
 
   function onStop() {
     P.playerIsPlaying = false;
-    for (var i in P.__playing_audio) {
+    var i = P.__playing_audio.length;
+    while (i--) {
       var el = P.__playing_audio.pop();
       el._audio.pause();
       el._audio_is_playing = false;
