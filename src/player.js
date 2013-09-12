@@ -504,9 +504,13 @@ __reg_event('XT_KEYBOARD', 'keyboard',
 __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
 // * draw
-__reg_event('X_DRAW', 'draw', 2048);
+__reg_event('X_DRAW', 'draw', 'draw');
 
-// * playing
+// * bands
+__reg_event('X_START', 'start', 'start');
+__reg_event('X_STOP', 'stop', 'stop');
+
+// * playing (player state)
 __reg_event('S_PLAY', 'play', 'play');
 __reg_event('S_PAUSE', 'pause', 'pause');
 __reg_event('S_STOP', 'stop', 'stop');
@@ -775,7 +779,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 Player.prototype.stop = function() {
     /* if (state.happens === C.STOPPED) return; */
 
-    var player = this;
+    var player = this,
+        scene = player.anim;
 
     player._ensureHasState();
 
@@ -787,11 +792,13 @@ Player.prototype.stop = function() {
         __stopAnim(state.__firstReq);
     }
 
+    if (scene) scene.forcedStop(state.time);
+
     state.time = Player.NO_TIME;
     state.from = 0;
     state.stop = Player.NO_TIME;
 
-    if (player.anim) {
+    if (scene) {
         state.happens = C.STOPPED;
         if (player.mode & C.M_DRAW_STILL) {
             player.drawAt(state.duration * Player.PREVIEW_POS);
@@ -806,7 +813,7 @@ Player.prototype.stop = function() {
 
     player.fire(C.S_STOP);
 
-    if (player.anim) player.anim.reset();
+    if (scene) scene.reset();
 
     return player;
 }
@@ -830,6 +837,8 @@ Player.prototype.pause = function() {
     if (state.time > state.duration) {
         state.time = state.duration;
     }
+
+    if (player.anim) player.anim.forcedStop(state.time);
 
     state.from = state.time;
     state.happens = C.PAUSED;
@@ -1657,6 +1666,11 @@ Scene.prototype._addToTree = function(elm) {
         this._register(_elm);
     }
 }*/
+Scene.prototype.forcedStop = function(gtime) {
+    this.visitElems(function(elm) {
+        elm.forcedStop(gtime);
+    });
+}
 Scene.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
@@ -1802,7 +1816,7 @@ Element.DEFAULT_LEN = Infinity;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_DRAW ]);
+                         C.X_DRAW, C.X_START, C.X_STOP ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -1846,6 +1860,8 @@ Element.prototype.render = function(ctx, gtime) {
     // modes) were performed
     var ltime = this.ltime(gtime);
     drawMe = this.__preRender(gtime, ltime, ctx);
+    // fire band start/end events
+    this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
@@ -1853,7 +1869,9 @@ Element.prototype.render = function(ctx, gtime) {
                  && this.visible;
     }
     if (drawMe) {
-        // update gtime for children, if it was changed by ltime()
+        // update global time with new local time (it may've been
+        // changed if there were jumps or something), so children will
+        // get the proper value
         gtime = this.gtime(ltime);
         if (!this.__mask) {
             // draw directly to context, if has no mask
@@ -2083,37 +2101,27 @@ Element.prototype.detach = function() {
     if (this.parent.__safeDetach(this) == 0) throw new AnimErr(Errors.A.ELEMENT_NOT_ATTACHED);
 }
 /* make element band fit all children bands */
+// > Element.makeBandFit % ()
 Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
     this.xdata.gband = wband;
     this.xdata.lband[1] = wband[1] - wband[0];
 }
+// > Element.setBand % (band: Array[2, Float])
 Element.prototype.setBand = function(band) {
     this.xdata.lband = band;
     Bands.recalc(this);
 }
-Element.prototype.duration = function() {
-    return this.xdata.lband[1] - this.xdata.lband[0];
-}
-/* TODO: duration cut with global band */
-/* Element.prototype.rel_duration = function() {
-    return
-} */
-Element.prototype._max_tpos = function() {
-    return (this.xdata.gband[1] >= 0) ? this.xdata.gband[1] : 0;
-}
-/* Element.prototype.neg_duration = function() {
-    return (this.xdata.lband[0] < 0)
-            ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
-            : 0;
-} */
+// > Element.fits % (ltime: Float) -> Boolean
 Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return __t_cmp(ltime, this.xdata.lband[1] - this.xdata.lband[0]) <= 0;
 }
+// > Element.gtime % (ltime: Float) -> Float
 Element.prototype.gtime = function(ltime) {
     return this.xdata.gband[0] + ltime;
 }
+// > Element.ltime % (gtime: Float) -> Float
 Element.prototype.ltime = function(gtime) {
     var x = this.xdata;
     if (!__finite(x.gband[1])) return this.__checkJump(gtime - x.gband[0]);
@@ -2159,6 +2167,50 @@ Element.prototype.ltime = function(gtime) {
             }
     }
 }
+// > Element.inform % (ltime: Float)
+Element.prototype.inform = function(ltime) {
+    if (__t_cmp(ltime, 0) >= 0) {
+        var duration = this.xdata.lband[1] - this.xdata.lband[0],
+            cmp = __t_cmp(ltime, duration);
+        if (!this.__firedStart) {
+            this.fire(C.X_START, ltime, duration);
+            this.__firedStart = true; // (store the counters for fired events?)
+            // TODO: handle START event by changing band to start at given time?
+        }
+        if (cmp > 0) {
+            if (!this.__firedStop) {
+                this.fire(C.X_STOP, ltime, duration);
+                this.__firedStop = true;
+                // TODO: handle STOP event by changing band to end at given time?
+            }
+        };
+    };
+}
+// > Element.forcedStop % (gtime: Float)
+Element.prototype.forcedStop = function(gtime) {
+    this.__firedStart = false; // ensure to call next time
+    if (!this.__firedStop) {
+        this.fire(C.X_STOP, gtime - this.xdata.lband[0],
+                            this.xdata.lband[1] - this.xdata.lband[0]);
+    }
+    this.__firedStop = false; // ensure to call next time
+}
+// > Element.duration % () -> Float
+Element.prototype.duration = function() {
+    return this.xdata.lband[1] - this.xdata.lband[0];
+}
+/* TODO: duration cut with global band */
+/* Element.prototype.rel_duration = function() {
+    return
+} */
+Element.prototype._max_tpos = function() {
+    return (this.xdata.gband[1] >= 0) ? this.xdata.gband[1] : 0;
+}
+/* Element.prototype.neg_duration = function() {
+    return (this.xdata.lband[0] < 0)
+            ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
+            : 0;
+} */
 Element.prototype.m_on = function(type, handler) {
     return this.__modify({ type: Element.EVENT_MOD },
       function(t) { /* FIXME: handlers must have priority? */
@@ -2203,6 +2255,8 @@ Element.prototype.disposeXData = function() {
 Element.prototype.reset = function() {
     this.__resetState();
     this.__lastJump = null;
+    this.__firedStart = false;
+    this.__firedStop = false;
     if (this.__mask) this.__removeMaskCanvases();
     /*this.__clearEvtState();*/
     (function(elm) {
@@ -2960,16 +3014,17 @@ function provideEvents(subj, events) {
         this.handlers[event].push(handler);
         return (this.handlers[event].length - 1);
     };
-    subj.prototype.fire = function(event, evtobj) {
+    subj.prototype.fire = function(event/*, args*/) {
         if (!this.provides(event)) throw new AnimErr('Event \'' + C.__enmap[event] +
                                                      '\' not provided by ' + this);
         if (this.disabled) return;
-        if (this.handle__x && !(this.handle__x(event, evtobj))) return;
+        var evt_args = Array.prototype.slice.call(arguments, 1);
+        if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
         var name = C.__enmap[event];
-        if (this['handle_'+name]) this['handle_'+name](evtobj);
+        if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
         var _hdls = this.handlers[event];
         for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-            _hdls[hi].call(this, evtobj);
+            _hdls[hi].apply(this, evt_args);
         }
     };
     subj.prototype.provides = (function(evts) {
