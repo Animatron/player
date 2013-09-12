@@ -41,8 +41,8 @@ function sandbox() {
                 lineNumbers: true,
                 //gutters: ['cm-margin-gutter'],
                 matchBrackets: true,
-                wrapLines: true,
-                autofocus: true });
+                wrapLines: true/*,
+                autofocus: true*/ });
     this.cm.setValue((lastCode.length > 0) ? lastCode : defaultCode);
     //this.cm.setValue('return <your code here>;');
     this.cm.setSize(null, '66%');
