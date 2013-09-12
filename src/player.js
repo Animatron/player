@@ -2173,13 +2173,13 @@ Element.prototype.inform = function(ltime) {
         var duration = this.xdata.lband[1] - this.xdata.lband[0],
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
-            this.fire(C.X_START, ltime);
+            this.fire(C.X_START, ltime, duration);
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
         if (cmp > 0) {
             if (!this.__firedStop) {
-                this.fire(C.X_STOP, ltime);
+                this.fire(C.X_STOP, ltime, duration);
                 this.__firedStop = true;
                 // TODO: handle STOP event by changing band to end at given time?
             }
@@ -2190,7 +2190,8 @@ Element.prototype.inform = function(ltime) {
 Element.prototype.forcedStop = function(gtime) {
     this.__firedStart = false; // ensure to call next time
     if (!this.__firedStop) {
-        this.fire(C.X_STOP, gtime - this.xdata.lband[0]);
+        this.fire(C.X_STOP, gtime - this.xdata.lband[0],
+                            this.xdata.lband[1] - this.xdata.lband[0]);
     }
     this.__firedStop = false; // ensure to call next time
 }
@@ -3013,16 +3014,17 @@ function provideEvents(subj, events) {
         this.handlers[event].push(handler);
         return (this.handlers[event].length - 1);
     };
-    subj.prototype.fire = function(event, evtobj) {
+    subj.prototype.fire = function(event/*, args*/) {
         if (!this.provides(event)) throw new AnimErr('Event \'' + C.__enmap[event] +
                                                      '\' not provided by ' + this);
         if (this.disabled) return;
-        if (this.handle__x && !(this.handle__x(event, evtobj))) return;
+        var evt_args = Array.prototype.slice.call(arguments, 1);
+        if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
         var name = C.__enmap[event];
-        if (this['handle_'+name]) this['handle_'+name](evtobj);
+        if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
         var _hdls = this.handlers[event];
         for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-            _hdls[hi].call(this, evtobj);
+            _hdls[hi].apply(this, evt_args);
         }
     };
     subj.prototype.provides = (function(evts) {
