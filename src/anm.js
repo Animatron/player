@@ -23,6 +23,7 @@
 
     // TODO: try the way of jasmine.getGlobal()
 
+    // private developer-related configuration
     // window.__anm_conf || GLOBAL.__anm_conf
     if (!_GLOBAL_[PRIVATE_CONF]) {
         _GLOBAL_[PRIVATE_CONF] = {
@@ -35,6 +36,7 @@
     // TODO: Later, player should be placed in anm.Player and
     //              builder should be placed in anm.Builder
 
+    // a function to register some sub-namespace or object (like 'anm.*') in window or as module
     var registerUsingAnm = (function(_namespace, _glob, _wnd, _conf) {
         return function(name, produce) {
             var isBrowser = _wnd || _conf.forceWindowScope,
@@ -56,6 +58,7 @@
         }
     })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _conf);
 
+    // a function to register a player namespace (currently: 'anm') in window or as module
     var registerPlayer = (function(_namespace, _glob, _wnd, _doc, _conf) {
         /*var _wnd_mock = {
                     'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
@@ -88,6 +91,7 @@
 
     var foo = {}
 
+    // an object to store private functions inside
     // window.__anm || GLOBAL.__anm
     _GLOBAL_[PRIVATE_NAMESPACE] = {
         global: _GLOBAL_,
@@ -96,6 +100,7 @@
         namespace: PUBLIC_NAMESPACE,
         registerPlayer: registerPlayer,
         registerUsingAnm: registerUsingAnm
+        // TODO: player instances listeners (look Player.addNewInstanceListener)
     };
 
     // FIXME: support Engines (DOM/NodeJS/...) from this point
