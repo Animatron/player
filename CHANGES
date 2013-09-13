@@ -1,9 +1,14 @@
-v0.9.1404 / Mon Sep 09 2013 21:10:13 +0200 / b8e3d22c7208454302d0a8444976338e86f9a5ae
+v0.9.1404 / Thu Sep 12 2013 19:12:03 +0200 / 2b6d558f29d9c6328999e880c868a62f97f6fea8
 =====================================================================================
 
 Features:
 
 * Support for the init file (anm.js), which configures the namespace, manages the way of player initialization process, prepares and stores some private global configuration.
+* X_START and X_STOP events for bands
+
+Fixes:
+
+* Fix incorrect loop in audio module which caused
 
 Fixes for the Compact a.k.a. Publish importer and to the `go` page:
 

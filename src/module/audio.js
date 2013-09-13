@@ -16,79 +16,30 @@
   anm.M[C.MOD_AUDIO] = {};
 
   var E = anm.Element;
-  var P = anm.Player;
-
-  // Initialize player listener
-  // ----------------------------------------------------------------------------------------------------------------
-
-  P.playerIsPlaying = false;
-
-  function onPlay() {
-    P.playerIsPlaying = true;
-  }
-
-  function onStop() {
-    P.playerIsPlaying = false;
-    for (var i in P.__playing_audio) {
-      var el = P.__playing_audio.pop();
-      el._audio.pause();
-      el._audio_is_playing = false;
-    }
-  }
-
-  function onPause() {
-    onStop();
-  }
-
-  P.addNewInstanceListener(function() {
-    var player = this;
-    player.on('play', onPlay);
-    player.on('pause', onPause);
-    player.on('stop', onStop);
-  });
-
-  // Audio initialization
-  // ----------------------------------------------------------------------------------------------------------------
-
-  P.__playing_audio = [];
-
-  E.prototype._audio_schedulePlay = function(ltime, gtime) {
-    P.__playing_audio.push(this);
-    this._audio_is_playing = true;
-    this._audio.currentTime = this._audio_band_offset + ltime;
-    this._audio.play();
-  };
-
-  E.prototype._audio_stopPlay = function() {
-    this._audio.pause();
-    var ndx = P.__playing_audio.indexOf(this);
-    if (ndx >= 0) {
-      P.__playing_audio.splice(ndx, 1);
-    }
-
-    this._audio_is_playing = false;
-  };
 
   // Element functions
   // ----------------------------------------------------------------------------------------------------------------
 
   var _audio_customRender = function(gtime, ltime, ctx) {
-    if (!this._audio_is_loaded || !P.playerIsPlaying) {
+    // TODO: remove
+    return false;
+  };
+
+  var _onAudioStart = function(ltime, duration) {
+    if (!this._audio_is_loaded || this._audio_is_playing) {
       return false;
     }
 
-    var bandEnded = ltime + this.xdata.lband[0] >= this.xdata.lband[1];
+    this._audio_is_playing = true;
+    this._audio.currentTime = this._audio_band_offset + ltime;
+    this._audio.play();
+  };
 
-    //var ltime = this.ltime(gtime);
-    if (!this._audio_is_playing && ltime >= 0 && !bandEnded) {
-      this._audio_schedulePlay(ltime);
+  var _onAudioStop = function(ltime, duration) {
+    if (this._audio_is_playing) {
+      this._audio.pause();
+      this._audio_is_playing = false;
     }
-
-    if (this._audio_is_playing && bandEnded) {
-      this._audio_stopPlay();
-    }
-
-    return false;
   };
 
   E._audio_cache = {};
@@ -98,7 +49,7 @@
         (14 == type)/*ANM_PUBLISH*/) {
       if (importer == "ANM") {
         this._audio_band_offset = object.bandOffset;
-        this._audio_url = object.url;
+        this._audio_url = this._audio_format_url(object.url);
       } else if (importer == "ANM_PUBLISH") {
         /** audio **/
         /*
@@ -108,7 +59,7 @@
          *     number;                     // 2, band offset
          * } *audio_element*;
          */
-        this._audio_url = object[1];
+        this._audio_url = this._audio_format_url(object[1]);
         this._audio_band_offset = object[2];
       }
       this.isAudio = true;
@@ -116,12 +67,24 @@
       this._audio_is_loaded = false;
       this._audio_is_playing = false;
 
+      this.on(C.X_START, _onAudioStart);
+      this.on(C.X_STOP, _onAudioStop);
+
       // assign custom render function
       this.__frameProcessors.push(_audio_customRender);
 
       this._audio_load();
     }
   };
+
+  E.prototype._audio_format_url = function(url) {
+    return url + (this._mpeg_supported() ? ".mp3" : ".ogg");
+  };
+
+  E.prototype._mpeg_supported = function() {
+    var a = document.createElement('audio');
+    return !!(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
+  }
 
   E.prototype._audio_load = function() {
     var me = this;
