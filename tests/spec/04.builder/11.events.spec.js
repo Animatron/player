@@ -15,4 +15,28 @@ xdescribe("events", function() {
 
     });
 
+    /*
+    function wrapWithLogging(prefix, _elm) {
+        _elm.whenPlayer(C.S_STOP, function(player) { console.log(prefix, 'STOP', player.state.time, player); })
+            .whenPlayer(C.S_PLAY, function(player) { console.log(prefix, 'PLAY', player.state.time, player); })
+            .whenPlayer(C.S_PAUSE, function(player) { console.log(prefix, 'PAUSE', player.state.time, player); })
+            .whenPlayer(C.S_LOAD, function(player) { console.log(prefix, 'LOAD1', player.state.time, player); })
+            .whenPlayer(C.S_LOAD, function(player) { console.log(prefix, 'LOAD2', player.state.time, player); })
+            .whenPlayer(C.S_REPEAT, function(player) { console.log(prefix, 'REPEAT', player.state.time, player); })
+            .whenPlayer(C.S_ERROR, function(player) { console.log(prefix, 'ERROR', player.state.time, player); })
+            .onstart(function(t, duration) { console.log(prefix, 'start', t, duration, t/duration); })
+            .onstop(function(t, duration) { console.log(prefix, 'stop', t, duration, t/duration); })
+        return _elm;
+    }
+
+    return wrapWithLogging('scene',
+              b().add(wrapWithLogging('2-10',     b().band([2, 10])))
+                 .add(wrapWithLogging('0-10',     b().band([0, 10])))
+                 .add(wrapWithLogging('3-7',      b().band([3, 7])))
+                 .add(wrapWithLogging('3-Inf',    b().band([3, Infinity])))
+                 .add(wrapWithLogging('(-3)-6',   b().band([-3, 6])))
+                 .add(wrapWithLogging('(-3)-Inf', b().band([-3, Infinity])))
+                 .add(wrapWithLogging('11-12',    b().band([11, 12]))));
+    */
+
 });

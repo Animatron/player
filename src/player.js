@@ -479,6 +479,9 @@ function __reg_event(id, name, value) {
 }
 
 // NB: All of the events must have different values, or the flow will be broken
+// FIXME: allow grouping events, i.e. value may a group_marker + name of an event
+//        also, allow events to belong to several groups, it may replace a tests like
+//        XT_MOUSE or XT_CONTROL or isPlayerEvent
 
 // * mouse
 __reg_event('X_MCLICK', 'mclick', 1);
@@ -507,8 +510,8 @@ __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 __reg_event('X_DRAW', 'draw', 'draw');
 
 // * bands
-__reg_event('X_START', 'start', 'start');
-__reg_event('X_STOP', 'stop', 'stop');
+__reg_event('X_START', 'start', 'x_start');
+__reg_event('X_STOP', 'stop', 'x_stop');
 
 // * playing (player state)
 __reg_event('S_PLAY', 'play', 'play');
@@ -1595,7 +1598,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
 }
 Scene.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
-        if (elm.shown) elm.fire(type, evt);
+        elm.fire(type, evt);
     });
     return true;
 }
@@ -2190,7 +2193,7 @@ Element.prototype.inform = function(ltime) {
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
-        if (cmp > 0) {
+        if (cmp >= 0) {
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
                 this.__firedStop = true;
@@ -2813,7 +2816,13 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (!Player._isPlayerEvent(type)) this.__saveEvt(type, evt);
+    if (!Player._isPlayerEvent(type)) {
+      if (this.shown) {
+        this.__saveEvt(type, evt);
+      } else {
+        return false;
+      }
+    }
     return true;
 }
 Element.prototype.__saveEvt = function(type, evt) {
