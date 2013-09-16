@@ -69,6 +69,7 @@
 
       this.on(C.X_START, _onAudioStart);
       this.on(C.X_STOP, _onAudioStop);
+      this.on(C.S_STOP, _onAudioStop);
 
       // assign custom render function
       this.__frameProcessors.push(_audio_customRender);
