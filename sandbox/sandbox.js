@@ -28,7 +28,7 @@ function sandbox() {
             height: 250,
             bgcolor: '#fff' }
     });
-    this.player.mode = anm.C.M_PREVIEW;
+    this.player.mode = anm.C.M_VIDEO;
     this.player._checkMode();
     _player = this.player;
 
@@ -137,17 +137,19 @@ function sandbox() {
         refreshRate = rate;
         save_refresh_rate(rate);
         var _refresher = function(from, seqId, tId) {
-            return function() {
+            return function(once) {
                 if (wereErrors) return;
                 //console.log('starting to play from ', from, ', refresher id is ',
                 //             seqId + '-' + tId, new Date());
                 playFrom(from, rate);
+                if (once) return;
                 var nextTimeout = seqId + '-' + (tId + 1);
                 curTimeouts.push([ setTimeout(_refresher(0, seqId, tId + 1), rate - from), nextTimeout ]);
                 //console.log('sheduled next refresh to ', rate - from, 'ms (#', nextTimeout, ')');
             }
         };
-        _refresher(startAt || 0, sequenceId, timeoutId)();
+        _refresher(startAt || 0, sequenceId, timeoutId)(
+            (_player.mode != C.M_PREVIEW) && (_player.mode != C.M_SANDBOX));
     }
 
     if (localStorage) {

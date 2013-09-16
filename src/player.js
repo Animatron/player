@@ -479,6 +479,9 @@ function __reg_event(id, name, value) {
 }
 
 // NB: All of the events must have different values, or the flow will be broken
+// FIXME: allow grouping events, i.e. value may a group_marker + name of an event
+//        also, allow events to belong to several groups, it may replace a tests like
+//        XT_MOUSE or XT_CONTROL or isPlayerEvent
 
 // * mouse
 __reg_event('X_MCLICK', 'mclick', 1);
@@ -507,8 +510,8 @@ __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 __reg_event('X_DRAW', 'draw', 'draw');
 
 // * bands
-__reg_event('X_START', 'start', 'start');
-__reg_event('X_STOP', 'stop', 'stop');
+__reg_event('X_START', 'start', 'x_start');
+__reg_event('X_STOP', 'stop', 'x_stop');
 
 // * playing (player state)
 __reg_event('S_PLAY', 'play', 'play');
@@ -693,7 +696,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (player.mode & C.M_HANDLE_EVENTS) {
             player.__subscribeDynamicEvents(player.anim);
         }
-        player.fire(C.S_LOAD);
+        player.fire(C.S_LOAD, result);
         player.stop();
         if (callback) callback(result);
     };
@@ -792,8 +795,6 @@ Player.prototype.stop = function() {
         __stopAnim(state.__firstReq);
     }
 
-    if (scene) scene.forcedStop(state.time);
-
     state.time = Player.NO_TIME;
     state.from = 0;
     state.stop = Player.NO_TIME;
@@ -837,8 +838,6 @@ Player.prototype.pause = function() {
     if (state.time > state.duration) {
         state.time = state.duration;
     }
-
-    if (player.anim) player.anim.forcedStop(state.time);
 
     state.from = state.time;
     state.happens = C.PAUSED;
@@ -982,11 +981,20 @@ Player.prototype.drawAt = function(time) {
     if ((time < 0) || (time > this.state.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
-    this.anim.reset();
+    var scene = this.anim,
+        u_before = this.__userBeforeRender,
+        u_after = this.__userAfterRender,
+        after = function(gtime, ctx) {
+            scene.reset();
+            scene.__informEnabled = true;
+            u_after(gtime, ctx);
+        };
+
+    scene.reset();
+    scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, this.ctx, this.state, this.anim,
-           this.__userBeforeRender, this.__userAfterRender);
+    __r_at(time, this.ctx, this.state, this.anim, u_before, u_after);
 
     if (this.controls) {
         this._renderControlsAt(time);
@@ -1341,6 +1349,10 @@ Player.prototype.__makeSafe = function(methods) {
     })(player[method]);
   }
 }
+Player.prototype.handle__x = function(type, evt) {
+  if (this.anim) this.anim.fire(type, this);
+  return true;
+}
 
 /* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
@@ -1406,6 +1418,13 @@ Player.createState = function(player) {
     };
 }
 
+Player._isPlayerEvent = function(type) {
+    // TODO: make some marker to group types of events
+    return ((type == C.S_PLAY) || (type == C.S_PAUSE) ||
+            (type == C.S_STOP) || (type == C.S_STOP) ||
+            (type == C.S_LOAD) || (type == C.S_REPEAT) ||
+            (type == C.S_ERROR));
+}
 function __attrOr(canvas, attr, _default) {
     return canvas.hasAttribute(attr)
            ? canvas.getAttribute(attr)
@@ -1493,6 +1512,7 @@ function Scene() {
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
+    this.__informEnabled = true;
     this._initHandlers(); // TODO: make automatic
 }
 
@@ -1503,7 +1523,10 @@ Scene.DEFAULT_LEN = 10;
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                       C.X_DRAW ]);
+                       C.X_DRAW,
+                       // player events
+                       C.S_PLAY, C.S_PAUSE, C.S_STOP,
+                       C.S_LOAD, C.S_REPEAT, C.S_ERROR ]);
 Scene.prototype.setDuration = function(val) {
   this.duration = (val >= 0) ? val : 0;
 }
@@ -1585,7 +1608,7 @@ Scene.prototype.render = function(ctx, time, zoom) {
 }
 Scene.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
-        if (elm.shown) elm.fire(type, evt);
+        elm.fire(type, evt);
     });
     return true;
 }
@@ -1600,6 +1623,7 @@ Scene.prototype.getFittingDuration = function() {
     return max_pos;
 }
 Scene.prototype.reset = function() {
+    this.__informEnabled = true;
     this.visitRoots(function(elm) {
         elm.reset();
     });
@@ -1666,11 +1690,6 @@ Scene.prototype._addToTree = function(elm) {
         this._register(_elm);
     }
 }*/
-Scene.prototype.forcedStop = function(gtime) {
-    this.visitElems(function(elm) {
-        elm.forcedStop(gtime);
-    });
-}
 Scene.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
@@ -1816,7 +1835,10 @@ Element.DEFAULT_LEN = Infinity;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_DRAW, C.X_START, C.X_STOP ]);
+                         C.X_DRAW, C.X_START, C.X_STOP,
+                         // player events
+                         C.S_PLAY, C.S_PAUSE, C.S_STOP,
+                         C.S_LOAD, C.S_REPEAT, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -1861,7 +1883,9 @@ Element.prototype.render = function(ctx, gtime) {
     var ltime = this.ltime(gtime);
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
-    this.inform(ltime);
+    // FIXME: may not fire STOP on low-FPS, move an additional check
+    // FIXME: masks have no scene set to something, but should to (see masks tests)
+    if (this.scene && this.scene.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
@@ -2167,6 +2191,11 @@ Element.prototype.ltime = function(gtime) {
             }
     }
 }
+// > Element.handlePlayerEvent % (event: C.S_*, handler: Function(player: Player))
+Element.prototype.handlePlayerEvent = function(event, handler) {
+    if (!Player._isPlayerEvent(event)) throw new Error('This method is intended to assign only player-related handles');
+    this.on(event, handler);
+}
 // > Element.inform % (ltime: Float)
 Element.prototype.inform = function(ltime) {
     if (__t_cmp(ltime, 0) >= 0) {
@@ -2177,7 +2206,7 @@ Element.prototype.inform = function(ltime) {
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
-        if (cmp > 0) {
+        if (cmp >= 0) {
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
                 this.__firedStop = true;
@@ -2185,15 +2214,6 @@ Element.prototype.inform = function(ltime) {
             }
         };
     };
-}
-// > Element.forcedStop % (gtime: Float)
-Element.prototype.forcedStop = function(gtime) {
-    this.__firedStart = false; // ensure to call next time
-    if (!this.__firedStop) {
-        this.fire(C.X_STOP, gtime - this.xdata.lband[0],
-                            this.xdata.lband[1] - this.xdata.lband[0]);
-    }
-    this.__firedStop = false; // ensure to call next time
 }
 // > Element.duration % () -> Float
 Element.prototype.duration = function() {
@@ -2809,7 +2829,13 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    this.__saveEvt(type, evt);
+    if (!Player._isPlayerEvent(type)) {
+      if (this.shown) {
+        this.__saveEvt(type, evt);
+      } else {
+        return false;
+      }
+    }
     return true;
 }
 Element.prototype.__saveEvt = function(type, evt) {
