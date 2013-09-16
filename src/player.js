@@ -985,9 +985,9 @@ Player.prototype.drawAt = function(time) {
         u_before = this.__userBeforeRender,
         u_after = this.__userAfterRender,
         after = function(gtime, ctx) {
-          scene.reset();
-          scene.__informEnabled = true;
-          u_after(gtime, ctx);
+            scene.reset();
+            scene.__informEnabled = true;
+            u_after(gtime, ctx);
         };
 
     scene.reset();
@@ -1884,7 +1884,8 @@ Element.prototype.render = function(ctx, gtime) {
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
-    if (this.scene.__informEnabled) this.inform(ltime);
+    // FIXME: masks have no scene set to something, but should to (see masks tests)
+    if (this.scene && this.scene.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
