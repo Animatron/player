@@ -653,6 +653,11 @@ Builder.prototype.onstop = function(handler) {
 Builder.prototype.ondeath = Builder.prototype.onstart;
 // > builder.ondie % (handler: Function(t: Float)) => Builder
 Builder.prototype.ondie = Builder.prototype.onstart;
+// > builder.whenPlayer % (event: C.S_*, handler: Function(player: Player)) => Builder
+Builder.prototype.whenPlayer = function(event, handler) {
+    this.v.handlePlayerEvent(event, handler);
+    return this;
+}
 
 // * TAKE & USE *
 

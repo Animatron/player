@@ -507,14 +507,6 @@ __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 __reg_event('X_DRAW', 'draw', 'draw');
 
 // * bands
-C.SR_BAND = 0;   // START/STOP was caused by normal band start / stop while playing
-C.SR_SCENE = 1;  // START/STOP was caused by scene start or stop, when scene finished playing
-C.SR_REWIND = 2; // START/STOP was caused by user, when rewinding (means player keeps playing from different position)
-C.SR_PAUSE = 3;  // START/STOP was caused by user, when paused (means player paused at some position)
-C.SR_FORCED = 4; // START/STOP was caused by player, when there's was no scene or some forced stop, so there will be no START after that
-//C.SR_PLAYER_PLAY = 4; // START was caused by player, after REWIND or PAUSE or STOP
-
-
 __reg_event('X_START', 'start', 'start');
 __reg_event('X_STOP', 'stop', 'stop');
 
@@ -684,7 +676,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     if (!object) {
         player.anim = null;
         player._reset();
-        player.stop(C.SR_FORCED);
+        player.stop();
         throw new PlayerErr(Errors.P.NO_SCENE_PASSED);
     }
 
@@ -702,7 +694,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.__subscribeDynamicEvents(player.anim);
         }
         player.fire(C.S_LOAD, result);
-        player.stop(C.SR_PAUSE);
+        player.stop();
         if (callback) callback(result);
     };
 
@@ -780,12 +772,11 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                 player.__userAfterRender);
 
     player.fire(C.S_PLAY, state.from);
-    scene.informStart(state.from, C.SR_SCENE);
 
     return player;
 }
 
-Player.prototype.stop = function(reason) {
+Player.prototype.stop = function() {
     /* if (state.happens === C.STOPPED) return; */
 
     var player = this,
@@ -800,8 +791,6 @@ Player.prototype.stop = function(reason) {
         player.__supressFrames = true;
         __stopAnim(state.__firstReq);
     }
-
-    if (scene) scene.informStop(state.time, reason || C.SR_FORCED);
 
     state.time = Player.NO_TIME;
     state.from = 0;
@@ -846,8 +835,6 @@ Player.prototype.pause = function() {
     if (state.time > state.duration) {
         state.time = state.duration;
     }
-
-    if (player.anim) player.anim.informStop(state.time, C.SR_PLAYER_PAUSE);
 
     state.from = state.time;
     state.happens = C.PAUSED;
@@ -908,7 +895,7 @@ Player.prototype._loadOpts = function(opts) {
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
-    this.stop(C.SR_PLAYER_FORCED);
+    this.stop();
     /* TODO: load some default information into player */
     Text._ensureHasBuffer(); /* so it will be performed onload */
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
@@ -932,7 +919,7 @@ Player.prototype._rectChanged = function(rect) {
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
-        case C.STOPPED: this.stop(C.SR_PLAYER_FORCED); break;
+        case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
         case C.NOTHING: this._drawSplash(); break;
@@ -992,7 +979,6 @@ Player.prototype.drawAt = function(time) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     this.anim.reset();
-    this.anim.informStart(time, C.SR_PLAYER_PAUSE);
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
     __r_at(time, this.ctx, this.state, this.anim,
@@ -1176,14 +1162,14 @@ Player.prototype._reset = function() {
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, state.width * state.ratio,
                              state.height * state.ratio);
-    /*this.stop(C.SR_PLAYER_FORCED);*/
+    /*this.stop();*/
 }
 Player.prototype._stopAndContinue = function() {
   //state.__lastPlayConf = [ from, speed, stopAfter ];
   var state = this.state,
       last_conf = state.__lastPlayConf;
   var stoppedAt = state.time;
-  this.stop(C.SR_PLAYER_REWIND);
+  this.stop();
   this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
@@ -1267,7 +1253,7 @@ Player.prototype.__beforeFrame = function(scene) {
                  (time > (state.duration + Player.PEFF))) {
                 state.time = 0;
                 scene.reset();
-                player.stop(C.SR_SCENE);
+                player.stop();
                 if (state.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
@@ -1351,6 +1337,10 @@ Player.prototype.__makeSafe = function(methods) {
     })(player[method]);
   }
 }
+Player.prototype.handle__x = function(type, evt) {
+  if (this.anim) this.anim.fire(type, this);
+  return true;
+}
 
 /* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
@@ -1416,6 +1406,13 @@ Player.createState = function(player) {
     };
 }
 
+Player._isPlayerEvent = function(type) {
+    // TODO: make some marker to group types of events
+    return ((type == C.S_PLAY) || (type == C.S_PAUSE) ||
+            (type == C.S_STOP) || (type == C.S_STOP) ||
+            (type == C.S_LOAD) || (type == C.S_REPEAT) ||
+            (type == C.S_ERROR));
+}
 function __attrOr(canvas, attr, _default) {
     return canvas.hasAttribute(attr)
            ? canvas.getAttribute(attr)
@@ -1513,7 +1510,10 @@ Scene.DEFAULT_LEN = 10;
 provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                       C.X_DRAW ]);
+                       C.X_DRAW,
+                       // player events
+                       C.S_PLAY, C.S_PAUSE, C.S_STOP,
+                       C.S_LOAD, C.S_REPEAT, C.S_ERROR ]);
 Scene.prototype.setDuration = function(val) {
   this.duration = (val >= 0) ? val : 0;
 }
@@ -1676,11 +1676,6 @@ Scene.prototype._addToTree = function(elm) {
         this._register(_elm);
     }
 }*/
-Scene.prototype.informStop = function(gtime, reason) {
-    this.visitElems(function(elm) {
-        elm.informStop(gtime, reason);
-    });
-}
 Scene.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
@@ -1826,7 +1821,10 @@ Element.DEFAULT_LEN = Infinity;
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_DRAW, C.X_START, C.X_STOP ]);
+                         C.X_DRAW, C.X_START, C.X_STOP,
+                         // player events
+                         C.S_PLAY, C.S_PAUSE, C.S_STOP,
+                         C.S_LOAD, C.S_REPEAT, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -2177,19 +2175,24 @@ Element.prototype.ltime = function(gtime) {
             }
     }
 }
+// > Element.handlePlayerEvent % (event: C.S_*, handler: Function(player: Player))
+Element.prototype.handlePlayerEvent = function(event, handler) {
+    if (!Player._isPlayerEvent(event)) throw new Error('This method is intended to assign only player-related handles');
+    this.on(event, handler);
+}
 // > Element.inform % (ltime: Float)
 Element.prototype.inform = function(ltime) {
     if (__t_cmp(ltime, 0) >= 0) {
         var duration = this.xdata.lband[1] - this.xdata.lband[0],
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
-            this.fire(C.X_START, ltime, duration, C.SR_BAND);
+            this.fire(C.X_START, ltime, duration);
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
         if (cmp > 0) {
             if (!this.__firedStop) {
-                this.fire(C.X_STOP, ltime, duration, C.SR_BAND);
+                this.fire(C.X_STOP, ltime, duration);
                 this.__firedStop = true;
                 // TODO: handle STOP event by changing band to end at given time?
             }
@@ -2810,7 +2813,7 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    this.__saveEvt(type, evt);
+    if (!Player._isPlayerEvent(type)) this.__saveEvt(type, evt);
     return true;
 }
 Element.prototype.__saveEvt = function(type, evt) {
