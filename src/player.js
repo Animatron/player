@@ -507,6 +507,10 @@ __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 __reg_event('X_DRAW', 'draw', 'draw');
 
 // * bands
+C.SR_FORCED = 0; // START/STOP was caused by user, like rewind or pause
+C.SR_SCENE = 1; // START/STOP was caused by scene start / stop when player normally started playing or automatically stopped playing on scene end
+C.SR_BAND = 2; // START/STOP was caused by normal band start / stop while playing
+
 __reg_event('X_START', 'start', 'start');
 __reg_event('X_STOP', 'stop', 'stop');
 
@@ -676,7 +680,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     if (!object) {
         player.anim = null;
         player._reset();
-        player.stop();
+        player.stop(C.SR_FORCED);
         throw new PlayerErr(Errors.P.NO_SCENE_PASSED);
     }
 
@@ -693,8 +697,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (player.mode & C.M_HANDLE_EVENTS) {
             player.__subscribeDynamicEvents(player.anim);
         }
-        player.fire(C.S_LOAD);
-        player.stop();
+        player.fire(C.S_LOAD, result);
+        player.stop(C.SR_FORCED);
         if (callback) callback(result);
     };
 
@@ -776,7 +780,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     return player;
 }
 
-Player.prototype.stop = function() {
+Player.prototype.stop = function(reason) {
     /* if (state.happens === C.STOPPED) return; */
 
     var player = this,
@@ -792,7 +796,7 @@ Player.prototype.stop = function() {
         __stopAnim(state.__firstReq);
     }
 
-    if (scene) scene.forcedStop(state.time);
+    if (scene) scene.informStop(state.time, reason || C.SR_FORCED);
 
     state.time = Player.NO_TIME;
     state.from = 0;
@@ -838,7 +842,7 @@ Player.prototype.pause = function() {
         state.time = state.duration;
     }
 
-    if (player.anim) player.anim.forcedStop(state.time);
+    if (player.anim) player.anim.informStop(state.time, C.SR_FORCED);
 
     state.from = state.time;
     state.happens = C.PAUSED;
@@ -899,7 +903,7 @@ Player.prototype._loadOpts = function(opts) {
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
-    this.stop();
+    this.stop(C.SR_FORCED);
     /* TODO: load some default information into player */
     Text._ensureHasBuffer(); /* so it will be performed onload */
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
@@ -923,7 +927,7 @@ Player.prototype._rectChanged = function(rect) {
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
-        case C.STOPPED: this.stop(); break;
+        case C.STOPPED: this.stop(C.SR_FORCED); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
         case C.NOTHING: this._drawSplash(); break;
@@ -1166,14 +1170,14 @@ Player.prototype._reset = function() {
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, state.width * state.ratio,
                              state.height * state.ratio);
-    /*this.stop();*/
+    /*this.stop(C.SR_FORCED);*/
 }
 Player.prototype._stopAndContinue = function() {
   //state.__lastPlayConf = [ from, speed, stopAfter ];
   var state = this.state,
       last_conf = state.__lastPlayConf;
   var stoppedAt = state.time;
-  this.stop();
+  this.stop(C.SR_FORCED);
   this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
@@ -1257,7 +1261,7 @@ Player.prototype.__beforeFrame = function(scene) {
                  (time > (state.duration + Player.PEFF))) {
                 state.time = 0;
                 scene.reset();
-                player.stop();
+                player.stop(C.SR_SCENE);
                 if (state.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
@@ -1666,9 +1670,9 @@ Scene.prototype._addToTree = function(elm) {
         this._register(_elm);
     }
 }*/
-Scene.prototype.forcedStop = function(gtime) {
+Scene.prototype.informStop = function(gtime, reason) {
     this.visitElems(function(elm) {
-        elm.forcedStop(gtime);
+        elm.informStop(gtime, reason);
     });
 }
 Scene.prototype._register = function(elm) {
@@ -2173,27 +2177,38 @@ Element.prototype.inform = function(ltime) {
         var duration = this.xdata.lband[1] - this.xdata.lband[0],
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
-            this.fire(C.X_START, ltime, duration);
+            this.fire(C.X_START, ltime, duration, C.SR_BAND);
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
         if (cmp > 0) {
             if (!this.__firedStop) {
-                this.fire(C.X_STOP, ltime, duration);
+                this.fire(C.X_STOP, ltime, duration, C.SR_BAND);
                 this.__firedStop = true;
                 // TODO: handle STOP event by changing band to end at given time?
             }
         };
     };
 }
-// > Element.forcedStop % (gtime: Float)
-Element.prototype.forcedStop = function(gtime) {
-    this.__firedStart = false; // ensure to call next time
+// > Element.informStart % (gtime: Float, reason: C.SR_*)
+Element.prototype.informStart = function(gtime, reason) {
+    if (reason !== C.SR_BAND) this.__firedStart = false; // ensure to call next time
+    if (!this.__firedStart) {
+        this.fire(C.X_STOP, gtime - this.xdata.lband[0],
+                            this.xdata.lband[1] - this.xdata.lband[0],
+                            reason);
+    }
+    if (reason !== C.SR_BAND) this.__firedStop = false; // ensure to call next time
+}
+// > Element.informStop % (gtime: Float, reason: C.SR_*)
+Element.prototype.informStop = function(gtime, reason) {
+    if (reason !== C.SR_BAND) this.__firedStart = false; // ensure to call next time
     if (!this.__firedStop) {
         this.fire(C.X_STOP, gtime - this.xdata.lband[0],
-                            this.xdata.lband[1] - this.xdata.lband[0]);
+                            this.xdata.lband[1] - this.xdata.lband[0],
+                            reason);
     }
-    this.__firedStop = false; // ensure to call next time
+    if (reason !== C.SR_BAND) this.__firedStop = false; // ensure to call next time
 }
 // > Element.duration % () -> Float
 Element.prototype.duration = function() {
