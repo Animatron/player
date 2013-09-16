@@ -981,11 +981,20 @@ Player.prototype.drawAt = function(time) {
     if ((time < 0) || (time > this.state.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
-    this.anim.reset();
+    var scene = this.anim,
+        u_before = this.__userBeforeRender,
+        u_after = this.__userAfterRender,
+        after = function(gtime, ctx) {
+          scene.reset();
+          scene.__informEnabled = true;
+          u_after(gtime, ctx);
+        };
+
+    scene.reset();
+    scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, this.ctx, this.state, this.anim,
-           this.__userBeforeRender, this.__userAfterRender);
+    __r_at(time, this.ctx, this.state, this.anim, u_before, u_after);
 
     if (this.controls) {
         this._renderControlsAt(time);
@@ -1503,6 +1512,7 @@ function Scene() {
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
+    this.__informEnabled = true;
     this._initHandlers(); // TODO: make automatic
 }
 
@@ -1613,6 +1623,7 @@ Scene.prototype.getFittingDuration = function() {
     return max_pos;
 }
 Scene.prototype.reset = function() {
+    this.__informEnabled = true;
     this.visitRoots(function(elm) {
         elm.reset();
     });
@@ -1872,7 +1883,8 @@ Element.prototype.render = function(ctx, gtime) {
     var ltime = this.ltime(gtime);
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
-    this.inform(ltime);
+    // FIXME: may not fire STOP on low-FPS, move an additional check
+    if (this.scene.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime)
