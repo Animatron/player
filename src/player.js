@@ -507,9 +507,13 @@ __reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 __reg_event('X_DRAW', 'draw', 'draw');
 
 // * bands
-C.SR_FORCED = 0; // START/STOP was caused by user, like rewind or pause
-C.SR_SCENE = 1; // START/STOP was caused by scene start / stop when player normally started playing or automatically stopped playing on scene end
-C.SR_BAND = 2; // START/STOP was caused by normal band start / stop while playing
+C.SR_BAND = 0;   // START/STOP was caused by normal band start / stop while playing
+C.SR_SCENE = 1;  // START/STOP was caused by scene start or stop, when scene finished playing
+C.SR_REWIND = 2; // START/STOP was caused by user, when rewinding (means player keeps playing from different position)
+C.SR_PAUSE = 3;  // START/STOP was caused by user, when paused (means player paused at some position)
+C.SR_FORCED = 4; // START/STOP was caused by player, when there's was no scene or some forced stop, so there will be no START after that
+//C.SR_PLAYER_PLAY = 4; // START was caused by player, after REWIND or PAUSE or STOP
+
 
 __reg_event('X_START', 'start', 'start');
 __reg_event('X_STOP', 'stop', 'stop');
@@ -698,7 +702,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.__subscribeDynamicEvents(player.anim);
         }
         player.fire(C.S_LOAD, result);
-        player.stop(C.SR_FORCED);
+        player.stop(C.SR_PAUSE);
         if (callback) callback(result);
     };
 
@@ -776,6 +780,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                 player.__userAfterRender);
 
     player.fire(C.S_PLAY, state.from);
+    scene.informStart(state.from, C.SR_SCENE);
 
     return player;
 }
@@ -842,7 +847,7 @@ Player.prototype.pause = function() {
         state.time = state.duration;
     }
 
-    if (player.anim) player.anim.informStop(state.time, C.SR_FORCED);
+    if (player.anim) player.anim.informStop(state.time, C.SR_PLAYER_PAUSE);
 
     state.from = state.time;
     state.happens = C.PAUSED;
@@ -903,7 +908,7 @@ Player.prototype._loadOpts = function(opts) {
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
-    this.stop(C.SR_FORCED);
+    this.stop(C.SR_PLAYER_FORCED);
     /* TODO: load some default information into player */
     Text._ensureHasBuffer(); /* so it will be performed onload */
     var mayBeUrl = this.canvas.getAttribute(Player.URL_ATTR);
@@ -927,7 +932,7 @@ Player.prototype._rectChanged = function(rect) {
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
-        case C.STOPPED: this.stop(C.SR_FORCED); break;
+        case C.STOPPED: this.stop(C.SR_PLAYER_FORCED); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
         case C.NOTHING: this._drawSplash(); break;
@@ -987,6 +992,7 @@ Player.prototype.drawAt = function(time) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     this.anim.reset();
+    this.anim.informStart(time, C.SR_PLAYER_PAUSE);
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
     __r_at(time, this.ctx, this.state, this.anim,
@@ -1170,14 +1176,14 @@ Player.prototype._reset = function() {
     if (this.info) this.info.reset();
     this.ctx.clearRect(0, 0, state.width * state.ratio,
                              state.height * state.ratio);
-    /*this.stop(C.SR_FORCED);*/
+    /*this.stop(C.SR_PLAYER_FORCED);*/
 }
 Player.prototype._stopAndContinue = function() {
   //state.__lastPlayConf = [ from, speed, stopAfter ];
   var state = this.state,
       last_conf = state.__lastPlayConf;
   var stoppedAt = state.time;
-  this.stop(C.SR_FORCED);
+  this.stop(C.SR_PLAYER_REWIND);
   this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
@@ -2189,26 +2195,6 @@ Element.prototype.inform = function(ltime) {
             }
         };
     };
-}
-// > Element.informStart % (gtime: Float, reason: C.SR_*)
-Element.prototype.informStart = function(gtime, reason) {
-    if (reason !== C.SR_BAND) this.__firedStart = false; // ensure to call next time
-    if (!this.__firedStart) {
-        this.fire(C.X_STOP, gtime - this.xdata.lband[0],
-                            this.xdata.lband[1] - this.xdata.lband[0],
-                            reason);
-    }
-    if (reason !== C.SR_BAND) this.__firedStop = false; // ensure to call next time
-}
-// > Element.informStop % (gtime: Float, reason: C.SR_*)
-Element.prototype.informStop = function(gtime, reason) {
-    if (reason !== C.SR_BAND) this.__firedStart = false; // ensure to call next time
-    if (!this.__firedStop) {
-        this.fire(C.X_STOP, gtime - this.xdata.lband[0],
-                            this.xdata.lband[1] - this.xdata.lband[0],
-                            reason);
-    }
-    if (reason !== C.SR_BAND) this.__firedStop = false; // ensure to call next time
 }
 // > Element.duration % () -> Float
 Element.prototype.duration = function() {
