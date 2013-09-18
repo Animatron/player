@@ -2829,7 +2829,9 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (!Player._isPlayerEvent(type)) {
+    if (!Player._isPlayerEvent(type)
+        && (type != C.X_START)
+        && (type != C.X_STOP)) {
       if (this.shown) {
         this.__saveEvt(type, evt);
       } else {
