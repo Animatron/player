@@ -18,7 +18,7 @@ var _files = {
     'anm.collisions': 'http://player.animatron.com/latest/module/collisions.js',
     'anm.audio': 'http://player.animatron.com/latest/module/audio.js',
     'anm.import': 'http://player.animatron.com/latest/import/animatron-importer.js',
-    'anm.compact-import': 'http://player.animatron.com/latest/import/animatron-importer.js',
+    'anm.intact-import': 'http://player.animatron.com/latest/import/animatron-intact-importer.js',
 
     'tst.matchers': './anm.matchers.js',
     'tst.mocks': './anm.mocks.js',

@@ -182,8 +182,6 @@
                 PLAYER_VERSION_ID = temp_v;
             }
 
-            function
-
             return function () {
                 try {
                     var cvs = document.getElementById(CANVAS_ID);
@@ -204,7 +202,6 @@
                     // all other versions, incl. 'latest' are ok with animatron.js bundle
                     var useStandartImporter = (PLAYER_VERSION_ID != 'v0.9.1404');
 
-                    var projectIsCompact = ;
                     _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID +
                         (useStandartImporter ? '/bundle/animatron.js' : '/bundle/animatron-publish.js'),
                         function () {

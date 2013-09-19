@@ -11,7 +11,8 @@ describe("project meta information", function() {
     project;
 
     beforeEach(function() {
-        importer = new AnimatronImporter();
+        // FIXME: update to standard compact importer
+        importer = new AnimatronIntactImporter();
         project = createAnmProject();
 
         spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
