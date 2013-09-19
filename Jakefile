@@ -83,9 +83,9 @@ var Files = {
             BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: { _ALL_: [ 'animatron-importer.js',
-                                 'animatron-publish-importer.js' ],
+                                 'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
-                        ANM_PUBLISH: 'animatron-publish-importer.js' },
+                        ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ 'collisions.js',
                                'audio.js' ],
                       COLLISIONS: 'collisions.js',
@@ -107,12 +107,12 @@ var Bundles = [
                                                               Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
-    { name: 'Animatron-Publish',
-      file: 'animatron-publish',
+    { name: 'Animatron-Intact',
+      file: 'animatron-intact',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
                                                               Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_PUBLISH ])) // animatron-publish-importer.js
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',

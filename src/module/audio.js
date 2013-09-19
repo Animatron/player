@@ -45,12 +45,9 @@
   E._audio_cache = {};
 
   E.prototype.importCustomData = function(object, type, importer) {
-    if (("0e" == type)/*ANM*/ ||
-        (14 == type)/*ANM_PUBLISH*/) {
+    if ((14 == type)/*ANM*/ ||
+        ("0e" == type)/*ANM_INTACT*/) {
       if (importer == "ANM") {
-        this._audio_band_offset = object.bandOffset;
-        this._audio_url = this._audio_format_url(object.url);
-      } else if (importer == "ANM_PUBLISH") {
         /** audio **/
         /*
          * array {
@@ -61,6 +58,9 @@
          */
         this._audio_url = this._audio_format_url(object[1]);
         this._audio_band_offset = object[2];
+      } else if (importer == "ANM_INTACT") {
+        this._audio_band_offset = object.bandOffset;
+        this._audio_url = this._audio_format_url(object.url);
       }
       this.isAudio = true;
       this._audio = null;
