@@ -4492,6 +4492,7 @@ function Controls(player) {
     this.ready = false;
     this.bounds = [];
     this.hidden = false;
+    this.focused = false; // the current button is focused
     this.elapsed = false;
     this.theme = null;
     this.info = null;
@@ -4566,7 +4567,7 @@ Controls.DEFAULT_THEME = {
       'bggrad': { // back gradient start is at (0.1 * Math.max(width/height))
                   // and end is at (1.0 * Math.max(width/height))
           'start': 'rgba(30,30,30,.7)',
-          'end': 'rgba(30,30,30,.9)'
+          'end': 'rgba(30,30,30,1)'
       },
       'progress': {
           'passed': 'rgba(255,255,255,.2)',
@@ -4574,8 +4575,8 @@ Controls.DEFAULT_THEME = {
       },
       'button': 'rgba(255,255,255,.95)',
       'stroke': 'rgba(180,180,180,.85)',
-      'fill': 'rgba(255,255,255,0.05)',
-      'hoverfill': 'rgba(255,255,255,1)',
+      'fill': 'rgba(255,255,255,0)',
+      'hoverfill': 'rgba(255,255,255,.2)',
       'text': 'rgba(255,255,255,.8)',
       'error': 'rgba(128,0,0,.8)',
       'infobg': 'rgba(128,0,0,.8)'
@@ -4634,12 +4635,26 @@ Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
                 controls.render(state.time);
             };
         })(player.state, this), false);
-    /*canvas.addEventListener('mousemove', (function(player, controls) {
+    canvas.addEventListener('mousemove', (function(player, controls) {
             return function(evt) {
-                if (controls.hidden) controls.show();
-                controls.render(player.state, player.state.time);
+                if (controls.hidden) return;
+                var _ratio = controls._ratio,
+                    _lx = (event.pageX - controls.bounds[0]) * _ratio,
+                    _ly = (event.pageY - controls.bounds[1]) * _ratio,
+                    _w = controls.bounds[2] - controls.bounds[0],
+                    _h = controls.bounds[3] - controls.bounds[1],
+                    button_rad = Math.min(_w / 2, _h / 2) * controls.theme.radius.inner;
+                var lfocused = controls.focused;
+                controls.focused = (_lx >= (_w / 2) - button_rad) &&
+                                   (_lx <= (_w / 2) + button_rad) &&
+                                   (_ly >= (_h / 2) - button_rad) &&
+                                   (_ly <= (_h / 2) + button_rad);
+                if (lfocused !== controls.focused) {
+                    controls.forceNextRedraw();
+                    controls.render(player.state.time);
+                }
             };
-        })(player, this), false);*/
+        })(player, this), false);
     canvas.addEventListener('mousedown', (function(state, controls) {
             return function(evt) {
                 controls.react(state.time);
@@ -4683,17 +4698,17 @@ Controls.prototype.render = function(time) {
     if (_s === C.PLAYING) {
         Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawProgress(ctx, theme, _w, _h, progress);
-        Controls._drawPause(ctx, theme, _w, _h);
+        Controls._drawPause(ctx, theme, _w, _h, this.focused);
         if (duration) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
     } else if (_s === C.STOPPED) {
         Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawPlay(ctx, theme, _w, _h);
+        Controls._drawPlay(ctx, theme, _w, _h, this.focused);
     } else if (_s === C.PAUSED) {
         Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawProgress(ctx, theme, _w, _h, progress);
-        Controls._drawPlay(ctx, theme, _w, _h);
+        Controls._drawPlay(ctx, theme, _w, _h, this.focused);
         if (duration) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
@@ -4879,7 +4894,7 @@ Controls._drawProgress = function(ctx, theme, w, h, progress) {
     ctx.restore();
 
 }
-Controls._drawPause = function(ctx, theme, w, h) {
+Controls._drawPause = function(ctx, theme, w, h, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -4890,7 +4905,7 @@ Controls._drawPause = function(ctx, theme, w, h) {
 
     ctx.beginPath();
     ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = theme.colors.fill;
+    ctx.fillStyle = focused ? theme.colors.hoverfill : theme.colors.fill;
     ctx.strokeStyle = theme.colors.stroke;
     ctx.lineWidth = theme.width.inner;
     ctx.stroke();
@@ -4914,7 +4929,7 @@ Controls._drawPause = function(ctx, theme, w, h) {
 
     ctx.restore();
 }
-Controls._drawPlay = function(ctx, theme, w, h) {
+Controls._drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -4926,7 +4941,7 @@ Controls._drawPlay = function(ctx, theme, w, h) {
 
     ctx.beginPath();
     ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = theme.colors.fill;
+    ctx.fillStyle = focused ? theme.colors.hoverfill : theme.colors.fill;
     ctx.strokeStyle = theme.colors.stroke;
     ctx.lineWidth = theme.width.inner;
     ctx.stroke();
