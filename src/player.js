@@ -1225,6 +1225,7 @@ Player.prototype._renderControls = function() {
     this._renderControlsAt(this.state.time);
 }
 Player.prototype._renderControlsAt = function(t) {
+    this.controls.show();
     this.controls.render(this.state, t);
 }
 Player.prototype._checkMode = function() {
@@ -4521,35 +4522,53 @@ function Controls(player) {
     this.bounds = [];
     this.hidden = false;
     this.elapsed = false;
+    this.theme = null;
     this._time = -1000;
     this._ratio = 1;
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
-/* TODO: move these settings to default css rule? */
-Controls.HEIGHT = 26;
-Controls.MARGIN = 8;
-Controls.OPACITY = 0.75;
-Controls.BASE_FGCOLOR = '#fff';
-Controls.BASE_BGCOLOR = '#000';
-//Controls.BASE_FGCOLOR = '#ccf';
-//Controls.BASE_BGCOLOR = '#006';
-Controls._BH = Controls.HEIGHT - (Controls.MARGIN + Controls.MARGIN); // button height
-Controls._TS = Controls._BH * 1.1; // text size
-Controls._TW = Controls._TS * 4.4; // text width
-Controls._SW = 1.3; // separator width
-Controls.FONT = 'Arial, sans-serif';
-Controls.FONT_WEIGHT = 'bold';
-Controls.FLAT = false;
-provideEvents(Controls, [C.X_MDOWN, C.X_DRAW]);
+Controls.DEFAULT_THEME = {
+  'font': {
+      'face': 'Arial, sans-serif',
+      'weight': 'bold'
+  },
+  'radius': {
+      'inner': .3,
+      'outer': .5
+  },
+  //'bgOpacity': .8,
+  //'bgFill': 'rgba(30, 30, 30, .4)',
+  //'bgGradStart': [ .1, "rgba(30,30,30,.75)" ],
+  //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
+  'width': {
+     'inner': 15,
+     'outer': 20
+  },
+  'colors': {
+     'bggrad': {
+        'start': 'rgba(30,30,30,.75)',
+        'end': 'rgba(255,255,255,0)'
+     },
+     'progress': {
+        'passed': 'rgba(255,255,255,.6)',
+        'left': 'rgba(0,0,0,.3)'
+     },
+     'front': 'rgba(0,0,0,1)',
+     'back': 'rgba(255,255,255,1)',
+     'text': 'rgba(255,255,255,1)',
+     'error': 'rgba(128,0,0,.8)'
+  }
+};
+Controls.THEME = Controls.DEFAULT_THEME;
+provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var _ratio = parent.__pxRatio,
         _w = parent.width / _ratio,
-        _h = Controls.HEIGHT,
-        _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
+        _h = parent.height / _ratio,
         _pp = find_pos(parent), // parent position
-        _bp = [ _pp[0] + parent.clientLeft, _pp[1] + parent.clientTop + _hdiff ], // bounds position
+        _bp = [ _pp[0] + parent.clientLeft, _pp[1] + parent.clientTop ], // bounds position
         _cp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
                                  parent.parentNode.offsetTop  + parent.clientTop + _hdiff ]
                              : _bp; // position to set in styles
@@ -4568,14 +4587,13 @@ Controls.prototype.update = function(parent) {
         this.ctx = _canvas.getContext('2d');
         this.subscribeEvents(_canvas);
         this.hide();
-        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
+        this.changeTheme(Controls.THEME);
     } else {
         canvasOpts(_canvas, [ _w, _h ], _ratio);
     }
     _canvas.style.left = _cp[0] + 'px';
     _canvas.style.top = _cp[1] + 'px';
     this._ratio = _ratio;
-    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     if (!this.ready) {
         var appendTo = this._inParent ? parent.parentNode
                                       : $doc.body;
@@ -4587,12 +4605,20 @@ Controls.prototype.update = function(parent) {
     this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
                                     _bp[1]+(_h*_ratio) ];
 }
-Controls.prototype.subscribeEvents = function(canvas) {
-    canvas.addEventListener('mousedown', (function(controls) {
+Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
+    var player = this.player;
+    player.canvas.addEventListener('mouseover', (function(player, controls) {
             return function(evt) {
-                controls.fire(C.X_MDOWN, evt);
+                controls.show();
+                controls.render(player.state, player.state.time);
             };
-        })(this), false);
+        })(player, this), false);
+    canvas.addEventListener('mousedown', (function(player, controls) {
+            return function(evt) {
+                controls.react(player.state, player.state.time);
+                controls.hide();
+            };
+        })(player, this), false);
     canvas.addEventListener('mouseout', (function(controls) {
             return function(evt) {
                 controls.hide();
@@ -4609,81 +4635,92 @@ Controls.prototype.render = function(state, time) {
     if (!this.__force &&
         (time === this._time) &&
         (_s === this._lhappens)) return;
+    console.log('draw?');
     this._time = time;
     this._lhappens = _s;
 
     var ctx = this.ctx,
-        _ratio = this._ratio; // pixelRatio (or use this.canvas.__pxRatio?)
-    var _bh = Controls._BH, // button height
-        _w = this.bounds[2] - this.bounds[0],
-        _h = this.bounds[3] - this.bounds[1],
-        _m = Controls.MARGIN,
-        _tw = Controls._TW, // text width
-        _pw = (_w / _ratio) - ((_m * 6) + _tw + _bh); // progress width
-    var front = this.__fgcolor,
-        back = this.__bgcolor;
-    /* TODO: update only progress if state not changed? */
-    ctx.clearRect(0, 0, _w, _h);
-    if (!this.__bggrad && !Controls.FLAT) {
-        var bggrad = ctx.createLinearGradient(0, 0, 0, _h),
-            bgspec = get_rgb(back);
-        bggrad.addColorStop(0, to_rgba(Math.min(bgspec[0] + 120, 255),
-                                       Math.min(bgspec[1] + 120, 255),
-                                       Math.min(bgspec[2] + 120, 255), .7));
-        bggrad.addColorStop(.35, to_rgba(Math.min(bgspec[0] + 30, 255),
-                                       Math.min(bgspec[1] + 30, 255),
-                                       Math.min(bgspec[2] + 30, 255), .8));
-        bggrad.addColorStop(.75, to_rgba(bgspec[0],
-                                        bgspec[1],
-                                        bgspec[2], .9));
-        bggrad.addColorStop(1, to_rgba(bgspec[0],
-                                       bgspec[1],
-                                       bgspec[2]));
-        this.__bggrad = bggrad;
-    }
-    ctx.fillStyle = Controls.FLAT ? back : this.__bggrad;
-    ctx.fillRect(0, 0, _w, _h);
-    ctx.save();
-    if (_ratio != 1) ctx.scale(_ratio, _ratio);
-    ctx.translate(_m, _m);
-    ctx.fillStyle = front;
+        ratio = this._ratio, // pixelRatio (or use this.canvas.__pxRatio?)
+        theme = this.theme,
+        duration = _s.duration,
+        progress = time / ((duration !== 0) ? duration : 1);
 
-    // play/pause/stop button
+    var _w = this.bounds[2] - this.bounds[0],
+        _h = this.bounds[3] - this.bounds[1];
+
+    ctx.save();
+    //if (ratio != 1) ctx.scale(ratio, ratio);
+    ctx.clearRect(0, 0, _w, _h);
+
     if (_s === C.PLAYING) {
-        // pause button
-        Controls.__pause_btn(ctx, front);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawProgress(ctx, theme, _w, _h, progress);
+        Controls._drawPause(ctx, theme, _w, _h);
     } else if (_s === C.STOPPED) {
-        // play button
-        Controls.__play_btn(ctx, front);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawPlay(ctx, theme, _w, _h);
     } else if (_s === C.PAUSED) {
-        // play button
-        Controls.__play_btn(ctx, front);
-    } else {
-        // stop button
-        Controls.__stop_btn(ctx, front);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawProgress(ctx, theme, _w, _h, progress);
+        Controls._drawPlay(ctx, theme, _w, _h);
+    } else if (_s === C.NOTHING) {
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawLoading(ctx, theme, _w, _h, 3);
     }
+    // + error
 
     // progress
-    ctx.translate(_bh + _m, 0);
+    /* ctx.translate(_bh + _m, 0);
     Controls.__progress(ctx, _pw, front, back,
                         time, state.duration);
 
     // time
     ctx.translate(_pw + _m * 2.5, 0);
     Controls.__time(ctx, front, back,
-                    this.elapsed ? (time - state.duration) : time);
+                    this.elapsed ? (time - state.duration) : time); */
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
 
     this.__force = false;
 }
+Controls.prototype.react = function(state, time) {
+    if (this.hidden) return;
+
+    var _p = this.player,
+        _s = _p.state.happens;
+    console.log('react');
+    if (_s === C.NOTHING) return;
+    if (_s === C.STOPPED) { console.log('play from start'); _p.play(0); return; }
+    if (_s === C.PAUSED) { console.log('play from ' + this._time); _p.play(this._time); return; }
+    if (_s === C.PLAYING) { console.log('pause at' + time); this._time = time; _p.pause(); return; }
+/*  var _d = this.player.state.duration,
+        _tpos = _px / (_pw / _d); // time position
+    if (_tpos < 0) _tpos = 0;
+    if (_tpos > _d) _tpos = d;
+    if (_s === C.PLAYING) {
+        this.player.pause();
+        this.player.play(_tpos);
+    }
+    else if ((_s === C.PAUSED) ||
+             (_s === C.STOPPED)) {
+        this.player.state.time = _tpos;
+        this.player.drawAt(_tpos);
+    } */
+    /* this.elapsed = !this.elapsed;
+    if (_s !== C.PLAYING) {
+        this.forceNextRedraw();
+        this.render(this.player.state, this._time);
+    }; */
+}
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
+    console.log('hide');
     this.hidden = true;
     this.canvas.style.display = 'none';
 }
 Controls.prototype.show = function() {
+    console.log('show');
     this.hidden = false;
     this.canvas.style.display = 'block';
 }
@@ -4694,49 +4731,6 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     (this._inParent ? parent.parentNode
                     : $doc.body).removeChild(this.canvas);
-}
-Controls.prototype.handle_mdown = function(event) {
-    if (this.hidden) return;
-    var _lx = event.pageX - this.bounds[0],
-        _ly = event.pageY - this.bounds[1],
-        _bh = Controls._BH,
-        _m = Controls.MARGIN,
-        _tw = Controls._TW,
-        _w = this.bounds[2] - this.bounds[0],
-        _ratio = this._ratio;
-    var _s = this.player.state.happens;
-    if (_s === C.NOTHING) return;
-    if (_lx < (_bh + _m + _m)) { // play button area
-        if (_s === C.STOPPED) {
-            this.player.play(0);
-        } else if (_s === C.PAUSED) {
-            this.player.play(this._time);
-        } else if (_s === C.PLAYING) {
-            this.player.pause();
-        }
-    } else if (_lx < (_w - (_tw + _m))) { // progress area
-        var _pw = (_w / _ratio) - ((_m * 5) + _tw + _bh), // progress width
-            _px = _lx - (_bh + (_m * 3) + Controls._SW), // progress leftmost x
-            _d = this.player.state.duration;
-        var _tpos = _px / (_pw / _d); // time position
-        if (_tpos < 0) _tpos = 0;
-        if (_tpos > _d) _tpos = d;
-        if (_s === C.PLAYING) {
-            this.player.pause();
-            this.player.play(_tpos);
-        }
-        else if ((_s === C.PAUSED) ||
-                 (_s === C.STOPPED)) {
-            this.player.state.time = _tpos;
-            this.player.drawAt(_tpos);
-        }
-    } else { // time area
-        this.elapsed = !this.elapsed;
-        if (_s !== C.PLAYING) {
-            this.forceNextRedraw();
-            this.render(this.player.state, this._time);
-        };
-    }
 }
 Controls.prototype.inBounds = function(point) {
     if (this.hidden) return false;
@@ -4750,168 +4744,414 @@ Controls.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
     return this.inBounds([evt.pageX, evt.pageY]);
 }
-Controls.prototype.changeTheme = function(front, back) {
-    this.__fgcolor = front;
-    this.__bgcolor = back;
-    this.__bggrad = null;
+Controls.prototype.changeTheme = function(to) {
+    this.theme = to;
     // TODO: redraw
 }
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
 }
-Controls.__play_btn = function(ctx, front) {
-    var _bh = Controls._BH;
-    var _shift = 2;
-    ctx.beginPath();
-    ctx.moveTo(_shift, 0);
-    ctx.lineTo(_shift + (_bh * .8), _bh / 2);
-    ctx.lineTo(_shift, _bh);
-    ctx.lineTo(_shift, 0);
-    ctx.fill();
-    ctx.closePath();
-}
-Controls.__pause_btn = function(ctx, front) {
-    var _bh = Controls._BH;
-    var _w = _bh / 2.4;
-    var _d = _bh - (_w + _w);
-    var _nl = _w + _d;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(_w, 0);
-    ctx.lineTo(_w, _bh);
-    ctx.lineTo(0, _bh);
-    ctx.lineTo(0, 0);
-    ctx.fill();
-    ctx.closePath();
-    ctx.beginPath();
-    ctx.moveTo(_nl, 0);
-    ctx.lineTo(_bh, 0);
-    ctx.lineTo(_bh, _bh);
-    ctx.lineTo(_nl, _bh);
-    ctx.lineTo(_nl, 0);
-    ctx.fill();
-    ctx.closePath();
-}
-Controls.__stop_btn = function(ctx, front) {
-    var _bh = Controls._BH;
-    ctx.beginPath();
-    ctx.moveTo(0, 0);
-    ctx.lineTo(_bh, 0);
-    ctx.lineTo(_bh, _bh);
-    ctx.lineTo(0, _bh);
-    ctx.lineTo(0, 0);
-    ctx.fill();
-    ctx.closePath();
-}
-Controls.__time = function(ctx, front, back, time) {
-    var _bh = Controls._BH,
-        _mr = Controls.MARGIN,
-        _sw = Controls._SW, // separator width
-        _time = Math.abs(time),
-        _h = Math.floor(_time / 3600),
-        _m = Math.floor((_time - (_h * 3600)) / 60),
-        _s = Math.floor(_time - (_h * 3600) - (_m * 60));
-    var bgspec = get_rgb(back),
-        darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
-                           Math.max(bgspec[1] - 30, 0),
-                           Math.max(bgspec[2] - 30, 0), .9)
+
+/* Controls.DEFAULT_THEME = {
+  'font': {
+      'face': 'Arial, sans-serif',
+      'weight': 'bold'
+  },
+  'radius': {
+      'inner': .3,
+      'outer': .5
+  },
+  //'bgOpacity': .8,
+  //'bgFill': 'rgba(30, 30, 30, .4)',
+  //'bgGradStart': [ .1, "rgba(30,30,30,.75)" ],
+  //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
+  'width': {
+     'inner': 15,
+     'outer': 20
+  },
+  'colors': {
+     'bggrad': {
+        'start': 'rgba(30,30,30,.75)',
+        'end': 'rgba(255,255,255,0)'
+     },
+     'progress': {
+        'passed': 'rgba(255,255,255,.6)',
+        'left': 'rgba(0,0,0,.3)'
+     },
+     'stroke': 'rgba(0,0,0,1)',
+     'fill': 'rgba(255,255,255,1)',
+     'text': 'rgba(255,255,255,1)',
+     'error': 'rgba(128,0,0,.8)'
+  }
+}; */
+
+Controls._drawBack = function(ctx, theme, w, h) {
     ctx.save();
-    Controls.__separator(ctx, 0, 0, front, darkback);
-    ctx.fillStyle = front;
-    ctx.textBaseline = 'top';
-    ctx.fillText(((time < 0) ? '-' : '') +
-                 ((_h < 10) ? ('0' + _h) : _h) + ':' +
-                 ((_m < 10) ? ('0' + _m) : _m) + ':' +
-                 ((_s < 10) ? ('0' + _s) : _s), _sw + _mr, 0);
+    var cx = w / 2,
+        cy = h / 2;
+
+    var grd = ctx.createRadialGradient(cx, cy, 0,
+                                       cx, cy, Math.max(cx, cy) * 1.2);
+    grd.addColorStop(.1, theme.colors.bggrad.start);
+    grd.addColorStop(1, theme.colors.bggrad.end);
+
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, w, h);
+
     ctx.restore();
 }
-Controls.__progress = function(ctx, _w, front, back, time, duration) {
-    var _bh = Controls._BH,
-        _m = Controls.MARGIN,
-        _sw = Controls._SW, // separator width
-        _px = (_w / duration) * time, // progress position
-        _lh = _bh * 0.7, // line height
-        _ly = 1; // line y
-    var bgspec = get_rgb(back),
-        darkback = to_rgba(Math.max(bgspec[0] - 30, 0),
-                           Math.max(bgspec[1] - 30, 0),
-                           Math.max(bgspec[2] - 30, 0), .9);
+Controls._drawProgress = function(ctx, theme, w, h, progress) {
     ctx.save();
-    Controls.__separator(ctx, 0, 0, front, darkback);
-    ctx.translate(_sw + _m, 0);
-    // back
-    ctx.save();
-    ctx.fillStyle = back;
-    Controls.__roundRect(ctx, 0, _ly, _w, _lh * 1.2, 5);
-    ctx.fill();
+
+    var cx = w / 2,
+        cy = h / 2,
+        progress_rad = Math.min(cx, cy) * theme.radius.outer;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress));
+    ctx.strokeStyle = theme.colors.progress.passed;
+    ctx.lineWidth = theme.width.outer;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress), true);
+    ctx.strokeStyle = theme.colors.progress.left;
+    ctx.lineWidth = theme.width.outer;
+    ctx.stroke();
+
     ctx.restore();
-    if (duration == 0) return;
-    // front
+
+}
+Controls._drawPause = function(ctx, theme, w, h) {
     ctx.save();
-    ctx.fillStyle = front;
-    ctx.globalAlpha *= .95;
-    if (__t_cmp(time, duration) >= 0) {
-      Controls.__roundRect(ctx, 0, _ly + 1, _px, _lh, 5);
-    } else {
-      Controls.__semiRoundRect(ctx, 0, _ly + 1, _px, _lh, 5);
+
+    var cx = w / 2,
+        cy = h / 2,
+        inner_rad = Math.min(cx, cy) * theme.radius.inner,
+        button_side = Math.floor(inner_rad);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = theme.colors.fill;
+    ctx.strokeStyle = theme.colors.stroke;
+    ctx.lineWidth = theme.width.inner;
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.fillStyle = theme.colors.stroke;
+    ctx.fillRect(cx - (button_side / 2), cy - (button_side / 2),
+                 (2 / 5) * button_side, button_side);
+    ctx.fillRect(cx + (button_side * (1 / 5) / 2), cy - (button_side / 2),
+                 (2 / 5) * button_side, button_side);
+
+    ctx.restore();
+}
+Controls._drawPlay = function(ctx, theme, w, h) {
+    ctx.save();
+
+    var cx = w / 2,
+        cy = h / 2,
+        inner_rad = Math.min(cx, cy) * theme.radius.inner,
+        button_side = Math.floor(inner_rad);
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = theme.colors.fill;
+    ctx.strokeStyle = theme.colors.stroke;
+    ctx.lineWidth = theme.width.inner;
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.beginPath();
+    ctx.moveTo(cx - (button_side / 3), cy - (button_side / 2));
+    ctx.lineTo(cx + (button_side * (3 / 5)), cy);
+    ctx.lineTo(cx - (button_side / 3), cy + (button_side / 2));
+    ctx.closePath();
+    ctx.fillStyle = theme.colors.stroke;
+    ctx.fill();
+
+    ctx.restore();
+}
+Controls._drawLoading = function(ctx, theme, w, h, hilite_idx) {
+    ctx.save();
+
+    var cx = w / 2,
+        cy = h / 2,
+        outer_rad = Math.min(cx, cy) * theme.radius.outer;
+
+    ctx.translate(cx, cy);
+    for (var i = 0; i <= 15; i++) {
+        ctx.beginPath();
+        ctx.arc(0, outer_rad, Math.min(cx, cy) / 20, 0, 2 * Math.PI);
+        ctx.fillStyle = (i != hilite_idx) ? theme.colors.stroke : theme.colors.fill;
+        ctx.fill();
+        ctx.rotate(2 * Math.PI / 15);
     }
-    ctx.fill();
     ctx.restore();
-    // end
-    ctx.restore();
+
+    /*draw_bottom_text(ctx, 'Loading', line1_size, text_color,
+                          'http://foo/very/very/very/long/url...', line2_size, text_color,
+                          text_shadow_color);*/
 }
-Controls.__separator = function(ctx, x, y, color, shadowcolor) {
-    var _bh = Controls._BH,
-        _sw = Controls._SW, // separator width
-        _ss = 2.5; // separator vertical shift
-    // separator light line
+Controls._drawError = function(ctx, theme) {
+    var cx = w / 2,
+        cy = h / 2,
+        inner_rad = Math.min(cx, cy) * theme.radius.inner;
+
     ctx.save();
-    ctx.fillStyle = color;
-    ctx.globalAlpha *= .3;
     ctx.beginPath();
-    ctx.moveTo(0, -_ss);
-    ctx.lineTo(_sw, -_ss);
-    ctx.lineTo(_sw, _bh + (_ss*2));
-    ctx.lineTo(0, _bh + (_ss*2));
-    ctx.lineTo(0, -_ss);
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(255, 255, 0, 1)';
+    ctx.strokeStyle = theme.colors.error;
+    ctx.lineWidth = theme.width.inner;
+    ctx.stroke();
     ctx.fill();
-    ctx.closePath();
-    // separator dark line
-    ctx.fillStyle = shadowcolor;
-    ctx.beginPath();
-    ctx.moveTo(-_sw, -_ss);
-    ctx.lineTo(0, -_ss);
-    ctx.lineTo(0, _bh + (_ss*2));
-    ctx.lineTo(-_sw, _bh + (_ss*2));
-    ctx.lineTo(-_sw, -_ss);
-    ctx.fill();
-    ctx.closePath();
+
+    ctx.save();
+    ctx.fillStyle = theme.colors.error;
+    draw_text(ctx, cx - 3, cy - 3, ':(', 38, theme.colors.error);
+    ctx.restore();
+
+    ctx.restore();
+
+    /*draw_bottom_text(ctx, 'Error!', line1_size, error_text_color,
+                           'It is very very sad to inform you, but unfortunately your project was failed to load', line2_size_alt, error_text_color,
+                           'rgba(255, 255, 0, 1)');*/
+}
+Controls._drawText = function(ctx) {
+    ctx.font = (size || 15) + 'pt sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = color || text_color;
+    ctx.fillText(text, x, y);
+}
+
+/* =========================================== */
+/* =========================================== */
+/* =========================================== */
+/* =========================================== */
+/* =========================================== */
+
+/* var w = 380,
+    h = 200;
+
+var cx = w / 2,
+    cy = h / 2;
+
+var rad_min = Math.min(cx, cy),
+    rad_max = Math.max(cx, cy);
+
+var inner_rad = rad_min * .3,
+    progress_rad = rad_min * .4,
+    button_side = Math.floor(inner_rad);
+
+var bg_grad_start = [ .1, "rgba(30,30,30,.75)" ],
+    bg_grad_end = [ 1, "rgba(255,255,255,0)" ];
+
+var front_color = 'rgba(0,0,0,1)',
+    back_color = 'rgba(255,255,255,1)',
+    text_color = back_color,
+    text_shadow_color = front_color,
+    error_color = 'rgba(128,0,0,.8)',
+    error_text_color = text_color,
+    progress_passed_color = 'rgba(255,255,255,.6)',
+    progress_left_color = 'rgba(0,0,0,.3)';
+
+var border_width = 15,
+    progress_width = 20;
+
+var line1_y = Math.min(cy + progress_rad * 1.82, h * .862),
+    line2_y = Math.min(cy + progress_rad * 2.3, h * .95),
+    line1_size = w / 25,
+    line2_size = w / 40,
+    line2_size_alt = w / 52;
+
+function draw_frame(ctx) {
+    ctx.drawImage(document.getElementById("back-img"), 0, 0, w, h);
+}
+
+function draw_bg(ctx) {
+    ctx.save();
+
+    var grd = ctx.createRadialGradient(cx, cy, 0,
+                                       cx, cy, rad_max);
+    grd.addColorStop(bg_grad_start[0],bg_grad_start[1]);
+    grd.addColorStop(bg_grad_end[0],bg_grad_end[1]);
+
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, w, h);
+
     ctx.restore();
 }
-// from http://stackoverflow.com/questions/1255512/how-to-draw-a-rounded-rectangle-on-html-canvas
-Controls.__roundRect = function(ctx, x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2;
-    if (h < 2 * r) r = h / 2;
+
+function draw_play(ctx) {
+    draw_bg(ctx);
+
+    ctx.save();
+
     ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+w, y,   x+w, y+h, r);
-    ctx.arcTo(x+w, y+h, x,   y+h, r);
-    ctx.arcTo(x,   y+h, x,   y,   r);
-    ctx.arcTo(x,   y,   x+w, y,   r);
-    ctx.closePath();
-}
-Controls.__semiRoundRect = function(ctx, x, y, w, h, r) {
-    if (w < 2 * r) r = w / 2;
-    if (h < 2 * r) r = h / 2;
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = back_color;
+    ctx.strokeStyle = front_color;
+    ctx.lineWidth = border_width;
+    ctx.stroke();
+    ctx.fill();
+
     ctx.beginPath();
-    ctx.moveTo(x+r, y);
-    ctx.lineTo(x+w, y);
-    ctx.lineTo(x+w, y+h);
-    ctx.arcTo(x+w, y+h, x,   y+h, r);
-    ctx.arcTo(x,   y+h, x,   y,   r);
-    ctx.arcTo(x,   y,   x+w, y,   r);
+    ctx.moveTo(cx - (button_side / 3), cy - (button_side / 2));
+    ctx.lineTo(cx + (button_side * (3 / 5)), cy);
+    ctx.lineTo(cx - (button_side / 3), cy + (button_side / 2));
     ctx.closePath();
+    ctx.fillStyle = front_color;
+    ctx.fill();
+
+    ctx.restore();
 }
+
+function draw_pause(ctx, progress, scene_length) {
+    draw_bg(ctx);
+
+    ctx.save();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress));
+    ctx.strokeStyle = progress_passed_color;
+    ctx.lineWidth = progress_width;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress), true);
+    ctx.strokeStyle = progress_left_color;
+    ctx.lineWidth = progress_width;
+    ctx.stroke();
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = back_color;
+    ctx.strokeStyle = front_color;
+    ctx.lineWidth = border_width;
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.fillStyle = front_color;
+    ctx.fillRect(cx - (button_side / 2), cy - (button_side / 2),
+                 (2 / 5) * button_side, button_side);
+    ctx.fillRect(cx + (button_side * (1 / 5) / 2), cy - (button_side / 2),
+                 (2 / 5) * button_side, button_side);
+
+    ctx.restore();
+}
+
+function draw_loading(ctx, hilite_idx) {
+    draw_bg(ctx);
+
+    ctx.save();
+    ctx.translate(cx, cy);
+    for (var i = 0; i <= 15; i++) {
+        ctx.beginPath();
+        ctx.arc(0, progress_rad, rad_min / 20, 0, 2 * Math.PI);
+        ctx.fillStyle = (i != hilite_idx) ? back_color : front_color;
+        ctx.fill();
+        ctx.rotate(2 * Math.PI / 15);
+    }
+    ctx.restore();
+}
+
+function draw_loading_and_text(ctx, hilite_idx) {
+    draw_loading(ctx, hilite_idx);
+
+    draw_bottom_text(ctx, 'Loading', line1_size, text_color,
+                          'http://foo/very/very/very/long/url...', line2_size, text_color,
+                          text_shadow_color);
+}
+
+function draw_error(ctx) {
+    draw_bg(ctx);
+
+    ctx.save();
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = 'rgba(255, 255, 0, 1)';
+    ctx.strokeStyle = error_color;
+    ctx.lineWidth = border_width;
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.save();
+    ctx.fillStyle = error_color;
+    draw_text(ctx, cx - 3, cy - 3, ':(', 38, error_color);
+    ctx.restore();
+
+    ctx.restore();
+
+    draw_bottom_text(ctx, 'Error!', line1_size, error_text_color,
+                           'It is very very sad to inform you, but unfortunately your project was failed to load', line2_size_alt, error_text_color,
+                           'rgba(255, 255, 0, 1)');
+}
+
+function draw_text(ctx, x, y, text, size, color) {
+    ctx.font = (size || 15) + 'pt sans-serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillStyle = color || text_color;
+    ctx.fillText(text, x, y);
+}
+
+function draw_bottom_text(ctx, line1, line1size, line1color,
+                               line2, line2size, line2color,
+                               shadow_color) {
+    ctx.save();
+    ctx.shadowColor = shadow_color || text_shadow_color;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+    ctx.shadowBlur = 10;
+    draw_text(ctx, cx, line1_y,
+              line1, line1size, line1color);
+    draw_text(ctx, cx, line2_y,
+              line2, line2size, line2color);
+    ctx.restore();
+}
+
+var play_cvs = document.getElementById('play-cvs'),
+    play_ctx = play_cvs.getContext('2d');
+play_cvs.width = w;
+play_cvs.height = h;
+draw_frame(play_ctx);
+draw_play(play_ctx);
+
+var pause_cvs = document.getElementById('pause-cvs'),
+    pause_ctx = pause_cvs.getContext('2d');
+pause_cvs.width = w;
+pause_cvs.height = h;
+draw_frame(pause_ctx);
+draw_pause(pause_ctx, .7, 20.5);
+
+var loading_cvs = document.getElementById('loading-cvs'),
+    loading_ctx = loading_cvs.getContext('2d');
+loading_cvs.width = w;
+loading_cvs.height = h;
+draw_frame(loading_ctx);
+draw_loading(loading_ctx, 3);
+
+var loading_txt_cvs = document.getElementById('loading-text-cvs'),
+    loading_txt_ctx = loading_txt_cvs.getContext('2d');
+loading_txt_cvs.width = w;
+loading_txt_cvs.height = h;
+draw_frame(loading_txt_ctx);
+draw_loading_and_text(loading_txt_ctx, 7);
+
+var error_cvs = document.getElementById('error-cvs'),
+    error_ctx = error_cvs.getContext('2d');
+error_cvs.width = w;
+error_cvs.height = h;
+draw_frame(error_ctx);
+draw_error(error_ctx); */
+
+/* =========================================== */
+/* =========================================== */
+/* =========================================== */
+/* =========================================== */
+/* =========================================== */
 
 // Info Block
 // -----------------------------------------------------------------------------
@@ -4924,12 +5164,12 @@ function InfoBlock(player) {
     this._inParent = player.inParent;
 }
 /* TODO: move these settings to default css rule? */
-InfoBlock.BASE_BGCOLOR = Controls.BASE_BGCOLOR;
-InfoBlock.BASE_FGCOLOR = Controls.BASE_FGCOLOR;
+InfoBlock.BASE_BGCOLOR = Controls.THEME.colors.back;
+InfoBlock.BASE_FGCOLOR = Controls.THEME.colors.front;
 InfoBlock.OPACITY = 0.75;
 InfoBlock.PADDING = 6;
 InfoBlock.MARGIN = 5;
-InfoBlock.FONT = Controls.FONT;
+InfoBlock.FONT = Controls.THEME.font.face;
 InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
@@ -5001,7 +5241,7 @@ InfoBlock.prototype.render = function() {
     ctx.save();
     ctx.clearRect(0, 0, _nw, _nh);
     ctx.fillStyle = this.__bgcolor;
-    Controls.__roundRect(ctx, 0, 0, _nw, _nh, 5);
+    //Controls.__roundRect(ctx, 0, 0, _nw, _nh, 5);
     ctx.fill();
     ctx.fillStyle = this.__fgcolor;
     ctx.translate(_p, _p);
