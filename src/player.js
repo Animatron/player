@@ -4529,14 +4529,15 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
-Controls.DEFAULT_THEME = {
+/*Controls.DEFAULT_THEME = {
   'font': {
       'face': 'Arial, sans-serif',
       'weight': 'bold'
   },
   'radius': {
       'inner': .3,
-      'outer': .5
+      'outer': .35,
+      'button': .25
   },
   //'bgOpacity': .8,
   //'bgFill': 'rgba(30, 30, 30, .4)',
@@ -4544,7 +4545,7 @@ Controls.DEFAULT_THEME = {
   //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
   'width': {
      'inner': 15,
-     'outer': 20
+     'outer': 30
   },
   'colors': {
      'bggrad': {
@@ -4555,10 +4556,52 @@ Controls.DEFAULT_THEME = {
         'passed': 'rgba(255,255,255,.6)',
         'left': 'rgba(0,0,0,.3)'
      },
-     'front': 'rgba(0,0,0,1)',
-     'back': 'rgba(255,255,255,1)',
+     'stroke': 'rgba(0,0,0,1)',
+     'fill': 'rgba(255,255,255,1)',
+     'hoverfill': 'rgba(255,255,255,1)',
      'text': 'rgba(255,255,255,1)',
      'error': 'rgba(128,0,0,.8)'
+  }
+};*/
+Controls.DEFAULT_THEME = {
+  'font': {
+      'face': 'Arial, sans-serif',
+      'weight': 'bold'
+  },
+  'radius': { // all radius values are relative to (Math.min(width, height) / 2)
+      'inner': .25,
+      'outer': .28,
+      'buttonv': .15, // height of a button
+      'buttonh': .14 // width of a button
+  },
+  //'bgOpacity': .8,
+  //'bgFill': 'rgba(30, 30, 30, .4)',
+  //'bgGradStart': [ .1, "rgba(30,30,30,.75)" ],
+  //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
+  'width': { // stroke width
+      'inner': 3, // button stroke
+      'outer': 30, // progress stroke
+      'button': 7 // button stroke
+  },
+  'join': {
+      'button': 'round' // join for button stroke
+  },
+  'colors': {
+      'bggrad': { // back gradient start is at (0.1 * Math.max(width/height))
+                  // and end is at (1.0 * Math.max(width/height))
+          'start': 'rgba(30,30,30,.5)',
+          'end': 'rgba(30,30,30,.75)'
+      },
+      'progress': {
+          'passed': 'rgba(255,255,255,.3)',
+          'left': 'rgba(0,0,0,.1)'
+      },
+      'button': 'rgba(230,230,230,.95)',
+      'stroke': 'rgba(200,200,200,.85)',
+      'fill': 'rgba(255,255,255,0.05)',
+      'hoverfill': 'rgba(255,255,255,1)',
+      'text': 'rgba(255,255,255,1)',
+      'error': 'rgba(128,0,0,.8)'
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
@@ -4629,20 +4672,19 @@ Controls.prototype.render = function(state, time) {
     if (this.hidden && !this.__force) return;
 
     var _s = state.happens;
-    if (_s == C.NOTHING) return;
+    //if (_s == C.NOTHING) return;
 
     var time = (time > 0) ? time : 0;
     if (!this.__force &&
         (time === this._time) &&
         (_s === this._lhappens)) return;
-    console.log('draw?');
     this._time = time;
     this._lhappens = _s;
 
     var ctx = this.ctx,
         ratio = this._ratio, // pixelRatio (or use this.canvas.__pxRatio?)
         theme = this.theme,
-        duration = _s.duration,
+        duration = state.duration,
         progress = time / ((duration !== 0) ? duration : 1);
 
     var _w = this.bounds[2] - this.bounds[0],
@@ -4689,11 +4731,10 @@ Controls.prototype.react = function(state, time) {
 
     var _p = this.player,
         _s = _p.state.happens;
-    console.log('react');
     if (_s === C.NOTHING) return;
-    if (_s === C.STOPPED) { console.log('play from start'); _p.play(0); return; }
-    if (_s === C.PAUSED) { console.log('play from ' + this._time); _p.play(this._time); return; }
-    if (_s === C.PLAYING) { console.log('pause at' + time); this._time = time; _p.pause(); return; }
+    if (_s === C.STOPPED) { /*console.log('play from start');*/ _p.play(0); return; }
+    if (_s === C.PAUSED) { /*console.log('play from ' + this._time);*/ _p.play(this._time); return; }
+    if (_s === C.PLAYING) { /*console.log('pause at' + time);*/ this._time = time; _p.pause(); return; }
 /*  var _d = this.player.state.duration,
         _tpos = _px / (_pw / _d); // time position
     if (_tpos < 0) _tpos = 0;
@@ -4715,12 +4756,10 @@ Controls.prototype.react = function(state, time) {
 }
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
-    console.log('hide');
     this.hidden = true;
     this.canvas.style.display = 'none';
 }
 Controls.prototype.show = function() {
-    console.log('show');
     this.hidden = false;
     this.canvas.style.display = 'block';
 }
@@ -4828,7 +4867,8 @@ Controls._drawPause = function(ctx, theme, w, h) {
     var cx = w / 2,
         cy = h / 2,
         inner_rad = Math.min(cx, cy) * theme.radius.inner,
-        button_side = Math.floor(inner_rad);
+        button_width = Math.min(cx, cy) * theme.radius.buttonh,
+        button_height = Math.min(cx, cy) * theme.radius.buttonv;
 
     ctx.beginPath();
     ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
@@ -4838,11 +4878,21 @@ Controls._drawPause = function(ctx, theme, w, h) {
     ctx.stroke();
     ctx.fill();
 
-    ctx.fillStyle = theme.colors.stroke;
-    ctx.fillRect(cx - (button_side / 2), cy - (button_side / 2),
-                 (2 / 5) * button_side, button_side);
-    ctx.fillRect(cx + (button_side * (1 / 5) / 2), cy - (button_side / 2),
-                 (2 / 5) * button_side, button_side);
+    var x = cx - (button_width / 2),
+        y = cy - (button_height / 2),
+        bar_width = 1 / 4,
+        between = 2 / 4;
+
+    ctx.lineWidth = theme.width.button;
+    ctx.lineJoin = theme.join.button;
+    ctx.fillStyle = theme.colors.button;
+    ctx.strokeStyle = theme.colors.button;
+    ctx.strokeRect(x, y, bar_width * button_width, button_height);
+    ctx.strokeRect(x + ((bar_width + between) * button_width), y,
+                   bar_width * button_width, button_height);
+    ctx.fillRect(x, y, bar_width * button_width, button_height);
+    ctx.fillRect(x + (bar_width + between) * button_width, y,
+                 bar_width * button_width, button_height);
 
     ctx.restore();
 }
@@ -4852,7 +4902,9 @@ Controls._drawPlay = function(ctx, theme, w, h) {
     var cx = w / 2,
         cy = h / 2,
         inner_rad = Math.min(cx, cy) * theme.radius.inner,
-        button_side = Math.floor(inner_rad);
+        // play button should be thinner than standard button
+        button_width = Math.min(cx, cy) * theme.radius.buttonh * 0.8,
+        button_height = Math.min(cx, cy) * theme.radius.buttonv;
 
     ctx.beginPath();
     ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
@@ -4862,12 +4914,21 @@ Controls._drawPlay = function(ctx, theme, w, h) {
     ctx.stroke();
     ctx.fill();
 
+    // this way play button "weight" looks more centered
+    ctx.translate(button_width / (((button_width > button_height)
+                                   ? (button_width / button_height)
+                                   : (button_height / button_width)) * 4), 0);
+
     ctx.beginPath();
-    ctx.moveTo(cx - (button_side / 3), cy - (button_side / 2));
-    ctx.lineTo(cx + (button_side * (3 / 5)), cy);
-    ctx.lineTo(cx - (button_side / 3), cy + (button_side / 2));
+    ctx.moveTo(cx - (button_width / 2), cy - (button_height / 2));
+    ctx.lineTo(cx + (button_width / 2), cy);
+    ctx.lineTo(cx - (button_width / 2), cy + (button_height / 2));
     ctx.closePath();
-    ctx.fillStyle = theme.colors.stroke;
+    ctx.lineWidth = theme.width.button;
+    ctx.lineJoin = theme.join.button;
+    ctx.fillStyle = theme.colors.button;
+    ctx.strokeStyle = theme.colors.button;
+    ctx.stroke();
     ctx.fill();
 
     ctx.restore();
