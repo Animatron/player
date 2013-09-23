@@ -1284,7 +1284,7 @@ Player.prototype.__beforeFrame = function(scene) {
 Player.prototype.__afterFrame = function(scene) {
     return (function(player, state, scene, callback) {
         return function(time) {
-            if (player.controls) {
+            if (player.controls && !player.controls.hidden) {
                 player._renderControls();
             }
             if (callback) callback(time);
@@ -4596,8 +4596,8 @@ Controls.DEFAULT_THEME = {
           'passed': 'rgba(255,255,255,.3)',
           'left': 'rgba(0,0,0,.1)'
       },
-      'button': 'rgba(230,230,230,.95)',
-      'stroke': 'rgba(200,200,200,.85)',
+      'button': 'rgba(255,255,255,.95)',
+      'stroke': 'rgba(180,180,180,.85)',
       'fill': 'rgba(255,255,255,0.05)',
       'hoverfill': 'rgba(255,255,255,1)',
       'text': 'rgba(255,255,255,1)',
@@ -4652,18 +4652,25 @@ Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
     var player = this.player;
     player.canvas.addEventListener('mouseover', (function(player, controls) {
             return function(evt) {
-                controls.show();
+                if (controls.hidden) controls.show();
                 controls.render(player.state, player.state.time);
             };
         })(player, this), false);
+    /*canvas.addEventListener('mousemove', (function(player, controls) {
+            return function(evt) {
+                if (controls.hidden) controls.show();
+                controls.render(player.state, player.state.time);
+            };
+        })(player, this), false);*/
     canvas.addEventListener('mousedown', (function(player, controls) {
             return function(evt) {
                 controls.react(player.state, player.state.time);
-                controls.hide();
+                controls.render(player.state, player.state.time);
             };
         })(player, this), false);
     canvas.addEventListener('mouseout', (function(controls) {
             return function(evt) {
+                console.log('mouseout');
                 controls.hide();
             };
         })(this), false);
