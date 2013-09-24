@@ -445,6 +445,8 @@ C.NOTHING = -1;
 C.STOPPED = 0;
 C.PLAYING = 1;
 C.PAUSED = 2;
+C.LOADING = 3;
+C.ERROR = 4;
 
 // public constants below are also appended to C object, but with `X_`-like prefix
 // to indicate their scope, see through all file
@@ -479,6 +481,14 @@ C.M_SANDBOX = C.M_CONTROLS_DISABLED
             | C.M_DO_NOT_DRAW_STILL
             | C.M_FINITE_DURATION;
 
+// ### Load targets
+/* ---------------- */
+
+C.LT_BUILDER = 1;
+C.LT_SCENE = 2;
+C.LT_CLIPS = 3;
+C.LT_IMPORT = 4;
+C.LT_URL = 5;
 
 // ### Events
 /* ---------- */
@@ -703,6 +713,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     player._reset();
 
+    player.state.happens = C.LOADING;
+
     var whenDone = function(result) {
         if (player.mode & C.M_HANDLE_EVENTS) {
             player.__subscribeDynamicEvents(player.anim);
@@ -717,19 +729,32 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     if (object) {
 
         if (__builder(object)) {  // Builder instance
+            player._loadTarget = C.LT_BUILDER;
             L.loadBuilder(player, object, whenDone);
         } else if (object instanceof Scene) { // Scene instance
+            player._loadTarget = C.LT_SCENE;
             L.loadScene(player, object, whenDone);
         } else if (__arr(object)) { // array of clips
+            player._loadTarget = C.LT_CLIPS;
             L.loadClips(player, object, whenDone);
         } else if (__str(object)) { // URL
-            L.loadFromUrl(player, object, importer, whenDone);
+            var controls = this.controls;
+            player._loadTarget = C.LT_URL;
+            player._loadSrc = object;
+            if (controls) controls._scheduleLoading();
+            L.loadFromUrl(player, object, importer, function(result) {
+                if (controls) controls._stopLoading();
+                whenDone(result);
+            });
         } else { // any object with importer
+            player._loadTarget = C.LT_IMPORT;
             L.loadFromObj(player, object, importer, whenDone);
         }
 
     } else {
+        player._loadTarget = C.LT_SCENE;
         player.anim = new Scene();
+        whenDone();
     }
 
     if (durationPassed) {
@@ -936,7 +961,8 @@ Player.prototype.forceRedraw = function() {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
-        case C.NOTHING: this._drawSplash(); break;
+        case C.NOTHING: case C.LOADING: this._drawSplash(); break;
+        //case C.ERROR: this._drawErrorSplash(); break;
     }
 }
 Player.prototype.changeZoom = function(ratio) {
@@ -1273,6 +1299,8 @@ Player.prototype.__onerror = function(err) {
       doMute = doMute && !(err instanceof SysErr);
 
   try {
+    player.state.happens = C.ERROR;
+    player.__lastError = err;
     player.fire(C.S_ERROR, err);
 
     player.anim = null;
@@ -4541,7 +4569,7 @@ Controls.DEFAULT_THEME = {
       'face': 'Arial, sans-serif',
       'weight': 'bold',
       'timesize': 27,
-      'infosize': 10
+      'statussize': 15
   },
   'radius': { // all radius values are relative to (Math.min(width, height) / 2)
       'inner': .25,
@@ -4549,7 +4577,7 @@ Controls.DEFAULT_THEME = {
       'buttonv': .15, // height of a button
       'buttonh': .14, // width of a button
       'time': .5, // time text position
-      'info': .85 // info text position
+      'status': .8 // info text position
   },
   //'bgOpacity': .8,
   //'bgFill': 'rgba(30, 30, 30, .4)',
@@ -4560,6 +4588,7 @@ Controls.DEFAULT_THEME = {
       'outer': 3, // progress stroke
       'button': 7 // button stroke
   },
+  'statuslimit': 40, // maximum length of status line
   'join': {
       'button': 'round' // join for button stroke
   },
@@ -4628,14 +4657,15 @@ Controls.prototype.update = function(parent) {
     if (this.info) this.info.update(parent);
 }
 Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
-    var player = this.player;
+    var player = this.player,
+        state = player.state;
     player.canvas.addEventListener('mouseover', (function(state, controls) {
             return function(evt) {
                 if (controls.hidden) controls.show();
                 controls.render(state.time);
             };
-        })(player.state, this), false);
-    canvas.addEventListener('mousemove', (function(player, controls) {
+        })(state, this), false);
+    canvas.addEventListener('mousemove', (function(state, controls) {
             return function(evt) {
                 if (controls.hidden) return;
                 var _ratio = controls._ratio,
@@ -4651,27 +4681,29 @@ Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
                                    (_ly <= (_h / 2) + button_rad);
                 if (lfocused !== controls.focused) {
                     controls.forceNextRedraw();
-                    controls.render(player.state.time);
+                    controls.render(state.time);
                 }
             };
-        })(player, this), false);
+        })(state, this), false);
     canvas.addEventListener('mousedown', (function(state, controls) {
             return function(evt) {
                 controls.react(state.time);
                 controls.render(state.time);
             };
-        })(player.state, this), false);
-    canvas.addEventListener('mouseout', (function(controls) {
+        })(state, this), false);
+    canvas.addEventListener('mouseout', (function(state, controls) {
             return function(evt) {
-                console.log('mouseout');
-                controls.hide();
+                if ((state.happens !== C.NOTHING) &&
+                    (state.happens !== C.LOADING) &&
+                    (state.happens !== C.ERROR)) controls.hide();
             };
-        })(this), false);
+        })(state, this), false);
 }
 Controls.prototype.render = function(time) {
     if (this.hidden && !this.__force) return;
 
-    var state = this.player.state,
+    var player = this.player,
+        state = player.state,
         _s = state.happens;
     //if (_s == C.NOTHING) return;
 
@@ -4714,7 +4746,15 @@ Controls.prototype.render = function(time) {
         }
     } else if (_s === C.NOTHING) {
         Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawLoading(ctx, theme, _w, _h, 3);
+        Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
+    } else if (_s === C.LOADING) {
+        Controls._drawBack(ctx, theme, _w, _h);
+        var isRemoteLoading = (player._loadTarget === C.LT_URL);
+        Controls._drawLoading(ctx, theme, _w, _h,
+                              isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
+                              isRemoteLoading ? player._loadSrc : '');
+    } else if (_s === C.ERROR) {
+
     }
     // + error
 
@@ -4740,7 +4780,7 @@ Controls.prototype.react = function(time) {
 
     var _p = this.player,
         _s = _p.state.happens;
-    if (_s === C.NOTHING) return;
+    if ((_s === C.NOTHING) || (_s === C.LOADING) || (_s === C.ERROR)) return;
     if (_s === C.STOPPED) { /*console.log('play from start');*/ _p.play(0); return; }
     if (_s === C.PAUSED) { /*console.log('play from ' + this._time);*/ _p.play(this._time); return; }
     if (_s === C.PLAYING) { /*console.log('pause at' + time);*/ this._time = time; _p.pause(); return; }
@@ -4784,7 +4824,7 @@ Controls.prototype.detach = function(parent) {
                     : $doc.body).removeChild(this.canvas);
     if (this.info) this.info.detach(parent);
 }
-Controls.prototype.inBounds = function(point) {
+/* Controls.prototype.inBounds = function(point) {
     if (this.hidden) return false;
     var _b = this.bounds;
     return (point[0] >= _b[0]) &&
@@ -4795,7 +4835,7 @@ Controls.prototype.inBounds = function(point) {
 Controls.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
     return this.inBounds([evt.pageX, evt.pageY]);
-}
+} */
 Controls.prototype.changeTheme = function(to) {
     this.theme = to;
     // TODO: redraw
@@ -4803,10 +4843,30 @@ Controls.prototype.changeTheme = function(to) {
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
 }
+Controls.prototype._scheduleLoading = function() {
+    var controls = this;
+    this._loadingInterval = setInterval(function() {
+         controls.forceNextRedraw();
+         controls.render();
+    }, 50);
+}
+Controls.prototype._stopLoading = function() {
+    clearInterval(this._loadingInterval);
+}
 Controls.prototype.enable = function() {
+    var player = this.player,
+        state = player.state;
     this.update(this.player.canvas);
+    if ((state.happens === C.NOTHING) ||
+        (state.happens === C.LOADING) ||
+        (state.happens === C.ERROR)) {
+      this.show();
+      this.forceNextRedraw();
+      this.render();
+    }
 }
 Controls.prototype.disable = function() {
+    this.hide();
     this.detach(this.canvas);
 }
 Controls.prototype.enableInfo = function() {
@@ -4966,26 +5026,81 @@ Controls._drawPlay = function(ctx, theme, w, h, focused) {
 
     ctx.restore();
 }
-Controls._drawLoading = function(ctx, theme, w, h, hilite_idx) {
+Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
     ctx.save();
 
     var cx = w / 2,
         cy = h / 2,
-        outer_rad = Math.min(cx, cy) * theme.radius.outer;
+        circles = 15,
+        outer_rad = Math.min(cx, cy) * theme.radius.outer,
+        circle_rad = Math.min(cx, cy) / 25,
+        two_pi = 2 * Math.PI,
+        hilite_idx = Math.ceil(circles * hilite_pos);
 
     ctx.translate(cx, cy);
-    for (var i = 0; i <= 15; i++) {
+    for (var i = 0; i <= circles; i++) {
         ctx.beginPath();
-        ctx.arc(0, outer_rad, Math.min(cx, cy) / 20, 0, 2 * Math.PI);
-        ctx.fillStyle = (i != hilite_idx) ? theme.colors.stroke : theme.colors.fill;
+        ctx.arc(0, outer_rad, circle_rad, 0, two_pi);
+        ctx.fillStyle = (i != hilite_idx) ? theme.colors.stroke : theme.colors.text;
         ctx.fill();
-        ctx.rotate(2 * Math.PI / 15);
+        ctx.rotate(two_pi / circles);
     }
     ctx.restore();
 
-    /*draw_bottom_text(ctx, 'Loading', line1_size, text_color,
-                          'http://foo/very/very/very/long/url...', line2_size, text_color,
-                          text_shadow_color);*/
+    if (src) {
+        var limit = theme.statuslimit,
+            semilimit = Math.floor(limit / 2) - 1;
+        Controls._drawText(ctx, theme,
+                     w / 2, ((h / 2) * (1 + theme.radius.status)),
+                     theme.font.statussize,
+                     (src.length < limit) ? src
+                                          :   src.slice(0, semilimit) + '...'
+                                            + src.slice(src.length - semilimit));
+    } else if (hilite_pos == -1) {
+        Controls._drawText(ctx, theme,
+                     w / 2, ((h / 2) * (1 + theme.radius.status)),
+                     theme.font.statussize,
+                     '...');
+    }
+}
+Controls._drawNoScene = function(ctx, theme, w, h, focused) {
+    ctx.save();
+
+    var cx = w / 2,
+        cy = h / 2,
+        inner_rad = Math.min(cx, cy) * theme.radius.inner,
+        button_width = Math.min(cx, cy) * theme.radius.buttonh,
+        button_height = Math.min(cx, cy) * theme.radius.buttonv;
+
+    ctx.beginPath();
+    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
+    ctx.fillStyle = focused ? theme.colors.hoverfill : theme.colors.fill;
+    ctx.strokeStyle = theme.colors.stroke;
+    ctx.lineWidth = theme.width.inner;
+    ctx.stroke();
+    ctx.fill();
+
+    ctx.translate(cx, cy);
+
+    ctx.lineWidth = theme.width.button;
+    ctx.lineJoin = theme.join.button;
+    ctx.fillStyle = theme.colors.button;
+    ctx.strokeStyle = theme.colors.button;
+    ctx.rotate(-Math.PI / 4);
+    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+
+    ctx.rotate(2 * Math.PI / 4);
+    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+
+    ctx.restore();
+
+    Controls._drawText(ctx, theme,
+                   w / 2, ((h / 2) * (1 + theme.radius.status)),
+                   theme.font.statussize,
+                   '© Animatron Player');
+
 }
 Controls._drawError = function(ctx, theme) {
     var cx = w / 2,

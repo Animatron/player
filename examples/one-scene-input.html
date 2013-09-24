@@ -26,13 +26,15 @@
       var player = null;
 
       function load() {
+          if (!player) return;
+
           var /*b = Builder._$, */C = anm.C;
 
           var project = JSON.parse(document.getElementById('scene-input').value);
 
           // canvas0
           var importer = new AnimatronImporter();
-          if (player) player.detach();
+          player.detach();
           //var importer = new AnimatronImporter();
           player = createPlayer('canvas');
           //player.debug = true;
@@ -45,7 +47,9 @@
           window.__anm_conf.logImport = true;
 
           document.getElementById('scene-input').value = DEFAULT_SCENE;
-          load();
+
+          player = createPlayer('canvas');
+          //load();
       }
     </script>
   </head>
