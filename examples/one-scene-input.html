@@ -26,17 +26,21 @@
       var player = null;
 
       function load() {
+          if (!player) return;
+
           var /*b = Builder._$, */C = anm.C;
 
           var project = JSON.parse(document.getElementById('scene-input').value);
 
           // canvas0
           var importer = new AnimatronImporter();
-          if (player) player.detach();
+          player.detach();
           //var importer = new AnimatronImporter();
           player = createPlayer('canvas');
           //player.debug = true;
           player.load(project, importer);
+          //var b = Builder._$;
+          //player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
           //player.play();
       }
 
@@ -45,7 +49,9 @@
           window.__anm_conf.logImport = true;
 
           document.getElementById('scene-input').value = DEFAULT_SCENE;
-          load();
+
+          player = createPlayer('canvas');
+          //load();
       }
     </script>
   </head>
@@ -53,7 +59,7 @@
   <body onload="start();">
     <h1 style="margin-bottom: 20px">The place to test one scene</h1>
 
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" width="1080" height="1080"></canvas>
 
     <p style="float: right"><label for="scene-input">Scene JSON:</label><button onclick="load(this)">Load</button><textarea id="scene-input"></textarea></p>
 

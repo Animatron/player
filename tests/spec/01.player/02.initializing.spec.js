@@ -14,7 +14,7 @@ describe("player, when speaking about initialization,", function() {
     beforeEach(function() {
         this.addMatchers(_matchers.calls);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);

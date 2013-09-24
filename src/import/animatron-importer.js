@@ -30,7 +30,8 @@ var Import = {};
 // -> Array[?]
 Import._find = function(idx, src) {
     var res = src[idx];
-    if (!res) throw new Error('Element with index ' + idx + ' was not found in ' + src);
+    if (!res) throw new Error('Element with index ' + idx + ' was not found'
+                              + (src ? ' among ' + src.length + ' elements.' : '.') );
     return src[idx];
 }
 // -> Integer

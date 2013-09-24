@@ -19,7 +19,7 @@ describe("errors", function() {
     beforeEach(function() {
         this.addMatchers(_matchers.calls);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn({ synchronous: true }).run(FPS);
@@ -87,7 +87,7 @@ describe("errors", function() {
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(Error));
                                              expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
-                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
+                                             expect(player.state.happens).toBe(anm.C.ERROR); }
                 });
             })(this);
         });
@@ -112,7 +112,7 @@ describe("errors", function() {
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(Error));
                                              expect(err.message).toBe('foo');
-                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
+                                             expect(player.state.happens).toBe(anm.C.ERROR); }
                 });
             })(this);
         });
@@ -125,14 +125,14 @@ describe("errors", function() {
                 this.fail('Should throw an error');
             } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
                            expect(err.message).toBe(anm.Errors.P.NO_SCENE);
-                           expect(player.state.happens).toBe(anm.C.NOTHING); }
+                           expect(player.state.happens).toBe(anm.C.ERROR); }
 
             try {
                 player.load();
                 this.fail('Should throw an error');
             } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
                            expect(err.message).toBe(anm.Errors.P.NO_SCENE_PASSED);
-                           expect(player.state.happens).toBe(anm.C.NOTHING); }
+                           expect(player.state.happens).toBe(anm.C.ERROR); }
 
             try {
                 player.load(new anm.Scene());
@@ -140,7 +140,7 @@ describe("errors", function() {
                 this.fail('Should throw an error');
             } catch(err) { expect(err).toEqual(jasmine.any(anm.PlayerError));
                            expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-                           expect(player.state.happens).toBe(anm.C.NOTHING); }
+                           expect(player.state.happens).toBe(anm.C.ERROR); }
         });
 
         it("throws errors related to animations (animation errors)", function() {
@@ -173,7 +173,7 @@ describe("errors", function() {
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(anm.AnimationError));
                                              expect(err.message).toBe(anm.Errors.A.NO_ELEMENT_TO_REMOVE);
-                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
+                                             expect(player.state.happens).toBe(anm.C.ERROR); }
                 });
             })(this);
 
@@ -202,7 +202,7 @@ describe("errors", function() {
                     then: function() { spec.fail('Should not reach this block due to error'); },
                     onerror: function(err) { expect(err).toEqual(jasmine.any(anm.SystemError));
                                              expect(err.message).toBe('foo');
-                                             expect(player.state.happens).toBe(anm.C.NOTHING); }
+                                             expect(player.state.happens).toBe(anm.C.ERROR); }
                 });
             })(this);
         });
@@ -233,7 +233,7 @@ describe("errors", function() {
                                             .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(Error));
                         expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(onerrorSpy);
@@ -266,7 +266,7 @@ describe("errors", function() {
                                             .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(Error));
                         expect(err.message).toBe('foo');
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(onerrorSpy);
@@ -288,7 +288,7 @@ describe("errors", function() {
                                                        .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.NO_SCENE);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(playNoSceneOnerrorSpy);
@@ -303,7 +303,7 @@ describe("errors", function() {
                                                        .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.NO_SCENE_PASSED);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(loadNoSceneOnerrorSpy);
@@ -318,7 +318,7 @@ describe("errors", function() {
                                                         .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(drawAtNoTimeOnerrorSpy);
@@ -342,7 +342,7 @@ describe("errors", function() {
                                                          .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.AnimationError));
                         expect(err.message).toBe(anm.Errors.A.NO_ELEMENT_TO_REMOVE);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(removeNothingOnerrorSpy);
@@ -375,7 +375,7 @@ describe("errors", function() {
                                             .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.SystemError));
                         expect(err.message).toBe('foo');
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                     });
 
                     player.onerror(onerrorSpy);
@@ -426,7 +426,7 @@ describe("errors", function() {
                                             .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(Error));
                         expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -434,7 +434,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                onerrorSpy.reset(); },
                             onerror: function(err) { spec.fail('Error should be supressed'); }
@@ -460,7 +460,7 @@ describe("errors", function() {
                                             .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(Error));
                         expect(err.message).toBe('foo');
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -468,7 +468,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                onerrorSpy.reset(); },
                             onerror: function(err) { spec.fail('Error should be supressed'); }
@@ -483,7 +483,7 @@ describe("errors", function() {
                                                        .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.NO_SCENE);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -499,7 +499,7 @@ describe("errors", function() {
                                                        .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.NO_SCENE_PASSED);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -515,7 +515,7 @@ describe("errors", function() {
                                                         .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.PlayerError));
                         expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -540,7 +540,7 @@ describe("errors", function() {
                                                          .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.AnimationError));
                         expect(err.message).toBe(anm.Errors.A.NO_ELEMENT_TO_REMOVE);
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -559,7 +559,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(removeNothingOnerrorSpy).toHaveBeenCalledOnce();
                                                removeNothingOnerrorSpy.reset(); },
                             onerror: function(err) { spec.fail('Error should be supressed'); }
@@ -574,7 +574,7 @@ describe("errors", function() {
                                             .andCallFake(function(err) {
                         expect(err).toEqual(jasmine.any(anm.SystemError));
                         expect(err.message).toBe('foo');
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -602,7 +602,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                onerrorSpy.reset(); },
                             onerror: function(err) { spec.fail('Error should be supressed'); }
@@ -631,7 +631,7 @@ describe("errors", function() {
                         } else {
                             spec.fail('Player-error should be received before Animation-error');
                         }
-                        expect(player.state.happens).toBe(anm.C.NOTHING);
+                        expect(player.state.happens).toBe(anm.C.ERROR);
                         return true;
                     });
 
@@ -651,7 +651,7 @@ describe("errors", function() {
                     scene.add(elm);
 
                     doAsync(player, scene, {
-                        do: 'play', until: anm.C.NOTHING,
+                        do: 'play', until: anm.C.ERROR,
                         then: function() { expect(receivedPlayerError).toBeTruthy();
                                            expect(receivedAnimationError).toBeTruthy();
                                            expect(onerrorSpy.callCount).toBe(2);
@@ -686,7 +686,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(wasInErronousCode).toBeTruthy(); },
                             onerror: function(err) { spec.fail('Error should be muted'); }
                         });
@@ -712,7 +712,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(wasInErronousCode).toBeTruthy(); },
                             onerror: function(err) { spec.fail('Error should be muted'); }
                         });
@@ -755,7 +755,7 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { expect(wasInErronousCode).toBeTruthy(); },
                             onerror: function(err) { spec.fail('Error should be muted'); }
                         });
@@ -790,12 +790,12 @@ describe("errors", function() {
 
                     (function(spec) {
                         doAsync(player, scene, {
-                            do: 'play', until: anm.C.NOTHING,
+                            do: 'play', until: anm.C.ERROR,
                             then: function() { spec.fail('Error should not be muted');  },
                             onerror: function(err) { expect(wasInErronousCode).toBeTruthy();
                                                      expect(err).toEqual(jasmine.any(anm.SystemError));
                                                      expect(err.message).toBe('foo');
-                                                     expect(player.state.happens).toBe(anm.C.NOTHING); }
+                                                     expect(player.state.happens).toBe(anm.C.ERROR); }
                         });
                     })(this);
                 });
@@ -820,14 +820,14 @@ describe("errors", function() {
                                                 .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(Error));
                             expect(err.message.indexOf('some_undefined_var')).not.toBe(-1);
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(onerrorSpy);
 
                         (function(spec) {
                             doAsync(player, scene, {
-                                do: 'play', until: anm.C.NOTHING,
+                                do: 'play', until: anm.C.ERROR,
                                 then: function() { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                    onerrorSpy.reset(); },
                                 onerror: function(err) { spec.fail('Error should be muted'); }
@@ -853,14 +853,14 @@ describe("errors", function() {
                                                 .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(Error));
                             expect(err.message).toBe('foo');
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(onerrorSpy);
 
                         (function(spec) {
                             doAsync(player, scene, {
-                                do: 'play', until: anm.C.NOTHING,
+                                do: 'play', until: anm.C.ERROR,
                                 then: function() { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                    onerrorSpy.reset(); },
                                 onerror: function(err) { spec.fail('Error should be muted'); }
@@ -875,7 +875,7 @@ describe("errors", function() {
                                                            .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(anm.PlayerError));
                             expect(err.message).toBe(anm.Errors.P.NO_SCENE);
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(playNoSceneOnerrorSpy);
@@ -890,7 +890,7 @@ describe("errors", function() {
                                                            .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(anm.PlayerError));
                             expect(err.message).toBe(anm.Errors.P.NO_SCENE_PASSED);
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(loadNoSceneOnerrorSpy);
@@ -905,7 +905,7 @@ describe("errors", function() {
                                                             .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(anm.PlayerError));
                             expect(err.message).toBe(anm.Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(drawAtNoTimeOnerrorSpy);
@@ -929,7 +929,7 @@ describe("errors", function() {
                                                              .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(anm.AnimationError));
                             expect(err.message).toBe(anm.Errors.A.NO_ELEMENT_TO_REMOVE);
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(removeNothingOnerrorSpy);
@@ -947,7 +947,7 @@ describe("errors", function() {
 
                         (function(spec) {
                             doAsync(player, scene, {
-                                do: 'play', until: anm.C.NOTHING,
+                                do: 'play', until: anm.C.ERROR,
                                 then: function() { expect(removeNothingOnerrorSpy).toHaveBeenCalledOnce();
                                                    removeNothingOnerrorSpy.reset(); },
                                 onerror: function(err) { spec.fail('Error should be muted'); }
@@ -962,7 +962,7 @@ describe("errors", function() {
                                                 .andCallFake(function(err) {
                             expect(err).toEqual(jasmine.any(anm.SystemError));
                             expect(err.message).toBe('foo');
-                            expect(player.state.happens).toBe(anm.C.NOTHING);
+                            expect(player.state.happens).toBe(anm.C.ERROR);
                         });
 
                         player.onerror(onerrorSpy);
@@ -989,7 +989,7 @@ describe("errors", function() {
 
                         (function(spec) {
                             doAsync(player, scene, {
-                                do: 'play', until: anm.C.NOTHING,
+                                do: 'play', until: anm.C.ERROR,
                                 then: function() { spec.fail('Error should not be muted'); },
                                 onerror: function(err) { expect(onerrorSpy).toHaveBeenCalledOnce();
                                                          onerrorSpy.reset(); }

@@ -16,7 +16,7 @@ describe("builder, regading iterations, ", function() {
     /* beforeEach(function() {
         this.addMatchers(_matchers);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.canvas);
+        _mocks.adaptDocument(document);
         _fakeCallsForCanvasRelatedStuff();
     }); */
 
