@@ -1126,8 +1126,8 @@ Player.prototype.setDuration = function(value) {
 Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
         w = this.state.width,
-        h = this.state.height,
-        rsize = 120;
+        h = this.state.height;
+
     ctx.save();
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1139,30 +1139,30 @@ Player.prototype._drawSplash = function() {
     ctx.fillStyle = '#ffe';
     ctx.fillRect(0, 0, w, h);
 
+    if (this.controls) {
+       ctx.restore();
+       return;
+    }
+
     // text
     ctx.fillStyle = '#999966';
     ctx.font = '18px sans-serif';
     ctx.fillText(Strings.COPYRIGHT, 20, h - 20);
 
-    // outer rect
-    ctx.lineWidth = 12;
-    ctx.strokeStyle = '#fee';
-    ctx.strokeRect(0, 0, w, h);
+    ctx.globalAlpha = .6;
 
-    // inner rect
-    ctx.translate((w / 2) - (rsize / 2), (h / 2) - (rsize / 2));
-    var grad = ctx.createLinearGradient(0,0,rsize,rsize);
-    grad.addColorStop(0, '#00abeb');
-    grad.addColorStop(.7, '#fff');
-    grad.addColorStop(.7, '#6c0');
-    grad.addColorStop(1, '#fff');
-    ctx.fillStyle = grad;
-    ctx.strokeStyle = '#bbb';
+    ctx.beginPath();
+    ctx.arc(w / 2, h / 2, Math.min(w / 2, h / 2) * .5, 0, 2 * Math.PI);
+    ctx.fillStyle = '#a00';
+    ctx.strokeStyle = '#ffe';
     ctx.lineWidth = 10;
-    ctx.globalAlpha = .8;
-    ctx.fillRect(0, 0, rsize, rsize);
+    ctx.stroke();
+    ctx.fill();
+
     ctx.globalAlpha = .9;
-    ctx.strokeRect(0, 0, rsize, rsize);
+
+    drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
+                     [ '#fff', '#aa0' ]);
 
     ctx.restore();
 }
@@ -1180,6 +1180,7 @@ Player.prototype._drawErrorSplash = function(e) {
     if (this.controls) {
         this.controls.forceNextRedraw();
         this.controls.render();
+        return;
     }
     this._drawSplash();
     var ctx = this.ctx;
@@ -4631,14 +4632,18 @@ Controls.DEFAULT_THEME = {
       'disabledfill': 'rgba(20,0,0,.2)',
       'text': 'rgba(255,255,255,.8)',
       'error': 'rgba(250,0,0,.8)',
-      'infobg': 'rgba(128,0,0,.8)'
+      'infobg': 'rgba(128,0,0,.8)',
+      'secondary': 'rgba(255,255,255,.1)'
   },
   'anmguy': {
       'colors': [ 'rgba(65,61,62,.7)', // black
                   'rgba(241,91,42,.7)' // orange
                 ],
       'center_pos': [ .5, .8 ],
-      'corner_pos': [ .9, .9 ]
+      'corner_pos': [ .9, .9 ],
+      'center_alpha': 1,
+      'corner_alpha': .4,
+      'scale': .065 // relatively to minimum side
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
@@ -5001,7 +5006,7 @@ Controls._drawPause = function(ctx, theme, w, h, ratio, focused) {
 
     ctx.restore();
 
-    Controls._drawGuyInCorner(ctx, theme, w, h, ratio * .5);
+    Controls._drawGuyInCorner(ctx, theme, w, h, ratio);
 }
 Controls._drawPlay = function(ctx, theme, w, h, ratio, focused) {
     ctx.save();
@@ -5040,7 +5045,7 @@ Controls._drawPlay = function(ctx, theme, w, h, ratio, focused) {
 
     ctx.restore();
 
-    Controls._drawGuyInCorner(ctx, theme, w, h, ratio * .5);
+    Controls._drawGuyInCorner(ctx, theme, w, h, ratio);
 }
 Controls._drawLoading = function(ctx, theme, w, h, ratio, hilite_pos, src) {
     ctx.save();
@@ -5075,7 +5080,12 @@ Controls._drawLoading = function(ctx, theme, w, h, ratio, hilite_pos, src) {
                      '...');
     }
 
-    Controls._drawGuyInCenter(ctx, theme, w, h, ratio * .5);
+    Controls._drawText(ctx, theme,
+                   w / 2, ((h / 2) * (1 + theme.radius.substatus)),
+                   theme.font.statussize,
+                   Strings.COPYRIGHT);
+
+    Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
 }
 Controls._drawNoScene = function(ctx, theme, w, h, ratio, focused) {
     ctx.save();
@@ -5115,7 +5125,7 @@ Controls._drawNoScene = function(ctx, theme, w, h, ratio, focused) {
                    theme.font.statussize,
                    Strings.COPYRIGHT);
 
-    Controls._drawGuyInCenter(ctx, theme, w, h, ratio * .5);
+    Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
 
 }
 Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
@@ -5162,8 +5172,8 @@ Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
                    theme.font.statussize,
                    Strings.COPYRIGHT);
 
-    Controls._drawGuyInCenter(ctx, theme, w, h, ratio * .5, [ theme.colors.button,
-                                                              theme.colors.error ]);
+    Controls._drawGuyInCenter(ctx, theme, w, h, ratio, [ theme.colors.button,
+                                                         theme.colors.error ]);
 }
 Controls._drawTime = function(ctx, theme, w, h, ratio, time, duration) {
     Controls._drawText(ctx, theme,
@@ -5184,12 +5194,22 @@ Controls._drawText = function(ctx, theme, x, y, size, text, color) {
 Controls._drawGuyInCorner = function(ctx, theme, w, h, scale, colors) {
     drawAnimatronGuy(ctx, theme.anmguy.corner_pos[0] * w,
                           theme.anmguy.corner_pos[1] * h,
-                     scale || 1, colors || theme.anmguy.colors);
+                     scale ? scale * theme.anmguy.scale * Math.min(w, h) : 1,
+                     colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
+
+    // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
+    Controls._drawText(ctx, theme,
+                       w * .91, h * .98,
+                       theme.font.statussize * .8,
+                       Strings.COPYRIGHT, theme.colors.secondary);
 }
 Controls._drawGuyInCenter = function(ctx, theme, w, h, scale, colors) {
     drawAnimatronGuy(ctx, theme.anmguy.center_pos[0] * w,
                           theme.anmguy.center_pos[1] * h,
-                     scale || 1, colors || theme.anmguy.colors);
+                     scale ? scale * theme.anmguy.scale * Math.min(w, h) : 1,
+                     colors || theme.anmguy.colors, theme.anmguy.center_alpha);
+
+    // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
 }
 
 // Info Block
@@ -5335,7 +5355,7 @@ InfoBlock.prototype.changeTheme = function(front, back) {
 
 var Strings = {};
 
-Strings.COPYRIGHT = ' Animatron Player';
+Strings.COPYRIGHT = '© Animatron Player';
 Strings.LOADING = 'Loading...';
 Strings.LOADING_ANIMATION = 'Loading {0}...';
 
@@ -5416,10 +5436,11 @@ var _anmGuySpec = [
 
 var anmGuyCanvas,
     anmGuyCtx;
-function drawAnimatronGuy(ctx, x, y, scale, colors) {
+function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     var spec = _anmGuySpec,
         origin = spec[0],
         dimensions = spec[1],
+        scale = size ? (size / Math.max(dimensions[0], dimensions[1])) : 1,
         colors = colors || spec[2],
         shapes_before = spec[3]
         masking_shapes = spec[4],
@@ -5442,7 +5463,7 @@ function drawAnimatronGuy(ctx, x, y, scale, colors) {
 
     // prepare
     maskCtx.clearRect(0, 0, w, h);
-    if (scale) maskCtx.scale(scale, scale);
+    if (scale != 1) maskCtx.scale(scale, scale);
     maskCtx.translate(-origin[0], -origin[1]);
     maskCtx.save();
 
@@ -5477,7 +5498,11 @@ function drawAnimatronGuy(ctx, x, y, scale, colors) {
 
     // draw over the main context
     maskCtx.restore();
+
+    ctx.save();
+    if (opacity) ctx.globalAlpha = opacity;
     ctx.drawImage(maskCanvas, x - (w / 2), y - (h / 2));
+    ctx.restore();
 }
 
 // Exports

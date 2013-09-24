@@ -38,9 +38,9 @@
           //var importer = new AnimatronImporter();
           player = createPlayer('canvas');
           //player.debug = true;
-          //player.load(project, importer);
-          var b = Builder._$;
-          player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
+          player.load(project, importer);
+          //var b = Builder._$;
+          //player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
           //player.play();
       }
 
@@ -59,7 +59,7 @@
   <body onload="start();">
     <h1 style="margin-bottom: 20px">The place to test one scene</h1>
 
-    <canvas id="canvas" width="2080" height="2080"></canvas>
+    <canvas id="canvas" width="1080" height="1080"></canvas>
 
     <p style="float: right"><label for="scene-input">Scene JSON:</label><button onclick="load(this)">Load</button><textarea id="scene-input"></textarea></p>
 
