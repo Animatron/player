@@ -27,7 +27,7 @@ describe("repeat modes", function() {
     beforeEach(function() {
         this.addMatchers(_matchers.time);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);

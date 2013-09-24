@@ -852,7 +852,7 @@ Player.prototype.stop = function() {
             player.drawAt(state.duration * Player.PREVIEW_POS);
         }
         if (player.controls/* && !player.controls.hidden*/) {
-            player.controls.render(0);
+            player._renderControlsAt(state.time);
         }
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
@@ -1044,9 +1044,7 @@ Player.prototype.drawAt = function(time) {
     // because it is a single function
     __r_at(time, this.ctx, this.state, this.anim, u_before, u_after);
 
-    if (this.controls) {
-        this.controls.render(time);
-    }
+    if (this.controls) this._renderControlsAt(time);
 
     return this;
 }
@@ -1161,13 +1159,15 @@ Player.prototype._drawSplash = function() {
 
     ctx.globalAlpha = .9;
 
+    ctx.restore();
+
     drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]);
 
-    ctx.restore();
 }
 Player.prototype._drawLoadingSplash = function(text) {
     this._drawSplash();
+    if (this.controls) return;
     var ctx = this.ctx;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1242,20 +1242,37 @@ Player.prototype._checkMode = function() {
     if (!this.canvas) return;
 
     if (this.mode & C.M_CONTROLS_ENABLED) {
-        if (!this.controls) {
-            this.controls = new Controls(this);
-            this.controls.enable();
-        }
+        this._enableControls();
         if (this.mode & C.M_INFO_ENABLED) {
-            this.controls.enableInfo();
+            this._enableInfo();
         } else {
-            this.controls.disableInfo();
+            this._disableInfo();
         }
     } else {
-        if (this.controls) {
-            this.controls.disable(); // disable both controls and info
-        }
+        this._disableInfo();
+        this._disableControls();
     }
+}
+// FIXME: methods below may be removed, but they are required for tests
+Player.prototype._enableControls = function() {
+    if (!this.controls) this.controls = new Controls(this);
+    this.controls.enable();
+}
+Player.prototype._disableControls = function() {
+    if (!this.controls) return;
+    this.controls.disable();
+    this.controls = null;
+}
+Player.prototype._enableInfo = function() {
+    if (!this.controls) return;
+    this.controls.enableInfo();
+}
+Player.prototype._disableInfo = function() {
+    if (!this.controls) return;
+    this.controls.disableInfo();
+}
+Player.prototype._renderControlsAt = function(time) {
+    this.controls.render(time);
 }
 Player.prototype.__subscribeDynamicEvents = function(scene) {
     if (global_opts.setTabindex) {
@@ -1300,7 +1317,7 @@ Player.prototype.__afterFrame = function(scene) {
     return (function(player, state, scene, callback) {
         return function(time) {
             if (player.controls && !player.controls.hidden) {
-                player.controls.render(time);
+                player._renderControlsAt(time);
             }
             if (callback) callback(time);
             return true;
@@ -4550,40 +4567,6 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
-/*Controls.DEFAULT_THEME = {
-  'font': {
-      'face': 'Arial, sans-serif',
-      'weight': 'bold'
-  },
-  'radius': {
-      'inner': .3,
-      'outer': .35,
-      'button': .25
-  },
-  //'bgOpacity': .8,
-  //'bgFill': 'rgba(30, 30, 30, .4)',
-  //'bgGradStart': [ .1, "rgba(30,30,30,.75)" ],
-  //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
-  'width': {
-     'inner': 15,
-     'outer': 30
-  },
-  'colors': {
-     'bggrad': {
-        'start': 'rgba(30,30,30,.75)',
-        'end': 'rgba(255,255,255,0)'
-     },
-     'progress': {
-        'passed': 'rgba(255,255,255,.6)',
-        'left': 'rgba(0,0,0,.3)'
-     },
-     'stroke': 'rgba(0,0,0,1)',
-     'fill': 'rgba(255,255,255,1)',
-     'hoverfill': 'rgba(255,255,255,1)',
-     'text': 'rgba(255,255,255,1)',
-     'error': 'rgba(128,0,0,.8)'
-  }
-};*/
 Controls.DEFAULT_THEME = {
   'font': {
       'face': 'Arial, sans-serif',
@@ -4600,10 +4583,6 @@ Controls.DEFAULT_THEME = {
       'status': .8, // info text position
       'substatus': .9
   },
-  //'bgOpacity': .8,
-  //'bgFill': 'rgba(30, 30, 30, .4)',
-  //'bgGradStart': [ .1, "rgba(30,30,30,.75)" ],
-  //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
   'width': { // stroke width
       'inner': 3, // button stroke
       'outer': 3, // progress stroke
