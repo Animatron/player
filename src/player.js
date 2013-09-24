@@ -803,6 +803,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     scene.reset();
     player.setDuration(scene.duration);
 
+    //if (state.from > 2) throw new Error('Test');
+
     state.__firstReq = __r_loop(player.ctx,
                                 state, scene,
                                 player.__beforeFrame(scene),
@@ -843,7 +845,7 @@ Player.prototype.stop = function() {
         if (player.controls/* && !player.controls.hidden*/) {
             player.controls.render(0);
         }
-    } else {
+    } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
         player._drawSplash();
     }
@@ -1164,6 +1166,10 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.restore();
 }
 Player.prototype._drawErrorSplash = function(e) {
+    if (this.controls) {
+        this.controls.forceNextRedraw();
+        this.controls.render();
+    }
     this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
@@ -4569,7 +4575,7 @@ Controls.DEFAULT_THEME = {
       'face': 'Arial, sans-serif',
       'weight': 'bold',
       'timesize': 27,
-      'statussize': 15
+      'statussize': 17
   },
   'radius': { // all radius values are relative to (Math.min(width, height) / 2)
       'inner': .25,
@@ -4606,8 +4612,9 @@ Controls.DEFAULT_THEME = {
       'stroke': 'rgba(180,180,180,.85)',
       'fill': 'rgba(255,255,255,0)',
       'hoverfill': 'rgba(255,255,255,.2)',
+      'disabledfill': 'rgba(30,30,30,.2)',
       'text': 'rgba(255,255,255,.8)',
-      'error': 'rgba(128,0,0,.8)',
+      'error': 'rgba(250,0,0,.8)',
       'infobg': 'rgba(128,0,0,.8)'
   }
 };
@@ -4754,7 +4761,8 @@ Controls.prototype.render = function(time) {
                               isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
                               isRemoteLoading ? player._loadSrc : '');
     } else if (_s === C.ERROR) {
-
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
     }
     // + error
 
@@ -5074,7 +5082,7 @@ Controls._drawNoScene = function(ctx, theme, w, h, focused) {
 
     ctx.beginPath();
     ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = focused ? theme.colors.hoverfill : theme.colors.fill;
+    ctx.fillStyle = focused ? theme.colors.disabledfill : theme.colors.fill;
     ctx.strokeStyle = theme.colors.stroke;
     ctx.lineWidth = theme.width.inner;
     ctx.stroke();
@@ -5102,30 +5110,43 @@ Controls._drawNoScene = function(ctx, theme, w, h, focused) {
                    '© Animatron Player');
 
 }
-Controls._drawError = function(ctx, theme) {
+Controls._drawError = function(ctx, theme, w, h, error, focused) {
+    ctx.save();
+
     var cx = w / 2,
         cy = h / 2,
-        inner_rad = Math.min(cx, cy) * theme.radius.inner;
+        inner_rad = Math.min(cx, cy) * theme.radius.inner,
+        button_width = Math.min(cx, cy) * theme.radius.buttonh,
+        button_height = Math.min(cx, cy) * theme.radius.buttonv;
 
-    ctx.save();
     ctx.beginPath();
     ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(255, 255, 0, 1)';
-    ctx.strokeStyle = theme.colors.error;
+    ctx.fillStyle = focused ? theme.colors.disabledfill : theme.colors.fill;
+    ctx.strokeStyle = theme.colors.stroke;
     ctx.lineWidth = theme.width.inner;
     ctx.stroke();
     ctx.fill();
 
-    ctx.save();
+    ctx.translate(cx, cy);
+
+    ctx.lineWidth = theme.width.button;
+    ctx.lineJoin = theme.join.button;
     ctx.fillStyle = theme.colors.error;
-    draw_text(ctx, cx - 3, cy - 3, ':(', 38, theme.colors.error);
-    ctx.restore();
+    ctx.strokeStyle = theme.colors.error;
+    ctx.rotate(-Math.PI / 4);
+    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+
+    ctx.rotate(2 * Math.PI / 4);
+    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
+    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
 
     ctx.restore();
 
-    /*draw_bottom_text(ctx, 'Error!', line1_size, error_text_color,
-                           'It is very very sad to inform you, but unfortunately your project was failed to load', line2_size_alt, error_text_color,
-                           'rgba(255, 255, 0, 1)');*/
+    Controls._drawText(ctx, theme,
+                   w / 2, ((h / 2) * (1 + theme.radius.status)),
+                   Math.floor(theme.font.statussize * 1.2),
+                   error, theme.colors.error);
 }
 Controls._drawTime = function(ctx, theme, w, h, time, duration) {
     Controls._drawText(ctx, theme,
@@ -5134,12 +5155,12 @@ Controls._drawTime = function(ctx, theme, w, h, time, duration) {
                        fmt_time(time) + ' / ' + fmt_time(duration));
 
 }
-Controls._drawText = function(ctx, theme, x, y, size, text) {
+Controls._drawText = function(ctx, theme, x, y, size, text, color) {
     ctx.save();
     ctx.font = theme.font.weight + ' ' + (size || 15) + 'pt ' + theme.font.face;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = theme.colors.text;
+    ctx.fillStyle = color || theme.colors.text;
     ctx.fillText(text, x, y);
     ctx.restore();
 }
