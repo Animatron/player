@@ -10,7 +10,7 @@ describe("image", function() {
 
     var imgSpy;
 
-    beforeEach(function() { spyOn(document, 'createElement').andReturn(_mocks.factory.canvas());
+    beforeEach(function() { _mocks.adaptDocument(document);
                             imgSpy = spyOn(window, 'Image').andCallFake(ImgFake); });
 
     afterEach(function() { ImgFake.__stopFakes(); })

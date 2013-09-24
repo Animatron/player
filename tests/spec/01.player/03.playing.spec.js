@@ -24,7 +24,7 @@ describe("player, when speaking about playing,", function() {
 
         canvasMock = _mocks.factory.canvas();
 
-        spyOn(document, 'getElementById').andReturn(canvasMock);
+        _mocks.adaptDocument(document, function() { return canvasMock; });
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);
@@ -115,7 +115,7 @@ describe("player, when speaking about playing,", function() {
             expect(player.state.happens).toBe(C.STOPPED);
         });
 
-        it("should have state.happens equal to nothing, if no scene passed to load", function() {
+        it("should have state.happens equal to error, if no scene passed to load", function() {
             expect(player.state.happens).toBe(C.NOTHING);
             player.load(new anm.Scene());
             expect(player.state.happens).toBe(C.STOPPED);
@@ -123,7 +123,7 @@ describe("player, when speaking about playing,", function() {
                   this.fail('Should throw an error');
             } catch(e) {};
             expect(player.anim).toBe(null);
-            expect(player.state.happens).toBe(C.NOTHING);
+            expect(player.state.happens).toBe(C.ERROR);
         });
 
         it("should have state.happens equal to playing, if started playing", function() {

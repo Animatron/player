@@ -84,7 +84,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     });
 
     it("should not call modifiers of cleared element children", function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
         var _fg = _FrameGen.spawn().run(20);
 
@@ -126,7 +126,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     });
 
     it("should correctly detach element from parent and scene", function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         var player = createPlayer('foo');
@@ -224,7 +224,7 @@ describe("builder, regading clearing elements or detaching them, ", function() {
     });
 
     it("should not call modifiers of detached elements", function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
         var _fg = _FrameGen.spawn().run(20);
         var player = createPlayer('foo');

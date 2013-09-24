@@ -33,6 +33,8 @@
     }
     var _conf = _GLOBAL_[PRIVATE_CONF];
 
+    var foo = {};
+
     // TODO: Later, player should be placed in anm.Player and
     //              builder should be placed in anm.Builder
 
@@ -89,8 +91,6 @@
         }
     })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _document, _conf);
 
-    var foo = {}
-
     // an object to store private functions inside
     // window.__anm || GLOBAL.__anm
     _GLOBAL_[PRIVATE_NAMESPACE] = {
@@ -102,6 +102,8 @@
         registerUsingAnm: registerUsingAnm
         // TODO: player instances listeners (look Player.addNewInstanceListener)
     };
+
+    // FIXME: store pixel ratio here
 
     // FIXME: support Engines (DOM/NodeJS/...) from this point
 

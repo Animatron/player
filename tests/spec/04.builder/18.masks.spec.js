@@ -20,13 +20,16 @@ describe("builder, regarding masks", function() {
     var SCENE_WIDTH = 350;
     var SCENE_HEIGHT = 275;
 
+    var doc_mocks;
+
     beforeEach(function() {
         this.addMatchers(_matchers.size);
         this.addMatchers(_matchers.calls);
 
         mainCanvas = _mocks.factory.canvas();
 
-        spyOn(document, 'getElementById').andReturn(mainCanvas);
+        doc_mocks = _mocks.adaptDocument(document);
+        doc_mocks.getElementById.andReturn(mainCanvas);
         _fake(_Fake.CVS_POS);
 
         mainCanvas.setAttribute('width',  SCENE_WIDTH);
@@ -34,7 +37,7 @@ describe("builder, regarding masks", function() {
 
         _fg = _FrameGen.spawn().run(FPS);
 
-        player = createPlayer('test-id');
+        player = createPlayer('test-id', { mode: C.M_CONTROLS_DISABLED });
     });
 
     afterEach(function() { _fg.stop().destroy(); });
@@ -66,6 +69,9 @@ describe("builder, regarding masks", function() {
 
         var firstPass = true;
 
+        //console.log(doc_mocks.createElement.plan);
+        //doc_mocks.createElement.restore();
+        document.createElement.isSpy = false;
         var prevCreateElement = document.createElement;
         var createElementSpy = spyOn(document, 'createElement').andCallFake(function(elmType) {
             expect(elmType).toEqual('canvas');

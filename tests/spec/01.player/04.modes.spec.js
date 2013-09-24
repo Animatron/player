@@ -15,7 +15,7 @@ describe("player, when speaking about modes,", function() {
     beforeEach(function() {
         this.addMatchers(_matchers.calls);
 
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         _fg = _FrameGen.spawn().run(FPS);
@@ -52,7 +52,7 @@ describe("player, when speaking about modes,", function() {
 
             expect(checkModeSpy).toHaveBeenCalledOnce();
             expect(player.controls).toBeDefined();
-            expect(player.info).toBeDefined();
+            expect(player.controls.info).toBeDefined();
 
             expect(enableControlsSpy).toHaveBeenCalledOnce();
             expect(disableControlsSpy).not.toHaveBeenCalled();
@@ -83,7 +83,7 @@ describe("player, when speaking about modes,", function() {
 
             expect(checkModeSpy).toHaveBeenCalledOnce();
             expect(player.controls).toBeDefined();
-            expect(player.info).toBeDefined();
+            expect(player.controls.info).toBeDefined();
 
             expect(enableControlsSpy).toHaveBeenCalledOnce();
             expect(disableControlsSpy).not.toHaveBeenCalled();
@@ -114,12 +114,11 @@ describe("player, when speaking about modes,", function() {
 
             expect(checkModeSpy).toHaveBeenCalledOnce();
             expect(player.controls).toBe(null);
-            expect(player.info).toBe(null);
 
             expect(enableControlsSpy).not.toHaveBeenCalled();
-            expect(disableControlsSpy).not.toHaveBeenCalled(); // nothing to disable
+            expect(disableControlsSpy).toHaveBeenCalled();
             expect(enableInfoSpy).not.toHaveBeenCalled();
-            expect(disableInfoSpy).not.toHaveBeenCalled();  // nothing to disable
+            expect(disableInfoSpy).toHaveBeenCalled();
             expect(renderControlsSpy).not.toHaveBeenCalled();
 
             expect(player.canvas.hasAttribute('tabindex')).toBeFalsy();
@@ -150,12 +149,11 @@ describe("player, when speaking about modes,", function() {
 
             expect(checkModeSpy).toHaveBeenCalledOnce();
             expect(player.controls).toBe(null);
-            expect(player.info).toBe(null);
 
             expect(enableControlsSpy).not.toHaveBeenCalled();
-            expect(disableControlsSpy).not.toHaveBeenCalled(); // nothing to disable
+            expect(disableControlsSpy).toHaveBeenCalled();
             expect(enableInfoSpy).not.toHaveBeenCalled();
-            expect(disableInfoSpy).not.toHaveBeenCalled();  // nothing to disable
+            expect(disableInfoSpy).toHaveBeenCalled();
             expect(renderControlsSpy).not.toHaveBeenCalled();
 
             expect(player.canvas.hasAttribute('tabindex')).toBeFalsy();
