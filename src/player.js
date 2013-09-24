@@ -4778,17 +4778,6 @@ Controls.prototype.render = function(time) {
         Controls._drawBack(ctx, theme, _w, _h, ratio);
         Controls._drawError(ctx, theme, _w, _h, ratio, player.__lastError, this.focused);
     }
-    // + error
-
-    // progress
-    /* ctx.translate(_bh + _m, 0);
-    Controls.__progress(ctx, _pw, front, back,
-                        time, state.duration);
-
-    // time
-    ctx.translate(_pw + _m * 2.5, 0);
-    Controls.__time(ctx, front, back,
-                    this.elapsed ? (time - state.duration) : time); */
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -4806,24 +4795,6 @@ Controls.prototype.react = function(time) {
     if (_s === C.STOPPED) { /*console.log('play from start');*/ _p.play(0); return; }
     if (_s === C.PAUSED) { /*console.log('play from ' + this._time);*/ _p.play(this._time); return; }
     if (_s === C.PLAYING) { /*console.log('pause at' + time);*/ this._time = time; _p.pause(); return; }
-/*  var _d = this.player.state.duration,
-        _tpos = _px / (_pw / _d); // time position
-    if (_tpos < 0) _tpos = 0;
-    if (_tpos > _d) _tpos = d;
-    if (_s === C.PLAYING) {
-        this.player.pause();
-        this.player.play(_tpos);
-    }
-    else if ((_s === C.PAUSED) ||
-             (_s === C.STOPPED)) {
-        this.player.state.time = _tpos;
-        this.player.drawAt(_tpos);
-    } */
-    /* this.elapsed = !this.elapsed;
-    if (_s !== C.PLAYING) {
-        this.forceNextRedraw();
-        this.render(this.player.state, this._time);
-    }; */
 }
 Controls.prototype.refreshByMousePos = function(pageX, pageY) {
     var state = this.player.state,
@@ -4842,18 +4813,6 @@ Controls.prototype.refreshByMousePos = function(pageX, pageY) {
     }
     this.render(state.time);
 }
-/* Controls.prototype.handleAreaChange = function() {
-    if (!$doc && !$doc.body) return;
-    this.bounds = [ this.page_bounds[0] - $doc.body.scrollLeft,
-                    this.page_bounds[1] - $doc.body.scrollTop,
-                    this.page_bounds[2], this.page_bounds[3] ];
-    console.log(this.bounds[0], this.bounds[1],
-                this.bounds[2], this.bounds[3]);
-    if (this._last_mevt) {
-      this.handleMouseMove(this._last_mevt.pageX,
-                           this._last_mevt.pageY);
-    }
-} */
 Controls.prototype.handleMouseMove = function(pageX, pageY, evt) {
     if (evt) this._last_mevt = evt;
     if (this.inBounds(pageX, pageY)) {
@@ -4970,40 +4929,6 @@ Controls.prototype.setDuration = function(value) {
 Controls.prototype.inject = function(meta, anim) {
     if (this.info) this.info.inject(meta, anim);
 }
-
-/* Controls.DEFAULT_THEME = {
-  'font': {
-      'face': 'Arial, sans-serif',
-      'weight': 'bold'
-  },
-  'radius': {
-      'inner': .3,
-      'outer': .5
-  },
-  //'bgOpacity': .8,
-  //'bgFill': 'rgba(30, 30, 30, .4)',
-  //'bgGradStart': [ .1, "rgba(30,30,30,.75)" ],
-  //'bgGradEnd': [ 1, "rgba(255,255,255,0)" ],
-  'width': {
-     'inner': 15,
-     'outer': 20
-  },
-  'colors': {
-     'bggrad': {
-        'start': 'rgba(30,30,30,.75)',
-        'end': 'rgba(255,255,255,0)'
-     },
-     'progress': {
-        'passed': 'rgba(255,255,255,.6)',
-        'left': 'rgba(0,0,0,.3)'
-     },
-     'stroke': 'rgba(0,0,0,1)',
-     'fill': 'rgba(255,255,255,1)',
-     'text': 'rgba(255,255,255,1)',
-     'error': 'rgba(128,0,0,.8)'
-  }
-}; */
-
 Controls._drawBack = function(ctx, theme, w, h, ratio) {
     ctx.save();
     var cx = w / 2,
@@ -5266,233 +5191,6 @@ Controls._drawGuyInCenter = function(ctx, theme, w, h, scale, colors) {
                           theme.anmguy.center_pos[1] * h,
                      scale || 1, colors || theme.anmguy.colors);
 }
-
-/* =========================================== */
-/* =========================================== */
-/* =========================================== */
-/* =========================================== */
-/* =========================================== */
-
-/* var w = 380,
-    h = 200;
-
-var cx = w / 2,
-    cy = h / 2;
-
-var rad_min = Math.min(cx, cy),
-    rad_max = Math.max(cx, cy);
-
-var inner_rad = rad_min * .3,
-    progress_rad = rad_min * .4,
-    button_side = Math.floor(inner_rad);
-
-var bg_grad_start = [ .1, "rgba(30,30,30,.75)" ],
-    bg_grad_end = [ 1, "rgba(255,255,255,0)" ];
-
-var front_color = 'rgba(0,0,0,1)',
-    back_color = 'rgba(255,255,255,1)',
-    text_color = back_color,
-    text_shadow_color = front_color,
-    error_color = 'rgba(128,0,0,.8)',
-    error_text_color = text_color,
-    progress_passed_color = 'rgba(255,255,255,.6)',
-    progress_left_color = 'rgba(0,0,0,.3)';
-
-var border_width = 15,
-    progress_width = 20;
-
-var line1_y = Math.min(cy + progress_rad * 1.82, h * .862),
-    line2_y = Math.min(cy + progress_rad * 2.3, h * .95),
-    line1_size = w / 25,
-    line2_size = w / 40,
-    line2_size_alt = w / 52;
-
-function draw_frame(ctx) {
-    ctx.drawImage(document.getElementById("back-img"), 0, 0, w, h);
-}
-
-function draw_bg(ctx) {
-    ctx.save();
-
-    var grd = ctx.createRadialGradient(cx, cy, 0,
-                                       cx, cy, rad_max);
-    grd.addColorStop(bg_grad_start[0],bg_grad_start[1]);
-    grd.addColorStop(bg_grad_end[0],bg_grad_end[1]);
-
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.restore();
-}
-
-function draw_play(ctx) {
-    draw_bg(ctx);
-
-    ctx.save();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = back_color;
-    ctx.strokeStyle = front_color;
-    ctx.lineWidth = border_width;
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.beginPath();
-    ctx.moveTo(cx - (button_side / 3), cy - (button_side / 2));
-    ctx.lineTo(cx + (button_side * (3 / 5)), cy);
-    ctx.lineTo(cx - (button_side / 3), cy + (button_side / 2));
-    ctx.closePath();
-    ctx.fillStyle = front_color;
-    ctx.fill();
-
-    ctx.restore();
-}
-
-function draw_pause(ctx, progress, scene_length) {
-    draw_bg(ctx);
-
-    ctx.save();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress));
-    ctx.strokeStyle = progress_passed_color;
-    ctx.lineWidth = progress_width;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress), true);
-    ctx.strokeStyle = progress_left_color;
-    ctx.lineWidth = progress_width;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = back_color;
-    ctx.strokeStyle = front_color;
-    ctx.lineWidth = border_width;
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.fillStyle = front_color;
-    ctx.fillRect(cx - (button_side / 2), cy - (button_side / 2),
-                 (2 / 5) * button_side, button_side);
-    ctx.fillRect(cx + (button_side * (1 / 5) / 2), cy - (button_side / 2),
-                 (2 / 5) * button_side, button_side);
-
-    ctx.restore();
-}
-
-function draw_loading(ctx, hilite_idx) {
-    draw_bg(ctx);
-
-    ctx.save();
-    ctx.translate(cx, cy);
-    for (var i = 0; i <= 15; i++) {
-        ctx.beginPath();
-        ctx.arc(0, progress_rad, rad_min / 20, 0, 2 * Math.PI);
-        ctx.fillStyle = (i != hilite_idx) ? back_color : front_color;
-        ctx.fill();
-        ctx.rotate(2 * Math.PI / 15);
-    }
-    ctx.restore();
-}
-
-function draw_loading_and_text(ctx, hilite_idx) {
-    draw_loading(ctx, hilite_idx);
-
-    draw_bottom_text(ctx, 'Loading', line1_size, text_color,
-                          'http://foo/very/very/very/long/url...', line2_size, text_color,
-                          text_shadow_color);
-}
-
-function draw_error(ctx) {
-    draw_bg(ctx);
-
-    ctx.save();
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = 'rgba(255, 255, 0, 1)';
-    ctx.strokeStyle = error_color;
-    ctx.lineWidth = border_width;
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.save();
-    ctx.fillStyle = error_color;
-    draw_text(ctx, cx - 3, cy - 3, ':(', 38, error_color);
-    ctx.restore();
-
-    ctx.restore();
-
-    draw_bottom_text(ctx, 'Error!', line1_size, error_text_color,
-                           'It is very very sad to inform you, but unfortunately your project was failed to load', line2_size_alt, error_text_color,
-                           'rgba(255, 255, 0, 1)');
-}
-
-function draw_text(ctx, x, y, text, size, color) {
-    ctx.font = (size || 15) + 'pt sans-serif';
-    ctx.textAlign = 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = color || text_color;
-    ctx.fillText(text, x, y);
-}
-
-function draw_bottom_text(ctx, line1, line1size, line1color,
-                               line2, line2size, line2color,
-                               shadow_color) {
-    ctx.save();
-    ctx.shadowColor = shadow_color || text_shadow_color;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-    ctx.shadowBlur = 10;
-    draw_text(ctx, cx, line1_y,
-              line1, line1size, line1color);
-    draw_text(ctx, cx, line2_y,
-              line2, line2size, line2color);
-    ctx.restore();
-}
-
-var play_cvs = document.getElementById('play-cvs'),
-    play_ctx = play_cvs.getContext('2d');
-play_cvs.width = w;
-play_cvs.height = h;
-draw_frame(play_ctx);
-draw_play(play_ctx);
-
-var pause_cvs = document.getElementById('pause-cvs'),
-    pause_ctx = pause_cvs.getContext('2d');
-pause_cvs.width = w;
-pause_cvs.height = h;
-draw_frame(pause_ctx);
-draw_pause(pause_ctx, .7, 20.5);
-
-var loading_cvs = document.getElementById('loading-cvs'),
-    loading_ctx = loading_cvs.getContext('2d');
-loading_cvs.width = w;
-loading_cvs.height = h;
-draw_frame(loading_ctx);
-draw_loading(loading_ctx, 3);
-
-var loading_txt_cvs = document.getElementById('loading-text-cvs'),
-    loading_txt_ctx = loading_txt_cvs.getContext('2d');
-loading_txt_cvs.width = w;
-loading_txt_cvs.height = h;
-draw_frame(loading_txt_ctx);
-draw_loading_and_text(loading_txt_ctx, 7);
-
-var error_cvs = document.getElementById('error-cvs'),
-    error_ctx = error_cvs.getContext('2d');
-error_cvs.width = w;
-error_cvs.height = h;
-draw_frame(error_ctx);
-draw_error(error_ctx); */
-
-/* =========================================== */
-/* =========================================== */
-/* =========================================== */
-/* =========================================== */
-/* =========================================== */
 
 // Info Block
 // -----------------------------------------------------------------------------
