@@ -1,3 +1,16 @@
+v0.9.15 / Tue Sep 24 2013 23:51:17 +0200 / bcc07e7ef99c3a06ec79ba1817f112777f92e093
+===================================================================================
+
+Totally new controls design.
+
+Among with that:
+
+* new player states: `C.LOADING` (while loading a scene) and `C.ERROR` (when error was fired). In addition to the well-known old ones: `C.PLAYING`, `C.PAUSED`, `C.STOPPED` and `C.NOTHING`
+* type of the last load target (internal, currently) is stored now: `C.LT_BUILDER`, `C.LT_SCENE`, `C.LT_CLIPS`, `C.LT_URL` and `C.LT_IMPORT`
+* `InfoBlock` is completely controlled by `Controls` — so, when controls are disabled, there's also will be no info block.
+* Now we know how to draw the Animatron Guy (on cached canvas)
+* Improved test mocks and tests themselves
+
 v0.9.1405 / Fri Sep 20 2013 00:00:07 +0200 / e9a3fd85b47238c40af794dc88ff398fc6e26270
 =====================================================================================
 
