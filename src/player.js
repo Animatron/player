@@ -445,6 +445,8 @@ function __t_cmp(t0, t1) {
 // Constants
 // -----------------------------------------------------------------------------
 
+var _ResMan = __anm.resource_manager;
+
 var C = {};
 
 // ### Player states
@@ -455,7 +457,8 @@ C.STOPPED = 0;
 C.PLAYING = 1;
 C.PAUSED = 2;
 C.LOADING = 3;
-C.ERROR = 4;
+C.RES_LOADING = 4;
+C.ERROR = 5;
 
 // public constants below are also appended to C object, but with `X_`-like prefix
 // to indicate their scope, see through all file
@@ -549,6 +552,7 @@ __reg_event('S_PLAY', 'play', 'play');
 __reg_event('S_PAUSE', 'pause', 'pause');
 __reg_event('S_STOP', 'stop', 'stop');
 __reg_event('S_LOAD', 'load', 'load');
+__reg_event('S_RES_LOAD', 'res_load', 'res_load');
 __reg_event('S_REPEAT', 'repeat', 'repeat');
 __reg_event('S_ERROR', 'error', 'error');
 
@@ -725,12 +729,24 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     player.state.happens = C.LOADING;
 
     var whenDone = function(result) {
+        var scene = player.anim;
         if (player.mode & C.M_HANDLE_EVENTS) {
-            player.__subscribeDynamicEvents(player.anim);
+            player.__subscribeDynamicEvents(scene);
         }
-        player.fire(C.S_LOAD, result);
-        player.stop();
-        if (callback) callback(result);
+        var remotes = scene._collectRemoteResources();
+        if (!remotes.length) {
+            player.fire(C.S_LOAD, result);
+            player.stop();
+            if (callback) callback(result);
+        } else {
+            player.state.happens = C.RES_LOADING;
+            player.fire(C.S_RES_LOAD, remotes);
+            _ResMan.subscribe(remotes, function() {
+                player.fire(C.S_LOAD, result);
+                player.stop();
+                if (callback) callback(result);
+            });
+        }
     };
 
     /* TODO: configure canvas using clips bounds */
@@ -909,7 +925,7 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-provideEvents(Player, [C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_LOAD, C.S_REPEAT, C.S_ERROR]);
+provideEvents(Player, [C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (__str(cvs)) {
         this.canvas = $doc.getElementById(cvs);
@@ -972,7 +988,7 @@ Player.prototype.forceRedraw = function() {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
-        case C.NOTHING: case C.LOADING: this._drawSplash(); break;
+        case C.NOTHING: case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
     }
 }
@@ -1456,8 +1472,8 @@ Player.createState = function(player) {
 Player._isPlayerEvent = function(type) {
     // TODO: make some marker to group types of events
     return ((type == C.S_PLAY) || (type == C.S_PAUSE) ||
-            (type == C.S_STOP) || (type == C.S_STOP) ||
-            (type == C.S_LOAD) || (type == C.S_REPEAT) ||
+            (type == C.S_STOP) || (type == C.S_REPEAT) ||
+            (type == C.S_LOAD) || (type == C.S_RES_LOAD) ||
             (type == C.S_ERROR));
 }
 function __attrOr(canvas, attr, _default) {
@@ -1560,8 +1576,8 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW,
                        // player events
-                       C.S_PLAY, C.S_PAUSE, C.S_STOP,
-                       C.S_LOAD, C.S_REPEAT, C.S_ERROR ]);
+                       C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
+                       C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 Scene.prototype.setDuration = function(val) {
   this.duration = (val >= 0) ? val : 0;
 }
@@ -1750,6 +1766,15 @@ Scene.prototype._unregister = function(elm) {
     elm.scene = null;
     //elm.parent = null;
 }
+Scene.prototype._collectRemoteResources = function() {
+    var remotes = [];
+    this.visitElems(function(elm) {
+        if (elm._hasRemoteResources()) {
+           remotes.concat(elm._getRemoteResources());
+        }
+    });
+    return remotes;
+}
 
 // Element
 // -----------------------------------------------------------------------------
@@ -1872,8 +1897,8 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_DRAW, C.X_START, C.X_STOP,
                          // player events
-                         C.S_PLAY, C.S_PAUSE, C.S_STOP,
-                         C.S_LOAD, C.S_REPEAT, C.S_ERROR ]);
+                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
+                         C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -2918,6 +2943,13 @@ Element.prototype.__resetState = function() {
     s._applied = false;
     s._appliedAt = null;
     s._matrix.reset();
+}
+Element.prototype._hasRemoteResources = function() {
+    if (this.xdata.sheet) return true;
+}
+Element.prototype._getRemoteResources = function() {
+    if (!this.xdata.sheet) return [];
+    return [ this.xdata.sheet.src ];
 }
 
 // base (initial) state of the element
@@ -4456,42 +4488,32 @@ function Sheet(src, callback, start_region) {
     this._cvs_cache = null;
     this.load(callback);
 }
-Sheet.cache = {};
 Sheet.prototype.load = function(callback) {
     if (this._image) throw new Error('Already loaded'); // just skip loading?
-    var cache = Sheet.cache;
     var me = this;
-    function whenDone(image) {
-        me._image = image;
-        // if (me.regions.length == 1) me._drawToCache();
-        me._dimen = [ image.width, image.height ];
-        me.ready = true;
-        me._drawToCache();
-        if (callback) callback.call(me, image);
-    }
-    var _cached = cache[this.src];
-    if (!_cached) {
-        var _img = new Image();
-        _img.onload = function() {
-            _img.__anm_ready = true;
-            _img.isReady = true; /* FIXME: use 'image.complete' and
-                                  '...' (network exist) combination,
-                                  'complete' fails on Firefox */
-            whenDone(_img);
-        };
-        cache[this.src] = _img;
-        try { _img.src = this.src; }
-        catch(e) { throw new SysErr('Image at ' + me.src + ' is not accessible'); }
-    } else {
-        if (_cached.__anm_ready) { // image is completely loaded into cache
-            whenDone(_cached);
-        } else { // image is in cache, but not loaded completely, add our listener to queue
-            // (what if we are those who wait, add _img.__anm_requester?)
-            // (but it should not happen if load is only called from constructor)
-            var cur_onload = _cached.onload;
-            _cached.onload = function() { whenDone(_cached); cur_onload(); }
-        }
-    }
+    _ResMan.loadOrGet(me.src,
+        function(onsuccess, onerror) { // loader
+            var _img = new Image();
+            _img.onload = function() {
+                _img.__anm_ready = true;
+                _img.isReady = true; /* FIXME: use 'image.complete' and
+                                      '...' (network exist) combination,
+                                      'complete' fails on Firefox */
+                onsuccess(_img);
+            };
+            _img.onerror = onerror;
+            try { _img.src = me.src; }
+            catch(e) { if (onerror) onerror(e);
+                       throw new SysErr('Image at ' + me.src + ' is not accessible'); }
+        },
+        function(image) {  // oncomplete
+            me._image = image;
+            // if (me.regions.length == 1) me._drawToCache();
+            me._dimen = [ image.width, image.height ];
+            me.ready = true;
+            me._drawToCache();
+            if (callback) callback.call(me, image);
+        });
 }
 Sheet.prototype._drawToCache = function() {
     if (!this.ready) return;
@@ -4752,7 +4774,7 @@ Controls.prototype.render = function(time) {
     } else if (_s === C.NOTHING) {
         Controls._drawBack(ctx, theme, _w, _h, ratio);
         Controls._drawNoScene(ctx, theme, _w, _h, ratio, this.focused);
-    } else if (_s === C.LOADING) {
+    } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         Controls._drawBack(ctx, theme, _w, _h, ratio);
         var isRemoteLoading = (player._loadTarget === C.LT_URL);
         Controls._drawLoading(ctx, theme, _w, _h, ratio,
@@ -4821,6 +4843,7 @@ Controls.prototype.handleMouseOut = function() {
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
+        (state.happens === C.RES_LOADING) ||
         (state.happens === C.ERROR)) {
         this.forceNextRedraw();
         this.render(state.time);
@@ -4889,6 +4912,7 @@ Controls.prototype.enable = function() {
     this.update(this.player.canvas);
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
+        (state.happens === C.RES_LOADING) ||
         (state.happens === C.ERROR)) {
       this.show();
       this.forceNextRedraw();
