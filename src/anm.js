@@ -130,26 +130,30 @@
     }
     ResourceManager.prototype.loadOrGet = function(url, loader, onComplete) {
         var me = this;
-        if (me._cache[url]) {
+        if (me._cache[url] || me._errors[url]) {
             var result = me._cache[url];
             me.trigger(url, result);
             onComplete(result);
         } else {
             me._waiting[url] = loader;
             loader(function(result) {
-                delete me._waiting[url];
                 me.trigger(url, result);
                 onComplete(result);
             }, function(err) {
-                delete me._waiting[url];
-                me._errors[url] = err;
-                me.check();
+                me.error(url, err);
             });
         }
     }
     ResourceManager.prototype.trigger = function(url, value) {
-        //if (this._cache[url]) warn that trigger
+        if (this._cache[url] || this._errors[url]) { this.check(); return; }
+        delete this._waiting[url];
         this._cache[url] = value;
+        this.check();
+    }
+    ResourceManager.prototype.error = function(url, err) {
+        if (this._cache[url] || this._errors[url]) { this.check(); return; }
+        delete this._waiting[url];
+        this._errors[url] = err;
         this.check();
     }
     ResourceManager.prototype.has = function(url) {
