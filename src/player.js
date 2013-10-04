@@ -741,11 +741,11 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         } else {
             player.state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
-            _ResMan.subscribe(remotes, function() {
+            _ResMan.subscribe(remotes, [ function() {
                 player.fire(C.S_LOAD, result);
                 player.stop();
                 if (callback) callback(result);
-            });
+            } ]);
         }
     };
 
@@ -1770,7 +1770,7 @@ Scene.prototype._collectRemoteResources = function() {
     var remotes = [];
     this.visitElems(function(elm) {
         if (elm._hasRemoteResources()) {
-           remotes.concat(elm._getRemoteResources());
+           remotes = remotes.concat(elm._getRemoteResources());
         }
     });
     return remotes;
@@ -2948,7 +2948,7 @@ Element.prototype._hasRemoteResources = function() {
     if (this.xdata.sheet) return true;
 }
 Element.prototype._getRemoteResources = function() {
-    if (!this.xdata.sheet) return [];
+    if (!this.xdata.sheet) return null;
     return [ this.xdata.sheet.src ];
 }
 

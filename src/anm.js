@@ -28,6 +28,7 @@
     if (!_GLOBAL_[PRIVATE_CONF]) {
         _GLOBAL_[PRIVATE_CONF] = {
             logImport: false,
+            logResMan: false,
             forceWindowScope: false
         }
     }
@@ -112,10 +113,20 @@
 
     function ResourceManager() {
         this._cache = {};
+        this._errors = {};
+        this._waiting = {};
         this._subscriptions = [];
     }
     ResourceManager.prototype.subscribe = function(urls, callbacks) {
-        this._subscriptions.push([urls, callbacks]);
+        var filteredUrls = [];
+        for (var i = 0; i < urls.length; i++){
+            // there should not be empty urls
+            if (urls[i]) filteredUrls.push(urls[i]);
+        }
+
+        this._subscriptions.push([ filteredUrls,
+                                   Array.isArray(callbacks) ? callbacks : [ callbacks ] ]);
+        this.check();
     }
     ResourceManager.prototype.loadOrGet = function(url, loader, onComplete) {
         var me = this;
@@ -124,10 +135,16 @@
             me.trigger(url, result);
             onComplete(result);
         } else {
+            me._waiting[url] = loader;
             loader(function(result) {
+                delete me._waiting[url];
                 me.trigger(url, result);
                 onComplete(result);
-            }/*, TODO: onerror */);
+            }, function(err) {
+                delete me._waiting[url];
+                me._errors[url] = err;
+                me.check();
+            });
         }
     }
     ResourceManager.prototype.trigger = function(url, value) {
@@ -143,13 +160,15 @@
     // as complete
     ResourceManager.prototype.check = function() {
         var subscriptions = this._subscriptions,
-            cache = this._cache;
+            cache = this._cache,
+            errors = this._errors;
         for (var i = 0, il = subscriptions.length; i < il; i++) {
             var urls = subscriptions[i][0],
                 callbacks = subscriptions[i][1],
                 ready = [];
             for (var u = 0, ul = urls.length; u < ul; u++) {
-                if (cache[urls[u]]) ready.push(cache[urls[u]]);
+                var request_result = cache[urls[u]] || errors[urls[u]];
+                if (request_result) ready.push(request_result);
             };
              // `ready` is equal to the number of `urls` means all resources for this callbacks are ready
             if (ready.length === urls.length) {
@@ -161,6 +180,8 @@
     }
     ResourceManager.prototype.clear = function() {
         this._cache = {};
+        this._errors = {};
+        this._waiting = {};
         this._subscriptions = [];
     }
 
@@ -180,6 +201,10 @@
     };
 
     // FIXME: store pixel ratio here
+
+    // FIXME: move typechecks/utils here
+
+    // FIXME: create PlayerManager here
 
     // FIXME: support Engines (DOM/NodeJS/...) from this point
 

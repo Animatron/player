@@ -35,6 +35,14 @@ describe("resource manager", function() {
         // TODO
     });
 
+    xit("triggers callbacks if all remote resources were already loaded before the call to load", function() {
+        // TODO
+    });
+
+    xit("stores waiting / errors / cache queues properly", function() {
+        // TODO
+    });
+
     describe("inside the player", function() {
 
         xit("if there are no remote resources, LOAD event should be fired immediately", function() {
