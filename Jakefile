@@ -475,7 +475,7 @@ task('rm-version', { async: true }, function(param) {
 
     if (!src_v) { _print(FAILED_MARKER); throw new Error('Target version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
     if (!dst_v) { _print(FAILED_MARKER); throw new Error('Fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
-    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is already a current version (' + VERSION + ').'); }
+    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is a current version (' + VERSION + '), should be some of the previous ones.'); }
 
     var _vhash = _versions.read();
 
@@ -505,7 +505,7 @@ task('rm-version', { async: true }, function(param) {
 
         _vhash[src_v] = null;
         delete _vhash[src_v];
-        _vhash['latest'] = _dst_v;
+        _vhash['latest'] = dst_v;
 
         _print('Removing ' + src_v + ' information from ' + VERSIONS_FILE + ' file.\n');
 

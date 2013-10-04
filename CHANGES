@@ -1,3 +1,30 @@
+v0.9.1501 / Fri Oct 04 2013 18:35:07 +0200 / 21a949ac105336bde8e65322c9fd0789b5580b72
+=====================================================================================
+
+Implemented a remote resource manager (`__anm.resource_manager`), which:
+
+* Allows to subscribe with any number of callbacks to any number of resources and they'll be called when each of these resources was either loaded or failed to load.
+* Stores the cache of all requested resources among with waiting and errors queue
+* Do not loads any resource with it's own code, just requires a loader function.
+
+Integrated it to `Sheet` class and `audio.js` module.
+
+Also:
+
+* New `RES_LOADING` state for the player
+* New `RES_LOAD` event for the player which fires when player started to load resources
+* `LOAD` is now fired only when all remote resources (if there were any) were loaded or failed
+
+How to use:
+
+* Get `__anm.resource_manager` instance
+* When you need to load a resource, call `.loadOrGet` method of resource manager with:
+    * URL of the resource
+    * Loader function (it will not be called if resource is already in the cache) which gets `onsuccess` and `onerror` callbacks as arguments and should call them in the corresponding situation (like deferred AJAX call)
+    * Callback function which gets the resource value when it was successfully loaded
+* To listen for specific resources to complete loading, call `.subscribe` method with array of required URLs and a callback (or array of callbacks) to be called when these resources are loaded or failed to load (or some loaded and some failed)
+* If you have a local static resource and some subscriber to it's URL, just call `.trigger` method with URL and it's resource to force resource manager to notify subscribers for this resource. If it failed to load, call `.error` method with URL and error instance
+
 v0.9.15 / Tue Sep 24 2013 23:51:17 +0200 / bcc07e7ef99c3a06ec79ba1817f112777f92e093
 ===================================================================================
 
