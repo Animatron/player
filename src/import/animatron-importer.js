@@ -25,13 +25,18 @@ var C = anm.C,
     is = anm._typecheck;
     //test = anm._valcheck
 
+function _reportError(e) {
+    if (console) console.error(e);
+    throw e; // FIXME: skip errors that not affect playing ability
+}
+
 var Import = {};
 
 // -> Array[?]
 Import._find = function(idx, src) {
     var res = src[idx];
-    if (!res) throw new Error('Element with index ' + idx + ' was not found'
-                              + (src ? ' among ' + src.length + ' elements.' : '.') );
+    if (!res) _reportError('Element with index ' + idx + ' was not found'
+                           + (src ? ' among ' + src.length + ' elements.' : '.') );
     return src[idx];
 }
 // -> Integer
@@ -52,13 +57,38 @@ Import.project = function(prj) {
     if (console && (typeof __anm_conf !== 'undefined') && __anm_conf.logImport) console.log(prj);
     if (typeof __anm !== 'undefined') __anm.lastImportedProject = prj;
     var scenes_ids = prj.anim.scenes;
-    if (!scenes_ids.length) throw new Error('No scenes found in given project');
+    if (!scenes_ids.length) _reportError('No scenes found in given project');
     var root = new Scene(),
-        elems = prj.anim.elements;
+        elems = prj.anim.elements,
+        last_scene_band = [ 0, 0 ];
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
-        if (Import._type(node_src) != TYPE_SCENE) throw new Error('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        root.add(Import.node(node_src, elems));
+        if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
+        var node_res = Import.node(node_src, elems);
+        if (i > 0) { // start from second scene, if there is one
+            // FIXME: smells like a hack
+            // correct the band of the next scene to follow the previous scene
+            // gband[1] contains the duration of the scene there, while gband[0] contains 0
+            // (see SCENE type handling in Import.node)
+            // TODO: fix it with proper native scenes when they will be supported in player
+            var gband_before = node_res.xdata.gband;
+            node_res.xdata.gband = [ last_scene_band[1] + gband_before[0],
+                                     last_scene_band[1] + gband_before[1] ];
+            // local band is equal to global band on top level
+            node_res.xdata.lband = node_res.xdata.lband;
+            node_res.travelChildren(function(elm) {
+                var e_gband_before = elm.xdata.gband;
+                elm.xdata.gband = [ last_scene_band[1] + e_gband_before[0],
+                                    last_scene_band[1] + e_gband_before[1] ];
+                if (elm.parent === node_res) {
+                    var e_lband_before = elm.xdata.lband;
+                    elm.xdata.lband = [ last_scene_band[1] + e_lband_before[0],
+                                        last_scene_band[1] + e_lband_before[1] ]
+                }
+            });
+        }
+        last_scene_band = node_res.xdata.gband;
+        root.add(node_res);
     }
     if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
     if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
@@ -146,10 +176,17 @@ var L_ROT_TO_PATH = 1,
 /** branch (clip) **/
 /*
  * array {
- *     number;                     // 0, type: 1 for clip, 2 for scene, 9 for group
+ *     number;                     // 0, type: 1 for clip, 9 for group
  *     string;                     // 1, name
  *     array [ *layer* ];          // 2, layers
- * } *clip_element*;
+ * } *group_element*, *clip_element*;
+ *
+ * array {
+ *     2;                          // 0, type: scene
+ *     string;                     // 1, name
+ *     number;                     // 2, duration
+ *     array [ *layer* ];          // 3, layers
+ * } *group_element*;
  */
 // -> Element
 Import.branch = function(type, src, all) {
@@ -252,8 +289,8 @@ Import.branch = function(type, src, all) {
                 togo = lsrc[3], // layers below to apply mask
                 targets_n = _layers_targets.length;
             if (togo > targets_n) {
-                throw new Error('No layers collected to apply mask, expected ' + togo
-                                + ', got ' + targets_n);
+                _reportError('No layers collected to apply mask, expected ' + togo
+                             + ', got ' + targets_n);
             };
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
@@ -283,7 +320,7 @@ Import.band = function(src) {
     if (!src || !src.length) return [ 0, Infinity ];
     if (src.length == 1) return [ src[0], Infinity ];
     if (src.length == 2) return src;
-    throw new Error('Unknown format of band: ' + src);
+    _reportError('Unknown format of band: ' + src);
 }
 /** path (shape) **/
 /*
@@ -482,7 +519,7 @@ Import.brush = function(src) {
         return { color: src };
     } else if (is.arr(src)) {
         return Import.grad(src);
-    } else throw new Error('Unknown type of brush');
+    } else _reportError('Unknown type of brush');
 }
 /** fill **/
 Import.fill = Import.brush;
@@ -562,7 +599,7 @@ Import.grad = function(src) {
         colors = src[1],
         offsets = src[2];
     if (colors.length != offsets.length) {
-        throw new Error('Number of colors do not corresponds to number of offsets in gradient');
+        _reportError('Number of colors do not corresponds to number of offsets in gradient');
     }
     var stops = [];
     for (var i = 0; i < offsets.length; i++) {
@@ -580,7 +617,7 @@ Import.grad = function(src) {
             stops: stops
         } };
     } else {
-        throw new Error('Unknown type of graient with ' + pts.length + ' points');
+        _reportError('Unknown type of graient with ' + pts.length + ' points');
     }
 }
 /** pathval **/
