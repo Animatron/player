@@ -1,3 +1,15 @@
+v0.9.1502 / Mon Oct 07 2013 23:24:02 +0200 / 64c27db2a732570a57e59119b3d3f74fae616455
+=====================================================================================
+
+Convert Animatron sequential scenes to elements with bands shifted by required amount of time.
+
+Also:
+
+- `go` page improvements
+- `favicon` for internal pages
+
+
+
 v0.9.1501 / Fri Oct 04 2013 18:35:07 +0200 / 21a949ac105336bde8e65322c9fd0789b5580b72
 =====================================================================================
 
@@ -25,6 +37,8 @@ How to use:
 * To listen for specific resources to complete loading, call `.subscribe` method with array of required URLs and a callback (or array of callbacks) to be called when these resources are loaded or failed to load (or some loaded and some failed)
 * If you have a local static resource and some subscriber to it's URL, just call `.trigger` method with URL and it's resource to force resource manager to notify subscribers for this resource. If it failed to load, call `.error` method with URL and error instance
 
+
+
 v0.9.15 / Tue Sep 24 2013 23:51:17 +0200 / bcc07e7ef99c3a06ec79ba1817f112777f92e093
 ===================================================================================
 
@@ -38,6 +52,8 @@ Among with that:
 * Now we know how to draw the Animatron Guy (on cached canvas)
 * Improved test mocks and tests themselves
 
+
+
 v0.9.1405 / Fri Sep 20 2013 00:00:07 +0200 / e9a3fd85b47238c40af794dc88ff398fc6e26270
 =====================================================================================
 
@@ -45,6 +61,8 @@ Fixes:
 
 * Swap two importers back, the compact-format importer is now in `animatron.js` bundle and is named `AnimatronImporter` (was in `animatron-publish.js` bundle and was named `AnimatronPublishImporter`), and the full-format importer is `AnimatronIntactImporter` and lays in `animatron-intact.js` bundle. It affects several files, including `go` page.
 * Add handling player PAUSE event in audio module
+
+
 
 v0.9.1404 / Thu Sep 12 2013 19:12:03 +0200 / 2b6d558f29d9c6328999e880c868a62f97f6fea8
 =====================================================================================
@@ -64,6 +82,8 @@ Fixes for the Compact a.k.a. Publish importer and to the `go` page:
 * Properly imports bands
 * Supports element ID to be the first element of a layer's description array
 * Properly tests end-mode for null
+
+
 
 v0.9.1403 / Wed Aug 28 2013 12:05:15 -0700 / 84bf790ab3408ec9356d96e972c924be57bd3b56
 =====================================================================================
@@ -88,6 +108,8 @@ Still not fixed:
 * End modes for clips are not stable, so not fixing
 * Importing partial scenes
 
+
+
 v0.9.1402 / Wed Aug 14 2013 19:57:00 +0200 / 583039ea2af4a409bd7c06ba373d8ab7a1d7ab59
 =====================================================================================
 
@@ -98,6 +120,8 @@ Fixes:
 Features:
 
 * Adds the `animatron-publish` imported and `animatron-publish` bundle, they provide support of new minimized format from Editor
+
+
 
 v0.9.1401 / Thu Aug 08 2013 03:29:03 +0200 / 3f2468a1312c1f382d9a79527cfdd858a9858ce5
 =====================================================================================
@@ -110,6 +134,8 @@ Fixes:
 
 * Animatron Importer now understands passes loop mode to the children to fix current difference with editor
 * Animatron Importer now correctly applies global bands to groups imported from editor
+
+
 
 v0.9.14 / Fri Jul 26 2013 14:18:06 +0200 / 09f66d20225dee4ac861947bb45d61e34dbd25fd
 ===================================================================================
@@ -126,6 +152,8 @@ Fixes:
 * Sevearal more importing fixes
 * Rendering numbers for text (by @ahollenbach)
 
+
+
 v0.9.13 / Fri Jul 19 2013 14:10:43 +0200 / e9c5025e17afb435481414d5f0435cb430289299
 ===================================================================================
 
@@ -139,12 +167,16 @@ Fixes:
 * Calculate internal time for children
 * Do not show invisible elements
 
+
+
 v0.9.122 / Tue Jul 02 2013 01:19:41 +0200 / 9287bed0629f395268cc8dd98c1fba86d44228fc
 ====================================================================================
 
 Fixes:
 
 * Snapshot path in 'go' page
+
+
 
 v0.9.121 / Tue Jul 02 2013 00:10:29 +0200 / ab040726b8228cb2e0e0a06b7b865cd0bca17057
 ====================================================================================
@@ -154,6 +186,8 @@ Fixes:
 * Allows to re-add modifiers that were removed before
 * Both old and new 'end' properties for clips, imported from Animatron, now default to C.ONCE instead of C.STAY
 
+
+
 v0.9.12 / Mon May 27 11:00:59 2013 -0700 / 024740e3c19ac8566e44a0fd2131b6291ce1d93a
 ===================================================================================
 
@@ -162,10 +196,12 @@ v0.9.12 / Mon May 27 11:00:59 2013 -0700 / 024740e3c19ac8566e44a0fd2131b6291ce1d
 Last PR #93: "Versioning"
 
 
+
 v0.9.11 / Mon May 27 19:06:52 2013 +0200 / ac0e027ac95666dbb5ec4e90990ecebd4f421744
 ===================================================================================
 
 This version includes almost complete implementation of versioning, but is required to be done before v0.9.12, to test versions mechanics before merging.
+
 
 
 v0.9.1 / Mon May 20 23:24:52 2013 +0200 / 216a5f011e05fb83e3517a4dade022f1d9739a0a
@@ -189,6 +225,7 @@ Includes:
 * Building with Jake and Bundles
 
 Last PR #92: "STAY is default mode for importing from Animatron"
+
 
 
 v0.9 / Sun Mar 3 17:10:17 2013 -0800 / 5f9f4149a372ac4b16236880c3da795db98f2098
@@ -348,4 +385,5 @@ v0.21 / Tue Apr 10 18:47:08 2012 +0300 / 64b58e1d4e2f081358d7faaa50559fd3876c721
 =================================================================================
 
 zoom in options + fix accidentally changed order of tweens applying
+
 
