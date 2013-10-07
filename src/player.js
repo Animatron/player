@@ -1526,7 +1526,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
                        'bgcolor': { color: params.bg ? "#" + params.bg : null },
                        'duration': undefined } };
 }
-Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
+Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
     var urlWithParams = snapshotUrl.split('?'),
         snapshotUrl = urlWithParams[0],
         urlParams = urlWithParams[1], // TODO: validate them?
@@ -1544,6 +1544,7 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer) {
             player._reconfigureCanvas({ width: params.w, height: params.h });
         }
         if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
+        if (callback) callback();
     }
 
     player.load(snapshotUrl, importer, updateWithParams);
