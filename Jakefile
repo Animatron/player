@@ -637,14 +637,24 @@ task('push-go', [], { async: true }, function(_bucket) {
 
     s3.setBucket(trg_bucket);
 
-    var GO_FILE_NAME = 'go';
+    var GO_LOCAL_PATH = _loc('go'),
+        GO_REMOTE_PATH = '/go';
+    var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
+        FAVICON_REMOTE_PATH = '/favicon.ico';
 
-    s3.putFile('/go', _loc(GO_FILE_NAME), 'public-read', { 'content-type': 'text/html' }, function(err, res) {
+    s3.putFile(GO_REMOTE_PATH, GO_LOCAL_PATH, 'public-read', { 'content-type': 'text/html' }, function(err, res) {
 
         if (err) { _print(FAILED_MARKER); throw err; }
-        _print(_loc(GO_FILE_NAME) + ' -> s3 as /go');
+        _print(GO_LOCAL_PATH + ' -> s3 as ' + GO_REMOTE_PATH);
 
-        complete();
+        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
+
+            if (err) { _print(FAILED_MARKER); throw err; }
+            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
+
+            complete();
+
+        });
 
     });
 
