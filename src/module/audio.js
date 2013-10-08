@@ -126,7 +126,6 @@
       function(audio) {  // oncomplete
           me._audio = audio;
           me._audio_is_loaded = true;
-          if (callback) callback.call(me, audio);
       });
 
   };

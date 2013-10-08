@@ -97,6 +97,12 @@ var __stopAnim = function(requestId) {
     __clearFrameFunc()(requestId);
 };
 
+// ### Events
+/* ---------- */
+
+var provideEvents = __anm.provideEvents;
+var registerEvent = __anm.registerEvent;
+
 // ### Errors
 /* ---------- */
 
@@ -445,9 +451,10 @@ function __t_cmp(t0, t1) {
 // Constants
 // -----------------------------------------------------------------------------
 
-var _ResMan = __anm.resource_manager;
+var C = __anm.C; // will be transferred to public namespace both from bottom of player.js
 
-var C = {};
+var _ResMan = __anm.resource_manager;
+var _PlrMan = __anm.player_manager;
 
 // ### Player states
 /* ----------------- */
@@ -505,56 +512,49 @@ C.LT_URL = 5;
 // ### Events
 /* ---------- */
 
-C.__enmap = {};
-
-function __reg_event(id, name, value) {
-    C[id] = value;
-    C.__enmap[value] = name;
-}
-
 // NB: All of the events must have different values, or the flow will be broken
 // FIXME: allow grouping events, i.e. value may a group_marker + name of an event
 //        also, allow events to belong to several groups, it may replace a tests like
 //        XT_MOUSE or XT_CONTROL or isPlayerEvent
 
 // * mouse
-__reg_event('X_MCLICK', 'mclick', 1);
-__reg_event('X_MDCLICK', 'mdclick', 2);
-__reg_event('X_MUP', 'mup', 4);
-__reg_event('X_MDOWN', 'mdown', 8);
-__reg_event('X_MMOVE', 'mmove', 16);
-__reg_event('X_MOVER', 'mover', 32);
-__reg_event('X_MOUT', 'mout', 64);
+registerEvent('X_MCLICK', 'mclick', 1);
+registerEvent('X_MDCLICK', 'mdclick', 2);
+registerEvent('X_MUP', 'mup', 4);
+registerEvent('X_MDOWN', 'mdown', 8);
+registerEvent('X_MMOVE', 'mmove', 16);
+registerEvent('X_MOVER', 'mover', 32);
+registerEvent('X_MOUT', 'mout', 64);
 
-__reg_event('XT_MOUSE', 'mouse',
+registerEvent('XT_MOUSE', 'mouse',
   (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
 
 // * keyboard
-__reg_event('X_KPRESS', 'kpress', 128);
-__reg_event('X_KUP', 'kup', 256);
-__reg_event('X_KDOWN', 'kdown', 1024);
+registerEvent('X_KPRESS', 'kpress', 128);
+registerEvent('X_KUP', 'kup', 256);
+registerEvent('X_KDOWN', 'kdown', 1024);
 
-__reg_event('XT_KEYBOARD', 'keyboard',
+registerEvent('XT_KEYBOARD', 'keyboard',
   (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
 
 // * controllers
-__reg_event('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
+registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
 // * draw
-__reg_event('X_DRAW', 'draw', 'draw');
+registerEvent('X_DRAW', 'draw', 'draw');
 
 // * bands
-__reg_event('X_START', 'start', 'x_start');
-__reg_event('X_STOP', 'stop', 'x_stop');
+registerEvent('X_START', 'start', 'x_start');
+registerEvent('X_STOP', 'stop', 'x_stop');
 
 // * playing (player state)
-__reg_event('S_PLAY', 'play', 'play');
-__reg_event('S_PAUSE', 'pause', 'pause');
-__reg_event('S_STOP', 'stop', 'stop');
-__reg_event('S_LOAD', 'load', 'load');
-__reg_event('S_RES_LOAD', 'res_load', 'res_load');
-__reg_event('S_REPEAT', 'repeat', 'repeat');
-__reg_event('S_ERROR', 'error', 'error');
+registerEvent('S_PLAY', 'play', 'play');
+registerEvent('S_PAUSE', 'pause', 'pause');
+registerEvent('S_STOP', 'stop', 'stop');
+registerEvent('S_LOAD', 'load', 'load');
+registerEvent('S_RES_LOAD', 'res_load', 'res_load');
+registerEvent('S_REPEAT', 'repeat', 'repeat');
+registerEvent('S_ERROR', 'error', 'error');
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
@@ -620,19 +620,6 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'duration': 0 }
                                };
 
-Player.__instance_listeners = [];
-
-Player.fireNewInstance = function(instance) {
-  for (var i = 0, il = Player.__instance_listeners.length;
-       i < il; i++) {
-    Player.__instance_listeners[i].call(instance);
-  }
-};
-
-Player.addNewInstanceListener = function(handler) {
-  Player.__instance_listeners.push(handler);
-};
-
 // ### Playing Control API
 /* ----------------------- */
 
@@ -678,7 +665,7 @@ Player.prototype.init = function(cvs, opts) {
     this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
-    Player.fireNewInstance(this);
+    _PlrMan.fire(C.S_NEW_PLAYER, this);
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
@@ -1085,6 +1072,7 @@ Player.prototype.detach = function() {
     if (this.controls) this.controls.detach(this.canvas);
     this.canvas.removeAttribute(Player.MARKER_ATTR);
     this._reset();
+    _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
 Player.attachedTo = function(canvas) {
     return (canvas.getAttribute(Player.MARKER_ATTR) == null) ||
@@ -3082,83 +3070,6 @@ var Clip = Element;
 
 // Events
 // -----------------------------------------------------------------------------
-
-// adds specified events support to the `subj` object. `subj` object receives
-// `handlers` property that keeps the listeners for each event. Also, it gets
-// `e_<evt_name>` function for every event provided to call it when it is
-// required to call all handlers of all of thise event name
-// (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
-// `subj` can define `handle_<evt_name>` function to handle concrete event itself,
-// but without messing with other handlers.
-// And, user gets `on` function to subcribe to events and `provides` to check
-// if it is allowed.
-function provideEvents(subj, events) {
-    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
-        return function() {
-            var _hdls = {};
-            this.handlers = _hdls;
-            for (var ei = 0, el = evts.length; ei < el; ei++) {
-                _hdls[evts[ei]] = [];
-            }
-        };
-    })(events);
-    subj.prototype.on = function(event, handler) {
-        if (!this.provides(event)) throw new AnimErr('Event \'' + C.__enmap[event] +
-                                                     '\' not provided by ' + this);
-        if (!handler) throw new AnimErr('You are trying to assign ' +
-                                        'undefined handler for event ' + event);
-        this.handlers[event].push(handler);
-        return (this.handlers[event].length - 1);
-    };
-    subj.prototype.fire = function(event/*, args*/) {
-        if (!this.provides(event)) throw new AnimErr('Event \'' + C.__enmap[event] +
-                                                     '\' not provided by ' + this);
-        if (this.disabled) return;
-        var evt_args = Array.prototype.slice.call(arguments, 1);
-        if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
-        var name = C.__enmap[event];
-        if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
-        var _hdls = this.handlers[event];
-        for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-            _hdls[hi].apply(this, evt_args);
-        }
-    };
-    subj.prototype.provides = (function(evts) {
-        return function(event) {
-            if (!event) return evts;
-            return this.handlers.hasOwnProperty(event);
-        }
-    })(events);
-    subj.prototype.unbind = function(event, idx) {
-        if (!this.provides(event)) throw new AnimErr('Event ' + event +
-                                                     ' not provided by ' + this);
-        if (this.handlers[event][idx]) {
-            this.handlers[event].splice(idx, 1);
-        } else {
-            throw new AnimErr('No such handler ' + idx + ' for event ' + event);
-        }
-    };
-    subj.prototype.disposeHandlers = function() {
-        var _hdls = this.handlers;
-        for (var evt in _hdls) {
-            if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
-        }
-    }
-    /* FIXME: call fire/e_-funcs only from inside of their providers, */
-    /* TODO: wrap them with event objects */
-    var _event;
-    for (var ei = 0, el = events.length; ei < el; ei++) {
-        _event = events[ei];
-        subj.prototype['e_'+_event] = (function(event) {
-            return function(evtobj) {
-                this.fire(event, evtobj);
-            };
-        })(_event);
-    }
-    /* subj.prototype.before = function(event, handler) { } */
-    /* subj.prototype.after = function(event, handler) { } */
-    /* subj.prototype.provide = function(event, provider) { } */
-}
 
 function kevt(e) {
     return { key: ((e.keyCode != null) ? e.keyCode : e.which),

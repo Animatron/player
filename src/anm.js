@@ -7,9 +7,9 @@
  * @VERSION
  */
 
-// HERE SHOULD GO THE INITIALISATION OF ANM NAMESPACE WITH HELPERS AND GLOBALS
+// HERE GOES THE INITIALISATION OF ANM NAMESPACE, GLOBALS AND GLOBAL HELPERS
 
-(function() {
+(function(GLOBAL) {
 
     var PRIVATE_NAMESPACE = '__anm',
         PRIVATE_CONF = '__anm_conf',
@@ -35,6 +35,9 @@
     var _conf = _GLOBAL_[PRIVATE_CONF];
 
     var foo = {};
+
+    // Namespace management
+    // -----------------------------------------------------------------------------
 
     // TODO: Later, player should be placed in anm.Player and
     //              builder should be placed in anm.Builder
@@ -110,6 +113,110 @@
             prev.apply(this, arguments);
         };
     } */
+
+    // Constants
+    // -----------------------------------------------------------------------------
+
+    //_GLOBAL_[PUBLIC_NAMESPACE].C = {};
+    //_GLOBAL_[PUBLIC_NAMESPACE].C;
+    var C = {};
+
+    // Events
+    // -----------------------------------------------------------------------------
+
+    C.__enmap = {};
+
+    function registerEvent(id, name, value) {
+        C[id] = value;
+        C.__enmap[value] = name;
+    }
+
+    // FIXME: all errors below were AnimErr instances
+
+    // adds specified events support to the `subj` object. `subj` object receives
+    // `handlers` property that keeps the listeners for each event. Also, it gets
+    // `e_<evt_name>` function for every event provided to call it when it is
+    // required to call all handlers of all of thise event name
+    // (`fire('<evt_name>', ...)` is the same but can not be reassigned by user).
+    // `subj` can define `handle_<evt_name>` function to handle concrete event itself,
+    // but without messing with other handlers.
+    // And, user gets `on` function to subcribe to events and `provides` to check
+    // if it is allowed.
+    function provideEvents(subj, events) {
+        subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
+            return function() {
+                var _hdls = {};
+                this.handlers = _hdls;
+                for (var ei = 0, el = evts.length; ei < el; ei++) {
+                    _hdls[evts[ei]] = [];
+                }
+            };
+        })(events);
+        subj.prototype.on = function(event, handler) {
+            if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
+                                                         '\' not provided by ' + this);
+            if (!handler) throw new Error('You are trying to assign ' +
+                                            'undefined handler for event ' + event);
+            this.handlers[event].push(handler);
+            return (this.handlers[event].length - 1);
+        };
+        subj.prototype.fire = function(event/*, args*/) {
+            if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
+                                                         '\' not provided by ' + this);
+            if (this.disabled) return;
+            var evt_args = Array.prototype.slice.call(arguments, 1);
+            if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
+            var name = C.__enmap[event];
+            if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
+            var _hdls = this.handlers[event];
+            for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
+                _hdls[hi].apply(this, evt_args);
+            }
+        };
+        subj.prototype.provides = (function(evts) {
+            return function(event) {
+                if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+                if (!event) return evts;
+                return this.handlers.hasOwnProperty(event);
+            }
+        })(events);
+        subj.prototype.unbind = function(event, idx) {
+            if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            if (!this.provides(event)) throw new Error('Event ' + event +
+                                                         ' not provided by ' + this);
+            if (this.handlers[event][idx]) {
+                this.handlers[event].splice(idx, 1);
+            } else {
+                throw new Error('No such handler ' + idx + ' for event ' + event);
+            }
+        };
+        subj.prototype.disposeHandlers = function() {
+            if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            var _hdls = this.handlers;
+            for (var evt in _hdls) {
+                if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
+            }
+        }
+        /* FIXME: call fire/e_-funcs only from inside of their providers, */
+        /* TODO: wrap them with event objects */
+        var _event;
+        for (var ei = 0, el = events.length; ei < el; ei++) {
+            _event = events[ei];
+            subj.prototype['e_'+_event] = (function(event) {
+                return function(evtobj) {
+                    this.fire(event, evtobj);
+                };
+            })(_event);
+        }
+        /* subj.prototype.before = function(event, handler) { } */
+        /* subj.prototype.after = function(event, handler) { } */
+        /* subj.prototype.provide = function(event, provider) { } */
+    }
+
+    // Resource manager
+    // -----------------------------------------------------------------------------
 
     function ResourceManager() {
         this._cache = {};
@@ -189,27 +296,58 @@
         this._subscriptions = [];
     }
 
+    // Player manager
+    // -----------------------------------------------------------------------------
+
+    registerEvent('S_NEW_PLAYER', 'new_player', 'new_player');
+    registerEvent('S_PLAYER_DETACH', 'player_detach', 'player_detach');
+
+    var PlayerManager = function() {
+        this.hash = {};
+        this.instances = [];
+        this._initHandlers();
+    }
+    provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
+    PlayerManager.prototype.handle__x = function(evt, player) {
+        if (evt == C.S_NEW_PLAYER) {
+            this.hash[player.id] = player;
+            this.instances.push(player);
+        } else if (evt == C.S_PLAYER_DETACH) {
+            // do nothing
+        }
+    }
+    PlayerManager.prototype.getPlayer = function(cvs_id) {
+        return this.hash[cvs_id];
+    }
+
+    // Export
+    // -----------------------------------------------------------------------------
+
     // an object to store private functions inside
     // window.__anm || GLOBAL.__anm
     _GLOBAL_[PRIVATE_NAMESPACE] = {
         global: _GLOBAL_,
         'undefined': foo.___undefined___,
+        'C': C,
         conf: _conf,
         namespace: PUBLIC_NAMESPACE,
         registerPlayer: registerPlayer,
         registerUsingAnm: registerUsingAnm,
-        resource_manager: new ResourceManager()
+        provideEvents: provideEvents,
+        registerEvent: registerEvent,
+        resource_manager: new ResourceManager(),
+        player_manager: new PlayerManager()
         //override: override,
         //overridePrepended: overridePrepended
         // TODO: player instances listeners (look Player.addNewInstanceListener)
     };
 
+    // FIXME: Errors system shoud be moved here
+
     // FIXME: store pixel ratio here
 
     // FIXME: move typechecks/utils here
 
-    // FIXME: create PlayerManager here
-
     // FIXME: support Engines (DOM/NodeJS/...) from this point
 
-})();
+})(this);
