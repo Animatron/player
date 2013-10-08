@@ -1,3 +1,25 @@
+v0.9.1503 / Tue Oct 08 2013 21:46:11 +0200 / 91e9d06993f83f6c7c85dc7dea07618ba156ea9b
+=====================================================================================
+
+* Audio buffering and fixes for audio module by @alexeypegov
+* Player instances manager, to ease debugging (accessible from `__anm.player_manager`)
+* Moved registering/providing/handling events code to `anm.js`
+
+Usage:
+
+    var player_manager = __anm.player_manager;
+    player_manager.on(C.S_NEW_PLAYER, function(player) {
+        // handling new player
+    });
+    player_manager.on(C.S_PLAYER_DETACH, function(player) {
+        // handling detached player
+    });
+    var my_player_1 = player_manager.getPlayer('my-canvas-1');
+    console.log(player_manager.hash);
+    console.log(player_manager.instances);
+
+
+
 v0.9.1502 / Mon Oct 07 2013 23:24:02 +0200 / 64c27db2a732570a57e59119b3d3f74fae616455
 =====================================================================================
 
@@ -132,7 +154,7 @@ Features:
 
 Fixes:
 
-* Animatron Importer now understands passes loop mode to the children to fix current difference with editor
+* Animatron Importer now properly passes loop mode to the children to fix current difference with editor
 * Animatron Importer now correctly applies global bands to groups imported from editor
 
 
