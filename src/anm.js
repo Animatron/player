@@ -315,6 +315,7 @@
         } else if (evt == C.S_PLAYER_DETACH) {
             // do nothing
         }
+        return true;
     }
     PlayerManager.prototype.getPlayer = function(cvs_id) {
         return this.hash[cvs_id];
