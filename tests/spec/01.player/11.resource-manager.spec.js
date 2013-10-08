@@ -7,14 +7,14 @@
 
 xdescribe("resource manager", function() {
 
-    beforeEach(function() {
+    /* beforeEach(function() {
         this.addMatchers(_matchers.calls);
 
         _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         //_fg = _FrameGen.spawn().run(FPS);
-    });
+    }); */
 
     //afterEach(function() { _fg.stop().destroy(); });
 
@@ -22,8 +22,8 @@ xdescribe("resource manager", function() {
         // TODO
     });
 
-    xit("when different callbacks are subscribed to different, but intersecting,
-        combinations of resources, calls every callback in a proper time", function() {
+    xit("when different callbacks are subscribed to different, but intersecting," +
+        "combinations of resources, calls every callback in a proper time", function() {
         // TODO
     });
 
