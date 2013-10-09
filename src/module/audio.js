@@ -68,6 +68,7 @@
       this._audio = null;
       this._audio_is_loaded = false;
       this._audio_is_playing = false;
+      this._audio_canPlay = false;
 
       this.on(C.X_START, _onAudioStart);
       this.on(C.X_STOP, _onAudioStop);
@@ -124,25 +125,41 @@
           var el = document.createElement("audio");
           el.setAttribute("preload", "auto");
 
-          var listener = function(e) {
+          var pingChromeToLoad = function(element) {
+            if (me._audio_canPlay && window.chrome) {
+              if (element.buffered.length == 1) {
+                var end = element.buffered.end(0);
+                if (element.duration - end > 0.05) {
+                  element.volume = 0;
+                  element.currentTime = end;
+                  element.play();
+                  element.pause();
+                }
+              }
+            }
+          };
+
+          var progressListener = function(e) {
             var buffered = el.buffered;
             if (buffered.length == 1) {
                 var end = buffered.end(0);
                 if (el.duration - end < 0.05) {
-                  el.removeEventListener("progress", listener, false);
+                  el.removeEventListener("progress", progressListener, false);
+                  el.removeEventListener("canplay", canPlayListener, false);
                   notify_success(el);
                 }
 
-                if (window.chrome) {
-                  el.volume = 0;
-                  el.currentTime = end;
-                  el.play();
-                  el.pause();
-                }
+                pingChromeToLoad(el);
             }
           };
 
-          el.addEventListener("progress", listener, false);
+          var canPlayListener = function(e) {
+            me._audio_canPlay = true;
+            pingChromeToLoad(el);
+          };
+
+          el.addEventListener("progress", progressListener, false);
+          el.addEventListener("canplay", canPlayListener, false);
           el.addEventListener("error", audioErrProxy(me._audio_url, notify_error), false);
 
           try {
@@ -155,7 +172,6 @@
           me._audio_is_loaded = true;
       },
       function(err) { __anm.console.error(err.message || err); }); // onerror
-
   };
 
 })();
