@@ -129,11 +129,12 @@
             if (me._audio_canPlay && window.chrome) {
               if (element.buffered.length == 1) {
                 var end = element.buffered.end(0);
-                if (element.duration - end > 0.05) {
+                if (element.duration - end < 0.05) {
                   element.volume = 0;
                   element.currentTime = end;
                   element.play();
                   element.pause();
+                  notify_success(element);
                 }
               }
             }
