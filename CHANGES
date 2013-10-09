@@ -2,8 +2,8 @@ v0.9.1503 / Tue Oct 08 2013 21:46:11 +0200 / 91e9d06993f83f6c7c85dc7dea07618ba15
 =====================================================================================
 
 * Audio buffering and fixes for audio module by @alexeypegov
-* Player instances manager, to ease debugging (accessible from `__anm.player_manager`)
 * Moved registering/providing/handling events code to `anm.js`
+* Player instances manager, to ease debugging (accessible from `__anm.player_manager`)
 
 Usage:
 
