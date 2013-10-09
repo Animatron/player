@@ -164,10 +164,7 @@ Import.node = function(src, all, parent) {
         (type == TYPE_GROUP)) {
         return Import.branch(type, src, all);
     } else if (type != TYPE_UNKNOWN) {
-        var trg = Import.leaf(type, src, parent);
-        // FIXME: fire an event instead (event should inform about type of the importer)
-        if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
-        return trg;
+        return Import.leaf(type, src, parent);
     }
 }
 var L_ROT_TO_PATH = 1,
@@ -310,6 +307,7 @@ Import.leaf = function(type, src, parent) {
          if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }
     else if (type != TYPE_AUDIO) { x.path  = Import.path(src); }
+    // FIXME: fire an event instead (event should inform about type of the importer)
     if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
     return trg;
 }

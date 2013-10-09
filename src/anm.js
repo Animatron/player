@@ -36,6 +36,15 @@
 
     var foo = {};
 
+    // Logging
+    // -----------------------------------------------------------------------------
+
+    var console = _GLOBAL_['console'] || {
+        log: function() {},
+        error: function() {},
+        warn: function() {}
+    };
+
     // Namespace management
     // -----------------------------------------------------------------------------
 
@@ -237,21 +246,37 @@
     }
     ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
         var me = this;
+        if (_conf.logResMan)
+           { console.log('request to load ' + url); }
         if (me._cache[url]) {
+            if (_conf.logResMan)
+               { console.log('> already received, trigerring success'); }
             var result = me._cache[url];
             me.trigger(url, result);
             if (onComplete) onComplete(result);
         } else if (me._errors[url]) {
+            if (_conf.logResMan)
+               { console.log('> failed to load before, notifying with error'); }
             if (onError) onError(me._errors[url]);
-        } else {
+        } else if (!me._waiting[url]) {
+            if (_conf.logResMan)
+               { console.log('> not cached, requesting'); }
             me._waiting[url] = loader;
             loader(function(result) {
+                if (_conf.logResMan)
+                   { console.log('file at ' + url + ' succeeded to load, triggering success'); }
                 me.trigger(url, result);
                 if (onComplete) onComplete(result);
             }, function(err) {
+                if (_conf.logResMan)
+                   { console.log('file at ' + url + ' failed to load, triggering eror'); }
                 me.error(url, err);
                 if (onError) onError(err);
             });
+        } else /*if (me._waiting[url])*/ { // already waiting
+            if (_conf.logResMan)
+               { console.log('> someone is already waiting for it, subscribing'); }
+            if (me._waiting[url] !== loader) me.subscribe([ url ], onComplete);
         }
     }
     ResourceManager.prototype.trigger = function(url, value) {
@@ -273,22 +298,39 @@
     // this method is called automatically when every new incoming url is triggered
     // as complete
     ResourceManager.prototype.check = function() {
+        if (_conf.logResMan)
+           { console.log('checking subscriptions'); }
         var subscriptions = this._subscriptions,
             cache = this._cache,
-            errors = this._errors;
+            errors = this._errors,
+            to_remove = null;
         for (var i = 0, il = subscriptions.length; i < il; i++) {
             var urls = subscriptions[i][0],
                 callbacks = subscriptions[i][1],
-                ready = [];
+                ready = null;
             for (var u = 0, ul = urls.length; u < ul; u++) {
                 var request_result = cache[urls[u]] || errors[urls[u]];
-                if (request_result) ready.push(request_result);
+                if (request_result) {
+                    if (!ready) ready = [];
+                    ready.push(request_result);
+                }
             };
              // `ready` is equal to the number of `urls` means all resources for this callbacks are ready
-            if (ready.length === urls.length) {
+            if (ready && (ready.length === urls.length)) {
+                if (_conf.logResMan)
+                   { console.log('notifying subscribers that ' + urls + ' are all ready'); }
                 for (var k = 0, kl = callbacks.length; k < kl; k++) {
                     callbacks[k](ready);
                 }
+                if (!to_remove) to_remove = [];
+                to_remove.push(subscriptions[i]);
+            }
+        }
+        if (to_remove) {
+            for (var i = 0, il = to_remove.length; i < il; i++) {
+                if (_conf.logResMan)
+                   { console.log('removing notified subscribers for ' + to_remove[i][0] + ' from queue'); }
+                subscriptions.splice(subscriptions.indexOf(to_remove[i]), 1);
             }
         }
     }
@@ -323,15 +365,6 @@
     PlayerManager.prototype.getPlayer = function(cvs_id) {
         return this.hash[cvs_id];
     }
-
-    // Logging
-    // -----------------------------------------------------------------------------
-
-    var console = _GLOBAL_['console'] || {
-        log: function() {},
-        error: function() {},
-        warn: function() {}
-    };
 
     // Export
     // -----------------------------------------------------------------------------
