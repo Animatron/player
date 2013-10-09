@@ -5,25 +5,25 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-describe("resource manager", function() {
+xdescribe("resource manager", function() {
 
-    beforeEach(function() {
+    /* beforeEach(function() {
         this.addMatchers(_matchers.calls);
 
         _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         //_fg = _FrameGen.spawn().run(FPS);
-    });
+    }); */
 
     //afterEach(function() { _fg.stop().destroy(); });
 
-    it("triggers all the callbacks when given resources are loaded", function() {
+    xit("triggers all the callbacks when given resources are loaded", function() {
         // TODO
     });
 
-    xit("when different callbacks are subscribed to different, but intersecting,
-        combinations of resources, calls every callback in a proper time", function() {
+    xit("when different callbacks are subscribed to different, but intersecting," +
+        "combinations of resources, calls every callback in a proper time", function() {
         // TODO
     });
 
@@ -43,7 +43,11 @@ describe("resource manager", function() {
         // TODO
     });
 
-    describe("inside the player", function() {
+    xit("do not calls a loader if resource is already in the cache", function() {
+        // TODO
+    });
+
+    xdescribe("inside the player", function() {
 
         xit("if there are no remote resources, LOAD event should be fired immediately", function() {
             // TODO

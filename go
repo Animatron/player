@@ -1,7 +1,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--
+  ~ Copyright (c) 2011-2013 by Animatron.
+  ~ All rights are reserved.
+  -->
+
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <title>Animatron Movie</title>
     <style type="text/css">
         html, body {
             margin: 0;
@@ -105,6 +113,21 @@
                 scriptElm.onerror = _u.reportError;
                 var headElm = document.head || document.getElementsByTagName('head')[0];
                 headElm.appendChild(scriptElm);
+            },
+
+            updateTitle: function(player) {
+                if (player._metaInfo) {
+                    var meta = player._metaInfo;
+                    if (meta.author && meta.title) {
+                        document.title = meta.title + ' (' + meta.author + ')';
+                    } else if (meta.author) {
+                       document.title = 'Untitled (' + meta.author + ')';
+                    } else if (meta.title) {
+                        document.title = meta.title;
+                    } else {
+                        document.title = 'Animatron Movie';
+                    }
+                }
             }
 
             };
@@ -205,9 +228,17 @@
                     _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID +
                         (useStandartImporter ? '/bundle/animatron.js' : '/bundle/animatron-publish.js'),
                         function () {
-                            anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, useStandartImporter
-                                                                             ? new AnimatronImporter()
-                                                                             : new AnimatronPublishImporter());
+                            var player = anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, useStandartImporter
+                                                                                          ? new AnimatronImporter()
+                                                                                          : new AnimatronPublishImporter()/*,
+                                                                           _u.updateTitle */);
+                            player.on(anm.C.S_LOAD,
+                                (function(the_player) {
+                                    return function(/*result*/) {
+                                        _u.updateTitle(the_player);
+                                    }
+                                })(player)
+                            );
                         }
                     );
                 } catch (e) {

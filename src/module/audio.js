@@ -33,6 +33,7 @@
 
     this._audio_is_playing = true;
     this._audio.currentTime = this._audio_band_offset + ltime;
+    this._audio.volume = 1;
     this._audio.play();
   };
 
@@ -40,6 +41,7 @@
     if (this._audio_is_playing) {
       this._audio.pause();
       this._audio_is_playing = false;
+      this._audio.volume = 0;
     }
   };
 
@@ -110,9 +112,26 @@
       function(onsuccess, onerror) { // loader
           var el = document.createElement("audio");
           el.setAttribute("preload", "auto");
-          el.addEventListener("loadeddata", function(e) {
-            onsuccess(el);
-          }, false);
+
+          var listener = function(e) {
+            var buffered = el.buffered;
+            if (buffered.length == 1) {
+                var end = buffered.end(0);
+                if (el.duration - end < 0.05) {
+                  el.removeEventListener("progress", listener, false);
+                  onsuccess(el);
+                }
+
+                if (window.chrome) {
+                  el.volume = 0;
+                  el.currentTime = end;
+                  el.play();
+                  el.pause();
+                }
+            }
+          };
+
+          el.addEventListener("progress", listener, false);
           el.addEventListener("error", onerror, false);
 
           try {
@@ -126,7 +145,6 @@
       function(audio) {  // oncomplete
           me._audio = audio;
           me._audio_is_loaded = true;
-          if (callback) callback.call(me, audio);
       });
 
   };
