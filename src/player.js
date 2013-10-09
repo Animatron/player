@@ -4404,19 +4404,18 @@ Sheet.prototype.load = function(callback) {
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     _ResMan.loadOrGet(me.src,
-        function(onsuccess, onerror) { // loader
+        function(notify_success, notify_error) { // loader
             var _img = new Image();
             _img.onload = function() {
                 _img.__anm_ready = true;
                 _img.isReady = true; /* FIXME: use 'image.complete' and
                                       '...' (network exist) combination,
                                       'complete' fails on Firefox */
-                onsuccess(_img);
+                notify_success(_img);
             };
-            _img.onerror = onerror;
+            _img.onerror = notify_error;
             try { _img.src = me.src; }
-            catch(e) { if (onerror) onerror(e);
-                       throw new SysErr('Image at ' + me.src + ' is not accessible'); }
+            catch(e) { notify_error(e); }
         },
         function(image) {  // oncomplete
             me._image = image;
@@ -4425,7 +4424,8 @@ Sheet.prototype.load = function(callback) {
             me.ready = true;
             me._drawToCache();
             if (callback) callback.call(me, image);
-        });
+        },
+        function(err) { __anm.console.error(err.message || err); });
 }
 Sheet.prototype._drawToCache = function() {
     if (!this.ready) return;

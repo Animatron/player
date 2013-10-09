@@ -26,8 +26,8 @@ var C = anm.C,
     //test = anm._valcheck
 
 function _reportError(e) {
-    if (console) console.error(e);
-    throw e; // FIXME: skip errors that not affect playing ability
+    __anm.console.error(e);
+    // throw e; // skip errors if they do not affect playing ability
 }
 
 var Import = {};
@@ -54,7 +54,7 @@ Import._type = function(src) {
 // -> Scene
 Import.project = function(prj) {
     //if (window && console && window.__anm_conf && window.__anm_conf.logImport) console.log(prj);
-    if (console && (typeof __anm_conf !== 'undefined') && __anm_conf.logImport) console.log(prj);
+    if (__anm_conf.logImport) __anm.console.log(prj);
     if (typeof __anm !== 'undefined') __anm.lastImportedProject = prj;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');

@@ -235,19 +235,22 @@
                                    Array.isArray(callbacks) ? callbacks : [ callbacks ] ]);
         this.check();
     }
-    ResourceManager.prototype.loadOrGet = function(url, loader, onComplete) {
+    ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
         var me = this;
-        if (me._cache[url] || me._errors[url]) {
+        if (me._cache[url]) {
             var result = me._cache[url];
             me.trigger(url, result);
-            onComplete(result);
+            if (onComplete) onComplete(result);
+        } else if (me._errors[url]) {
+            if (onError) onError(me._errors[url]);
         } else {
             me._waiting[url] = loader;
             loader(function(result) {
                 me.trigger(url, result);
-                onComplete(result);
+                if (onComplete) onComplete(result);
             }, function(err) {
                 me.error(url, err);
+                if (onError) onError(err);
             });
         }
     }
@@ -321,6 +324,15 @@
         return this.hash[cvs_id];
     }
 
+    // Logging
+    // -----------------------------------------------------------------------------
+
+    var console = _GLOBAL_['console'] || {
+        log: function() {},
+        error: function() {},
+        warn: function() {}
+    };
+
     // Export
     // -----------------------------------------------------------------------------
 
@@ -329,7 +341,8 @@
     _GLOBAL_[PRIVATE_NAMESPACE] = {
         global: _GLOBAL_,
         'undefined': foo.___undefined___,
-        'C': C,
+        'C': C, // constants
+        console: console,
         conf: _conf,
         namespace: PUBLIC_NAMESPACE,
         registerPlayer: registerPlayer,

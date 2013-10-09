@@ -28,7 +28,7 @@ function sandbox() {
             height: 250,
             bgcolor: '#fff' }
     });
-    this.player.mode = anm.C.M_VIDEO;
+    this.player.mode = anm.C.M_SANDBOX;
     this.player._checkMode();
     _player = this.player;
 

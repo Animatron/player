@@ -105,11 +105,22 @@
     return prev ? [ this._audio_url ].concat(prev) : [ this._audio_url ];
   }
 
+  function audioErrProxy(src, pass_to) {
+    return function(err) {
+      // e_.MEDIA_ERR_ABORTED=1
+      // e_.MEDIA_ERR_NETWORK=2
+      // e_.MEDIA_ERR_DECODE=3
+      // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
+      // e_.MEDIA_ERR_ENCRYPTED=5
+      pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
+                        err.currentTarget.error.code));
+    }
+  };
   E.prototype._audio_load = function() {
     var me = this;
 
     _ResMan.loadOrGet(me._audio_url,
-      function(onsuccess, onerror) { // loader
+      function(notify_success, notify_error) { // loader
           var el = document.createElement("audio");
           el.setAttribute("preload", "auto");
 
@@ -119,7 +130,7 @@
                 var end = buffered.end(0);
                 if (el.duration - end < 0.05) {
                   el.removeEventListener("progress", listener, false);
-                  onsuccess(el);
+                  notify_success(el);
                 }
 
                 if (window.chrome) {
@@ -132,20 +143,18 @@
           };
 
           el.addEventListener("progress", listener, false);
-          el.addEventListener("error", onerror, false);
+          el.addEventListener("error", audioErrProxy(me._audio_url, notify_error), false);
 
           try {
             document.getElementsByTagName("body")[0].appendChild(el);
             el.src = me._audio_url;
-          } catch(e) {
-            onerror(e);
-            throw new Error('Audio at ' + me._audio_url + ' is not accessible');
-          }
+          } catch(e) { notify_error(e); }
       },
-      function(audio) {  // oncomplete
+      function(audio) { // oncomplete
           me._audio = audio;
           me._audio_is_loaded = true;
-      });
+      },
+      function(err) { __anm.console.error(err.message || err); }); // onerror
 
   };
 
