@@ -125,41 +125,29 @@
           var el = document.createElement("audio");
           el.setAttribute("preload", "auto");
 
-          var onSuccess = function(element) {
-            element.removeEventListener("progress", progressListener, false);
-            element.removeEventListener("canplay", canPlayListener, false);
-            notify_success(element);
-          };
-
-          var pingChromeToLoad = function(element) {
-            if (me._audio_canPlay && element.buffered.length == 1 && window.chrome) {
-              var end = element.buffered.end(0);
-              if (element.duration - end > 0.05) {
-                element.volume = 0;
-                element.currentTime = end;
-                element.play();
-                element.pause();
-              } else {
-                onSuccess(element);
-              }
-            }
-          };
-
           var progressListener = function(e) {
             var buffered = el.buffered;
             if (buffered.length == 1) {
                 var end = buffered.end(0);
                 if (el.duration - end < 0.05) {
-                  onSuccess(el);
+                  el.removeEventListener("progress", progressListener, false);
+                  el.removeEventListener("canplay", canPlayListener, false);
+                  notify_success(el);
+                  return;
                 }
 
-                pingChromeToLoad(el);
+                if (me._audio_canPlay && window.chrome) {
+                  el.volume = 0;
+                  el.currentTime = end;
+                  el.play();
+                  el.pause();
+                }
             }
           };
 
           var canPlayListener = function(e) {
             me._audio_canPlay = true;
-            pingChromeToLoad(el);
+            progressListener(e);
           };
 
           el.addEventListener("progress", progressListener, false);
