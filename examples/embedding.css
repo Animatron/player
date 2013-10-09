@@ -25,7 +25,7 @@ input, button {
 }
 
 #canvas-holder > canvas {
-  border: 2px dashed #333;
+  /*border: 2px dashed #333;*/
   margin: 0 auto;
   display: block;
 }

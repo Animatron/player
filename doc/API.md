@@ -761,6 +761,8 @@ Some of the functions described below (such as tweens, easings, repeat modes and
     * `C.STOPPED` — playing stopped
     * `C.PLAYING` — playing
     * `C.PAUSED` — playing paused
+    * `C.LOADING` — player loads the scene
+    * `C.ERROR` — error happened
 2. [Player mode](#mode) `C.M_*` /`player.mode`/
     * Grouped
         * `C.M_PREVIEW` - Preview Mode, controls and interaction disabled

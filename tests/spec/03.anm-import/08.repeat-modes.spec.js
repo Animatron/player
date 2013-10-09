@@ -11,7 +11,8 @@ describe("importing repeat modes", function() {
         project;
 
     beforeEach(function() {
-        importer = new AnimatronImporter();
+        // FIXME: update to standard compact importer
+        importer = new AnimatronIntactImporter();
         project = createAnmProject();
     });
 

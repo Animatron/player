@@ -83,9 +83,9 @@ var Files = {
             BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: { _ALL_: [ 'animatron-importer.js',
-                                 'animatron-publish-importer.js' ],
+                                 'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
-                        ANM_PUBLISH: 'animatron-publish-importer.js' },
+                        ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ 'collisions.js',
                                'audio.js' ],
                       COLLISIONS: 'collisions.js',
@@ -107,12 +107,12 @@ var Bundles = [
                                                               Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
-    { name: 'Animatron-Publish',
-      file: 'animatron-publish',
+    { name: 'Animatron-Intact',
+      file: 'animatron-intact',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
                                                               Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_PUBLISH ])) // animatron-publish-importer.js
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
@@ -475,7 +475,7 @@ task('rm-version', { async: true }, function(param) {
 
     if (!src_v) { _print(FAILED_MARKER); throw new Error('Target version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
     if (!dst_v) { _print(FAILED_MARKER); throw new Error('Fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
-    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is already a current version (' + VERSION + ').'); }
+    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is a current version (' + VERSION + '), should be some of the previous ones.'); }
 
     var _vhash = _versions.read();
 
@@ -505,7 +505,7 @@ task('rm-version', { async: true }, function(param) {
 
         _vhash[src_v] = null;
         delete _vhash[src_v];
-        _vhash['latest'] = _dst_v;
+        _vhash['latest'] = dst_v;
 
         _print('Removing ' + src_v + ' information from ' + VERSIONS_FILE + ' file.\n');
 
@@ -637,14 +637,24 @@ task('push-go', [], { async: true }, function(_bucket) {
 
     s3.setBucket(trg_bucket);
 
-    var GO_FILE_NAME = 'go';
+    var GO_LOCAL_PATH = _loc('go'),
+        GO_REMOTE_PATH = '/go';
+    var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
+        FAVICON_REMOTE_PATH = '/favicon.ico';
 
-    s3.putFile('/go', _loc(GO_FILE_NAME), 'public-read', { 'content-type': 'text/html' }, function(err, res) {
+    s3.putFile(GO_REMOTE_PATH, GO_LOCAL_PATH, 'public-read', { 'content-type': 'text/html' }, function(err, res) {
 
         if (err) { _print(FAILED_MARKER); throw err; }
-        _print(_loc(GO_FILE_NAME) + ' -> s3 as /go');
+        _print(GO_LOCAL_PATH + ' -> s3 as ' + GO_REMOTE_PATH);
 
-        complete();
+        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
+
+            if (err) { _print(FAILED_MARKER); throw err; }
+            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
+
+            complete();
+
+        });
 
     });
 

@@ -637,7 +637,9 @@ E.prototype._getVects = function(t) {
     throw new Error(E.__vecErrText);
 }
 
-var prev_handle__x = Scene.prototype.handle__x
+//__anm.overridePrepended(Scene.prototype, 'handle_x',
+//                        )
+var prev_handle__x = Scene.prototype.handle__x;
 Scene.prototype.handle__x = function(type, evt) {
     if (opts.mouseBound) {
         if (type & C.XT_MOUSE) {
@@ -672,7 +674,7 @@ Scene.prototype.handle__x = function(type, evt) {
             }
         }
     }
-    prev_handle__x.call(this, type, evt);
+    return prev_handle__x.call(this, type, evt);
 }
 
 Path.prototype.contains = function(pt) {

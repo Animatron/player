@@ -7,6 +7,7 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
 
     <link rel="stylesheet" href="./embedding.css" type="text/css" />
 
@@ -18,7 +19,8 @@
 
         var _embed = (function() {
 
-            var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
+            var PREFIX = 'http://snapshots.animatron.com';
+            //var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
             //var PREFIX = 'http://128.0.0.1/examples/json';
             //var PREFIX = 'http://animatron-snapshots.s3-website-us-east-1.amazonaws.com';
 
@@ -26,7 +28,8 @@
 
             function init() {
 
-                var defaultURL = '/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+                // http://snapshots.animatron.com/a4e84052121d2d316492e75b-v0.9.1405
+                var defaultURL = '/a4e84052121d2d316492e75b-v0.9.1405';
                 //var defaultURL = '/tangential_eccentric.json';
 
                 var _url = document.getElementById('url-val');
@@ -43,7 +46,7 @@
 
             function load(url, w, h) {
                 var iframe = document.getElementById('trg-iframe');
-                var src = './publish-clone.html?sid=' + url.substr(1).replace('?', '&') + '&salt=' + (new Date().getTime());
+                var src = '../go?' + url.substr(1).replace('?', '&') + '&salt=' + (new Date().getTime());
                 if (console) console.log(src);
                 iframe.src = src;
             };
@@ -83,7 +86,7 @@
         <label for="example">Example</label><!--
      --><span class="prot">http</span><!--
      --><span class="sep">://</span><!--
-     --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
+     --><span class="host">snapshots.animatron.com</span><!--
      --><span class="sep">/</span><!--
      --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9</span><!--
      --><span class="sep">?</span><!--
