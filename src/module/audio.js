@@ -125,17 +125,22 @@
           var el = document.createElement("audio");
           el.setAttribute("preload", "auto");
 
+          var onSuccess = function(element) {
+            element.removeEventListener("progress", progressListener, false);
+            element.removeEventListener("canplay", canPlayListener, false);
+            notify_success(element);
+          };
+
           var pingChromeToLoad = function(element) {
-            if (me._audio_canPlay && window.chrome) {
-              if (element.buffered.length == 1) {
-                var end = element.buffered.end(0);
-                if (element.duration - end > 0.05) {
-                  element.volume = 0;
-                  element.currentTime = end;
-                  element.play();
-                  element.pause();
-                  notify_success(element);
-                }
+            if (me._audio_canPlay && element.buffered.length == 1 && window.chrome) {
+              var end = element.buffered.end(0);
+              if (element.duration - end > 0.05) {
+                element.volume = 0;
+                element.currentTime = end;
+                element.play();
+                element.pause();
+              } else {
+                onSuccess(element);
               }
             }
           };
@@ -145,9 +150,7 @@
             if (buffered.length == 1) {
                 var end = buffered.end(0);
                 if (el.duration - end < 0.05) {
-                  el.removeEventListener("progress", progressListener, false);
-                  el.removeEventListener("canplay", canPlayListener, false);
-                  notify_success(el);
+                  onSuccess(el);
                 }
 
                 pingChromeToLoad(el);
