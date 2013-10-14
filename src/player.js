@@ -671,6 +671,15 @@ Player.prototype.init = function(cvs, opts) {
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     var player = this;
 
+    // if player loads remote resources just now,
+    // postpone this task and exit. postponed tasks
+    // will be called when all remote resources were
+    // finished loading
+    if (player.state.happens === C.RES_LOADING) {
+        player._postpone('load', arguments);
+        return;
+    }
+
     /* object */
     /* object, callback */
     /* object, importer */
@@ -728,13 +737,20 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         } else {
             player.state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
-            _ResMan.subscribe(remotes, [ function() {
-                player.fire(C.S_LOAD, result);
-                player.stop();
-                if (callback) callback(result);
-            } ]);
+            _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
+                function(res_results, err_count) {
+                    if (!err_count) {
+                        player._callPostpones();
+                        player.state.happens = C.LOADING;
+                        player.fire(C.S_LOAD, result);
+                        player.stop();
+                        if (callback) callback(result);
+                    } else throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                }
+            ) ]);
         }
     };
+    whenDone = player.__defAsyncSafe(whenDone);
 
     /* TODO: configure canvas using clips bounds */
 
@@ -750,7 +766,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player._loadTarget = C.LT_CLIPS;
             L.loadClips(player, object, whenDone);
         } else if (__str(object)) { // URL
-            var controls = this.controls;
+            var controls = player.controls;
             player._loadTarget = C.LT_URL;
             player._loadSrc = object;
             if (controls) controls._scheduleLoading();
@@ -766,7 +782,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     } else {
         player._loadTarget = C.LT_SCENE;
         player.anim = new Scene();
-        whenDone();
+        whenDone(player.anim);
     }
 
     if (durationPassed) {
@@ -780,6 +796,11 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.ALREADY_PLAYING);
+    if (this.state.happens === C.RES_LOADING) { this._postpone('play', arguments);
+                                                return; } // if player loads remote resources just now,
+                                                          // postpone this task and exit. postponed tasks
+                                                          // will be called when all remote resources were
+                                                          // finished loading
 
     var player = this;
 
@@ -832,6 +853,15 @@ Player.prototype.play = function(from, speed, stopAfter) {
 Player.prototype.stop = function() {
     /* if (state.happens === C.STOPPED) return; */
 
+    // if player loads remote resources just now,
+    // postpone this task and exit. postponed tasks
+    // will be called when all remote resources were
+    // finished loading
+    if (this.state.happens === C.RES_LOADING) {
+        this._postpone('stop', arguments);
+        return;
+    }
+
     var player = this,
         scene = player.anim;
 
@@ -871,6 +901,15 @@ Player.prototype.stop = function() {
 
 Player.prototype.pause = function() {
     var player = this;
+
+    // if player loads remote resources just now,
+    // postpone this task and exit. postponed tasks
+    // will be called when all remote resources were
+    // finished loading
+    if (player.state.happens === C.RES_LOADING) {
+        player._postpone('pause', arguments);
+        return;
+    }
 
     player._ensureHasState();
     player._ensureHasAnim();
@@ -1029,6 +1068,11 @@ Player.prototype.configureMeta = function(info) {
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
+    if (this.state.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
+                                                return; } // if player loads remote resources just now,
+                                                          // postpone this task and exit. postponed tasks
+                                                          // will be called when all remote resources were
+                                                          // finished loading
     if ((time < 0) || (time > this.state.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
@@ -1360,37 +1404,68 @@ Player.prototype.__callSafe = function(f) {
     this.__onerror(err);
   }
 }
+// safe call generator for player method (synchronous calls)
+Player.prototype.__defSafe = function(method_f) {
+  var player = this;
+  return function() {
+    var args = arguments;
+    if (!this.__safe_ctx) { // already in safe context
+      this.__safe_ctx = true;
+      try {
+        var ret_val = player.__callSafe(function() {
+          return method_f.apply(player, args);
+        });
+        this.__safe_ctx = false;
+        return ret_val;
+      } catch(err) {
+        this.__safe_ctx = false;
+        throw err;
+      }
+    } else {
+      return method_f.apply(player, args);
+    }
+  };
+}
+// safe call generator for asycnhronous function
+Player.prototype.__defAsyncSafe = function(func) {
+  var player = this;
+  return function() {
+    var args = arguments;
+    try {
+      var ret_val = player.__callSafe(function() {
+        return func.apply(player, args);
+      });
+      return ret_val;
+    } catch(err) {
+      throw err;
+    }
+  };
+}
 Player.prototype.__makeSafe = function(methods) {
   var player = this;
   for (var i = 0, il = methods.length; i < il; i++) {
     var method = methods[i];
     if (!player[method]) throw new SysErr(_strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
     player['__unsafe_'+method] = player[method];
-    player[method] = (function(method_f) {
-      return function() {
-        var args = arguments;
-        if (!this.__safe_ctx) {
-          this.__safe_ctx = true;
-          try {
-            var ret_val = player.__callSafe(function() {
-              return method_f.apply(player, args);
-            });
-            this.__safe_ctx = false;
-            return ret_val;
-          } catch(err) {
-            this.__safe_ctx = false;
-            throw err;
-          }
-        } else {
-          return method_f.apply(player, args);
-        }
-      };
-    })(player[method]);
+    player[method] = player.__defSafe(player[method]);
   }
 }
 Player.prototype.handle__x = function(type, evt) {
-  if (this.anim) this.anim.fire(type, this);
-  return true;
+    if (this.anim) this.anim.fire(type, this);
+    return true;
+}
+Player.prototype._postpone = function(method, args) {
+    if (!this._queue) this._queue = [];
+    this._queue.push([ method, args ]);
+}
+Player.prototype._callPostpones = function() {
+    if (this._queue) {
+        var q = this._queue, spec;
+        for (var i = 0, il = q.length; i < il; i++) {
+          spec = q[i]; this[spec[0]].call(this, spec[1]);
+        }
+    }
+    this._queue = [];
 }
 
 /* Player.prototype.__originateErrors = function() {
@@ -5324,6 +5399,7 @@ Errors.A.NO_MODIFIER_PASSED = 'No modifier was passed';
 Errors.A.NO_PAINTER_PASSED = 'No painter was passed';
 Errors.A.MODIFIER_REGISTERED = 'Modifier was already added to this element';
 Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
+Errors.A.RESOURCES_FAILED_TO_LOAD = 'Some of resources required to play this animation were failed to load';
 
 var _anmGuySpec = [
   [ 180, 278 ], // origin
