@@ -37,7 +37,7 @@
           var importer = new AnimatronImporter();
           player.detach();
           //var importer = new AnimatronImporter();
-          player = createPlayer('canvas');
+          player = createPlayer('canvas', {mode: anm.C.M_PREVIEW});
           //player.debug = true;
           player.load(project, importer);
           //var b = Builder._$;

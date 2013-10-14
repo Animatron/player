@@ -163,7 +163,8 @@
           me._audio = audio;
           me._audio_is_loaded = true;
       },
-      function(err) { __anm.console.error(err.message || err); }); // onerror
+      function(err) { __anm.console.error(err.message || err);
+                      /* throw err; */ }); // onerror
   };
 
 })();
