@@ -268,11 +268,13 @@
                    { console.log('file at ' + url + ' succeeded to load, triggering success'); }
                 me.trigger(url, result);
                 if (onComplete) onComplete(result);
+                me.check();
             }, function(err) {
                 if (_conf.logResMan)
                    { console.log('file at ' + url + ' failed to load, triggering eror'); }
                 me.error(url, err);
                 if (onError) onError(err);
+                me.check();
             });
         } else /*if (me._waiting[url])*/ { // already waiting
             if (_conf.logResMan)
@@ -284,13 +286,11 @@
         if (this._cache[url] || this._errors[url]) { this.check(); return; }
         delete this._waiting[url];
         this._cache[url] = value;
-        this.check();
     }
     ResourceManager.prototype.error = function(url, err) {
         if (this._cache[url] || this._errors[url]) { this.check(); return; }
         delete this._waiting[url];
         this._errors[url] = err;
-        this.check();
     }
     ResourceManager.prototype.has = function(url) {
         return (typeof this._cache[url] !== 'undefined');

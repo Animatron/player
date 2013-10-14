@@ -740,10 +740,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     if (!err_count) {
-                        player._callPostpones();
                         player.state.happens = C.LOADING;
                         player.fire(C.S_LOAD, result);
                         player.stop();
+                        player._callPostpones();
                         if (callback) callback(result);
                     } else throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                 }
@@ -1459,10 +1459,10 @@ Player.prototype._postpone = function(method, args) {
     this._queue.push([ method, args ]);
 }
 Player.prototype._callPostpones = function() {
-    if (this._queue) {
+    if (this._queue && this._queue.length) {
         var q = this._queue, spec;
         for (var i = 0, il = q.length; i < il; i++) {
-          spec = q[i]; this[spec[0]].call(this, spec[1]);
+          spec = q[i]; this[spec[0]].apply(this, spec[1]);
         }
     }
     this._queue = [];
