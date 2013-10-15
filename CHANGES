@@ -1,9 +1,9 @@
-v0.9.1503 / Tue Oct 08 2013 21:46:11 +0200 / 91e9d06993f83f6c7c85dc7dea07618ba156ea9b
+v0.9.1503 / Mon Oct 14 2013 19:16:44 -0400 / b55d293bdfc11b14c187198ea3277bb5ab1e267b
 =====================================================================================
 
 * Audio buffering and fixes for audio module by @alexeypegov
-* Moved registering/providing/handling events code to `anm.js`
 * Player instances manager, to ease debugging (accessible from `__anm.player_manager`)
+* Moved registering/providing/handling events code to `anm.js`
 
 Usage:
 
@@ -17,6 +17,15 @@ Usage:
     var my_player_1 = player_manager.getPlayer('my-canvas-1');
     console.log(player_manager.hash);
     console.log(player_manager.instances);
+
+* `__anm.console` object to be a safe way to log
+* `onComplete` and `onError` are now optional in Resource Manager
+* Proper error handling in Resource Manager
+* Add optional logging to Resource Manager
+* Fix subscribing to resource when it in loading progress in Resource Manager
+* Fixes for the audio module errors handling
+* Fixed double-call to `importCustomData` from Animatron importer
+* Postpone playing methods to call them only after the successful result of remote resources loading process, if there were any; if there were no remote resources, the process is synchronous as before; if there were errors in process of loading, the error is thrown and shown to the watcher
 
 
 
