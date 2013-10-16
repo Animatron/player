@@ -1209,8 +1209,9 @@ Player.prototype._drawSplash = function() {
 
     ctx.restore();
 
-    drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
-                     [ '#fff', '#aa0' ]);
+    Controls._drawGuyInCenter(ctx, Controls.THEME, w, h, 2.5);
+    /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
+                     [ '#fff', '#aa0' ]); */
 
 }
 Player.prototype._drawLoadingSplash = function(text) {

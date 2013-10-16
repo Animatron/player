@@ -1061,3 +1061,4 @@ describe("errors", function() {
 
 // TODO: change try { ... this.fail(...); } catch (e) ( expect(e).toBe(...) ) to expect(fn).toThrow()?
 // TODO: show errors over the player or alert them, if not muted?
+// TODO: it should be allowed to mute errors depending on the current mode of a player (i.e. M_PREVIEW == do mute)
