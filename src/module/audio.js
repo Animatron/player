@@ -37,7 +37,7 @@
     var prev_tweentype = Import.tweentype;
     Import.tweentype = function(src) {
       if (src === 7) return C.T_VOLUME;
-      return prev_tweentype(src);
+      return prev_tweentype.apply(this, arguments);
     }
     var prev_tweendata = Import.tweendata;
     Import.tweendata = function(type, src) {
@@ -45,7 +45,7 @@
         if (src.length == 2) return src;
         if (src.length == 1) return [ src[0], src[0] ];
       }
-      return prev_tweendata(src);
+      return prev_tweendata.apply(this, arguments);
     }
   }
 

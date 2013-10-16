@@ -13,12 +13,14 @@
     <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     <link rel="stylesheet" href="./demo.css" type="text/css" />
 
-    <script src="../src/vendor/matrix.js" type="text/javascript"></script>
+    <!-- <script src="../src/vendor/matrix.js" type="text/javascript"></script>
     <script src="../src/anm.js" type="text/javascript"></script>
     <script src="../src/player.js" type="text/javascript"></script>
     <script src="../src/builder.js" type="text/javascript"></script>
     <script src="../src/module/audio.js" type="text/javascript"></script>
-    <script src="../src/import/animatron-importer.js" type="text/javascript"></script>
+    <script src="../src/import/animatron-importer.js" type="text/javascript"></script> -->
+
+    <script src="../dist/full/bundle/animatron.js" type="text/javascript"></script>
 
     <script type="text/javascript">
 
@@ -37,7 +39,7 @@
           var importer = new AnimatronImporter();
           player.detach();
           //var importer = new AnimatronImporter();
-          player = createPlayer('canvas', {mode: anm.C.M_PREVIEW});
+          player = createPlayer('canvas', {mode: anm.C.M_VIDEO});
           //player.debug = true;
           player.load(project, importer);
           //var b = Builder._$;
