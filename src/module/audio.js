@@ -8,7 +8,9 @@
  */
 
 (function() { // anonymous wrapper to exclude global context clash
-  var C = anm.C;
+  var C = anm.C,
+      Tween = anm.Tween,
+      Tweens = anm.Tweens;
   var _ResMan = __anm.resource_manager;
 
   C.MOD_AUDIO = 'audio';
@@ -18,12 +20,41 @@
 
   var E = anm.Element;
 
+  // Initialization
+  // ----------------------------------------------------------------------------------------------------------------
+
+  C.T_VOLUME = 'VOLUME';
+  Tween.TWEENS_PRIORITY[C.T_VOLUME] = Tween.TWEENS_COUNT++;
+  Tweens[C.T_VOLUME] = function() {
+    return function(t, duration, data) {
+      if (!this.$._audio_is_loaded) return;
+      this.$._audio.volume = data[0] * (1.0 - t) + data[1] * t;
+    };
+  };
+
+  if (anm.I['ANM']) {
+    var Import = anm.I['ANM'];
+    var prev_tweentype = Import.tweentype;
+    Import.tweentype = function(src) {
+      if (src === 7) return C.T_VOLUME;
+      return prev_tweentype(src);
+    }
+    var prev_tweendata = Import.tweendata;
+    Import.tweendata = function(type, src) {
+      if ((type === C.T_VOLUME) && src) {
+        if (src.length == 2) return src;
+        if (src.length == 1) return [ src[0], src[0] ];
+      }
+      return prev_tweendata(src);
+    }
+  }
+
   // Element functions
   // ----------------------------------------------------------------------------------------------------------------
 
   var _audio_customRender = function(gtime, ltime, ctx) {
     // TODO: remove
-    return false;
+    //return false;
   };
 
   var _onAudioStart = function(ltime, duration) {
@@ -117,6 +148,7 @@
                         err.currentTarget.error.code));
     }
   };
+
   E.prototype._audio_load = function() {
     var me = this;
 

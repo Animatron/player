@@ -32,6 +32,8 @@ function _reportError(e) {
 
 var Import = {};
 
+anm.I[IMPORTER_ID] = Import;
+
 // -> Array[?]
 Import._find = function(idx, src) {
     var res = src[idx];
