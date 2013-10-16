@@ -57,7 +57,7 @@
          *     number;                     // 2, band offset
          * } *audio_element*;
          */
-        this._audio_url = this._audio_format_url(object[1]);
+        this._audio_url = object[1];
         this._audio_band_offset = object[2];
       } else if (importer == "ANM_INTACT") {
         this._audio_band_offset = object.bandOffset;
@@ -154,9 +154,17 @@
           el.addEventListener("canplay", canPlayListener, false);
           el.addEventListener("error", audioErrProxy(me._audio_url, notify_error), false);
 
+          var addSource = function(audio, url, type) {
+              var src = document.createElement("source");
+              src.type = type;
+              src.src = url;
+              audio.appendChild(src);
+          };
+
           try {
             document.getElementsByTagName("body")[0].appendChild(el);
-            el.src = me._audio_url;
+            addSource(el, me._audio_url + ".mp3", "audio/mpeg");
+            addSource(el, me._audio_url + ".ogg", "audio/ogg");
           } catch(e) { notify_error(e); }
       },
       function(audio) { // oncomplete
