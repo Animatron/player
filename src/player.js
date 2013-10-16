@@ -576,6 +576,11 @@ var global_opts = { 'liveDebug': false,
 
 M[C.MOD_PLAYER] = global_opts;
 
+// Importers
+// -----------------------------------------------------------------------------
+
+var I = {};
+
 // Player
 // -----------------------------------------------------------------------------
 
@@ -5525,6 +5530,7 @@ return function($trg) {
 
     $trg.C = C; // constants
     $trg.M = M; // modules
+    $trg.I = I; // importers
     $trg.Player = Player;
     $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;

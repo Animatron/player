@@ -26,6 +26,8 @@ var C = anm.C,
     Bands = anm.Bands,
     test = anm._valcheck;
 
+anm.I[IMPORTER_ID] = {};
+
 // ** META / PARAMS **
 
 __MYSELF.prototype.configureMeta = function(prj) {
