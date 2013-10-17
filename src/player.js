@@ -4250,13 +4250,14 @@ CSeg.prototype._calc_params = function(start) {
 // -----------------------------------------------------------------------------
 
 function Text(lines, font,
-              fill, stroke, shadow, align) {
+              fill, stroke, shadow, align, baseline) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
     this.shadow = shadow;
     this.align = align || Text.DEFAULT_ALIGN;
+    this.baseline = baseline || Text.BASELINE_RULE;
     this._bnds = null;
 }
 
@@ -4267,7 +4268,7 @@ Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.DEFAULT_ALIGN = 'left';
-Text.BASELINE_RULE = 'alphabetic';
+Text.BASELINE_RULE = 'bottom';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 
 Text.prototype.apply = function(ctx, point, baseline) {
@@ -4276,7 +4277,7 @@ Text.prototype.apply = function(ctx, point, baseline) {
         dimen = this.dimen(),
         accent = this.accent(dimen[1]);
     ctx.font = this.font;
-    ctx.textBaseline = baseline || Text.BASELINE_RULE; // FIXME: store inside
+    ctx.textBaseline = this.baseline || Text.BASELINE_RULE;
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
 
@@ -4308,7 +4309,7 @@ Text.prototype.dimen = function() {
     var buff = Text.__buff;
     buff.style.font = this.font;
     buff.style.textAlign = this.align;
-    //buff.style.verticalAlign = baseline
+    buff.style.verticalAlign = this.baseline || Text.BASELINE_RULE;
     if (__arr(this.lines)) {
         buff.textContent = this.lines.join('<br/>');
     } else {
