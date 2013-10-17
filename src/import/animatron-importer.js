@@ -354,7 +354,9 @@ Import.path = function(src) {
  */
 // -> Text
 Import.text = function(src) {
-    return new Text(src[6], src[4],
+    var lines = src[6].split('\n');
+    return new Text((lines.length > 1) ? lines : lines[0],
+                    src[4],
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]),
