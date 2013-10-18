@@ -4250,14 +4250,15 @@ CSeg.prototype._calc_params = function(start) {
 // -----------------------------------------------------------------------------
 
 function Text(lines, font,
-              fill, stroke, shadow, align, baseline) {
+              fill, stroke, shadow, align, baseline, underlined) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
     this.fill = fill || Text.DEFAULT_FILL;
     this.stroke = stroke || Text.DEFAULT_STROKE;
     this.shadow = shadow;
     this.align = align || Text.DEFAULT_ALIGN;
-    this.baseline = baseline || Text.BASELINE_RULE;
+    this.baseline = baseline || Text.DEFAULT_BASELINE;
+    this.underlined = underlined || Text.DEFAULT_UNDERLINE;
     this._bnds = null;
 }
 
@@ -4268,16 +4269,18 @@ Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.DEFAULT_ALIGN = 'left';
-Text.BASELINE_RULE = 'bottom';
+Text.DEFAULT_BASELINE = 'bottom';
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
+Text.DEFAULT_UNDERLINE = false;
 
 Text.prototype.apply = function(ctx, point, baseline) {
     ctx.save();
     var point = point || [0, 0],
         dimen = this.dimen(),
-        accent = this.accent(dimen[1]);
+        ascent = this.ascent(dimen[1]),
+        underlined = this.underlined;
     ctx.font = this.font;
-    ctx.textBaseline = this.baseline || Text.BASELINE_RULE;
+    ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     ctx.translate(point[0]/* + (dimen[0] / 2)*/, point[1]);
 
@@ -4286,8 +4289,8 @@ Text.prototype.apply = function(ctx, point, baseline) {
         Brush.fill(ctx, this.fill);
         ctx.save();
         this.visitLines(function(line) {
-            ctx.fillText(line, 0, accent);
-            ctx.translate(0, 1.2 * accent);
+            ctx.fillText(line, 0, ascent);
+            ctx.translate(0, ascent);
         });
         ctx.restore();
     }
@@ -4296,34 +4299,56 @@ Text.prototype.apply = function(ctx, point, baseline) {
         Brush.stroke(ctx, this.stroke);
         ctx.save();
         this.visitLines(function(line) {
-            ctx.strokeText(line, 0, accent);
-            ctx.translate(0, 1.2 * accent);
+            ctx.strokeText(line, 0, ascent);
+            ctx.translate(0, ascent);
+        });
+        ctx.restore();
+    }
+    if (underlined) {
+        var offset = 0,
+            stroke = this.fill,
+            me = this; //obj_clone(this.fill);
+        ctx.save();
+        Brush.stroke(ctx, stroke);
+        ctx.lineWidth = 1;
+        this.visitLines(function(line) {
+            var width = me.dimen(line)[0];
+            ctx.beginPath();
+            ctx.moveTo(0, offset + ascent);
+            ctx.lineTo(width, offset + ascent);
+            ctx.stroke();
+
+            offset += ascent;
         });
         ctx.restore();
     }
     ctx.restore();
 }
-Text.prototype.dimen = function() {
-    if (this._dimen) return this._dimen;
+Text.prototype.dimen = function(lines_arg) {
+    var has_arg = (typeof lines_arg !== 'undefined');
+    if (!has_arg && this._dimen) return this._dimen;
     if (!Text.__buff) throw new SysErr('no Text buffer, bounds call failed');
-    var buff = Text.__buff;
+    var buff = Text.__buff,
+        lines = has_arg ? lines_arg : this.lines;
     buff.style.font = this.font;
     buff.style.textAlign = this.align;
-    buff.style.verticalAlign = this.baseline || Text.BASELINE_RULE;
-    if (__arr(this.lines)) {
-        buff.textContent = this.lines.join('<br/>');
+    buff.style.verticalAlign = this.baseline || Text.DEFAULT_BASELINE;
+    if (__arr(lines)) {
+        buff.textContent = lines.join('<br/>');
     } else {
-        buff.textContent = this.lines.toString();
+        buff.textContent = lines.toString();
     }
-    return (this._dimen = [ buff.offsetWidth,
-                            buff.offsetHeight ]);
+    return has_arg
+           ? [ buff.offsetWidth, buff.offsetHeight ]
+           : (this._dimen = [ buff.offsetWidth,
+                              buff.offsetHeight ]);
 
 }
 Text.prototype.bounds = function() {
     var dimen = this.dimen();
     return [ 0, 0, dimen[0], dimen[1] ];
 }
-Text.prototype.accent = function(height) {
+Text.prototype.ascent = function(height) {
     return height; /* FIXME */
 }
 Text._createBuffer = function() {

@@ -2,7 +2,7 @@ v0.9.1504 / Thu Oct 17 2013 13:04:51 -0400 / 4d33919966a98ea5678d9422f619aef5121
 =====================================================================================
 
 * Support Volume tween in Audio module (no support in Builder)
-* Fix text importing from Animatron Editor
+* Fix importing text from Animatron Editor
 
 
 
