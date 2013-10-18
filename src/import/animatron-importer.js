@@ -160,14 +160,17 @@ var TYPE_UNKNOWN =  0,
  */
 // -> Element
 Import.node = function(src, all, parent) {
-    var type = Import._type(src);
+    var type = Import._type(src),
+        trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
         (type == TYPE_GROUP)) {
-        return Import.branch(type, src, all);
+        trg = Import.branch(type, src, all);
     } else if (type != TYPE_UNKNOWN) {
-        return Import.leaf(type, src, parent);
+        trg = Import.leaf(type, src, parent);
     }
+    if (trg) { Import.callCustom(trg, src, type); };
+    return trg;
 }
 var L_ROT_TO_PATH = 1,
     L_OPAQUE_TRANSFORM = 2;
@@ -212,7 +215,7 @@ Import.branch = function(type, src, all) {
          *     array { number; number; };  // 4, registration point, default is [0,0]
          *     *end-action*;               // 5, end action for this layer
          *     number;                     // 6, flags: 0x01 - rotate to path, 0x02 - opaque transform (TBD)
-         *     array [ *tween* ];          // 7, array of tweens
+         *     array [ *tween* ];          // 7, array of tweens 
          * } *layer*;
          */
         var lsrc = _layers[li],
@@ -310,8 +313,17 @@ Import.leaf = function(type, src, parent) {
     else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }
     else if (type != TYPE_AUDIO) { x.path  = Import.path(src); }
     // FIXME: fire an event instead (event should inform about type of the importer)
-    if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
     return trg;
+}
+
+// call custom importers
+Import.callCustom = function(trg, src, type) {
+    if (Element._customImporters && Element._customImporters.length) {
+        var importers = Element._customImporters;
+        for (var i = 0, il = importers.length; i < il; i++) {
+            importers[i](trg, src, type, IMPORTER_ID);
+        }
+    }
 }
 
 /** band **/

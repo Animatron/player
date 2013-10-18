@@ -1706,12 +1706,14 @@ Scene.prototype.visitElems = function(visitor, data) {
         visitor(this.hash[elmId], data);
     }
 }
+Scene.prototype.travelChildren = Scene.prototype.visitElems;
 // > Scene.visitRoots % (visitor: Function(elm: Element))
 Scene.prototype.visitRoots = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
         visitor(this.tree[i], data);
     }
 }
+Scene.prototype.visitChildren = Scene.prototype.visitRoots;
 Scene.prototype.render = function(ctx, time, zoom) {
     ctx.save();
     if (zoom != 1) {
@@ -1846,6 +1848,10 @@ Scene.prototype._collectRemoteResources = function() {
     return remotes;
 }
 
+Scene.prototype.findById = function(id) {
+    return this.hash[id];
+}
+
 // Element
 // -----------------------------------------------------------------------------
 
@@ -1926,7 +1932,7 @@ function Element(draw, onframe) {
     this.name = '';
     this.bstate = Element.createBaseState();
     this.state = Element.createState(this);
-    this.astate = null;
+    this.astate = null; // actual state
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
@@ -1962,6 +1968,7 @@ function Element(draw, onframe) {
 }
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
+Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -3029,9 +3036,10 @@ Element.createBaseState = function() {
              'sx': 1, 'sy': 1, // scale by x / by y
              'hx': 0, 'hy': 0, // shear by x / by y
              'alpha': 1,       // opacity
-             'p': null, 't': null, 'key': null };
+             'p': null, 't': null, 'key': null,
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
                                // if both are null — stays as defined
+             '_applied': true }; // always applied
 }
 // state of the element
 Element.createState = function(owner) {
@@ -3125,7 +3133,9 @@ Element._mergeStates = function(s1, s2) {
         sx: s1.sx * s2.sx, sy: s1.sy * s2.sy,
         hx: s1.hx + s2.hx, hy: s1.hy + s2.hy,
         angle: s1.angle + s2.angle,
-        alpha: s1.alpha * s2.alpha
+        alpha: s1.alpha * s2.alpha,
+        _applied: s1._applied && s2._applied/*, TODO:
+        _appliedAt: s1._appliedAt || s2._appliedAt*/
     }
 }
 Element._getMatrixOf = function(s, m) {
@@ -5526,6 +5536,35 @@ return function($trg) {
     /*$trg.__js_pl_all = this;*/
 
     $trg.createPlayer = __createPlayer;
+    $trg.findById = function(where, id) {
+        var found = [];
+        if (where.name == name) found.push(name);
+        where.travelChildren(function(elm)  {
+            if (elm.id == id) found.push(elm); 
+        });
+        return found;
+    }
+    $trg.findByName = function(where, name) {
+        var found = [];
+        if (where.name == name) found.push(name);
+        where.travelChildren(function(elm)  {
+            if (elm.name == name) found.push(elm); 
+        });
+        return found;
+    }   
+
+
+    Element.prototype.findByName = function(name) {
+}
+Element.prototype.findById = function(id) {
+    var found = [];
+    this.travelChildren(function(elm)  {
+        if (elm.id == id) found.push(elm); 
+    });
+    return found;
+}
+
+
     $trg._$ = __createPlayer;
 
     $trg.C = C; // constants

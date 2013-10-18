@@ -76,7 +76,7 @@
     }
   };
 
-  E.prototype.importCustomData = function(object, type, importer) {
+  E._customImporters.push(function(object, source, type, importer) {
     if ((14 == type)/*ANM*/ ||
         ("0e" == type)/*ANM_INTACT*/) {
       if (importer == "ANM") {
@@ -111,7 +111,7 @@
 
       this._audio_load();
     }
-  };
+  });
 
   E.prototype._audio_format_url = function(url) {
     return url + (this._mpeg_supported() ? ".mp3" : ".ogg");

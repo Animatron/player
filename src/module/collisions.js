@@ -122,7 +122,9 @@ E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
     if (!b) return false;
+    console.log(pt, 'at', t);
     var pt = this._padopt(pt, t);
+    console.log('> adopted to ', pt);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);
     var inBounds;
@@ -203,16 +205,16 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     //return this.__adoptWithM(pts, s._matrix);
     return this.__adoptWithM(pts, E._getIMatrixOf(s));
 }
-E.prototype._radopt = function(pts, t) {
+E.prototype._radopt = function(pts, t) { // adopt point by reversed current or time-matrix
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
-    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
+    if (/*(t !== null) && */!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
     return this.__adoptWithM(pts, E._getMatrixOf(s));
 }
-E.prototype._padopt = function(pt, t) {
+E.prototype._padopt = function(pt, t) { // recursively adopt point by current or time-matrix
     var p = this.parent;
     while (p) {
         pt = p._adopt(pt, t);
@@ -220,7 +222,7 @@ E.prototype._padopt = function(pt, t) {
     }
     return this._adopt(pt, t);
 }
-E.prototype._pradopt = function(pt, t) {
+E.prototype._pradopt = function(pt, t) { // recursively adopt point by reversed current or time-matrix
     var pt = this._radopt(pt, t);
     var p = this.parent;
     while (p) {
@@ -356,14 +358,14 @@ E.prototype.__pathAt = function(t) {
 E.prototype.__pointsAt = function(t) {
     return this._pradopt(this.collectPoints(), t);
 }
-E.prototype._cpa_bounds = function() { // cpath-aware bounds
+E.prototype._cpa_bounds = function() { // collision-path-aware bounds
     var cpath = this.xdata.__cpath;
     return cpath
             ? cpath.bounds()
             : this.lbounds();
 }
 
-E.prototype._cpa_rect = function() { // cpath-aware rect
+E.prototype._cpa_rect = function() { // collision-path-aware rect
     var cpath = this.xdata.__cpath;
     return cpath
             ? cpath.rect()
