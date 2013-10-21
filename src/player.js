@@ -681,8 +681,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     // will be called when all remote resources were
     // finished loading
     if (player.state.happens === C.RES_LOADING) {
-        player._postpone('load', arguments);
-        return;
+        player._clearPostpones();
+        // TODO: cancel resource requests?
     }
 
     /* object */
@@ -745,11 +745,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     if (!err_count) {
-                        player.state.happens = C.LOADING;
-                        player.fire(C.S_LOAD, result);
-                        player.stop();
-                        player._callPostpones();
-                        if (callback) callback(result);
+                        if (player.anim === result) { // avoid race condition when there were two requests
+                                                      // to load different scenes and first one finished loading
+                                                      // after the second one
+                            player.state.happens = C.LOADING;
+                            player.fire(C.S_LOAD, result);
+                            player.stop();
+                            player._callPostpones();
+                            if (callback) callback(result);
+                        }
                     } else throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                 }
             ) ]);
@@ -1459,6 +1463,9 @@ Player.prototype.__makeSafe = function(methods) {
 Player.prototype.handle__x = function(type, evt) {
     if (this.anim) this.anim.fire(type, this);
     return true;
+}
+Player.prototype._clearPostpones = function() {
+    this._queue = [];
 }
 Player.prototype._postpone = function(method, args) {
     if (!this._queue) this._queue = [];
@@ -5540,7 +5547,7 @@ return function($trg) {
         var found = [];
         if (where.name == name) found.push(name);
         where.travelChildren(function(elm)  {
-            if (elm.id == id) found.push(elm); 
+            if (elm.id == id) found.push(elm);
         });
         return found;
     }
@@ -5548,10 +5555,10 @@ return function($trg) {
         var found = [];
         if (where.name == name) found.push(name);
         where.travelChildren(function(elm)  {
-            if (elm.name == name) found.push(elm); 
+            if (elm.name == name) found.push(elm);
         });
         return found;
-    }   
+    }
 
 
     Element.prototype.findByName = function(name) {
@@ -5559,7 +5566,7 @@ return function($trg) {
 Element.prototype.findById = function(id) {
     var found = [];
     this.travelChildren(function(elm)  {
-        if (elm.id == id) found.push(elm); 
+        if (elm.id == id) found.push(elm);
     });
     return found;
 }

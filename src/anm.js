@@ -279,7 +279,7 @@
         } else /*if (me._waiting[url])*/ { // already waiting
             if (_conf.logResMan)
                { console.log('> someone is already waiting for it, subscribing'); }
-            if (me._waiting[url] !== loader) me.subscribe([ url ], onComplete);
+            if (me._waiting[url] !== loader) me.subscribe([ url ], function(res) { onComplete(res[0]); });
         }
     }
     ResourceManager.prototype.trigger = function(url, value) {
