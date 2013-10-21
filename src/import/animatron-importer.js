@@ -367,11 +367,14 @@ Import.path = function(src) {
  */
 // -> Text
 Import.text = function(src) {
-    return new Text(src[6], src[4],
+    var lines = is.arr(src[6]) ? src : src[6].split('\n');
+    return new Text((lines.length > 1) ? lines : lines[0],
+                    src[4],
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]),
-                    src[5]);
+                    null,
+                    src[5], src[7] ? true : false);
 }
 /** sheet (image) **/
 /*

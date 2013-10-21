@@ -1,7 +1,12 @@
-v0.9.1504 / Wed Oct 16 2013 16:58:13 -0400 / 6baf23aef944aa51ba372fcaa92737fc92d00c04
+v0.9.1504 / Mon Oct 21 2013 16:13:05 -0400 / 9dc67f2b976c38c2395a2faa0f446cf8d35c466c
 =====================================================================================
 
-Support Volume tween in Audio module (no support in Builder)
++ Support Volume tween in Audio module (no support in Builder)
+
+* Fix positioning text when importing from Editor
+* Change text baseline to bottom instead of alphabetic
+* Support underlined text
+* Calculate text dimensions for specific lines and support it in multiline
 
 
 
