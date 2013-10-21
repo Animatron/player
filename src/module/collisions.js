@@ -122,9 +122,7 @@ E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
     if (!b) return false;
-    console.log(pt, 'at', t);
     var pt = this._padopt(pt, t);
-    console.log('> adopted to ', pt);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);
     var inBounds;
@@ -203,7 +201,7 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix);
-    return this.__adoptWithM(pts, E._getIMatrixOf(s));
+    return this.__adoptWithM(this.__updateWithPivot(pts), E._getIMatrixOf(s));
 }
 E.prototype._radopt = function(pts, t) { // adopt point by reversed current or time-matrix
     if (!pts) return null;
@@ -212,7 +210,7 @@ E.prototype._radopt = function(pts, t) { // adopt point by reversed current or t
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
     if (/*(t !== null) && */!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
-    return this.__adoptWithM(pts, E._getMatrixOf(s));
+    return this.__adoptWithM(this.__updateWithPivot(pts), E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) { // recursively adopt point by current or time-matrix
     var p = this.parent;
@@ -230,6 +228,24 @@ E.prototype._pradopt = function(pt, t) { // recursively adopt point by reversed 
         p = p.parent;
     }
     return pt;
+}
+E.prototype.__updateWithPivot = function(pts) {
+    var dimen = this.dimen(),
+        pvt = this.xdata.pvt;
+    if (!dimen) return pts;
+    if ((pvt[0] === 0) && (pvt[1] === 0)) return pts;
+
+    if (pts.length > 2) {
+        var transformed = [];
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            transformed.push(-(pvt[0] * dimen[0]) + pts[pi],
+                             -(pvt[1] * dimen[1]) + pts[pi+1]);
+        }
+        return transformed;
+    } else {
+        return [ -(pvt[0] * dimen[0]) + pts[0],
+                 -(pvt[1] * dimen[1]) + pts[1] ];
+    }
 }
 E.prototype.__adoptWithM = function(pts, m) {
     if (pts.length > 2) {
