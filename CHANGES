@@ -1,8 +1,12 @@
-v0.9.1504 / Thu Oct 17 2013 13:04:51 -0400 / 4d33919966a98ea5678d9422f619aef5121d3d64
+v0.9.1504 / Mon Oct 21 2013 16:13:05 -0400 / 9dc67f2b976c38c2395a2faa0f446cf8d35c466c
 =====================================================================================
 
-* Support Volume tween in Audio module (no support in Builder)
-* Fix importing text from Animatron Editor
++ Support Volume tween in Audio module (no support in Builder)
+
+* Fix positioning text when importing from Editor
+* Change text baseline to bottom instead of alphabetic
+* Support underlined text
+* Calculate text dimensions for specific lines and support it in multiline
 
 
 
