@@ -76,7 +76,7 @@
     }
   };
 
-  E._customImporters.push(function(object, source, type, importer) {
+  E._customImporters.push(function(source, type, importer) {
     if ((14 == type)/*ANM*/ ||
         ("0e" == type)/*ANM_INTACT*/) {
       if (importer == "ANM") {
@@ -88,11 +88,11 @@
          *     number;                     // 2, band offset
          * } *audio_element*;
          */
-        this._audio_url = object[1];
-        this._audio_band_offset = object[2];
+        this._audio_url = source[1];
+        this._audio_band_offset = source[2];
       } else if (importer == "ANM_INTACT") {
-        this._audio_band_offset = object.bandOffset;
-        this._audio_url = this._audio_format_url(object.url);
+        this._audio_band_offset = source.bandOffset;
+        this._audio_url = this._audio_format_url(source.url);
       }
 
       this.isAudio = true;

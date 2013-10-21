@@ -215,7 +215,7 @@ Import.branch = function(type, src, all) {
          *     array { number; number; };  // 4, registration point, default is [0,0]
          *     *end-action*;               // 5, end action for this layer
          *     number;                     // 6, flags: 0x01 - rotate to path, 0x02 - opaque transform (TBD)
-         *     array [ *tween* ];          // 7, array of tweens 
+         *     array [ *tween* ];          // 7, array of tweens
          * } *layer*;
          */
         var lsrc = _layers[li],
@@ -318,10 +318,11 @@ Import.leaf = function(type, src, parent) {
 
 // call custom importers
 Import.callCustom = function(trg, src, type) {
+    // FIXME: this code should be in player code
     if (Element._customImporters && Element._customImporters.length) {
         var importers = Element._customImporters;
         for (var i = 0, il = importers.length; i < il; i++) {
-            importers[i](trg, src, type, IMPORTER_ID);
+            importers[i].call(trg, src, type, IMPORTER_ID);
         }
     }
 }

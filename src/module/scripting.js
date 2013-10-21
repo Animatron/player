@@ -22,14 +22,14 @@
     'click': C.X_CLICK
   };
 
-  E._customImporters.push(function(object, source, type, importer) {
+  E._customImporters.push(function(source, type, importer) {
     if (source[8]) { // handlers
       var handlers = source[8];
       for (var handler_type in handlers) {
         if (handlers.hasOwnProperty(handler_type)) {
           var type_handlers = handlers[handler_type];
           for (var i = 0, il = type_handlers.length; i < il; i++) {
-            object.m_on(handler_map[handler_type], eval('function() { ' + type_handlers[i] + '}'));
+            this.m_on(handler_map[handler_type], eval('function() { ' + type_handlers[i] + '}'));
           }
         }
       }
