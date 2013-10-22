@@ -210,7 +210,7 @@ E.prototype._radopt = function(pts, t) { // adopt point by reversed current or t
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
     if (/*(t !== null) && */!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
-    return this.__adoptWithM(this.__updateWithRegAndPivot(pts), E._getMatrixOf(s));
+    return this.__adoptWithM(this.__rupdateWithRegAndPivot(pts), E._getMatrixOf(s));
 }
 E.prototype._padopt = function(pt, t) { // recursively adopt point by current or time-matrix
     var p = this.parent;
@@ -230,6 +230,26 @@ E.prototype._pradopt = function(pt, t) { // recursively adopt point by reversed 
     return pt;
 }
 E.prototype.__updateWithRegAndPivot = function(pts) {
+    var dimen = this.dimen(),
+        reg = this.xdata.reg,
+        pvt = this.xdata.pvt;
+    if (!dimen) dimen = [0, 0];
+    if ((pvt[0] === 0) && (pvt[1] === 0)
+     && (reg[0] === 0) && (reg[1] === 0)) return pts;
+
+    if (pts.length > 2) {
+        var transformed = [];
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            transformed.push(reg[0] + (pvt[0] * dimen[0]) + pts[pi],
+                             reg[1] + (pvt[1] * dimen[1]) + pts[pi+1]);
+        }
+        return transformed;
+    } else {
+        return [ reg[0] + (pvt[0] * dimen[0]) + pts[0],
+                 reg[1] + (pvt[1] * dimen[1]) + pts[1] ];
+    }
+}
+E.prototype.__rupdateWithRegAndPivot = function(pts) {
     var dimen = this.dimen(),
         reg = this.xdata.reg,
         pvt = this.xdata.pvt;
