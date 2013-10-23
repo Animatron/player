@@ -21,7 +21,7 @@ var C = anm.C;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
-var is = anm._typecheck;
+var is = __anm.is;
 
 var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 

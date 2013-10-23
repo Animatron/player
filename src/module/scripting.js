@@ -8,7 +8,8 @@
  */
 
 (function() { // anonymous wrapper to exclude global context clash
-  var C = anm.C;
+  var C = anm.C,
+      is = __anm.is;
   var _ResMan = __anm.resource_manager;
 
   C.MOD_SCRIPTING = 'scripting';
@@ -19,19 +20,30 @@
   var E = anm.Element;
 
   var handler_map = {
-    'click': C.X_CLICK
+    'click': C.X_MCLICK
+  }, wrappers_map = {
+    'click': [
+      'function(evt, t) { if (this.$.contains(evt.pos)) { ', /* content */ ' } }'
+    ]
   };
 
   E._customImporters.push(function(source, type, importer) {
-    if (source[8]) { // handlers
+    if ((type === 255) && source[8]) { // type === 255 is TYPE_LAYER, see animatron-importer.js
       var handlers = source[8];
       for (var handler_type in handlers) {
-        if (handlers.hasOwnProperty(handler_type)) {
-          var type_handlers = handlers[handler_type];
-          for (var i = 0, il = type_handlers.length; i < il; i++) {
-            this.m_on(handler_map[handler_type], eval('function() { ' + type_handlers[i] + '}'));
+        var handler_code = handlers[handler_type];
+        /* this.m_on(handler_map[handler_type], function(evt, t) {
+          if (this.$.contains(evt.pos, null)) {
+            console.log('Click');
           }
-        }
+        }); */
+        console.log(wrappers_map[handler_type][0] + handler_code + wrappers_map[handler_type][1]);
+        console.log('function() { ' + handler_code + ' }');
+
+        //this.m_on(handler_map[handler_type], eval('return function() { ' + handler_code + ' }'));
+        eval('this.m_on(handler_map[handler_type], ' +
+             /*'function() { ' + handler_code + ' })'*/
+             wrappers_map[handler_type][0] + handler_code + wrappers_map[handler_type][1] + ');');
       }
     }
   });

@@ -371,6 +371,56 @@
         return this.hash[cvs_id];
     }
 
+    // Value/Typecheck
+    // -----------------------------------------------------------------------------
+
+    var __is = (function() {
+
+        // #### value check
+
+        var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
+
+        var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
+
+        // #### typecheck
+
+        function __builder(obj) {
+            return (typeof Builder !== 'undefined') &&
+                   (obj instanceof Builder);
+        }
+
+        var __arr = Array.isArray;
+
+        function __num(n) {
+            return !__nan(parseFloat(n)) && __finite(n);
+        }
+
+        function __fun(fun) {
+            return fun != null && typeof fun === 'function';
+        }
+
+        function __obj(obj) {
+            return obj != null && typeof obj === 'object';
+        }
+
+        function __str(obj) {
+            return obj != null && typeof obj === 'string';
+        }
+
+        var __is = {};
+        __is.finite  = __finite;
+        __is.nan     = __nan;
+        __is.builder = __builder;
+        __is.arr     = __arr;
+        __is.num     = __num;
+        __is.fun     = __fun;
+        __is.obj     = __obj;
+        __is.str     = __str;
+
+        return __is;
+
+    })();
+
     // Export
     // -----------------------------------------------------------------------------
 
@@ -381,6 +431,7 @@
         'undefined': foo.___undefined___,
         'C': C, // constants
         console: console,
+        is: __is,
         conf: _conf,
         namespace: PUBLIC_NAMESPACE,
         registerPlayer: registerPlayer,

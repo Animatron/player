@@ -321,36 +321,18 @@ function newCanvas(dimen, ratio) {
 // ### Internal Helpers
 /* -------------------- */
 
-// #### value check
+// value/typecheck
+var is = __anm.is;
 
-var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
-
-var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
-
-// #### typecheck
-
-function __builder(obj) {
-    return (typeof Builder !== 'undefined') &&
-           (obj instanceof Builder);
-}
-
-var __arr = Array.isArray;
-
-function __num(n) {
-    return !__nan(parseFloat(n)) && __finite(n);
-}
-
-function __fun(fun) {
-    return fun != null && typeof fun === 'function';
-}
-
-function __obj(obj) {
-    return obj != null && typeof obj === 'object';
-}
-
-function __str(obj) {
-    return obj != null && typeof obj === 'string';
-}
+// map back to functions for faster access (is it really so required?)
+var __finite  = is.finite,
+    __nan     = is.nan,
+    __builder = is.builder,
+    __arr     = is.arr,
+    __num     = is.num,
+    __fun     = is.fun,
+    __obj     = is.obj,
+    __str     = is.str;
 
 // #### mathematics
 
@@ -5615,6 +5597,7 @@ Element.prototype.findById = function(id) {
 
     $trg.obj_clone = obj_clone; $trg.ajax = ajax;
 
+    // TODO: remove duplicates using these typecheck/valuecheck and replace them to __anm.is
     $trg._typecheck = { builder: __builder,
                         arr: __arr,
                         num: __num,

@@ -146,7 +146,8 @@ var TYPE_UNKNOWN =  0,
     TYPE_POLYGON = 12,
     TYPE_CURVE   = 13,
     TYPE_AUDIO   = 14,
-    TYPE_LINE    = 15;
+    TYPE_LINE    = 15,
+    TYPE_LAYER   = 255; // is it good?
 
 /** node **/
 /*
@@ -218,8 +219,7 @@ Import.branch = function(type, src, all) {
          *     array [ *tween* ];          // 7, array of tweens
          * } *layer*;
          */
-        var lsrc = _layers[li],
-            ltype = Import._type(lsrc[0]);
+        var lsrc = _layers[li];
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
@@ -300,6 +300,8 @@ Import.branch = function(type, src, all) {
                 togo--;
             }
         }
+
+        Import.callCustom(ltrg, lsrc, TYPE_LAYER);
     }
     return trg;
 }
