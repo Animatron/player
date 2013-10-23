@@ -23,27 +23,29 @@
     'click': C.X_MCLICK
   }, wrappers_map = {
     'click': [
-      'function(evt, t) { if (this.$.contains(evt.pos)) { ', /* content */ ' } }'
+      '(function(ctx) { ' +
+         'return function(evt, t) { ' +
+           'if (this.$.contains(evt.pos)) { ' +
+             '(function(ctx, evt, t) { console.log(ctx, evt, t);',
+                /* content */
+             '}).call(this, ctx, evt, t);' +
+           '}' +
+         '}' +
+      '})(____user_ctx)'
     ]
   };
+
+  var ____user_ctx = { 'foo': 'bar' };
 
   E._customImporters.push(function(source, type, importer) {
     if ((type === 255) && source[8]) { // type === 255 is TYPE_LAYER, see animatron-importer.js
       var handlers = source[8];
       for (var handler_type in handlers) {
-        var handler_code = handlers[handler_type];
-        /* this.m_on(handler_map[handler_type], function(evt, t) {
-          if (this.$.contains(evt.pos, null)) {
-            console.log('Click');
-          }
-        }); */
-        console.log(wrappers_map[handler_type][0] + handler_code + wrappers_map[handler_type][1]);
-        console.log('function() { ' + handler_code + ' }');
+        var handler_code = wrappers_map[handler_type][0] +
+                           handlers[handler_type] + wrappers_map[handler_type][1];
 
-        //this.m_on(handler_map[handler_type], eval('return function() { ' + handler_code + ' }'));
         eval('this.m_on(handler_map[handler_type], ' +
-             /*'function() { ' + handler_code + ' })'*/
-             wrappers_map[handler_type][0] + handler_code + wrappers_map[handler_type][1] + ');');
+             handler_code + ');');
       }
     }
   });
