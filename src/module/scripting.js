@@ -28,7 +28,7 @@
            'if (this.$.contains(evt.pos)) { ' +
              '(function(ctx, evt, t) { ',
                 /* content */
-             '}).call(this, ctx, evt, t);' +
+             '}).call(this.$.bstate, ctx, evt, t);' +
            '}' +
          '}' +
       '})(____user_ctx)'
