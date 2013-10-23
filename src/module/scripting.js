@@ -26,7 +26,7 @@
       '(function(ctx) { ' +
          'return function(evt, t) { ' +
            'if (this.$.contains(evt.pos)) { ' +
-             '(function(ctx, evt, t) { console.log(ctx, evt, t);',
+             '(function(ctx, evt, t) { ',
                 /* content */
              '}).call(this, ctx, evt, t);' +
            '}' +
