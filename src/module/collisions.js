@@ -419,6 +419,7 @@ E.prototype.__ensureTimeTestAllowedFor = function(t) {
 }
 
 // TODO: iterate through objects' properties and call function
+// FIXME: OUTDATED
 // for each property
 E._getVect = function(s0, s1, t_diff) {
     if (t_diff == 0) return E.createState();
