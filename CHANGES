@@ -1,3 +1,16 @@
+v0.9.16 / Thu Oct 24 2013 11:52:03 -0400 / dae00d67a34914f8b282721066a8f2c67d06c207
+===================================================================================
+
+* Initial support to import code snippets from Animatron (currently only `onclick` handler for draft purposes).
+* Include `scripting` and `collision` modules in `animatron` bundle
+* Fixes for several errors in sandbox with importing sprites
+* Fixes for resource manager errors happening when someone already waiting for the resource
+* Update previously outdated collisions module to new changes regarding with pivot & registration point
+* Move type-checking and value-checking into `anm.js`, global namespace
+* `findByName` and `findById` methods in `anm` namespace
+
+
+
 v0.9.1504 / Mon Oct 21 2013 16:13:05 -0400 / 9dc67f2b976c38c2395a2faa0f446cf8d35c466c
 =====================================================================================
 
