@@ -321,36 +321,18 @@ function newCanvas(dimen, ratio) {
 // ### Internal Helpers
 /* -------------------- */
 
-// #### value check
+// value/typecheck
+var is = __anm.is;
 
-var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
-
-var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
-
-// #### typecheck
-
-function __builder(obj) {
-    return (typeof Builder !== 'undefined') &&
-           (obj instanceof Builder);
-}
-
-var __arr = Array.isArray;
-
-function __num(n) {
-    return !__nan(parseFloat(n)) && __finite(n);
-}
-
-function __fun(fun) {
-    return fun != null && typeof fun === 'function';
-}
-
-function __obj(obj) {
-    return obj != null && typeof obj === 'object';
-}
-
-function __str(obj) {
-    return obj != null && typeof obj === 'string';
-}
+// map back to functions for faster access (is it really so required?)
+var __finite  = is.finite,
+    __nan     = is.nan,
+    __builder = is.builder,
+    __arr     = is.arr,
+    __num     = is.num,
+    __fun     = is.fun,
+    __obj     = is.obj,
+    __str     = is.str;
 
 // #### mathematics
 
@@ -681,8 +663,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     // will be called when all remote resources were
     // finished loading
     if (player.state.happens === C.RES_LOADING) {
-        player._postpone('load', arguments);
-        return;
+        player._clearPostpones();
+        // TODO: cancel resource requests?
     }
 
     /* object */
@@ -745,11 +727,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     if (!err_count) {
-                        player.state.happens = C.LOADING;
-                        player.fire(C.S_LOAD, result);
-                        player.stop();
-                        player._callPostpones();
-                        if (callback) callback(result);
+                        if (player.anim === result) { // avoid race condition when there were two requests
+                                                      // to load different scenes and first one finished loading
+                                                      // after the second one
+                            player.state.happens = C.LOADING;
+                            player.fire(C.S_LOAD, result);
+                            player.stop();
+                            player._callPostpones();
+                            if (callback) callback(result);
+                        }
                     } else throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                 }
             ) ]);
@@ -1460,6 +1446,9 @@ Player.prototype.handle__x = function(type, evt) {
     if (this.anim) this.anim.fire(type, this);
     return true;
 }
+Player.prototype._clearPostpones = function() {
+    this._queue = [];
+}
 Player.prototype._postpone = function(method, args) {
     if (!this._queue) this._queue = [];
     this._queue.push([ method, args ]);
@@ -1706,12 +1695,14 @@ Scene.prototype.visitElems = function(visitor, data) {
         visitor(this.hash[elmId], data);
     }
 }
+Scene.prototype.travelChildren = Scene.prototype.visitElems;
 // > Scene.visitRoots % (visitor: Function(elm: Element))
 Scene.prototype.visitRoots = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
         visitor(this.tree[i], data);
     }
 }
+Scene.prototype.visitChildren = Scene.prototype.visitRoots;
 Scene.prototype.render = function(ctx, time, zoom) {
     ctx.save();
     if (zoom != 1) {
@@ -1846,6 +1837,10 @@ Scene.prototype._collectRemoteResources = function() {
     return remotes;
 }
 
+Scene.prototype.findById = function(id) {
+    return this.hash[id];
+}
+
 // Element
 // -----------------------------------------------------------------------------
 
@@ -1926,7 +1921,7 @@ function Element(draw, onframe) {
     this.name = '';
     this.bstate = Element.createBaseState();
     this.state = Element.createState(this);
-    this.astate = null;
+    this.astate = null; // actual state
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
@@ -1962,6 +1957,7 @@ function Element(draw, onframe) {
 }
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
+Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
@@ -3029,9 +3025,10 @@ Element.createBaseState = function() {
              'sx': 1, 'sy': 1, // scale by x / by y
              'hx': 0, 'hy': 0, // shear by x / by y
              'alpha': 1,       // opacity
-             'p': null, 't': null, 'key': null };
+             'p': null, 't': null, 'key': null,
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
                                // if both are null — stays as defined
+             '_applied': true }; // always applied
 }
 // state of the element
 Element.createState = function(owner) {
@@ -3125,7 +3122,9 @@ Element._mergeStates = function(s1, s2) {
         sx: s1.sx * s2.sx, sy: s1.sy * s2.sy,
         hx: s1.hx + s2.hx, hy: s1.hy + s2.hy,
         angle: s1.angle + s2.angle,
-        alpha: s1.alpha * s2.alpha
+        alpha: s1.alpha * s2.alpha,
+        _applied: s1._applied && s2._applied/*, TODO:
+        _appliedAt: s1._appliedAt || s2._appliedAt*/
     }
 }
 Element._getMatrixOf = function(s, m) {
@@ -5552,6 +5551,35 @@ return function($trg) {
     /*$trg.__js_pl_all = this;*/
 
     $trg.createPlayer = __createPlayer;
+    $trg.findById = function(where, id) {
+        var found = [];
+        if (where.name == name) found.push(name);
+        where.travelChildren(function(elm)  {
+            if (elm.id == id) found.push(elm);
+        });
+        return found;
+    }
+    $trg.findByName = function(where, name) {
+        var found = [];
+        if (where.name == name) found.push(name);
+        where.travelChildren(function(elm)  {
+            if (elm.name == name) found.push(elm);
+        });
+        return found;
+    }
+
+
+    Element.prototype.findByName = function(name) {
+}
+Element.prototype.findById = function(id) {
+    var found = [];
+    this.travelChildren(function(elm)  {
+        if (elm.id == id) found.push(elm);
+    });
+    return found;
+}
+
+
     $trg._$ = __createPlayer;
 
     $trg.C = C; // constants
@@ -5569,6 +5597,7 @@ return function($trg) {
 
     $trg.obj_clone = obj_clone; $trg.ajax = ajax;
 
+    // TODO: remove duplicates using these typecheck/valuecheck and replace them to __anm.is
     $trg._typecheck = { builder: __builder,
                         arr: __arr,
                         num: __num,
