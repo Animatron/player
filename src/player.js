@@ -247,7 +247,7 @@ function find_pos(elm) {
 // ### AJAX
 /* -------- */
 
-function ajax(url, callback/*, errback*/) {
+function ajax(url, callback, errback) {
     var req = false;
 
     if (!$wnd.ActiveXObject) {
@@ -277,9 +277,11 @@ function ajax(url, callback/*, errback*/) {
             if (req.status == 200) {
                 if (callback) callback(req);
             } else {
-                throw new SysErr('AJAX request for ' + url +
+                var error = new SysErr('AJAX request for ' + url +
                                  ' returned ' + req.status +
                                  ' instead of 200');
+                if (errback) { errback(error, req); }
+                else { throw error; }
             }
         }
     };
@@ -3171,9 +3173,14 @@ L.loadFromUrl = function(player, url, importer, callback) {
 
     player._drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
 
-    ajax(url, function(req) {
+    var success = function(req) {
         L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
+    };
+    var failure = player.__defAsyncSafe(function(err) {
+      throw new SysErr('Snapshot failed to load');
     });
+
+    ajax(url, success, failure);
 }
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
