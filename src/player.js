@@ -4648,11 +4648,11 @@ Controls.DEFAULT_THEME = {
                   // and end is at (1.0 * Math.max(width/height))
           //'start': 'rgba(30,30,30,.7)',
           //'end': 'rgba(30,30,30,1)'
-          'start': 'rgba(30,30,30,.95)',
-          'end': 'rgba(30,30,30,.95)'
+          'start': 'rgba(30,30,30,.20)',
+          'end': 'rgba(30,30,30,.05)'
       },
       'progress': {
-          'passed': 'rgba(255,255,255,.2)',
+          'passed': 'rgba(200,255,255,.6)',
           'left': 'rgba(0,0,0,.05)'
       },
       'button': 'rgba(255,255,255,.95)',
@@ -4739,6 +4739,11 @@ Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
                 controls.handleMouseOver();
             };
         })(this), false);
+    player.canvas.addEventListener('click', (function(controls) {
+            return function(evt) {
+                controls.handlePlayerClick();
+            };
+        })(this), false);
     canvas.addEventListener('mousemove', (function(controls) {
             return function(evt) {
                 controls.handleMouseMove(evt.pageX, evt.pageY, evt);
@@ -4784,12 +4789,12 @@ Controls.prototype.render = function(time) {
     ctx.clearRect(0, 0, _w, _h);
 
     if (_s === C.PLAYING) {
-        Controls._drawBack(ctx, theme, _w, _h, ratio);
+        /* Controls._drawBack(ctx, theme, _w, _h, ratio);
         Controls._drawProgress(ctx, theme, _w, _h, ratio, progress);
         Controls._drawPause(ctx, theme, _w, _h, ratio, this.focused);
         if (duration) {
             Controls._drawTime(ctx, theme, _w, _h, ratio, time, duration);
-        }
+        } */
     } else if (_s === C.STOPPED) {
         Controls._drawBack(ctx, theme, _w, _h, ratio);
         Controls._drawPlay(ctx, theme, _w, _h, ratio, this.focused);
@@ -4850,7 +4855,7 @@ Controls.prototype.refreshByMousePos = function(pageX, pageY) {
 }
 Controls.prototype.handleMouseMove = function(pageX, pageY, evt) {
     if (evt) this._last_mevt = evt;
-    if (this.inBounds(pageX, pageY)) {
+    if (this.inBounds(pageX, pageY) && (this.player.state.happens !== C.PLAYING)) {
         this.show();
         this.refreshByMousePos(pageX, pageY);
     } else {
@@ -4862,6 +4867,15 @@ Controls.prototype.handleClick = function() {
     this.forceNextRedraw();
     this.react(state.time);
     this.render(state.time);
+}
+Controls.prototype.handlePlayerClick = function() {
+    var state = this.player.state;
+    if (state.happens === C.PLAYING) {
+        this.show();
+        this.forceNextRedraw();
+        this.react(state.time);
+        this.render(state.time);
+    }
 }
 Controls.prototype.handleMouseOver = function() {
     if (this.hidden) this.show();
