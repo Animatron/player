@@ -4648,32 +4648,40 @@ Controls.DEFAULT_THEME = {
                   // and end is at (1.0 * Math.max(width/height))
           //'start': 'rgba(30,30,30,.7)',
           //'end': 'rgba(30,30,30,1)'
-          'start': 'rgba(30,30,30,.20)',
-          'end': 'rgba(30,30,30,.05)'
+          //'start': 'rgba(30,30,30,.20)', // fefbf2
+          //'end': 'rgba(30,30,30,.05)' // eae5d8
+          'start': 'rgba(234,229,216,.8)',
+          'end': 'rgba(234,229,216,.8)'
       },
       'progress': {
-          'passed': 'rgba(200,255,255,.6)',
-          'left': 'rgba(0,0,0,.05)'
+          //'passed': 'rgba(0,0,0,.05)',
+          //'left': 'rgba(255,255,255,1)'
+          //'passed': 'rgba(50,158,192,.85)',
+          //'passed': 'rgba(203,86,49,1)',
+          'passed': 'rgba(241,91,42,1.0)',
+          'left': 'rgba(255,255,255,1)'
       },
-      'button': 'rgba(255,255,255,.95)',
-      'stroke': 'rgba(180,180,180,.85)',
-      'fill': 'rgba(255,255,255,0)',
-      'hoverfill': 'rgba(255,255,255,.2)',
+      //'button': 'rgba(180,180,180,.85)',
+      'button': 'rgba(50,158,192,.85)',
+      //'stroke': 'rgba(180,180,180,.85)',
+      'stroke': 'rgba(50,158,192,.85)',
+      'fill': 'rgba(255,255,255,.6)',
+      'hoverfill': 'rgba(255,255,255,.6)',
       'disabledfill': 'rgba(20,0,0,.2)',
-      'text': 'rgba(255,255,255,.8)',
+      'text': 'rgba(90,90,90,.8)',
       'error': 'rgba(250,0,0,.8)',
       'infobg': 'rgba(128,0,0,.8)',
-      'secondary': 'rgba(255,255,255,.1)'
+      'secondary': 'rgba(255,255,255,.6)'
   },
   'anmguy': {
-      'colors': [ 'rgba(65,61,62,.7)', // black
-                  'rgba(241,91,42,.7)' // orange
+      'colors': [ 'rgba(65,61,62,.9)', // black
+                  'rgba(241,91,42,.9)' // orange
                 ],
       'center_pos': [ .5, .8 ],
       'corner_pos': [ .9, .9 ],
       'center_alpha': 1,
       'corner_alpha': .4,
-      'scale': .065 // relatively to minimum side
+      'scale': .04 // relatively to minimum side
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
@@ -4867,6 +4875,7 @@ Controls.prototype.handleClick = function() {
     this.forceNextRedraw();
     this.react(state.time);
     this.render(state.time);
+    if (state.happens === C.PLAYING) this.hide();
 }
 Controls.prototype.handlePlayerClick = function() {
     var state = this.player.state;
@@ -5272,7 +5281,7 @@ function InfoBlock(player) {
 /* FIXME: merge Info Block and Controls? */
 InfoBlock.BASE_BGCOLOR = Controls.THEME.colors.infobg;
 InfoBlock.BASE_FGCOLOR = Controls.THEME.colors.text;
-InfoBlock.OPACITY = 0.75;
+InfoBlock.OPACITY = 1;
 InfoBlock.PADDING = 6;
 InfoBlock.MARGIN = 5;
 InfoBlock.FONT = Controls.THEME.font.face;
@@ -5336,10 +5345,10 @@ InfoBlock.prototype.render = function() {
         ratio = this.canvas.__pxRatio;
     Text._ensureHasBuffer();
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + (14 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      (9 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
