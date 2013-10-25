@@ -11,6 +11,7 @@
   var C = anm.C,
       is = __anm.is;
   var _ResMan = __anm.resource_manager;
+  var Player = anm.Player;
 
   C.MOD_SCRIPTING = 'scripting';
   if (anm.M[C.MOD_SCRIPTING]) throw new Error('SCRIPTING module already enabled');
@@ -37,6 +38,8 @@
 
   var ____user_ctx = { 'foo': 'bar' };
 
+  var last_scene_is_dynamic;
+
   E._customImporters.push(function(source, type, importer) {
     if ((type === 255) && source[8]) { // type === 255 is TYPE_LAYER, see animatron-importer.js
       var handlers = source[8];
@@ -44,10 +47,26 @@
         var handler_code = wrappers_map[handler_type][0] +
                            handlers[handler_type] + wrappers_map[handler_type][1];
 
+        last_scene_is_dynamic = true;
         eval('this.m_on(handler_map[handler_type], ' +
              handler_code + ');');
       }
     }
   });
+
+  var prev_forSnapshot = Player.forSnapshot;
+  Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
+    last_scene_is_dynamic = false;
+    var player = prev_forSnapshot.call(this, canvasId, snapshotUrl, importer, function() {
+      if (last_scene_is_dynamic) {
+          player.mode = C.M_DYNAMIC;
+          player._checkMode();
+      }
+      last_scene_is_dynamic = false;
+      player.play();
+      if (callback) callback();
+    });
+    return player;
+  }
 
 })();
