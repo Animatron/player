@@ -63,6 +63,7 @@
           player._checkMode();
       }
       last_scene_is_dynamic = false;
+      player.play();
       if (callback) callback();
     });
     return player;

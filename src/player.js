@@ -1283,6 +1283,10 @@ Player.prototype._reconfigureCanvas = function(opts) {
 Player.prototype._checkMode = function() {
     if (!this.canvas) return;
 
+    if (this.anim && (this.mode & C.M_HANDLE_EVENTS)) {
+        this.__subscribeDynamicEvents(this.anim);
+    }
+
     if (this.mode & C.M_CONTROLS_ENABLED) {
         this._enableControls();
         if (this.mode & C.M_INFO_ENABLED) {
