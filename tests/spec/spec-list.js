@@ -57,5 +57,8 @@ var _specs = {
                    '20.image',
                    '21.statics-and-pivot' ],
    '05.collisions': [ 'stub' ],
-   '06.bugs': [ 'bugs' ]
+   '06.bugs': [ 'bugs' ],
+   '07.audio-export': [ '01.simple',
+                        '02.group',
+                        '03.multiple' ]
 };
