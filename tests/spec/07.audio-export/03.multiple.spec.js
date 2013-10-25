@@ -14,7 +14,6 @@ describe("Export of multiple audio elements", function() {
     _mocks.adaptDocument(document);
 
     spyOn(anm.Element.prototype, '_audio_load').andCallFake(function() {
-      console.log("yeah")
     });
 
     _fake(_Fake.CVS_POS);
