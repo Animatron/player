@@ -4862,6 +4862,7 @@ Controls.prototype.refreshByMousePos = function(pageX, pageY) {
     this.render(state.time);
 }
 Controls.prototype.handleMouseMove = function(pageX, pageY, evt) {
+    if (this.player.mode === C.M_DYNAMIC) return;
     if (evt) this._last_mevt = evt;
     if (this.inBounds(pageX, pageY) && (this.player.state.happens !== C.PLAYING)) {
         this.show();
@@ -4871,6 +4872,7 @@ Controls.prototype.handleMouseMove = function(pageX, pageY, evt) {
     }
 }
 Controls.prototype.handleClick = function() {
+    if (this.player.mode === C.M_DYNAMIC) return;
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
@@ -4878,6 +4880,7 @@ Controls.prototype.handleClick = function() {
     if (state.happens === C.PLAYING) this.hide();
 }
 Controls.prototype.handlePlayerClick = function() {
+    if (this.player.mode === C.M_DYNAMIC) return;
     var state = this.player.state;
     if (state.happens === C.PLAYING) {
         this.show();
@@ -4887,11 +4890,16 @@ Controls.prototype.handlePlayerClick = function() {
     }
 }
 Controls.prototype.handleMouseOver = function() {
-    if (this.hidden) this.show();
-    this.forceNextRedraw();
-    this.render(this.player.state.time);
+    if (this.player.mode === C.M_DYNAMIC) return;
+    var state = this.player.state;
+    if (state.happens !== C.PLAYING) {
+        if (this.hidden) this.show();
+        this.forceNextRedraw();
+        this.render(state.time);
+    }
 }
 Controls.prototype.handleMouseOut = function() {
+    if (this.player.mode === C.M_DYNAMIC) return;
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
