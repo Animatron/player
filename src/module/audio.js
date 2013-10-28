@@ -190,6 +190,7 @@
               var src = document.createElement("source");
               src.type = type;
               src.src = url;
+              src.addEventListener("error", notify_error, false);
               audio.appendChild(src);
           };
 
