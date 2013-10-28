@@ -61,9 +61,9 @@
       if (last_scene_is_dynamic) {
           player.mode = C.M_DYNAMIC;
           player._checkMode();
+          player.play();
       }
       last_scene_is_dynamic = false;
-      player.play();
       if (callback) callback();
     });
     return player;

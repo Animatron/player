@@ -204,7 +204,7 @@
           me._audio = audio;
           me._audio_is_loaded = true;
       },
-      function(err) { __anm.console.error(err.message || err);
+      function(err) { __anm.console.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ }); // onerror
   };
 
