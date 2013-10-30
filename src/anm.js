@@ -308,20 +308,17 @@
         for (var i = 0, il = subscriptions.length; i < il; i++) {
             var urls = subscriptions[i][0],
                 callbacks = subscriptions[i][1],
-                ready = null,
-                error_count = 0;
+                error_count = 0,
+                success_count = 0;
             for (var u = 0, ul = urls.length; u < ul; u++) {
                 if (errors[urls[u]]) error_count++;
+                if (cache[urls[u]]) success_count++;
             }
-            for (var u = 0, ul = urls.length; u < ul; u++) {
-                var result = cache[urls[u]] || errors[urls[u]];
-                if (result) {
-                    if (!ready) ready = [];
-                    ready.push(result);
-                }
-            };
-             // `ready` is equal to the number of `urls` means all resources for this callbacks are ready
-            if (ready && (ready.length === urls.length)) {
+            if ((success_count + error_count) === urls.length) {
+                var ready = [];
+                for (var u = 0, ul = urls.length; u < ul; u++) {
+                    ready.push(cache[urls[u]] || errors[urls[u]]);
+                };
                 if (_conf.logResMan)
                    { console.log('notifying subscribers that ' + urls + ' are all ready'); }
                 for (var k = 0, kl = callbacks.length; k < kl; k++) {

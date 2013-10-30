@@ -190,6 +190,7 @@
               var src = document.createElement("source");
               src.type = type;
               src.src = url;
+              src.addEventListener("error", notify_error, false);
               audio.appendChild(src);
           };
 
@@ -203,7 +204,7 @@
           me._audio = audio;
           me._audio_is_loaded = true;
       },
-      function(err) { __anm.console.error(err.message || err);
+      function(err) { __anm.console.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ }); // onerror
   };
 
