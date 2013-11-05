@@ -129,10 +129,8 @@ function __collect_to(str, start, ch) {
     return result;
 }
 
-function guid() {
-   return Math.random().toString(36).substring(2, 10) +
-          Math.random().toString(36).substring(2, 10);
-}
+guid = __anm.guid;
+
 /*function _strhash() {
   var hash = 0;
   if (this.length == 0) return hash;
@@ -306,6 +304,10 @@ function canvasOpts(canvas, opts, ratio) {
         _h = isObj ? opts.height : opts[1];
     if (isObj && opts.bgcolor && opts.bgcolor.color) {
         canvas.style.backgroundColor = opts.bgcolor.color;
+    }
+    if (isObj) {
+        canvas.__anm_usr_x = opts.x;
+        canvas.__anm_usr_y = opts.y;
     }
     canvas.__pxRatio = ratio;
     canvas.style.width = _w + 'px';
@@ -535,9 +537,10 @@ registerEvent('X_STOP', 'stop', 'x_stop');
 registerEvent('S_PLAY', 'play', 'play');
 registerEvent('S_PAUSE', 'pause', 'pause');
 registerEvent('S_STOP', 'stop', 'stop');
+registerEvent('S_REPEAT', 'repeat', 'repeat');
+registerEvent('S_IMPORT', 'import', 'import');
 registerEvent('S_LOAD', 'load', 'load');
 registerEvent('S_RES_LOAD', 'res_load', 'res_load');
-registerEvent('S_REPEAT', 'repeat', 'repeat');
 registerEvent('S_ERROR', 'error', 'error');
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
@@ -734,7 +737,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                                                       // after the second one
                             player.state.happens = C.LOADING;
                             player.fire(C.S_LOAD, result);
-                            player.stop();
+                            if ((player.mode !== C.M_DYNAMIC) &&
+                                (player.mode !== C.M_PREVIEW)) player.stop();
                             player._callPostpones();
                             if (callback) callback(result);
                         }
@@ -746,6 +750,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     whenDone = player.__defAsyncSafe(whenDone);
 
     /* TODO: configure canvas using clips bounds */
+
+    if (player.anim) {
+        player.__unsubscribeDynamicEvents(player.anim);
+    }
 
     if (object) {
 
@@ -778,7 +786,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         whenDone(player.anim);
     }
 
-    if (durationPassed) {
+    if (durationPassed) { // FIXME: move to whenDone?
       player.anim.setDuration(duration);
       player.setDuration(duration);
     }
@@ -944,7 +952,7 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-provideEvents(Player, [C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
+provideEvents(Player, [C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
     if (__str(cvs)) {
         this.canvas = $doc.getElementById(cvs);
@@ -1324,9 +1332,40 @@ Player.prototype.__subscribeDynamicEvents = function(scene) {
     if (global_opts.setTabindex) {
         this.canvas.setAttribute('tabindex',this.__instanceNum);
     }
-    if (scene && !scene.__subscribedEvts) {
-        scene.subscribeEvents(this.canvas);
-        scene.__subscribedEvts = true;
+    if (scene) {
+        var subscribed = false;
+        if (!this.__boundTo) {
+            this.__boundTo = [];
+        } else {
+            for (var i = 0, ix = this.__boundTo, il = ix.length; i < il; i++) {
+                if ((scene.id === ix[i][0]) &&
+                    (this.canvas === ix[i][1])) {
+                    subscribed = true;
+                }
+            }
+        }
+        if (!subscribed) {
+            this.__boundTo.push([ scene.id, this.canvas ]);
+            scene.subscribeEvents(this.canvas);
+        }
+    }
+}
+Player.prototype.__unsubscribeDynamicEvents = function(scene) {
+    if (global_opts.setTabindex) {
+        this.canvas.setAttribute('tabindex',undefined);
+    }
+    if (scene) {
+        if (!this.__boundTo) return;
+        var toRemove = -1;
+        for (var i = 0, ix = this.__boundTo, il = ix.length; i < il; i++) {
+            if (scene.id === ix[i][0]) {
+                toRemove = i;
+                scene.unsubscribeEvents(ix[i][1]);
+            }
+        }
+        if (toRemove >= 0) {
+            this.__boundTo.splice(toRemove, 1);
+        }
     }
 }
 Player.prototype._ensureHasState = function() {
@@ -1512,8 +1551,8 @@ Player._saveCanvasPos = function(cvs) {
     /* FIXME: find a method with no injection of custom properties
               (data-xxx attributes are stored as strings and may work
                a bit slower for events) */
-    cvs.__rOffsetLeft = ol;
-    cvs.__rOffsetTop = ot;
+    cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
+    cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
 }
 
 Player.createState = function(player) {
@@ -1538,7 +1577,7 @@ Player._isPlayerEvent = function(type) {
     return ((type == C.S_PLAY) || (type == C.S_PAUSE) ||
             (type == C.S_STOP) || (type == C.S_REPEAT) ||
             (type == C.S_LOAD) || (type == C.S_RES_LOAD) ||
-            (type == C.S_ERROR));
+            (type == C.S_ERROR) || (type == C.S_IMPORT));
 }
 function __attrOr(canvas, attr, _default) {
     return canvas.hasAttribute(attr)
@@ -1621,6 +1660,7 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
 
 // > Scene % ()
 function Scene() {
+    this.id = guid();
     this.tree = [];
     this.hash = {};
     this.name = '';
@@ -1642,7 +1682,7 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_DRAW,
                        // player events
                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
-                       C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                       C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 Scene.prototype.setDuration = function(val) {
   this.duration = (val >= 0) ? val : 0;
 }
@@ -1763,36 +1803,33 @@ Scene.prototype.toString = function() {
 }
 Scene.prototype.subscribeEvents = function(canvas) {
     var anim = this;
-    canvas.addEventListener('mouseup', function(evt) {
-        anim.fire(C.X_MUP, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mousedown', function(evt) {
-        anim.fire(C.X_MDOWN, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mousemove', function(evt) {
-        anim.fire(C.X_MMOVE, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mouseover', function(evt) {
-        anim.fire(C.X_MOVER, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('mouseout', function(evt) {
-        anim.fire(C.X_MOUT, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('click', function(evt) {
-        anim.fire(C.X_MCLICK, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('dblclick', function(evt) {
-        anim.fire(C.X_MDCLICK, mevt(evt, canvas));
-    }, false);
-    canvas.addEventListener('keyup', function(evt) {
-        anim.fire(C.X_KUP, kevt(evt));
-    }, false);
-    canvas.addEventListener('keydown', function(evt) {
-        anim.fire(C.X_KDOWN, kevt(evt));
-    }, false);
-    canvas.addEventListener('keypress', function(evt) {
-        anim.fire(C.X_KPRESS, kevt(evt));
-    }, false);
+    if (canvas.__anm_handlers && canvas.__anm_handlers[this.id]) return;
+    //canvas.__anm_subscription_id = guid();
+    var handlers = {
+      mouseup:   function(evt) { anim.fire(C.X_MUP,     mevt(evt, canvas)); },
+      mousedown: function(evt) { anim.fire(C.X_MDOWN,   mevt(evt, canvas)); },
+      mousemove: function(evt) { anim.fire(C.X_MMOVE,   mevt(evt, canvas)); },
+      mouseover: function(evt) { anim.fire(C.X_MOVER,   mevt(evt, canvas)); },
+      mouseout:  function(evt) { anim.fire(C.X_MOUT,    mevt(evt, canvas)); },
+      click:     function(evt) { anim.fire(C.X_MCLICK,  mevt(evt, canvas)); },
+      dblclick:  function(evt) { anim.fire(C.X_MDCLICK, mevt(evt, canvas)); },
+      keyup:     function(evt) { anim.fire(C.X_KUP,     kevt(evt, canvas)); },
+      keydown:   function(evt) { anim.fire(C.X_KDOWN,   kevt(evt, canvas)); },
+      keypress:  function(evt) { anim.fire(C.X_KPRESS,  kevt(evt, canvas)); }
+    };
+    for (var evt_type in handlers) {
+      canvas.addEventListener(evt_type, handlers[evt_type], false);
+    }
+    if (!canvas.__anm_handlers) canvas.__anm_handlers = {};
+    canvas.__anm_handlers[this.id] = handlers;
+}
+Scene.prototype.unsubscribeEvents = function(canvas) {
+    if (!canvas.__anm_handlers) return;
+    var handlers = canvas.__anm_handlers[this.id];
+    if (!handlers) return;
+    for (var evt_type in handlers) {
+      canvas.removeEventListener(evt_type, handlers[evt_type], false);
+    }
 }
 Scene.prototype._addToTree = function(elm) {
     if (!elm.children) {
@@ -1970,7 +2007,7 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_DRAW, C.X_START, C.X_STOP,
                          // player events
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
-                         C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                         C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
@@ -3194,7 +3231,9 @@ L.loadFromObj = function(player, object, importer, callback) {
     if (importer.configureMeta) {
         player.configureMeta(importer.configureMeta(object));
     }
-    L.loadScene(player, importer.load(object), callback);
+    var scene = importer.load(object);
+    player.fire(C.S_IMPORT, importer, scene, object);
+    L.loadScene(player, scene, callback);
 }
 L.loadScene = function(player, scene, callback) {
     if (player.anim) player.anim.dispose();

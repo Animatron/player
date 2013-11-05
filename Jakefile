@@ -63,8 +63,8 @@ var Binaries = {
 
 var Dirs = {
     SRC: 'src',
-    AS_IS: 'dist/full',
-    MINIFIED: 'dist',
+    AS_IS: 'dist',
+    MINIFIED: 'dist/full',
     DIST_ROOT: 'dist',
     TESTS: 'tests',
     DOCS: 'doc'

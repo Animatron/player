@@ -34,6 +34,8 @@ var Import = {};
 
 anm.I[IMPORTER_ID] = Import;
 
+var cur_import_id;
+
 // -> Array[?]
 Import._find = function(idx, src) {
     var res = src[idx];
@@ -57,12 +59,15 @@ Import._type = function(src) {
 Import.project = function(prj) {
     //if (window && console && window.__anm_conf && window.__anm_conf.logImport) console.log(prj);
     if (__anm_conf.logImport) __anm.console.log(prj);
-    if (typeof __anm !== 'undefined') __anm.lastImportedProject = prj;
+    cur_import_id = __anm.guid();
+    __anm.lastImportedProject = prj;
+    __anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
     var root = new Scene(),
         elems = prj.anim.elements,
         last_scene_band = [ 0, 0 ];
+    root.__import_id = cur_import_id;
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
@@ -324,7 +329,7 @@ Import.callCustom = function(trg, src, type) {
     if (Element._customImporters && Element._customImporters.length) {
         var importers = Element._customImporters;
         for (var i = 0, il = importers.length; i < il; i++) {
-            importers[i].call(trg, src, type, IMPORTER_ID);
+            importers[i].call(trg, src, type, IMPORTER_ID, cur_import_id);
         }
     }
 }

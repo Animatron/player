@@ -91,35 +91,33 @@
 
   var ____user_ctx = { 'foo': 'bar' };
 
-  var last_scene_is_dynamic;
+  var is_dynamic = {}; // map project id to flag
 
-  E._customImporters.push(function(source, type, importer) {
-    if ((type === 255) && source[8]) { // type === 255 is TYPE_LAYER, see animatron-importer.js
+  E._customImporters.push(function(source, type, importer, import_id) {
+    if ((importer === 'ANM') &&
+        (type === 255) && // type === 255 is TYPE_LAYER, see animatron-importer.js
+        source[8]) { // source[8] contains all scripts code
       var handlers = source[8];
       for (var handler_type in handlers) {
         var handler_code = wrappers_map[handler_type][0] +
                            handlers[handler_type] + wrappers_map[handler_type][1];
 
-        last_scene_is_dynamic = true;
+        is_dynamic[import_id] = true;
         eval('this.m_on(handler_map[handler_type], ' +
              handler_code + ');');
       }
     }
   });
 
-  var prev_forSnapshot = Player.forSnapshot;
-  Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
-    last_scene_is_dynamic = false;
-    var player = prev_forSnapshot.call(this, canvasId, snapshotUrl, importer, function() {
-      if (last_scene_is_dynamic) {
-          player.mode = C.M_DYNAMIC;
-          player._checkMode();
-          player.play();
+  __anm.player_manager.on(C.S_NEW_PLAYER, function(player) {
+    player.on(C.S_LOAD, function(scene) {
+      if (is_dynamic[scene.__import_id]) { // __import_id is equal to prj_id passed to customImporter,
+                                           // if it is actually the same scene that was imported there
+         player.mode = C.M_DYNAMIC;
+         player._checkMode();
+         player.play();
       }
-      last_scene_is_dynamic = false;
-      if (callback) callback();
     });
-    return player;
-  }
+  });
 
 })();
