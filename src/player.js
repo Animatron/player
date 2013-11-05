@@ -724,7 +724,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         var remotes = scene._collectRemoteResources();
         if (!remotes.length) {
             player.fire(C.S_LOAD, result);
-            player.stop();
+            if ((player.mode !== C.M_DYNAMIC) &&
+                (player.mode !== C.M_PREVIEW)) player.stop();
             if (callback) callback(result);
         } else {
             player.state.happens = C.RES_LOADING;
