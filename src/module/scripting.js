@@ -20,7 +20,7 @@
 
   var E = anm.Element;
 
-  var MOUSE_PAIR = [
+  var BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           'if (this.$.contains(evt.pos)) { ' +
@@ -31,7 +31,7 @@
         '}' +
       '})(____user_ctx)'];
 
-  var KBD_PAIR = [
+  var NO_BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           '(function(ctx, evt, t) { ',
@@ -54,39 +54,39 @@
     'k_down': C.X_KDOWN,
     'k_press': C.X_KPRESS
   }, wrappers_map = {
-    'click': MOUSE_PAIR,
-    'dclick': MOUSE_PAIR,
-    'mup': MOUSE_PAIR,
-    'm_up': MOUSE_PAIR,
-    'm_down': MOUSE_PAIR,
+    'click': BOUNDS_PAIR,
+    'dclick': BOUNDS_PAIR,
+    'mup': BOUNDS_PAIR,
+    'm_up': BOUNDS_PAIR,
+    'm_down': BOUNDS_PAIR,
     'm_enter': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'if ((this.$.__last_p == undefined || !this.$.contains(this.$.__last_p)) && this.$.contains(evt.pos)) { ' +
+          'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in)) && this.$.contains(evt.pos)) { ' +
             '(function(ctx, evt, t) { ',
                 /* content */
             '}).call(this.$.bstate, ctx, evt, t);' +
           '}' +
-          'this.$.__last_p = evt.pos;' +
+          'this.$.__last_p_in = evt.pos;' +
         '}' +
       '})(____user_ctx)'],
     'm_leave': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'if (this.$.__last_p != undefined && this.$.contains(this.$.__last_p) && !this.$.contains(evt.pos)) { ' +
+          'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out) && !this.$.contains(evt.pos)) { ' +
             '(function(ctx, evt, t) { ',
                 /* content */
             '}).call(this.$.bstate, ctx, evt, t);' +
           '}' +
-          'this.$.__last_p = evt.pos;' +
+          'this.$.__last_p_out = evt.pos;' +
         '}' +
       '})(____user_ctx)'],
-    'm_penter': MOUSE_PAIR,
-    'm_pleave': MOUSE_PAIR,
-    'm_move': KBD_PAIR, /* no boundaries check so MOVE is handled at the whole player canvas! */
-    'k_up': KBD_PAIR,
-    'k_down': KBD_PAIR,
-    'k_press': KBD_PAIR
+    'm_penter': BOUNDS_PAIR,
+    'm_pleave': BOUNDS_PAIR,
+    'm_move': NO_BOUNDS_PAIR, /* no boundaries check so MOVE is handled at the whole player canvas! */
+    'k_up': NO_BOUNDS_PAIR,
+    'k_down': NO_BOUNDS_PAIR,
+    'k_press': NO_BOUNDS_PAIR
   };
 
   var ____user_ctx = { 'foo': 'bar' };
