@@ -20,20 +20,73 @@
 
   var E = anm.Element;
 
-  var handler_map = {
-    'click': C.X_MCLICK
-  }, wrappers_map = {
-    'click': [
+  var MOUSE_PAIR = [
       '(function(ctx) { ' +
-         'return function(evt, t) { ' +
-           'if (this.$.contains(evt.pos)) { ' +
-             '(function(ctx, evt, t) { ',
+        'return function(evt, t) { ' +
+          'if (this.$.contains(evt.pos)) { ' +
+            '(function(ctx, evt, t) { ',
                 /* content */
-             '}).call(this.$.bstate, ctx, evt, t);' +
-           '}' +
-         '}' +
-      '})(____user_ctx)'
-    ]
+            '}).call(this.$.bstate, ctx, evt, t);' +
+          '}' +
+        '}' +
+      '})(____user_ctx)'];
+
+  var KBD_PAIR = [
+      '(function(ctx) { ' +
+        'return function(evt, t) { ' +
+          '(function(ctx, evt, t) { ',
+                /* content */
+          '}).call(this.$.bstate, ctx, evt, t);' +
+        '}' +
+      '})(____user_ctx)'];
+
+  var handler_map = {
+    'click': C.X_MCLICK,
+    'dclick': C.X_MDCLICK, /* who need this? */
+    'm_up': C.X_MUP,
+    'm_down': C.X_MDOWN,
+    'm_enter': C.X_MMOVE,
+    'm_leave': C.X_MMOVE,
+    'm_penter': C.X_MOVER, /* enter the player canvas */
+    'm_pleave': C.X_MOUT, /* out of the player canvas */
+    'm_move': C.X_MMOVE,
+    'k_up': C.X_KUP,
+    'k_down': C.X_KDOWN,
+    'k_press': C.X_KPRESS
+  }, wrappers_map = {
+    'click': MOUSE_PAIR,
+    'dclick': MOUSE_PAIR,
+    'mup': MOUSE_PAIR,
+    'm_up': MOUSE_PAIR,
+    'm_down': MOUSE_PAIR,
+    'm_enter': [
+      '(function(ctx) { ' +
+        'return function(evt, t) { ' +
+          'if ((this.$.__last_p == undefined || !this.$.contains(this.$.__last_p)) && this.$.contains(evt.pos)) { ' +
+            '(function(ctx, evt, t) { ',
+                /* content */
+            '}).call(this.$.bstate, ctx, evt, t);' +
+          '}' +
+          'this.$.__last_p = evt.pos;' +
+        '}' +
+      '})(____user_ctx)'],
+    'm_leave': [
+      '(function(ctx) { ' +
+        'return function(evt, t) { ' +
+          'if (this.$.__last_p != undefined && this.$.contains(this.$.__last_p) && !this.$.contains(evt.pos)) { ' +
+            '(function(ctx, evt, t) { ',
+                /* content */
+            '}).call(this.$.bstate, ctx, evt, t);' +
+          '}' +
+          'this.$.__last_p = evt.pos;' +
+        '}' +
+      '})(____user_ctx)'],
+    'm_penter': MOUSE_PAIR,
+    'm_pleave': MOUSE_PAIR,
+    'm_move': KBD_PAIR, /* no boundaries check so MOVE is handled at the whole player canvas! */
+    'k_up': KBD_PAIR,
+    'k_down': KBD_PAIR,
+    'k_press': KBD_PAIR
   };
 
   var ____user_ctx = { 'foo': 'bar' };
