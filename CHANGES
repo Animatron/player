@@ -4,6 +4,8 @@ v1.0 / Tue Nov 05 2013 21:59:33 +0100 / 23374f0baa23eb1c8f3e91696a053f55fbff1879
 * Accidentally switch to version 1.0
 * Improve scripting support
 * Fixes for a lot of incompatibilies with Animatron Editor
+* Fix unsafe removing of elements when disposing scenes
+* Fix already-playing-check for dynamic modes
 
 
 

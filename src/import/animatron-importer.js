@@ -252,18 +252,23 @@ Import.branch = function(type, src, all) {
 
         // apply tweens
         if (lsrc[7]) {
-            var translate;
+            var translates;
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
-                if (t.type == C.T_TRANSLATE) translate = t;
+                if (t.type == C.T_TRANSLATE) {
+                    if (!translates) translates = [];
+                    translates.push(t);
+                }
                 ltrg.addTween(t);
             }
-            if (translate && (flags & L_ROT_TO_PATH)) {
-                ltrg.addTween({
-                    type: C.T_ROT_TO_PATH,
-                    band: t.band
-                });
+            if (translates && (flags & L_ROT_TO_PATH)) {
+                for (var ti = 0, til = translates.length; ti < til; ti++) {
+                    ltrg.addTween({
+                        type: C.T_ROT_TO_PATH,
+                        band: translates[ti].band
+                    });
+                }
             }
         }
 

@@ -724,8 +724,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         var remotes = scene._collectRemoteResources();
         if (!remotes.length) {
             player.fire(C.S_LOAD, result);
-            if ((player.mode !== C.M_DYNAMIC) &&
-                (player.mode !== C.M_PREVIEW)) player.stop();
+            if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
             if (callback) callback(result);
         } else {
             player.state.happens = C.RES_LOADING;
@@ -738,8 +737,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                                                       // after the second one
                             player.state.happens = C.LOADING;
                             player.fire(C.S_LOAD, result);
-                            if ((player.mode !== C.M_DYNAMIC) &&
-                                (player.mode !== C.M_PREVIEW)) player.stop();
+                            if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
                             player._callPostpones();
                             if (callback) callback(result);
                         }
@@ -797,7 +795,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.ALREADY_PLAYING);
+    if (this.state.happens === C.PLAYING) {
+        if (this.mode & C.M_HANDLE_EVENTS) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+        else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
+    }
     if (this.state.happens === C.RES_LOADING) { this._postpone('play', arguments);
                                                 return; } // if player loads remote resources just now,
                                                           // postpone this task and exit. postponed tasks
@@ -1750,6 +1751,9 @@ Scene.prototype.visitRoots = function(visitor, data) {
     }
 }
 Scene.prototype.visitChildren = Scene.prototype.visitRoots;
+Scene.prototype.iterateRoots = function(func, rfunc) {
+    iter(this.tree).each(func, rfunc);
+}
 Scene.prototype.render = function(ctx, time, zoom) {
     ctx.save();
     if (zoom != 1) {
@@ -1791,9 +1795,10 @@ Scene.prototype.dispose = function() {
     this.disposeHandlers();
     var me = this;
     /* FIXME: unregistering removes from tree, ensure it is safe */
-    this.visitRoots(function(elm) {
-        me._unregister(elm);
+    this.iterateRoots(function(elm) {
+        me._unregister_no_rm(elm);
         elm.dispose();
+        return false;
     });
 }
 Scene.prototype.isEmpty = function() {
@@ -1856,15 +1861,20 @@ Scene.prototype._register = function(elm) {
         me._register(elm);
     });
 }
-Scene.prototype._unregister = function(elm) {
+Scene.prototype._unregister_no_rm = function(elm) {
+    this._unregister(elm, true);
+}
+Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
     if (!elm.registered) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
         me._unregister(elm);
     });
     var pos = -1;
-    while ((pos = this.tree.indexOf(elm)) >= 0) {
-      this.tree.splice(pos, 1);
+    if (!save_in_tree) {
+      while ((pos = this.tree.indexOf(elm)) >= 0) {
+        this.tree.splice(pos, 1);
+      }
     }
     delete this.hash[elm.id];
     elm.registered = false;
@@ -4861,7 +4871,7 @@ Controls.prototype.render = function(time) {
         var isRemoteLoading = (player._loadTarget === C.LT_URL);
         Controls._drawLoading(ctx, theme, _w, _h, ratio,
                               isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
-                              isRemoteLoading ? player._loadSrc : '');
+                              isRemoteLoading ? /*player._loadSrc*/ '...' : '');
     } else if (_s === C.ERROR) {
         Controls._drawBack(ctx, theme, _w, _h, ratio);
         Controls._drawError(ctx, theme, _w, _h, ratio, player.__lastError, this.focused);

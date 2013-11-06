@@ -40,12 +40,12 @@
           var importer = new AnimatronImporter();
           player.detach();
           //var importer = new AnimatronImporter();
-          player = createPlayer('canvas', {mode: anm.C.M_VIDEO});
+          player = createPlayer('canvas', {mode: anm.C.M_PREVIEW});
           //player.debug = true;
           player.load(project, importer);
           //var b = Builder._$;
           //player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
-          //player.play();
+          player.play();
       }
 
       function start() {
