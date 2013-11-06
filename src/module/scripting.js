@@ -62,8 +62,10 @@
     'm_enter': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
+          'var el = this.$;' +
           'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in)) && this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ',
+            '(function(ctx, evt, t) { ' +
+              'this.$ = el; ',
                 /* content */
             '}).call(this.$.bstate, ctx, evt, t);' +
           '}' +
@@ -73,8 +75,10 @@
     'm_leave': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
+          'var el = this.$; ' +
           'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out) && !this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ',
+            '(function(ctx, evt, t) { ' +
+              'this.$ = el;',
                 /* content */
             '}).call(this.$.bstate, ctx, evt, t);' +
           '}' +
