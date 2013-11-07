@@ -2383,12 +2383,25 @@ Element.prototype.inform = function(ltime) {
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
+            this.travelChildren(function(elm) { // TODO: implement __fireDeep
+                if (!elm.__firedStart) {
+                    elm.fire(C.X_START, ltime, duration);
+                    elm.__firedStart = true;
+                }
+            });
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
         if (cmp >= 0) {
+            console.log('checking to fire stop for ' + this.name, ltime, duration, this.__firedStop);
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
+                this.travelChildren(function(elm) { // TODO: implement __fireDeep
+                    if (!elm.__firedStop) {
+                        elm.fire(C.X_STOP, ltime, duration);
+                        elm.__firedStop = true;
+                    }
+                });
                 this.__firedStop = true;
                 // TODO: handle STOP event by changing band to end at given time?
             }
