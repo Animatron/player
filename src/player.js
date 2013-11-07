@@ -2393,7 +2393,6 @@ Element.prototype.inform = function(ltime) {
             // TODO: handle START event by changing band to start at given time?
         }
         if (cmp >= 0) {
-            console.log('checking to fire stop for ' + this.name, ltime, duration, this.__firedStop);
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
                 this.travelChildren(function(elm) { // TODO: implement __fireDeep
