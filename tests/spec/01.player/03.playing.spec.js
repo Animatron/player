@@ -941,6 +941,7 @@ describe("player, when speaking about playing,", function() {
 
     // test setDuration for player
     // ensure drawAt and playing are the similar calls and produce the same results
+    // test disposing scenes, ensure all elements are deleted
     // test passing stopAt value to play() method (state.stop)
     // state.from
     // state.time
