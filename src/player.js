@@ -3218,13 +3218,16 @@ var Clip = Element;
 // -----------------------------------------------------------------------------
 
 function kevt(e) {
-    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
-             ch: e.charCode };
+    return { key: e.which || e.keyCode,
+             char: String.fromCharCode(e.which || e.keyCode),
+             ch: e.charCode,
+             original: e };
 }
 
 function mevt(e, cvs) {
     return { pos: [ e.pageX - cvs.__rOffsetLeft,
-                    e.pageY - cvs.__rOffsetTop ] };
+                    e.pageY - cvs.__rOffsetTop ],
+             original: e };
 }
 
 // Import
