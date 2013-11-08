@@ -17,3 +17,4 @@ examples/files/anm
 src/import/sample-scene.json
 VERSION_LOG
 deploy-www.sh
+*sublime*

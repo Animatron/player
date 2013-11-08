@@ -20,13 +20,24 @@
 
   var E = anm.Element;
 
+  function user_ctx(elm) {
+    var ctx = elm.bstate;
+    ctx.findByName = function(name) {
+      anm.findByName(elm.scene, name);
+    };
+
+    ctx.$ = elm;
+    return ctx;
+  }
+
   var BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           'if (this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ',
+            '(function(ctx, evt, t) { ' +
+                'this.$ = el; ',
                 /* content */
-            '}).call(this.$.bstate, ctx, evt, t);' +
+            '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
         '}' +
       '})(____user_ctx)'];
@@ -34,9 +45,10 @@
   var NO_BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          '(function(ctx, evt, t) { ',
+          '(function(ctx, evt, t) { ' +
+            'this.$ = el; ',
                 /* content */
-          '}).call(this.$.bstate, ctx, evt, t);' +
+          '}).call(user_ctx(this.$), ctx, evt, t);' +
         '}' +
       '})(____user_ctx)'];
 
@@ -67,7 +79,7 @@
             '(function(ctx, evt, t) { ' +
               'this.$ = el; ',
                 /* content */
-            '}).call(this.$.bstate, ctx, evt, t);' +
+            '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_in = evt.pos;' +
         '}' +
@@ -80,7 +92,7 @@
             '(function(ctx, evt, t) { ' +
               'this.$ = el;',
                 /* content */
-            '}).call(this.$.bstate, ctx, evt, t);' +
+            '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_out = evt.pos;' +
         '}' +

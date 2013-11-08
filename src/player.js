@@ -1667,7 +1667,7 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
         this._addToTree(_clip);
         return _clip;
     } else if (__builder(arg1)) { // builder instance
-        this._addToTree(arg1.value);
+        this._addToTree(arg1.v);
     } else { // element object mode
         this._addToTree(arg1);
     }
