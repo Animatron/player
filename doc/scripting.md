@@ -1,8 +1,8 @@
 # Scripting
 
-## Introduction
+## Overview
 
-Scripting will add to your animation an ability to react on input events, such as a _mouse clicks_ or _key presses_. For example, you can make your cat animation to follow your mouse cursor or open a web page if user clicks at a certain object. Ok, now let's go to...
+Scripting will add to your animation an ability to react on input events, such as _mouse clicks_ or _key presses_. For example, you can make your cat animation to follow your mouse cursor or open a web page if user clicks at a certain object or let user move an object with arrow keys, etc.
 
 ## The Basics
 
@@ -39,7 +39,36 @@ Elements are core building blocks of the Player. If you see something it's an El
 
 Elements are organized hierarchically (some elements may contain another elements and so on) into Scenes. And there is always a Root scene.
 
-Elements has a shape, a border and a shadow. They also have a Pivot—a point they rotates around, an Alpha—determines their transparency and other properties which are described in detail in [Full Player API documentation](http://animatron.com/player/doc/API.html).
+Elements has a shape, a border and a shadow. They also have a Pivot—a point they're rotated around, an Alpha—determines their transparency and other properties which are described in detail in [Full Player API documentation](http://animatron.com/player/doc/API.html).
+
+Now let's try to create an element with a help of...
+
+## Builder
+
+Builder is a special thing which main purpose (how you may suggest from it's name) is to construct Player's world.
+
+Here is an example of how we could create a circle:
+
+	var b = Builder._$;         // create a shortcut
+	var circle = b('red_circle')
+		.circle(            // will create a rectangle
+			[50, 50],   // at x = 50, y = 50
+			20)         // with radius = 20 pixels
+		.fill(              // and fill it with
+			'#f00');    // red color
+			
+Ok, now lets add this element to our scene:
+	
+	this.$.scene.add(circle);
+	
+`this.$` here is a current element. All elements has a link to their own scene so `this.$.scene` will refer to the element's scene and `add(elem)` will add an element to the scene.
+
+And what if we wish to add an element to another scene? It's easy, we have to find this scene first and then add our circle to it:
+
+	var anotherScene = ctx.findByName('another-scene')[0];
+	anotherScene.add(circle);
+
+Please note that `ctx.findByName(name)` will return an array of elements (scene is an element too, remember?) even if there is just one matching element, so we need to pick just the first one: `[0]`.
 
 Now we know something about building blocks but how the world goes alive?
 
@@ -47,40 +76,66 @@ Now we know something about building blocks but how the world goes alive?
 
 Tweens are changes. If you see something is changing this means that there is a Tween somewhere which describes that change.
 
-For example, if an object moves from one side of the canvas to another there is a tween of type TRANSLATE (i.e. current object coordinates are translated to coordinates of an other side of the canvas). If an object changes its opacity there is a tween of type ALPHA. If it rotates there is a tween of type ROTATE and so on. Even Audio tracks use tweens: for volume management.
+Quick definition of tween is: tween is a value change over time. 
 
-But what is a Tween? Tween it's a pair (or a sequence) of values which are determines the state of some of Element property at the beginning and at the end of the transition. For example, to make an object invisible we should create an Alpha tween with start value 1.0 (completely visible) and end value 0.0 (completely invisible): `[1.0, 0.0]` and choose when this transition should happen, i.e choose a start and end time for it:
+For example, moving is a change of element's coordinates. Rotating is a change of element's angle. Vanishing is a change of element's opacity.
 
-	{
-		type: C.T_ALPHA, // ALPHA tween
-		band: [0, 5],    // start at 0 sec and end at 5 sec
-		data: [1, 0]     // from Visible (1) to Invisible (0)
-	}
+For example, if an object moves from one side of the canvas to another there is a tween of type TRANSLATE (i.e. current object coordinates are translated to coordinates of an other side of the canvas). If an object changes its opacity there is a tween of type ALPHA. If it rotates there is a tween of type ROTATE and so on. Even Audio tracks use tweens (of type VOLUME).
 
-Well, now we know something about Elements and Tweens and can write our first handler.
+Let's see on a real example. We'll add a tween to our red circle and move it somewhere on the screen. Let's use Builder again:
+
+	circle.trans(
+		[0, 5],                      // 1
+		[[circle.x, circle.y],       // 2
+		 [circle.x + 100, circle.y], // 3
+		C.E_DEF                      // 4
+	);
+
+1. Defining a time range for our transition: from 0 to 5 secs
+2. Defining a start point which is current circle position and 
+3. An end point which is a X plus 100 pixels
+4. And define an Easing function (which will discuss a little bit later)
+
+Ok, now we know how to create elements and how to animate them so let's define our first click handler.
 
 ## Handler example
 
-In this example we well add a handler which will rotate an object 360 degrees and then rotate it back. We will assign this handler on mouse CLICK event so every time user will click on the object it will rotate:
+In this example we well add a handler which will rotate a rectangle 360 degrees and then rotate it back. We will assign this handler on mouse click event so every time user will click on the object it will rotate:
 
 	function onClick(ctx, evt, t) {
-		this.$.addTween({                           // 1
-			type: C.T_ROTATE,
-			band: [t, t + 1.0],                 // 2
-			data: [0, 360]                      // 3
-		});
+		var b = Builder._$;
 
-		this.$.addTween({
-			type: C.T_ROTATE,
-			band: [t + 1.0, t + 2.0],           // 4
-			data: [360, 0]
-		});
+		var rect = null;
+		var rects = ctx.findByName('rect');
+		if (rects.length == 0) {            // 1
+			rect = b('rect')
+			.rect([50, 50], [30, 30])
+			.fill('#0f');
+
+			this.$.scene.add(rect);
+		} else {
+			rect = rects[0];                  // 2
+		}
+		
+		rect.rotate(
+			[t, t + 2], 
+			[rect.angle, rect.angle + Math.PI], // 3
+			C.E_DEF);
+		
+		rect.rotate(
+			[t + 2, t + 4], 
+			[rect.angle, rect.angle - Math.PI], // 4
+			C.E_DEF);
 	};
 
-1. `this.$` is a current object (Element), `addTween` is a method of Element which defines a new tween
-2. `t` is always a current time. So, `t + 1.0` will be "now plus 1 second"
-3. `[0, 360]` is a tween start and end: 0 to 360 degrees
-4. Will assume our object is rotating forth and then back so should wait until it will rotate forth first so start our second (back) tween at "current time plus 1 second" and end it at "current time plus 2 seconds"
+1. Before all let's check if there any existing rects so each time user will click a mouse we'll not create a new rect but use an existing one.
+2. If there are any rects we'll use first of them
+3. And rotate it forth in 2 seconds
+4. And then back in next 2 seconds
+
+## Easing
+
+
 
 
 
