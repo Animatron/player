@@ -86,6 +86,13 @@ Builder.DEFAULT_JOIN = Path.DEFAULT_JOIN;
 Builder.DEFAULT_FFACE = Text.DEFAULT_FFACE;
 Builder.DEFAULT_FSIZE = Text.DEFAULT_FSIZE;
 
+// * BUILD *
+
+// > builder.build % () => Element
+Builder.prototype.build = function() {
+    return this.v;
+}
+
 // * STRUCTURE *
 
 // > builder.add % (what: Element | Builder) => Builder
