@@ -4,6 +4,14 @@
   <title></title>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
   <style type="text/css">
+    * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
     body {
       background-color: #eee;
       margin: 0;
@@ -86,7 +94,7 @@ var save = function() {
 var reload = function() {
   var ta = document.getElementById("handler");
   localStorage.setItem("___handler", ta.value);
-  var code = ta.value.replace(/\n/g, '\\n');
+  var code = ta.value.replace(/\n/g, '').replace(/\"/g, '\'');
 
   var sel = document.getElementById("type");
   localStorage.setItem("___type", sel.value);
@@ -107,16 +115,20 @@ var start = function() {
   var saved = localStorage.getItem("___type");
   sel.value = saved === "" ? "click" : saved;
 
-  document.getElementById("handler").addEventListener('input', function() {
+  var _save = function() {
     setTimeout(function() {
       save();
       console.log("saved!");
-    }, 100);
-  });
+    }, 300);
+  };
+
+  document.getElementById("handler").addEventListener('input', _save);
+  document.getElementById("type").addEventListener('change', _save);
 
   window.player = createPlayer('canvas', {
     'mode': anm.C.M_DYNAMIC,
-    // 'debug': true,
+    'debug': true,
+    'muteErrors': false,
     'anim': {
       width: 550,
       height: 450,
