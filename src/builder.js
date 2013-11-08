@@ -675,6 +675,7 @@ Builder.prototype.take = function(b) {
     // as source's xdata do
     this.v = b.v.clone();
     this.x = this.v.xdata;
+    this.bs = this.v.bstate;
 
     return this;
 }
@@ -685,6 +686,7 @@ Builder.prototype.use = function(b) {
     // source's xdata points do
     this.v = b.v.deepClone();
     this.x = this.v.xdata;
+    this.bs = this.v.bstate;
 
     return this;
 }
