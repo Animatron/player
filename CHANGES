@@ -1,8 +1,19 @@
+v1.0 / Wed Nov 06 2013 19:10:37 +0100 / 7d5712ddfd18e1372a9f0b603686ed59684414d9
+================================================================================
+
+* Accidentally switch to version 1.0
+* Improve scripting support
+* Fixes for a lot of incompatibilies with Animatron Editor
+* Fix unsafe removing of elements when disposing scenes
+* Fix already-playing-check for dynamic modes
+
+
+
 v0.9.1601 / Mon Oct 28 13:05:29 2013 +0200 / 746dd95fcce7e1a52d2bfb56b45639e4fe1e2b7c
 =====================================================================================
 
 * Remove a play screen (the one with pause button) in a player
-* Restyle the player colors complete
+* Restyle the player colors completely
 
 
 

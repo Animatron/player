@@ -368,6 +368,14 @@
         return this.hash[cvs_id];
     }
 
+    // GUID
+    // -----------------------------------------------------------------------------
+
+    function guid() {
+       return Math.random().toString(36).substring(2, 10) +
+              Math.random().toString(36).substring(2, 10);
+    }
+
     // Value/Typecheck
     // -----------------------------------------------------------------------------
 
@@ -428,6 +436,7 @@
         'undefined': foo.___undefined___,
         'C': C, // constants
         console: console,
+        guid: guid,
         is: __is,
         conf: _conf,
         namespace: PUBLIC_NAMESPACE,
