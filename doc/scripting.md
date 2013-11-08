@@ -49,18 +49,18 @@ Builder is a special thing which main purpose (how you may suggest from it's nam
 
 Here is an example of how we could create a circle:
 
-	var b = Builder._$;         // create a shortcut
+	var b = Builder._$;             // create a shortcut
 	var circle = b('red_circle')
-		.circle(            // will create a rectangle
-			[50, 50],   // at x = 50, y = 50
-			20)         // with radius = 20 pixels
-		.fill(              // and fill it with
-			'#f00');    // red color
-			
+		.circle(                      // will create a rectangle
+			[50, 50],                   // at x = 50, y = 50
+			20)                         // with radius = 20 pixels
+		.fill(                        // and fill it with
+			'#f00');                    // red color
+
 Ok, now lets add this element to our scene:
-	
+
 	this.$.scene.add(circle);
-	
+
 `this.$` here is a current element. All elements has a link to their own scene so `this.$.scene` will refer to the element's scene and `add(elem)` will add an element to the scene.
 
 And what if we wish to add an element to another scene? It's easy, we have to find this scene first and then add our circle to it:
@@ -76,7 +76,7 @@ Now we know something about building blocks but how the world goes alive?
 
 Tweens are changes. If you see something is changing this means that there is a Tween somewhere which describes that change.
 
-Quick definition of tween is: tween is a value change over time. 
+Quick definition of tween is: tween is a value change over time.
 
 For example, moving is a change of element's coordinates. Rotating is a change of element's angle. Vanishing is a change of element's opacity.
 
@@ -85,14 +85,14 @@ For example, if an object moves from one side of the canvas to another there is 
 Let's see on a real example. We'll add a tween to our red circle and move it somewhere on the screen. Let's use Builder again:
 
 	circle.trans(
-		[0, 5],                      // 1
-		[[0, 0],                     // 2
-		 [100, 0],                   // 3
-		C.E_DEF                      // 4
+		[0, 5],      // 1
+		[[0, 0],     // 2
+		 [100, 0],   // 3
+		C.E_DEF      // 4
 	);
 
 1. Defining a time range for our transition: from 0 to 5 secs
-2. Defining a start point RELATIVE to our current position 
+2. Defining a start point RELATIVE to our current position
 3. An end point RELATIVE to current position
 4. And define an Easing function (which will discuss a little bit later)
 
@@ -107,25 +107,25 @@ In this example we well add a handler which will rotate a rectangle 360 degrees 
 
 		var rect = null;
 		var rects = this.findByName('rect');
-		if (rects.length == 0) {            // 1
+		if (rects.length == 0) {                      // 1
 			rect = b('rect')
 			.rect([50, 50], [30, 30])
 			.fill('#0f')
-			.build();                        // 2
+			.build();                                   // 2
 
 			this.$.scene.add(rect);
 		} else {
-			rect = rects[0];                 
+			rect = rects[0];
 		}
-		
+
 		rect.rotate(
-			[t, t + 2], 
-			[0, Math.PI * 2], // 3
+			[t, t + 2],
+			[0, Math.PI * 2],                           // 3
 			C.E_DEF);
-		
+
 		rect.rotate(
-			[t + 2, t + 4], 
-			[Math.PI * 2, 0], // 4
+			[t + 2, t + 4],
+			[Math.PI * 2, 0],                           // 4
 			C.E_DEF);
 	};
 
