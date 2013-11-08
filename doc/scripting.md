@@ -65,10 +65,10 @@ Ok, now lets add this element to our scene:
 
 And what if we wish to add an element to another scene? It's easy, we have to find this scene first and then add our circle to it:
 
-	var anotherScene = ctx.findByName('another-scene')[0];
+	var anotherScene = this.findByName('another-scene')[0];
 	anotherScene.add(circle);
 
-Please note that `ctx.findByName(name)` will return an array of elements (scene is an element too, remember?) even if there is just one matching element, so we need to pick just the first one: `[0]`.
+Please note that `this.findByName(name)` will return an array of elements (scene is an element too, remember?) even if there is just one matching element, so we need to pick just the first one: `[0]`.
 
 Now we know something about building blocks but how the world goes alive?
 
@@ -86,14 +86,14 @@ Let's see on a real example. We'll add a tween to our red circle and move it som
 
 	circle.trans(
 		[0, 5],                      // 1
-		[[circle.x, circle.y],       // 2
-		 [circle.x + 100, circle.y], // 3
+		[[0, 0],                     // 2
+		 [100, 0],                   // 3
 		C.E_DEF                      // 4
 	);
 
 1. Defining a time range for our transition: from 0 to 5 secs
-2. Defining a start point which is current circle position and 
-3. An end point which is a X plus 100 pixels
+2. Defining a start point RELATIVE to our current position 
+3. An end point RELATIVE to current position
 4. And define an Easing function (which will discuss a little bit later)
 
 Ok, now we know how to create elements and how to animate them so let's define our first click handler.
@@ -106,30 +106,31 @@ In this example we well add a handler which will rotate a rectangle 360 degrees 
 		var b = Builder._$;
 
 		var rect = null;
-		var rects = ctx.findByName('rect');
+		var rects = this.findByName('rect');
 		if (rects.length == 0) {            // 1
 			rect = b('rect')
 			.rect([50, 50], [30, 30])
-			.fill('#0f');
+			.fill('#0f')
+			.build();                        // 2
 
 			this.$.scene.add(rect);
 		} else {
-			rect = rects[0];                  // 2
+			rect = rects[0];                 
 		}
 		
 		rect.rotate(
 			[t, t + 2], 
-			[rect.angle, rect.angle + Math.PI], // 3
+			[0, Math.PI * 2], // 3
 			C.E_DEF);
 		
 		rect.rotate(
 			[t + 2, t + 4], 
-			[rect.angle, rect.angle - Math.PI], // 4
+			[Math.PI * 2, 0], // 4
 			C.E_DEF);
 	};
 
 1. Before all let's check if there any existing rects so each time user will click a mouse we'll not create a new rect but use an existing one.
-2. If there are any rects we'll use first of them
+2. `build()` will create an Element here so we can use like it was found in the Player if it was a second time we're clicking the mouse
 3. And rotate it forth in 2 seconds
 4. And then back in next 2 seconds
 
@@ -139,5 +140,17 @@ In a real world there is no constant speed. A bird moves with different speeds, 
 
 The `C.E_DEF` mentioned earlier in tweens is one of such functions which keeps speed of the change constant all the time. But more often you will need to use different Easing functions which are described in [Player API documentation](http://animatron.com/player/doc/API.html#tween-easings).
 
+## Events
 
+Every handler receives an Event: `evt`. Depending on type of the event it could be a mouse event or keyboard events.
+
+Mouse event contains coordinates of the mouse pointer:
+
+	var x = evt.pos[0];
+	var y = evt.pos[1];
+
+Keyboard events contains key code:
+
+	var space = evt.key === 32;
+  var r_pressed = evt.char === 'R';
 
