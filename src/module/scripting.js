@@ -34,8 +34,7 @@
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           'if (this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ' +
-                'this.$ = el; ',
+            '(function(ctx, evt, t) { ',
                 /* content */
             '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
@@ -45,9 +44,8 @@
   var NO_BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          '(function(ctx, evt, t) { ' +
-            'this.$ = el; ',
-                /* content */
+          '(function(ctx, evt, t) { ',
+              /* content */
           '}).call(user_ctx(this.$), ctx, evt, t);' +
         '}' +
       '})(____user_ctx)'];
@@ -74,11 +72,9 @@
     'm_enter': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'var el = this.$;' +
           'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in)) && this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ' +
-              'this.$ = el; ',
-                /* content */
+            '(function(ctx, evt, t) { ',
+              /* content */
             '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_in = evt.pos;' +
@@ -87,11 +83,9 @@
     'm_leave': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'var el = this.$; ' +
           'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out) && !this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ' +
-              'this.$ = el;',
-                /* content */
+            '(function(ctx, evt, t) { ',
+              /* content */
             '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_out = evt.pos;' +
