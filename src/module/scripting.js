@@ -23,7 +23,7 @@
   function user_ctx(elm) {
     var ctx = elm.bstate;
     ctx.findByName = function(name) {
-      anm.findByName(elm.scene, name);
+      return anm.findByName(elm.scene, name);
     };
 
     ctx.$ = elm;
