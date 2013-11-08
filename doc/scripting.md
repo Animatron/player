@@ -135,7 +135,9 @@ In this example we well add a handler which will rotate a rectangle 360 degrees 
 
 ## Easing
 
+In a real world there is no constant speed. A bird moves with different speeds, a man walks faster or slower, a ball rolls faster and then slows down and stops. So we need something to emulate this real world (or maybe not so real) speed changes. This is why we need different Easing functions.
 
+The `C.E_DEF` mentioned earlier in tweens is one of such functions which keeps speed of the change constant all the time. But more often you will need to use different Easing functions which are described in [Player API documentation](http://animatron.com/player/doc/API.html#tween-easings).
 
 
 
