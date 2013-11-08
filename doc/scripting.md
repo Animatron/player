@@ -49,13 +49,12 @@ Builder is a special thing which main purpose (how you may suggest from it's nam
 
 Here is an example of how we could create a circle:
 
-	var b = Builder._$;             // create a shortcut
-	var circle = b('red_circle')
-		.circle(                      // will create a rectangle
-			[50, 50],                   // at x = 50, y = 50
-			20)                         // with radius = 20 pixels
-		.fill(                        // and fill it with
-			'#f00');                    // red color
+	var circle = _b('red_circle')   // _b is a builder
+		.circle(                    // will create a rectangle
+			[50, 50],               // at x = 50, y = 50
+			20)                     // with radius = 20 pixels
+		.fill(                      // and fill it with
+			'#f00');                // red color
 
 Ok, now lets add this element to our scene:
 
@@ -103,12 +102,10 @@ Ok, now we know how to create elements and how to animate them so let's define o
 In this example we well add a handler which will rotate a rectangle 360 degrees and then rotate it back. We will assign this handler on mouse click event so every time user will click on the object it will rotate:
 
 	function onClick(ctx, evt, t) {
-		var b = Builder._$;
-
 		var rect = null;
 		var rects = this.findByName('rect');
-		if (rects.length == 0) {                      // 1
-			rect = b('rect')
+		if (rects.length == 0) {                        // 1
+			rect = _b('rect')
 			.rect([50, 50], [30, 30])
 			.fill('#0f')
 			.build();                                   // 2
@@ -118,12 +115,12 @@ In this example we well add a handler which will rotate a rectangle 360 degrees 
 			rect = rects[0];
 		}
 
-		rect.rotate(
+		_b(rect).rotate(
 			[t, t + 2],
 			[0, Math.PI * 2],                           // 3
 			C.E_DEF);
 
-		rect.rotate(
+		_b(rect).rotate(
 			[t + 2, t + 4],
 			[Math.PI * 2, 0],                           // 4
 			C.E_DEF);
@@ -152,5 +149,5 @@ Mouse event contains coordinates of the mouse pointer:
 Keyboard events contains key code:
 
 	var space = evt.key === 32;
-  var r_pressed = evt.char === 'R';
+    var r_pressed = evt.char === 'R';
 

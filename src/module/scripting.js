@@ -34,7 +34,8 @@
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           'if (this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ',
+            '(function(ctx, evt, t) { ' +
+              'var _b = Builder._$;',
                 /* content */
             '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
@@ -44,7 +45,8 @@
   var NO_BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          '(function(ctx, evt, t) { ',
+          '(function(ctx, evt, t) { ' +
+            'var _b = Builder._$;',
               /* content */
           '}).call(user_ctx(this.$), ctx, evt, t);' +
         '}' +
@@ -73,7 +75,8 @@
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in)) && this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ',
+            '(function(ctx, evt, t) { ' +
+              'var _b = Builder._$;',
               /* content */
             '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
@@ -84,7 +87,8 @@
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
           'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out) && !this.$.contains(evt.pos)) { ' +
-            '(function(ctx, evt, t) { ',
+            '(function(ctx, evt, t) { ' +
+              'var _b = Builder._$;',
               /* content */
             '}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
