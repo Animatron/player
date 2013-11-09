@@ -670,19 +670,25 @@ Builder.prototype.whenPlayer = function(event, handler) {
 
 // > builder.take % (b: Builder) => Builder
 Builder.prototype.take = function(b) {
-    this.n = obj.n;
+    this.n = b.n;
     // xdata contents points to the same objects
     // as source's xdata do
-    this.v = obj.v.clone();
+    this.v = b.v.clone();
     this.x = this.v.xdata;
+    this.bs = this.v.bstate;
+
+    return this;
 }
 // > builder.copy % (b: Builder) => Builder
 Builder.prototype.use = function(b) {
-    this.n = obj.n;
+    this.n = b.n;
     // xdata takes the clones of the objects
     // source's xdata points do
-    this.v = obj.v.deepClone();
+    this.v = b.v.deepClone();
     this.x = this.v.xdata;
+    this.bs = this.v.bstate;
+
+    return this;
 }
 
 // * ENABLE & DISABLE *

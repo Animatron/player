@@ -3,7 +3,17 @@
 <head>
   <title></title>
   <meta content="text/html; charset=UTF-8" http-equiv="Content-Type"/>
+  <link rel="stylesheet" href="./vendor/codemirror-3.16/lib/codemirror.css" type="text/css" />
+
   <style type="text/css">
+    * {
+      -webkit-touch-callout: none;
+      -webkit-user-select: none;
+      -moz-user-select: none;
+      -ms-user-select: none;
+      user-select: none;
+    }
+
     body {
       background-color: #eee;
       margin: 0;
@@ -60,6 +70,9 @@
   <div class="code"><select id="type"><option value="click">click</option><option value="m_up">mouse up</option><option value="m_down">mouse down</option><option value="m_enter">mouse enter</option><option value="m_leave">mouse leave</option><option value="m_move">mouse move</option><option value="k_up">key up</option><option value="k_down">key down</option><option value="k_press">key press</option></select><br/><textarea id="handler"></textarea><br/><input id="re" type="button" value="reload"/><br/><pre id="log"></pre></div>
 </div>
 
+<script src="./vendor/codemirror-3.16/lib/codemirror.js"></script>
+<script src="./vendor/codemirror-3.16/mode/javascript/javascript.js"></script>
+
 <script src="../src/vendor/matrix.js" type="text/javascript"></script>
 <script src="../src/anm.js" type="text/javascript"></script>
 <script src="../src/player.js" type="text/javascript"></script>
@@ -76,20 +89,16 @@ var log = function(s) {
 };
 
 var save = function() {
-  var ta = document.getElementById("handler");
-  localStorage.setItem("___handler", ta.value);
+  localStorage.setItem("___handler", window.cm.getValue());
 
   var sel = document.getElementById("type");
   localStorage.setItem("___type", sel.value);
 };
 
 var reload = function() {
-  var ta = document.getElementById("handler");
-  localStorage.setItem("___handler", ta.value);
-  var code = ta.value.replace(/\n/g, '\\n');
+  var code = window.cm.getValue().replace(/\n/g, '\\n').replace(/\'/g, '\"').replace(/\"/g, '\\"');
 
   var sel = document.getElementById("type");
-  localStorage.setItem("___type", sel.value);
   var type = sel.value;
 
   var scripting = '{"meta":{"id":"a6415c52aea0877ffed8c197","created":1381777830343,"modified":1382042371862,"author":"Alexey Pegov","description":"","name":"scripting-1","copyright":"Copyright (c) by Alexey Pegov","duration":100.0,"numberOfScenes":1,"projectAccessType":"Public","projectAccessReadOnly":true},"anim":{"dimension":[550.0,450.0],"framerate":24.0,"background":"#ffffff","elements":[[5,"#2291ea","","","M0.0 0.0 L247.251 0.0 L247.251 162.557 L0.0 162.557 L0.0 0.0 M0.0 0.0 Z"],[2,"$$$LIBRARY$$$",10.0,[]],[2,"Scene1",100.0,[[0,"Shape 1","","",[123.626,81.279],"",0,[[4,[],"","M258.179 185.097 L258.179 185.097 Z"]],{"' + type + '":"' + code + '"}]]]],"scenes":[2]}}';
@@ -100,23 +109,41 @@ var reload = function() {
 };
 
 var start = function() {
+  var _save = function() {
+    setTimeout(function() {
+      save();
+      console.log("saved!");
+    }, 300);
+  };
+
   var ta = document.getElementById("handler");
-  ta.value = localStorage.getItem("___handler");
+
+  var cm = CodeMirror.fromTextArea(ta, {
+    mode: 'javascript',
+    indentUnit: 4,
+    lineNumbers: true,
+    matchBrackets: true,
+    wrapLines: true
+  });
+  cm.setValue(localStorage.getItem("___handler"));
+  cm.setSize('100%', '400px');
+  cm.on('change', function() {
+    _save();
+  });
+
+  window.cm = cm;
 
   var sel = document.getElementById("type");
   var saved = localStorage.getItem("___type");
   sel.value = saved === "" ? "click" : saved;
 
-  document.getElementById("handler").addEventListener('input', function() {
-    setTimeout(function() {
-      save();
-      console.log("saved!");
-    }, 100);
-  });
+  document.getElementById("handler").addEventListener('input', _save);
+  document.getElementById("type").addEventListener('change', _save);
 
   window.player = createPlayer('canvas', {
     'mode': anm.C.M_DYNAMIC,
-    // 'debug': true,
+    'debug': true,
+    'muteErrors': false,
     'anim': {
       width: 550,
       height: 450,
