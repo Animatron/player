@@ -93,7 +93,8 @@ var Files = {
                       AUDIO: 'audio.js',
                       SCRIPTING: 'scripting.js' } },
     Doc: { README: 'README.md',
-           API: 'API.md' }
+           API: 'API.md',
+           SCRIPTING: 'scripting.md' }
 }
 
 var Bundles = [
@@ -106,7 +107,8 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
-                                                              Files.Main.PLAYER ]))
+                                                              Files.Main.PLAYER,
+                                                              Files.Main.BUILDER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
                                                               Files.Ext.MODULES.COLLISIONS,
@@ -115,7 +117,8 @@ var Bundles = [
       file: 'animatron-intact',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
-                                                              Files.Main.PLAYER ]))
+                                                              Files.Main.PLAYER,
+                                                              Files.Main.BUILDER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
@@ -146,6 +149,8 @@ var Docs = {
          README_DST: Dirs.DOCS + '/README.html',
          API_SRC: Dirs.DOCS + '/' + Files.Doc.API,
          API_DST: Dirs.DOCS + '/API.html',
+         SCRIPTING_SRC: Dirs.DOCS + '/' + Files.Doc.SCRIPTING,
+         SCRIPTING_DST: Dirs.DOCS + '/scripting.html'
        },
        Parts: {
          _head: Dirs.DOCS + '/_head.html',
@@ -243,7 +248,7 @@ desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                'Requires: `docco`, Python installed, `markdown` module for Python'+
                   '(and Python is used only because of this module).',
                'Produces: /doc/player.html, /doc/builder.html, '+
-                  '/doc/API.html, /doc/README.html, /doc/docco.css.']));
+                  '/doc/API.html, /doc/README.html, /doc/scripting.html, /doc/docco.css.']));
 task('docs', { async: true }, function() {
     _print('Generating docs');
 
@@ -264,54 +269,34 @@ task('docs', { async: true }, function() {
                                if (next) next(); });
     }
 
-    function _api_docs(next) {
-        _print('For API');
+    function _md_docs(_src, _dst, next) {
+        _print('For ' + _src);
         jake.exec([ [ Binaries.MARKDOWN,
-                      _loc(Docs.FromMD.Files.API_SRC),
-                      '>', _loc(Docs.FromMD.Files.API_DST),
+                      _loc(_src),
+                      '>', _loc(_dst),
                     ].join(' '),
                     [ Binaries.CAT,
                       _loc(Docs.FromMD.Parts._head),
-                      _loc(Docs.FromMD.Files.API_DST),
+                      _loc(_dst),
                       _loc(Docs.FromMD.Parts._foot),
-                      '>', _loc(Docs.FromMD.Files.API_DST + '.tmp'),
+                      '>', _loc(_dst + '.tmp'),
                     ].join(' '),
                     [ Binaries.MV,
-                      _loc(Docs.FromMD.Files.API_DST + '.tmp'),
-                      _loc(Docs.FromMD.Files.API_DST)
+                      _loc(_dst + '.tmp'),
+                      _loc(_dst)
                     ].join(' ')
                   ], EXEC_OPTS,
-                  function() { _print('API.html was Generated successfully');
-                               _print(DONE_MARKER);
-                               if (next) next(); });
-    }
-
-    function _readme_docs(next) {
-        _print('For README');
-        jake.exec([ [ Binaries.MARKDOWN,
-                      _loc(Docs.FromMD.Files.README_SRC),
-                      '>', _loc(Docs.FromMD.Files.README_DST),
-                    ].join(' '),
-                    [ Binaries.CAT,
-                      _loc(Docs.FromMD.Parts._head),
-                      _loc(Docs.FromMD.Files.README_DST),
-                      _loc(Docs.FromMD.Parts._foot),
-                      '>', _loc(Docs.FromMD.Files.README_DST + '.tmp'),
-                    ].join(' '),
-                    [ Binaries.MV,
-                      _loc(Docs.FromMD.Files.README_DST + '.tmp'),
-                      _loc(Docs.FromMD.Files.README_DST)
-                    ].join(' ')
-                  ], EXEC_OPTS,
-                  function() { _print('README.html was Generated successfully');
+                  function() { _print(dst + ' was Generated successfully');
                                _print(DONE_MARKER);
                                if (next) next(); });
     }
 
     _src_docs(function() {
-      _api_docs(function() {
-        _readme_docs(function() {
-          complete();
+      _md_docs(Docs.FromMD.Files.API_SRC, Docs.FromMD.Files.API_DST, function() {
+        _md_docs(Docs.FromMD.Files.README_SRC, Docs.FromMD.Files.README_DST, function() {
+          _md_docs(Docs.FromMD.Files.SCRIPTING_SRC, Docs.FromMD.Files.SCRIPTING_DST, function() {
+            complete();
+          });
         });
       });
     });
@@ -323,6 +308,9 @@ task('docs', { async: true }, function() {
 //python -m markdown doc/README.md > doc/README.html
 //cat doc/_head.html doc/README.html doc/_foot.html > doc/README.tmp.html
 //mv doc/README.tmp.html doc/README.html
+//python -m markdown doc/scripting.md > doc/scripting.html
+//cat doc/_head.html doc/scripting.html doc/_foot.html > doc/scripting.tmp.html
+//mv doc/README.tmp.html doc/scripting.html
 });
 
 desc(_dfit_nl(['Validate Animatron scene JSON file.',
@@ -791,6 +779,7 @@ task('_versionize', function() {
 
     versionize(_loc(Files.Doc.README));
     versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
+    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
 
     _print(DONE_MARKER);
 });
