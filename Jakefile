@@ -286,7 +286,7 @@ task('docs', { async: true }, function() {
                       _loc(_dst)
                     ].join(' ')
                   ], EXEC_OPTS,
-                  function() { _print(dst + ' was Generated successfully');
+                  function() { _print(_dst + ' was Generated successfully');
                                _print(DONE_MARKER);
                                if (next) next(); });
     }
