@@ -16,7 +16,10 @@ var _specs = {
                   '07.utils',
                   '08.version',
                   '09.events',
-                  '10.embedding' ],
+                  '10.embedding',
+                  '11.resource-manager',
+                  '12.multiple-scenes',
+                  '13.player-manager' ],
    '02.animations': [ '01.guids',
                       '02.duration-n-bands',
                       '03.structure',
@@ -54,5 +57,8 @@ var _specs = {
                    '20.image',
                    '21.statics-and-pivot' ],
    '05.collisions': [ 'stub' ],
-   '06.bugs': [ 'bugs' ]
+   '06.bugs': [ 'bugs' ],
+   '07.audio-export': [ '01.simple',
+                        '02.group',
+                        '03.multiple' ]
 };

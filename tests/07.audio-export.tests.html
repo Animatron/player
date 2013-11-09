@@ -8,7 +8,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-  <title>Animatron Player: Collisions Tests</title>
+  <title>Animatron Player: Bugs Tests</title>
 
   <link rel="shortcut icon" type="image/png" href="vendor/jasmine-1.2.0/jasmine_favicon.png">
   <link rel="stylesheet" type="text/css" href="vendor/jasmine-1.2.0/jasmine.css">
@@ -30,13 +30,14 @@
                 _files['vnd.matrix'],
                 _files['anm.init'],
                 _files['anm.player'],
-                _files['anm.collisions'],
+                _files['anm.import'],
+                _files['anm.audio-export'],
                 _files['tst.matchers'],
                 _files['tst.mocks'],
                 _files['tst.utils']
         ], function() {
           loadJasmine(window, [ new jasmine.HtmlReporter() ],
-                              [ '05.collisions/*' ]);
+                              [ '07.audio-export/*' ]);
         }
       );
   </script>

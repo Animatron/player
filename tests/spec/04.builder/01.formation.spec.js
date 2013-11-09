@@ -629,6 +629,7 @@ describe("builder, regarding its formation techniques,", function() {
                     ImgFake.__stopFakes();
                 });
                 spyOn(document, 'createElement').andReturn(_mocks.factory.canvas());
+                spyOn(document.body, 'appendChild').andCallFake(_mocks.nop);
                 spyOn(window, 'Image').andCallFake(ImgFake);
                 runs(function() {
                     to_clone = b().image([50, 50], fake_src, whenImgReady);

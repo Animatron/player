@@ -75,22 +75,33 @@ mocks.factory.context2d = function() {
         'transform': __nop,
         'beginPath': __nop,
         'closePath': __nop,
+        'arc': __nop,
         'moveTo': __nop,
         'lineTo': __nop,
+        'bezierCurveTo': __nop,
         'fill': __nop,
         'stroke': __nop,
         'clip': __nop,
         'rect': __nop,
         'drawImage': __nop,
         'scale': __nop,
+        'rotate': __nop,
+        'translate': __nop,
         'globalAlpha': 1,
         'globalCompositeOperation': 'source-over',
         'setTransform': __nop,
         'createLinearGradient': function() { return mocks.factory.linearGradient(); },
+        'createRadialGradient': function() { return mocks.factory.radialGradient(); }
     };
 };
 
 mocks.factory.linearGradient = function() {
+    return {
+        'addColorStop': __nop
+    };
+};
+
+mocks.factory.radialGradient = function() {
     return {
         'addColorStop': __nop
     };
@@ -160,6 +171,29 @@ mocks.canvasStyle = mocks.canvas.style;*/
 mocks.gradient = mocks.factory.linearGradient();
 
 mocks.nop = mocks.factory.nop();
+
+mocks.createElement = function(tag) {
+    if (tag === 'canvas') return mocks.factory.canvas();
+    return mocks.factory.element();
+};
+
+mocks.adaptDocument = function(_doc, getElementById) {
+    var _getElementById,
+        _createElement,
+        _appendChild;
+    if (getElementById) {
+        _getElementById = spyOn(document, 'getElementById').andCallFake(getElementById);
+    } else {
+        _getElementById = spyOn(document, 'getElementById').andReturn(mocks.factory.canvas());
+    }
+    _createElement = spyOn(document, 'createElement').andCallFake(mocks.createElement);
+    _appendChild = spyOn(document.body, 'appendChild').andCallFake(mocks.nop);
+    return {
+        'getElementById': _getElementById,
+        'createElement': _createElement,
+        'appendChild': _appendChild
+    };
+}
 
 // TODO: tests for mocks
 

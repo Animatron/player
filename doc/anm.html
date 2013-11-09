@@ -74,11 +74,11 @@
               <div class="pilwrap ">
                 <a class="pilcrow" href="#section-2">&#182;</a>
               </div>
-              <p>HERE SHOULD GO THE INITIALISATION OF ANM NAMESPACE WITH HELPERS AND GLOBALS</p>
+              <p>HERE GOES THE INITIALISATION OF ANM NAMESPACE, GLOBALS AND GLOBAL HELPERS</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>(<span class="keyword">function</span>() {
+            <div class="content"><div class='highlight'><pre>(<span class="keyword">function</span>(GLOBAL) {
 
     <span class="keyword">var</span> PRIVATE_NAMESPACE = <span class="string">'__anm'</span>,
         PRIVATE_CONF = <span class="string">'__anm_conf'</span>,
@@ -108,10 +108,14 @@ window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
             <div class="content"><div class='highlight'><pre>    <span class="keyword">if</span> (!_GLOBAL_[PRIVATE_CONF]) {
         _GLOBAL_[PRIVATE_CONF] = {
             logImport: <span class="literal">false</span>,
+            logResMan: <span class="literal">false</span>,
+            logEvents: <span class="literal">false</span>,
             forceWindowScope: <span class="literal">false</span>
         }
     }
-    <span class="keyword">var</span> _conf = _GLOBAL_[PRIVATE_CONF];</pre></div></div>
+    <span class="keyword">var</span> _conf = _GLOBAL_[PRIVATE_CONF];
+
+    <span class="keyword">var</span> foo = {};</pre></div></div>
             
         </li>
         
@@ -119,8 +123,52 @@ window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
         <li id="section-4">
             <div class="annotation">
               
-              <div class="pilwrap ">
+              <div class="pilwrap for-h2">
                 <a class="pilcrow" href="#section-4">&#182;</a>
+              </div>
+              <h2>Logging</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-5">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-5">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">var</span> console = _GLOBAL_[<span class="string">'console'</span>] || {
+        log: <span class="keyword">function</span>() {},
+        error: <span class="keyword">function</span>() {},
+        warn: <span class="keyword">function</span>() {}
+    };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-6">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-6">&#182;</a>
+              </div>
+              <h2>Namespace management</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-7">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-7">&#182;</a>
               </div>
               <p>TODO: Later, player should be placed in anm.Player and
              builder should be placed in anm.Builder</p>
@@ -138,11 +186,11 @@ window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
         </li>
         
         
-        <li id="section-5">
+        <li id="section-8">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-5">&#182;</a>
+                <a class="pilcrow" href="#section-8">&#182;</a>
               </div>
               <p>FIXME: Remove, replace with Engine injector</p>
 
@@ -165,11 +213,11 @@ window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
         </li>
         
         
-        <li id="section-6">
+        <li id="section-9">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-6">&#182;</a>
+                <a class="pilcrow" href="#section-9">&#182;</a>
               </div>
               <p>a function to register a player namespace (currently: &#39;anm&#39;) in window or as module</p>
 
@@ -192,11 +240,11 @@ window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
         </li>
         
         
-        <li id="section-7">
+        <li id="section-10">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-7">&#182;</a>
+                <a class="pilcrow" href="#section-10">&#182;</a>
               </div>
               <p>FIXME: Remove, replace with Engine injector</p>
 
@@ -218,16 +266,552 @@ window.<strong>anm_conf || GLOBAL.</strong>anm_conf</p>
         }
     })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _document, _conf);
 
-    <span class="keyword">var</span> foo = {}</pre></div></div>
+    <span class="comment">/* TODO: use this for:
+       collisions: Scene.prototype.handle__x (return value should be returned properly);
+       builder: Builder.prototype.circle --&gt; move into collisions
+    function override(proto, name, with) {
+        var prev = proto[name];
+        proto[name] = function() {
+            prev.apply(this, arguments);
+            with.apply(this, arguments);
+        };
+    }
+
+    function overridePrepended(proto, name, with) {
+        var prev = proto[name];
+        proto[name] = function() {
+            with.apply(this, arguments);
+            prev.apply(this, arguments);
+        };
+    } */</span></pre></div></div>
             
         </li>
         
         
-        <li id="section-8">
+        <li id="section-11">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-11">&#182;</a>
+              </div>
+              <h2>Constants</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-12">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-8">&#182;</a>
+                <a class="pilcrow" href="#section-12">&#182;</a>
+              </div>
+              <p><em>GLOBAL</em>[PUBLIC<em>NAMESPACE].C = {};
+_GLOBAL</em>[PUBLIC_NAMESPACE].C;</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">var</span> C = {};</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-13">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-13">&#182;</a>
+              </div>
+              <h2>Events</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-14">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-14">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    C.__enmap = {};
+
+    <span class="function"><span class="keyword">function</span> <span class="title">registerEvent</span><span class="params">(id, name, value)</span> {</span>
+        C[id] = value;
+        C.__enmap[value] = name;
+    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-15">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-15">&#182;</a>
+              </div>
+              <p>FIXME: all errors below were AnimErr instances</p>
+<p>adds specified events support to the <code>subj</code> object. <code>subj</code> object receives
+<code>handlers</code> property that keeps the listeners for each event. Also, it gets
+<code>e_&lt;evt_name&gt;</code> function for every event provided to call it when it is
+required to call all handlers of all of thise event name
+(<code>fire(&#39;&lt;evt_name&gt;&#39;, ...)</code> is the same but can not be reassigned by user).
+<code>subj</code> can define <code>handle_&lt;evt_name&gt;</code> function to handle concrete event itself,
+but without messing with other handlers.
+And, user gets <code>on</code> function to subcribe to events and <code>provides</code> to check
+if it is allowed.</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">provideEvents</span><span class="params">(subj, events)</span> {</span>
+        subj.prototype._initHandlers = (<span class="keyword">function</span>(evts) { <span class="comment">// FIXME: make automatic</span>
+            <span class="keyword">return</span> <span class="keyword">function</span>() {
+                <span class="keyword">var</span> _hdls = {};
+                <span class="keyword">this</span>.handlers = _hdls;
+                <span class="keyword">for</span> (<span class="keyword">var</span> ei = <span class="number">0</span>, el = evts.length; ei &lt; el; ei++) {
+                    _hdls[evts[ei]] = [];
+                }
+            };
+        })(events);
+        subj.prototype.on = <span class="keyword">function</span>(event, handler) {
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.handlers) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Instance is not initialized with handlers, call __initHandlers in its constructor'</span>);
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.provides(event)) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Event \''</span> + C.__enmap[event] +
+                                                         <span class="string">'\' not provided by '</span> + <span class="keyword">this</span>);
+            <span class="keyword">if</span> (!handler) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'You are trying to assign '</span> +
+                                            <span class="string">'undefined handler for event '</span> + event);
+            <span class="keyword">this</span>.handlers[event].push(handler);
+            <span class="keyword">return</span> (<span class="keyword">this</span>.handlers[event].length - <span class="number">1</span>);
+        };
+        subj.prototype.fire = <span class="keyword">function</span>(event<span class="comment">/*, args*/</span>) {
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.handlers) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Instance is not initialized with handlers, call __initHandlers in its constructor'</span>);
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.provides(event)) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Event \''</span> + C.__enmap[event] +
+                                                         <span class="string">'\' not provided by '</span> + <span class="keyword">this</span>);
+            <span class="keyword">if</span> (<span class="keyword">this</span>.disabled) <span class="keyword">return</span>;
+            <span class="keyword">var</span> evt_args = Array.prototype.slice.call(arguments, <span class="number">1</span>);
+            <span class="keyword">if</span> (<span class="keyword">this</span>.handle__x &amp;&amp; !(<span class="keyword">this</span>.handle__x.apply(<span class="keyword">this</span>, arguments))) <span class="keyword">return</span>;
+            <span class="keyword">var</span> name = C.__enmap[event];
+            <span class="keyword">if</span> (<span class="keyword">this</span>[<span class="string">'handle_'</span>+name]) <span class="keyword">this</span>[<span class="string">'handle_'</span>+name].apply(<span class="keyword">this</span>, evt_args);
+            <span class="keyword">var</span> _hdls = <span class="keyword">this</span>.handlers[event];
+            <span class="keyword">for</span> (<span class="keyword">var</span> hi = <span class="number">0</span>, hl = _hdls.length; hi &lt; hl; hi++) {
+                _hdls[hi].apply(<span class="keyword">this</span>, evt_args);
+            }
+        };
+        subj.prototype.provides = (<span class="keyword">function</span>(evts) {
+            <span class="keyword">return</span> <span class="keyword">function</span>(event) {
+                <span class="keyword">if</span> (!<span class="keyword">this</span>.handlers) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Instance is not initialized with handlers, call __initHandlers in its constructor'</span>);
+                <span class="keyword">if</span> (!event) <span class="keyword">return</span> evts;
+                <span class="keyword">return</span> <span class="keyword">this</span>.handlers.hasOwnProperty(event);
+            }
+        })(events);
+        subj.prototype.unbind = <span class="keyword">function</span>(event, idx) {
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.handlers) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Instance is not initialized with handlers, call __initHandlers in its constructor'</span>);
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.provides(event)) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Event '</span> + event +
+                                                         <span class="string">' not provided by '</span> + <span class="keyword">this</span>);
+            <span class="keyword">if</span> (<span class="keyword">this</span>.handlers[event][idx]) {
+                <span class="keyword">this</span>.handlers[event].splice(idx, <span class="number">1</span>);
+            } <span class="keyword">else</span> {
+                <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'No such handler '</span> + idx + <span class="string">' for event '</span> + event);
+            }
+        };
+        subj.prototype.disposeHandlers = <span class="keyword">function</span>() {
+            <span class="keyword">if</span> (!<span class="keyword">this</span>.handlers) <span class="keyword">throw</span> <span class="keyword">new</span> Error(<span class="string">'Instance is not initialized with handlers, call __initHandlers in its constructor'</span>);
+            <span class="keyword">var</span> _hdls = <span class="keyword">this</span>.handlers;
+            <span class="keyword">for</span> (<span class="keyword">var</span> evt <span class="keyword">in</span> _hdls) {
+                <span class="keyword">if</span> (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
+            }
+        }
+        <span class="comment">/* FIXME: call fire/e_-funcs only from inside of their providers, */</span>
+        <span class="comment">/* TODO: wrap them with event objects */</span>
+        <span class="keyword">var</span> _event;
+        <span class="keyword">for</span> (<span class="keyword">var</span> ei = <span class="number">0</span>, el = events.length; ei &lt; el; ei++) {
+            _event = events[ei];
+            subj.prototype[<span class="string">'e_'</span>+_event] = (<span class="keyword">function</span>(event) {
+                <span class="keyword">return</span> <span class="keyword">function</span>(evtobj) {
+                    <span class="keyword">this</span>.fire(event, evtobj);
+                };
+            })(_event);
+        }
+        <span class="comment">/* subj.prototype.before = function(event, handler) { } */</span>
+        <span class="comment">/* subj.prototype.after = function(event, handler) { } */</span>
+        <span class="comment">/* subj.prototype.provide = function(event, provider) { } */</span>
+    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-16">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-16">&#182;</a>
+              </div>
+              <h2>Resource manager</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-17">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-17">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">ResourceManager</span><span class="params">()</span> {</span>
+        <span class="keyword">this</span>._cache = {};
+        <span class="keyword">this</span>._errors = {};
+        <span class="keyword">this</span>._waiting = {};
+        <span class="keyword">this</span>._subscriptions = [];
+    }
+    ResourceManager.prototype.subscribe = <span class="keyword">function</span>(urls, callbacks) {
+        <span class="keyword">var</span> filteredUrls = [];
+        <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>; i &lt; urls.length; i++){</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-18">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-18">&#182;</a>
+              </div>
+              <p>there should not be empty urls</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>            <span class="keyword">if</span> (urls[i]) filteredUrls.push(urls[i]);
+        }
+
+        <span class="keyword">this</span>._subscriptions.push([ filteredUrls,
+                                   Array.isArray(callbacks) ? callbacks : [ callbacks ] ]);
+        <span class="keyword">this</span>.check();
+    }
+    ResourceManager.prototype.loadOrGet = <span class="keyword">function</span>(url, loader, onComplete, onError) {
+        <span class="keyword">var</span> me = <span class="keyword">this</span>;
+        <span class="keyword">if</span> (_conf.logResMan)
+           { console.log(<span class="string">'request to load '</span> + url); }
+        <span class="keyword">if</span> (me._cache[url]) {
+            <span class="keyword">if</span> (_conf.logResMan)
+               { console.log(<span class="string">'&gt; already received, trigerring success'</span>); }
+            <span class="keyword">var</span> result = me._cache[url];
+            me.trigger(url, result);
+            <span class="keyword">if</span> (onComplete) onComplete(result);
+        } <span class="keyword">else</span> <span class="keyword">if</span> (me._errors[url]) {
+            <span class="keyword">if</span> (_conf.logResMan)
+               { console.log(<span class="string">'&gt; failed to load before, notifying with error'</span>); }
+            <span class="keyword">if</span> (onError) onError(me._errors[url]);
+        } <span class="keyword">else</span> <span class="keyword">if</span> (!me._waiting[url]) {
+            <span class="keyword">if</span> (_conf.logResMan)
+               { console.log(<span class="string">'&gt; not cached, requesting'</span>); }
+            me._waiting[url] = loader;
+            loader(<span class="keyword">function</span>(result) {
+                <span class="keyword">if</span> (_conf.logResMan)
+                   { console.log(<span class="string">'file at '</span> + url + <span class="string">' succeeded to load, triggering success'</span>); }
+                me.trigger(url, result);
+                <span class="keyword">if</span> (onComplete) onComplete(result);
+                me.check();
+            }, <span class="keyword">function</span>(err) {
+                <span class="keyword">if</span> (_conf.logResMan)
+                   { console.log(<span class="string">'file at '</span> + url + <span class="string">' failed to load, triggering eror'</span>); }
+                me.error(url, err);
+                <span class="keyword">if</span> (onError) onError(err);
+                me.check();
+            });
+        } <span class="keyword">else</span> <span class="comment">/*if (me._waiting[url])*/</span> { <span class="comment">// already waiting</span>
+            <span class="keyword">if</span> (_conf.logResMan)
+               { console.log(<span class="string">'&gt; someone is already waiting for it, subscribing'</span>); }
+            <span class="keyword">if</span> (me._waiting[url] !== loader) me.subscribe([ url ], <span class="keyword">function</span>(res) { onComplete(res[<span class="number">0</span>]); });
+        }
+    }
+    ResourceManager.prototype.trigger = <span class="keyword">function</span>(url, value) {
+        <span class="keyword">if</span> (<span class="keyword">this</span>._cache[url] || <span class="keyword">this</span>._errors[url]) { <span class="keyword">this</span>.check(); <span class="keyword">return</span>; }
+        <span class="keyword">delete</span> <span class="keyword">this</span>._waiting[url];
+        <span class="keyword">this</span>._cache[url] = value;
+    }
+    ResourceManager.prototype.error = <span class="keyword">function</span>(url, err) {
+        <span class="keyword">if</span> (<span class="keyword">this</span>._cache[url] || <span class="keyword">this</span>._errors[url]) { <span class="keyword">this</span>.check(); <span class="keyword">return</span>; }
+        <span class="keyword">delete</span> <span class="keyword">this</span>._waiting[url];
+        <span class="keyword">this</span>._errors[url] = err;
+    }
+    ResourceManager.prototype.has = <span class="keyword">function</span>(url) {
+        <span class="keyword">return</span> (<span class="keyword">typeof</span> <span class="keyword">this</span>._cache[url] !== <span class="string">'undefined'</span>);
+    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-19">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-19">&#182;</a>
+              </div>
+              <p>call this only if you are sure you want to force this check —
+this method is called automatically when every new incoming url is triggered
+as complete</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    ResourceManager.prototype.check = <span class="keyword">function</span>() {
+        <span class="keyword">if</span> (_conf.logResMan)
+           { console.log(<span class="string">'checking subscriptions'</span>); }
+        <span class="keyword">var</span> subscriptions = <span class="keyword">this</span>._subscriptions,
+            cache = <span class="keyword">this</span>._cache,
+            errors = <span class="keyword">this</span>._errors,
+            to_remove = <span class="literal">null</span>;
+        <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>, il = subscriptions.length; i &lt; il; i++) {
+            <span class="keyword">var</span> urls = subscriptions[i][<span class="number">0</span>],
+                callbacks = subscriptions[i][<span class="number">1</span>],
+                error_count = <span class="number">0</span>,
+                success_count = <span class="number">0</span>;
+            <span class="keyword">for</span> (<span class="keyword">var</span> u = <span class="number">0</span>, ul = urls.length; u &lt; ul; u++) {
+                <span class="keyword">if</span> (errors[urls[u]]) error_count++;
+                <span class="keyword">if</span> (cache[urls[u]]) success_count++;
+            }
+            <span class="keyword">if</span> ((success_count + error_count) === urls.length) {
+                <span class="keyword">var</span> ready = [];
+                <span class="keyword">for</span> (<span class="keyword">var</span> u = <span class="number">0</span>, ul = urls.length; u &lt; ul; u++) {
+                    ready.push(cache[urls[u]] || errors[urls[u]]);
+                };
+                <span class="keyword">if</span> (_conf.logResMan)
+                   { console.log(<span class="string">'notifying subscribers that '</span> + urls + <span class="string">' are all ready'</span>); }
+                <span class="keyword">for</span> (<span class="keyword">var</span> k = <span class="number">0</span>, kl = callbacks.length; k &lt; kl; k++) {
+                    callbacks[k](ready, error_count);
+                }
+                <span class="keyword">if</span> (!to_remove) to_remove = [];
+                to_remove.push(subscriptions[i]);
+            }
+        }
+        <span class="keyword">if</span> (to_remove) {
+            <span class="keyword">for</span> (<span class="keyword">var</span> i = <span class="number">0</span>, il = to_remove.length; i &lt; il; i++) {
+                <span class="keyword">if</span> (_conf.logResMan)
+                   { console.log(<span class="string">'removing notified subscribers for '</span> + to_remove[i][<span class="number">0</span>] + <span class="string">' from queue'</span>); }
+                subscriptions.splice(subscriptions.indexOf(to_remove[i]), <span class="number">1</span>);
+            }
+        }
+    }
+    ResourceManager.prototype.clear = <span class="keyword">function</span>() {
+        <span class="keyword">this</span>._cache = {};
+        <span class="keyword">this</span>._errors = {};
+        <span class="keyword">this</span>._waiting = {};
+        <span class="keyword">this</span>._subscriptions = [];
+    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-20">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-20">&#182;</a>
+              </div>
+              <h2>Player manager</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-21">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-21">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    registerEvent(<span class="string">'S_NEW_PLAYER'</span>, <span class="string">'new_player'</span>, <span class="string">'new_player'</span>);
+    registerEvent(<span class="string">'S_PLAYER_DETACH'</span>, <span class="string">'player_detach'</span>, <span class="string">'player_detach'</span>);
+
+    <span class="keyword">var</span> PlayerManager = <span class="keyword">function</span>() {
+        <span class="keyword">this</span>.hash = {};
+        <span class="keyword">this</span>.instances = [];
+        <span class="keyword">this</span>._initHandlers();
+    }
+    provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
+    PlayerManager.prototype.handle__x = <span class="keyword">function</span>(evt, player) {
+        <span class="keyword">if</span> (evt == C.S_NEW_PLAYER) {
+            <span class="keyword">this</span>.hash[player.id] = player;
+            <span class="keyword">this</span>.instances.push(player);
+        } <span class="keyword">else</span> <span class="keyword">if</span> (evt == C.S_PLAYER_DETACH) {</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-22">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-22">&#182;</a>
+              </div>
+              <p>do nothing</p>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        }
+        <span class="keyword">return</span> <span class="literal">true</span>;
+    }
+    PlayerManager.prototype.getPlayer = <span class="keyword">function</span>(cvs_id) {
+        <span class="keyword">return</span> <span class="keyword">this</span>.hash[cvs_id];
+    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-23">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-23">&#182;</a>
+              </div>
+              <h2>GUID</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-24">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-24">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="function"><span class="keyword">function</span> <span class="title">guid</span><span class="params">()</span> {</span>
+       <span class="keyword">return</span> Math.random().toString(<span class="number">36</span>).substring(<span class="number">2</span>, <span class="number">10</span>) +
+              Math.random().toString(<span class="number">36</span>).substring(<span class="number">2</span>, <span class="number">10</span>);
+    }</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-25">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-25">&#182;</a>
+              </div>
+              <h2>Value/Typecheck</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-26">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-26">&#182;</a>
+              </div>
+              
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>    <span class="keyword">var</span> __is = (<span class="keyword">function</span>() {</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-27">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h4">
+                <a class="pilcrow" href="#section-27">&#182;</a>
+              </div>
+              <h4>value check</h4>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="keyword">var</span> __finite = isFinite || Number.isFinite || <span class="keyword">function</span>(n) { <span class="keyword">return</span> n !== <span class="literal">Infinity</span>; };
+
+        <span class="keyword">var</span> __nan = isNaN || Number.isNaN || <span class="keyword">function</span>(n) { n !== <span class="literal">NaN</span>; };</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-28">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h4">
+                <a class="pilcrow" href="#section-28">&#182;</a>
+              </div>
+              <h4>typecheck</h4>
+
+            </div>
+            
+            <div class="content"><div class='highlight'><pre>        <span class="function"><span class="keyword">function</span> <span class="title">__builder</span><span class="params">(obj)</span> {</span>
+            <span class="keyword">return</span> (<span class="keyword">typeof</span> Builder !== <span class="string">'undefined'</span>) &amp;&amp;
+                   (obj <span class="keyword">instanceof</span> Builder);
+        }
+
+        <span class="keyword">var</span> __arr = Array.isArray;
+
+        <span class="function"><span class="keyword">function</span> <span class="title">__num</span><span class="params">(n)</span> {</span>
+            <span class="keyword">return</span> !__nan(parseFloat(n)) &amp;&amp; __finite(n);
+        }
+
+        <span class="function"><span class="keyword">function</span> <span class="title">__fun</span><span class="params">(fun)</span> {</span>
+            <span class="keyword">return</span> fun != <span class="literal">null</span> &amp;&amp; <span class="keyword">typeof</span> fun === <span class="string">'function'</span>;
+        }
+
+        <span class="function"><span class="keyword">function</span> <span class="title">__obj</span><span class="params">(obj)</span> {</span>
+            <span class="keyword">return</span> obj != <span class="literal">null</span> &amp;&amp; <span class="keyword">typeof</span> obj === <span class="string">'object'</span>;
+        }
+
+        <span class="function"><span class="keyword">function</span> <span class="title">__str</span><span class="params">(obj)</span> {</span>
+            <span class="keyword">return</span> obj != <span class="literal">null</span> &amp;&amp; <span class="keyword">typeof</span> obj === <span class="string">'string'</span>;
+        }
+
+        <span class="keyword">var</span> __is = {};
+        __is.finite  = __finite;
+        __is.nan     = __nan;
+        __is.builder = __builder;
+        __is.arr     = __arr;
+        __is.num     = __num;
+        __is.fun     = __fun;
+        __is.obj     = __obj;
+        __is.str     = __str;
+
+        <span class="keyword">return</span> __is;
+
+    })();</pre></div></div>
+            
+        </li>
+        
+        
+        <li id="section-29">
+            <div class="annotation">
+              
+              <div class="pilwrap for-h2">
+                <a class="pilcrow" href="#section-29">&#182;</a>
+              </div>
+              <h2>Export</h2>
+
+            </div>
+            
+        </li>
+        
+        
+        <li id="section-30">
+            <div class="annotation">
+              
+              <div class="pilwrap ">
+                <a class="pilcrow" href="#section-30">&#182;</a>
               </div>
               <p>an object to store private functions inside
 window.<strong>anm || GLOBAL.</strong>anm</p>
@@ -237,21 +821,31 @@ window.<strong>anm || GLOBAL.</strong>anm</p>
             <div class="content"><div class='highlight'><pre>    _GLOBAL_[PRIVATE_NAMESPACE] = {
         global: _GLOBAL_,
         <span class="string">'undefined'</span>: foo.___undefined___,
+        <span class="string">'C'</span>: C, <span class="comment">// constants</span>
+        console: console,
+        guid: guid,
+        is: __is,
         conf: _conf,
         namespace: PUBLIC_NAMESPACE,
         registerPlayer: registerPlayer,
-        registerUsingAnm: registerUsingAnm</pre></div></div>
+        registerUsingAnm: registerUsingAnm,
+        provideEvents: provideEvents,
+        registerEvent: registerEvent,
+        resource_manager: <span class="keyword">new</span> ResourceManager(),
+        player_manager: <span class="keyword">new</span> PlayerManager()</pre></div></div>
             
         </li>
         
         
-        <li id="section-9">
+        <li id="section-31">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-9">&#182;</a>
+                <a class="pilcrow" href="#section-31">&#182;</a>
               </div>
-              <p>TODO: player instances listeners (look Player.addNewInstanceListener)</p>
+              <p>override: override,
+overridePrepended: overridePrepended
+TODO: player instances listeners (look Player.addNewInstanceListener)</p>
 
             </div>
             
@@ -260,17 +854,20 @@ window.<strong>anm || GLOBAL.</strong>anm</p>
         </li>
         
         
-        <li id="section-10">
+        <li id="section-32">
             <div class="annotation">
               
               <div class="pilwrap ">
-                <a class="pilcrow" href="#section-10">&#182;</a>
+                <a class="pilcrow" href="#section-32">&#182;</a>
               </div>
-              <p>FIXME: support Engines (DOM/NodeJS/...) from this point</p>
+              <p>FIXME: Errors system shoud be moved here</p>
+<p>FIXME: store pixel ratio here</p>
+<p>FIXME: move typechecks/utils here</p>
+<p>FIXME: support Engines (DOM/NodeJS/...) from this point</p>
 
             </div>
             
-            <div class="content"><div class='highlight'><pre>})();</pre></div></div>
+            <div class="content"><div class='highlight'><pre>})(<span class="keyword">this</span>);</pre></div></div>
             
         </li>
         

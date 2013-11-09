@@ -10,7 +10,7 @@ describe("player, when speaking about loading scenes,", function() {
     var player;
 
     beforeEach(function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
 
         player = createPlayer('test-id', { mode: anm.C.M_SANDBOX });
@@ -336,7 +336,7 @@ describe("regarding setting zoom, when loading a scene", function() {
 
         beforeEach(function() {
             canvas = _mocks.factory.canvas(canvasId);
-            spyOn(document, 'getElementById').andCallFake(function(id) {
+            _mocks.adaptDocument(document, function(id) {
                 expect(id).toEqual(canvasId);
                 return canvas;
             });
