@@ -733,17 +733,16 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_RES_LOAD, remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
-                    if (!err_count) {
-                        if (player.anim === result) { // avoid race condition when there were two requests
-                                                      // to load different scenes and first one finished loading
-                                                      // after the second one
-                            player.state.happens = C.LOADING;
-                            player.fire(C.S_LOAD, result);
-                            if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
-                            player._callPostpones();
-                            if (callback) callback(result);
-                        }
-                    } else throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                    //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                    if (player.anim === result) { // avoid race condition when there were two requests
+                                                  // to load different scenes and first one finished loading
+                                                  // after the second one
+                        player.state.happens = C.LOADING;
+                        player.fire(C.S_LOAD, result);
+                        if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+                        player._callPostpones();
+                        if (callback) callback(result);
+                    }
                 }
             ) ]);
         }
@@ -2395,12 +2394,13 @@ Element.prototype.inform = function(ltime) {
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
-            this.travelChildren(function(elm) { // TODO: implement __fireDeep
+            // FIXME: it may fire start before the child band starts, do not do this!
+            /* this.travelChildren(function(elm) { // TODO: implement __fireDeep
                 if (!elm.__firedStart) {
                     elm.fire(C.X_START, ltime, duration);
                     elm.__firedStart = true;
                 }
-            });
+            }); */
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
@@ -4578,6 +4578,7 @@ Brush._hasVal = function(fsval) {
 // -----------------------------------------------------------------------------
 
 Sheet.instances = 0;
+Sheet.MISSED_SIDE = 30;
 /* TODO: rename to Static and take optional function as source? */
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
@@ -4590,6 +4591,7 @@ function Sheet(src, callback, start_region) {
     /* TODO: rename region to frame */
     this.cur_region = start_region || 0; // current region may be changed with modifier
     this.ready = false;
+    this.wasError = false;
     this._image = null;
     this._cvs_cache = null;
     this.load(callback);
@@ -4619,10 +4621,12 @@ Sheet.prototype.load = function(callback) {
             me._drawToCache();
             if (callback) callback.call(me, image);
         },
-        function(err) { __anm.console.error(err.message || err); });
+        function(err) { __anm.console.error(err.message || err);
+                        me.ready = true;
+                        me.wasError = true; });
 }
 Sheet.prototype._drawToCache = function() {
-    if (!this.ready) return;
+    if (!this.ready || this.wasError) return;
     if (this._image.__cvs) {
         this._cvs_cache = this._image.__cvs;
         return;
@@ -4635,6 +4639,7 @@ Sheet.prototype._drawToCache = function() {
 }
 Sheet.prototype.apply = function(ctx) {
     if (!this.ready) return;
+    if (this.wasError) { this.applyMissed(ctx); return; }
     if (this.cur_region < 0) return;
     var region;
     if (this.region_f) { region = this.region_f(this.cur_region); }
@@ -4648,13 +4653,32 @@ Sheet.prototype.apply = function(ctx) {
     ctx.drawImage(this._cvs_cache, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
+Sheet.prototype.applyMissed = function(ctx) {
+    ctx.save();
+    ctx.strokeStyle = '#600';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    var side = Sheet.MISSED_SIDE;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(side, 0);
+    ctx.lineTo(0, side);
+    ctx.lineTo(side, side);
+    ctx.lineTo(0, 0);
+    ctx.lineTo(0, side);
+    ctx.lineTo(side, 0);
+    ctx.lineTo(side, side);
+    ctx.stroke();
+    ctx.restore();
+}
 Sheet.prototype.dimen = function() {
+    if (this.wasError) return [ Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
     /* if (!this.ready || !this._active_region) return [0, 0];
     var r = this._active_region;
     return [ r[2], r[3] ]; */
     return this._dimen;
 }
 Sheet.prototype.bounds = function() {
+    if (this.wasError) return [ 0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
     // TODO: when using current_region, bounds will depend on that region
     if (!this.ready || !this._active_region) return [0, 0, 0, 0];
     var r = this._active_region;
