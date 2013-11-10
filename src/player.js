@@ -302,7 +302,7 @@ function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+    if (isObj && !opts.lockBg && opts.bgcolor && opts.bgcolor.color) {
         canvas.style.backgroundColor = opts.bgcolor.color;
     }
     if (isObj) {
@@ -310,10 +310,12 @@ function canvasOpts(canvas, opts, ratio) {
         canvas.__anm_usr_y = opts.y;
     }
     canvas.__pxRatio = ratio;
-    canvas.style.width = _w + 'px';
-    canvas.style.height = _h + 'px';
-    canvas.setAttribute('width', _w * (ratio || 1));
-    canvas.setAttribute('height', _h * (ratio || 1));
+    if (!opts.lockResize) {
+      canvas.style.width = _w + 'px';
+      canvas.style.height = _h + 'px';
+      canvas.setAttribute('width', _w * (ratio || 1));
+      canvas.setAttribute('height', _h * (ratio || 1));
+    }
 }
 
 function newCanvas(dimen, ratio) {
@@ -1283,6 +1285,8 @@ Player.prototype._reconfigureCanvas = function(opts) {
     this.state.height = _h;
     this.state.ratio = pxRatio;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
+    opts.lockBg = this.__lockCvsBg;
+    opts.lockResize = this.__lockCvsResize;
     canvasOpts(canvas, opts, pxRatio);
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
@@ -1639,6 +1643,8 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
+    if (params.w && params.h) player.__lockCvsResize = true;
+    if (params.bg) player.__lockCvsBg = true;
     function updateWithParams() {
         if (typeof params.t !== 'undefined') {
             player.play(params.t / 100);
@@ -1646,9 +1652,15 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
+            player.__lockCvsResize = false; // FIXME: you're a bad guy, shaman.sir. a very bad, bad, bag guy...
             player._reconfigureCanvas({ width: params.w, height: params.h });
+            player.__lockCvsResize = true;
         }
-        if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
+        if (params.bg) {
+            player.__lockCvsBg = false;
+            player.canvas.style.backgroundColor = '#' + params.bg;
+            player.__lockCvsBg = true;
+        }
         if (callback) callback();
     }
 
