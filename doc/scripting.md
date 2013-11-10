@@ -150,4 +150,3 @@ Keyboard events contains key code:
 
 	var space = evt.key === 32;
     var r_pressed = evt.char === 'R';
-

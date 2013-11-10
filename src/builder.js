@@ -27,7 +27,7 @@ var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
 
-//var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') };
+/* var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') }; */
 
 // =============================================================================
 // === BUILDER =================================================================
