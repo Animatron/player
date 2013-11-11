@@ -2,7 +2,7 @@
 
 ## Overview
 
-Scripting will add to your animation an ability to react on input events, such as _mouse clicks_ or _key presses_. For example, you can make your cat animation to follow your mouse cursor or open a web page if user clicks at a certain object or let user move an object with arrow keys, etc.
+Scripting options 123 will add to your animation an ability to react on input events, such as _mouse clicks_ or _key presses_. For example, you can make your cat animation to follow your mouse cursor or open a web page if user clicks at a certain object or let user move an object with arrow keys, etc.
 
 ## The Basics
 
