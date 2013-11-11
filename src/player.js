@@ -656,7 +656,7 @@ Player.prototype.init = function(cvs, opts) {
     this._initHandlers(); /* TODO: make automatic */
     this._prepare(cvs);
     this._loadOpts(opts);
-    this._postInit();
+    this._postInitar();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
     _PlrMan.fire(C.S_NEW_PLAYER, this);
@@ -1319,6 +1319,8 @@ Player.prototype._checkMode = function() {
 // FIXME: methods below may be removed, but they are required for tests
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
+    if (this.state.happens === C.NOTHING) { this._drawSplash(); }
+    if (this.state.happens === C.LOADING) { this._drawLoadingSplash(); }
     this.controls.enable();
 }
 Player.prototype._disableControls = function() {
