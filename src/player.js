@@ -4782,8 +4782,8 @@ Controls.DEFAULT_THEME = {
                   'rgba(241,91,42,1)' // orange
                 ],
       'center_pos': [ .5, .8 ],
-      'corner_pos': [ .816, .9692 ],
-      'copy_pos': [ .91, .98 ],
+      'corner_pos': [ .825, .9692 ],
+      'copy_pos': [ .917, .98 ],
       'center_alpha': 1,
       'corner_alpha': .3,
       'center_scale': .07,
@@ -5485,7 +5485,7 @@ InfoBlock.prototype.render = function() {
     ctx.translate(_p, _p);
     _tl.apply(ctx);
     ctx.globalAlpha = .8;
-    ctx.translate(0, _bd[1] + _p * 2);
+    ctx.translate(0, _bd[1] + _p * ratio);
     _bl.apply(ctx);
     ctx.restore();
 }
