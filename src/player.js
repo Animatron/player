@@ -656,7 +656,7 @@ Player.prototype.init = function(cvs, opts) {
     this._initHandlers(); /* TODO: make automatic */
     this._prepare(cvs);
     this._loadOpts(opts);
-    this._postInitar();
+    this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
     _PlrMan.fire(C.S_NEW_PLAYER, this);
@@ -4789,7 +4789,9 @@ Controls.DEFAULT_THEME = {
                 ],
       'center_pos': [ .5, .8 ],
       'corner_pos': [ .825, .9692 ],
+      //'corner_pos': [ .77, .9692 ],
       'copy_pos': [ .917, .98 ],
+      //'copy_pos': [ .89, .98 ],
       'center_alpha': 1,
       'corner_alpha': .3,
       'center_scale': .07,
@@ -5360,27 +5362,30 @@ Controls._drawTime = function(ctx, theme, w, h, ratio, time, duration) {
                        fmt_time(time) + ' / ' + fmt_time(duration));
 
 }
-Controls._drawText = function(ctx, theme, x, y, size, text, color) {
+Controls._drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.save();
     ctx.font = theme.font.weight + ' ' + Math.floor(size || 15) + 'pt ' + theme.font.face;
-    ctx.textAlign = 'center';
+    ctx.textAlign = align || 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = color || theme.colors.text;
     ctx.fillText(text, x, y);
     ctx.restore();
 }
 Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors, pos, scale) {
-    drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.corner_pos[0]) * w,
-                          (pos ? pos[1] : theme.anmguy.corner_pos[1]) * h,
-                     (scale || theme.anmguy.corner_scale) * Math.min(w, h),
-                     colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
-
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
     Controls._drawText(ctx, theme,
-                       theme.anmguy.copy_pos[0] * w,
+                       w - 10,
                        theme.anmguy.copy_pos[1] * h,
-                       theme.font.statussize * .8 * ratio,
-                       Strings.COPYRIGHT, theme.colors.secondary);
+                       (theme.font.statussize - (1600 / w)) * ratio,
+                       Strings.COPYRIGHT, theme.colors.secondary, 'right');
+
+    /* if ((w / ratio) >= 400) {
+      drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.corner_pos[0]) * w,
+                            //theme.anmguy.copy_pos[0] * w,
+                            (pos ? pos[1] : theme.anmguy.corner_pos[1]) * h,
+                       (scale || theme.anmguy.corner_scale) * Math.min(w, h),
+                       colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
+    } */
 }
 Controls._drawGuyInCenter = function(ctx, theme, w, h, ratio, colors, pos, scale) {
     drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.center_pos[0]) * w,
