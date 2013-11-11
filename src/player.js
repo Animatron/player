@@ -1117,6 +1117,7 @@ Player.prototype.afterRender = function(callback) {
     this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
+    if (!this.canvas.hasAttribute(Player.MARKER_ATTR)) return;
     if (this.controls) this.controls.detach(this.canvas);
     this.canvas.removeAttribute(Player.MARKER_ATTR);
     this._reset();
@@ -1183,11 +1184,11 @@ Player.prototype._drawSplash = function() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     var ratio = this.state.ratio;
-    if (ratio != 1) ctx.scale(ratio, ratio);
+    // FIXME: somehow scaling by ratio here makes all look bad
 
     // background
     ctx.fillStyle = '#ffe';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, w * ratio, h * ratio);
 
     if (this.controls) {
        ctx.restore();
@@ -1197,12 +1198,14 @@ Player.prototype._drawSplash = function() {
     // text
     ctx.fillStyle = '#999966';
     ctx.font = '18px sans-serif';
-    ctx.fillText(Strings.COPYRIGHT, 20, h - 20);
+    ctx.fillText(Strings.COPYRIGHT, 20 * ratio, (h - 20) * ratio);
 
     ctx.globalAlpha = .6;
 
     ctx.beginPath();
-    ctx.arc(w / 2, h / 2, Math.min(w / 2, h / 2) * .5, 0, 2 * Math.PI);
+    ctx.arc(w / 2 * ratio, h / 2 * ratio,
+            Math.min(w / 2, h / 2) * .5 * ratio,
+            0, 2 * Math.PI);
     ctx.fillStyle = '#a00';
     ctx.strokeStyle = '#ffe';
     ctx.lineWidth = 10;
@@ -1211,9 +1214,10 @@ Player.prototype._drawSplash = function() {
 
     ctx.globalAlpha = .9;
 
-    ctx.restore();
+    Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, ratio, [ '#fff', '#900' ],
+                              [ 0.5, 0.5 ], .2);
 
-    Controls._drawGuyInCenter(ctx, Controls.THEME, w, h, ratio * 1.25);
+    ctx.restore();
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]); */
 
@@ -5363,10 +5367,10 @@ Controls._drawText = function(ctx, theme, x, y, size, text, color) {
     ctx.fillText(text, x, y);
     ctx.restore();
 }
-Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors) {
-    drawAnimatronGuy(ctx, theme.anmguy.corner_pos[0] * w,
-                          theme.anmguy.corner_pos[1] * h,
-                     theme.anmguy.corner_scale * Math.min(w, h),
+Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors, pos, scale) {
+    drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.corner_pos[0]) * w,
+                          (pos ? pos[1] : theme.anmguy.corner_pos[1]) * h,
+                     (scale || theme.anmguy.corner_scale) * Math.min(w, h),
                      colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
 
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
@@ -5376,10 +5380,10 @@ Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors) {
                        theme.font.statussize * .8 * ratio,
                        Strings.COPYRIGHT, theme.colors.secondary);
 }
-Controls._drawGuyInCenter = function(ctx, theme, w, h, ratio, colors) {
-    drawAnimatronGuy(ctx, theme.anmguy.center_pos[0] * w,
-                          theme.anmguy.center_pos[1] * h,
-                     theme.anmguy.center_scale * Math.min(w, h),
+Controls._drawGuyInCenter = function(ctx, theme, w, h, ratio, colors, pos, scale) {
+    drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.center_pos[0]) * w,
+                          (pos ? pos[1] : theme.anmguy.center_pos[1]) * h,
+                     (scale || theme.anmguy.center_scale) * Math.min(w, h),
                      colors || theme.anmguy.colors, theme.anmguy.center_alpha);
 
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
