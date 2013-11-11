@@ -1213,7 +1213,7 @@ Player.prototype._drawSplash = function() {
 
     ctx.restore();
 
-    Controls._drawGuyInCenter(ctx, Controls.THEME, w, h, 2.5);
+    Controls._drawGuyInCenter(ctx, Controls.THEME, w, h, ratio * 1.25);
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]); */
 
@@ -4578,7 +4578,7 @@ Brush._hasVal = function(fsval) {
 // -----------------------------------------------------------------------------
 
 Sheet.instances = 0;
-Sheet.MISSED_SIDE = 30;
+Sheet.MISSED_SIDE = 50;
 /* TODO: rename to Static and take optional function as source? */
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
@@ -4655,7 +4655,7 @@ Sheet.prototype.apply = function(ctx) {
 }
 Sheet.prototype.applyMissed = function(ctx) {
     ctx.save();
-    ctx.strokeStyle = '#600';
+    ctx.strokeStyle = '#900';
     ctx.lineWidth = 1;
     ctx.beginPath();
     var side = Sheet.MISSED_SIDE;
@@ -4719,12 +4719,15 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
+var __ratio = getPxRatio();
 Controls.DEFAULT_THEME = {
   'font': {
       'face': 'Arial, sans-serif',
       'weight': 'bold',
-      'timesize': 27,
-      'statussize': 17
+      'timesize': 13.5,
+      'statussize': 8.5,
+      'infosize_a': 12,
+      'infosize_b': 10
   },
   'radius': { // all radius values are relative to (Math.min(width, height) / 2)
       'inner': .25,
@@ -4763,8 +4766,8 @@ Controls.DEFAULT_THEME = {
           'left': 'rgba(255,255,255,1)'
       },
       //'button': 'rgba(180,180,180,.85)',
-      'button': 'rgba(50,158,192,.85)',
-      //'stroke': 'rgba(180,180,180,.85)',
+      'button': 'rgba(50,158,192,1)',
+      //'stroke': 'rgba(180,180,180,.85)'
       'stroke': 'rgba(50,158,192,.85)',
       'fill': 'rgba(255,255,255,.6)',
       'hoverfill': 'rgba(255,255,255,.6)',
@@ -4775,14 +4778,16 @@ Controls.DEFAULT_THEME = {
       'secondary': 'rgba(255,255,255,.6)'
   },
   'anmguy': {
-      'colors': [ 'rgba(65,61,62,.9)', // black
-                  'rgba(241,91,42,.9)' // orange
+      'colors': [ 'rgba(65,61,62,1)', // black
+                  'rgba(241,91,42,1)' // orange
                 ],
       'center_pos': [ .5, .8 ],
-      'corner_pos': [ .9, .9 ],
+      'corner_pos': [ .816, .9692 ],
+      'copy_pos': [ .91, .98 ],
       'center_alpha': 1,
-      'corner_alpha': .4,
-      'scale': .04 // relatively to minimum side
+      'corner_alpha': .3,
+      'center_scale': .07,
+      'corner_scale': .04 // relatively to minimum side
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
@@ -4933,7 +4938,10 @@ Controls.prototype.render = function(time) {
 
     this.__force = false;
 
-    if (this.info) this.info.render();
+    if (this.info) {
+      if (_s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+      else { this._infoShown = false; }
+    }
 }
 Controls.prototype.react = function(time) {
     if (this.hidden) return;
@@ -5025,7 +5033,7 @@ Controls.prototype.hide = function() {
 Controls.prototype.show = function() {
     this.hidden = false;
     this.canvas.style.display = 'block';
-    if (this.info) this.info.show();
+    if (this.info && this._infoShown) this.info.show();
 }
 Controls.prototype.reset = function() {
     this._time = -1000;
@@ -5235,18 +5243,18 @@ Controls._drawLoading = function(ctx, theme, w, h, ratio, hilite_pos, src) {
     if (src) {
         Controls._drawText(ctx, theme,
                      w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize,
+                     theme.font.statussize * ratio,
                      ell_text(src, theme.statuslimit));
     } else if (hilite_pos == -1) {
         Controls._drawText(ctx, theme,
                      w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize,
+                     theme.font.statussize * ratio,
                      '...');
     }
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize,
+                   theme.font.statussize * ratio,
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
@@ -5286,7 +5294,7 @@ Controls._drawNoScene = function(ctx, theme, w, h, ratio, focused) {
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize,
+                   theme.font.statussize * ratio,
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
@@ -5327,13 +5335,13 @@ Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   Math.floor(theme.font.statussize * 1.2),
+                   theme.font.statussize * 1.2 * ratio,
                    (error && error.message) ? ell_text(error.message, theme.statuslimit)
                                             : error, theme.colors.error);
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize,
+                   theme.font.statussize * ratio,
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h, ratio, [ theme.colors.button,
@@ -5342,35 +5350,36 @@ Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
 Controls._drawTime = function(ctx, theme, w, h, ratio, time, duration) {
     Controls._drawText(ctx, theme,
                        w / 2, ((h / 2) * (1 + theme.radius.time)),
-                       theme.font.timesize,
+                       theme.font.timesize * ratio,
                        fmt_time(time) + ' / ' + fmt_time(duration));
 
 }
 Controls._drawText = function(ctx, theme, x, y, size, text, color) {
     ctx.save();
-    ctx.font = theme.font.weight + ' ' + (size || 15) + 'pt ' + theme.font.face;
+    ctx.font = theme.font.weight + ' ' + Math.floor(size || 15) + 'pt ' + theme.font.face;
     ctx.textAlign = 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = color || theme.colors.text;
     ctx.fillText(text, x, y);
     ctx.restore();
 }
-Controls._drawGuyInCorner = function(ctx, theme, w, h, scale, colors) {
+Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors) {
     drawAnimatronGuy(ctx, theme.anmguy.corner_pos[0] * w,
                           theme.anmguy.corner_pos[1] * h,
-                     scale ? scale * theme.anmguy.scale * Math.min(w, h) : 1,
+                     theme.anmguy.corner_scale * Math.min(w, h),
                      colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
 
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
     Controls._drawText(ctx, theme,
-                       w * .91, h * .98,
-                       theme.font.statussize * .8,
+                       theme.anmguy.copy_pos[0] * w,
+                       theme.anmguy.copy_pos[1] * h,
+                       theme.font.statussize * .8 * ratio,
                        Strings.COPYRIGHT, theme.colors.secondary);
 }
-Controls._drawGuyInCenter = function(ctx, theme, w, h, scale, colors) {
+Controls._drawGuyInCenter = function(ctx, theme, w, h, ratio, colors) {
     drawAnimatronGuy(ctx, theme.anmguy.center_pos[0] * w,
                           theme.anmguy.center_pos[1] * h,
-                     scale ? scale * theme.anmguy.scale * Math.min(w, h) : 1,
+                     theme.anmguy.center_scale * Math.min(w, h),
                      colors || theme.anmguy.colors, theme.anmguy.center_alpha);
 
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
@@ -5394,6 +5403,8 @@ InfoBlock.OPACITY = 1;
 InfoBlock.PADDING = 6;
 InfoBlock.MARGIN = 5;
 InfoBlock.FONT = Controls.THEME.font.face;
+InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
+InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
 InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
@@ -5454,10 +5465,10 @@ InfoBlock.prototype.render = function() {
         ratio = this.canvas.__pxRatio;
     Text._ensureHasBuffer();
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + (14 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      Math.floor(InfoBlock.FONT_SIZE_B * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
