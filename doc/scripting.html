@@ -8,9 +8,9 @@
   </head>
 <body><h1>Scripting</h1>
 <h2>Overview</h2>
-<p>Scripting will add to your animation an ability to react on input events, such as <em>mouse clicks</em> or <em>key presses</em>. For example, you can make your cat animation to follow your mouse cursor or open a web page if user clicks at a certain object or let user move an object with arrow keys, etc.</p>
+<p>Scripting gives your animation the ability to react on certain input events, such as <em>mouse clicks</em> or <em>key presses</em>. For example, you can make an animated cat follow your mouse cursor, or open a web page if a user clicks on a certain object, or let a user move objects with arrow keys, etc.</p>
 <h2>The Basics</h2>
-<p>To add a handler for the specific input event, you should first decide what kind of event you need. Here is a list of currently supported mouse events:</p>
+<p>To add a handler for a specific input event, you should first decide what kind of event you need. Currently supported mouse events are:</p>
 <ul>
 <li>Click — User clicked (pressed &amp; released left mouse button) at the object</li>
 <li>Press — User pressed left mouse button within object bounds</li>
@@ -25,21 +25,21 @@
 <li>Press — User pressed a key</li>
 <li>Release — User released a key</li>
 </ul>
-<p>Ok now you know which one you need and we're ready to implement a...</p>
+<p>Ok, now that you know which one you need we're ready to implement a...</p>
 <h2>Handler</h2>
-<p>Handlers are just predefined functions which looks something like this:</p>
+<p>Handlers are just predefined functions which look something like this:</p>
 <pre><code>function onClick(ctx, evt, t) {
     // your code
 }
 </code></pre>
-<p>We're done all the dirty work, so all you need is write a body of the handler function. But before that you should know something about how things are organized in the Player world.</p>
+<p>We're done all the dirty work, so all you need to do is write the body of the handler function. But before that, you should know something about how things are organized in the Player world.</p>
 <h2>Elements</h2>
-<p>Elements are core building blocks of the Player. If you see something it's an Element. Even something you can't see (like Audio tracks) is an element. Scenes (a group of animated elements) are elements too.</p>
+<p>Elements are the core building blocks of the Player. If you see something, it's an Element. Even something you can't see (like an audio track) is an element. Scenes (a group of animated elements) are elements too.</p>
 <p>Elements are organized hierarchically (some elements may contain another elements and so on) into Scenes. And there is always a Root scene.</p>
-<p>Elements has a shape, a border and a shadow. They also have a Pivot—a point they're rotated around, an Alpha—determines their transparency and other properties which are described in detail in <a href="http://animatron.com/player/doc/API.html">Full Player API documentation</a>.</p>
-<p>Now let's try to create an element with a help of...</p>
+<p>Elements have a shape, a border and a shadow. They also have a Pivot (a point they're rotated around), an Alpha (which determines their transparency), and other properties which are described in detail in the <a href="http://animatron.com/player/doc/API.html">Full Player API documentation</a>.</p>
+<p>Now let's try to create an element with a help of a ...</p>
 <h2>Builder</h2>
-<p>Builder is a special thing which main purpose (how you may suggest from it's name) is to construct Player's world.</p>
+<p>A Builder is a special thing whose main purpose (as its name suggests) is to construct the Player's world.</p>
 <p>Here is an example of how we could create a circle:</p>
 <pre><code>var circle = _b('red_circle')   // _b is a builder
     .circle(                    // will create a rectangle
@@ -51,19 +51,19 @@
 <p>Ok, now lets add this element to our scene:</p>
 <pre><code>this.$.scene.add(circle);
 </code></pre>
-<p><code>this.$</code> here is a current element. All elements has a link to their own scene so <code>this.$.scene</code> will refer to the element's scene and <code>add(elem)</code> will add an element to the scene.</p>
-<p>And what if we wish to add an element to another scene? It's easy, we have to find this scene first and then add our circle to it:</p>
+<p><code>this.$</code> here is a current element. All elements have a link to their own scene so <code>this.$.scene</code> will refer to the element's scene and <code>add(elem)</code> will add an element to the scene.</p>
+<p>And what if we wish to add an element to another scene? It's easy, we just have to find that scene and add our circle to it:</p>
 <pre><code>var anotherScene = this.findByName('another-scene')[0];
 anotherScene.add(circle);
 </code></pre>
 <p>Please note that <code>this.findByName(name)</code> will return an array of elements (scene is an element too, remember?) even if there is just one matching element, so we need to pick just the first one: <code>[0]</code>.</p>
-<p>Now we know something about building blocks but how the world goes alive?</p>
+<p>Now we know something about building blocks, but how do we bring our world to life?</p>
 <h2>Tweens</h2>
-<p>Tweens are changes. If you see something is changing this means that there is a Tween somewhere which describes that change.</p>
-<p>Quick definition of tween is: tween is a value change over time.</p>
-<p>For example, moving is a change of element's coordinates. Rotating is a change of element's angle. Vanishing is a change of element's opacity.</p>
-<p>For example, if an object moves from one side of the canvas to another there is a tween of type TRANSLATE (i.e. current object coordinates are translated to coordinates of an other side of the canvas). If an object changes its opacity there is a tween of type ALPHA. If it rotates there is a tween of type ROTATE and so on. Even Audio tracks use tweens (of type VOLUME).</p>
-<p>Let's see on a real example. We'll add a tween to our red circle and move it somewhere on the screen. Let's use Builder again:</p>
+<p>Tweens are changes in your animation. If you see something changing, it means that somewhere there is a tween which describes that change.</p>
+<p>In simple terms, a tween is the change of a value over time. </p>
+<p>For example, movement is the change of an element's coordinates. Rotation is the change of element's angle. Vanishing is a change of an element's opacity.</p>
+<p>So, if an object moves from one side of the canvas to another, it is due to a TRANSLATE tween (i.e. the object’s current coordinates are translated to the coordinates of the other side of the canvas). If an object changes its opacity, it is due to an ALPHA tween, and if it rotates, it’s due to a ROTATE tween and so on. Even audio tracks use tweens (VOLUME).</p>
+<p>Let's see a real example. We'll add a tween to our red circle and move it somewhere on the screen. Let's use Builder again:</p>
 <pre><code>circle.trans(
     [0, 5],      // 1
     [[0, 0],     // 2
@@ -77,9 +77,9 @@ anotherScene.add(circle);
 <li>An end point RELATIVE to current position</li>
 <li>And define an Easing function (which will discuss a little bit later)</li>
 </ol>
-<p>Ok, now we know how to create elements and how to animate them so let's define our first click handler.</p>
+<p>Ok - now we know how to create elements and how to animate them, so let's define our first click handler.</p>
 <h2>Handler example</h2>
-<p>In this example we well add a handler which will rotate a rectangle 360 degrees and then rotate it back. We will assign this handler on mouse click event so every time user will click on the object it will rotate:</p>
+<p>In this example we will add a handler which will rotate a rectangle 360 degrees and then rotate it back. We will assign this handler on mouse click event so every time user will click on the object it will rotate:</p>
 <pre><code>function onClick(ctx, evt, t) {
     var rect = null;
     var rects = this.findByName('rect');
@@ -106,14 +106,14 @@ anotherScene.add(circle);
 };
 </code></pre>
 <ol>
-<li>Before all let's check if there any existing rects so each time user will click a mouse we'll not create a new rect but use an existing one.</li>
+<li>Before anything else, let's check if there are any existing rects to make sure that each time a user clicks the mouse we’ll use an existing rectangle instead of creating a new one. </li>
 <li><code>build()</code> will create an Element here so we can use like it was found in the Player if it was a second time we're clicking the mouse</li>
 <li>And rotate it forth in 2 seconds</li>
 <li>And then back in next 2 seconds</li>
 </ol>
 <h2>Easing</h2>
-<p>In a real world there is no constant speed. A bird moves with different speeds, a man walks faster or slower, a ball rolls faster and then slows down and stops. So we need something to emulate this real world (or maybe not so real) speed changes. This is why we need different Easing functions.</p>
-<p>The <code>C.E_DEF</code> mentioned earlier in tweens is one of such functions which keeps speed of the change constant all the time. But more often you will need to use different Easing functions which are described in <a href="http://animatron.com/player/doc/API.html#tween-easings">Player API documentation</a>.</p>
+<p>In a real world there is no constant speed. A bird moves with different speeds, a man walks faster or slower, a ball rolls faster and then slows down and stops. So we need something to emulate these real world (or maybe not so real) speed changes. This is why we need different Easing functions.</p>
+<p>The C.E_DEF mentioned earlier in tweens is one of such functions which keeps speed of the change constant all the time. But more often you will need to use different Easing functions which are described in the <a href="http://animatron.com/player/doc/API.html#tween-easings">Player API documentation</a>.</p>
 <h2>Events</h2>
 <p>Every handler receives an Event: <code>evt</code>. Depending on type of the event it could be a mouse event or keyboard events.</p>
 <p>Mouse event contains coordinates of the mouse pointer:</p>
