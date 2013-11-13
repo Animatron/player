@@ -1214,10 +1214,11 @@ Player.prototype._drawSplash = function() {
 
     ctx.globalAlpha = .9;
 
+    ctx.restore();
+
     Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, ratio, [ '#fff', '#900' ],
                               [ 0.5, 0.5 ], .2);
 
-    ctx.restore();
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]); */
 
@@ -5648,6 +5649,8 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     var maskCanvas = anmGuyCanvas;
     var maskCtx = anmGuyCtx;
 
+    maskCtx.save();
+
     // prepare
     maskCtx.clearRect(0, 0, w, h);
     if (scale != 1) maskCtx.scale(scale, scale);
@@ -5684,6 +5687,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     }
 
     // draw over the main context
+    maskCtx.restore();
     maskCtx.restore();
 
     ctx.save();
