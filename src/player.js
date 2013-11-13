@@ -3671,17 +3671,6 @@ EasingImpl[C.E_CSEG] =
             return seg.atT([0, 0], t)[1];
         };
     };
-/*EasingImpl[C.E_CINOUT] =
-    function() {
-        return function(t) {
-            var t =  2 * t;
-            if (t < 1) {
-                return -1/2 * (Math.sqrt(1 - t*t) - 1);
-            } else {
-                return 1/2 * (Math.sqrt(1 - (t-2)*(t-2)) + 1);
-            }
-        }
-    };*/
 
 // segment-based easings
 
@@ -3729,6 +3718,103 @@ __registerSegEasing('CRINOUT',[0.785, 0.135, 0.150, 0.860, 1.000, 1.000]); // Ci
 __registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // Back In
 __registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
 __registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
+
+Easing.__STD_EASINGS = [
+    function(t) { return C['EF_DEF'](t); },
+    function(t) { return C['EF_IN'](t); },
+    function(t) { return C['EF_OUT'](t); },
+    function(t) { return C['EF_INOUT'](t); },
+    function(t) { return t*t; },    // 4
+    function(t) { return t*(2-t); },// 5
+    function(t) {   // 6
+        if (t < 0.5) return 2*t*t;
+        else {
+            t = (t-0.5)*2;
+            return -(t*(t-2)-1)/2;
+        }
+    },
+    function(t) {   // 7
+        return t*t*t;
+    },
+    function(t) {   // 8
+        t = t-1;
+        return t*t*t + 1;
+    },
+    function(t) {   // 9
+        if (t < 0.5) {
+            t = t*2;
+            return t*t*t/2;
+        } else {
+            t = (t-0.5)*2-1;
+            return (t*t*t+2)/2;
+        }
+    },
+    function(t) {   // 10
+        return 1 - Math.cos(t * (Math.PI/2));
+    },
+    function(t) {   // 11
+        return Math.sin(t * (Math.PI/2));
+    },
+    function(t) {   // 12
+        return -(Math.cos(Math.PI*t) - 1)/2;
+    },
+    function(t) {   // 13
+        return (t<=0) ? 0 : Math.pow(2, 10 * (t - 1));
+    },
+    function(t) {   // 14
+        return t>=1 ? 1 : (-Math.pow(2, -10 * t) + 1);
+    },
+    function(t) {   // 15
+        if (t<=0) return 0;
+        if (t>=1) return 1;
+        if (t < 0.5) return Math.pow(2, 10 * (t*2 - 1))/2;
+        else {
+            return (-Math.pow(2, -10 * (t-0.5)*2) + 2)/2;
+        }
+    },
+    function(t) {   // 16
+        return 1-Math.sqrt(1 - t*t);
+    },
+    function(t) {   // 17
+        t = t-1;
+        return Math.sqrt(1 - t*t);
+    },
+    function(t) {   // 18
+        if ((t*=2) < 1) return -(Math.sqrt(1 - t*t) - 1)/2;
+        return (Math.sqrt(1 - (t-=2)*t) + 1)/2;
+    },
+    function(t) {   // 19
+        var s = 1.70158;
+        return t*t*((s+1)*t - s);
+    },
+    function(t) {   // 20
+        var s = 1.70158;
+        return ((t-=1)*t*((s+1)*t + s) + 1);
+    },
+    function(t) {   // 21
+        var s = 1.70158;
+        if ((t*=2) < 1) return (t*t*(((s*=(1.525))+1)*t - s))/2;
+        return ((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2)/2;
+    },
+    function(t) {   // 22
+        return 1 - Easing.__STD_EASINGS[23](1-t);
+    },
+    function(t) {   // 23
+        if (t < (1/2.75)) {
+            return (7.5625*t*t);
+        } else if (t < (2/2.75)) {
+            return (7.5625*(t-=(1.5/2.75))*t + .75);
+        } else if (t < (2.5/2.75)) {
+            return (7.5625*(t-=(2.25/2.75))*t + .9375);
+        } else {
+            return (7.5625*(t-=(2.625/2.75))*t + .984375);
+        }
+    },
+    function(t) {   // 24
+        if (t < 0.5) return Easing.__STD_EASINGS[22](t*2) * .5 ;
+        return Easing.__STD_EASINGS[23](t*2-1) * .5 + .5;
+    }
+];
 
 // Paths
 // -----------------------------------------------------------------------------

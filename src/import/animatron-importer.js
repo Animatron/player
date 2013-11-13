@@ -511,19 +511,17 @@ Import.tweendata = function(type, src) {
 // -> Object
 Import.easing = function(src) {
     if (!src) return null;
-    return {
-        type: Import.easingtype(src[0]),
-        data: src[1] ? Import.pathval('M0 0 ' + src[1] + ' Z') : null
+    if (typeof src == 'string') {
+        return {
+            type: C.E_PATH,
+            data: Import.pathval('M0 0 ' + src + ' Z')
+        }
+    } else if (typeof src == 'number') {
+        return {
+            type: C.E_FUNC,
+            data: Easing.__STD_EASINGS[src]
+        }
     }
-}
-/** easingtype **/
-Import.easingtype = function(src) {
-    // IMPL
-    if (src === 0) return C.E_PATH;
-    if (src === 1) return C.E_DEF;
-    if (src === 2) return C.E_IN;
-    if (src === 3) return C.E_OUT;
-    if (src === 4) return C.E_INOUT;
 }
 /** mode **/
 Import.mode = function(src) {
