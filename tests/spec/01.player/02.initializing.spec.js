@@ -140,7 +140,7 @@ describe("player, when speaking about initialization,", function() {
 
     // test if configuration (options) correctly applied (including modules?)
     // test configuration through data-attributes, including loop-mode
-    // player.load("some://real.url?param1=val1&param2=val2"...) to load to options
+    // player.load("some://real.url?param1=val1&param2=val2"...) to load to options + player.forSnapshot
     // ensure that canvas attributes has higher priority for player size and properly applied for different ratios
     // test that drawAt (scene preview) is only called for VIDEO mode
     // test createPlayer itself

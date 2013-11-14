@@ -302,7 +302,7 @@ function canvasOpts(canvas, opts, ratio) {
     var isObj = !(opts instanceof Array),
         _w = isObj ? opts.width : opts[0],
         _h = isObj ? opts.height : opts[1];
-    if (isObj && opts.bgcolor && opts.bgcolor.color) {
+    if (isObj && !opts.lockBg && opts.bgcolor && opts.bgcolor.color) {
         canvas.style.backgroundColor = opts.bgcolor.color;
     }
     if (isObj) {
@@ -310,10 +310,12 @@ function canvasOpts(canvas, opts, ratio) {
         canvas.__anm_usr_y = opts.y;
     }
     canvas.__pxRatio = ratio;
-    canvas.style.width = _w + 'px';
-    canvas.style.height = _h + 'px';
-    canvas.setAttribute('width', _w * (ratio || 1));
-    canvas.setAttribute('height', _h * (ratio || 1));
+    if (!opts.lockResize) {
+      canvas.style.width = _w + 'px';
+      canvas.style.height = _h + 'px';
+      canvas.setAttribute('width', _w * (ratio || 1));
+      canvas.setAttribute('height', _h * (ratio || 1));
+    }
 }
 
 function newCanvas(dimen, ratio) {
@@ -731,17 +733,16 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_RES_LOAD, remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
-                    if (!err_count) {
-                        if (player.anim === result) { // avoid race condition when there were two requests
-                                                      // to load different scenes and first one finished loading
-                                                      // after the second one
-                            player.state.happens = C.LOADING;
-                            player.fire(C.S_LOAD, result);
-                            if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
-                            player._callPostpones();
-                            if (callback) callback(result);
-                        }
-                    } else throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                    //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                    if (player.anim === result) { // avoid race condition when there were two requests
+                                                  // to load different scenes and first one finished loading
+                                                  // after the second one
+                        player.state.happens = C.LOADING;
+                        player.fire(C.S_LOAD, result);
+                        if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+                        player._callPostpones();
+                        if (callback) callback(result);
+                    }
                 }
             ) ]);
         }
@@ -1116,6 +1117,7 @@ Player.prototype.afterRender = function(callback) {
     this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
+    if (!this.canvas.hasAttribute(Player.MARKER_ATTR)) return;
     if (this.controls) this.controls.detach(this.canvas);
     this.canvas.removeAttribute(Player.MARKER_ATTR);
     this._reset();
@@ -1182,11 +1184,11 @@ Player.prototype._drawSplash = function() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     var ratio = this.state.ratio;
-    if (ratio != 1) ctx.scale(ratio, ratio);
+    // FIXME: somehow scaling by ratio here makes all look bad
 
     // background
     ctx.fillStyle = '#ffe';
-    ctx.fillRect(0, 0, w, h);
+    ctx.fillRect(0, 0, w * ratio, h * ratio);
 
     if (this.controls) {
        ctx.restore();
@@ -1196,12 +1198,14 @@ Player.prototype._drawSplash = function() {
     // text
     ctx.fillStyle = '#999966';
     ctx.font = '18px sans-serif';
-    ctx.fillText(Strings.COPYRIGHT, 20, h - 20);
+    ctx.fillText(Strings.COPYRIGHT, 20 * ratio, (h - 20) * ratio);
 
     ctx.globalAlpha = .6;
 
     ctx.beginPath();
-    ctx.arc(w / 2, h / 2, Math.min(w / 2, h / 2) * .5, 0, 2 * Math.PI);
+    ctx.arc(w / 2 * ratio, h / 2 * ratio,
+            Math.min(w / 2, h / 2) * .5 * ratio,
+            0, 2 * Math.PI);
     ctx.fillStyle = '#a00';
     ctx.strokeStyle = '#ffe';
     ctx.lineWidth = 10;
@@ -1212,7 +1216,9 @@ Player.prototype._drawSplash = function() {
 
     ctx.restore();
 
-    Controls._drawGuyInCenter(ctx, Controls.THEME, w, h, 2.5);
+    Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, ratio, [ '#fff', '#900' ],
+                              [ 0.5, 0.5 ], .2);
+
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]); */
 
@@ -1283,6 +1289,8 @@ Player.prototype._reconfigureCanvas = function(opts) {
     this.state.height = _h;
     this.state.ratio = pxRatio;
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
+    opts.lockBg = this.__lockCvsBg;
+    opts.lockResize = this.__lockCvsResize;
     canvasOpts(canvas, opts, pxRatio);
     Player._saveCanvasPos(canvas);
     if (this.controls) this.controls.update(canvas);
@@ -1312,6 +1320,8 @@ Player.prototype._checkMode = function() {
 // FIXME: methods below may be removed, but they are required for tests
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
+    if (this.state.happens === C.NOTHING) { this._drawSplash(); }
+    if (this.state.happens === C.LOADING) { this._drawLoadingSplash(); }
     this.controls.enable();
 }
 Player.prototype._disableControls = function() {
@@ -1639,6 +1649,8 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
+    if (params.w && params.h) player.__lockCvsResize = true;
+    if (params.bg) player.__lockCvsBg = true;
     function updateWithParams() {
         if (typeof params.t !== 'undefined') {
             player.play(params.t / 100);
@@ -1646,9 +1658,15 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
+            player.__lockCvsResize = false; // FIXME: you're a bad guy, shaman.sir. a very bad, bad, bag guy...
             player._reconfigureCanvas({ width: params.w, height: params.h });
+            player.__lockCvsResize = true;
         }
-        if (params.bg) player.canvas.style.backgroundColor = '#' + params.bg;
+        if (params.bg) {
+            player.__lockCvsBg = false;
+            player.canvas.style.backgroundColor = '#' + params.bg;
+            player.__lockCvsBg = true;
+        }
         if (callback) callback();
     }
 
@@ -2383,12 +2401,13 @@ Element.prototype.inform = function(ltime) {
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
-            this.travelChildren(function(elm) { // TODO: implement __fireDeep
+            // FIXME: it may fire start before the child band starts, do not do this!
+            /* this.travelChildren(function(elm) { // TODO: implement __fireDeep
                 if (!elm.__firedStart) {
                     elm.fire(C.X_START, ltime, duration);
                     elm.__firedStart = true;
                 }
-            });
+            }); */
             this.__firedStart = true; // (store the counters for fired events?)
             // TODO: handle START event by changing band to start at given time?
         }
@@ -4652,6 +4671,7 @@ Brush._hasVal = function(fsval) {
 // -----------------------------------------------------------------------------
 
 Sheet.instances = 0;
+Sheet.MISSED_SIDE = 50;
 /* TODO: rename to Static and take optional function as source? */
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
@@ -4664,6 +4684,7 @@ function Sheet(src, callback, start_region) {
     /* TODO: rename region to frame */
     this.cur_region = start_region || 0; // current region may be changed with modifier
     this.ready = false;
+    this.wasError = false;
     this._image = null;
     this._cvs_cache = null;
     this.load(callback);
@@ -4693,10 +4714,12 @@ Sheet.prototype.load = function(callback) {
             me._drawToCache();
             if (callback) callback.call(me, image);
         },
-        function(err) { __anm.console.error(err.message || err); });
+        function(err) { __anm.console.error(err.message || err);
+                        me.ready = true;
+                        me.wasError = true; });
 }
 Sheet.prototype._drawToCache = function() {
-    if (!this.ready) return;
+    if (!this.ready || this.wasError) return;
     if (this._image.__cvs) {
         this._cvs_cache = this._image.__cvs;
         return;
@@ -4709,6 +4732,7 @@ Sheet.prototype._drawToCache = function() {
 }
 Sheet.prototype.apply = function(ctx) {
     if (!this.ready) return;
+    if (this.wasError) { this.applyMissed(ctx); return; }
     if (this.cur_region < 0) return;
     var region;
     if (this.region_f) { region = this.region_f(this.cur_region); }
@@ -4722,13 +4746,32 @@ Sheet.prototype.apply = function(ctx) {
     ctx.drawImage(this._cvs_cache, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
+Sheet.prototype.applyMissed = function(ctx) {
+    ctx.save();
+    ctx.strokeStyle = '#900';
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    var side = Sheet.MISSED_SIDE;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(side, 0);
+    ctx.lineTo(0, side);
+    ctx.lineTo(side, side);
+    ctx.lineTo(0, 0);
+    ctx.lineTo(0, side);
+    ctx.lineTo(side, 0);
+    ctx.lineTo(side, side);
+    ctx.stroke();
+    ctx.restore();
+}
 Sheet.prototype.dimen = function() {
+    if (this.wasError) return [ Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
     /* if (!this.ready || !this._active_region) return [0, 0];
     var r = this._active_region;
     return [ r[2], r[3] ]; */
     return this._dimen;
 }
 Sheet.prototype.bounds = function() {
+    if (this.wasError) return [ 0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
     // TODO: when using current_region, bounds will depend on that region
     if (!this.ready || !this._active_region) return [0, 0, 0, 0];
     var r = this._active_region;
@@ -4769,12 +4812,15 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
+var __ratio = getPxRatio();
 Controls.DEFAULT_THEME = {
   'font': {
       'face': 'Arial, sans-serif',
       'weight': 'bold',
-      'timesize': 27,
-      'statussize': 17
+      'timesize': 13.5,
+      'statussize': 8.5,
+      'infosize_a': 12,
+      'infosize_b': 10
   },
   'radius': { // all radius values are relative to (Math.min(width, height) / 2)
       'inner': .25,
@@ -4813,8 +4859,8 @@ Controls.DEFAULT_THEME = {
           'left': 'rgba(255,255,255,1)'
       },
       //'button': 'rgba(180,180,180,.85)',
-      'button': 'rgba(50,158,192,.85)',
-      //'stroke': 'rgba(180,180,180,.85)',
+      'button': 'rgba(50,158,192,1)',
+      //'stroke': 'rgba(180,180,180,.85)'
       'stroke': 'rgba(50,158,192,.85)',
       'fill': 'rgba(255,255,255,.6)',
       'hoverfill': 'rgba(255,255,255,.6)',
@@ -4825,14 +4871,18 @@ Controls.DEFAULT_THEME = {
       'secondary': 'rgba(255,255,255,.6)'
   },
   'anmguy': {
-      'colors': [ 'rgba(65,61,62,.9)', // black
-                  'rgba(241,91,42,.9)' // orange
+      'colors': [ 'rgba(65,61,62,1)', // black
+                  'rgba(241,91,42,1)' // orange
                 ],
       'center_pos': [ .5, .8 ],
-      'corner_pos': [ .9, .9 ],
+      'corner_pos': [ .825, .9692 ],
+      //'corner_pos': [ .77, .9692 ],
+      'copy_pos': [ .917, .98 ],
+      //'copy_pos': [ .89, .98 ],
       'center_alpha': 1,
-      'corner_alpha': .4,
-      'scale': .04 // relatively to minimum side
+      'corner_alpha': .3,
+      'center_scale': .07,
+      'corner_scale': .04 // relatively to minimum side
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
@@ -4983,7 +5033,10 @@ Controls.prototype.render = function(time) {
 
     this.__force = false;
 
-    if (this.info) this.info.render();
+    if (this.info) {
+      if (_s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+      else { this._infoShown = false; }
+    }
 }
 Controls.prototype.react = function(time) {
     if (this.hidden) return;
@@ -5075,7 +5128,7 @@ Controls.prototype.hide = function() {
 Controls.prototype.show = function() {
     this.hidden = false;
     this.canvas.style.display = 'block';
-    if (this.info) this.info.show();
+    if (this.info && this._infoShown) this.info.show();
 }
 Controls.prototype.reset = function() {
     this._time = -1000;
@@ -5285,18 +5338,18 @@ Controls._drawLoading = function(ctx, theme, w, h, ratio, hilite_pos, src) {
     if (src) {
         Controls._drawText(ctx, theme,
                      w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize,
+                     theme.font.statussize * ratio,
                      ell_text(src, theme.statuslimit));
     } else if (hilite_pos == -1) {
         Controls._drawText(ctx, theme,
                      w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize,
+                     theme.font.statussize * ratio,
                      '...');
     }
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize,
+                   theme.font.statussize * ratio,
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
@@ -5336,7 +5389,7 @@ Controls._drawNoScene = function(ctx, theme, w, h, ratio, focused) {
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize,
+                   theme.font.statussize * ratio,
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
@@ -5377,13 +5430,13 @@ Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   Math.floor(theme.font.statussize * 1.2),
+                   theme.font.statussize * 1.2 * ratio,
                    (error && error.message) ? ell_text(error.message, theme.statuslimit)
                                             : error, theme.colors.error);
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize,
+                   theme.font.statussize * ratio,
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h, ratio, [ theme.colors.button,
@@ -5392,35 +5445,39 @@ Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
 Controls._drawTime = function(ctx, theme, w, h, ratio, time, duration) {
     Controls._drawText(ctx, theme,
                        w / 2, ((h / 2) * (1 + theme.radius.time)),
-                       theme.font.timesize,
+                       theme.font.timesize * ratio,
                        fmt_time(time) + ' / ' + fmt_time(duration));
 
 }
-Controls._drawText = function(ctx, theme, x, y, size, text, color) {
+Controls._drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.save();
-    ctx.font = theme.font.weight + ' ' + (size || 15) + 'pt ' + theme.font.face;
-    ctx.textAlign = 'center';
+    ctx.font = theme.font.weight + ' ' + Math.floor(size || 15) + 'pt ' + theme.font.face;
+    ctx.textAlign = align || 'center';
     ctx.textBaseline = 'middle';
     ctx.fillStyle = color || theme.colors.text;
     ctx.fillText(text, x, y);
     ctx.restore();
 }
-Controls._drawGuyInCorner = function(ctx, theme, w, h, scale, colors) {
-    drawAnimatronGuy(ctx, theme.anmguy.corner_pos[0] * w,
-                          theme.anmguy.corner_pos[1] * h,
-                     scale ? scale * theme.anmguy.scale * Math.min(w, h) : 1,
-                     colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
-
+Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors, pos, scale) {
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
     Controls._drawText(ctx, theme,
-                       w * .91, h * .98,
-                       theme.font.statussize * .8,
-                       Strings.COPYRIGHT, theme.colors.secondary);
+                       w - 10,
+                       theme.anmguy.copy_pos[1] * h,
+                       (theme.font.statussize - (1600 / w)) * ratio,
+                       Strings.COPYRIGHT, theme.colors.secondary, 'right');
+
+    /* if ((w / ratio) >= 400) {
+      drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.corner_pos[0]) * w,
+                            //theme.anmguy.copy_pos[0] * w,
+                            (pos ? pos[1] : theme.anmguy.corner_pos[1]) * h,
+                       (scale || theme.anmguy.corner_scale) * Math.min(w, h),
+                       colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
+    } */
 }
-Controls._drawGuyInCenter = function(ctx, theme, w, h, scale, colors) {
-    drawAnimatronGuy(ctx, theme.anmguy.center_pos[0] * w,
-                          theme.anmguy.center_pos[1] * h,
-                     scale ? scale * theme.anmguy.scale * Math.min(w, h) : 1,
+Controls._drawGuyInCenter = function(ctx, theme, w, h, ratio, colors, pos, scale) {
+    drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.center_pos[0]) * w,
+                          (pos ? pos[1] : theme.anmguy.center_pos[1]) * h,
+                     (scale || theme.anmguy.center_scale) * Math.min(w, h),
                      colors || theme.anmguy.colors, theme.anmguy.center_alpha);
 
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
@@ -5444,6 +5501,8 @@ InfoBlock.OPACITY = 1;
 InfoBlock.PADDING = 6;
 InfoBlock.MARGIN = 5;
 InfoBlock.FONT = Controls.THEME.font.face;
+InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
+InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
 InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
@@ -5504,10 +5563,10 @@ InfoBlock.prototype.render = function() {
         ratio = this.canvas.__pxRatio;
     Text._ensureHasBuffer();
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + (14 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      (12 * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      Math.floor(InfoBlock.FONT_SIZE_B * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
@@ -5524,7 +5583,7 @@ InfoBlock.prototype.render = function() {
     ctx.translate(_p, _p);
     _tl.apply(ctx);
     ctx.globalAlpha = .8;
-    ctx.translate(0, _bd[1] + _p * 2);
+    ctx.translate(0, _bd[1] + _p * ratio);
     _bl.apply(ctx);
     ctx.restore();
 }
@@ -5676,6 +5735,8 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     var maskCanvas = anmGuyCanvas;
     var maskCtx = anmGuyCtx;
 
+    maskCtx.save();
+
     // prepare
     maskCtx.clearRect(0, 0, w, h);
     if (scale != 1) maskCtx.scale(scale, scale);
@@ -5712,6 +5773,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     }
 
     // draw over the main context
+    maskCtx.restore();
     maskCtx.restore();
 
     ctx.save();
