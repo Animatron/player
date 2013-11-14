@@ -3646,9 +3646,8 @@ Tweens[C.T_SHEAR] =
 
 C.E_PATH = 'PATH'; // Path
 C.E_FUNC = 'FUNC'; // Function
-C.E_CSEG = 'CSEG'; // Function
-/*C.E_CINOUT = 'CINOUT'; // Cubic InOut*/
-/*....*/
+C.E_CSEG = 'CSEG'; // Segment
+C.E_STDF = 'STDF'; // Standard function from editor
 
 // function-based easings
 
@@ -3670,6 +3669,10 @@ EasingImpl[C.E_CSEG] =
         return function(t) {
             return seg.atT([0, 0], t)[1];
         };
+    };
+EasingImpl[C.E_STDF] =
+    function(num) {
+        return Easing.__STD_EASINGS[num];
     };
 
 // segment-based easings

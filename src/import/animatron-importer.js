@@ -511,15 +511,15 @@ Import.tweendata = function(type, src) {
 // -> Object
 Import.easing = function(src) {
     if (!src) return null;
-    if (typeof src == 'string') {
+    if (is.str(src)) {
         return {
             type: C.E_PATH,
             data: Import.pathval('M0 0 ' + src + ' Z')
         }
-    } else if (typeof src == 'number') {
+    } else if (is.num(src)) {
         return {
-            type: C.E_FUNC,
-            data: Easing.__STD_EASINGS[src]
+            type: C.E_STDF,
+            data: src
         }
     }
 }
