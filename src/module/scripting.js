@@ -37,7 +37,7 @@
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;',
                 /* content */
-            '}).call(user_ctx(this.$), ctx, evt, t);' +
+            '\n}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
         '}' +
       '})(____user_ctx)'];
@@ -48,7 +48,7 @@
           '(function(ctx, evt, t) { ' +
             'var _b = Builder._$;',
               /* content */
-          '}).call(user_ctx(this.$), ctx, evt, t);' +
+          '\n}).call(user_ctx(this.$), ctx, evt, t);' +
         '}' +
       '})(____user_ctx)'];
 
@@ -68,8 +68,7 @@
   }, wrappers_map = {
     'click': BOUNDS_PAIR,
     'dclick': BOUNDS_PAIR,
-    'mup': BOUNDS_PAIR,
-    'm_up': BOUNDS_PAIR,
+    'm_up': NO_BOUNDS_PAIR,
     'm_down': BOUNDS_PAIR,
     'm_enter': [
       '(function(ctx) { ' +
@@ -78,7 +77,7 @@
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;',
               /* content */
-            '}).call(user_ctx(this.$), ctx, evt, t);' +
+            '\n}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_in = evt.pos;' +
         '}' +
@@ -90,7 +89,7 @@
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;',
               /* content */
-            '}).call(user_ctx(this.$), ctx, evt, t);' +
+            '\n}).call(user_ctx(this.$), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_out = evt.pos;' +
         '}' +

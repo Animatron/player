@@ -97,6 +97,12 @@ Import.project = function(prj) {
         last_scene_band = node_res.xdata.gband;
         root.add(node_res);
     }
+
+    if (scenes_ids.length > 0) {
+        node_res.xdata.gband = [last_scene_band[0], Infinity];
+        node_res.xdata.lband = node_res.xdata.gband;
+    }
+
     if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
     if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
     return root;
@@ -180,7 +186,7 @@ Import.node = function(src, all, parent) {
 }
 var L_ROT_TO_PATH = 1,
     L_OPAQUE_TRANSFORM = 2;
-    //L_HIDDEN = 256; // IMPL?
+    L_VISIBLE = 4;
 /** branch (clip) **/
 /*
  * array {
@@ -220,7 +226,7 @@ Import.branch = function(type, src, all) {
          *     number;                     // 3, if more than zero the number of masked layers under this one
          *     array { number; number; };  // 4, registration point, default is [0,0]
          *     *end-action*;               // 5, end action for this layer
-         *     number;                     // 6, flags: 0x01 - rotate to path, 0x02 - opaque transform (TBD)
+         *     number;                     // 6, flags: 0x01 - rotate to path, 0x02 - opaque transform (TBD), 0x03 - visible
          *     array [ *tween* ];          // 7, array of tweens
          * } *layer*;
          */
@@ -233,7 +239,7 @@ Import.branch = function(type, src, all) {
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];
-        //if (flags & L_HIDDEN) trg.disabled = true;
+        ltrg.disabled = !(flags & L_VISIBLE);
         var x = ltrg.xdata,
             b = Import.band(lsrc[2]);
         if (type == TYPE_GROUP) {
@@ -319,7 +325,6 @@ Import.branch = function(type, src, all) {
 // -> Element
 Import.leaf = function(type, src, parent) {
     var trg = new Element();
-    if (parent && parent.name) trg.name = '>' + parent.name;
     var x = trg.xdata;
          if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }

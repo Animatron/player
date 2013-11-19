@@ -2051,7 +2051,7 @@ Element.prototype.drawTo = function(ctx) {
     return this.__callPainters(Element.ALL_PAINTERS, ctx);
 }
 // > Element.draw % (ctx: Context)
-Element.prototype.draw = Element.prototype.drawTo
+Element.prototype.draw = Element.prototype.drawTo;
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
     var s = this.state,
