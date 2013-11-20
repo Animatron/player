@@ -30,7 +30,9 @@
             logImport: false,
             logResMan: false,
             logEvents: false,
-            forceWindowScope: false
+            forceWindowScope: false,
+            doNotLoadAudio: false,
+            doNotLoadImages: false
         }
     }
     var _conf = _GLOBAL_[PRIVATE_CONF];

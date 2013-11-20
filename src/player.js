@@ -1139,11 +1139,11 @@ Player.__getPosAndRedraw = function(player) {
                 'y': pos[1]
             };
         if (player._rectChanged(rect)) player.changeRect(rect);*/
-        /* if (player.controls) {
+        if (player.controls) {
             player.controls.update(player.canvas);
-            player.controls.handleAreaChange();
+            //player.controls.handleAreaChange();
             //player._renderControls();
-        } */
+        }
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
@@ -4698,6 +4698,8 @@ Sheet.prototype.load = function(callback) {
     var me = this;
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
+            if (__anm.conf.doNotLoadImages) { notify_error('Loading images is turned off');
+                                              return; }
             var _img = new Image();
             _img.onload = _img.onreadystatechange = function() {
                 if (_img.__anm_ready) return;
