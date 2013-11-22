@@ -186,7 +186,7 @@ Import.node = function(src, all, parent) {
 }
 var L_ROT_TO_PATH = 1,
     L_OPAQUE_TRANSFORM = 2;
-    L_HIDDEN = 4;
+    L_VISIBLE = 4;
 /** branch (clip) **/
 /*
  * array {
@@ -239,7 +239,7 @@ Import.branch = function(type, src, all) {
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];
-        ltrg.disabled = (flags & L_HIDDEN);
+        ltrg.disabled = !(flags & L_VISIBLE);
         var x = ltrg.xdata,
             b = Import.band(lsrc[2]);
         if (type == TYPE_GROUP) {

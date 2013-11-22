@@ -1,3 +1,10 @@
+v1.1 / Fri Nov 22 2013 16:55:38 +0100 / 66cf7ea90808de92406c315a7ebd45d8dfaa9a01
+================================================================================
+
+* Change `HIDDEN` flag to `VISIBLE` again when improting Animatron scenes :)
+
+
+
 v1.0 / Fri Nov 22 2013 16:48:34 +0100 / 4954236ec998cb33fc7deed0caf8979564bea858
 ================================================================================
 
@@ -14,8 +21,9 @@ v1.0 / Fri Nov 22 2013 16:48:34 +0100 / 4954236ec998cb33fc7deed0caf8979564bea858
 * Fix `contains` test to include scale in applying of pivot/registration point
 * Fix image mockup in tests
 * New easings came from Editor
-* Change `VISIBLE` flag to `HIDDEN`
+* Change `VISIBLE` flag to `HIDDEN` when importing
 * Fix different problems with controls
+
 
 
 v0.9.1601 / Mon Oct 28 13:05:29 2013 +0200 / 746dd95fcce7e1a52d2bfb56b45639e4fe1e2b7c
