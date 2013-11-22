@@ -11,4 +11,7 @@ xdescribe("stub spec", function() {
         expect(true).toBeTruthy();
     });
 
+    // TODO: test how collisions work with different types and combinations of tweens and at different time
+    // TODO: also test checking collisions on mouse events (proper adoption of coordinates)
+
 });

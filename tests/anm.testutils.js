@@ -433,6 +433,7 @@ var _running_img_fakes = [];
 function ImgFake() {
     this.src = null;
     var me = this;
+    me.addEventListener = function() {};
     this.__anm_interval = setInterval(function() {
         if (me.__anm_load_called) return;
         if (me.src != null) {

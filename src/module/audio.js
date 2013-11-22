@@ -154,6 +154,9 @@
 
     _ResMan.loadOrGet(me._audio_url,
       function(notify_success, notify_error) { // loader
+          if (__anm.conf.doNotLoadAudio) { notify_error('Loading audio is turned off');
+                                           return; }
+
           var el = document.createElement("audio");
           el.setAttribute("preload", "auto");
 
