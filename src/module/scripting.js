@@ -20,12 +20,41 @@
 
   var E = anm.Element;
 
-  function user_ctx(elm) {
-    var ctx = elm.bstate;
-    ctx.findByName = function(name, context) {
+  var __findByName = function(elm) {
+    return function(name, context) {
       return anm.findByName(context || elm.scene, name);
     };
+  };
 
+  var __jumpToScene = function(elm) {
+    return function(name) {
+      var scenes = this.findByName(name);
+      if (scenes.length) {
+        elm.scene.invokeLater(function() {
+          if (elm.scene.__player_instance) {
+              elm.scene.__player_instance.pause();
+              elm.scene.__player_instance.play(scenes[0].xdata.gband[0]);
+          }
+        });
+      }
+    };
+  };
+
+  var __jumpToTime = function(elm) {
+    return function(t) {
+      elm.scene.invokeLater(function() {
+        if (elm.scene.__player_instance) {
+            elm.scene.__player_instance.pause();
+            elm.scene.__player_instance.play(t);
+        }
+      });
+    };
+  };
+
+  function user_ctx(elm) {
+    var ctx = elm.bstate;
+    ctx.findByName = __findByName(elm);
+    ctx.jumpToScene = __jumpToScene(elm);
     ctx.$ = elm;
     return ctx;
   }
@@ -128,6 +157,7 @@
                                            // if it is actually the same scene that was imported there
          player.mode = C.M_DYNAMIC;
          player._checkMode();
+         scene.__player_instance = player;
          player.play();
       }
     });

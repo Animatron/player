@@ -1389,6 +1389,7 @@ Player.prototype._ensureHasAnim = function() {
 Player.prototype.__beforeFrame = function(scene) {
     return (function(player, state, scene, callback) {
         return function(time) {
+            scene.clearAllLaters();
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
@@ -1417,6 +1418,8 @@ Player.prototype.__afterFrame = function(scene) {
                 player._renderControlsAt(time);
             }
             if (callback) callback(time);
+
+            scene.invokeAllLaters();
             return true;
         }
     })(this, this.state, scene, this.__userAfterFrame);
@@ -1689,6 +1692,7 @@ function Scene() {
     this.width = undefined;
     this.height = undefined;
     this.__informEnabled = true;
+    this._laters = [];
     this._initHandlers(); // TODO: make automatic
 }
 
@@ -1908,11 +1912,21 @@ Scene.prototype._collectRemoteResources = function() {
     });
     return remotes;
 }
-
 Scene.prototype.findById = function(id) {
     return this.hash[id];
 }
-
+Scene.prototype.invokeAllLaters = function() {
+    for (var i = 0; i < this._laters.length; i++) {
+        this._laters[i].call(this);
+    };
+}
+Scene.prototype.clearAllLaters = function() {
+    this._laters = [];
+}
+// > Scene.invokeLater % (f: Function())
+Scene.prototype.invokeLater = function(f) {
+    this._laters.push(f);
+}
 // Element
 // -----------------------------------------------------------------------------
 
