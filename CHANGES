@@ -1,11 +1,28 @@
-v1.0 / Wed Nov 06 2013 19:10:37 +0100 / 7d5712ddfd18e1372a9f0b603686ed59684414d9
+v1.1 / Fri Nov 22 2013 16:55:38 +0100 / 66cf7ea90808de92406c315a7ebd45d8dfaa9a01
+================================================================================
+
+* Change `HIDDEN` flag to `VISIBLE` again when improting Animatron scenes :)
+
+
+
+v1.0 / Fri Nov 22 2013 16:48:34 +0100 / 4954236ec998cb33fc7deed0caf8979564bea858
 ================================================================================
 
 * Accidentally switch to version 1.0
 * Improve scripting support
-* Fixes for a lot of incompatibilies with Animatron Editor
+    * Pass time in scripting module handlers
+    * Make projects always infinite in scripting module
+    * Update scripting manual
+    * `findByName`, `goToScene` and `goToTime` functions for scripting
+* Fixes for a lot of incompatibilies with Animatron Editor when importing
 * Fix unsafe removing of elements when disposing scenes
 * Fix already-playing-check for dynamic modes
+* Give the ability for external scripts to disable loading audio or images or both, it was required for preview generation
+* Fix `contains` test to include scale in applying of pivot/registration point
+* Fix image mockup in tests
+* New easings came from Editor
+* Change `VISIBLE` flag to `HIDDEN` when importing
+* Fix different problems with controls
 
 
 

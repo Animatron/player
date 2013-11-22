@@ -75,7 +75,7 @@ Now we know something about building blocks, but how do we bring our world to li
 
 Tweens are changes in your animation. If you see something changing, it means that somewhere there is a tween which describes that change.
 
-In simple terms, a tween is the change of a value over time. 
+In simple terms, a tween is the change of a value over time.
 
 For example, movement is the change of an element's coordinates. Rotation is the change of element's angle. Vanishing is a change of an element's opacity.
 
@@ -126,7 +126,7 @@ In this example we will add a handler which will rotate a rectangle 360 degrees 
 			C.E_DEF);
 	};
 
-1. Before anything else, let's check if there are any existing rects to make sure that each time a user clicks the mouse we’ll use an existing rectangle instead of creating a new one. 
+1. Before anything else, let's check if there are any existing rects to make sure that each time a user clicks the mouse we’ll use an existing rectangle instead of creating a new one.
 2. `build()` will create an Element here so we can use like it was found in the Player if it was a second time we're clicking the mouse
 3. And rotate it forth in 2 seconds
 4. And then back in next 2 seconds

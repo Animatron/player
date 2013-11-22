@@ -62,7 +62,7 @@
   var BOUNDS_PAIR = [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'if (this.$.contains(evt.pos)) { ' +
+          'if (this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;',
                 /* content */
@@ -102,7 +102,7 @@
     'm_enter': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in)) && this.$.contains(evt.pos)) { ' +
+          'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in, t)) && this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;',
               /* content */
@@ -114,7 +114,7 @@
     'm_leave': [
       '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out) && !this.$.contains(evt.pos)) { ' +
+          'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out, t) && !this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;',
               /* content */
@@ -156,6 +156,7 @@
       if (is_dynamic[scene.__import_id]) { // __import_id is equal to prj_id passed to customImporter,
                                            // if it is actually the same scene that was imported there
          player.mode = C.M_DYNAMIC;
+         player.anim.setDuration(Infinity); // sure? :^)
          player._checkMode();
          scene.__player_instance = player;
          player.play();

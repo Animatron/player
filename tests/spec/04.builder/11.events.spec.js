@@ -17,9 +17,12 @@ xdescribe("events", function() {
 
     /*
     TODO: - also test start/stop firing for children, especially when child band finish is at the same global time as parent's band finish
+          - test the mouse position is correctly transformed to the right local position, even if tweens are applied and with respect to
+            pivot and registration point
           - play with enabling/disabling children
           - decide, if it is OK not to fire X_STOP (band stop) event when scene finished playing
-          - test the differences in firing these events when just a frame was called to render (drawAt) or during the playing process (or pause/play)
+          - test the differences in firing these events when just a frame was called to render (drawAt) or during the playing process
+            (or pause/play)
 
     function wrapWithLogging(prefix, _elm) {
         _elm.whenPlayer(C.S_STOP, function(player) { console.log(prefix, 'STOP', player.state.time, player); })

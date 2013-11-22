@@ -665,10 +665,8 @@ Player.prototype.init = function(cvs, opts) {
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     var player = this;
 
-    // if player loads remote resources just now,
-    // postpone this task and exit. postponed tasks
-    // will be called when all remote resources were
-    // finished loading
+    // clear postponed tasks if player started to load remote resources,
+    // they are not required since new scene is loading in the player now
     if (player.state.happens === C.RES_LOADING) {
         player._clearPostpones();
         // TODO: cancel resource requests?
@@ -727,12 +725,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (!remotes.length) {
             player.fire(C.S_LOAD, result);
             if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+            //console.log('no remotes, calling callback');
             if (callback) callback(result);
         } else {
             player.state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
+            //console.log('load with remotes, subscribing ', remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
+                    //console.log(res_results, err_count);
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
                                                   // to load different scenes and first one finished loading
@@ -1138,11 +1139,11 @@ Player.__getPosAndRedraw = function(player) {
                 'y': pos[1]
             };
         if (player._rectChanged(rect)) player.changeRect(rect);*/
-        /* if (player.controls) {
+        if (player.controls) {
             player.controls.update(player.canvas);
-            player.controls.handleAreaChange();
+            //player.controls.handleAreaChange();
             //player._renderControls();
-        } */
+        }
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
@@ -4711,15 +4712,23 @@ Sheet.prototype.load = function(callback) {
     var me = this;
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
+            if (__anm.conf.doNotLoadImages) { notify_error('Loading images is turned off');
+                                              return; }
             var _img = new Image();
-            _img.onload = function() {
-                _img.__anm_ready = true;
+            _img.onload = _img.onreadystatechange = function() {
+                if (_img.__anm_ready) return;
+                if (this.readyState && (this.readyState !== 'complete')) {
+                    notify_error(this.readyState);
+                }
+                _img.__anm_ready = true; // this flag is to check later if request succeeded
+                // this flag is browser internal
                 _img.isReady = true; /* FIXME: use 'image.complete' and
                                       '...' (network exist) combination,
                                       'complete' fails on Firefox */
                 notify_success(_img);
             };
             _img.onerror = notify_error;
+            _img.addEventListener('error', notify_error, false);
             try { _img.src = me.src; }
             catch(e) { notify_error(e); }
         },
@@ -4727,7 +4736,7 @@ Sheet.prototype.load = function(callback) {
             me._image = image;
             // if (me.regions.length == 1) me._drawToCache();
             me._dimen = [ image.width, image.height ];
-            me.ready = true;
+            me.ready = true; // this flag is for users of the Sheet class
             me._drawToCache();
             if (callback) callback.call(me, image);
         },

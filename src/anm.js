@@ -30,7 +30,9 @@
             logImport: false,
             logResMan: false,
             logEvents: false,
-            forceWindowScope: false
+            forceWindowScope: false,
+            doNotLoadAudio: false,
+            doNotLoadImages: false
         }
     }
     var _conf = _GLOBAL_[PRIVATE_CONF];
@@ -236,6 +238,7 @@
     }
     ResourceManager.prototype.subscribe = function(urls, callbacks) {
         var filteredUrls = [];
+        if (_conf.logResMan) { console.log('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
         for (var i = 0; i < urls.length; i++){
             // there should not be empty urls
             if (urls[i]) filteredUrls.push(urls[i]);
@@ -247,8 +250,7 @@
     }
     ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
         var me = this;
-        if (_conf.logResMan)
-           { console.log('request to load ' + url); }
+        if (_conf.logResMan) { console.log('request to load ' + url); }
         if (me._cache[url]) {
             if (_conf.logResMan)
                { console.log('> already received, trigerring success'); }
@@ -284,11 +286,13 @@
     }
     ResourceManager.prototype.trigger = function(url, value) {
         if (this._cache[url] || this._errors[url]) { this.check(); return; }
+        if (_conf.logResMan) { console.log('triggering success for url ' + url); }
         delete this._waiting[url];
         this._cache[url] = value;
     }
     ResourceManager.prototype.error = function(url, err) {
         if (this._cache[url] || this._errors[url]) { this.check(); return; }
+        if (_conf.logResMan) { console.log('triggering error for url ' + url); }
         delete this._waiting[url];
         this._errors[url] = err;
     }
@@ -300,11 +304,13 @@
     // as complete
     ResourceManager.prototype.check = function() {
         if (_conf.logResMan)
-           { console.log('checking subscriptions'); }
+            { console.log('checking subscriptions'); }
         var subscriptions = this._subscriptions,
             cache = this._cache,
             errors = this._errors,
             to_remove = null;
+        if (_conf.logResMan)
+           { console.log('number of subscriptions: ' + subscriptions.length); }
         for (var i = 0, il = subscriptions.length; i < il; i++) {
             var urls = subscriptions[i][0],
                 callbacks = subscriptions[i][1],
@@ -314,6 +320,10 @@
                 if (errors[urls[u]]) error_count++;
                 if (cache[urls[u]]) success_count++;
             }
+            if (_conf.logResMan)
+                { console.log('stats for ' + urls + '. length: ' + urls.length + ', ' +
+                              'success: ' + success_count + ', errors: ' + error_count + ', ready: '
+                              + ((success_count + error_count) === urls.length)); }
             if ((success_count + error_count) === urls.length) {
                 var ready = [];
                 for (var u = 0, ul = urls.length; u < ul; u++) {
