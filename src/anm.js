@@ -32,7 +32,8 @@
             logEvents: false,
             forceWindowScope: false,
             doNotLoadAudio: false,
-            doNotLoadImages: false
+            doNotLoadImages: false,
+            doNotRenderShadows: false
         }
     }
     var _conf = _GLOBAL_[PRIVATE_CONF];
