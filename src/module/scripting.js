@@ -75,14 +75,14 @@
           '(function(ctx, evt, t) { ' +
             'var _b = Builder._$;' +
               inner +
-          '\n}).call(user_ctx(this.$ ? this.$ : this), ctx, evt, t);' +
+          '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
         '}');
     } else {
       return _tpl_base(
         '(function(ctx, evt, t) { ' +
           'var _b = Builder._$;' +
               inner +
-          '\n}).call(user_ctx(this.$ ? this.$ : this), ctx, evt, t);');
+          '\n}).call(user_ctx(this.$ || this), ctx, evt, t);');
     }
   };
 
@@ -116,7 +116,7 @@
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;' +
               body +
-            '\n}).call(user_ctx(this.$ ? this.$ : this), ctx, evt, t);' +
+            '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_in = evt.pos;');
           break;
@@ -126,7 +126,7 @@
             '(function(ctx, evt, t) { ' +
               'var _b = Builder._$;' +
               body +
-            '\n}).call(user_ctx(this.$ ? this.$ : this), ctx, evt, t);' +
+            '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
           '}' +
           'this.$.__last_p_out = evt.pos;');
           break;

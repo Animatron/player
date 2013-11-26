@@ -254,7 +254,7 @@ E.prototype.__updateWithRegAndPivot = function(pts, sx, sy) {
                  (reg[1] * sy) + (pvt[1] * dimen[1] * sy) + pts[1] ];
     }
 }
-E.prototype.__rupdateWithRegAndPivot = function(pts) {
+E.prototype.__rupdateWithRegAndPivot = function(pts, sx, sy) {
     var dimen = this.dimen(),
         reg = this.xdata.reg,
         pvt = this.xdata.pvt;
