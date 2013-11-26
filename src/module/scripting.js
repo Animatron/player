@@ -52,83 +52,95 @@
   };
 
   function user_ctx(elm) {
-    var ctx = elm.bstate;
+    var ctx = elm.bstate || {};
     ctx.findByName = __findByName(elm);
     ctx.jumpToScene = __jumpToScene(elm);
+    ctx.jumpToTime = __jumpToTime(elm);
     ctx.$ = elm;
     return ctx;
-  }
+  };
 
-  var BOUNDS_PAIR = [
-      '(function(ctx) { ' +
+  function _tpl_base(inner) {
+    return '(function(ctx) { ' +
         'return function(evt, t) { ' +
-          'if (this.$.contains(evt.pos, t)) { ' +
-            '(function(ctx, evt, t) { ' +
-              'var _b = Builder._$;',
-                /* content */
-            '\n}).call(user_ctx(this.$), ctx, evt, t);' +
-          '}' +
+          inner +
         '}' +
-      '})(____user_ctx)'];
+      '})(____user_ctx)';
+  };
 
-  var NO_BOUNDS_PAIR = [
-      '(function(ctx) { ' +
-        'return function(evt, t) { ' +
+  function tpl(bounds, inner) {
+    if (bounds) {
+      return _tpl_base(
+        'if (this.$.contains(evt.pos, t)) { ' +
           '(function(ctx, evt, t) { ' +
-            'var _b = Builder._$;',
-              /* content */
-          '\n}).call(user_ctx(this.$), ctx, evt, t);' +
-        '}' +
-      '})(____user_ctx)'];
+            'var _b = Builder._$;' +
+              inner +
+          '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
+        '}');
+    } else {
+      return _tpl_base(
+        '(function(ctx, evt, t) { ' +
+          'var _b = Builder._$;' +
+              inner +
+          '\n}).call(user_ctx(this.$ || this), ctx, evt, t);');
+    }
+  };
 
   var handler_map = {
     'click': C.X_MCLICK,
-    'dclick': C.X_MDCLICK, /* who need this? */
     'm_up': C.X_MUP,
     'm_down': C.X_MDOWN,
     'm_enter': C.X_MMOVE,
     'm_leave': C.X_MMOVE,
-    'm_penter': C.X_MOVER, /* enter the player canvas */
-    'm_pleave': C.X_MOUT, /* out of the player canvas */
     'm_move': C.X_MMOVE,
     'k_up': C.X_KUP,
     'k_down': C.X_KDOWN,
-    'k_press': C.X_KPRESS
-  }, wrappers_map = {
-    'click': BOUNDS_PAIR,
-    'dclick': BOUNDS_PAIR,
-    'm_up': NO_BOUNDS_PAIR,
-    'm_down': BOUNDS_PAIR,
-    'm_enter': [
-      '(function(ctx) { ' +
-        'return function(evt, t) { ' +
+    'k_press': C.X_KPRESS,
+    'init': C.S_LOAD
+  };
+
+  function iterate_handlers(handlers, e_type) {
+    if (!handlers) return false;
+    var result = false;
+    for (var handler_type in handlers) {
+      var body = handlers[handler_type];
+
+      var handler_code;
+      switch(handler_type) {
+        case 'm_move', 'm_up', 'k_up', 'k_down', 'k_press':
+          handler_code = tpl(false, body);
+          break;
+        case 'm_enter':
+          handler_code = _tpl_base(
           'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in, t)) && this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
-              'var _b = Builder._$;',
-              /* content */
-            '\n}).call(user_ctx(this.$), ctx, evt, t);' +
+              'var _b = Builder._$;' +
+              body +
+            '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
           '}' +
-          'this.$.__last_p_in = evt.pos;' +
-        '}' +
-      '})(____user_ctx)'],
-    'm_leave': [
-      '(function(ctx) { ' +
-        'return function(evt, t) { ' +
-          'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out, t) && !this.$.contains(evt.pos, t)) { ' +
+          'this.$.__last_p_in = evt.pos;');
+          break;
+        case 'm_leave':
+          handler_code = _tpl_base(
+            'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out, t) && !this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
-              'var _b = Builder._$;',
-              /* content */
-            '\n}).call(user_ctx(this.$), ctx, evt, t);' +
+              'var _b = Builder._$;' +
+              body +
+            '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
           '}' +
-          'this.$.__last_p_out = evt.pos;' +
-        '}' +
-      '})(____user_ctx)'],
-    'm_penter': BOUNDS_PAIR,
-    'm_pleave': BOUNDS_PAIR,
-    'm_move': NO_BOUNDS_PAIR, /* no boundaries check so MOVE is handled at the whole player canvas! */
-    'k_up': NO_BOUNDS_PAIR,
-    'k_down': NO_BOUNDS_PAIR,
-    'k_press': NO_BOUNDS_PAIR
+          'this.$.__last_p_out = evt.pos;');
+          break;
+        default:
+          handler_code = tpl(e_type == 255, body);
+          break;
+      }
+
+      result = true;
+      var registar = handler_type == 'init' ? 'on' : 'm_on';
+      eval('this.' + registar + '(handler_map[handler_type], ' + handler_code + ');');
+    }
+
+    return result;
   };
 
   var ____user_ctx = { 'foo': 'bar' };
@@ -136,17 +148,16 @@
   var is_dynamic = {}; // map project id to flag
 
   E._customImporters.push(function(source, type, importer, import_id) {
-    if ((importer === 'ANM') &&
-        (type === 255) && // type === 255 is TYPE_LAYER, see animatron-importer.js
-        source[8]) { // source[8] contains all scripts code
-      var handlers = source[8];
-      for (var handler_type in handlers) {
-        var handler_code = wrappers_map[handler_type][0] +
-                           handlers[handler_type] + wrappers_map[handler_type][1];
-
-        is_dynamic[import_id] = true;
-        eval('this.m_on(handler_map[handler_type], ' +
-             handler_code + ');');
+    if (importer === 'ANM') {
+      switch(type) {
+        case 2: // TYPE_SCENE
+          is_dynamic[import_id] = iterate_handlers.call(this, source[5]) || is_dynamic[import_id];
+          break;
+        case 255: // TYPE_LAYER
+          is_dynamic[import_id] = iterate_handlers.call(this, source[8]) || is_dynamic[import_id];
+          break;
+        default:
+          break;
       }
     }
   });
