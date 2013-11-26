@@ -151,10 +151,10 @@
     if (importer === 'ANM') {
       switch(type) {
         case 2: // TYPE_SCENE
-          is_dynamic[import_id] = iterate_handlers.call(this, source[5]);
+          is_dynamic[import_id] = iterate_handlers.call(this, source[5]) || is_dynamic[import_id];
           break;
         case 255: // TYPE_LAYER
-          is_dynamic[import_id] = iterate_handlers.call(this, source[8]);
+          is_dynamic[import_id] = iterate_handlers.call(this, source[8]) || is_dynamic[import_id];
           break;
         default:
           break;
