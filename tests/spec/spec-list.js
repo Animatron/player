@@ -61,5 +61,6 @@ var _specs = {
    '06.bugs': [ 'bugs' ],
    '07.audio-export': [ '01.simple',
                         '02.group',
-                        '03.multiple' ]
+                        '03.multiple' ],
+   '08.scripting': [ '01.jumps' ]
 };

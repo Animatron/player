@@ -180,7 +180,8 @@ mocks.createElement = function(tag) {
 mocks.adaptDocument = function(_doc, getElementById) {
     var _getElementById,
         _createElement,
-        _appendChild;
+        _appendChild,
+        _removeChild;
     if (getElementById) {
         _getElementById = spyOn(document, 'getElementById').andCallFake(getElementById);
     } else {
@@ -188,6 +189,7 @@ mocks.adaptDocument = function(_doc, getElementById) {
     }
     _createElement = spyOn(document, 'createElement').andCallFake(mocks.createElement);
     _appendChild = spyOn(document.body, 'appendChild').andCallFake(mocks.nop);
+    _removeChild = spyOn(document.body, 'removeChild').andCallFake(mocks.nop);
     return {
         'getElementById': _getElementById,
         'createElement': _createElement,

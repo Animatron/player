@@ -22,6 +22,7 @@ var _files = {
     'anm.collisions': '../src/module/collisions.js',
     'anm.audio': '../src/module/audio.js',
     'anm.audio-export': '../src/module/audio-export.js',
+    'anm.scripting': '../src/module/scripting.js',
     'anm.import': '../src/import/animatron-importer.js',
     'anm.intact-import': '../src/import/animatron-intact-importer.js',
 
