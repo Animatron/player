@@ -82,16 +82,11 @@ Import.project = function(prj) {
             node_res.xdata.gband = [ last_scene_band[1] + gband_before[0],
                                      last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
-            node_res.xdata.lband = node_res.xdata.lband;
+            node_res.xdata.lband = node_res.xdata.gband;
             node_res.travelChildren(function(elm) {
                 var e_gband_before = elm.xdata.gband;
                 elm.xdata.gband = [ last_scene_band[1] + e_gband_before[0],
                                     last_scene_band[1] + e_gband_before[1] ];
-                if (elm.parent === node_res) {
-                    var e_lband_before = elm.xdata.lband;
-                    elm.xdata.lband = [ last_scene_band[1] + e_lband_before[0],
-                                        last_scene_band[1] + e_lband_before[1] ]
-                }
             });
         }
         last_scene_band = node_res.xdata.gband;
