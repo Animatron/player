@@ -2091,8 +2091,22 @@ Element.prototype.render = function(ctx, gtime) {
     ctx.save();
     var drawMe = false;
 
-    // checks if any time jumps (including repeat
-    // modes) were performed
+    // checks if any time jumps (including repeat modes) were performed and justifies the global time
+    // to be locally retative to element's `lband`.
+    // NB: the local time returned is NOT in the same 'coordinate system' as the element's
+    // `xdata.lband`. `xdata.gband` is completely global and `xdata.lband` is local in
+    // relation to element's parent, so `lband == [10, 20]`, means that element starts after
+    // 10 second will pass in a parent band. So it is right to have `gband == [10, 20]`
+    // and `lband == [10, 20]` on the same element if it has no parent (located on a root level)
+    // or its parent's band starts from global zero.
+    // So, the `ltime` returned from `ltime()` method is local _relatively to_ `lband` the same way
+    // as `state.t` and `state.rt` (and it is why time-jumps are calculated this way), so it means
+    // that if the element is on the top level and has `lband` equal to `[10, 20]` like described before,
+    // and it has no jumps or end-modes, global time of `5` here will be converted to `ltime == -5` and
+    // global time of `12` will be converted to `ltime == 2` and global time of `22` to `ltime == 12`, which
+    // will fail the `fits()` test, described somewhere above. If there is a end-mode, say, `loop()`,
+    // then global time of `22` will be converted to `ltime == 2` again, so the element will treat it just
+    // exactly the same way as it treated the global time of `12`.
     var ltime = this.ltime(gtime);
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
@@ -2351,6 +2365,12 @@ Element.prototype.setBand = function(band) {
 }
 // > Element.fits % (ltime: Float) -> Boolean
 Element.prototype.fits = function(ltime) {
+    // NB: the local time passed inside is not relative to parent element's
+    // band, but relative to local band of this element. So it's ok not to check
+    // starting point of lband, since it was already corrected in `ltime()`
+    // method. So if this value is less than 0 here, it means that current local
+    // time is before the actual band of the element. See a comment in `render`
+    // method or `ltime` method for more details.
     if (ltime < 0) return false;
     return __t_cmp(ltime, this.xdata.lband[1] - this.xdata.lband[0]) <= 0;
 }
@@ -2360,6 +2380,15 @@ Element.prototype.gtime = function(ltime) {
 }
 // > Element.ltime % (gtime: Float) -> Float
 Element.prototype.ltime = function(gtime) {
+    // NB: the `ltime` this method returns is relative to local band of this element
+    // and not the band of the parent element, as `lband` does. So having the `0` returned
+    // from this method while `lband` of the element is `[10, 20]` (relatively to its
+    // parent element) means that it is at position of `10` seconds relatively to parent
+    // element. Negative value returned from this method means the passed time is that amount
+    // of seconds before the start of `lband` or `gband`, no matter. Positive value means that
+    // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
+    // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
+    // value returned here). See `render()` method comment regarding `ltime` for more details.
     var x = this.xdata;
     if (!__finite(x.gband[1])) return this.__checkJump(gtime - x.gband[0]);
     switch (x.mode) {
