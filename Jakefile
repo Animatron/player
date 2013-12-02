@@ -749,7 +749,7 @@ task('_versionize', function() {
         var new_content = jake.cat(file).trim()
                                         .replace(/@VERSION/g, VERSION);
         jake.rmRf(file);
-        jake.echo(new_content, file);
+        jake.echo(new_content + '\n', file);
         _print('v -> ' + file);
     }
 
@@ -810,7 +810,7 @@ task('_minify', { async: true }, function() {
         var now = new Date();
         var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g,
                                                     (now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')'))
-                                           .concat(jake.cat(file).trim());
+                                           .concat(jake.cat(file).trim()  + '\n');
         jake.rmRf(file);
         jake.echo(new_content, file);
         _print('(c) -> ' + file);
