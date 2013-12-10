@@ -25,7 +25,8 @@
 
     <script type="text/javascript">
       function run_tests(on_finish, phantom) {
-        window.__anm_force_window_scope = true;
+        if (!window.__anm_conf) window.__anm_conf = {};
+      window.__anm_conf.forceWindowScope = true;
 
         queue(require)(
                 [ _files['jasmine'],
@@ -33,10 +34,11 @@
                   _files['jasmine.teamcity'],
                   _files['jasmine.phantom'],
                   _files['vnd.matrix'],
+                  _files['anm.init'],
                   _files['anm.player'],
                   _files['anm.builder'],
                   _files['anm.collisions'],
-                  _files['anm.import'],
+                  _files['anm.intact-import'],
                   _files['tst.matchers'],
                   _files['tst.mocks'],
                   _files['tst.utils'],

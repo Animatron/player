@@ -14,7 +14,7 @@ describe("scene duration", function() {
     var DEFAULT_SCENE_LENGTH = anm.Scene.DEFAULT_LEN;
 
     beforeEach(function() {
-        spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+        _mocks.adaptDocument(document);
         _fake(_Fake.CVS_POS);
     });
 

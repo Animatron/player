@@ -1,3 +1,182 @@
+v1.1 / Fri Nov 22 2013 16:55:38 +0100 / 66cf7ea90808de92406c315a7ebd45d8dfaa9a01
+================================================================================
+
+* Change `HIDDEN` flag to `VISIBLE` again when improting Animatron scenes :)
+
+
+
+v1.0 / Fri Nov 22 2013 16:48:34 +0100 / 4954236ec998cb33fc7deed0caf8979564bea858
+================================================================================
+
+* Accidentally switch to version 1.0
+* Improve scripting support
+    * Pass time in scripting module handlers
+    * Make projects always infinite in scripting module
+    * Update scripting manual
+    * `findByName`, `goToScene` and `goToTime` functions for scripting
+* Fixes for a lot of incompatibilies with Animatron Editor when importing
+* Fix unsafe removing of elements when disposing scenes
+* Fix already-playing-check for dynamic modes
+* Give the ability for external scripts to disable loading audio or images or both, it was required for preview generation
+* Fix `contains` test to include scale in applying of pivot/registration point
+* Fix image mockup in tests
+* New easings came from Editor
+* Change `VISIBLE` flag to `HIDDEN` when importing
+* Fix different problems with controls
+
+
+
+v0.9.1601 / Mon Oct 28 13:05:29 2013 +0200 / 746dd95fcce7e1a52d2bfb56b45639e4fe1e2b7c
+=====================================================================================
+
+* Remove a play screen (the one with pause button) in a player
+* Restyle the player colors completely
+
+
+
+v0.9.16 / Thu Oct 24 2013 11:52:03 -0400 / dae00d67a34914f8b282721066a8f2c67d06c207
+===================================================================================
+
+* Initial support to import code snippets from Animatron (currently only `onclick` handler for draft purposes).
+* Include `scripting` and `collision` modules in `animatron` bundle
+* Fixes for several errors in sandbox with importing sprites
+* Fixes for resource manager errors happening when someone already waiting for the resource
+* Update previously outdated collisions module to new changes regarding with pivot & registration point
+* Move type-checking and value-checking into `anm.js`, global namespace
+* `findByName` and `findById` methods in `anm` namespace
+
+
+
+v0.9.1504 / Mon Oct 21 2013 16:13:05 -0400 / 9dc67f2b976c38c2395a2faa0f446cf8d35c466c
+=====================================================================================
+
++ Support Volume tween in Audio module (no support in Builder)
+
+* Fix positioning text when importing from Editor
+* Change text baseline to bottom instead of alphabetic
+* Support underlined text
+* Calculate text dimensions for specific lines and support it in multiline
+
+
+
+v0.9.1503 / Mon Oct 14 2013 19:16:44 -0400 / b55d293bdfc11b14c187198ea3277bb5ab1e267b
+=====================================================================================
+
+* Audio buffering and fixes for audio module by @alexeypegov
+* Player instances manager, to ease debugging (accessible from `__anm.player_manager`)
+* Moved registering/providing/handling events code to `anm.js`
+
+Usage:
+
+    var player_manager = __anm.player_manager;
+    player_manager.on(C.S_NEW_PLAYER, function(player) {
+        // handling new player
+    });
+    player_manager.on(C.S_PLAYER_DETACH, function(player) {
+        // handling detached player
+    });
+    var my_player_1 = player_manager.getPlayer('my-canvas-1');
+    console.log(player_manager.hash);
+    console.log(player_manager.instances);
+
+* `__anm.console` object to be a safe way to log
+* `onComplete` and `onError` are now optional in Resource Manager
+* Proper error handling in Resource Manager
+* Add optional logging to Resource Manager
+* Fix subscribing to resource when it in loading progress in Resource Manager
+* Fixes for the audio module errors handling
+* Fixed double-call to `importCustomData` from Animatron importer
+* Postpone playing methods to call them only after the successful result of remote resources loading process, if there were any; if there were no remote resources, the process is synchronous as before; if there were errors in process of loading, the error is thrown and shown to the watcher
+
+
+
+v0.9.1502 / Mon Oct 07 2013 23:24:02 +0200 / 64c27db2a732570a57e59119b3d3f74fae616455
+=====================================================================================
+
+Convert Animatron sequential scenes to elements with bands shifted by required amount of time.
+
+Also:
+
+- `go` page improvements
+- `favicon` for internal pages
+
+
+
+v0.9.1501 / Fri Oct 04 2013 18:35:07 +0200 / 21a949ac105336bde8e65322c9fd0789b5580b72
+=====================================================================================
+
+Implemented a remote resource manager (`__anm.resource_manager`), which:
+
+* Allows to subscribe with any number of callbacks to any number of resources and they'll be called when each of these resources was either loaded or failed to load.
+* Stores the cache of all requested resources among with waiting and errors queue
+* Do not loads any resource with it's own code, just requires a loader function.
+
+Integrated it to `Sheet` class and `audio.js` module.
+
+Also:
+
+* New `RES_LOADING` state for the player
+* New `RES_LOAD` event for the player which fires when player started to load resources
+* `LOAD` is now fired only when all remote resources (if there were any) were loaded or failed
+
+How to use:
+
+* Get `__anm.resource_manager` instance
+* When you need to load a resource, call `.loadOrGet` method of resource manager with:
+    * URL of the resource
+    * Loader function (it will not be called if resource is already in the cache) which gets `onsuccess` and `onerror` callbacks as arguments and should call them in the corresponding situation (like deferred AJAX call)
+    * Callback function which gets the resource value when it was successfully loaded
+* To listen for specific resources to complete loading, call `.subscribe` method with array of required URLs and a callback (or array of callbacks) to be called when these resources are loaded or failed to load (or some loaded and some failed)
+* If you have a local static resource and some subscriber to it's URL, just call `.trigger` method with URL and it's resource to force resource manager to notify subscribers for this resource. If it failed to load, call `.error` method with URL and error instance
+
+
+
+v0.9.15 / Tue Sep 24 2013 23:51:17 +0200 / bcc07e7ef99c3a06ec79ba1817f112777f92e093
+===================================================================================
+
+Totally new controls design.
+
+Among with that:
+
+* new player states: `C.LOADING` (while loading a scene) and `C.ERROR` (when error was fired). In addition to the well-known old ones: `C.PLAYING`, `C.PAUSED`, `C.STOPPED` and `C.NOTHING`
+* type of the last load target (internal, currently) is stored now: `C.LT_BUILDER`, `C.LT_SCENE`, `C.LT_CLIPS`, `C.LT_URL` and `C.LT_IMPORT`
+* `InfoBlock` is completely controlled by `Controls` — so, when controls are disabled, there's also will be no info block.
+* Now we know how to draw the Animatron Guy (on cached canvas)
+* Improved test mocks and tests themselves
+
+
+
+v0.9.1405 / Fri Sep 20 2013 00:00:07 +0200 / e9a3fd85b47238c40af794dc88ff398fc6e26270
+=====================================================================================
+
+Fixes:
+
+* Swap two importers back, the compact-format importer is now in `animatron.js` bundle and is named `AnimatronImporter` (was in `animatron-publish.js` bundle and was named `AnimatronPublishImporter`), and the full-format importer is `AnimatronIntactImporter` and lays in `animatron-intact.js` bundle. It affects several files, including `go` page.
+* Add handling player PAUSE event in audio module
+
+
+
+v0.9.1404 / Thu Sep 12 2013 19:12:03 +0200 / 2b6d558f29d9c6328999e880c868a62f97f6fea8
+=====================================================================================
+
+Features:
+
+* Support for the init file (anm.js), which configures the namespace, manages the way of player initialization process, prepares and stores some private global configuration.
+* X_START and X_STOP events for bands
+
+Fixes:
+
+* Fix incorrect loop in audio module which caused
+
+Fixes for the Compact a.k.a. Publish importer and to the `go` page:
+
+* Supports duration of scenes
+* Properly imports bands
+* Supports element ID to be the first element of a layer's description array
+* Properly tests end-mode for null
+
+
+
 v0.9.1403 / Wed Aug 28 2013 12:05:15 -0700 / 84bf790ab3408ec9356d96e972c924be57bd3b56
 =====================================================================================
 
@@ -21,6 +200,8 @@ Still not fixed:
 * End modes for clips are not stable, so not fixing
 * Importing partial scenes
 
+
+
 v0.9.1402 / Wed Aug 14 2013 19:57:00 +0200 / 583039ea2af4a409bd7c06ba373d8ab7a1d7ab59
 =====================================================================================
 
@@ -32,6 +213,8 @@ Features:
 
 * Adds the `animatron-publish` imported and `animatron-publish` bundle, they provide support of new minimized format from Editor
 
+
+
 v0.9.1401 / Thu Aug 08 2013 03:29:03 +0200 / 3f2468a1312c1f382d9a79527cfdd858a9858ce5
 =====================================================================================
 
@@ -41,8 +224,10 @@ Features:
 
 Fixes:
 
-* Animatron Importer now understands passes loop mode to the children to fix current difference with editor
+* Animatron Importer now properly passes loop mode to the children to fix current difference with editor
 * Animatron Importer now correctly applies global bands to groups imported from editor
+
+
 
 v0.9.14 / Fri Jul 26 2013 14:18:06 +0200 / 09f66d20225dee4ac861947bb45d61e34dbd25fd
 ===================================================================================
@@ -59,6 +244,8 @@ Fixes:
 * Sevearal more importing fixes
 * Rendering numbers for text (by @ahollenbach)
 
+
+
 v0.9.13 / Fri Jul 19 2013 14:10:43 +0200 / e9c5025e17afb435481414d5f0435cb430289299
 ===================================================================================
 
@@ -72,12 +259,16 @@ Fixes:
 * Calculate internal time for children
 * Do not show invisible elements
 
+
+
 v0.9.122 / Tue Jul 02 2013 01:19:41 +0200 / 9287bed0629f395268cc8dd98c1fba86d44228fc
 ====================================================================================
 
 Fixes:
 
 * Snapshot path in 'go' page
+
+
 
 v0.9.121 / Tue Jul 02 2013 00:10:29 +0200 / ab040726b8228cb2e0e0a06b7b865cd0bca17057
 ====================================================================================
@@ -87,6 +278,8 @@ Fixes:
 * Allows to re-add modifiers that were removed before
 * Both old and new 'end' properties for clips, imported from Animatron, now default to C.ONCE instead of C.STAY
 
+
+
 v0.9.12 / Mon May 27 11:00:59 2013 -0700 / 024740e3c19ac8566e44a0fd2131b6291ce1d93a
 ===================================================================================
 
@@ -95,10 +288,12 @@ v0.9.12 / Mon May 27 11:00:59 2013 -0700 / 024740e3c19ac8566e44a0fd2131b6291ce1d
 Last PR #93: "Versioning"
 
 
+
 v0.9.11 / Mon May 27 19:06:52 2013 +0200 / ac0e027ac95666dbb5ec4e90990ecebd4f421744
 ===================================================================================
 
 This version includes almost complete implementation of versioning, but is required to be done before v0.9.12, to test versions mechanics before merging.
+
 
 
 v0.9.1 / Mon May 20 23:24:52 2013 +0200 / 216a5f011e05fb83e3517a4dade022f1d9739a0a
@@ -122,6 +317,7 @@ Includes:
 * Building with Jake and Bundles
 
 Last PR #92: "STAY is default mode for importing from Animatron"
+
 
 
 v0.9 / Sun Mar 3 17:10:17 2013 -0800 / 5f9f4149a372ac4b16236880c3da795db98f2098
@@ -281,4 +477,3 @@ v0.21 / Tue Apr 10 18:47:08 2012 +0300 / 64b58e1d4e2f081358d7faaa50559fd3876c721
 =================================================================================
 
 zoom in options + fix accidentally changed order of tweens applying
-

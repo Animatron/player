@@ -17,7 +17,7 @@ describe("player, when created,", function() {
 
         beforeEach(function() {
             canvas = _mocks.factory.canvas(canvasId);
-            spyOn(document, 'getElementById').andCallFake(function(id) {
+            _mocks.adaptDocument(document, function(id) {
                 expect(id).toEqual(canvasId);
                 return canvas;
             });

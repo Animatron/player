@@ -38,7 +38,8 @@
        */
 
       function run_tests(on_finish, specs_to_run) {
-        window.__anm_force_window_scope = true;
+        if (!window.__anm_conf) window.__anm_conf = {};
+        window.__anm_conf.forceWindowScope = true;
 
         queue(require)(
                 [ _files['jasmine'],
@@ -46,10 +47,15 @@
                   _files['jasmine.tap'],
                   _files['jasmine.phantom'],
                   _files['vnd.matrix'],
+                  _files['anm.init'],
                   _files['anm.player'],
                   _files['anm.builder'],
                   _files['anm.collisions'],
+                  _files['anm.intact-import'],
                   _files['anm.import'],
+                  _files['anm.audio'],
+                  _files['anm.audio-export'],
+                  _files['anm.scripting'],
                   _files['tst.matchers'],
                   _files['tst.mocks'],
                   _files['tst.utils'],

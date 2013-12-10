@@ -162,7 +162,7 @@ describe("static modification", function() {
             Transform_mock = _mocks.factory.transform();
 
         beforeEach(function() {
-            spyOn(document, 'getElementById').andReturn(_mocks.factory.canvas());
+            _mocks.adaptDocument(document);
             _fake(_Fake.CVS_POS);
 
             player = createPlayer('test');

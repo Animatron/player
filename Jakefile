@@ -78,47 +78,62 @@ var SubDirs = {
 };
 
 var Files = {
-    Main: { PLAYER: 'player.js',
+    Main: { INIT: 'anm.js',
+            PLAYER: 'player.js',
             BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
            IMPORTERS: { _ALL_: [ 'animatron-importer.js',
-                                 'animatron-publish-importer.js' ],
+                                 'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
-                        ANM_PUBLISH: 'animatron-publish-importer.js' },
+                        ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ 'collisions.js',
-                               'audio.js' ],
+                               'audio.js',
+                               'audio-export.js',
+                               'scripting.js' ],
                       COLLISIONS: 'collisions.js',
-                      AUDIO: 'audio.js' } },
+                      AUDIO: 'audio.js',
+                      AUDIO_EXPORT: 'audio-export.js',
+                      SCRIPTING: 'scripting.js' } },
     Doc: { README: 'README.md',
-           API: 'API.md' }
+           API: 'API.md',
+           SCRIPTING: 'scripting.md' }
 }
 
 var Bundles = [
     { name: 'Standard',
       file: 'standard',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER ])) },
+        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
+                                                         Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
+                                                              Files.Main.PLAYER,
+                                                              Files.Main.BUILDER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
-    { name: 'Animatron-Publish',
-      file: 'animatron-publish',
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
+                                                              Files.Ext.MODULES.COLLISIONS,
+                                                              Files.Ext.MODULES.SCRIPTING ])) },
+    { name: 'Animatron-Intact',
+      file: 'animatron-intact',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_PUBLISH ])) // animatron-publish-importer.js
+        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
+                                                              Files.Main.PLAYER,
+                                                              Files.Main.BUILDER ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
     { name: 'Develop',
       file: 'develop',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.PLAYER,
+        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
+                                                         Files.Main.PLAYER,
                                                          Files.Main.BUILDER ])) },
     { name: 'Hardcore',
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.INIT,
+                                                          Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ ))
         .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
 ];
@@ -136,6 +151,8 @@ var Docs = {
          README_DST: Dirs.DOCS + '/README.html',
          API_SRC: Dirs.DOCS + '/' + Files.Doc.API,
          API_DST: Dirs.DOCS + '/API.html',
+         SCRIPTING_SRC: Dirs.DOCS + '/' + Files.Doc.SCRIPTING,
+         SCRIPTING_DST: Dirs.DOCS + '/scripting.html'
        },
        Parts: {
          _head: Dirs.DOCS + '/_head.html',
@@ -233,7 +250,7 @@ desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                'Requires: `docco`, Python installed, `markdown` module for Python'+
                   '(and Python is used only because of this module).',
                'Produces: /doc/player.html, /doc/builder.html, '+
-                  '/doc/API.html, /doc/README.html, /doc/docco.css.']));
+                  '/doc/API.html, /doc/README.html, /doc/scripting.html, /doc/docco.css.']));
 task('docs', { async: true }, function() {
     _print('Generating docs');
 
@@ -254,54 +271,34 @@ task('docs', { async: true }, function() {
                                if (next) next(); });
     }
 
-    function _api_docs(next) {
-        _print('For API');
+    function _md_docs(_src, _dst, next) {
+        _print('For ' + _src);
         jake.exec([ [ Binaries.MARKDOWN,
-                      _loc(Docs.FromMD.Files.API_SRC),
-                      '>', _loc(Docs.FromMD.Files.API_DST),
+                      _loc(_src),
+                      '>', _loc(_dst),
                     ].join(' '),
                     [ Binaries.CAT,
                       _loc(Docs.FromMD.Parts._head),
-                      _loc(Docs.FromMD.Files.API_DST),
+                      _loc(_dst),
                       _loc(Docs.FromMD.Parts._foot),
-                      '>', _loc(Docs.FromMD.Files.API_DST + '.tmp'),
+                      '>', _loc(_dst + '.tmp'),
                     ].join(' '),
                     [ Binaries.MV,
-                      _loc(Docs.FromMD.Files.API_DST + '.tmp'),
-                      _loc(Docs.FromMD.Files.API_DST)
+                      _loc(_dst + '.tmp'),
+                      _loc(_dst)
                     ].join(' ')
                   ], EXEC_OPTS,
-                  function() { _print('API.html was Generated successfully');
-                               _print(DONE_MARKER);
-                               if (next) next(); });
-    }
-
-    function _readme_docs(next) {
-        _print('For README');
-        jake.exec([ [ Binaries.MARKDOWN,
-                      _loc(Docs.FromMD.Files.README_SRC),
-                      '>', _loc(Docs.FromMD.Files.README_DST),
-                    ].join(' '),
-                    [ Binaries.CAT,
-                      _loc(Docs.FromMD.Parts._head),
-                      _loc(Docs.FromMD.Files.README_DST),
-                      _loc(Docs.FromMD.Parts._foot),
-                      '>', _loc(Docs.FromMD.Files.README_DST + '.tmp'),
-                    ].join(' '),
-                    [ Binaries.MV,
-                      _loc(Docs.FromMD.Files.README_DST + '.tmp'),
-                      _loc(Docs.FromMD.Files.README_DST)
-                    ].join(' ')
-                  ], EXEC_OPTS,
-                  function() { _print('README.html was Generated successfully');
+                  function() { _print(_dst + ' was Generated successfully');
                                _print(DONE_MARKER);
                                if (next) next(); });
     }
 
     _src_docs(function() {
-      _api_docs(function() {
-        _readme_docs(function() {
-          complete();
+      _md_docs(Docs.FromMD.Files.API_SRC, Docs.FromMD.Files.API_DST, function() {
+        _md_docs(Docs.FromMD.Files.README_SRC, Docs.FromMD.Files.README_DST, function() {
+          _md_docs(Docs.FromMD.Files.SCRIPTING_SRC, Docs.FromMD.Files.SCRIPTING_DST, function() {
+            complete();
+          });
         });
       });
     });
@@ -313,6 +310,9 @@ task('docs', { async: true }, function() {
 //python -m markdown doc/README.md > doc/README.html
 //cat doc/_head.html doc/README.html doc/_foot.html > doc/README.tmp.html
 //mv doc/README.tmp.html doc/README.html
+//python -m markdown doc/scripting.md > doc/scripting.html
+//cat doc/_head.html doc/scripting.html doc/_foot.html > doc/scripting.tmp.html
+//mv doc/README.tmp.html doc/scripting.html
 });
 
 desc(_dfit_nl(['Validate Animatron scene JSON file.',
@@ -344,7 +344,8 @@ desc(_dfit_nl(['Get current version or apply a new version to the '+
                   '{jake version[v0.8]} to set current version '+
                   'to a new one (do not forget to push tags). '+
                   'If this version exists, you will get detailed information about it. '+
-                  'To remove a previous version, use <rm-version> task.',
+                  'To remove a previous version, use <rm-version> task. '+
+                  'Use {jake version[+v0.8]} to force creating a version even if it exists.',
                'Affects: (if creates a new version) '+
                   'VERSION, VERSIONS files and a git tag.']));
 task('version', { async: true }, function(param) {
@@ -352,7 +353,9 @@ task('version', { async: true }, function(param) {
 
     // Read versions
 
-    var _v = _version(param);
+    var _forced = (param.indexOf('+') == 0);
+
+    var _v = _version(_forced ? param.substring(1) : param);
     _print('Current version: ' + VERSION);
     _print('Selected version: ' + _v + '\n');
 
@@ -366,7 +369,7 @@ task('version', { async: true }, function(param) {
 
     // Show or write a version data
 
-    if (_vhash[_v]) { // TODO: add force-version
+    if (_vhash[_v] && !_forced) { // TODO: add force-version
 
         _print('Selected version exists, here\'s the detailed information about it:\n');
         if (!jake.program.opts.quiet) {
@@ -466,7 +469,7 @@ task('rm-version', { async: true }, function(param) {
 
     if (!src_v) { _print(FAILED_MARKER); throw new Error('Target version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
     if (!dst_v) { _print(FAILED_MARKER); throw new Error('Fallback version should be specified, e.g.: {jake rm-version[v0.5:v0.4]}.'); }
-    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is already a current version (' + VERSION + ').'); }
+    if (dst_v == VERSION) { _print(FAILED_MARKER); throw new Error('Destination version is a current version (' + VERSION + '), should be some of the previous ones.'); }
 
     var _vhash = _versions.read();
 
@@ -496,7 +499,7 @@ task('rm-version', { async: true }, function(param) {
 
         _vhash[src_v] = null;
         delete _vhash[src_v];
-        _vhash['latest'] = _dst_v;
+        _vhash['latest'] = dst_v;
 
         _print('Removing ' + src_v + ' information from ' + VERSIONS_FILE + ' file.\n');
 
@@ -520,7 +523,8 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Usage: {jake push-version} to push current version from VERSION file. '+
                    'To push to `latest/`, use {jake push-version[latest]}. It is also '+
                    'possible to select a bucket: so {jake push-version[latest,rls]} will '+
-                   'push to the release bucket (`dev` is default)',
+                   'push latest version to the release bucket (`dev` is default) and '+
+                   '{jake push-version[,rls]} will push there a current version from VERSION file.',
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
@@ -627,14 +631,24 @@ task('push-go', [], { async: true }, function(_bucket) {
 
     s3.setBucket(trg_bucket);
 
-    var GO_FILE_NAME = 'go';
+    var GO_LOCAL_PATH = _loc('go'),
+        GO_REMOTE_PATH = '/go';
+    var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
+        FAVICON_REMOTE_PATH = '/favicon.ico';
 
-    s3.putFile('/go', _loc(GO_FILE_NAME), 'public-read', { 'content-type': 'text/html' }, function(err, res) {
+    s3.putFile(GO_REMOTE_PATH, GO_LOCAL_PATH, 'public-read', { 'content-type': 'text/html' }, function(err, res) {
 
         if (err) { _print(FAILED_MARKER); throw err; }
-        _print(_loc(GO_FILE_NAME) + ' -> s3 as /go');
+        _print(GO_LOCAL_PATH + ' -> s3 as ' + GO_REMOTE_PATH);
 
-        complete();
+        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
+
+            if (err) { _print(FAILED_MARKER); throw err; }
+            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
+
+            complete();
+
+        });
 
     });
 
@@ -699,6 +713,8 @@ task('_organize', function() {
 
     _print('Copy files to ' + Dirs.AS_IS + '..');
 
+    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.INIT),
+             _loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.PLAYER),
              _loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.BUILDER),
@@ -733,12 +749,13 @@ task('_versionize', function() {
         var new_content = jake.cat(file).trim()
                                         .replace(/@VERSION/g, VERSION);
         jake.rmRf(file);
-        jake.echo(new_content, file);
+        jake.echo(new_content + '\n', file);
         _print('v -> ' + file);
     }
 
     _print('.. Main files');
 
+    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
 
@@ -764,6 +781,7 @@ task('_versionize', function() {
 
     versionize(_loc(Files.Doc.README));
     versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
+    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
 
     _print(DONE_MARKER);
 });
@@ -792,7 +810,7 @@ task('_minify', { async: true }, function() {
         var now = new Date();
         var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g,
                                                     (now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')'))
-                                           .concat(jake.cat(file).trim());
+                                           .concat(jake.cat(file).trim()  + '\n');
         jake.rmRf(file);
         jake.echo(new_content, file);
         _print('(c) -> ' + file);
@@ -819,6 +837,8 @@ task('_minify', { async: true }, function() {
 
     _print('.. Main files');
 
+    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
+                        _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
                         _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
     minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),

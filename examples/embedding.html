@@ -7,6 +7,7 @@
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     <!--<script type="text/javascript" language="javascript" src="http://player.animatron.com/latest/bundle/animatron.js"></script>-->
     <script type="text/javascript" language="javascript" src="../dist/full/bundle/animatron.js"></script>
 
@@ -17,10 +18,19 @@
         // Tangential Eccentric: http://animatron-snapshots.s3.amazonaws.com/fe970cb5-50dc-426e-b535-6b4e0aba217b
         // Olya's Movie: http://animatron-snapshots.s3.amazonaws.com/5a0959f1-074c-45a0-87b8-64cbbcd81ce0 (http://editor.animatron.com/#p=ed865051bb5b3ea45f31232b)
         // /5a0959f1-074c-45a0-87b8-64cbbcd81ce0?w=500&h=500&t=50
+        // /bc686952617a087796e42c59-v0.9.1504&w=550&h=450&v=v0.9.16
+        // /4a7769527d06e35f8ee8a98a-v0.9.1504&w=550&h=450
+        // http://animatron-snapshots-dev.s3.amazonaws.com/4a7769527d06e35f8ee8a98a-v0.9.1504
+        // /cdca7e52564693d3d75cf1b1-v1.0?w=912&h=450
+        // /cdca7e52564693d3d75cf1b1-v1.0?w=242&h=172
+        // /34e57e52db2c4da8ac6b8e1e-v1.0?w=550&h=450
+        // /daec7e52582c64e8c30f10a2-v1.0?w=550&h=450&t=0
 
         var _embed = (function() {
 
-            var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
+            //var PREFIX = 'http://snapshots.animatron.com';
+            //var PREFIX = 'http://animatron-snapshots.s3.amazonaws.com';
+            var PREFIX = 'http://animatron-snapshots-dev.s3.amazonaws.com';
             //var PREFIX = 'http://128.0.0.1/examples/json';
             //var PREFIX = 'http://animatron-snapshots.s3-website-us-east-1.amazonaws.com';
 
@@ -28,7 +38,7 @@
 
             function init() {
 
-                var defaultURL = '/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9';
+                var defaultURL = '/a4e84052121d2d316492e75b-v0.9.1405';
                 //var defaultURL = '/tangential_eccentric.json';
 
                 var _url = document.getElementById('url-val');
@@ -85,7 +95,7 @@
         <label for="example">Example</label><!--
      --><span class="prot">http</span><!--
      --><span class="sep">://</span><!--
-     --><span class="host">animatron-snapshots.s3.amazonaws.com</span><!--
+     --><span class="host">snapshots.animatron.com</span><!--
      --><span class="sep">/</span><!--
      --><span class="scene-hash">3f68b131-8a6a-4e0f-82f8-99a2576ab9d9</span><!--
      --><span class="sep">?</span><!--
@@ -124,7 +134,7 @@
     <p><label for="h-val">[H]</label><input type="text" id="h-val"></input></p>-->
 </div>
 
-<div id="canvas-holder"><canvas id="canvas1"></canvas></div>
+<div id="canvas-holder"><canvas id="canvas1" width="1200" height="700"></canvas></div>
 <p id="error-box"></p>
 </body>
 </html>

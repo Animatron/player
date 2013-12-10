@@ -1,7 +1,15 @@
 <!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+<!--
+  ~ Copyright (c) 2011-2013 by Animatron.
+  ~ All rights are reserved.
+  -->
+
 <html>
 <head>
     <meta http-equiv="content-type" content="text/html; charset=UTF-8">
+    <link rel="shortcut icon" type="image/x-icon" href="/favicon.ico" />
+    <title>Animatron Movie</title>
     <style type="text/css">
         html, body {
             margin: 0;
@@ -105,6 +113,21 @@
                 scriptElm.onerror = _u.reportError;
                 var headElm = document.head || document.getElementsByTagName('head')[0];
                 headElm.appendChild(scriptElm);
+            },
+
+            updateTitle: function(player) {
+                if (player._metaInfo) {
+                    var meta = player._metaInfo;
+                    if (meta.author && meta.title) {
+                        document.title = meta.title + ' (' + meta.author + ')';
+                    } else if (meta.author) {
+                       document.title = 'Untitled (' + meta.author + ')';
+                    } else if (meta.title) {
+                        document.title = meta.title;
+                    } else {
+                        document.title = 'Animatron Movie';
+                    }
+                }
             }
 
             };
@@ -118,7 +141,7 @@
                 SNAPSHOT_V1_DASH_POS = /*below V*/9,
                 SNAPSHOT_V1_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}',
                 SNAPSHOT_V2_MASK = '[a-z0-9]{24}',
-                VERSION_MASK = '(v[0-9\.-]+)|latest';
+                VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
 
             var _search = location.search,
                 _first_amp_pos = _search.indexOf('&'),
@@ -173,7 +196,7 @@
                                                     : '') + (_params_ || '');
 
             var temp_v = null;
-            if (temp_v = _u.extractVal('v')) {
+            if (temp_v = _u.extractVal(_params_, 'v')) {
                 if (!temp_v.match(VERSION_MASK)) {
                     _u.reportError(new Error('Player Version ID \'' + temp_v + '\' is incorrect'));
                     return;
@@ -199,9 +222,25 @@
                     } else if (!inIFrame) {
                         cvs.className += ' no-rect';
                     }
-                    _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js', function () {
-                        anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, new AnimatronImporter());
-                    });
+                    // all other versions, incl. 'latest' are ok with animatron.js bundle
+                    var useStandartImporter = (PLAYER_VERSION_ID != 'v0.9.1404');
+
+                    _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID +
+                        (useStandartImporter ? '/bundle/animatron.js' : '/bundle/animatron-publish.js'),
+                        function () {
+                            var player = anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, useStandartImporter
+                                                                                          ? new AnimatronImporter()
+                                                                                          : new AnimatronPublishImporter()/*,
+                                                                           _u.updateTitle */);
+                            player.on(anm.C.S_LOAD,
+                                (function(the_player) {
+                                    return function(/*result*/) {
+                                        _u.updateTitle(the_player);
+                                    }
+                                })(player)
+                            );
+                        }
+                    );
                 } catch (e) {
                     _u.reportError(e);
                 }

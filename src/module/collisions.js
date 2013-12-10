@@ -122,9 +122,11 @@ E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
     if (!b) return false;
+    //console.log(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
     var pt = this._padopt(pt, t);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);
+    //console.log(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
     var inBounds;
     if (inBounds = G.__inBounds(b, pt)) {
         if (!opts.pathDriven) return true;
@@ -201,18 +203,20 @@ E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
     if (!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix);
-    return this.__adoptWithM(pts, E._getIMatrixOf(s));
+    //return this.__adoptWithM(pts, E._getIMatrixOf(this.__getStateWithRegAndPivot(s)));
+    return this.__adoptWithM(this.__updateWithRegAndPivot(pts, s.sx, s.sy), E._getIMatrixOf(s));
 }
-E.prototype._radopt = function(pts, t) {
+E.prototype._radopt = function(pts, t) { // adopt point by reversed current or time-matrix
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
-    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
+    if (/*(t !== null) && */!s._applied) return __filled(pts, Number.MIN_VALUE);
     //return this.__adoptWithM(pts, s._matrix.inverted());
-    return this.__adoptWithM(pts, E._getMatrixOf(s));
+    //return this.__adoptWithM(pts, E._getMatrixOf(this.__getStateWithRegAndPivot(s)));
+    return this.__adoptWithM(this.__rupdateWithRegAndPivot(pts, s.sx, s.sy), E._getMatrixOf(s));
 }
-E.prototype._padopt = function(pt, t) {
+E.prototype._padopt = function(pt, t) { // recursively adopt point by current or time-matrix
     var p = this.parent;
     while (p) {
         pt = p._adopt(pt, t);
@@ -220,7 +224,7 @@ E.prototype._padopt = function(pt, t) {
     }
     return this._adopt(pt, t);
 }
-E.prototype._pradopt = function(pt, t) {
+E.prototype._pradopt = function(pt, t) { // recursively adopt point by reversed current or time-matrix
     var pt = this._radopt(pt, t);
     var p = this.parent;
     while (p) {
@@ -228,6 +232,48 @@ E.prototype._pradopt = function(pt, t) {
         p = p.parent;
     }
     return pt;
+}
+E.prototype.__updateWithRegAndPivot = function(pts, sx, sy) {
+    var dimen = this.dimen(),
+        reg = this.xdata.reg,
+        pvt = this.xdata.pvt;
+    if (!dimen) dimen = [0, 0];
+    if ((pvt[0] === 0) && (pvt[1] === 0)
+     && (reg[0] === 0) && (reg[1] === 0)) return pts;
+
+    if (pts.length > 2) {
+        var transformed = [];
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            // TODO: may be some another transformation (i.e. shear, but not translate) should also be included in this calculation?
+            transformed.push((reg[0] * sx) + (pvt[0] * dimen[0] * sx) + pts[pi],
+                             (reg[1] * sy) + (pvt[1] * dimen[1] * sy) + pts[pi+1]);
+        }
+        return transformed;
+    } else {
+        return [ (reg[0] * sx) + (pvt[0] * dimen[0] * sx) + pts[0],
+                 (reg[1] * sy) + (pvt[1] * dimen[1] * sy) + pts[1] ];
+    }
+}
+E.prototype.__rupdateWithRegAndPivot = function(pts, sx, sy) {
+    var dimen = this.dimen(),
+        reg = this.xdata.reg,
+        pvt = this.xdata.pvt;
+    if (!dimen) dimen = [0, 0];
+    if ((pvt[0] === 0) && (pvt[1] === 0)
+     && (reg[0] === 0) && (reg[1] === 0)) return pts;
+
+    if (pts.length > 2) {
+        var transformed = [];
+        for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
+            // TODO: may be some another transformation (i.e. shear, but not translate) should also be included in this calculation?
+            transformed.push(-(reg[0] * sx) + -(pvt[0] * dimen[0] * sx) + pts[pi],
+                             -(reg[1] * sy) + -(pvt[1] * dimen[1] * sy) + pts[pi+1]);
+        }
+        return transformed;
+    } else {
+        return [ -(reg[0] * sx) + -(pvt[0] * dimen[0] * sx) + pts[0],
+                 -(reg[1] * sy) + -(pvt[1] * dimen[1] * sy) + pts[1] ];
+    }
 }
 E.prototype.__adoptWithM = function(pts, m) {
     if (pts.length > 2) {
@@ -356,14 +402,14 @@ E.prototype.__pathAt = function(t) {
 E.prototype.__pointsAt = function(t) {
     return this._pradopt(this.collectPoints(), t);
 }
-E.prototype._cpa_bounds = function() { // cpath-aware bounds
+E.prototype._cpa_bounds = function() { // collision-path-aware bounds
     var cpath = this.xdata.__cpath;
     return cpath
             ? cpath.bounds()
             : this.lbounds();
 }
 
-E.prototype._cpa_rect = function() { // cpath-aware rect
+E.prototype._cpa_rect = function() { // collision-path-aware rect
     var cpath = this.xdata.__cpath;
     return cpath
             ? cpath.rect()
@@ -379,6 +425,7 @@ E.prototype.__ensureTimeTestAllowedFor = function(t) {
 }
 
 // TODO: iterate through objects' properties and call function
+// FIXME: OUTDATED
 // for each property
 E._getVect = function(s0, s1, t_diff) {
     if (t_diff == 0) return E.createState();
@@ -637,7 +684,9 @@ E.prototype._getVects = function(t) {
     throw new Error(E.__vecErrText);
 }
 
-var prev_handle__x = Scene.prototype.handle__x
+//__anm.overridePrepended(Scene.prototype, 'handle_x',
+//                        )
+var prev_handle__x = Scene.prototype.handle__x;
 Scene.prototype.handle__x = function(type, evt) {
     if (opts.mouseBound) {
         if (type & C.XT_MOUSE) {
@@ -672,7 +721,7 @@ Scene.prototype.handle__x = function(type, evt) {
             }
         }
     }
-    prev_handle__x.call(this, type, evt);
+    return prev_handle__x.call(this, type, evt);
 }
 
 Path.prototype.contains = function(pt) {

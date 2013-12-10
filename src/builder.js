@@ -7,25 +7,9 @@
  * @VERSION
  */
 
-(function(root, name, produce) {
-    // Cross-platform injector
-    if (window && window.__anm_force_window_scope) { // FIXME: Remove
-        // Browser globals
-        root[name] = produce(root.anm);
-    } else if (typeof define === 'function' && define.amd) {
-        // AMD. Register as an anonymous module.
-        define(['anm'], produce);
-    } else if (typeof module != 'undefined') {
-        // CommonJS / module
-        module.exports = produce(require('./player.js'));
-    } else if (typeof exports === 'object') {
-        // CommonJS / exports
-        produce(require('./player.js'));
-    } else {
-        // Browser globals
-        root[name] = produce(root.anm);
-    }
-})(this, 'Builder'/*, 'anm/builder'*/, function(anm) {
+(((typeof __anm !== 'undefined') && __anm.registerUsingAnm) || function() {
+    throw new Error('Player namespace is not initialized');
+})('Builder', function(anm) {
 
 var Path = anm.Path;
 var Element = anm.Element;
@@ -37,13 +21,13 @@ var C = anm.C;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
-var is = anm._typecheck;
+var is = __anm.is;
 
 var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
 
 var __b_cache = {};
 
-//var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') };
+/* var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') }; */
 
 function check_args(args, method) {
     if (args.length > 1) throw new Error('Wrong number of arguments in .' + method + ' method.');
@@ -106,6 +90,13 @@ Builder.DEFAULT_CAP = Path.DEFAULT_CAP;
 Builder.DEFAULT_JOIN = Path.DEFAULT_JOIN;
 Builder.DEFAULT_FFACE = Text.DEFAULT_FFACE;
 Builder.DEFAULT_FSIZE = Text.DEFAULT_FSIZE;
+
+// * BUILD *
+
+// > builder.build % () => Element
+Builder.prototype.build = function() {
+    return this.v;
+}
 
 // * STRUCTURE *
 
@@ -668,26 +659,57 @@ Builder.prototype.on = function(type, handler) {
     this.v.m_on(type, handler);
     return this;
 }
+// > builder.off % (handler: Function) => Builder
+Builder.prototype.off = Builder.prototype.unmodify;
 // > builder.unhandle % (handler: Function) => Builder
 Builder.prototype.unhandle = Builder.prototype.unmodify;
+// > builder.onstart % (handler: Function(t: Float)) => Builder
+Builder.prototype.onstart = function(handler) {
+    this.v.on(C.X_START, handler);
+    return this;
+}
+// > builder.onbirth % (handler: Function(t: Float)) => Builder
+Builder.prototype.onbirth = Builder.prototype.onstart;
+// > builder.onborn % (handler: Function(t: Float)) => Builder
+Builder.prototype.onborn = Builder.prototype.onstart;
+// > builder.onstop % (handler: Function(t: Float)) => Builder
+Builder.prototype.onstop = function(handler) {
+    this.v.on(C.X_STOP, handler);
+    return this;
+}
+// > builder.ondeath % (handler: Function(t: Float)) => Builder
+Builder.prototype.ondeath = Builder.prototype.onstart;
+// > builder.ondie % (handler: Function(t: Float)) => Builder
+Builder.prototype.ondie = Builder.prototype.onstart;
+// > builder.whenPlayer % (event: C.S_*, handler: Function(player: Player)) => Builder
+Builder.prototype.whenPlayer = function(event, handler) {
+    this.v.handlePlayerEvent(event, handler);
+    return this;
+}
 
 // * TAKE & USE *
 
 // > builder.take % (b: Builder) => Builder
 Builder.prototype.take = function(b) {
-    this.n = obj.n;
+    this.n = b.n;
     // xdata contents points to the same objects
     // as source's xdata do
-    this.v = obj.v.clone();
+    this.v = b.v.clone();
     this.x = this.v.xdata;
+    this.bs = this.v.bstate;
+
+    return this;
 }
 // > builder.copy % (b: Builder) => Builder
 Builder.prototype.use = function(b) {
-    this.n = obj.n;
+    this.n = b.n;
     // xdata takes the clones of the objects
     // source's xdata points do
-    this.v = obj.v.deepClone();
+    this.v = b.v.deepClone();
     this.x = this.v.xdata;
+    this.bs = this.v.bstate;
+
+    return this;
 }
 
 // * ENABLE & DISABLE *

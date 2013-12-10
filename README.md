@@ -31,10 +31,10 @@ Include one of them as a script to your page, and you're done!
 
 Also, all files are accessible separately, if you want:
 
-* For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js) and [`player.js`](http://player.animatron.com/latest/player.js)
+* For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js), [`anm.js`](http://player.animatron.com/latest/anm.js) and [`player.js`](http://player.animatron.com/latest/player.js)
 * If you plan to program animation in an easy way, include [`builder.js`](http://player.animatron.com/latest/builder.js) next to them.
 * If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
-* If you want to use some hardcore module, i.e. collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) __before__ the builder file (builder will add some features to itself depending on enabled modules), if it is used, or just in any place after player file, if it is not. The same for other modules.
+* If you want to use some hardcore module, i.e. collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) __before__ the builder file (builder will add some features to itself depending on enabled modules, it is wrong, but will be fixed in later versions), if it is used, or just in any place after player file, if it is not. The same for other modules.
 
 URLs scheme for all of them is:
 
@@ -51,6 +51,7 @@ Clone `git@github.com:Animatron/player.git` to get your own copy.
 To use JS player in current state, download or copy from the cloned repository:
 
  * `src/vendor/matrix.js`
+ * `src/anm.js`
  * `src/player.js`
  * [Optional] `src/builder.js` (allows to build animations in a functional way)
  * [Optional] `src/module/collisions.js` (if you plan to test collisions / point-contains / intersections with your shapes)
