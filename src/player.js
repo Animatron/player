@@ -54,7 +54,7 @@
 
 (((typeof __anm !== 'undefined') && __anm.registerPlayer) || function() {
     throw new Error('Player namespace is not initialized');
-})(function($glob/*, $wnd, $doc*/) {
+})(function($glob, $wnd, $doc) {
 
 var $engine; // lazy-initialized in Player constructor
 
@@ -5616,18 +5616,6 @@ return function($trg) {
         });
         return found;
     }
-
-
-    Element.prototype.findByName = function(name) {
-}
-Element.prototype.findById = function(id) {
-    var found = [];
-    this.travelChildren(function(elm)  {
-        if (elm.id == id) found.push(elm);
-    });
-    return found;
-}
-
 
     $trg._$ = __createPlayer;
 

@@ -29,10 +29,6 @@ var __b_cache = {};
 
 /* var deprecated = function(instead) { return new Error(instead ? 'Deprecated, use ' + instead + 'instead.' : 'Derpacated.') }; */
 
-function check_args(args, method) {
-    if (args.length > 1) throw new Error('Wrong number of arguments in .' + method + ' method.');
-}
-
 // =============================================================================
 // === BUILDER =================================================================
 
@@ -186,9 +182,9 @@ Builder.prototype.oval = function(pt, radius) {
             Builder.arcPath(center[0], center[1], d_rad, 0, 1, 12));
     return this;
 }
-// TODO:
-/*Builder.prototype.oval = function(pt, hradius, vradius) {
-}*/
+// > builder.circle % (pt: Array[2,Integer],
+//                     radius: Float) => Builder
+Builder.prototype.circle = Builder.prototype.oval;
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src, callback) {
@@ -295,7 +291,6 @@ C.R_ML = [ 0.0, 0.5 ]; C.R_MC = [ 0.5, 0.5 ]; C.R_MR = [ 1.0, 0.5 ];
 C.R_BL = [ 0.0, 1.0 ]; C.R_BC = [ 0.5, 1.0 ]; C.R_BR = [ 1.0, 1.0 ];
 // > builder.reg % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 Builder.prototype.reg = function(pt) {
-    check_args(arguments, 'reg');
     var x = this.x;
     if (!pt) return x.reg;
     x.reg = pt || x.reg;
@@ -303,7 +298,6 @@ Builder.prototype.reg = function(pt) {
 }
 // > builder.pvt % (pt: Array[2,Float] | side: C.R_*) => Builder | Array[2,Float]
 Builder.prototype.pvt = function(pt) {
-    check_args(arguments, 'pvt');
     var x = this.x;
     if (!pt) return x.pvt;
     x.pvt = pt;
@@ -311,7 +305,6 @@ Builder.prototype.pvt = function(pt) {
 }
 // > builder.pvtpt % (pt: Array[2,Float]) => Builder | Array[2,Float]
 Builder.prototype.pvtpt = function(pt) {
-    check_args(arguments, 'pvtpt');
     var x = this.x;
     if (pt) {
         var dimen = this.v.dimen();
@@ -333,14 +326,12 @@ Builder.prototype.init = function(state) {
 }
 // > builder.move % (pt: Array[2,Integer]) => Builder
 Builder.prototype.move = function(pt) {
-    check_args(arguments, 'move');
     this.bs.x = pt[0];
     this.bs.y = pt[1];
     return this;
 }
 // > builder.pos % ([pt: Array[2,Integer]]) => Array[2] | Builder
 Builder.prototype.pos = function(pt) {
-    check_args(arguments, 'pos');
     return pt ? this.move(pt) : [ this.bs.x, this.bs.y ];
 }
 // > builder.dpos % () => Array[2]
@@ -369,7 +360,6 @@ Builder.prototype.zoom = function(val) {
 }
 // > builder.size % (val: Array[2,Float]) => Builder
 Builder.prototype.size = function(val) {
-    check_args(arguments, 'size');
     this.bs.sx = val[0];
     this.bs.sy = val[1];
     return this;
@@ -400,7 +390,6 @@ Builder.prototype.opacity = function(val) {
 }
 // > builder.bounds % (val: Array[4,Float]) => Builder
 Builder.prototype.bounds = function(bounds) {
-    check_args(arguments, 'bounds');
     if (!bounds.length === 4) throw new Error('Incorrect bounds');
     this.x.__bounds = bounds;
     return this;
@@ -410,7 +399,6 @@ Builder.prototype.bounds = function(bounds) {
 
 // > builder.band % (band: Array[2,Float]) => Builder
 Builder.prototype.band = function(band) {
-    check_args(arguments, 'band');
     this.v.setBand(band);
     return this;
 }

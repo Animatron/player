@@ -22,7 +22,7 @@ function sandbox() {
     window.C = anm.C;
 
     this.player = createPlayer('my-canvas', {
-        'mode': anm.C.M_PREVIEW,
+        //'mode': anm.C.M_PREVIEW,
         'muteErrors': true,
         'anim': {
             width: 400,
@@ -30,8 +30,6 @@ function sandbox() {
             bgcolor: '#fff' }
     });
 
-    //this.player.mode = anm.C.M_PREVIEW;
-    //this.player._checkMode();
     this.player.mode = anm.C.M_SANDBOX;
     this.player._checkMode();
 
