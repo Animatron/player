@@ -54,9 +54,7 @@
 
 (((typeof __anm !== 'undefined') && __anm.registerPlayer) || function() {
     throw new Error('Player namespace is not initialized');
-})(function($glob, $wnd, $doc) {
-
-var $engine; // lazy-initialized in Player constructor
+})(function($glob, $engine, $wnd, $doc) {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -392,11 +390,6 @@ var I = {};
 // -----------------------------------------------------------------------------
 
 function Player() {
-    // The line below ensures us that no engine code is used before the creation of
-    // any player instance and also gives user the ability to change engine on-the-fly,
-    // in any moment before creating a first player instance.
-    // By default — the engine is DOM, of course.
-    if (!$engine) $engine = __anm.getEngine();
     this.id = '';
     this.state = null;
     this.anim = null;
@@ -415,7 +408,7 @@ Player.NO_TIME = -1;
 
 Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
                           'height': DEF_CNVS_HEIGHT,
-                          'bgcolor': null/* DEF_CNVS_BG */ };
+                          'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ }; // FIXME: change to bgfill
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
                                  'muteErrors': false,
@@ -430,7 +423,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'anim': { 'fps': 30,
                                            'width': DEF_CNVS_WIDTH,
                                            'height': DEF_CNVS_HEIGHT,
-                                           'bgcolor': null,
+                                           'bgcolor': null, // FIXME: change to bgfill
                                            'duration': 0 }
                                };
 
@@ -467,7 +460,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       "anim": { "fps": 30,
 //                 "width": 400,
 //                 "height": 250,
-//                 "bgcolor": "#fff",
+//                 "bgcolor": { color: "#fff" },
 //                 "duration": 0 } }
 
 Player.prototype.init = function(cvs, opts) {
@@ -826,7 +819,7 @@ Player.prototype._postInit = function() {
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
-    this._configureCanvas({
+    this._reconfigureCanvas({
         width: rect.width,
         height: rect.height,
         x: rect.x,
@@ -861,18 +854,19 @@ Player.prototype.changeZoom = function(ratio) {
 //     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
 //       "width": 640,
 //       "height": 480,
-//       ["bgcolor": "#f00",] // in canvas-friendly format
+//       ["bgcolor": { color: "#f00" },] // in canvas-friendly format
 //       ["duration": 10.0] // in seconds
 //     }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cvs = this.canvas;
 
-    if (!conf.width && cnvs.hasAttribute('width')) conf.width = cnvs.getAttribute('width');
-    if (!conf.height && cnvs.hasAttribute('height')) conf.height = cnvs.getAttribute('height');
+    if (!conf.width && cvs.hasAttribute('width')) conf.width = cvs.getAttribute('width');
+    if (!conf.height && cvs.hasAttribute('height')) conf.height = cvs.getAttribute('height');
 
-    this._configureCanvas(conf);
+    this._reconfigureCanvas(conf);
 
+    if (conf.bgcolor) this.state.bgcolor = conf.bgcolor;
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
 
@@ -908,7 +902,7 @@ Player.prototype.drawAt = function(time) {
     var scene = this.anim,
         u_before = this.__userBeforeRender,
         u_after = this.__userAfterRender/*,
-        after = function(gtime, ctx) {
+        after = function(gtime, ctx) {  // not used
             scene.reset();
             scene.__informEnabled = true;
             u_after(gtime, ctx);
@@ -947,6 +941,9 @@ Player.prototype.detach = function() {
     $engine.detachPlayer(this.canvas, this);
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
+}
+Player.attachedTo = function(canvas) {
+    return $engine.playerAttachedTo(canvas, this);
 }
 Player.__getPosAndRedraw = function(player) {
     return function(evt) {
@@ -1075,7 +1072,7 @@ Player.prototype._drawErrorSplash = function(e) {
     ctx.font = '14px sans-serif';
     ctx.fillText(Strings.ERROR +
                  (e ? ': ' + (e.message || (typeof Error))
-                    : '') + '.', 20, 35);
+                    : '') + '.', 20, 25);
     ctx.restore();
 }
 Player.prototype.toString = function() {
@@ -1104,7 +1101,7 @@ Player.prototype._stopAndContinue = function() {
   this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
 // update player's canvas with configuration
-Player.prototype._configureCanvas = function(opts) {
+Player.prototype._reconfigureCanvas = function(opts) {
     var canvas = this.canvas;
     var pxRatio = $engine.PX_RATIO;
     this._canvasConf = opts;
@@ -1265,6 +1262,7 @@ Player.prototype.__onerror = function(err) {
       player.fire(C.S_ERROR, err);
 
       player.anim = null;
+      // was here: /*if (player.state)*/ player.__unsafe_stop();
   } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
 
   try {
@@ -1401,7 +1399,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
              'anim': { 'fps': undefined,
                        'width': params.w,
                        'height': params.h,
-                       'bgcolor': params.bg ? ("#" + params.bg) : null,
+                       'bgcolor':  { color: params.bg ? "#" + params.bg : null },
                        'duration': undefined } };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
@@ -5647,7 +5645,6 @@ return function($trg) {
                        nan: __nan };
     $trg.__dev = { '_win': function() { return $wnd },
                    '_winf': function(w) { $wnd = w; },
-                   '_DomEngine': DomEngine,
                    'strf': _strf,
                    'adjust': __adjust,
                    't_cmp': __t_cmp,

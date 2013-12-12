@@ -25,6 +25,7 @@
 
     // private developer-related configuration
     // window.__anm_conf || GLOBAL.__anm_conf
+    // TODO: merge actual properties with default values, if they are set
     if (!_GLOBAL_[PRIVATE_CONF]) {
         _GLOBAL_[PRIVATE_CONF] = {
             logImport: false,
@@ -104,13 +105,13 @@
     //              builder should be placed in anm.Builder
 
     // a function to register some sub-namespace or object (like 'anm.*') in window or as module
-    var registerUsingAnm = (function(_namespace, _glob, _wnd, _conf) {
+    var registerUsingAnm = (function(_namespace, _glob, _engine, _wnd, _conf) {
         return function(name, produce) {
             var isBrowser = _wnd || _conf.forceWindowScope,
                 isAmd = (typeof define === 'function' && define.amd),
                 isCommonJSModule = (typeof module != 'undefined'),
                 isCommonJSExports = (typeof exports === 'object');
-             // FIXME: Remove, replace with Engine injector
+            // FIXME: Remove all, replace with Engine injector
             if (isBrowser) {
                 _glob[name] = produce(_glob[_namespace]);
             } else if (isAmd) {
@@ -123,10 +124,10 @@
                 _glob[name] = produce(_glob[_namespace]);
             }
         }
-    })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _conf);
+    })(PUBLIC_NAMESPACE, _GLOBAL_, _conf.engine, _window, _conf);
 
     // a function to register a player namespace (currently: 'anm') in window or as module
-    var registerPlayer = (function(_namespace, _glob, _wnd, _doc, _conf) {
+    var registerPlayer = (function(_namespace, _glob, _engine, _wnd, _doc, _conf) {
         /*var _wnd_mock = {
                     'setTimeout': setTimeout, 'clearTimeout': clearTimeout,
                     'devicePixelRatio': 1,
@@ -139,22 +140,22 @@
                 isAmd = (typeof define === 'function' && define.amd),
                 isCommonJSModule = (typeof module != 'undefined'),
                 isCommonJSExports = (typeof exports === 'object');
-             // FIXME: Remove, replace with Engine injector
+            // FIXME: Remove all, replace with Engine injector
             if (isBrowser) {
                 _wnd[_namespace] = _wnd[_namespace] || {};
-                produce(_glob, _wnd, _doc)(_wnd[_namespace]);
+                produce(_glob, _engine, _wnd, _doc)(_wnd[_namespace]);
             } else if (isAmd) {
-                define(produce(_glob, _wnd, _doc));
+                define(produce(_glob, _engine, _wnd, _doc));
             } else if (isCommonJSModule) {
-                module.exports = produce(_glob, _wnd, _doc)({});
+                module.exports = produce(_glob, _engine, _wnd, _doc)({});
             } else if (isCommonJSExports) {
-                produce(_glob, _wnd, _doc)(exports);
+                produce(_glob, _engine, _wnd, _doc)(exports);
             } else {
                 _wnd[_namespace] = _wnd[_namespace] || {};
-                produce(_glob, _wnd, _doc)(_wnd[_namespace]);
+                produce(_glob, _engine, _wnd, _doc)(_wnd[_namespace]);
             }
         }
-    })(PUBLIC_NAMESPACE, _GLOBAL_, _window, _document, _conf);
+    })(PUBLIC_NAMESPACE, _GLOBAL_, _conf.engine, _window, _document, _conf);
 
     /* TODO: use this for:
        collisions: Scene.prototype.handle__x (return value should be returned properly);

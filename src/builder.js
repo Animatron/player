@@ -53,7 +53,6 @@ function Builder(obj) {
         this.v = new Element();
         this.v.name = this.n;
     }
-    this.__anm_iamBulder = true;
     this.x = this.v.xdata;
     this.bs = this.v.bstate;
     this.v.__b$ = this;
