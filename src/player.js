@@ -5258,156 +5258,35 @@ InfoBlock.prototype.detach = function(parent) {
 }
 // TODO: move to engine
 InfoBlock.prototype.update = function(parent) {
-
-    /*var cvs = this.canvas,
-        pconf = ENGINE.getCanvasParams(parent),
-        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr, ;
-    if (!cvs) {
-        cvs = ENGINE.addChildCanvas('ctrls', parent,
-                 [ 0, _ph - Controls.HEIGHT,
-                   _pw, Controls.HEIGHT ],
-                 { _class: 'anm-controls ',
-                   position: 'absolute',
-                   opacity: Controls.OPACITY,
-                   zIndex: 100,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
-        this.id = cvs.id;
-        this.canvas = cvs;
-        this.ctx = ENGINE.getContext(cvs, '2d');
-        this.subscribeEvents(cvs);
-        this.hide();
-        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
-    } else {
-        ENGINE.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
-    }
-    var cconf = ENGINE.getCanvasParams(cvs);
-    // _canvas.style.left = _cp[0] + 'px';
-    // _canvas.style.top = _cp[1] + 'px';
-    this._ratio = cconf[2];
-    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
-    this.bounds = ENGINE.getCanvasBounds(cvs);*/
-
-    /* COPIED TO BE NEW, MODIFY AND GET NEW
-
     var cvs = this.canvas,
-        pconf = ENGINE.getCanvasParams(parent),
-        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr;
+        pconf = $engine.getCanvasParams(parent),
+        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr,
+        _m = InfoBlock.MARGIN,
+        _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
         cvs = ENGINE.addChildCanvas('info', parent,
-                 [ 0, _ph - Controls.HEIGHT,
-                   _pw, Controls.HEIGHT ],
+                 [ _m, _m, _w, _h ],
                  { _class: 'anm-info ',
                    position: 'absolute',
-                   opacity: Controls.OPACITY,
+                   opacity: InfoBlock.OPACITY,
                    zIndex: 100,
                    cursor: 'pointer',
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
         this.id = cvs.id;
         this.canvas = cvs;
-        this.ctx = ENGINE.getContext(cvs, '2d');
+        this.ctx = $engine.getContext(cvs, '2d');
         this.subscribeEvents(cvs);
         this.hide();
-        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
+        this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
-        ENGINE.configureCanvas(cvs, [ _pw, Controls.HEIGHT ], _pr);
+        $engine.configureCanvas(cvs, [ _w, _h ], _pr);
     }
-    var cconf = ENGINE.getCanvasParams(cvs);
+    var cconf = $engine.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';
     // _canvas.style.top = _cp[1] + 'px';
     this._ratio = cconf[2];
-    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
-    this.bounds = ENGINE.getCanvasBounds(cvs); */
-
-    /* ACTUAL CODE THAT WAS HERE
-
-    var _ratio = parent.__pxRatio,
-        _p = InfoBlock.PADDING,
-        _m = InfoBlock.MARGIN,
-        _w = InfoBlock.DEFAULT_WIDTH,
-        _h = InfoBlock.DEFAULT_HEIGHT - (_p + _p),
-        _pp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
-                                 parent.parentNode.offsetTop + parent.clientTop ]
-                             : ENGINE.findPos(parent),
-        _l = _pp[0] + parent.clientLeft + _m,
-        _t = _pp[1] + parent.clientTop + _m;
-    var _canvas = this.canvas;
-    if (!_canvas) {
-        _canvas = newCanvas([ _w, _h ], _ratio);
-        if (parent.id) { _canvas.id = '__'+parent.id+'_info'; }
-        _canvas.className = 'anm-info';
-        _canvas.style.position = 'absolute';
-        _canvas.style.opacity = InfoBlock.OPACITY;
-        _canvas.style.zIndex = 100;
-        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-        this.canvas = _canvas;
-        this.ctx = _canvas.getContext('2d');
-        this.id = _canvas.id;
-        this.hide();
-        this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
-    }
-    // width and height will be calculated on update
-    // _canvas.style.width = _w + 'px';
-    // _canvas.style.height = _h + 'px';
-    _canvas.style.top = _t + 'px';
-    _canvas.style.left = _l + 'px';
-    this.bounds = [ _l, _t, _l+_w, _t+_h ];
-    this.canvas = _canvas;
-    if (!this.ready) {
-        var appendTo = this._inParent ? parent.parentNode
-                                      : $doc.body;
-        // FIXME: a dirty hack
-        if (this._inParent) { appendTo.style.position = 'relative'; }
-        appendTo.appendChild(_canvas);
-        this.ready = true;
-    }
-    this.render(); */
-
-
-
-    /* var _ratio = parent.__pxRatio,
-        _w = parent.width / _ratio,
-        _h = Controls.HEIGHT,
-        _hdiff = (parent.height / _ratio) - Controls.HEIGHT,
-        _pp = find_pos(parent), // parent position
-        _bp = [ _pp[0] + parent.clientLeft, _pp[1] + parent.clientTop + _hdiff ], // bounds position
-        _cp = this._inParent ? [ parent.parentNode.offsetLeft + parent.clientLeft,
-                                 parent.parentNode.offsetTop  + parent.clientTop + _hdiff ]
-                             : _bp; // position to set in styles
-    var _canvas = this.canvas;
-    if (!_canvas) {
-        _canvas = newCanvas([ _w, _h ], _ratio);
-        if (parent.id) { _canvas.id = '__'+parent.id+'_ctrls'; }
-        _canvas.className = 'anm-controls';
-        _canvas.style.position = 'absolute';
-        _canvas.style.opacity = Controls.OPACITY;
-        _canvas.style.zIndex = 100;
-        _canvas.style.cursor = 'pointer';
-        _canvas.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-        this.id = _canvas.id;
-        this.canvas = _canvas;
-        this.ctx = _canvas.getContext('2d');
-        this.subscribeEvents(_canvas);
-        this.hide();
-        this.changeTheme(Controls.BASE_FGCOLOR, Controls.BASE_BGCOLOR);
-    } else {
-        canvasOpts(_canvas, [ _w, _h ], _ratio);
-    }
-    _canvas.style.left = _cp[0] + 'px';
-    _canvas.style.top = _cp[1] + 'px';
-    this._ratio = _ratio;
-    this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
-    if (!this.ready) {
-        var appendTo = this._inParent ? parent.parentNode
-                                      : $doc.body;
-        // FIXME: a dirty hack?
-        if (this._inParent) { appendTo.style.position = 'relative'; }
-        appendTo.appendChild(_canvas);
-        this.attached = true;
-        this.ready = true;
-    }
-    this.bounds = [ _bp[0], _bp[1], _bp[0]+(_w*_ratio),
-                                    _bp[1]+(_h*_ratio) ]; */
+    //this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
+    this.bounds = $engine.getCanvasBounds(cvs);
 }
 InfoBlock.prototype.render = function() {
     if (!this.__data) return;
