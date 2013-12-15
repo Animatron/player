@@ -17,11 +17,17 @@
   if (anm.M[C.MOD_AUDIO]) throw new Error('AUDIO module already enabled');
 
   anm.M[C.MOD_AUDIO] = {};
+  var m_ctx = anm.M[C.MOD_AUDIO];
 
   var E = anm.Element;
 
   // Initialization
   // ----------------------------------------------------------------------------------------------------------------
+
+  m_ctx._audio_ctx = function() {
+    var context = window.webkitAudioContext || window.audioContext || window.AudioContext;
+    return context ? new context() : null;
+  }();
 
   C.T_VOLUME = 'VOLUME';
   Tween.TWEENS_PRIORITY[C.T_VOLUME] = Tween.TWEENS_COUNT++;
@@ -65,12 +71,15 @@
     this._audio_is_playing = true;
     var current_time = this._audio_band_offset + ltime;
 
-    if (this._web_audio_api) {
-      this._source = window._audio_ctx.createBufferSource();
+    if (m_ctx._audio_ctx) {
+      this._source = m_ctx._audio_ctx.createBufferSource();
       this._source.buffer = this._audio_buffer;
-      this._source.connect(window._audio_ctx.destination);
+      this._source.connect(m_ctx._audio_ctx.destination);
+
       if (this._source.play) {
         this._source.play(0, current_time);
+      } else if (this._source.start) {
+        this._source.start(0, current_time, this._source.buffer.duration - current_time);
       } else {
         this._source.noteGrainOn(0, current_time, this._source.buffer.duration - current_time);
       }
@@ -83,7 +92,7 @@
 
   var _onAudioStop = function(ltime, duration) {
     if (this._audio_is_playing) {
-      if (this._web_audio_api) {
+      if (m_ctx._audio_ctx) {
         if (this._source.stop) {
           this._source.stop(0);
         } else {
@@ -133,7 +142,7 @@
       // assign custom render function
       this.__frameProcessors.push(_audio_customRender);
 
-      this._audio_load();
+      this._audioLoad();
     }
   });
 
@@ -146,16 +155,6 @@
   E.prototype._mpeg_supported = function() {
     var a = E.__test_elm ? E.__test_elm : (E.__test_elm = document.createElement('audio'), E.__test_elm);
     return !!(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
-  }
-
-  E.prototype._web_audio_api_supported = function() {
-    return window.webkitAudioContext || window.audioContext;
-  }
-
-  E.prototype._init_web_audio_if_needed = function() {
-    if (window._audio_ctx) return;
-    var ctx = window.webkitAudioContext || window.audioContext;
-    window._audio_ctx = new ctx();
   }
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
@@ -184,7 +183,7 @@
     }
   };
 
-  E.prototype._audio_load = function() {
+  E.prototype._audioLoad = function() {
     var me = this;
 
     _ResMan.loadOrGet(me._audio_url,
@@ -194,22 +193,23 @@
             return;
           }
 
-          me._web_audio_api = me._web_audio_api_supported();
-          if (me._web_audio_api) {
+          if (m_ctx._audio_ctx) {
             // use Web Audio API if possible
-            me._init_web_audio_if_needed();
 
             var loadingDone = function(e) {
               var req = e.target;
-              me._audio_buffer = window._audio_ctx.createBuffer(req.response, false);
-              me._audio_is_loaded = true;
-              notify_success(me);
+              m_ctx._audio_ctx.decodeAudioData(req.response, function onSuccess(decodedBuffer) {
+                me._audio_buffer = decodedBuffer;
+                me._audio_is_loaded = true;
+                notify_success(me);
+              }, audioErrProxy(me._audio_url, notify_error));
             };
 
             var req = new XMLHttpRequest();
             req.open('GET', me._audio_format_url(me._audio_url), true);
             req.responseType = 'arraybuffer';
             req.addEventListener('load', loadingDone, false);
+            req.addEventListener('error', audioErrProxy(me._audio_url, notify_error), false);
             req.send();
           } else {
             var el = document.createElement("audio");
