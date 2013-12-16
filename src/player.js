@@ -53,8 +53,8 @@
 // -----------------------------------------------------------------------------
 
 (((typeof __anm !== 'undefined') && __anm.registerPlayer) || function() {
-    throw new Error('Player namespace is not initialized');
-})(function($glob, $engine, $wnd, $doc) {
+    throw new Error('Player namespace cannot be initialized');
+})(function($glob, anm, $engine) {
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -5496,8 +5496,6 @@ return function($trg) {
 
     $trg._$ = __createPlayer;
 
-    $trg.switchEngineTo = function(engine) { $engine = engine($wnd, $doc); };
-
     $trg.C = C; // constants
     $trg.M = M; // modules
     $trg.I = I; // importers
@@ -5522,9 +5520,7 @@ return function($trg) {
                         str: __str };
     $trg._valcheck = { finite: __finite,
                        nan: __nan };
-    $trg.__dev = { '_win': function() { return $wnd },
-                   '_winf': function(w) { $wnd = w; },
-                   'strf': _strf,
+    $trg.__dev = { 'strf': _strf,
                    'adjust': __adjust,
                    't_cmp': __t_cmp,
                    'TIME_PRECISION': TIME_PRECISION/*,
