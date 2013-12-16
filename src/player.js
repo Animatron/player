@@ -52,9 +52,12 @@
 // Module Definition
 // -----------------------------------------------------------------------------
 
-(((typeof __anm !== 'undefined') && __anm.registerPlayer) || function() {
-    throw new Error('Player namespace cannot be initialized');
-})(function($glob, anm, $engine) {
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/Player', ['anm'], function(anm) {
+
+var $engine = anm.engine;
+var $conf = anm.conf;
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -62,17 +65,20 @@
 // ### Events
 /* ---------- */
 
-var provideEvents = __anm.provideEvents;
-var registerEvent = __anm.registerEvent;
+var provideEvents = anm.provideEvents;
+var registerEvent = anm.registerEvent;
 
 // ### Other External utilities
 /* ---------- */
 
-var iter = __anm.iter;
-var guid = __anm.guid;
+var getGlobal = anm.getGlobal;
+var registerGlobally = anm.registerGlobally;
+
+var iter = anm.iter;
+var guid = anm.guid;
 
 // value/typecheck
-var is = __anm.is;
+var is = anm.is;
 /*var __finite  = is.finite,
     __nan     = is.nan,
     __builder = is.builder,
@@ -85,16 +91,16 @@ var is = __anm.is;
 // ### Strings & Errors
 /* ---------- */
 
-var Strings = __anm.Strings,
-    Errors = __anm.Errors;
+var Strings = anm.Strings,
+    Errors = anm.Errors;
 
-var SystemError = __anm.SystemError,
+var SystemError = anm.SystemError,
     SysErr = SystemError;
 
-var PlayerError = __anm.PlayerError,
+var PlayerError = anm.PlayerError,
     PlayerErr = PlayerError;
 
-var AnimationError = __anm.AnimationError,
+var AnimationError = anm.AnimationError,
     AnimErr = AnimationError;
 
 // ### Internal utilities
@@ -255,10 +261,10 @@ function __t_cmp(t0, t1) {
 // Constants
 // -----------------------------------------------------------------------------
 
-var C = __anm.C; // will be transferred to public namespace both from bottom of player.js
+var C = anm.C; // will be transferred to public namespace both from bottom of player.js
 
-var _ResMan = __anm.resource_manager;
-var _PlrMan = __anm.player_manager;
+var _ResMan = anm.resource_manager;
+var _PlrMan = anm.player_manager;
 
 // ### Player states
 /* ----------------- */
@@ -4406,7 +4412,7 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || __anm.conf.doNotRenderShadows) return;
+    if (!shadow || $conf.doNotRenderShadows) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -4443,7 +4449,7 @@ Sheet.prototype.load = function(callback) {
     var me = this;
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
-            if (__anm.conf.doNotLoadImages) { notify_error('Loading images is turned off');
+            if ($conf.doNotLoadImages) { notify_error('Loading images is turned off');
                                               return; }
             var _img = new Image();
             _img.onload = _img.onreadystatechange = function() {
@@ -4471,7 +4477,7 @@ Sheet.prototype.load = function(callback) {
             me._drawToCache();
             if (callback) callback.call(me, image);
         },
-        function(err) { __anm.console.error(err.message || err);
+        function(err) { anm.console.error(err.message || err);
                         me.ready = true;
                         me.wasError = true; });
 }
@@ -5456,23 +5462,12 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
 // Exports
 // -----------------------------------------------------------------------------
 
-return function($trg) {
-
-    if (!$trg) $trg = {};
-
-    if (!$trg.MODULES)  $trg.MODULES = {};
-    if (!$trg._globals) $trg._globals = {};
+return (function($trg) {
 
     function __createPlayer(cvs, opts) { var p = new Player();
                                          p.init(cvs, opts); return p; }
 
-    var __globals = {
-        'createPlayer': __createPlayer
-    }
-    for (var prop in __globals) {
-        $trg._globals[prop] = __globals[prop];
-        $glob[prop] = __globals[prop];
-    }
+    //registerGlobally('createPlayer', __createPlayer);
 
     /*$trg.__js_pl_all = this;*/
 
@@ -5496,18 +5491,12 @@ return function($trg) {
 
     $trg._$ = __createPlayer;
 
-    $trg.C = C; // constants
-    $trg.M = M; // modules
-    $trg.I = I; // importers
     $trg.Player = Player;
     $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
-    $trg.Errors = Errors; $trg.SystemError = SystemError;
-                          $trg.PlayerError = PlayerError;
-                          $trg.AnimationError = AnimationError;
 
     $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
 
@@ -5526,8 +5515,8 @@ return function($trg) {
                    'TIME_PRECISION': TIME_PRECISION/*,
                    'Controls': Controls, 'Info': InfoBlock*/ };
 
-    return $trg;
+    return Player;
 
-}
+})(anm);
 
 });
