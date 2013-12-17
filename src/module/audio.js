@@ -73,7 +73,7 @@
 
     if (m_ctx._audio_ctx) {
       this._source = m_ctx._audio_ctx.createBufferSource();
-      this._source.buffer = this._audio_buffer;
+      this._source.buffer = this._audio;
       this._source.connect(m_ctx._audio_ctx.destination);
 
       if (this._source.play) {
@@ -199,9 +199,7 @@
             var loadingDone = function(e) {
               var req = e.target;
               m_ctx._audio_ctx.decodeAudioData(req.response, function onSuccess(decodedBuffer) {
-                me._audio_buffer = decodedBuffer;
-                me._audio_is_loaded = true;
-                notify_success(me);
+                notify_success(decodedBuffer);
               }, audioErrProxy(me._audio_url, notify_error));
             };
 
