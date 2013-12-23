@@ -204,7 +204,7 @@
                   notify_success(decodedBuffer);
                 }, audioErrProxy(url, notify_error));
               } else {
-                notify_error('Unable to load audio ' + url + ': ' + e.statusText);
+                notify_error('Unable to load audio ' + url + ': ' + req.statusText);
               }
             };
 
