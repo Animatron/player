@@ -195,19 +195,24 @@
 
           if (m_ctx._audio_ctx) {
             // use Web Audio API if possible
+            var url = me._audio_format_url(me._audio_url);
 
             var loadingDone = function(e) {
               var req = e.target;
-              m_ctx._audio_ctx.decodeAudioData(req.response, function onSuccess(decodedBuffer) {
-                notify_success(decodedBuffer);
-              }, audioErrProxy(me._audio_url, notify_error));
+              if (req.status == 200) {
+                m_ctx._audio_ctx.decodeAudioData(req.response, function onSuccess(decodedBuffer) {
+                  notify_success(decodedBuffer);
+                }, audioErrProxy(url, notify_error));
+              } else {
+                notify_error('Unable to load audio ' + url + ': ' + e.statusText);
+              }
             };
 
             var req = new XMLHttpRequest();
-            req.open('GET', me._audio_format_url(me._audio_url), true);
+            req.open('GET', url, true);
             req.responseType = 'arraybuffer';
             req.addEventListener('load', loadingDone, false);
-            req.addEventListener('error', audioErrProxy(me._audio_url, notify_error), false);
+            req.addEventListener('error', audioErrProxy(url, notify_error), false);
             req.send();
           } else {
             var el = document.createElement("audio");
