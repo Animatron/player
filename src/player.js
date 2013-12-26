@@ -3916,13 +3916,17 @@ C.PC_SQUARE = 'square';
 C.PC_BEVEL = 'bevel';
 
 // > Path % (str: String)
-function Path(str, fill, stroke, shadow) {
-    this.str = str;
+function Path(val, fill, stroke, shadow) {
     this.fill = fill;
     this.stroke = stroke;
     this.shadow = shadow;
     this.segs = [];
-    this.parse(str);
+
+    if (__str(val)) {
+        this.parse(val);
+    } else if (__arr(val)) {
+        this.segs = val;
+    }
 }
 
 Path.DEFAULT_CAP = C.PC_ROUND;
@@ -4311,6 +4315,9 @@ MSeg.prototype.tangentAt = function(start, t) {
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
+MSeg.prototype.toString = function() {
+    return "M " + this.pts.join(" ");
+}
 
 function LSeg(pts) {
     this.type = C.P_LINETO;
@@ -4342,6 +4349,10 @@ LSeg.prototype.tangentAt = function(start, t) {
 LSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
+LSeg.prototype.toString = function() {
+    return "L " + this.pts.join(" ");
+}
+
 
 function CSeg(pts) {
     this.type = C.P_CURVETO;

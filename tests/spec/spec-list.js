@@ -34,6 +34,7 @@ var _specs = {
                       '06.versions',
                       '07.meta',
                       '08.repeat-modes',
+                      '09.binary-path',
                       '_utils.and.their' ],
    '04.builder': [ '01.formation',
                    '02.structure',

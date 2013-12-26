@@ -64,6 +64,7 @@ Import.project = function(prj) {
     __anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
+    Import._paths = prj.anim.paths;
     var root = new Scene(),
         elems = prj.anim.elements,
         last_scene_band = [ 0, 0 ];
@@ -100,6 +101,8 @@ Import.project = function(prj) {
 
     if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
     if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
+
+    Import._paths = undefined; // clear
     return root;
 }
 /** meta **/
@@ -359,11 +362,89 @@ Import.band = function(src) {
  */
 // -> Path
 Import.path = function(src) {
-    return new Path(src[4], // Import.pathval
+    return new Path(Import._pathDecode(src[4]), // Import.pathval
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]));
 }
+
+/*
+ * Could be either String or Binary encoded path
+ */
+Import._pathDecode = function(src) {
+    if (is.str(src)) {
+        return src;
+    }
+
+    return Import._decodeBinaryPath(Import._paths[src]);
+}
+
+Import._decodeBinaryPath = function(encoded) {
+    var path = new Path();
+    if (encoded) {
+        encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
+        try {
+            var decoded = __anm.Base64Decoder.decode(encoded);
+            var s = new __anm.BitStream(decoded);
+            var base = [0, 0];
+            if (s) {
+                var _do = true;
+                while (_do) {
+                    var type = s.readBits(2);
+                    switch (type) {
+                        case 0:
+                            var p = Import._pathReadPoint(s, [], base);
+                            base = p;
+
+                            Path._parserVisitor("M", p, path);
+                            break;
+                        case 1:
+                            var p = Import._pathReadPoint(s, [], base);
+                            base = p;
+
+                            Path._parserVisitor("L", p, path);
+                            break;
+                        case 2:
+                            var p = Import._pathReadPoint(s, [], base);
+                            Import._pathReadPoint(s, p);
+                            Import._pathReadPoint(s, p);
+                            base = [p[p.length - 2], p[p.length - 1]];
+
+                            Path._parserVisitor("C", p, path);
+                            break;
+                        case 3:
+                            _do = false;
+                            break;
+                        default:
+                            _do = false;
+                            _reportError('Unknown type "' + type + ' for path "' + encoded + '"');
+                            break;
+                    }
+                }
+            } else {
+                _reportError('Unable to decode Path "' + encoded + '"');
+            }
+        } catch (err) {
+            _reportError('Unable to decode Path "' + encoded + '"');
+        }
+    }
+
+    return path.segs;
+}
+
+Import._pathReadPoint = function(stream, target, base) {
+    var l = stream.readBits(5);
+    var x = stream.readSBits(l);
+    var y = stream.readSBits(l);
+
+    var b_x = base ? base[0] : (target.length ? target[target.length - 2] : 0);
+    var b_y = base ? base[1] : (target.length ? target[target.length - 1] : 0);
+
+    target.push(b_x + x / 1000.0);
+    target.push(b_y + y / 1000.0);
+    return target;
+}
+
 /** text **/
 /*
  * array {

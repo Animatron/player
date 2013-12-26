@@ -437,6 +437,124 @@
 
     })();
 
+
+    // BitStream
+    // -----------------------------------------------------------------------------
+
+    function BitStream(int8array) {
+        this.buf = int8array;
+        this.pos = 0;
+        this.bitPos = 0;
+        this.bitsBuf = 0;
+    }
+
+    /*
+     * Reads n unsigned bits
+     */
+    BitStream.prototype.readBits = function(n) {
+        var v = 0;
+        for (;;) {
+            var s = n - this.bitPos;
+            if (s>0) {
+                v |= this.bitBuf << s;
+                n -= this.bitPos;
+                this.bitBuf = this.readUByte();
+                this.bitPos = 8;
+            } else {
+                s = -s;
+                v |= this.bitBuf >> s;
+                this.bitPos = s;
+                this.bitBuf &= (1 << s) - 1;
+                return v;
+            }
+        }
+    }
+
+    /*
+     * Reads one unsigned byte
+     */
+    BitStream.prototype.readUByte = function() {
+        return this.buf[this.pos++]&0xff;
+    }
+
+    /*
+     * Reads n signed bits
+     */
+    BitStream.prototype.readSBits = function(n) {
+        var v = this.readBits(n);
+        // Is the number negative?
+        if( (v&(1 << (n - 1))) != 0 ) {
+            // Yes. Extend the sign.
+            v |= -1 << n;
+        }
+
+        return v;
+    }
+
+    // Base64 Decoder
+    // -----------------------------------------------------------------------------
+
+    function Base64Decoder() {}
+
+    /*
+     * Returns int8array
+     */
+    Base64Decoder.decode = function(str) {
+        return Base64Decoder.str2ab(Base64Decoder._decode(str));
+    }
+
+    Base64Decoder.str2ab = function(str) {
+        var result = new Int8Array(str.length);
+        for (var i=0, strLen=str.length; i<strLen; i++) {
+            result[i] = str.charCodeAt(i);
+        }
+        return result;
+    }
+
+    Base64Decoder._decode = function(data) {
+        if (typeof window['atob'] === 'function') {
+            // optimize
+            return atob(data);
+        }
+
+        var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        var o1, o2, o3, h1, h2, h3, h4, bits, i = 0,
+            ac = 0,
+            dec = "",
+            tmp_arr = [];
+
+        if (!data) {
+            return data;
+        }
+
+        data += '';
+
+        do { // unpack four hexets into three octets using index points in b64
+            h1 = b64.indexOf(data.charAt(i++));
+            h2 = b64.indexOf(data.charAt(i++));
+            h3 = b64.indexOf(data.charAt(i++));
+            h4 = b64.indexOf(data.charAt(i++));
+
+            bits = h1 << 18 | h2 << 12 | h3 << 6 | h4;
+
+            o1 = bits >> 16 & 0xff;
+            o2 = bits >> 8 & 0xff;
+            o3 = bits & 0xff;
+
+            if (h3 == 64) {
+                tmp_arr[ac++] = String.fromCharCode(o1);
+            } else if (h4 == 64) {
+                tmp_arr[ac++] = String.fromCharCode(o1, o2);
+            } else {
+                tmp_arr[ac++] = String.fromCharCode(o1, o2, o3);
+            }
+        } while (i < data.length);
+
+        dec = tmp_arr.join('');
+
+        return dec;
+    }
+
     // Export
     // -----------------------------------------------------------------------------
 
@@ -456,7 +574,9 @@
         provideEvents: provideEvents,
         registerEvent: registerEvent,
         resource_manager: new ResourceManager(),
-        player_manager: new PlayerManager()
+        player_manager: new PlayerManager(),
+        Base64Decoder: Base64Decoder,
+        BitStream: BitStream
         //override: override,
         //overridePrepended: overridePrepended
         // TODO: player instances listeners (look Player.addNewInstanceListener)
