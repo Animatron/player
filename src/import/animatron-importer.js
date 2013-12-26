@@ -416,10 +416,13 @@ Import._decodeBinaryPath = function(encoded) {
                             _do = false;
                             break;
                         default:
+                            _do = false;
                             _reportError('Unknown type "' + type + ' for path "' + encoded + '"');
                             break;
                     }
                 }
+            } else {
+                _reportError('Unable to decode Path "' + encoded + '"');
             }
         } catch (err) {
             _reportError('Unable to decode Path "' + encoded + '"');
