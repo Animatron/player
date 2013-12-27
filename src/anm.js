@@ -44,6 +44,21 @@
 
     var $engine = getEngine();
 
+    function getEngine() {
+        if (_getGlobal(ENGINE_VAR)) return ($conf.engine = _getGlobal(ENGINE_VAR));
+        // The engine function should return a singleton object, so no `new` or something.
+        if (typeof DomEngine === 'undefined') throw new Error('Can\'t find any Engine to fallback to. DomEngine is not accessible.');
+        return ($conf.engine = DomEngine(PUBLIC_NAMESPACE, $conf));
+    }
+
+    function switchEngineTo($engine) {
+        throw new Error('Not implemented');
+        //$conf.engine = $engine(PUBLIC_NAMESPACE, $glob, $conf);
+        // TODO: move to PlayerManager
+        // FIXME: update all global functions that used from engine
+        // FIXME: fire an event and update all subscribed object
+    }
+
     // Public Namespace
     // -----------------------------------------------------------------------------
 
@@ -80,7 +95,7 @@
             AnimationError: null, // will be initialized below
             // Globals
             getGlobal: _getGlobal,
-            registerGlobally: __registerGlobally
+            registerGlobally: _registerGlobally
             //override: override,
             //overridePrepended: overridePrepended
             // TODO: player instances listeners (look Player.addNewInstanceListener)
@@ -96,24 +111,6 @@
             error: function() {},
             warn: function() {}
         };
-
-        // Engines
-        // -----------------------------------------------------------------------------
-
-        function getEngine() {
-            if (_getGlobal(ENGINE_VAR)) return ($conf.engine = _getGlobal(ENGINE_VAR));
-            // The engine function should return a singleton object, so no `new` or something.
-            if (!DomEngine) throw new Error('Can\'t find any Engine to fallback to. DomEngine is not accessible.');
-            return ($conf.engine = DomEngine(PUBLIC_NAMESPACE, $conf));
-        }
-
-        function switchEngineTo($engine) {
-            throw new Error('Not implemented');
-            //$conf.engine = $engine(PUBLIC_NAMESPACE, $glob, $conf);
-            // TODO: move to PlayerManager
-            // FIXME: update all global functions that used from engine
-            // FIXME: fire an event and update all subscribed object
-        }
 
         // Constants
         // -----------------------------------------------------------------------------

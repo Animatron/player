@@ -34,9 +34,9 @@ $glob.__anm_registerGlobally = function(name, obj) {
 // and they cannot use any other define version
 var $engine = DomEngine();
 
-__define('anm/engine/dom-engine', $engine);
+__define('anm/engine/dom-engine', [], $engine);
 
-$glob.__anm_ENGINE = $engine;
+$glob.__anm_engine = $engine;
 
 function DomEngine() { return (function() { // wrapper here is just to isolate it, executed immediately
 
@@ -467,63 +467,90 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
 })(this); };
 
-function __prepareForNativeRequire(what) {
+function __getAllFromGlob(what) {
     var what = Array.isArray(what) ? what : [ what ],
-        collected = [],
-        split;
+        collected = [];
     for (var i = 0, il = what.length; i < il; i++) {
-        if (what[i].indexOf('/')) {
-            split = what[i].split('/');
-            if (split.length == 2) collected.push(split[1]);
-            else if (split.length == 3) collected.push(split[1] + '/' + split[2]);
-        } else {
-            collected.push(what[i]);
-        }
+        collected.push(__getGlob(what[i]));
     }
     return collected;
 }
 
-function __getFromGlobal(what) {
+function __getGlob(path) {
+    // TODO: convert dashes to camel-case
+    var split = path.split('/');
+    var trg = $glob;
+    for (var i = 0, il = split.length; i < il; i++) {
+        trg = trg[split[i]];
+    }
+    return trg;
+}
+
+function __setGlob(path, val) {
+    // TODO: convert dashes to camel-case
+    var split = path.split('/');
+    var trg = $glob;
+    for (var i = 0, il = split.length; i < il; i++) {
+        if (!trg[split[i]]) {
+            trg[split[i]] = (i === (il - 1)) ? val : {};
+        }
+        trg = trg[split[i]];
+    }
+}
+
+function __prepareForNativeRequire(what) {
+    // TODO: convert dashes to camel-case
     var what = Array.isArray(what) ? what : [ what ],
         collected = [],
         split;
     for (var i = 0, il = what.length; i < il; i++) {
-        if (what[i].indexOf('/')) {
-            split = what[i].split('/');
-            if (split.length == 2) collected.push($glob[split[0]][split[1]]);
-            else if (split.length == 3) collected.push($glob[split[0]][split[1]][split[2]]);
-        } else {
-            collected.push($glob[what[i]]);
-        }
+        collected.push(__adaptForNativeRequire(what[i]));
     }
     return collected;
+}
+
+function __adaptForNativeRequire(path) {
+    // TODO: convert dashes to camel-case
+    var split = what[i].split('/');
+    if (split.length == 1) return split[0];
+    var trg = '';
+    for (var i = 1, il = split.length; i < il; i++) {
+        trg += split[i] + ((i !== il - 1) ? '/' : '');
+    }
+    return trg;
 }
 
 function __require(what, func) {
     if (isAmd || isCommonJSModule || isCommonJSExports) {
         require(__prepareForNativeRequire(what), func);
     } else {
-        func.call(null, __getFromGlobal(what));
+        func.call(null, __getGlob(what));
     }
-};
+}
 
-function __define = function(arg1, arg2, arg3) {
+function __define(arg1, arg2, arg3) {
     var id = arg3 ? arg1 : null,
         req = arg3 ? arg2 : arg1,
-        func = arg3 ? arg3 : arg2;
+        value = arg3 ? arg3 : arg2;
 
     if (isAmd) {
-        define(arg1, arg2, arg3);
+        define.call(null, arguments);
     } else {
         // id will be a file-path
-        var call_with =  (isCommonJSModule || isCommonJSExports) ? __prepareForNativeRequire(req)
-                                                                 : __getFromGlobal(req);
+        var isFunc = (typeof value == 'function');
+        var call_with = req ? ((isCommonJSModule || isCommonJSExports) ? __prepareForNativeRequire(req)
+                                                                       : __getAllFromGlob(req))
+                            : [];
+        if (!isFunc) {
+            for (var i = 0, il = call_with.length; i < il; i++) { require(call_with[i]); }
+        }
+        var result = (typeof value == 'function') ? value.call(null, call_with) : value;
         if (isCommonJSModule) {
-            module.exports = func.call(null, call_with);
+            module.exports = isFunc ? value.call(null, call_with) : value;
         } else if (isCommonJSExports) {
-            exports = func.call(null, call_with);
+            exports = isFunc ? value.call(null, call_with) : value;
         } else {
-            func.call(null, call_with);
+            __setGlob(id, isFunc ? value.call(null, call_with) : value);
         }
     }
 }

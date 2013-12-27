@@ -7,9 +7,9 @@
  * @VERSION
  */
 
-(((typeof __anm !== 'undefined') && __anm.registerUsingAnm) || function() {
-    throw new Error('Player namespace is not initialized');
-})('Builder', function(anm) {
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/Builder', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var Path = anm.Path;
 var Element = anm.Element;

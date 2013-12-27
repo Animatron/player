@@ -7,9 +7,13 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/module/audio', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var Player = anm.Player;
+
+// FIXME: register a module with anm.registerModule
 
 var _export_audio_data = function(data) {
   return {
@@ -33,5 +37,4 @@ Player.prototype.exportAudio = function() {
   return JSON.stringify(result);
 };
 
-
-})();
+});

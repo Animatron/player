@@ -12,6 +12,10 @@
 // This importer imports only the compact format of scenes (where all elements are arrays
 // of arrays)
 
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/import/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+
 var AnimatronImporter = (function() {
 
 var IMPORTER_ID = 'ANM';
@@ -662,3 +666,5 @@ __MYSELF.prototype.load = Import.project;
 return __MYSELF;
 
 })();
+
+});

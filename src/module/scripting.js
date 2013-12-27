@@ -7,12 +7,16 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/module/scripting', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+
   var C = anm.C,
-      is = __anm.is;
-  var _ResMan = __anm.resource_manager;
+      is = anm.is;
+  var _ResMan = anm.resource_manager;
   var Player = anm.Player;
 
+  // FIXME: register using some anm.registerModule or smth instead
   C.MOD_SCRIPTING = 'scripting';
   if (anm.M[C.MOD_SCRIPTING]) throw new Error('SCRIPTING module already enabled');
 
@@ -175,4 +179,4 @@
     });
   });
 
-})();
+});

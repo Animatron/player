@@ -7,10 +7,13 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/module/collisions', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var C = anm.C;
 
+// FIXME: register using some anm.registerModule or smth instead
 C.MOD_COLLISIONS = 'collisions';
 if (anm.M[C.MOD_COLLISIONS]) throw new Error('COLLISIONS module already enabled');
 
@@ -929,4 +932,4 @@ G.__curveCrosses = function(px, py, x0, y0,
                              x1, y1, level + 1));
 }
 
-})();  // end of anonymous wrapper
+});
