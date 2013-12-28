@@ -729,7 +729,7 @@ Import.grad = function(src) {
 }
 /** pathval **/
 Import.pathval = function(src) {
-    return new Path(src);
+    return new Path(Import._pathDecode(src));
 }
 
 function __MYSELF() { }
