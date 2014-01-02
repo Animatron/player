@@ -21,9 +21,9 @@ var C = anm.C;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
-var is = __anm.is;
+var is = anm.is;
 
-var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
+var modCollisions = anm.isModuleAccessible('collisions');  // FIXME: should test with require, in some optional way, like `anm/module/collisions?`
 
 var __b_cache = {};
 

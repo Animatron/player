@@ -8,6 +8,7 @@
  */
 
 // HERE GOES THE INITIALISATION OF ANM NAMESPACE, GLOBALS AND GLOBAL HELPERS
+// namespace itself is registered by name inside of the function, with the help of $engine.define
 
 (function(_GLOBAL_) {
 
@@ -62,12 +63,14 @@
     // Public Namespace
     // -----------------------------------------------------------------------------
 
-    $engine.define(PUBLIC_NAMESPACE, function() {
+    $engine.define(PUBLIC_NAMESPACE, [], function() {
 
         var $publ = {
             global: $glob,
             'undefined': ({}).___undefined___,
             'C': null, // constants, will be initialized below
+            'M': null, // modules, will be initialized below // FIXME: move to `anm.module.<alias>` ?
+            'I': null, // importers, will be initialized below // FIXME: move to `anm.import.<alias>` ?
             console: null, // will be initialized below
             guid: guid,
             conf: $conf,
@@ -76,10 +79,21 @@
             // Namespace
             namespace: PUBLIC_NAMESPACE,
             // Modules
-            modules: [],
+            // modules: [], // modules will register a namespace for themselves
             // Engine
             engine: $engine,
             switchEngineTo: switchEngineTo,
+            // FIXME: modules and engines should use require/define technique, with optional ? for tests
+            // Modules
+            registerModule: registerModule,
+            getModule: getModule, // should use `engine.require`?
+            isModuleAccessible: isModuleAccessible,
+            //configureModule: configureModule,
+            // Importers
+            registerImporter: registerImporter,
+            getModule: getImporter, // should use `engine.require`?
+            isImporterAccessible: isImporterAccessible,
+            //configureImporter: configureImporter,
             // Events
             provideEvents: provideEvents,
             registerEvent: registerEvent,
@@ -98,13 +112,15 @@
             registerGlobally: _registerGlobally
             //override: override,
             //overridePrepended: overridePrepended
-            // TODO: player instances listeners (look Player.addNewInstanceListener)
+            // TODO: registerTween
             //_win: function() { return $wnd },
             //_winf: function(w) { $wnd = w; }
         };
 
         // Logging
         // -----------------------------------------------------------------------------
+
+        // FIXME: add anm.log instead!
 
         $publ.console = $glob['console'] || {
             log: function() {},
@@ -117,6 +133,54 @@
 
         $publ.C = {};
         var C = $publ.C;
+
+        // Modules
+        // -----------------------------------------------------------------------------
+
+        $publ.M = {};
+        var M = $publ.M;
+
+        function registerModule(alias, conf) {
+            if (M[alias]) throw new Error('Module ' + alias + ' is already registered!');
+            M[alias] = conf;
+        }
+
+        function getModule(alias) {
+            return M[alias];
+        }
+
+        function isModuleAccessible(alias) {
+            return (typeof M[alias] !== 'undefined');
+        }
+
+        // TODO:
+        /*function configureModule(alias, conf) {
+
+        }*/
+
+        // Importers
+        // -----------------------------------------------------------------------------
+
+        $publ.I = {};
+        var I = $publ.I;
+
+        function registerImporter(alias, conf) {
+            if (I[alias]) throw new Error('Importer ' + alias + ' is already registered!');
+            I[alias] = conf;
+        }
+
+        function getImporter(alias) {
+            return I[alias];
+        }
+
+        function isImporterAccessible(alias) {
+            return (typeof I[alias] !== 'undefined');
+        }
+
+        // TODO:
+        /*function configureImporter(alias, conf) {
+
+        }*/
 
         // Events
         // -----------------------------------------------------------------------------
@@ -496,6 +560,7 @@
         Errors.P = {}; // Player Errors
         Errors.A = {}; // Animation Errors
 
+        // FIXME: move to player those ones who belong only to itself
         Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
         Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
         Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player';

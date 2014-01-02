@@ -18,8 +18,6 @@ __anm_engine.define('anm/import/animatron', ['anm', 'anm/Player'], function(anm/
 
 var AnimatronImporter = (function() {
 
-var IMPORTER_ID = 'ANM';
-
 var C = anm.C,
     Scene = anm.Scene,
     Element = anm.Element,
@@ -36,7 +34,7 @@ function _reportError(e) {
 
 var Import = {};
 
-anm.I[IMPORTER_ID] = Import;
+anm.registerImporter('animatron', Import);
 
 var cur_import_id;
 
@@ -662,6 +660,10 @@ __MYSELF.prototype.configureMeta = Import.meta;
 __MYSELF.prototype.configureAnim = Import.anim;
 
 __MYSELF.prototype.load = Import.project;
+
+__MYSELF.Import = Import;
+
+anm.registerImporter('animatron', __MYSELF);
 
 return __MYSELF;
 

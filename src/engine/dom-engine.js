@@ -34,7 +34,8 @@ $glob.__anm_registerGlobally = function(name, obj) {
 // and they cannot use any other define version
 var $engine = DomEngine();
 
-__define('anm/engine/dom-engine', [], $engine);
+__define('anm/engines/dom-engine', [], $engine);
+// TODO: also move our define and require to global space somehow and make them not to overlap with require.js?
 
 $glob.__anm_engine = $engine;
 
@@ -493,6 +494,10 @@ function __setGlob(path, val) {
     for (var i = 0, il = split.length; i < il; i++) {
         if (!trg[split[i]]) {
             trg[split[i]] = (i === (il - 1)) ? val : {};
+        } else if (i === (il - 1)) {
+            for (var prop in val) {
+                trg[split[i]][prop] = val[prop];
+            }
         }
         trg = trg[split[i]];
     }
@@ -524,7 +529,7 @@ function __require(what, func) {
     if (isAmd || isCommonJSModule || isCommonJSExports) {
         require(__prepareForNativeRequire(what), func);
     } else {
-        func.call(null, __getGlob(what));
+        func.apply(null, __getGlob(what));
     }
 }
 
@@ -534,7 +539,7 @@ function __define(arg1, arg2, arg3) {
         value = arg3 ? arg3 : arg2;
 
     if (isAmd) {
-        define.call(null, arguments);
+        define.apply(null, arguments);
     } else {
         // id will be a file-path
         var isFunc = (typeof value == 'function');
@@ -544,13 +549,13 @@ function __define(arg1, arg2, arg3) {
         if (!isFunc) {
             for (var i = 0, il = call_with.length; i < il; i++) { require(call_with[i]); }
         }
-        var result = (typeof value == 'function') ? value.call(null, call_with) : value;
+        var result = (typeof value == 'function') ? value.apply(null, call_with) : value;
         if (isCommonJSModule) {
-            module.exports = isFunc ? value.call(null, call_with) : value;
+            module.exports = isFunc ? value.apply(null, call_with) : value;
         } else if (isCommonJSExports) {
-            exports = isFunc ? value.call(null, call_with) : value;
+            exports = isFunc ? value.apply(null, call_with) : value;
         } else {
-            __setGlob(id, isFunc ? value.call(null, call_with) : value);
+            __setGlob(id, isFunc ? value.apply(null, call_with) : value);
         }
     }
 }

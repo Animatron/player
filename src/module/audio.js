@@ -9,18 +9,12 @@
 
 if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
-__anm_engine.define('anm/module/audio', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+__anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
   var C = anm.C,
       Tween = anm.Tween,
       Tweens = anm.Tweens;
   var _ResMan = anm.resource_manager;
-
-  // FIXME: register using some anm.registerModule or smth instead
-  C.MOD_AUDIO = 'audio';
-  if (anm.M[C.MOD_AUDIO]) throw new Error('AUDIO module already enabled');
-
-  anm.M[C.MOD_AUDIO] = {};
 
   var E = anm.Element;
 
@@ -36,8 +30,8 @@ __anm_engine.define('anm/module/audio', ['anm', 'anm/Player'], function(anm/*, P
     };
   };
 
-  if (anm.I['ANM']) {
-    var Import = anm.I['ANM'];
+  if (anm.isImporterAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
+    var Import = anm.getImporter('animatron').Import;
     var prev_tweentype = Import.tweentype;
     Import.tweentype = function(src) {
       if (src === 7) return C.T_VOLUME;
@@ -214,5 +208,11 @@ __anm_engine.define('anm/module/audio', ['anm', 'anm/Player'], function(anm/*, P
       function(err) { __anm.console.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ }); // onerror
   };
+
+  var conf = {};
+
+  anm.registerModule('audio', conf);
+
+  return conf;
 
 });

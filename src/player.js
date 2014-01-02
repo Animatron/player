@@ -79,14 +79,14 @@ var guid = anm.guid;
 
 // value/typecheck
 var is = anm.is;
-/*var __finite  = is.finite,
+var __finite  = is.finite,
     __nan     = is.nan,
     __builder = is.builder,
     __arr     = is.arr,
     __num     = is.num,
     __fun     = is.fun,
     __obj     = is.obj,
-    __str     = is.str;*/
+    __str     = is.str;
 
 // ### Strings & Errors
 /* ---------- */
@@ -4575,7 +4575,7 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
-var __ratio = getPxRatio();
+var __ratio = $engine.PX_RATIO;
 Controls.DEFAULT_THEME = {
   'font': {
       'face': 'Arial, sans-serif',
@@ -5500,15 +5500,6 @@ return (function($trg) {
 
     $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
 
-    // TODO: remove duplicates using these typecheck/valuecheck and replace them to __anm.is
-    $trg._typecheck = { builder: __builder,
-                        arr: __arr,
-                        num: __num,
-                        obj: __obj,
-                        fun: __fun,
-                        str: __str };
-    $trg._valcheck = { finite: __finite,
-                       nan: __nan };
     $trg.__dev = { 'strf': _strf,
                    'adjust': __adjust,
                    't_cmp': __t_cmp,
