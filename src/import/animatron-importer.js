@@ -34,8 +34,6 @@ function _reportError(e) {
 
 var Import = {};
 
-anm.registerImporter('animatron', Import);
-
 var cur_import_id;
 
 // -> Array[?]
@@ -663,10 +661,12 @@ __MYSELF.prototype.load = Import.project;
 
 __MYSELF.Import = Import;
 
-anm.registerImporter('animatron', __MYSELF);
-
 return __MYSELF;
 
 })();
+
+anm.registerImporter('animatron', AnimatronImporter);
+
+return AnimatronImporter;
 
 });

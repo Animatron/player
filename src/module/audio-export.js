@@ -13,8 +13,6 @@ __anm_engine.define('anm/modules/audio-export', ['anm', 'anm/Player'], function(
 
 var Player = anm.Player;
 
-// FIXME: register a module with anm.registerModule
-
 var _export_audio_data = function(data) {
   return {
     "url": data.$._audio_url,

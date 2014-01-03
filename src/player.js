@@ -786,7 +786,7 @@ Player.prototype._prepare = function(cvs) {
     var cvs_id, canvas;
     if (__str(cvs)) {
         cvs_id = cvs;
-        canvas = $engine.getPlayerCanvas(cvs_id, this);
+        canvas = $engine.assignPlayerToCanvas(cvs_id, this);
     } else {
         if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
         this.id = cvs.id;
@@ -942,7 +942,7 @@ Player.prototype.afterRender = function(callback) {
     this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
-    if (!this.canvas.hasAttribute(Player.MARKER_ATTR)) return;
+    if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
     if (this.controls) this.controls.detach(this.canvas);
     $engine.detachPlayer(this.canvas, this);
     this._reset();
@@ -5270,7 +5270,7 @@ InfoBlock.prototype.update = function(parent) {
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
-        cvs = ENGINE.addChildCanvas('info', parent,
+        cvs = $engine.addChildCanvas('info', parent,
                  [ _m, _m, _w, _h ],
                  { _class: 'anm-info ',
                    position: 'absolute',
@@ -5402,7 +5402,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
 
     if (!anmGuyCanvas) {
         // FIXME: change to engine code
-        anmGuyCanvas = newCanvas([ w, h ]);
+        anmGuyCanvas = $engine.createCanvas([ w, h ]);
         anmGuyCtx = anmGuyCanvas.getContext('2d');
     } else {
         anmGuyCanvas.width = w;

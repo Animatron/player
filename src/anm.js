@@ -561,6 +561,8 @@
         Errors.A = {}; // Animation Errors
 
         // FIXME: move to player those ones who belong only to itself
+        //        ...or create strings module?
+        //        NB: engine also has error strings
         Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
         Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
         Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player';

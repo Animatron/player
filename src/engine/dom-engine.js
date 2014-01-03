@@ -58,7 +58,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     //        reduce their number as much as possible
 
     // require(what, func)
-    // define([id, ]what, func)
+    // define(id?, what, func)
 
     // getRequestFrameFunc() -> function(callback)
     // getCancelFrameFunc() -> function(id)
@@ -71,8 +71,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // disposeElm(elm) -> none
     // detachElm(parent | null, child) -> none
 
-    // createCanvas(params | [width, height], pxratio) -> canvas
-    // getPlayerCanvas(id, player) -> canvas
+    // createCanvas(params | [width, height], ratio?) -> canvas
+    // assignPlayerToCanvas(id, player) -> canvas
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
     // detachPlayer(canvas, player) -> none
@@ -148,7 +148,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                 try {
                     req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
                 } catch (e2) {
-                    throw new SysErr('No AJAX/XMLHttp support');
+                    throw new Error('No AJAX/XMLHttp support'); // SysErr
                 }
             }
         }
@@ -158,7 +158,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
           } */
 
         if (!req) {
-          throw new SysErr('Failed to create XMLHttp instance');
+          throw new Error('Failed to create XMLHttp instance'); // SysErr
         }
 
         var whenDone = function() {
@@ -166,7 +166,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                 if (req.status == 200) {
                     if (callback) callback(req);
                 } else {
-                    var error = new SysErr('AJAX request for ' + url +
+                    var error = new Error('AJAX request for ' + url + // SysErr
                                      ' returned ' + req.status +
                                      ' instead of 200');
                     if (errback) { errback(error, req); }
@@ -257,16 +257,18 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE.configureCanvas(cvs, dimen, ratio);
         return cvs;
     }
-    $DE.getPlayerCanvas = function(id, player) {
+    $DE.assignPlayerToCanvas = function(id, player) {
         var cvs = $doc.getElementById(id);
-        if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
-        if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+        //if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+        //if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
+        if (!cvs) throw new Errror('No canvas with id \'' + id + '\' was found.');
+        if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + id + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
         return cvs;
     }
     $DE.playerAttachedTo = function(cvs, player) {
-        return (cvs.getAttribute(MARKER_ATTR) == null) ||
-               (cvs.getAttribute(MARKER_ATTR) == undefined); }
+        return cvs.hasAttribute(MARKER_ATTR);
+    }
     $DE.detachPlayer = function(cvs, player) {
         cvs.removeAttribute(MARKER_ATTR);
     }
@@ -514,7 +516,7 @@ function __prepareForNativeRequire(what) {
     return collected;
 }
 
-function __adaptForNativeRequire(path) {
+function __adaptForNativeRequire(what) {
     // TODO: convert dashes to camel-case
     var split = what[i].split('/');
     if (split.length == 1) return split[0];
@@ -551,11 +553,11 @@ function __define(arg1, arg2, arg3) {
         }
         var result = (typeof value == 'function') ? value.apply(null, call_with) : value;
         if (isCommonJSModule) {
-            module.exports = isFunc ? value.apply(null, call_with) : value;
+            module.exports = result;
         } else if (isCommonJSExports) {
-            exports = isFunc ? value.apply(null, call_with) : value;
+            exports = result;
         } else {
-            __setGlob(id, isFunc ? value.apply(null, call_with) : value);
+            __setGlob(id, result);
         }
     }
 }

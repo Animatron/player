@@ -35,6 +35,7 @@
           if (!player) return;
 
           var /*b = Builder._$, */C = anm.C;
+          var AnimatronImporter = anm.import.animatron;
 
           var project = JSON.parse(document.getElementById('scene-input').value);
 
@@ -42,7 +43,7 @@
           var importer = new AnimatronImporter();
           player.detach();
           //var importer = new AnimatronImporter();
-          player = createPlayer('canvas', {mode: anm.C.M_VIDEO});
+          player = anm.createPlayer('canvas', {mode: anm.C.M_VIDEO});
           //player.debug = true;
           player.load(project, importer);
           //var b = Builder._$;
@@ -57,7 +58,7 @@
 
           document.getElementById('scene-input').value = DEFAULT_SCENE;
 
-          player = createPlayer('canvas', {mode: anm.C.M_DYNAMIC});
+          player = anm.createPlayer('canvas', {mode: anm.C.M_DYNAMIC});
           //load();
       }
     </script>

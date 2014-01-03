@@ -160,7 +160,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
     }
   });
 
-  __anm.player_manager.on(C.S_NEW_PLAYER, function(player) {
+  anm.player_manager.on(C.S_NEW_PLAYER, function(player) {
     player.on(C.S_LOAD, function(scene) {
       if (is_dynamic[scene.__import_id]) { // __import_id is equal to prj_id passed to customImporter,
                                            // if it is actually the same scene that was imported there
