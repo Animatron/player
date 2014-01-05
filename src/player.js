@@ -4570,7 +4570,6 @@ function Controls(player) {
     this.theme = null;
     this.info = null;
     this._time = -1000;
-    this._ratio = 1;
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
@@ -4653,9 +4652,8 @@ provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
         pconf = $engine.getCanvasParams(parent);
-    var _ratio = pconf[2],
-        _w = pconf[0] / _ratio,
-        _h = pconf[1] / _ratio;
+    var _w = pconf[0] / __ratio,
+        _h = pconf[1] / __ratio;
     if (!cvs) {
         cvs = $engine.addChildCanvas('ctrls', parent,
                  [ 0, 0, _w, _h ],
@@ -4672,10 +4670,10 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
-        $engine.configureCanvas(cvs, [ _w, _h ], _ratio);
+        $engine.configureCanvas(cvs, [ _w, _h ]);
     }
-    var cconf = $engine.getCanvasParams(cvs);
-    this._ratio = cconf[2];
+    //var cconf = $engine.getCanvasParams(cvs);
+    //this._ratio = cconf[2];
     /* this.page_bounds = [ _bp[0], _bp[1], _bp[0]+_w,
                                          _bp[1]+_h ]; */
     this.page_bounds = $engine.getCanvasBounds(cvs);
@@ -4737,8 +4735,8 @@ Controls.prototype.render = function(time) {
     this._time = time;
     this._lhappens = _s;
 
-    var ctx = this.ctx,
-        ratio = this._ratio, // pixelRatio (or use this.canvas.__pxRatio?)
+    var ratio = __ratio,
+        ctx = this.ctx,
         theme = this.theme,
         duration = state.duration,
         progress = time / ((duration !== 0) ? duration : 1);
@@ -4894,8 +4892,7 @@ Controls.prototype.detach = function(parent) {
 }
 Controls.prototype.inBounds = function(pageX, pageY) {
     //if (this.hidden) return false;
-    var _b = this.bounds,
-        _ratio = this._ratio;
+    var _b = this.bounds;
     return (pageX >= _b[0]) &&
            (pageX <= _b[2]) &&
            (pageY >= _b[1]) &&
@@ -5281,16 +5278,15 @@ InfoBlock.prototype.update = function(parent) {
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = $engine.getContext(cvs, '2d');
-        this.subscribeEvents(cvs);
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
         $engine.configureCanvas(cvs, [ _w, _h ], _pr);
     }
-    var cconf = $engine.getCanvasParams(cvs);
+    //var cconf = $engine.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';
     // _canvas.style.top = _cp[1] + 'px';
-    this._ratio = cconf[2];
+    //this._ratio = cconf[2];
     //this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
     this.bounds = $engine.getCanvasBounds(cvs);
 }
@@ -5298,13 +5294,12 @@ InfoBlock.prototype.render = function() {
     if (!this.__data) return;
     var meta = this.__data[0],
         anim = this.__data[1],
-        duration = this.__data[2] || meta.duration,
-        ratio = this.canvas.__pxRatio;
+        duration = this.__data[2] || meta.duration;
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * __ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      Math.floor(InfoBlock.FONT_SIZE_B * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      Math.floor(InfoBlock.FONT_SIZE_B * __ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
@@ -5321,7 +5316,7 @@ InfoBlock.prototype.render = function() {
     ctx.translate(_p, _p);
     _tl.apply(ctx);
     ctx.globalAlpha = .8;
-    ctx.translate(0, _bd[1] + _p * ratio);
+    ctx.translate(0, _bd[1] + _p * __ratio);
     _bl.apply(ctx);
     ctx.restore();
 }
