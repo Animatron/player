@@ -565,8 +565,8 @@ Import.tweentype = function(src) {
 /** tweendata **/
 // -> Any
 Import.tweendata = function(type, src) {
-    if (!src) return null;
-    if (type == C.T_TRANSLATE) return Import.pathval(src);
+    if (src == null) return null; // !!! do not optimize to !src since 0 can also happen
+    if (type === C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
         (type === C.T_ALPHA)) {
         if (src.length == 2) return src;
