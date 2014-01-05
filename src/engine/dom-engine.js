@@ -202,7 +202,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             buff.style.font = text.font;
             buff.style.textAlign = text.align;
             buff.style.verticalAlign = text.baseline || 'bottom';
-            if (__arr(text.lines)) {
+            if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
                 buff.textContent = text.lines.join('<br/>');
             } else {
                 buff.textContent = text.lines.toString();
@@ -471,7 +471,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 })(this); };
 
 function __getAllFromGlob(what) {
-    var what = Array.isArray(what) ? what : [ what ],
+    var what = Array.isArray(what) ? what : [ what ], // FIXME: replace with anm.is.arr()
         collected = [];
     for (var i = 0, il = what.length; i < il; i++) {
         collected.push(__getGlob(what[i]));
@@ -507,7 +507,7 @@ function __setGlob(path, val) {
 
 function __prepareForNativeRequire(what) {
     // TODO: convert dashes to camel-case
-    var what = Array.isArray(what) ? what : [ what ],
+    var what = Array.isArray(what) ? what : [ what ], // FIXME: replace with anm.is.arr()
         collected = [],
         split;
     for (var i = 0, il = what.length; i < il; i++) {

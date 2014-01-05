@@ -304,7 +304,7 @@
             }
 
             this._subscriptions.push([ filteredUrls,
-                                       Array.isArray(callbacks) ? callbacks : [ callbacks ] ]);
+                                       __is.arr(callbacks) ? callbacks : [ callbacks ] ]);
             this.check();
         }
         ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {

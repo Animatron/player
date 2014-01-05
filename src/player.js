@@ -919,7 +919,7 @@ Player.prototype.drawAt = function(time) {
     scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, this.ctx, this.state, this.anim, u_before, u_after);
+    __r_at(time, 0, this.ctx, this.state, this.anim, u_before, u_after);
 
     if (this.controls) this._renderControlsAt(time);
 
@@ -5307,7 +5307,7 @@ InfoBlock.prototype.render = function() {
         _nw = Math.max(_td[0], _bd[0]) + _p + _p,
         _nh = _td[1] + _bd[1] + (_p * 3),
         ctx = this.ctx;
-    canvasOpts(this.canvas, [ _nw, _nh ], this.canvas.__pxRatio);
+    $engine.configureCanvas(this.canvas, [ _nw, _nh ]);
     ctx.save();
     ctx.clearRect(0, 0, _nw, _nh);
     ctx.fillStyle = this.__bgcolor;
