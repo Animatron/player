@@ -30,9 +30,10 @@
     // private developer-related configuration
     // TODO: merge actual properties with default values, if they are set
     $conf = _getGlobal(PRIVATE_CONF) || {
-            logImport: false,
-            logResMan: false,
+            logImport: false, // FIXME: create a hash-map of such values, by key
+            logResMan: false, //        or just remove these flags in favor of log.debug
             logEvents: false,
+            logLevel: 0, // will be initialized later
             doNotLoadAudio: false,
             doNotLoadImages: false,
             doNotRenderShadows: false,
@@ -117,22 +118,31 @@
             //_winf: function(w) { $wnd = w; }
         };
 
-        // Logging
-        // -----------------------------------------------------------------------------
-
-        // FIXME: add anm.log instead!
-
-        $publ.console = $glob['console'] || {
-            log: function() {},
-            error: function() {},
-            warn: function() {}
-        };
-
         // Constants
         // -----------------------------------------------------------------------------
 
         $publ.C = {};
         var C = $publ.C;
+
+        // Logging
+        // -----------------------------------------------------------------------------
+
+        C.L_DEBUG = 1;
+        C.L_INFO = 2;
+        C.L_WARN = 4;
+        C.L_ERROR = 8;
+        $conf.logLevel = C.L_ERROR;
+        var nop = function() {};
+        var console = $glob['console'] || {
+            log: nop, info: nop, warn: nop, error: nop
+        };
+        $publ.log = {
+            debug: function() { if ($conf.logLevel & C.L_DEBUG) console.log.apply(this,   arguments); },
+            info:  function() { if ($conf.logLevel & C.L_INFO)  console.info.apply(this,  arguments); },
+            warn:  function() { if ($conf.logLevel & C.L_WARN)  console.warn.apply(this,  arguments); },
+            error: function() { if ($conf.logLevel & C.L_ERROR) console.error.apply(this, arguments); },
+        };
+        var $log = $publ.log;
 
         // Modules
         // -----------------------------------------------------------------------------
@@ -287,7 +297,7 @@
         }
         ResourceManager.prototype.subscribe = function(urls, callbacks) {
             var filteredUrls = [];
-            if ($conf.logResMan) { console.log('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
+            if ($conf.logResMan) { $log.debug('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
             for (var i = 0; i < urls.length; i++){
                 // there should not be empty urls
                 if (urls[i]) filteredUrls.push(urls[i]);
@@ -299,49 +309,49 @@
         }
         ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
             var me = this;
-            if ($conf.logResMan) { console.log('request to load ' + url); }
+            if ($conf.logResMan) { $log.debug('request to load ' + url); }
             if (me._cache[url]) {
                 if ($conf.logResMan)
-                   { console.log('> already received, trigerring success'); }
+                   { $log.debug('> already received, trigerring success'); }
                 var result = me._cache[url];
                 me.trigger(url, result);
                 if (onComplete) onComplete(result);
             } else if (me._errors[url]) {
                 if ($conf.logResMan)
-                   { console.log('> failed to load before, notifying with error'); }
+                   { $log.debug('> failed to load before, notifying with error'); }
                 if (onError) onError(me._errors[url]);
             } else if (!me._waiting[url]) {
                 if ($conf.logResMan)
-                   { console.log('> not cached, requesting'); }
+                   { $log.debug('> not cached, requesting'); }
                 me._waiting[url] = loader;
                 loader(function(result) {
                     if ($conf.logResMan)
-                       { console.log('file at ' + url + ' succeeded to load, triggering success'); }
+                       { $log.debug('file at ' + url + ' succeeded to load, triggering success'); }
                     me.trigger(url, result);
                     if (onComplete) onComplete(result);
                     me.check();
                 }, function(err) {
                     if ($conf.logResMan)
-                       { console.log('file at ' + url + ' failed to load, triggering eror'); }
+                       { $log.debug('file at ' + url + ' failed to load, triggering eror'); }
                     me.error(url, err);
                     if (onError) onError(err);
                     me.check();
                 });
             } else /*if (me._waiting[url])*/ { // already waiting
                 if ($conf.logResMan)
-                   { console.log('> someone is already waiting for it, subscribing'); }
+                   { $log.debug('> someone is already waiting for it, subscribing'); }
                 if (me._waiting[url] !== loader) me.subscribe([ url ], function(res) { onComplete(res[0]); });
             }
         }
         ResourceManager.prototype.trigger = function(url, value) {
             if (this._cache[url] || this._errors[url]) { this.check(); return; }
-            if ($conf.logResMan) { console.log('triggering success for url ' + url); }
+            if ($conf.logResMan) { $log.debug('triggering success for url ' + url); }
             delete this._waiting[url];
             this._cache[url] = value;
         }
         ResourceManager.prototype.error = function(url, err) {
             if (this._cache[url] || this._errors[url]) { this.check(); return; }
-            if ($conf.logResMan) { console.log('triggering error for url ' + url); }
+            if ($conf.logResMan) { $log.debug('triggering error for url ' + url); }
             delete this._waiting[url];
             this._errors[url] = err;
         }
@@ -353,13 +363,13 @@
         // as complete
         ResourceManager.prototype.check = function() {
             if ($conf.logResMan)
-                { console.log('checking subscriptions'); }
+                { $log.debug('checking subscriptions'); }
             var subscriptions = this._subscriptions,
                 cache = this._cache,
                 errors = this._errors,
                 to_remove = null;
             if ($conf.logResMan)
-               { console.log('number of subscriptions: ' + subscriptions.length); }
+               { $log.debug('number of subscriptions: ' + subscriptions.length); }
             for (var i = 0, il = subscriptions.length; i < il; i++) {
                 var urls = subscriptions[i][0],
                     callbacks = subscriptions[i][1],
@@ -370,7 +380,7 @@
                     if (cache[urls[u]]) success_count++;
                 }
                 if ($conf.logResMan)
-                    { console.log('stats for ' + urls + '. length: ' + urls.length + ', ' +
+                    { $log.debug('stats for ' + urls + '. length: ' + urls.length + ', ' +
                                   'success: ' + success_count + ', errors: ' + error_count + ', ready: '
                                   + ((success_count + error_count) === urls.length)); }
                 if ((success_count + error_count) === urls.length) {
@@ -379,7 +389,7 @@
                         ready.push(cache[urls[u]] || errors[urls[u]]);
                     };
                     if ($conf.logResMan)
-                       { console.log('notifying subscribers that ' + urls + ' are all ready'); }
+                       { $log.debug('notifying subscribers that ' + urls + ' are all ready'); }
                     for (var k = 0, kl = callbacks.length; k < kl; k++) {
                         callbacks[k](ready, error_count);
                     }
@@ -390,7 +400,7 @@
             if (to_remove) {
                 for (var i = 0, il = to_remove.length; i < il; i++) {
                     if ($conf.logResMan)
-                       { console.log('removing notified subscribers for ' + to_remove[i][0] + ' from queue'); }
+                       { $log.debug('removing notified subscribers for ' + to_remove[i][0] + ' from queue'); }
                     subscriptions.splice(subscriptions.indexOf(to_remove[i]), 1);
                 }
             }

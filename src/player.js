@@ -58,6 +58,7 @@ __anm_engine.define('anm/Player', ['anm'], function(anm) {
 
 var $engine = anm.engine;
 var $conf = anm.conf;
+var $log = anm.log;
 
 // Utils
 // -----------------------------------------------------------------------------
@@ -546,15 +547,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (!remotes.length) {
             player.fire(C.S_LOAD, result);
             if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
-            //console.log('no remotes, calling callback');
+            //$log.debug('no remotes, calling callback');
             if (callback) callback(result);
         } else {
             player.state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
-            //console.log('load with remotes, subscribing ', remotes);
+            //$log.debug('load with remotes, subscribing ', remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
-                    //console.log(res_results, err_count);
+                    //$log.debug(res_results, err_count);
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
                                                   // to load different scenes and first one finished loading
@@ -2412,7 +2413,7 @@ Element.prototype.setMask = function(elm) {
 }
 Element.prototype.__ensureHasMaskCanvas = function() {
     if (this.__maskCvs || this.__backCvs) return;
-    //console.log('creating mask and back canvases for ' + this.id + ' ' + this.name);
+    //$log.debug('creating mask and back canvases for ' + this.id + ' ' + this.name);
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
     this.__maskCvs = $engine.createCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
@@ -2424,13 +2425,13 @@ Element.prototype.__ensureHasMaskCanvas = function() {
 }
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
-        //console.log('removing mask canvas for ' + this.id + ' ' + this.name);
+        //$log.debug('removing mask canvas for ' + this.id + ' ' + this.name);
         $engine.disposeElm(this.__maskCvs);
         this.__maskCvs = null;
         this.__maskCtx = null;
     }
     if (this.__backCvs) {
-        //console.log('removing back canvas for ' + this.id + ' ' + this.name);
+        //$log.debug('removing back canvas for ' + this.id + ' ' + this.name);
         $engine.disposeElm(this.__backCvs);
         this.__backCvs = null;
         this.__backCtx = null;
@@ -4795,9 +4796,9 @@ Controls.prototype.react = function(time) {
     var _p = this.player,
         _s = _p.state.happens;
     if ((_s === C.NOTHING) || (_s === C.LOADING) || (_s === C.ERROR)) return;
-    if (_s === C.STOPPED) { /*console.log('play from start');*/ _p.play(0); return; }
-    if (_s === C.PAUSED) { /*console.log('play from ' + this._time);*/ _p.play(this._time); return; }
-    if (_s === C.PLAYING) { /*console.log('pause at' + time);*/ this._time = time; _p.pause(); return; }
+    if (_s === C.STOPPED) { /*$log.debug('play from start');*/ _p.play(0); return; }
+    if (_s === C.PAUSED) { /*$log.debug('play from ' + this._time);*/ _p.play(this._time); return; }
+    if (_s === C.PLAYING) { /*$log.debug('pause at' + time);*/ this._time = time; _p.pause(); return; }
 }
 Controls.prototype.refreshByMousePos = function(pageX, pageY) {
     var state = this.player.state,

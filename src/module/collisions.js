@@ -121,11 +121,11 @@ E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
     if (!b) return false;
-    //console.log(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
+    //$log.debug(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
     var pt = this._padopt(pt, t);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);
-    //console.log(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
+    //$log.debug(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
     var inBounds;
     if (inBounds = G.__inBounds(b, pt)) {
         if (!opts.pathDriven) return true;

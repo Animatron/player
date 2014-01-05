@@ -24,11 +24,12 @@ var C = anm.C,
     Path = anm.Path,
     Text = anm.Text,
     Bands = anm.Bands,
-    is = anm.is;
+    is = anm.is,
+    $log = anm.log;
     //test = anm._valcheck
 
 function _reportError(e) {
-    __anm.console.error(e);
+    $log.error(e);
     // throw e; // skip errors if they do not affect playing ability
 }
 
@@ -57,9 +58,9 @@ Import._type = function(src) {
  */
 // -> Scene
 Import.project = function(prj) {
-    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) console.log(prj);
-    if (anm.conf.logImport) __anm.console.log(prj);
-    cur_import_id = __anm.guid();
+    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
+    if (anm.conf.logImport) $log.debug(prj);
+    cur_import_id = anm.guid();
     anm.lastImportedProject = prj;
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
