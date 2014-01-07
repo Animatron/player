@@ -136,21 +136,17 @@
 
         var start = (function () {
 
-            var SNAPSHOT_V1_LEN = 36, // 8 + 1     + 4 + 1     + 4 + 1     + 4 + 1       + 12;
-                SNAPSHOT_V2_LEN = 24,
-                SNAPSHOT_V1_DASH_POS = /*below V*/9,
-                SNAPSHOT_V1_MASK = '[a-z0-9]{8}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{4}-[a-z0-9]{12}',
-                SNAPSHOT_V2_MASK = '[a-z0-9]{24}',
-                VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
+            var VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
 
             var _search = location.search,
                 _first_amp_pos = _search.indexOf('&'),
-                _is_v1 = _search.indexOf('-') == SNAPSHOT_V1_DASH_POS, _is_v2 = !_is_v1,
-                _snapshot_id_len = _is_v1 ? SNAPSHOT_V1_LEN : SNAPSHOT_V2_LEN,
-                _snapshot_id_mask = _is_v1 ? SNAPSHOT_V1_MASK : SNAPSHOT_V2_MASK,
+                _dash_pos = _search.indexOf('-'),
                 _before_amp = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos)
                                                    : _search.substring(1),
-                _version_specified = _before_amp.length > (_snapshot_id_len + 1);
+                _version_specified = (_first_amp_pos > 0) ? ((_dash_pos > 0) && (_dash_pos < _first_amp_pos))
+                                                          : (_dash_pos > 0),
+                _snapshot_id_len = (_version_specified ? _dash_pos
+                                                       : (_first_amp_pos || _search.length)) - 1; // 1 is first '?' in _search
 
             var CANVAS_ID = 'target',
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
@@ -165,12 +161,6 @@
                 SNAPSHOT_VERSION_ID = _version_specified ? _before_amp.substring(_snapshot_id_len + 1)
                                                          : 'latest',
                 PLAYER_VERSION_ID = SNAPSHOT_VERSION_ID;
-
-            if (!SNAPSHOT_ID ||
-                !SNAPSHOT_ID.match(_snapshot_id_mask)) {
-                _u.reportError(new Error('Snapshot ID \'' + SNAPSHOT_ID + '\' is incorrect'));
-                return;
-            }
 
             if (!SNAPSHOT_VERSION_ID ||
                 !SNAPSHOT_VERSION_ID.match(VERSION_MASK)) {
