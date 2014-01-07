@@ -849,8 +849,8 @@ Player.prototype.forceRedraw = function() {
         //case C.ERROR: this._drawErrorSplash(); break;
     }
 }
-Player.prototype.changeZoom = function(ratio) {
-    this.state.zoom = ratio;
+Player.prototype.changeZoom = function(zoom) {
+    this.state.zoom = zoom;
 }
 // update player state with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -1014,7 +1014,7 @@ Player.prototype._drawSplash = function() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     var ratio = this.state.ratio;
-    // FIXME: somehow scaling by ratio here makes all look bad
+    // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
     ctx.fillStyle = '#ffe';
@@ -1034,7 +1034,7 @@ Player.prototype._drawSplash = function() {
 
     ctx.beginPath();
     ctx.arc(w / 2 * ratio, h / 2 * ratio,
-            Math.min(w / 2, h / 2) * .5 * ratio,
+            Math.min(w / 4, h / 4) * ratio,
             0, 2 * Math.PI);
     ctx.fillStyle = '#a00';
     ctx.strokeStyle = '#ffe';
@@ -1110,7 +1110,6 @@ Player.prototype._stopAndContinue = function() {
 // update player's canvas with configuration
 Player.prototype._reconfigureCanvas = function(opts) {
     var canvas = this.canvas;
-    var pxRatio = $engine.PX_RATIO;
     this._canvasConf = opts;
     var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
     var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
@@ -1118,11 +1117,11 @@ Player.prototype._reconfigureCanvas = function(opts) {
     opts.height = _h;
     this.state.width = _w;
     this.state.height = _h;
-    this.state.ratio = pxRatio;
+    this.state.ratio = $engine.PX_RATIO; // FIXME: remove overusage of ratio
     if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
     opts.lockBg = this.__lockCvsBg;
     opts.lockResize = this.__lockCvsResize;
-    $engine.configureCanvas(canvas, opts, pxRatio);
+    $engine.configureCanvas(canvas, opts);
     if (this.controls) this.controls.update(canvas);
     this.__canvasPrepared = true;
     this.forceRedraw();
@@ -2416,9 +2415,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     //$log.debug('creating mask and back canvases for ' + this.id + ' ' + this.name);
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = $engine.createCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
+    this.__maskCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]/*, this.state.ratio*/);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = $engine.createCanvas([scene.width * 2, scene.height * 2], this.state.ratio);
+    this.__backCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]/*, this.state.ratio*/);
     this.__backCtx = this.__backCvs.getContext('2d');
     /* $doc.body.appendChild(this.__maskCvs); */
     /* $doc.body.appendChild(this.__backCvs); */
@@ -3148,7 +3147,7 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
 function __r_at(time, dt, ctx, pl_state, scene, before, after) {
     ctx.save();
     var ratio = pl_state.ratio;
-    if (ratio != 1) ctx.scale(ratio, ratio);
+    if (ratio != 1) ctx.scale(ratio, ratio); // the scene zoomed to pl_state.zoom later in scene.render
     var size_differs = (pl_state.width  != scene.width) ||
                        (pl_state.height != scene.height);
     if (!size_differs) {
@@ -4575,7 +4574,6 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
     this._inParent = player.inParent;
 }
-var __ratio = $engine.PX_RATIO;
 Controls.DEFAULT_THEME = {
   'font': {
       'face': 'Arial, sans-serif',
@@ -4653,8 +4651,9 @@ provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
         pconf = $engine.getCanvasParams(parent);
-    var _w = pconf[0] / __ratio,
-        _h = pconf[1] / __ratio;
+    var ratio = $engine.PX_RATIO,
+        _w = pconf[0] / ratio,
+        _h = pconf[1] / ratio;
     if (!cvs) {
         cvs = $engine.addChildCanvas('ctrls', parent,
                  [ 0, 0, _w, _h ],
@@ -4736,7 +4735,7 @@ Controls.prototype.render = function(time) {
     this._time = time;
     this._lhappens = _s;
 
-    var ratio = __ratio,
+    var ratio = $engine.PX_RATIO,
         ctx = this.ctx,
         theme = this.theme,
         duration = state.duration,
@@ -5295,12 +5294,13 @@ InfoBlock.prototype.render = function() {
     if (!this.__data) return;
     var meta = this.__data[0],
         anim = this.__data[1],
-        duration = this.__data[2] || meta.duration;
+        duration = this.__data[2] || meta.duration,
+        ratio = $engine.PX_RATIO;
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * __ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      Math.floor(InfoBlock.FONT_SIZE_B * __ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      Math.floor(InfoBlock.FONT_SIZE_B * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
@@ -5317,7 +5317,7 @@ InfoBlock.prototype.render = function() {
     ctx.translate(_p, _p);
     _tl.apply(ctx);
     ctx.globalAlpha = .8;
-    ctx.translate(0, _bd[1] + _p * __ratio);
+    ctx.translate(0, _bd[1] + _p * ratio);
     _bl.apply(ctx);
     ctx.restore();
 }
