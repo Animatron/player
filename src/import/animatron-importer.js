@@ -72,7 +72,7 @@ Import.project = function(prj) {
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        var node_res = Import.node(node_src, elems);
+        var node_res = Import.node(node_src, elems, null, root);
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
             // correct the band of the next scene to follow the previous scene
@@ -169,15 +169,15 @@ var TYPE_UNKNOWN =  0,
  * } *element*;
  */
 // -> Element
-Import.node = function(src, all, parent) {
+Import.node = function(src, all, parent, scene) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
         (type == TYPE_GROUP)) {
-        trg = Import.branch(type, src, all);
+        trg = Import.branch(type, src, all, scene);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, parent);
+        trg = Import.leaf(type, src, parent, scene);
     }
     if (trg) { Import.callCustom(trg, src, type); };
     return trg;
@@ -201,7 +201,7 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, all) {
+Import.branch = function(type, src, all, scene) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
@@ -232,7 +232,7 @@ Import.branch = function(type, src, all) {
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(Import._find(lsrc[0], all), all, trg);
+        var ltrg = Import.node(Import._find(lsrc[0], all), all, trg, scene);
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -316,12 +316,20 @@ Import.branch = function(type, src, all) {
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
+
+        // [todo] temporary implementation
+        if (ltrg._audio_master) {
+            x.lband = [x.lband[0], Infinity];
+            x.gband = [x.gband[0], Infinity];
+            trg.remove(ltrg);
+            scene.add(ltrg);
+        }
     }
     return trg;
 }
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent) {
+Import.leaf = function(type, src, parent, scene) {
     var trg = new Element();
     var x = trg.xdata;
          if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }

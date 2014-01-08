@@ -90,6 +90,11 @@
     }
   };
 
+  var _onAudioStopIfNotMaster = function(ltime, duration) {
+    if (this._audio_master) return;
+    _onAudioStop.call(this, ltime, duration);
+  }
+
   var _onAudioStop = function(ltime, duration) {
     if (this._audio_is_playing) {
       if (m_ctx._audio_ctx) {
@@ -123,6 +128,7 @@
          */
         this._audio_url = source[1];
         this._audio_band_offset = source[2];
+        this._audio_master = source[3];
       } else if (importer == "ANM_INTACT") {
         this._audio_band_offset = source.bandOffset;
         this._audio_url = this._audio_format_url(source.url);
@@ -135,7 +141,7 @@
       this._audio_canPlay = false;
 
       this.on(C.X_START, _onAudioStart);
-      this.on(C.X_STOP, _onAudioStop);
+      this.on(C.X_STOP, _onAudioStopIfNotMaster);
       this.on(C.S_STOP, _onAudioStop);
       this.on(C.S_PAUSE, _onAudioStop);
 
