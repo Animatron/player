@@ -4676,58 +4676,51 @@ Controls.prototype.update = function(parent) {
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = $engine.getContext(cvs, '2d');
-        this.subscribeEvents(cvs);
+        this.subscribeEvents(cvs, parent);
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
         $engine.configureCanvas(cvs, [ _w, _h ]);
     }
-    //var cconf = $engine.getCanvasParams(cvs);
-    //this._ratio = cconf[2];
-    /* this.page_bounds = [ _bp[0], _bp[1], _bp[0]+_w,
-                                         _bp[1]+_h ]; */
-    this.page_bounds = $engine.getCanvasBounds(cvs);
-    this.bounds = this.page_bounds;
+    this.handleAreaChange();
     if (this.info) this.info.update(parent);
 }
-Controls.prototype.subscribeEvents = function(canvas) {
-    $engine.subscribeCvsEvents(canvas, {
-        mousedown: (function(controls) {
+Controls.prototype.subscribeEvents = function(canvas, parent) {
+    $engine.subscribeWndEvents({
+        scroll: (function(controls) {
                 return function(evt) {
-                    controls.fire(C.X_MDOWN, evt);
+                    controls.handleAreaChange();
                 };
             })(this),
-        mouseout: (function(controls) {
+        mousemove: (function(controls) {
                 return function(evt) {
-                    controls.hide();
+                    controls.handleMouseMove(evt.pageX, evt.pageY, evt);
                 };
             })(this)
     });
-}
-Controls.prototype.subscribeEvents = function(canvas/*, parent*/) {
-    /* $engine.subscribeWndEvents('scroll', (function(controls) {
-            return function(evt) {
-                controls.handleAreaChange();
-            };
-        })(this), false); */
+    $engine.subscribeCvsEvents(parent, {
+        mouseover: (function(controls) {
+            return function(evt) { controls.handleMouseOver(); };
+        })(this),
+        click: (function(controls) {
+            return function(evt) { controls.handlePlayerClick(); };
+        })(this)
+    });
     $engine.subscribeCvsEvents(canvas, {
         mousemove: (function(controls) {
                 return function(evt) {
                     controls.handleMouseMove(evt.pageX, evt.pageY, evt);
                 };
             })(this),
-        mouseover: (function(controls) {
+        /*mouseover: (function(controls) {
                 return function(evt) { controls.handleMouseOver(); };
-            })(this),
+            })(this),*/
         mouseout: (function(controls) {
                 return function(evt) { controls.handleMouseOut(); };
             })(this),
         mousedown: (function(controls) {
                 return function(evt) { controls.handleClick(); };
-            })(this),
-        click: (function(controls) {
-                return function(evt) { controls.handlePlayerClick(); };
-            })(this),
+            })(this)
     });
 }
 Controls.prototype.render = function(time) {
@@ -4826,6 +4819,14 @@ Controls.prototype.refreshByMousePos = function(pageX, pageY) {
     }
     this.render(state.time);
 }
+Controls.prototype.handleAreaChange = function() {
+    //var cconf = $engine.getCanvasParams(cvs);
+    //this._ratio = cconf[2];
+    /* this.page_bounds = [ _bp[0], _bp[1], _bp[0]+_w,
+                                         _bp[1]+_h ]; */
+    this.page_bounds = $engine.getCanvasBounds(this.canvas);
+    this.bounds = this.page_bounds;
+}
 Controls.prototype.handleMouseMove = function(pageX, pageY, evt) {
     if (this.player.mode === C.M_DYNAMIC) return;
     if (evt) this._last_mevt = evt;
@@ -4904,9 +4905,9 @@ Controls.prototype.inBounds = function(pageX, pageY) {
     //if (this.hidden) return false;
     var _b = this.bounds;
     return (pageX >= _b[0]) &&
-           (pageX <= _b[2]) &&
+           (pageX <= _b[0] + _b[2]) &&
            (pageY >= _b[1]) &&
-           (pageY <= _b[3]);
+           (pageY <= _b[1] + _b[3]);
 }
 Controls.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
@@ -5406,12 +5407,10 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
         h = dimensions[1] * scale;
 
     if (!anmGuyCanvas) {
-        // FIXME: change to engine code
         anmGuyCanvas = $engine.createCanvas([ w, h ]);
         anmGuyCtx = anmGuyCanvas.getContext('2d');
     } else {
-        anmGuyCanvas.width = w;
-        anmGuyCanvas.height = h;
+        $engine.configureCanvas(anmGuyCanvas, [ w, h ]);
     }
 
     var maskCanvas = anmGuyCanvas;

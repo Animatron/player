@@ -395,8 +395,8 @@ Import._decodeBinaryPath = function(encoded) {
     if (encoded) {
         encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
         try {
-            var decoded = __anm.Base64Decoder.decode(encoded);
-            var s = new __anm.BitStream(decoded);
+            var decoded = Base64Decoder.decode(encoded);
+            var s = new BitStream(decoded);
             var base = [0, 0];
             if (s) {
                 var _do = true;

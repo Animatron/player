@@ -223,8 +223,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     /* FIXME: replace with elm.getBoundingClientRect();
        see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
     $DE.findPos = function(elm) {
-        var curleft = 0,
-            curtop = 0;
+        var curleft = 0, //document.body.scrollLeft,
+            curtop = 0; //document.body.scrollTop;
         do {
             curleft += elm.offsetLeft/* - elm.scrollLeft*/;
             curtop += elm.offsetTop/* - elm.scrollTop*/;
