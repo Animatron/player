@@ -1046,7 +1046,7 @@ Player.prototype._drawSplash = function() {
 
     ctx.restore();
 
-    Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, ratio, [ '#fff', '#900' ],
+    Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, [ '#fff', '#900' ],
                               [ 0.5, 0.5 ], .2);
 
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
@@ -2415,9 +2415,9 @@ Element.prototype.__ensureHasMaskCanvas = function() {
     //$log.debug('creating mask and back canvases for ' + this.id + ' ' + this.name);
     var scene = this.scene;
     if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]/*, this.state.ratio*/);
+    this.__maskCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]);
     this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]/*, this.state.ratio*/);
+    this.__backCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]);
     this.__backCtx = this.__backCvs.getContext('2d');
     /* $doc.body.appendChild(this.__maskCvs); */
     /* $doc.body.appendChild(this.__backCvs); */
@@ -4651,9 +4651,8 @@ provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
         pconf = $engine.getCanvasParams(parent);
-    var ratio = $engine.PX_RATIO,
-        _w = pconf[0] / ratio,
-        _h = pconf[1] / ratio;
+    var _w = pconf[0],
+        _h = pconf[1];
     if (!cvs) {
         cvs = $engine.addChildCanvas('ctrls', parent,
                  [ 0, 0, _w, _h ],
@@ -4735,48 +4734,48 @@ Controls.prototype.render = function(time) {
     this._time = time;
     this._lhappens = _s;
 
-    var ratio = $engine.PX_RATIO,
-        ctx = this.ctx,
+    var ctx = this.ctx,
         theme = this.theme,
         duration = state.duration,
         progress = time / ((duration !== 0) ? duration : 1);
 
-    var _w = (this.bounds[2] - this.bounds[0]) * ratio,
-        _h = (this.bounds[3] - this.bounds[1]) * ratio;
+    var _w = this.bounds[2],
+        _h = this.bounds[3],
+        ratio = $engine.PX_RATIO;
 
     ctx.save();
-    //if (ratio != 1) ctx.scale(ratio, ratio);
+    if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, _w, _h);
 
     if (_s === C.PLAYING) {
-        /* Controls._drawBack(ctx, theme, _w, _h, ratio);
-        Controls._drawProgress(ctx, theme, _w, _h, ratio, progress);
-        Controls._drawPause(ctx, theme, _w, _h, ratio, this.focused);
+        /* Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawProgress(ctx, theme, _w, _h, progress);
+        Controls._drawPause(ctx, theme, _w, _h, this.focused);
         if (duration) {
-            Controls._drawTime(ctx, theme, _w, _h, ratio, time, duration);
+            Controls._drawTime(ctx, theme, _w, _h, time, duration);
         } */
     } else if (_s === C.STOPPED) {
-        Controls._drawBack(ctx, theme, _w, _h, ratio);
-        Controls._drawPlay(ctx, theme, _w, _h, ratio, this.focused);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawPlay(ctx, theme, _w, _h, this.focused);
     } else if (_s === C.PAUSED) {
-        Controls._drawBack(ctx, theme, _w, _h, ratio);
-        Controls._drawProgress(ctx, theme, _w, _h, ratio, progress);
-        Controls._drawPlay(ctx, theme, _w, _h, ratio, this.focused);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawProgress(ctx, theme, _w, _h, progress);
+        Controls._drawPlay(ctx, theme, _w, _h, this.focused);
         if (duration) {
-            Controls._drawTime(ctx, theme, _w, _h, ratio, time, duration);
+            Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
     } else if (_s === C.NOTHING) {
-        Controls._drawBack(ctx, theme, _w, _h, ratio);
-        Controls._drawNoScene(ctx, theme, _w, _h, ratio, this.focused);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
-        Controls._drawBack(ctx, theme, _w, _h, ratio);
+        Controls._drawBack(ctx, theme, _w, _h);
         var isRemoteLoading = (player._loadTarget === C.LT_URL);
-        Controls._drawLoading(ctx, theme, _w, _h, ratio,
+        Controls._drawLoading(ctx, theme, _w, _h,
                               isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
                               isRemoteLoading ? /*player._loadSrc*/ '...' : '');
     } else if (_s === C.ERROR) {
-        Controls._drawBack(ctx, theme, _w, _h, ratio);
-        Controls._drawError(ctx, theme, _w, _h, ratio, player.__lastError, this.focused);
+        Controls._drawBack(ctx, theme, _w, _h);
+        Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
     }
 
     ctx.restore();
@@ -4950,7 +4949,7 @@ Controls.prototype.setDuration = function(value) {
 Controls.prototype.inject = function(meta, anim) {
     if (this.info) this.info.inject(meta, anim);
 }
-Controls._drawBack = function(ctx, theme, w, h, ratio) {
+Controls._drawBack = function(ctx, theme, w, h) {
     ctx.save();
     var cx = w / 2,
         cy = h / 2;
@@ -4965,7 +4964,7 @@ Controls._drawBack = function(ctx, theme, w, h, ratio) {
 
     ctx.restore();
 }
-Controls._drawProgress = function(ctx, theme, w, h, ratio, progress) {
+Controls._drawProgress = function(ctx, theme, w, h, progress) {
     ctx.save();
 
     var cx = w / 2,
@@ -4987,7 +4986,7 @@ Controls._drawProgress = function(ctx, theme, w, h, ratio, progress) {
     ctx.restore();
 
 }
-Controls._drawPause = function(ctx, theme, w, h, ratio, focused) {
+Controls._drawPause = function(ctx, theme, w, h, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -5022,9 +5021,9 @@ Controls._drawPause = function(ctx, theme, w, h, ratio, focused) {
 
     ctx.restore();
 
-    Controls._drawGuyInCorner(ctx, theme, w, h, ratio);
+    Controls._drawGuyInCorner(ctx, theme, w, h);
 }
-Controls._drawPlay = function(ctx, theme, w, h, ratio, focused) {
+Controls._drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -5061,9 +5060,9 @@ Controls._drawPlay = function(ctx, theme, w, h, ratio, focused) {
 
     ctx.restore();
 
-    Controls._drawGuyInCorner(ctx, theme, w, h, ratio);
+    Controls._drawGuyInCorner(ctx, theme, w, h);
 }
-Controls._drawLoading = function(ctx, theme, w, h, ratio, hilite_pos, src) {
+Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
     ctx.save();
 
     var cx = w / 2,
@@ -5087,23 +5086,23 @@ Controls._drawLoading = function(ctx, theme, w, h, ratio, hilite_pos, src) {
     if (src) {
         Controls._drawText(ctx, theme,
                      w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize * ratio,
+                     theme.font.statussize,
                      ell_text(src, theme.statuslimit));
     } else if (hilite_pos == -1) {
         Controls._drawText(ctx, theme,
                      w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize * ratio,
+                     theme.font.statussize,
                      '...');
     }
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize * ratio,
+                   theme.font.statussize,
                    Strings.COPYRIGHT);
 
-    Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
+    Controls._drawGuyInCenter(ctx, theme, w, h);
 }
-Controls._drawNoScene = function(ctx, theme, w, h, ratio, focused) {
+Controls._drawNoScene = function(ctx, theme, w, h, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -5138,13 +5137,13 @@ Controls._drawNoScene = function(ctx, theme, w, h, ratio, focused) {
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize * ratio,
+                   theme.font.statussize,
                    Strings.COPYRIGHT);
 
-    Controls._drawGuyInCenter(ctx, theme, w, h, ratio);
+    Controls._drawGuyInCenter(ctx, theme, w, h);
 
 }
-Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
+Controls._drawError = function(ctx, theme, w, h, error, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -5179,22 +5178,22 @@ Controls._drawError = function(ctx, theme, w, h, ratio, error, focused) {
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize * 1.2 * ratio,
+                   theme.font.statussize * 1.2,
                    (error && error.message) ? ell_text(error.message, theme.statuslimit)
                                             : error, theme.colors.error);
 
     Controls._drawText(ctx, theme,
                    w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize * ratio,
+                   theme.font.statussize,
                    Strings.COPYRIGHT);
 
-    Controls._drawGuyInCenter(ctx, theme, w, h, ratio, [ theme.colors.button,
-                                                         theme.colors.error ]);
+    Controls._drawGuyInCenter(ctx, theme, w, h, [ theme.colors.button,
+                                                  theme.colors.error ]);
 }
-Controls._drawTime = function(ctx, theme, w, h, ratio, time, duration) {
+Controls._drawTime = function(ctx, theme, w, h, time, duration) {
     Controls._drawText(ctx, theme,
                        w / 2, ((h / 2) * (1 + theme.radius.time)),
-                       theme.font.timesize * ratio,
+                       theme.font.timesize,
                        fmt_time(time) + ' / ' + fmt_time(duration));
 
 }
@@ -5207,12 +5206,12 @@ Controls._drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.fillText(text, x, y);
     ctx.restore();
 }
-Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors, pos, scale) {
+Controls._drawGuyInCorner = function(ctx, theme, w, h, colors, pos, scale) {
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
     Controls._drawText(ctx, theme,
                        w - 10,
                        theme.anmguy.copy_pos[1] * h,
-                       (theme.font.statussize - (1600 / w)) * ratio,
+                       (theme.font.statussize - (1600 / w)),
                        Strings.COPYRIGHT, theme.colors.secondary, 'right');
 
     /* if ((w / ratio) >= 400) {
@@ -5223,7 +5222,7 @@ Controls._drawGuyInCorner = function(ctx, theme, w, h, ratio, colors, pos, scale
                        colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
     } */
 }
-Controls._drawGuyInCenter = function(ctx, theme, w, h, ratio, colors, pos, scale) {
+Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
     drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.center_pos[0]) * w,
                           (pos ? pos[1] : theme.anmguy.center_pos[1]) * h,
                      (scale || theme.anmguy.center_scale) * Math.min(w, h),
@@ -5294,13 +5293,12 @@ InfoBlock.prototype.render = function() {
     if (!this.__data) return;
     var meta = this.__data[0],
         anim = this.__data[1],
-        duration = this.__data[2] || meta.duration,
-        ratio = $engine.PX_RATIO;
+        duration = this.__data[2] || meta.duration;
     /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
+    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
                        ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      Math.floor(InfoBlock.FONT_SIZE_B * ratio) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
+                      Math.floor(InfoBlock.FONT_SIZE_B) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
         _p = InfoBlock.PADDING,
         _td = _tl.dimen(),
         _bd = _bl.dimen(),
@@ -5317,7 +5315,7 @@ InfoBlock.prototype.render = function() {
     ctx.translate(_p, _p);
     _tl.apply(ctx);
     ctx.globalAlpha = .8;
-    ctx.translate(0, _bd[1] + _p * ratio);
+    ctx.translate(0, _bd[1] + _p);
     _bl.apply(ctx);
     ctx.restore();
 }

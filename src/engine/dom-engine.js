@@ -277,7 +277,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.extractUserOptions = function(cvs) {
       var width, height,
-          pxRatio = $DE.PX_RATIO;
+          ratio = $DE.PX_RATIO;
       return { 'debug': __attrOr(cvs, 'data-debug', undefined),
                'inParent': undefined,
                'muteErrors': __attrOr(cvs, 'data-mute-errors', false),
@@ -292,10 +292,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                'anim': { 'fps': undefined,
                          'width': (__attrOr(cvs, 'data-width',
                                   (width = __attrOr(cvs, 'width', undefined),
-                                   width ? (width / pxRatio) : undefined))),
+                                   width ? (width / ratio) : undefined))),
                          'height': (__attrOr(cvs, 'data-height',
                                    (height = __attrOr(cvs, 'height', undefined),
-                                    height ? (height / pxRatio) : undefined))),
+                                    height ? (height / ratio) : undefined))),
                          'bgcolor': cvs.hasAttribute('data-bgcolor')
                                    ? cvs.getAttribute('data-bgcolor')
                                    : undefined,
@@ -313,7 +313,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.getCanvasParams = function(cvs) {
         //var ratio = $DE.PX_RATIO;
         // ensure ratio is set when canvas created
-        return [ cvs.width, cvs.height, cvs.__pxRatio ];
+        return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
     }
     $DE.getCanvasBounds = function(cvs/*, parent*/) {
         //var parent = parent || cvs.parentNode;
@@ -329,7 +329,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (isObj && opts.bgcolor) {
             cvs.style.backgroundColor = opts.bgcolor;
         }
-        cvs.__pxRatio = ratio;
+        cvs.__anm_ratio = ratio;
+        cvs.__anm_width = _w;
+        cvs.__anm_height = _h;
         cvs.style.width = _w + 'px';
         cvs.style.height = _h + 'px';
         cvs.setAttribute('width', _w * (ratio || 1));
