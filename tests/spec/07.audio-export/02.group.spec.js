@@ -13,7 +13,7 @@ describe("Export of single group", function() {
     canvasMock = _mocks.factory.canvas();
     _mocks.adaptDocument(document);
 
-    spyOn(anm.Element.prototype, '_audio_load').andCallFake(function() {
+    spyOn(anm.Element.prototype, '_audioLoad').andCallFake(function() {
     });
 
     _fake(_Fake.CVS_POS);

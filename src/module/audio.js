@@ -14,12 +14,20 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   var C = anm.C,
       Tween = anm.Tween,
       Tweens = anm.Tweens;
+
   var _ResMan = anm.resource_manager;
+
+  var m_ctx = {};
 
   var E = anm.Element;
 
   // Initialization
   // ----------------------------------------------------------------------------------------------------------------
+
+  m_ctx._audio_ctx = function() {
+    var context = window.webkitAudioContext || window.audioContext || window.AudioContext;
+    return context ? new context() : null;
+  }();
 
   C.T_VOLUME = 'VOLUME';
   Tween.TWEENS_PRIORITY[C.T_VOLUME] = Tween.TWEENS_COUNT++;
@@ -61,16 +69,48 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     }
 
     this._audio_is_playing = true;
-    this._audio.currentTime = this._audio_band_offset + ltime;
-    this._audio.volume = 1;
-    this._audio.play();
+    var current_time = this._audio_band_offset + ltime;
+
+    if (m_ctx._audio_ctx) {
+      this._source = m_ctx._audio_ctx.createBufferSource();
+      this._source.buffer = this._audio;
+      this._source.connect(m_ctx._audio_ctx.destination);
+
+      if (this._source.play) {
+        this._source.play(0, current_time);
+      } else if (this._source.start) {
+        this._source.start(0, current_time, this._source.buffer.duration - current_time);
+      } else {
+        this._source.noteGrainOn(0, current_time, this._source.buffer.duration - current_time);
+      }
+    } else {
+      this._audio.currentTime = current_time;
+      this._audio.volume = 1;
+      this._audio.play();
+    }
   };
+
+  var _onAudioStopIfNotMaster = function(ltime, duration) {
+    if (this._audio_master) return;
+    _onAudioStop.call(this, ltime, duration);
+  }
 
   var _onAudioStop = function(ltime, duration) {
     if (this._audio_is_playing) {
-      this._audio.pause();
+      if (m_ctx._audio_ctx) {
+        if (this._source.stop) {
+          this._source.stop(0);
+        } else {
+          this._source.noteOff(0);
+        }
+
+        this._source = null;
+      } else {
+        this._audio.pause();
+        this._audio.volume = 0;
+      }
+
       this._audio_is_playing = false;
-      this._audio.volume = 0;
     }
   };
 
@@ -88,6 +128,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
          */
         this._audio_url = source[1];
         this._audio_band_offset = source[2];
+        this._audio_master = source[3];
       } else if (importer == "ANM_INTACT") {
         this._audio_band_offset = source.bandOffset;
         this._audio_url = this._audio_format_url(source.url);
@@ -100,14 +141,14 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
       this._audio_canPlay = false;
 
       this.on(C.X_START, _onAudioStart);
-      this.on(C.X_STOP, _onAudioStop);
+      this.on(C.X_STOP, _onAudioStopIfNotMaster);
       this.on(C.S_STOP, _onAudioStop);
       this.on(C.S_PAUSE, _onAudioStop);
 
       // assign custom render function
       this.__frameProcessors.push(_audio_customRender);
 
-      this._audio_load();
+      this._audioLoad();
     }
   });
 
@@ -116,6 +157,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   };
 
   E.__test_elm = null;
+
   E.prototype._mpeg_supported = function() {
     var a = E.__test_elm ? E.__test_elm : (E.__test_elm = document.createElement('audio'), E.__test_elm);
     return !!(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
@@ -147,59 +189,89 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     }
   };
 
-  E.prototype._audio_load = function() {
+  E.prototype._audioLoad = function() {
     var me = this;
 
     _ResMan.loadOrGet(me._audio_url,
       function(notify_success, notify_error) { // loader
-          if (__anm.conf.doNotLoadAudio) { notify_error('Loading audio is turned off');
-                                           return; }
+          if (__anm.conf.doNotLoadAudio) {
+            notify_error('Loading audio is turned off');
+            return;
+          }
 
-          var el = document.createElement("audio");
-          el.setAttribute("preload", "auto");
+          if (m_ctx._audio_ctx) {
+            // use Web Audio API if possible
+            var url = me._audio_format_url(me._audio_url);
 
-          var progressListener = function(e) {
-            var buffered = el.buffered;
-            if (buffered.length == 1) {
-                var end = buffered.end(0);
-                if (el.duration - end < 0.05) {
-                  el.removeEventListener("progress", progressListener, false);
-                  el.removeEventListener("canplay", canPlayListener, false);
-                  notify_success(el);
-                  return;
-                }
+            var loadingDone = function(e) {
+              var req = e.target;
+              if (req.status == 200) {
+                m_ctx._audio_ctx.decodeAudioData(req.response, function onSuccess(decodedBuffer) {
+                  notify_success(decodedBuffer);
+                }, audioErrProxy(url, notify_error));
+              } else {
+                notify_error('Unable to load audio ' + url + ': ' + req.statusText);
+              }
+            };
 
-                if (me._audio_canPlay && window.chrome) {
-                  el.volume = 0;
-                  el.currentTime = end;
-                  el.play();
-                  el.pause();
-                }
-            }
-          };
+            var req = new XMLHttpRequest();
+            req.open('GET', url, true);
+            req.responseType = 'arraybuffer';
+            req.addEventListener('load', loadingDone, false);
+            req.addEventListener('error', audioErrProxy(url, notify_error), false);
+            req.send();
+          } else {
+            var el = document.createElement("audio");
+            el.setAttribute("preload", "auto");
 
-          var canPlayListener = function(e) {
-            me._audio_canPlay = true;
-            progressListener(e);
-          };
+            var progressListener = function(e) {
+              var buffered = el.buffered;
+              if (buffered.length == 1) {
+                  var end = buffered.end(0);
+                  if (el.duration - end < 0.05) {
+                    el.removeEventListener("progress", progressListener, false);
+                    el.removeEventListener("canplay", canPlayListener, false);
+                    notify_success(el);
+                    return;
+                  }
 
-          el.addEventListener("progress", progressListener, false);
-          el.addEventListener("canplay", canPlayListener, false);
-          el.addEventListener("error", audioErrProxy(me._audio_url, notify_error), false);
+                  if (me._audio_canPlay && window.chrome) {
+                    el.volume = 0;
+                    el.currentTime = end;
+                    el.play();
+                    el.pause();
+                  }
+              } else if (me._audio_canPlay && buffered.length != 1) {
+                // will skip preloading since it seems like it will not work properly anyway:
+                // it's a workaround for Android-based browsers which
+                // will not allow prebuffering until user will explicitly allow it (by touching something)
+                notify_success(el);
+              }
+            };
 
-          var addSource = function(audio, url, type) {
-              var src = document.createElement("source");
-              src.type = type;
-              src.src = url;
-              src.addEventListener("error", notify_error, false);
-              audio.appendChild(src);
-          };
+            var canPlayListener = function(e) {
+              me._audio_canPlay = true;
+              progressListener(e);
+            };
 
-          try {
-            document.getElementsByTagName("body")[0].appendChild(el);
-            addSource(el, me._audio_url + ".mp3", "audio/mpeg");
-            addSource(el, me._audio_url + ".ogg", "audio/ogg");
-          } catch(e) { notify_error(e); }
+            el.addEventListener("progress", progressListener, false);
+            el.addEventListener("canplay", canPlayListener, false);
+            el.addEventListener("error", audioErrProxy(me._audio_url, notify_error), false);
+
+            var addSource = function(audio, url, type) {
+                var src = document.createElement("source");
+                src.type = type;
+                src.src = url;
+                src.addEventListener("error", notify_error, false);
+                audio.appendChild(src);
+            };
+
+            try {
+              document.getElementsByTagName("body")[0].appendChild(el);
+              addSource(el, me._audio_url + ".mp3", "audio/mpeg");
+              addSource(el, me._audio_url + ".ogg", "audio/ogg");
+            } catch(e) { notify_error(e); }
+          }
       },
       function(audio) { // oncomplete
           me._audio = audio;
@@ -209,10 +281,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
                       /* throw err; */ }); // onerror
   };
 
-  var conf = {};
+  anm.registerModule('audio', m_ctx);
 
-  anm.registerModule('audio', conf);
-
-  return conf;
+  return m_ctx;
 
 });

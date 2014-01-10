@@ -67,6 +67,7 @@ Import.project = function(prj) {
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
+    Import._paths = prj.anim.paths;
     var root = new Scene(),
         elems = prj.anim.elements,
         last_scene_band = [ 0, 0 ];
@@ -74,7 +75,7 @@ Import.project = function(prj) {
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        var node_res = Import.node(node_src, elems);
+        var node_res = Import.node(node_src, elems, null, root);
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
             // correct the band of the next scene to follow the previous scene
@@ -103,6 +104,8 @@ Import.project = function(prj) {
 
     if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
     if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
+
+    Import._paths = undefined; // clear
     return root;
 }
 /** meta **/
@@ -169,15 +172,15 @@ var TYPE_UNKNOWN =  0,
  * } *element*;
  */
 // -> Element
-Import.node = function(src, all, parent) {
+Import.node = function(src, all, parent, scene) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
         (type == TYPE_GROUP)) {
-        trg = Import.branch(type, src, all);
+        trg = Import.branch(type, src, all, scene);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, parent);
+        trg = Import.leaf(type, src, parent, scene);
     }
     if (trg) { Import.callCustom(trg, src, type); };
     return trg;
@@ -201,7 +204,7 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, all) {
+Import.branch = function(type, src, all, scene) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
@@ -232,7 +235,7 @@ Import.branch = function(type, src, all) {
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(Import._find(lsrc[0], all), all, trg);
+        var ltrg = Import.node(Import._find(lsrc[0], all), all, trg, scene);
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -316,12 +319,20 @@ Import.branch = function(type, src, all) {
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
+
+        // [todo] temporary implementation
+        if (ltrg._audio_master) {
+            x.lband = [x.lband[0], Infinity];
+            x.gband = [x.gband[0], Infinity];
+            trg.remove(ltrg);
+            scene.add(ltrg);
+        }
     }
     return trg;
 }
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent) {
+Import.leaf = function(type, src, parent, scene) {
     var trg = new Element();
     var x = trg.xdata;
          if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
@@ -362,11 +373,89 @@ Import.band = function(src) {
  */
 // -> Path
 Import.path = function(src) {
-    return new Path(src[4], // Import.pathval
+    return new Path(Import._pathDecode(src[4]), // Import.pathval
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]));
 }
+
+/*
+ * Could be either String or Binary encoded path
+ */
+Import._pathDecode = function(src) {
+    if (is.str(src)) {
+        return src;
+    }
+
+    return Import._decodeBinaryPath(Import._paths[src]);
+}
+
+Import._decodeBinaryPath = function(encoded) {
+    var path = new Path();
+    if (encoded) {
+        encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
+        try {
+            var decoded = __anm.Base64Decoder.decode(encoded);
+            var s = new __anm.BitStream(decoded);
+            var base = [0, 0];
+            if (s) {
+                var _do = true;
+                while (_do) {
+                    var type = s.readBits(2);
+                    switch (type) {
+                        case 0:
+                            var p = Import._pathReadPoint(s, [], base);
+                            base = p;
+
+                            Path._parserVisitor("M", p, path);
+                            break;
+                        case 1:
+                            var p = Import._pathReadPoint(s, [], base);
+                            base = p;
+
+                            Path._parserVisitor("L", p, path);
+                            break;
+                        case 2:
+                            var p = Import._pathReadPoint(s, [], base);
+                            Import._pathReadPoint(s, p);
+                            Import._pathReadPoint(s, p);
+                            base = [p[p.length - 2], p[p.length - 1]];
+
+                            Path._parserVisitor("C", p, path);
+                            break;
+                        case 3:
+                            _do = false;
+                            break;
+                        default:
+                            _do = false;
+                            _reportError('Unknown type "' + type + ' for path "' + encoded + '"');
+                            break;
+                    }
+                }
+            } else {
+                _reportError('Unable to decode Path "' + encoded + '"');
+            }
+        } catch (err) {
+            _reportError('Unable to decode Path "' + encoded + '"');
+        }
+    }
+
+    return path.segs;
+}
+
+Import._pathReadPoint = function(stream, target, base) {
+    var l = stream.readBits(5);
+    var x = stream.readSBits(l);
+    var y = stream.readSBits(l);
+
+    var b_x = base ? base[0] : (target.length ? target[target.length - 2] : 0);
+    var b_y = base ? base[1] : (target.length ? target[target.length - 1] : 0);
+
+    target.push(b_x + x / 1000.0);
+    target.push(b_y + y / 1000.0);
+    return target;
+}
+
 /** text **/
 /*
  * array {
@@ -487,8 +576,8 @@ Import.tweentype = function(src) {
 /** tweendata **/
 // -> Any
 Import.tweendata = function(type, src) {
-    if (!src) return null;
-    if (type == C.T_TRANSLATE) return Import.pathval(src);
+    if (src == null) return null; // !!! do not optimize to !src since 0 can also happen
+    if (type === C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
         (type === C.T_ALPHA)) {
         if (src.length == 2) return src;
@@ -651,8 +740,128 @@ Import.grad = function(src) {
 }
 /** pathval **/
 Import.pathval = function(src) {
-    return new Path(src);
+    return new Path(Import._pathDecode(src));
 }
+
+// BitStream
+// -----------------------------------------------------------------------------
+
+function BitStream(int8array) {
+    this.buf = int8array;
+    this.pos = 0;
+    this.bitPos = 0;
+    this.bitsBuf = 0;
+}
+
+/*
+ * Reads n unsigned bits
+ */
+BitStream.prototype.readBits = function(n) {
+    var v = 0;
+    for (;;) {
+        var s = n - this.bitPos;
+        if (s>0) {
+            v |= this.bitBuf << s;
+            n -= this.bitPos;
+            this.bitBuf = this.readUByte();
+            this.bitPos = 8;
+        } else {
+            s = -s;
+            v |= this.bitBuf >> s;
+            this.bitPos = s;
+            this.bitBuf &= (1 << s) - 1;
+            return v;
+        }
+    }
+}
+
+/*
+ * Reads one unsigned byte
+ */
+BitStream.prototype.readUByte = function() {
+    return this.buf[this.pos++]&0xff;
+}
+
+/*
+ * Reads n signed bits
+ */
+BitStream.prototype.readSBits = function(n) {
+    var v = this.readBits(n);
+    // Is the number negative?
+    if( (v&(1 << (n - 1))) != 0 ) {
+        // Yes. Extend the sign.
+        v |= -1 << n;
+    }
+
+    return v;
+}
+
+// Base64 Decoder
+// -----------------------------------------------------------------------------
+
+function Base64Decoder() {}
+
+/*
+ * Returns int8array
+ */
+Base64Decoder.decode = function(str) {
+    return Base64Decoder.str2ab(Base64Decoder._decode(str));
+}
+
+Base64Decoder.str2ab = function(str) {
+    var result = new Int8Array(str.length);
+    for (var i=0, strLen=str.length; i<strLen; i++) {
+        result[i] = str.charCodeAt(i);
+    }
+    return result;
+}
+
+Base64Decoder._decode = function(data) {
+    if (typeof window['atob'] === 'function') {
+        // optimize
+        return atob(data);
+    }
+
+    var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var o1, o2, o3, h1, h2, h3, h4, bits, i = 0,
+        ac = 0,
+        dec = "",
+        tmp_arr = [];
+
+    if (!data) {
+        return data;
+    }
+
+    data += '';
+
+    do { // unpack four hexets into three octets using index points in b64
+        h1 = b64.indexOf(data.charAt(i++));
+        h2 = b64.indexOf(data.charAt(i++));
+        h3 = b64.indexOf(data.charAt(i++));
+        h4 = b64.indexOf(data.charAt(i++));
+
+        bits = h1 << 18 | h2 << 12 | h3 << 6 | h4;
+
+        o1 = bits >> 16 & 0xff;
+        o2 = bits >> 8 & 0xff;
+        o3 = bits & 0xff;
+
+        if (h3 == 64) {
+            tmp_arr[ac++] = String.fromCharCode(o1);
+        } else if (h4 == 64) {
+            tmp_arr[ac++] = String.fromCharCode(o1, o2);
+        } else {
+            tmp_arr[ac++] = String.fromCharCode(o1, o2, o3);
+        }
+    } while (i < data.length);
+
+    dec = tmp_arr.join('');
+
+    return dec;
+}
+
+// Finish the importer
+// -----------------------------------------------------------------------------
 
 function __MYSELF() { }
 

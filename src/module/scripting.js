@@ -149,10 +149,10 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
     if (importer === 'ANM') {
       switch(type) {
         case 2: // TYPE_SCENE
-          is_dynamic[import_id] = iterate_handlers.call(this, source[4]) || is_dynamic[import_id];
+          is_dynamic[import_id] = iterate_handlers.call(this, source[4], type) || is_dynamic[import_id];
           break;
         case 255: // TYPE_LAYER
-          is_dynamic[import_id] = iterate_handlers.call(this, source[8]) || is_dynamic[import_id];
+          is_dynamic[import_id] = iterate_handlers.call(this, source[8], type) || is_dynamic[import_id];
           break;
         default:
           break;

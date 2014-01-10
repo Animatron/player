@@ -120,8 +120,20 @@ E.prototype.collectPoints = function() {
 E.prototype.contains = function(pt, t) {
     if (!pt) return false;
     var b = this._cpa_bounds();
-    if (!b) return false;
-    //$log.debug(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
+    if (!b) {
+        if (this.hasChildren()) {
+            var result = false;
+            this.iterateChildren(function(child) {
+                if(!result && child.contains(pt, t)) {
+                    result = true;
+                }
+            });
+            return result;
+        }
+
+        return false;
+    }
+    //console.log(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
     var pt = this._padopt(pt, t);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);

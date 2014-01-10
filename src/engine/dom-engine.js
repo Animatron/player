@@ -319,6 +319,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         //var parent = parent || cvs.parentNode;
         var pos = $DE.findPos(cvs),
             params = $DE.getCanvasParams(cvs);
+        // bounds are: left, top, width, height, ratio.
+        // I am not sure if I am correct in providing width/height instead of
+        // left+width/top+height, but I think it's better to return values
+        // not required to sum up/subtract in this case.
         return [ pos[0], pos[1], params[0], params[1], params[2] ];
     }
     $DE.configureCanvas = function(cvs, opts, ratio) {
