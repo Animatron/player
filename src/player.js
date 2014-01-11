@@ -4690,6 +4690,8 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
         scroll: (function(controls) {
                 return function(evt) {
                     controls.handleAreaChange();
+                    controls.forceNextRedraw();
+                    controls.handleMouseMove(controls._last_mevt);
                 };
             })(this),
         mousemove: (function(controls) {
@@ -4804,8 +4806,8 @@ Controls.prototype.react = function(time) {
 }
 Controls.prototype.refreshByMousePos = function(pos) {
     var state = this.player.state,
-        _lx = pos[0] - this.bounds[0],
-        _ly = pos[1] - this.bounds[1],
+        _lx = pos[0],
+        _ly = pos[1],
         _w = this.bounds[2],
         _h = this.bounds[3],
         button_rad = Math.min(_w / 2, _h / 2) * this.theme.radius.inner;
@@ -4823,8 +4825,9 @@ Controls.prototype.handleAreaChange = function() {
     this.bounds = $engine.getCanvasBounds(this.canvas);
 }
 Controls.prototype.handleMouseMove = function(evt) {
+    if (!evt) return;
     if (this.player.mode === C.M_DYNAMIC) return;
-    if (evt) this._last_mevt = evt;
+    this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
         this.show();
@@ -5274,7 +5277,6 @@ InfoBlock.prototype.detach = function(parent) {
 InfoBlock.prototype.update = function(parent) {
     var cvs = this.canvas,
         pconf = $engine.getCanvasParams(parent),
-        _pr = pconf[2], _pw = pconf[0] / _pr, _ph = pconf[1] / _pr,
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
@@ -5292,7 +5294,7 @@ InfoBlock.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
-        $engine.configureCanvas(cvs, [ _w, _h ], _pr);
+        $engine.configureCanvas(cvs, [ _w, _h ]);
     }
     //var cconf = $engine.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';
@@ -5306,6 +5308,7 @@ InfoBlock.prototype.render = function() {
     var meta = this.__data[0],
         anim = this.__data[1],
         duration = this.__data[2] || meta.duration;
+    var ratio = $engine.PX_RATIO;
     /* TODO: show speed */
     var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
         _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
@@ -5319,6 +5322,7 @@ InfoBlock.prototype.render = function() {
         ctx = this.ctx;
     $engine.configureCanvas(this.canvas, [ _nw, _nh ]);
     ctx.save();
+    if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, _nw, _nh);
     ctx.fillStyle = this.__bgcolor;
     //Controls.__roundRect(ctx, 0, 0, _nw, _nh, 5);
@@ -5334,18 +5338,6 @@ InfoBlock.prototype.render = function() {
 InfoBlock.prototype.inject = function(meta, anim, duration) {
     this.__data = [ meta, anim, duration || meta.duration ];
     if (this.ready) this.render();
-}
-InfoBlock.prototype.inBounds = function(point) {
-    if (this.hidden || !this.bounds) return false;
-    var _b = this.bounds;
-    return (point[0] >= _b[0]) &&
-           (point[0] <= _b[2]) &&
-           (point[1] >= _b[1]) &&
-           (point[1] <= _b[3]);
-}
-InfoBlock.prototype.evtInBounds = function(evt) {
-    if (this.hidden) return false;
-    return this.inBounds($engine.getEventPos(evt));
 }
 InfoBlock.prototype.reset = function() {
 

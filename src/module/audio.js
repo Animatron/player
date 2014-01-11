@@ -194,7 +194,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
     _ResMan.loadOrGet(me._audio_url,
       function(notify_success, notify_error) { // loader
-          if (__anm.conf.doNotLoadAudio) {
+          if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');
             return;
           }
@@ -277,7 +277,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
           me._audio = audio;
           me._audio_is_loaded = true;
       },
-      function(err) { __anm.console.error(err ? (err.message || err) : 'Unknown error');
+      function(err) { anm.log.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ }); // onerror
   };
 
