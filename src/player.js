@@ -564,6 +564,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.fire(C.S_LOAD, result);
                         if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
                         player._callPostpones();
+                        if (player.controls) { player.controls.forceNextRedraw();
+                                               player.controls.render(player.state.time); }
                         if (callback) callback(result);
                     }
                 }
@@ -617,8 +619,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     return player;
 }
 
-var __nextFrame = null,
-    __stopAnim  = null;
+var __nextFrame = $engine.getRequestFrameFunc(),
+    __stopAnim  = $engine.getCancelFrameFunc();
 Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) {
@@ -634,8 +636,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     var player = this;
 
     // reassigns var to ensure proper function is used
-    __nextFrame = $engine.getRequestFrameFunc();
-    __stopAnim = $engine.getCancelFrameFunc();
+    //__nextFrame = $engine.getRequestFrameFunc();
+    //__stopAnim = $engine.getCancelFrameFunc();
 
     player._ensureHasAnim();
     player._ensureHasState();
@@ -655,6 +657,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__rsec = 0;
     state.__prevt = 0;
 
+    // this flags actually stops the animation,
+    // __stopAnim is called just for safety reasons :)
     state.__supressFrames = false;
 
     /*if (state.__drawInterval !== null) {
@@ -669,6 +673,12 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     //if (state.from > 2) throw new Error('Test');
 
+    // FIXME: W3C says to call stopAnim (cancelAnimationFrame) with ID
+    //        of the last call of nextFrame (requestAnimationFrame),
+    //        not the first one, but some Mozilla / HTML5tutorials examples use ID
+    //        of the first call. Anyway, __supressFrames stops our animation in fact,
+    //        __stopAnim is called "to ensure", may be it's not a good way to ensure,
+    //       though...
     state.__firstReq = __r_loop(player.ctx,
                                 state, scene,
                                 player.__beforeFrame(scene),
@@ -702,6 +712,8 @@ Player.prototype.stop = function() {
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
+        // this flags actually stops the animation,
+        // __stopAnim is called just for safety reasons :)
         player.__supressFrames = true;
         __stopAnim(state.__firstReq);
     }
@@ -751,6 +763,8 @@ Player.prototype.pause = function() {
     }
 
     if (state.happens === C.PLAYING) {
+        // this flags actually stops the animation,
+        // __stopAnim is called just for safety reasons :)
         state.__supressFrames = true;
         __stopAnim(state.__firstReq);
     }
@@ -4737,6 +4751,17 @@ Controls.prototype.render = function(time) {
     if (!this.__force &&
         (time === this._time) &&
         (_s === this._lhappens)) return;
+
+    this.rendering = true;
+
+    if (this._progressReq &&
+        ((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
+        ((_s !== C.LOADING) && (_s !== C.RES_LOADING))) {
+        this._supressLoading = true;
+        __stopAnim(this._progressReq);
+        this._progressReq = null;
+    }
+
     this._time = time;
     this._lhappens = _s;
 
@@ -4750,6 +4775,7 @@ Controls.prototype.render = function(time) {
         ratio = $engine.PX_RATIO;
 
     ctx.save();
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, _w, _h);
 
@@ -4774,11 +4800,25 @@ Controls.prototype.render = function(time) {
         Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
-        Controls._drawBack(ctx, theme, _w, _h);
-        var isRemoteLoading = (player._loadTarget === C.LT_URL);
-        Controls._drawLoading(ctx, theme, _w, _h,
-                              isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
-                              isRemoteLoading ? /*player._loadSrc*/ '...' : '');
+        if (this._progressReq) return;
+        var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
+        this._supressLoading = false;
+        var me = this;
+        function loading_loop() {
+            if (me._supressLoading) return;
+            ctx.save();
+            ctx.setTransform(1, 0, 0, 1, 0, 0);
+            if (ratio != 1) ctx.scale(ratio, ratio);
+            // FIXME: redraw only the changed circles
+            ctx.clearRect(0, 0, _w, _h);
+            Controls._drawBack(ctx, theme, _w, _h);
+            Controls._drawLoading(ctx, theme, _w, _h,
+                                  isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
+                                  isRemoteLoading ? /*player._loadSrc*/ '...' : '');
+            ctx.restore();
+            return __nextFrame(loading_loop);
+        }
+        this._progressReq = __nextFrame(loading_loop);
     } else if (_s === C.ERROR) {
         Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
@@ -4793,6 +4833,8 @@ Controls.prototype.render = function(time) {
       if (_s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
       else { this._infoShown = false; }
     }
+
+    this.rendering = false;
 }
 Controls.prototype.react = function(time) {
     if (this.hidden) return;
@@ -5285,7 +5327,7 @@ InfoBlock.prototype.update = function(parent) {
                  { _class: 'anm-info ',
                    position: 'absolute',
                    opacity: InfoBlock.OPACITY,
-                   zIndex: 100,
+                   zIndex: 110,
                    cursor: 'pointer',
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
         this.id = cvs.id;
@@ -5402,6 +5444,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
         anmGuyCanvas = $engine.createCanvas([ w, h ]);
         anmGuyCtx = anmGuyCanvas.getContext('2d');
     } else {
+        // FIXME: resize only if size was changed
         $engine.configureCanvas(anmGuyCanvas, [ w, h ]);
     }
 
