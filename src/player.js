@@ -4488,7 +4488,7 @@ Sheet.prototype.load = function(callback) {
             me._drawToCache();
             if (callback) callback.call(me, image);
         },
-        function(err) { anm.console.error(err.message || err);
+        function(err) { anm.log.error(err.message || err);
                         me.ready = true;
                         me.wasError = true; });
 }
@@ -4694,7 +4694,7 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
             })(this),
         mousemove: (function(controls) {
                 return function(evt) {
-                    controls.handleMouseMove(evt.pageX, evt.pageY, evt);
+                    controls.handleMouseMove(evt);
                 };
             })(this)
     });
@@ -4709,12 +4709,12 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
     $engine.subscribeCvsEvents(canvas, {
         mousemove: (function(controls) {
                 return function(evt) {
-                    controls.handleMouseMove(evt.pageX, evt.pageY, evt);
+                    controls.handleMouseMove(evt);
                 };
             })(this),
-        /*mouseover: (function(controls) {
+        mouseover: (function(controls) {
                 return function(evt) { controls.handleMouseOver(); };
-            })(this),*/
+            })(this),
         mouseout: (function(controls) {
                 return function(evt) { controls.handleMouseOut(); };
             })(this),
@@ -4802,10 +4802,10 @@ Controls.prototype.react = function(time) {
     if (_s === C.PAUSED) { /*$log.debug('play from ' + this._time);*/ _p.play(this._time); return; }
     if (_s === C.PLAYING) { /*$log.debug('pause at' + time);*/ this._time = time; _p.pause(); return; }
 }
-Controls.prototype.refreshByMousePos = function(pageX, pageY) {
+Controls.prototype.refreshByMousePos = function(pos) {
     var state = this.player.state,
-        _lx = pageX - this.bounds[0],
-        _ly = pageY - this.bounds[1],
+        _lx = pos[0] - this.bounds[0],
+        _ly = pos[1] - this.bounds[1],
         _w = this.bounds[2],
         _h = this.bounds[3],
         button_rad = Math.min(_w / 2, _h / 2) * this.theme.radius.inner;
@@ -4820,19 +4820,15 @@ Controls.prototype.refreshByMousePos = function(pageX, pageY) {
     this.render(state.time);
 }
 Controls.prototype.handleAreaChange = function() {
-    //var cconf = $engine.getCanvasParams(cvs);
-    //this._ratio = cconf[2];
-    /* this.page_bounds = [ _bp[0], _bp[1], _bp[0]+_w,
-                                         _bp[1]+_h ]; */
-    this.page_bounds = $engine.getCanvasBounds(this.canvas);
-    this.bounds = this.page_bounds;
+    this.bounds = $engine.getCanvasBounds(this.canvas);
 }
-Controls.prototype.handleMouseMove = function(pageX, pageY, evt) {
+Controls.prototype.handleMouseMove = function(evt) {
     if (this.player.mode === C.M_DYNAMIC) return;
     if (evt) this._last_mevt = evt;
-    if (this.inBounds(pageX, pageY) && (this.player.state.happens !== C.PLAYING)) {
+    var pos = $engine.getEventPos(evt, this.canvas);
+    if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
         this.show();
-        this.refreshByMousePos(pageX, pageY);
+        this.refreshByMousePos(pos);
     } else {
         this.handleMouseOut();
     }
@@ -4884,12 +4880,12 @@ Controls.prototype.forceRefresh = function() {
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
     this.hidden = true;
-    this.canvas.style.display = 'none';
+    this.canvas.style.visibility = 'hidden';
     if (this.info) this.info.hide();
 }
 Controls.prototype.show = function() {
     this.hidden = false;
-    this.canvas.style.display = 'block';
+    this.canvas.style.visibility = 'visible';
     if (this.info && this._infoShown) this.info.show();
 }
 Controls.prototype.reset = function() {
@@ -4901,17 +4897,21 @@ Controls.prototype.detach = function(parent) {
     $engine.detachElm(this._inParent ? parent : null, this.canvas);
     if (this.info) this.info.detach(parent);
 }
-Controls.prototype.inBounds = function(pageX, pageY) {
+Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
     var _b = this.bounds;
-    return (pageX >= _b[0]) &&
-           (pageX <= _b[0] + _b[2]) &&
-           (pageY >= _b[1]) &&
-           (pageY <= _b[1] + _b[3]);
+    return (pos[0] >= _b[0]) &&
+           (pos[0] <= _b[0] + _b[2]) &&
+           (pos[1] >= _b[1]) &&
+           (pos[1] <= _b[1] + _b[3]);
 }
-Controls.prototype.evtInBounds = function(evt) {
-    if (this.hidden) return false;
-    return this.inBounds([evt.pageX, evt.pageY]);
+Controls.prototype.localInBounds = function(pos) {
+    //if (this.hidden) return false;
+    var _b = this.bounds;
+    return (pos[0] >= 0) &&
+           (pos[0] <= _b[2]) &&
+           (pos[1] >= 0) &&
+           (pos[1] <= _b[3]);
 }
 Controls.prototype.changeTheme = function(to) {
     this.theme = to;
@@ -5345,18 +5345,18 @@ InfoBlock.prototype.inBounds = function(point) {
 }
 InfoBlock.prototype.evtInBounds = function(evt) {
     if (this.hidden) return false;
-    return this.inBounds([evt.pageX, evt.pageY]);
+    return this.inBounds($engine.getEventPos(evt));
 }
 InfoBlock.prototype.reset = function() {
 
 }
 InfoBlock.prototype.hide = function() {
     this.hidden = true;
-    this.canvas.style.display = 'none';
+    this.canvas.style.visibility = 'hidden';
 }
 InfoBlock.prototype.show = function() {
     this.hidden = false;
-    this.canvas.style.display = 'block';
+    this.canvas.style.visibility = 'visible';
 }
 InfoBlock.prototype.setDuration = function(value) {
     if (this.__data) this.inject(this.__data[0], this.__data[1], value);

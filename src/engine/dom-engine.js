@@ -67,7 +67,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
-    // findPos(elm) -> [ x, y ]
+    // findElementPosition(elm) -> [ x, y ]
+    // findScrollAwarePos(elm) -> [ x, y ]
+    // getElementBounds(elm) -> [ x, y, width, height, ratio ]
     // disposeElm(elm) -> none
     // detachElm(parent | null, child) -> none
 
@@ -85,7 +87,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // configureCanvas(canvas, options, ratio) -> none
     // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
 
-    // evtPos(event) -> [ x, y ]
+    // getEventPos(event, elm?) -> [ x, y ]
     // subscribeWndEvents(handlers: object) -> none
     // subscribeCvsEvents(canvas, handlers: object) -> none
     // subscribeSceneToEvents(canvas, scene) -> none
@@ -222,15 +224,31 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     /* FIXME: replace with elm.getBoundingClientRect();
        see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
-    $DE.findPos = function(elm) {
-        var curleft = 0, //document.body.scrollLeft,
-            curtop = 0; //document.body.scrollTop;
+    // returns position on a screen, _including_ scroll
+    $DE.findElementPosition = function(elm) {
+        var curleft = 0,
+            curtop = 0;
         do {
-            curleft += elm.offsetLeft/* - elm.scrollLeft*/;
-            curtop += elm.offsetTop/* - elm.scrollTop*/;
+            curleft += elm.offsetLeft;
+            curtop += elm.offsetTop;
         } while (elm = elm.offsetParent);
         return [ curleft, curtop ];
     }
+    $DE.findScrollAwarePosition = function(elm) {
+        //var bound = elm.getBoundingClientRect();
+        //return [ bound.left, bound.top ];
+        var curleft = 0,
+            curtop = 0;
+        do {
+            curleft += elm.offsetLeft - elm.scrollLeft;
+            curtop += elm.offsetTop - elm.scrollTop;
+        } while (elm = elm.offsetParent);
+        return [ curleft, curtop ];
+    }
+    /*$DE.getElementBounds = function(elm) {
+        var rect = elm.getBoundingClientRect();
+        return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
+    }*/
 
     $DE.__trashBin;
     $DE.disposeElm = function(elm) {
@@ -317,7 +335,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.getCanvasBounds = function(cvs/*, parent*/) {
         //var parent = parent || cvs.parentNode;
-        var pos = $DE.findPos(cvs),
+        var pos = $DE.findScrollAwarePosition(cvs),
             params = $DE.getCanvasParams(cvs);
         // bounds are: left, top, width, height, ratio.
         // I am not sure if I am correct in providing width/height instead of
@@ -344,6 +362,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ _w, _h ];
     }
     $DE._saveCanvasPos = function(cvs) {
+        // FIXME: use getBoundingClientRect?
         var gcs = ($doc.defaultView &&
                    $doc.defaultView.getComputedStyle); // last is assigned
 
@@ -353,10 +372,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         // computed padding-top
             cpt = gcs ?
               (parseInt(gcs(cvs, null).paddingTop, 10) || 0) : 0,
-        // computed bodrer-left
+        // computed border-left
             cbl = gcs ?
               (parseInt(gcs(cvs, null).borderLeftWidth,  10) || 0) : 0,
-        // computed bodrer-top
+        // computed border-top
             cbt = gcs ?
               (parseInt(gcs(cvs, null).borderTopWidth,  10) || 0) : 0;
 
@@ -390,7 +409,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var _ratio = $DE.PX_RATIO,
             _x = pos[0], _y = pos[1],
             _w = pos[2], _h = pos[3], // width & height
-            _pp = $DE.findPos(parent), // parent position
+            // FIXME: the variables below are not used
+            _pp = $DE.findElementPosition(parent), // parent position
             _bp = [ _pp[0] + parent.clientLeft + _x, _pp[1] + parent.clientTop + _y ], // bounds position
             _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
                              parent.parentNode.offsetTop  + parent.clientTop + _y ]
@@ -401,6 +421,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         for (var prop in style) {
             cvs.style[prop] = style[prop];
         }
+        cvs.style.left = _cp[0] + 'px';
+        cvs.style.top = _cp[1] + 'px';
         var appendTo = inside ? parent.parentNode
                               : $doc.body;
         // FIXME: a dirty hack?
@@ -411,8 +433,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // Events
 
-    $DE.evtPos = function(evt) {
-        return [ evt.pageX, evt.pageY ];
+    $DE.getEventPos = function(evt, elm) {
+        /*if (elm && (elm.__rOffsetLeft || elm.__rOffsetTop)) return [ evt.pageX - elm.__rOffsetLeft,
+                                                                     evt.pageY - elm.__rOffsetTop ];
+        else */ if (elm) {
+            var shift = $DE.findElementPosition(elm);
+            return [ evt.pageX - shift[0], evt.pageY - shift[1] ];
+        } else return [ evt.pageX, evt.pageY ];
     }
     $DE.subscribeWndEvents = function(handlers) {
         for (var type in handlers) {
@@ -434,8 +461,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                  ch: e.charCode };
     }
     $DE.mouseEvent = function(e, cvs) {
-        return { pos: [ e.pageX - cvs.__rOffsetLeft,
-                        e.pageY - cvs.__rOffsetTop ] };
+        return { pos: $DE.getEventPos(e, cvs) };
     }
     var _kevt = $DE.keyEvent,
         _mevt = $DE.mouseEvent;
