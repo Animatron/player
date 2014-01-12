@@ -986,12 +986,12 @@ Player.__getPosAndRedraw = function(player) {
 }
 Player.prototype.subscribeEvents = function(canvas) {
     var doRedraw = Player.__getPosAndRedraw(this);
-    $engine.subscribeWndEvents({
+    $engine.subscribeWindowEvents({
         load: doRedraw,
         scroll: doRedraw,
         resize: doRedraw
     });
-    $engine.subscribeCvsEvents(canvas, {
+    $engine.subscribeCanvasEvents(canvas, {
         mouseover: (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -2439,13 +2439,13 @@ Element.prototype.__ensureHasMaskCanvas = function() {
 Element.prototype.__removeMaskCanvases = function() {
     if (this.__maskCvs) {
         //$log.debug('removing mask canvas for ' + this.id + ' ' + this.name);
-        $engine.disposeElm(this.__maskCvs);
+        $engine.disposeElement(this.__maskCvs);
         this.__maskCvs = null;
         this.__maskCtx = null;
     }
     if (this.__backCvs) {
         //$log.debug('removing back canvas for ' + this.id + ' ' + this.name);
-        $engine.disposeElm(this.__backCvs);
+        $engine.disposeElement(this.__backCvs);
         this.__backCvs = null;
         this.__backCtx = null;
     }
@@ -4502,7 +4502,7 @@ Sheet.prototype.load = function(callback) {
             me._drawToCache();
             if (callback) callback.call(me, image);
         },
-        function(err) { anm.log.error(err.message || err);
+        function(err) { $log.error(err.message || err);
                         me.ready = true;
                         me.wasError = true; });
 }
@@ -4700,7 +4700,7 @@ Controls.prototype.update = function(parent) {
     if (this.info) this.info.update(parent);
 }
 Controls.prototype.subscribeEvents = function(canvas, parent) {
-    $engine.subscribeWndEvents({
+    $engine.subscribeWindowEvents({
         scroll: (function(controls) {
                 return function(evt) {
                     controls.handleAreaChange();
@@ -4714,7 +4714,7 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
                 };
             })(this)
     });
-    $engine.subscribeCvsEvents(parent, {
+    $engine.subscribeCanvasEvents(parent, {
         mouseover: (function(controls) {
             return function(evt) { controls.handleMouseOver(); };
         })(this),
@@ -4722,7 +4722,7 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
             return function(evt) { controls.handlePlayerClick(); };
         })(this)
     });
-    $engine.subscribeCvsEvents(canvas, {
+    $engine.subscribeCanvasEvents(canvas, {
         mousemove: (function(controls) {
                 return function(evt) {
                     controls.handleMouseMove(evt);
@@ -4939,7 +4939,7 @@ Controls.prototype.reset = function() {
     if (this.info) this.info.reset();
 }
 Controls.prototype.detach = function(parent) {
-    $engine.detachElm(this._inParent ? parent : null, this.canvas);
+    $engine.detachElement(this._inParent ? parent : null, this.canvas);
     if (this.info) this.info.detach(parent);
 }
 Controls.prototype.inBounds = function(pos) {
@@ -5312,7 +5312,7 @@ InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.prototype.detach = function(parent) {
     if (!this.attached) return;
-    $engine.detachElm(this._inParent ? parent : null, this.canvas);
+    $engine.detachElement(this._inParent ? parent : null, this.canvas);
     this.attached = false;
 }
 // TODO: move to engine

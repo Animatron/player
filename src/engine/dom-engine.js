@@ -57,6 +57,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // FIXME: here are truly a lot of methods, try to
     //        reduce their number as much as possible
 
+    // PX_RATIO
+
     // require(what, func)
     // define(id?, what, func)
 
@@ -67,11 +69,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
+    // createTransform() -> Transform
+
     // findElementPosition(elm) -> [ x, y ]
     // findScrollAwarePos(elm) -> [ x, y ]
-    // getElementBounds(elm) -> [ x, y, width, height, ratio ]
-    // disposeElm(elm) -> none
-    // detachElm(parent | null, child) -> none
+    // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
+    // disposeElement(elm) -> none
+    // detachElement(parent | null, child) -> none
 
     // createCanvas(params | [width, height], ratio?) -> canvas
     // assignPlayerToCanvas(id, player) -> canvas
@@ -88,8 +92,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
 
     // getEventPos(event, elm?) -> [ x, y ]
-    // subscribeWndEvents(handlers: object) -> none
-    // subscribeCvsEvents(canvas, handlers: object) -> none
+    // subscribeWindowEvents(handlers: object) -> none
+    // subscribeCanvasEvents(canvas, handlers: object) -> none
+    // unsubscribeCanvasEvents(canvas, handlers: object) -> none
     // subscribeSceneToEvents(canvas, scene) -> none
     // unsubscribeSceneFromEvents(canvas, scene) -> none
 
@@ -251,7 +256,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }*/
 
     $DE.__trashBin;
-    $DE.disposeElm = function(elm) {
+    $DE.disposeElement = function(elm) {
         var trashBin = $DE.__trashBin;
         if (!trashBin) {
             trashBin = $doc.createElement('div');
@@ -263,7 +268,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         trashBin.appendChild(domElm);
         trashBin.innerHTML = '';
     }
-    $DE.detachElm = function(parent, child) {
+    $DE.detachElement = function(parent, child) {
         (parent ? parent.parentNode
                 : $doc.body).removeChild(child);
     }
@@ -441,17 +446,17 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             return [ evt.pageX - shift[0], evt.pageY - shift[1] ];
         } else return [ evt.pageX, evt.pageY ];
     }
-    $DE.subscribeWndEvents = function(handlers) {
+    $DE.subscribeWindowEvents = function(handlers) {
         for (var type in handlers) {
             $wnd.addEventListener(type, handlers[type], false);
         }
     }
-    $DE.subscribeCvsEvents = function(cvs, handlers) {
+    $DE.subscribeCanvasEvents = function(cvs, handlers) {
         for (var type in handlers) {
             cvs.addEventListener(type, handlers[type], false);
         }
     }
-    $DE.unsubcribeCvsEvents = function(cvs, handlers) {
+    $DE.unsubcribeCanvasEvents = function(cvs, handlers) {
         for (var type in handlers) {
             cvs.removeEventListener(type, handlers[type]);
         }
@@ -487,7 +492,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         };
         canvas.__anm_handlers[scene.id] = handlers;
         canvas.__anm_subscribed[scene.id] = true;
-        $DE.subscribeCvsEvents(canvas, handlers);
+        $DE.subscribeCanvasEvents(canvas, handlers);
     }
     $DE.unsubscribeSceneFromEvents = function(cvs, scene) {
         if (!cvs.__anm_handlers   ||
@@ -495,7 +500,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             !cvs.__anm_subscribed[scene.id]) return;
         var handlers = cvs.__anm_handlers[scene.id];
         if (!handlers) return;
-        $DE.unsubscribeCvsEvents(cvs, handlers);
+        $DE.unsubscribeCanvasEvents(cvs, handlers);
     }
 
     return $DE;
