@@ -14,7 +14,6 @@ _Fake.CVS_POS = 1; // canvas position
 //_Fake.IMAGES = 5; // images objects
 
 var _window = jasmine.getGlobal();
-var _anm_window = anm.__dev._win;
 
 var JSON = JSON || Json;
 
@@ -530,7 +529,7 @@ function __builderInfo(bld) {
 }
 
 function setCanvasSize(canvas, size) {
-    var pxRatio = _anm_window().devicePixelRatio || 1;
+    var pxRatio = anm.engine.PX_RATIO || 1;
     canvas.setAttribute('width',  size[0] * pxRatio);
     canvas.setAttribute('height', size[1] * pxRatio);
     canvas.style.width  = size[0] + 'px';
