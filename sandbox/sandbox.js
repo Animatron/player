@@ -17,11 +17,11 @@ function sandbox() {
     this.tangleElm = document.getElementById('refresh-calc');
     this.debugElm = document.getElementById('enable-debug');
 
-    window.b = Builder._$;
-    window.B = Builder;
+    window.b = anm.Builder._$;
+    window.B = anm.Builder;
     window.C = anm.C;
 
-    this.player = createPlayer('my-canvas', {
+    this.player = anm.createPlayer('my-canvas', {
         //'mode': anm.C.M_PREVIEW,
         'muteErrors': true,
         'anim': {

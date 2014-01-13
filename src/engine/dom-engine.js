@@ -456,7 +456,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             cvs.addEventListener(type, handlers[type], false);
         }
     }
-    $DE.unsubcribeCanvasEvents = function(cvs, handlers) {
+    $DE.unsubscribeCanvasEvents = function(cvs, handlers) {
         for (var type in handlers) {
             cvs.removeEventListener(type, handlers[type]);
         }
@@ -475,24 +475,24 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             cvs.__anm_subscribed[scene.id]) {
             return;
         }
-        //canvas.__anm_subscription_id = guid();
+        //cvs.__anm_subscription_id = guid();
         if (!cvs.__anm_handlers)   cvs.__anm_handlers = {};
         if (!cvs.__anm_subscribed) cvs.__anm_subscribed = {};
         var handlers = cvs.__anm_subscribed[scene.id] || {
-          mouseup:   function(evt) { anim.fire(C.X_MUP,     _mevt(evt, canvas)); },
-          mousedown: function(evt) { anim.fire(C.X_MDOWN,   _mevt(evt, canvas)); },
-          mousemove: function(evt) { anim.fire(C.X_MMOVE,   _mevt(evt, canvas)); },
-          mouseover: function(evt) { anim.fire(C.X_MOVER,   _mevt(evt, canvas)); },
-          mouseout:  function(evt) { anim.fire(C.X_MOUT,    _mevt(evt, canvas)); },
-          click:     function(evt) { anim.fire(C.X_MCLICK,  _mevt(evt, canvas)); },
-          dblclick:  function(evt) { anim.fire(C.X_MDCLICK, _mevt(evt, canvas)); },
-          keyup:     function(evt) { anim.fire(C.X_KUP,     _kevt(evt)); },
-          keydown:   function(evt) { anim.fire(C.X_KDOWN,   _kevt(evt)); },
-          keypress:  function(evt) { anim.fire(C.X_KPRESS,  _kevt(evt)); }
+          mouseup:   function(evt) { scene.fire(C.X_MUP,     _mevt(evt, cvs)); },
+          mousedown: function(evt) { scene.fire(C.X_MDOWN,   _mevt(evt, cvs)); },
+          mousemove: function(evt) { scene.fire(C.X_MMOVE,   _mevt(evt, cvs)); },
+          mouseover: function(evt) { scene.fire(C.X_MOVER,   _mevt(evt, cvs)); },
+          mouseout:  function(evt) { scene.fire(C.X_MOUT,    _mevt(evt, cvs)); },
+          click:     function(evt) { scene.fire(C.X_MCLICK,  _mevt(evt, cvs)); },
+          dblclick:  function(evt) { scene.fire(C.X_MDCLICK, _mevt(evt, cvs)); },
+          keyup:     function(evt) { scene.fire(C.X_KUP,     _kevt(evt)); },
+          keydown:   function(evt) { scene.fire(C.X_KDOWN,   _kevt(evt)); },
+          keypress:  function(evt) { scene.fire(C.X_KPRESS,  _kevt(evt)); }
         };
-        canvas.__anm_handlers[scene.id] = handlers;
-        canvas.__anm_subscribed[scene.id] = true;
-        $DE.subscribeCanvasEvents(canvas, handlers);
+        cvs.__anm_handlers[scene.id] = handlers;
+        cvs.__anm_subscribed[scene.id] = true;
+        $DE.subscribeCanvasEvents(cvs, handlers);
     }
     $DE.unsubscribeSceneFromEvents = function(cvs, scene) {
         if (!cvs.__anm_handlers   ||

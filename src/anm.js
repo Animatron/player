@@ -20,7 +20,7 @@
     var _getGlobal = _GLOBAL_['__anm_getGlobal'],
         _registerGlobally = _GLOBAL_['__anm_registerGlobally'];
 
-    if (!_getGlobal || !_registerGlobally) throw new Error('Potentially, no Engine included within player, so cannot proceed');
+    if (!_getGlobal || !_registerGlobally) throw new Error('Potentially, no Engine was provided to player, so we cannot proceed :(');
 
     var $glob = _GLOBAL_;
 
@@ -461,8 +461,8 @@
             // #### typecheck
 
             function __builder(obj) {
-                return (typeof Builder !== 'undefined') &&
-                       (obj instanceof Builder);
+                return (typeof anm.Builder !== 'undefined') &&
+                       (obj instanceof anm.Builder);
             }
 
             var __arr = Array.isArray;

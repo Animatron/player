@@ -11,6 +11,7 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
 __anm_engine.define('anm/modules/collisions', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
+var $engine = anm.engine;
 var C = anm.C;
 
 var opts = {
@@ -491,7 +492,7 @@ function p_drawCPath(ctx, cPath) {
 function p_drawAdoptedRect(ctx) {
     var rect = this.$._cpa_rect();
     if (rect) {
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         rect = this.$._pradopt(rect);
         ctx.save();
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
@@ -516,7 +517,7 @@ function p_drawAdoptedRect(ctx) {
 function p_drawAdoptedPoints(ctx) {
     var pts = this.$.collectPoints();
     if (pts) {
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         pts = this.$._pradopt(pts);
         ctx.save();
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
@@ -530,7 +531,7 @@ function p_drawAdoptedPoints(ctx) {
 /*function p_drawPathAt(ctx) {
     try {
         var p = this.$.__pathAt();
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         ctx.save();
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
         p.fill = Path.BASE_FILL;
@@ -542,7 +543,7 @@ function p_drawAdoptedPoints(ctx) {
 function p_drawGhost(ctx) {
     var me = this.$;
     if (me.__ghost && !me.__ghostLock) {
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         ctx.save();
         me.__ghostLock = true;
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset

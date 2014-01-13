@@ -36,16 +36,17 @@
 
     <script type="text/javascript">
       function start() {
-          var b = Builder._$, C = anm.C;
+          var b = anm.Builder._$, C = anm.C;
+          var AnimatronImporter = anm.import.AnimatronImporter;
 
           // canvas1
           var scene1 = b().rect([100, 70], [70, 70])
                           .fill('#009')
                           .stroke('#f00', 3);
-          createPlayer('canvas1').load(scene1);
+          anm.createPlayer('canvas1').load(scene1);
 
           // canvas2
-          var pl2 = createPlayer('canvas2', { 'mode': C.M_DYNAMIC, 'zoom': 1.4 });
+          var pl2 = anm.createPlayer('canvas2', { 'mode': C.M_DYNAMIC, 'zoom': 1.4 });
           var scene2 = b().add(b('blue-rect').rect([140, 25], [70, 70])
                                              .fill('#009')
                                              .stroke('#f00', 3))
@@ -60,32 +61,32 @@
 
           // canvas3
           var importer = new AnimatronImporter();
-          var p3 = createPlayer('canvas3');
+          var p3 = anm.createPlayer('canvas3');
           p3.debug = true;
           p3.load(anm_scenes.demo_project, importer);
           p3.play(6);
           //p3.load(scene2).play(2);
 
           // canvas4
-          var p4 = createPlayer('canvas4');
+          var p4 = anm.createPlayer('canvas4');
           p4.debug = true;
           p4.load(anm_scenes.rectangles_project, importer);
 
           // canvas5
-          var p5 = createPlayer('canvas5');
+          var p5 = anm.createPlayer('canvas5');
           p5.debug = true;
           p5.load(anm_scenes.curvy_path_project, importer);
 
           // canvas6
-          var p6 = createPlayer('canvas6');
+          var p6 = anm.createPlayer('canvas6');
           p6.debug = true;
           p6.load(anm_scenes.alpha_project, importer);
 
           // canvas7
-          var p7 = createPlayer('canvas7');
+          var p7 = anm.createPlayer('canvas7');
           p7.load(anm_scenes.project_with_masks_3, importer);
 
-          /*createPlayer('canvas4').load(
+          /*anm.createPlayer('canvas4').load(
             b().add(b('two-cirles').add(b().circle([15, 15], 4)
                                            .fill(b.gradient('#eee','#999'))
                                            .stroke('#0ff', 2)
