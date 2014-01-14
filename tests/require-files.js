@@ -16,6 +16,7 @@ var _files = {
 
     'vnd.matrix': '../src/vendor/matrix.js',
 
+    'anm.dom-engine': '../src/engine/dom-engine.js',
     'anm.init': '../src/anm.js',
     'anm.player': '../src/player.js',
     'anm.builder': '../src/builder.js',
@@ -28,6 +29,7 @@ var _files = {
 
     'tst.matchers': './anm.matchers.js',
     'tst.mocks': './anm.mocks.js',
-    'tst.utils': './anm.testutils.js'
+    'tst.utils': './anm.testutils.js',
+    'tst.engine': './anm.test-engine.js'
 
 };

@@ -47,18 +47,20 @@
                   _files['jasmine.tap'],
                   _files['jasmine.phantom'],
                   _files['vnd.matrix'],
+                  _files['anm.dom-engine'], // FIXME: switch to test-engine
                   _files['anm.init'],
                   _files['anm.player'],
                   _files['anm.builder'],
                   _files['anm.collisions'],
-                  _files['anm.intact-import'],
+                  //_files['anm.intact-import'], // FIXME: enable
                   _files['anm.import'],
                   _files['anm.audio'],
                   _files['anm.audio-export'],
                   _files['anm.scripting'],
                   _files['tst.matchers'],
                   _files['tst.mocks'],
-                  _files['tst.utils']
+                  _files['tst.utils'],
+                  _files['tst.engine']
           ], function() {
             loadJasmine(window, [ new jasmine.TapReporter(),
                                   new jasmine.PhantomReporter({ onFinish: on_finish }) ],

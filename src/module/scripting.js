@@ -7,16 +7,14 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+
   var C = anm.C,
-      is = __anm.is;
-  var _ResMan = __anm.resource_manager;
+      is = anm.is;
+  var _ResMan = anm.resource_manager;
   var Player = anm.Player;
-
-  C.MOD_SCRIPTING = 'scripting';
-  if (anm.M[C.MOD_SCRIPTING]) throw new Error('SCRIPTING module already enabled');
-
-  anm.M[C.MOD_SCRIPTING] = {};
 
   var E = anm.Element;
 
@@ -162,7 +160,7 @@
     }
   });
 
-  __anm.player_manager.on(C.S_NEW_PLAYER, function(player) {
+  anm.player_manager.on(C.S_NEW_PLAYER, function(player) {
     player.on(C.S_LOAD, function(scene) {
       if (is_dynamic[scene.__import_id]) { // __import_id is equal to prj_id passed to customImporter,
                                            // if it is actually the same scene that was imported there
@@ -175,4 +173,10 @@
     });
   });
 
-})();
+  var conf = {};
+
+  anm.registerModule('scripting', conf);
+
+  return conf;
+
+});

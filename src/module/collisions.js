@@ -7,12 +7,12 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
+__anm_engine.define('anm/modules/collisions', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+
+var $engine = anm.engine;
 var C = anm.C;
-
-C.MOD_COLLISIONS = 'collisions';
-if (anm.M[C.MOD_COLLISIONS]) throw new Error('COLLISIONS module already enabled');
 
 var opts = {
     'pathDriven': false,
@@ -22,7 +22,7 @@ var opts = {
     'mouseBound': false
 };
 
-anm.M[C.MOD_COLLISIONS] = opts;
+anm.registerModule('collisions', opts);
 
 function __filled(arr, val) {
     var l = arr.length; result = new Array(l), i = l;
@@ -138,7 +138,7 @@ E.prototype.contains = function(pt, t) {
     var pt = this._padopt(pt, t);
     var x = this.xdata;
     if (x.__cfunc) return x.__cfunc.call(this, pt);
-    //console.log(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
+    //$log.debug(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
     var inBounds;
     if (inBounds = G.__inBounds(b, pt)) {
         if (!opts.pathDriven) return true;
@@ -492,7 +492,7 @@ function p_drawCPath(ctx, cPath) {
 function p_drawAdoptedRect(ctx) {
     var rect = this.$._cpa_rect();
     if (rect) {
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         rect = this.$._pradopt(rect);
         ctx.save();
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
@@ -517,7 +517,7 @@ function p_drawAdoptedRect(ctx) {
 function p_drawAdoptedPoints(ctx) {
     var pts = this.$.collectPoints();
     if (pts) {
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         pts = this.$._pradopt(pts);
         ctx.save();
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
@@ -531,7 +531,7 @@ function p_drawAdoptedPoints(ctx) {
 /*function p_drawPathAt(ctx) {
     try {
         var p = this.$.__pathAt();
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         ctx.save();
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
         p.fill = Path.BASE_FILL;
@@ -543,7 +543,7 @@ function p_drawAdoptedPoints(ctx) {
 function p_drawGhost(ctx) {
     var me = this.$;
     if (me.__ghost && !me.__ghostLock) {
-        var ratio = ctx.canvas.__pxRatio || 1;
+        var ratio = $engine.PX_RATIO || 1;
         ctx.save();
         me.__ghostLock = true;
         ctx.setTransform(ratio, 0, 0, ratio, 0, 0); // reset
@@ -941,4 +941,6 @@ G.__curveCrosses = function(px, py, x0, y0,
                              x1, y1, level + 1));
 }
 
-})();  // end of anonymous wrapper
+return opts;
+
+});

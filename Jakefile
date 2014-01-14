@@ -72,9 +72,10 @@ var Dirs = {
 
 var SubDirs = {
     VENDOR: 'vendor',
-    BUNDLES: 'bundle',
+    ENGINES: 'engine',
     MODULES: 'module',
-    IMPORTERS: 'import'
+    IMPORTERS: 'import',
+    BUNDLES: 'bundle'
 };
 
 var Files = {
@@ -82,6 +83,11 @@ var Files = {
             PLAYER: 'player.js',
             BUILDER: 'builder.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
+           ENGINES: { _ALL_: [ 'dom-engine.js',
+                               'node-engine.js' ],
+                      DOM: 'dom-engine.js',
+                      NODE: 'node-engine.js'/*,
+                      JASMINE: 'jasmine-engine.js'*/ },
            IMPORTERS: { _ALL_: [ 'animatron-importer.js',
                                  'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
@@ -93,7 +99,7 @@ var Files = {
                       COLLISIONS: 'collisions.js',
                       AUDIO: 'audio.js',
                       AUDIO_EXPORT: 'audio-export.js',
-                      SCRIPTING: 'scripting.js' } },
+                      SCRIPTING: 'scripting.js' }, },
     Doc: { README: 'README.md',
            API: 'API.md',
            SCRIPTING: 'scripting.md' }
@@ -102,12 +108,14 @@ var Files = {
 var Bundles = [
     { name: 'Standard',
       file: 'standard',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
-                                                         Files.Main.PLAYER ])) },
+      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
+        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
+                                                            Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES,   [ Files.Ext.ENGINES.DOM ]))
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
                                                               Files.Main.PLAYER,
                                                               Files.Main.BUILDER ]))
@@ -115,27 +123,30 @@ var Bundles = [
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
                                                               Files.Ext.MODULES.COLLISIONS,
                                                               Files.Ext.MODULES.SCRIPTING ])) },
-    { name: 'Animatron-Intact',
+    /* { name: 'Animatron-Intact',
       file: 'animatron-intact',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
         .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
                                                               Files.Main.PLAYER,
                                                               Files.Main.BUILDER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module */
     { name: 'Develop',
       file: 'develop',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR, Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                      [ Files.Main.INIT,
-                                                         Files.Main.PLAYER,
-                                                         Files.Main.BUILDER ])) },
+      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
+        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
+                                                            Files.Main.PLAYER,
+                                                            Files.Main.BUILDER ])) },
     { name: 'Hardcore',
       file: 'hardcore',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.INIT,
-                                                          Files.Main.PLAYER ]))
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
+        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
+                                                            Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ ))
-        .concat(_in_dir(Dirs.SRC,                       [ Files.Main.BUILDER ])) }
+        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.BUILDER ])) }
 ];
 
 var Tests = {
@@ -181,7 +192,8 @@ var DESC_WIDTH = 80,
     DESC_PFX = '# ',
     DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
 
-var EXEC_OPTS = { printStdout: !jake.program.opts.quiet };
+var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
+                  printStderr: !jake.program.opts.quiet };
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 

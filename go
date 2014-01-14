@@ -218,6 +218,7 @@
                     _u.forcedJS(PROTOCOL + PLAYER_DOMAIN + '/' + PLAYER_VERSION_ID +
                         (useStandartImporter ? '/bundle/animatron.js' : '/bundle/animatron-publish.js'),
                         function () {
+                            var AnimatronImporter = AnimatronImporter || (anm.import ? anm.import.AnimatronImporter : null);
                             var player = anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, useStandartImporter
                                                                                           ? new AnimatronImporter()
                                                                                           : new AnimatronPublishImporter()/*,

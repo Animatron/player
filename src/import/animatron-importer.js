@@ -12,6 +12,10 @@
 // This importer imports only the compact format of scenes (where all elements are arrays
 // of arrays)
 
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/import/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+
 var AnimatronImporter = (function() {
 
 var IMPORTER_ID = 'ANM';
@@ -22,17 +26,16 @@ var C = anm.C,
     Path = anm.Path,
     Text = anm.Text,
     Bands = anm.Bands,
-    is = anm._typecheck;
+    is = anm.is,
+    $log = anm.log;
     //test = anm._valcheck
 
 function _reportError(e) {
-    __anm.console.error(e);
+    $log.error(e);
     // throw e; // skip errors if they do not affect playing ability
 }
 
 var Import = {};
-
-anm.I[IMPORTER_ID] = Import;
 
 var cur_import_id;
 
@@ -57,11 +60,11 @@ Import._type = function(src) {
  */
 // -> Scene
 Import.project = function(prj) {
-    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) console.log(prj);
-    if (__anm_conf.logImport) __anm.console.log(prj);
-    cur_import_id = __anm.guid();
-    __anm.lastImportedProject = prj;
-    __anm.lastImportId = cur_import_id;
+    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
+    if (anm.conf.logImport) $log.debug(prj);
+    cur_import_id = anm.guid();
+    anm.lastImportedProject = prj;
+    anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
     Import._paths = prj.anim.paths;
@@ -392,8 +395,8 @@ Import._decodeBinaryPath = function(encoded) {
     if (encoded) {
         encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
         try {
-            var decoded = __anm.Base64Decoder.decode(encoded);
-            var s = new __anm.BitStream(decoded);
+            var decoded = Base64Decoder.decode(encoded);
+            var s = new BitStream(decoded);
             var base = [0, 0];
             if (s) {
                 var _do = true;
@@ -740,6 +743,126 @@ Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
 }
 
+// BitStream
+// -----------------------------------------------------------------------------
+
+function BitStream(int8array) {
+    this.buf = int8array;
+    this.pos = 0;
+    this.bitPos = 0;
+    this.bitsBuf = 0;
+}
+
+/*
+ * Reads n unsigned bits
+ */
+BitStream.prototype.readBits = function(n) {
+    var v = 0;
+    for (;;) {
+        var s = n - this.bitPos;
+        if (s>0) {
+            v |= this.bitBuf << s;
+            n -= this.bitPos;
+            this.bitBuf = this.readUByte();
+            this.bitPos = 8;
+        } else {
+            s = -s;
+            v |= this.bitBuf >> s;
+            this.bitPos = s;
+            this.bitBuf &= (1 << s) - 1;
+            return v;
+        }
+    }
+}
+
+/*
+ * Reads one unsigned byte
+ */
+BitStream.prototype.readUByte = function() {
+    return this.buf[this.pos++]&0xff;
+}
+
+/*
+ * Reads n signed bits
+ */
+BitStream.prototype.readSBits = function(n) {
+    var v = this.readBits(n);
+    // Is the number negative?
+    if( (v&(1 << (n - 1))) != 0 ) {
+        // Yes. Extend the sign.
+        v |= -1 << n;
+    }
+
+    return v;
+}
+
+// Base64 Decoder
+// -----------------------------------------------------------------------------
+
+function Base64Decoder() {}
+
+/*
+ * Returns int8array
+ */
+Base64Decoder.decode = function(str) {
+    return Base64Decoder.str2ab(Base64Decoder._decode(str));
+}
+
+Base64Decoder.str2ab = function(str) {
+    var result = new Int8Array(str.length);
+    for (var i=0, strLen=str.length; i<strLen; i++) {
+        result[i] = str.charCodeAt(i);
+    }
+    return result;
+}
+
+Base64Decoder._decode = function(data) {
+    if (typeof window['atob'] === 'function') {
+        // optimize
+        return atob(data);
+    }
+
+    var b64 = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+    var o1, o2, o3, h1, h2, h3, h4, bits, i = 0,
+        ac = 0,
+        dec = "",
+        tmp_arr = [];
+
+    if (!data) {
+        return data;
+    }
+
+    data += '';
+
+    do { // unpack four hexets into three octets using index points in b64
+        h1 = b64.indexOf(data.charAt(i++));
+        h2 = b64.indexOf(data.charAt(i++));
+        h3 = b64.indexOf(data.charAt(i++));
+        h4 = b64.indexOf(data.charAt(i++));
+
+        bits = h1 << 18 | h2 << 12 | h3 << 6 | h4;
+
+        o1 = bits >> 16 & 0xff;
+        o2 = bits >> 8 & 0xff;
+        o3 = bits & 0xff;
+
+        if (h3 == 64) {
+            tmp_arr[ac++] = String.fromCharCode(o1);
+        } else if (h4 == 64) {
+            tmp_arr[ac++] = String.fromCharCode(o1, o2);
+        } else {
+            tmp_arr[ac++] = String.fromCharCode(o1, o2, o3);
+        }
+    } while (i < data.length);
+
+    dec = tmp_arr.join('');
+
+    return dec;
+}
+
+// Finish the importer
+// -----------------------------------------------------------------------------
+
 function __MYSELF() { }
 
 __MYSELF.prototype.configureMeta = Import.meta;
@@ -748,6 +871,16 @@ __MYSELF.prototype.configureAnim = Import.anim;
 
 __MYSELF.prototype.load = Import.project;
 
+__MYSELF.Import = Import;
+
+__MYSELF.IMPORTER_ID = IMPORTER_ID;
+
 return __MYSELF;
 
 })();
+
+anm.registerImporter('animatron', AnimatronImporter);
+
+return AnimatronImporter;
+
+});

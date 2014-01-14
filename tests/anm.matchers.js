@@ -30,8 +30,6 @@
 
 jasmine.createSpy = improvedCreateSpy; */
 
-var _anm_window = anm.__dev._win;
-
 var _matchers = {};
 
 _matchers.calls = (function() {
@@ -182,7 +180,7 @@ _matchers.size = (function() {
         var actual = this.actual;
         var notText = this.isNot ? " not" : "";
 
-        var pxRatio = _anm_window().devicePixelRatio || 1;
+        var pxRatio = anm.engine.PX_RATIO || 1;
 
         this.message = function () {
             return "Expected " + actual + notText + " to have size equal to " + expected + ", " +

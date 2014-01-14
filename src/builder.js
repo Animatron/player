@@ -7,9 +7,9 @@
  * @VERSION
  */
 
-(((typeof __anm !== 'undefined') && __anm.registerUsingAnm) || function() {
-    throw new Error('Player namespace is not initialized');
-})('Builder', function(anm) {
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/Builder', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var Path = anm.Path;
 var Element = anm.Element;
@@ -21,9 +21,9 @@ var C = anm.C;
 
 var MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
 
-var is = __anm.is;
+var is = anm.is;
 
-var modCollisions = C.MOD_COLLISIONS; // if defined, module exists
+var modCollisions = anm.isModuleAccessible('collisions');  // FIXME: should test with require, in some optional way, like `anm/module/collisions?`
 
 var __b_cache = {};
 
@@ -73,7 +73,7 @@ Builder._$ = function(obj) {
 
 Builder.__path = function(val, join) {
     return is.arr(val)
-           ? Builder.path(val)
+           ? Builder.path(val, join)
            : ((val instanceof Path) ? val
               : Path.parse(val, join))
 }
@@ -141,41 +141,49 @@ Builder.prototype.npath = function(pt, path) {
 // > builder.rect % (pt: Array[2,Integer],
 //                   rect: Array[2,Integer] | Integer) => Builder
 Builder.prototype.rect = function(pt, rect) {
-    var rect = is.arr(rect) ? rect : [ rect, rect ];
-    var w = rect[0], h = rect[1];
-    this.path(pt, [[0, 0], [w, 0],
-                   [w, h], [0, h],
-                   [0, 0]]);
+    this.path(pt, Builder.rect(rect));
     return this;
 }
-// > builder.circle % (pt: Array[2,Integer],
-//                    radius: Float) => Builder
-Builder.prototype.circle = function(pt, radius) {
+// > builder.oval % (pt: Array[2,Integer],
+//                   radius: Float | Array[2, Float]) => Builder
+Builder.prototype.oval = function(pt, radius) {
     this.move(pt || [0, 0]);
-    var diameter = radius + radius,
-        dimen = [ diameter, diameter ];
+    var dimen = is.arr(radius) ? [ radius[0] + radius[0], radius[1] + radius[1] ]
+                               : [ radius + radius, radius + radius ],
+        scale = null,
+        d_rad = radius;
+    if (is.arr(radius)) {
+        if ((dimen[0] < dimen[1]) && (dimen[1] > 0)) {
+            scale = [ dimen[0] / dimen[1], 1 ];
+            d_rad = radius[1];
+        } else if ((dimen[0] > dimen[1]) && (dimen[0] > 0)) {
+            scale = [ 1, dimen[1] / dimen[0] ];
+            d_rad = radius[0];
+        }
+    }
     this.v._dimen = dimen;
     var pvt = this.pvt(),
-        center = [ pvt[0] * diameter,
-                   pvt[1] * diameter ];
+        center = [ pvt[0] * dimen[0],
+                   pvt[1] * dimen[1] ];
     this.paint(function(ctx) {
             var b = this.$.__b$;
-            var pvt = b.pvt();
-            Path.applyF(ctx, b.f, b.s, null/*strokes are not supported for the moment*/,
+            Path.applyF(ctx, b.f, b.s, null/*shadows are not supported for the moment*/,
                 function() {
+                    if (scale) ctx.scale(scale[0], scale[1]);
                     ctx.arc(center[0], center[1],
-                            radius, 0, Math.PI*2, true);
+                            d_rad, 0, Math.PI*2, true);
                 });
         });
     // FIXME: move this line to the collisions module itself
     // FIXME: should be auto-updatable
+    // FIXME: ovals (different radii) are not supported
     if (modCollisions) this.v.reactAs(
-            Builder.arcPath(center[0], center[1], radius, 0, 1, 12));
+            Builder.arcPath(center[0], center[1], d_rad, 0, 1, 12));
     return this;
 }
-// TODO:
-/*Builder.prototype.oval = function(pt, hradius, vradius) {
-}*/
+// > builder.circle % (pt: Array[2,Integer],
+//                     radius: Float) => Builder
+Builder.prototype.circle = Builder.prototype.oval;
 // > builder.image % (pt: Array[2,Integer],
 //                    src: String) => Builder
 Builder.prototype.image = function(pt, src, callback) {
@@ -194,7 +202,7 @@ Builder.prototype.image = function(pt, src, callback) {
 Builder.prototype.text = function(pt, lines, size, font) {
     this.move(pt || [0, 0]);
     var text = lines instanceof Text ? lines
-                     : new Text(lines, Builder.font(font, size));
+                     : Builder.text(lines, size, font);
     this.x.text = text;
     if (!text.stroke) { text.stroke = this.s; }
     else { this.s = text.stroke; }
@@ -855,22 +863,37 @@ Builder.rgrad = function(dir, rad, stops) {
         stops: stops
     };
 }
-Builder.path = function(points) {
+Builder.path = function(points, src) {
     var p = new Path();
-    p.add(new MSeg([points[0][0], points[0][1]]));
-    var i = 1, pl = points.length;
-    for (; i < pl; i++) {
-        var pts = points[i];
-        if (pts.length < 3) {
-            p.add(new LSeg([ pts[0], pts[1] ]));
-        } else {
-            p.add(new CSeg([ pts[0], pts[1],
-                             pts[2], pts[3],
-                             pts[4], pts[5] ]));
+    if (src) p.load(src);
+    if (is.str(points)) {
+        p.parse(points);
+    } else if (is.arr(points)) {
+        p.add(new MSeg([points[0][0], points[0][1]]));
+        var i = 1, pl = points.length;
+        for (; i < pl; i++) {
+            var pts = points[i];
+            if (pts.length < 3) {
+                p.add(new LSeg([ pts[0], pts[1] ]));
+            } else {
+                p.add(new CSeg([ pts[0], pts[1],
+                                 pts[2], pts[3],
+                                 pts[4], pts[5] ]));
+            }
         }
     }
     /*p.add(new MSeg([ points[pl-1][0], points[pl-1][1] ]));*/
     return p;
+}
+Builder.rect = function(rect) {
+    var rect = is.arr(rect) ? rect : [ rect, rect ];
+    var w = rect[0], h = rect[1];
+    return Builder.path([[0, 0], [w, 0],
+                         [w, h], [0, h],
+                         [0, 0]]);
+}
+Builder.text = function(lines, size, font) {
+    return new Text(lines, Builder.font(size, font));
 }
 Builder.easing = function(func, data) {
     return {
@@ -890,7 +913,7 @@ Builder.easingC = function(seg) {
 Builder.tween = function() {
     // FIXME: TODO
 }
-Builder.font = function(name, size) {
+Builder.font = function(size, name) {
     var fface = name || Builder.DEFAULT_FFACE;
         fface = (is.str(fface)) ? fface : fface.join(',');
     var fsize = (size != null) ? size : Builder.DEFAULT_FSIZE;
@@ -957,8 +980,8 @@ Builder.sheet = function(src, tile_spec, callback) {
                 sdimen = this.dimen(),
                 h_factor = Math.floor(sdimen[0] / tdimen[0]);
             this.region_f = function(n) { var v_pos = Math.floor(n / h_factor),
-                                               h_pos = n % h_factor;
-                                           return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
+                                              h_pos = n % h_factor;
+                                          return [ h_pos * tdimen[0], v_pos * tdimen[1], tdimen[0], tdimen[1] ] };
         } else if (is.fun(tile_spec)) {
             this.region_f = tile_spec;
         }
@@ -998,6 +1021,63 @@ Builder.arcPath = function(centerX, centerY, radius, startAngle, arcAngle, steps
         res.push([xx, yy]);
     }
     return Builder.path(res);
+}
+Builder._path = function(ctx, pos, path, fill, stroke, stroke_w) {
+    var p = B.path(path);
+    ctx.save();
+    ctx.translate(pos[0], pos[1]);
+    if (fill) p.fill = { color: fill };
+    if (stroke) p.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                             color: stroke };
+    p.apply(ctx);
+    ctx.restore();
+}
+Builder._text = function(ctx, pos, text, size, font, fill, stroke, stroke_w) {
+    var t = B.text(text, size, font);
+    if (fill) t.fill = { color: fill };
+    if (stroke) t.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                             color: stroke };
+    t.apply(ctx, pos, 'bottom');
+}
+/* Builder._image = function(ctx, pos, src, size) {
+    // TODO
+} */
+/* Builder._sheet = function(ctx, pos, sheet) {
+
+} */
+Builder._rect = function(ctx, pos, rect, fill, stroke, stroke_w) {
+    var r = Builder.rect(rect);
+    ctx.save();
+    ctx.translate(pos[0], pos[1]);
+    if (fill) r.fill = { color: fill };
+    if (stroke) r.stroke = { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                             color: stroke };
+    r.apply(ctx);
+    ctx.restore();
+}
+Builder._oval = function(ctx, pos, radius, fill, stroke, stroke_w) {
+    var dimen = is.arr(radius) ? [ radius[0] + radius[0], radius[1] + radius[1] ]
+                               : [ radius + radius, radius + radius ],
+        scale = null,
+        d_rad = radius;
+    if (is.arr(radius)) {
+        if ((dimen[0] < dimen[1]) && (dimen[1] > 0)) {
+            scale = [ dimen[0] / dimen[1], 1 ];
+            d_rad = radius[1];
+        } else if ((dimen[0] > dimen[1]) && (dimen[0] > 0)) {
+            scale = [ 1, dimen[1] / dimen[0] ];
+            d_rad = radius[0];
+        }
+    }
+    Path.applyF(ctx, fill ? { color: fill } : Path.DEFAULT_FILL,
+                     stroke ? { width: ((stroke_w !== undefined) ? stroke_w : 0),
+                                color: stroke }
+                            : Path.DEFAULT_STROKE, null,
+        function(ctx) {
+            ctx.translate(pos[0], pos[1]);
+            if (scale) ctx.scale(scale[0], scale[1]);
+            ctx.arc(0, 0, d_rad, 0, Math.PI*2, true);
+        });
 }
 
 var prevClone = Element.prototype.clone;

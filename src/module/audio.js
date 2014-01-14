@@ -7,17 +7,17 @@
  * @VERSION
  */
 
-(function() { // anonymous wrapper to exclude global context clash
+if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
+
+__anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+
   var C = anm.C,
       Tween = anm.Tween,
       Tweens = anm.Tweens;
-  var _ResMan = __anm.resource_manager;
 
-  C.MOD_AUDIO = 'audio';
-  if (anm.M[C.MOD_AUDIO]) throw new Error('AUDIO module already enabled');
+  var _ResMan = anm.resource_manager;
 
-  anm.M[C.MOD_AUDIO] = {};
-  var m_ctx = anm.M[C.MOD_AUDIO];
+  var m_ctx = {};
 
   var E = anm.Element;
 
@@ -38,8 +38,8 @@
     };
   };
 
-  if (anm.I['ANM']) {
-    var Import = anm.I['ANM'];
+  if (anm.isImporterAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
+    var Import = anm.getImporter('animatron').Import;
     var prev_tweentype = Import.tweentype;
     Import.tweentype = function(src) {
       if (src === 7) return C.T_VOLUME;
@@ -194,7 +194,7 @@
 
     _ResMan.loadOrGet(me._audio_url,
       function(notify_success, notify_error) { // loader
-          if (__anm.conf.doNotLoadAudio) {
+          if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');
             return;
           }
@@ -277,8 +277,12 @@
           me._audio = audio;
           me._audio_is_loaded = true;
       },
-      function(err) { __anm.console.error(err ? (err.message || err) : 'Unknown error');
+      function(err) { anm.log.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ }); // onerror
   };
 
-})();
+  anm.registerModule('audio', m_ctx);
+
+  return m_ctx;
+
+});
