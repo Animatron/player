@@ -92,7 +92,7 @@
             //configureModule: configureModule,
             // Importers
             registerImporter: registerImporter,
-            getModule: getImporter, // should use `engine.require`?
+            getImporter: getImporter, // should use `engine.require`?
             isImporterAccessible: isImporterAccessible,
             //configureImporter: configureImporter,
             // Events
