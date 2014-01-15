@@ -136,11 +136,16 @@
         var console = $glob['console'] || {
             log: nop, info: nop, warn: nop, error: nop
         };
+        function withConsole(method, arguments) {
+            var args = (arguments.length > 1) ? Array.prototype.slice.call(arguments)
+                                              : arguments[0];
+            (console[method] ? console[method](args) : console.log(args));
+        }
         $publ.log = {
-            debug: function() { if ($conf.logLevel & C.L_DEBUG) console.log.apply(this,   arguments); },
-            info:  function() { if ($conf.logLevel & C.L_INFO)  console.info.apply(this,  arguments); },
-            warn:  function() { if ($conf.logLevel & C.L_WARN)  console.warn.apply(this,  arguments); },
-            error: function() { if ($conf.logLevel & C.L_ERROR) console.error.apply(this, arguments); },
+            debug: function() { if ($conf.logLevel & C.L_DEBUG) withConsole('debug', arguments); },
+            info:  function() { if ($conf.logLevel & C.L_INFO)  withConsole('info',  arguments); },
+            warn:  function() { if ($conf.logLevel & C.L_WARN)  withConsole('warn',  arguments); },
+            error: function() { if ($conf.logLevel & C.L_ERROR) withConsole('error', arguments); },
         };
         var $log = $publ.log;
 
