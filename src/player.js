@@ -963,8 +963,14 @@ Player.prototype.detach = function() {
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
-Player.attachedTo = function(canvas) {
+Player.prototype.attachedTo = function(canvas) {
     return $engine.playerAttachedTo(canvas, this);
+}
+Player.prototype.isAttached = function() {
+    return $engine.playerAttachedTo(this.canvas, this);
+}
+Player.attachedTo = function(canvas, player) {
+    return $engine.playerAttachedTo(canvas, player);
 }
 Player.__getPosAndRedraw = function(player) {
     return function(evt) {

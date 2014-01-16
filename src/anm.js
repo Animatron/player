@@ -70,8 +70,8 @@
             global: $glob,
             'undefined': ({}).___undefined___,
             'C': null, // constants, will be initialized below
-            'M': null, // modules, will be initialized below // FIXME: move to `anm.module.<alias>` ?
-            'I': null, // importers, will be initialized below // FIXME: move to `anm.import.<alias>` ?
+            'M': null, // modules, will be initialized below
+            'I': null, // importers, will be initialized below
             console: null, // will be initialized below
             guid: guid,
             conf: $conf,
@@ -93,6 +93,7 @@
             // Importers
             registerImporter: registerImporter,
             getImporter: getImporter, // should use `engine.require`?
+            createImporter: createImporter,
             isImporterAccessible: isImporterAccessible,
             //configureImporter: configureImporter,
             // Events
@@ -183,6 +184,10 @@
             return I[alias];
         }
 
+        function createImporter(alias) {
+            return new I[alias]();
+        }
+
         function isImporterAccessible(alias) {
             return (typeof I[alias] !== 'undefined');
         }
@@ -191,6 +196,8 @@
         /*function configureImporter(alias, conf) {
 
         }*/
+
+        // TODO: same methods for engines as above, but problem is engines are prepared before anm namespace
 
         // Events
         // -----------------------------------------------------------------------------

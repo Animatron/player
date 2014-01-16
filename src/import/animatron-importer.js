@@ -14,7 +14,7 @@
 
 if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
-__anm_engine.define('anm/import/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
+__anm_engine.define('anm/importers/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var AnimatronImporter = (function() {
 
