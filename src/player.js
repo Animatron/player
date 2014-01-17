@@ -370,6 +370,19 @@ registerEvent('S_ERROR', 'error', 'error');
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
+var DOM_TO_EVT_MAP = {
+  'mouseup':   C.X_MUP,
+  'mousedown': C.X_MDOWN,
+  'mousemove': C.X_MMOVE,
+  'mouseover': C.X_MOVER,
+  'mouseout':  C.X_MOUT,
+  'click':     C.X_MCLICK,
+  'dblclick':  C.X_MDCLICK,
+  'keyup':     C.X_KUP,
+  'keydown':   C.X_KDOWN,
+  'keypress':  C.X_KPRESS
+};
+
 /* TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick' */
 
 // Modules
@@ -1436,8 +1449,8 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
-    if (params.w && params.h) player.__lockCvsResize = true;
-    if (params.bg) player.__lockCvsBg = true;
+    if (params.w && params.h) $engine.lockCanvasResize(player.canvas);
+    if (params.bg) $engine.lockCanvasStyle(player.canvas);
     function updateWithParams() {
         if (typeof params.t !== 'undefined') {
             player.play(params.t / 100);
@@ -1445,15 +1458,14 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
-            player.__lockCvsResize = false; // FIXME: you're a bad guy, shaman.sir. a very bad, bad, bag guy...
+            $engine.unlockCanvasResize(player.canvas);
             player._reconfigureCanvas({ width: params.w, height: params.h });
-            player.__lockCvsResize = true;
+            $engine.lockCanvasResize(player.canvas); // is it required to lock it?
         }
         if (params.bg) {
-            player.__lockCvsBg = false;
-            // FIXME: replace with engine function
-            player.canvas.style.backgroundColor = '#' + params.bg;
-            player.__lockCvsBg = true;
+            $engine.unlockCanvasStyle(player.canvas);
+            $engine.setCanvasBackground(player.canvas, '#' + params.bg);
+            $engine.lockCanvasStyle(player.canvas); // is it required to lock it?
         }
         if (callback) callback();
     }
@@ -1616,7 +1628,7 @@ Scene.prototype.toString = function() {
     return "[ Scene "+(this.name ? "'"+this.name+"'" : "")+"]";
 }
 Scene.prototype.subscribeEvents = function(canvas) {
-    $engine.subscribeSceneToEvents(canvas, this);
+    $engine.subscribeSceneToEvents(canvas, this, DOM_TO_EVT_MAP);
 }
 Scene.prototype.unsubscribeEvents = function(canvas) {
     $engine.unsubscribeSceneFromEvents(canvas, this);
@@ -4112,7 +4124,6 @@ LSeg.prototype.toString = function() {
     return "L " + this.pts.join(" ");
 }
 
-
 function CSeg(pts) {
     this.type = C.P_CURVETO;
     this.pts = pts;
@@ -4819,7 +4830,7 @@ Controls.prototype.render = function(time) {
             ctx.clearRect(0, 0, _w, _h);
             Controls._drawBack(ctx, theme, _w, _h);
             Controls._drawLoading(ctx, theme, _w, _h,
-                                  isRemoteLoading ? (((Date.now() / 100) % 60) / 60) : -1,
+                                  (((Date.now() / 100) % 60) / 60),
                                   isRemoteLoading ? /*player._loadSrc*/ '...' : '');
             ctx.restore();
             return __nextFrame(loading_loop);

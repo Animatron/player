@@ -89,13 +89,18 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getCanvasParams(canvas) -> [ width, height, ratio ]
     // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
     // configureCanvas(canvas, options, ratio) -> none
+    // setCanvasBackground(value) -> none
+    // lockCanvasResize(canvas) -> none
+    // unlockCanvasResize(canvas) -> none
+    // lockCanvasStyle(canvas) -> none
+    // unlockCanvasStyle(canvas) -> none
     // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
 
     // getEventPos(event, elm?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
     // subscribeCanvasEvents(canvas, handlers: object) -> none
     // unsubscribeCanvasEvents(canvas, handlers: object) -> none
-    // subscribeSceneToEvents(canvas, scene) -> none
+    // subscribeSceneToEvents(canvas, scene, map) -> none
     // unsubscribeSceneFromEvents(canvas, scene) -> none
 
     // keyEvent(evt) -> Event
@@ -353,18 +358,24 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var isObj = !(opts instanceof Array),
             _w = isObj ? opts.width : opts[0],
             _h = isObj ? opts.height : opts[1];
-        if (isObj && opts.bgcolor) {
-            cvs.style.backgroundColor = opts.bgcolor;
+        if (!cvs.__anm_lockStyle && isObj && opts.bgcolor) {
+            $DE.setCanvasBackground(cvs, opts.bgcolor);
         }
-        cvs.__anm_ratio = ratio;
-        cvs.__anm_width = _w;
-        cvs.__anm_height = _h;
-        cvs.style.width = _w + 'px';
-        cvs.style.height = _h + 'px';
-        cvs.setAttribute('width', _w * (ratio || 1));
-        cvs.setAttribute('height', _h * (ratio || 1));
+        if (!cvs.__anm_lockResize) {
+            cvs.__anm_ratio = ratio;
+            cvs.__anm_width = _w;
+            cvs.__anm_height = _h;
+            cvs.style.width = _w + 'px';
+            cvs.style.height = _h + 'px';
+            cvs.setAttribute('width', _w * (ratio || 1));
+            cvs.setAttribute('height', _h * (ratio || 1));
+        }
         $DE._saveCanvasPos(cvs);
-        return [ _w, _h ];
+        return cvs.__anm_lockResize ? [ cvs.getAttribute('clientWidth'), cvs.getAttribute('clientHeight') ]
+                                    : [ _w, _h ];
+    }
+    $DE.setCanvasBackground = function(cvs, val) {
+        cvs.style.backgroundColor = val;
     }
     $DE._saveCanvasPos = function(cvs) {
         // FIXME: use getBoundingClientRect?
@@ -407,6 +418,18 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                    a bit slower for events) */
         cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
         cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
+    }
+    $DE.lockCanvasResize = function(cvs) {
+        cvs.__anm_lockResize = true;
+    }
+    $DE.unlockCanvasResize = function(cvs) {
+        cvs.__anm_lockResize = false;
+    }
+    $DE.lockCanvasStyle = function(cvs) {
+        cvs.__anm_lockStyle = true;
+    }
+    $DE.unlockCanvasStyle = function(cvs) {
+        cvs.__anm_lockStyle = false;
     }
     $DE.addChildCanvas = function(id, parent, pos, style, inside) {
         // pos should be: [ x, y, w, h]
@@ -470,7 +493,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     var _kevt = $DE.keyEvent,
         _mevt = $DE.mouseEvent;
-    $DE.subscribeSceneToEvents = function(cvs, scene) {
+    $DE.subscribeSceneToEvents = function(cvs, scene, map) {
         if (cvs.__anm_subscribed &&
             cvs.__anm_subscribed[scene.id]) {
             return;
@@ -479,16 +502,16 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (!cvs.__anm_handlers)   cvs.__anm_handlers = {};
         if (!cvs.__anm_subscribed) cvs.__anm_subscribed = {};
         var handlers = cvs.__anm_subscribed[scene.id] || {
-          mouseup:   function(evt) { scene.fire(C.X_MUP,     _mevt(evt, cvs)); },
-          mousedown: function(evt) { scene.fire(C.X_MDOWN,   _mevt(evt, cvs)); },
-          mousemove: function(evt) { scene.fire(C.X_MMOVE,   _mevt(evt, cvs)); },
-          mouseover: function(evt) { scene.fire(C.X_MOVER,   _mevt(evt, cvs)); },
-          mouseout:  function(evt) { scene.fire(C.X_MOUT,    _mevt(evt, cvs)); },
-          click:     function(evt) { scene.fire(C.X_MCLICK,  _mevt(evt, cvs)); },
-          dblclick:  function(evt) { scene.fire(C.X_MDCLICK, _mevt(evt, cvs)); },
-          keyup:     function(evt) { scene.fire(C.X_KUP,     _kevt(evt)); },
-          keydown:   function(evt) { scene.fire(C.X_KDOWN,   _kevt(evt)); },
-          keypress:  function(evt) { scene.fire(C.X_KPRESS,  _kevt(evt)); }
+          mouseup:   function(evt) { scene.fire(map.mouseup,   _mevt(evt, cvs)); },
+          mousedown: function(evt) { scene.fire(map.mousedown, _mevt(evt, cvs)); },
+          mousemove: function(evt) { scene.fire(map.mousemove, _mevt(evt, cvs)); },
+          mouseover: function(evt) { scene.fire(map.mouseover, _mevt(evt, cvs)); },
+          mouseout:  function(evt) { scene.fire(map.mouseout,  _mevt(evt, cvs)); },
+          click:     function(evt) { scene.fire(map.click,     _mevt(evt, cvs)); },
+          dblclick:  function(evt) { scene.fire(map.dblclick,  _mevt(evt, cvs)); },
+          keyup:     function(evt) { scene.fire(map.keyup,     _kevt(evt)); },
+          keydown:   function(evt) { scene.fire(map.keydown,   _kevt(evt)); },
+          keypress:  function(evt) { scene.fire(map.keypress,  _kevt(evt)); }
         };
         cvs.__anm_handlers[scene.id] = handlers;
         cvs.__anm_subscribed[scene.id] = true;
