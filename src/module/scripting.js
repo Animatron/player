@@ -4,18 +4,18 @@
  *
  * Animatron Player is licensed under the MIT License, see LICENSE.
  *
- * @VERSION
+ * v1.1
  */
 
 if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
 __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
-  var C = anm.C,
-      is = anm.is;
   var _ResMan = anm.resource_manager;
   var Player = anm.Player;
 
+  var is = anm.is;
+  var C = anm.C;
   var E = anm.Element;
 
   var __findByName = function(elm) {
@@ -71,14 +71,14 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
       return _tpl_base(
         'if (this.$.contains(evt.pos, t)) { ' +
           '(function(ctx, evt, t) { ' +
-            'var _b = Builder._$;' +
+            'var _b = anm.Builder._$;' +
               inner +
           '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
         '}');
     } else {
       return _tpl_base(
         '(function(ctx, evt, t) { ' +
-          'var _b = Builder._$;' +
+          'var _b = anm.Builder._$;' +
               inner +
           '\n}).call(user_ctx(this.$ || this), ctx, evt, t);');
     }
@@ -112,7 +112,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
           handler_code = _tpl_base(
           'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in, t)) && this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
-              'var _b = Builder._$;' +
+              'var _b = anm.Builder._$;' +
               body +
             '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
           '}' +
@@ -122,7 +122,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
           handler_code = _tpl_base(
             'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out, t) && !this.$.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
-              'var _b = Builder._$;' +
+              'var _b = anm.Builder._$;' +
               body +
             '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
           '}' +
