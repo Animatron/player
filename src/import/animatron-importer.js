@@ -310,6 +310,7 @@ Import.branch = function(type, src, all, scene) {
             if (togo > targets_n) {
                 _reportError('No layers collected to apply mask, expected ' + togo
                              + ', got ' + targets_n);
+                togo = targets_n;
             };
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
