@@ -153,14 +153,14 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   });
 
   E.prototype._audio_format_url = function(url) {
-    return url + (this._mpeg_supported() ? ".mp3" : ".ogg");
+    return url + (this._ogg_supported() ? ".ogg" : ".mp3");
   };
 
   E.__test_elm = null;
 
-  E.prototype._mpeg_supported = function() {
+  E.prototype._ogg_supported = function() {
     var a = E.__test_elm ? E.__test_elm : (E.__test_elm = document.createElement('audio'), E.__test_elm);
-    return !!(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
+    return !!(a.canPlayType && a.canPlayType('audio/ogg;').replace(/no/, ''));
   }
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
