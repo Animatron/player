@@ -67,7 +67,7 @@
 
 <div class="splitter">
   <div class="p"><canvas id="canvas" width="550" height="450"></canvas></div></div>
-  <div class="code"><select id="type"><option value="click">click</option><option value="m_up">mouse up</option><option value="m_down">mouse down</option><option value="m_enter">mouse enter</option><option value="m_leave">mouse leave</option><option value="m_move">mouse move</option><option value="k_up">key up</option><option value="k_down">key down</option><option value="k_press">key press</option></select><br/><textarea id="handler"></textarea><br/><input id="re" type="button" value="reload"/><br/><pre id="log"></pre></div>
+  <div class="code"><select id="type"><option value="click">click</option><option value="m_up">mouse up</option><option value="m_down">mouse down</option><option value="m_enter">mouse enter</option><option value="m_leave">mouse leave</option><option value="m_move">mouse move</option><option value="k_up">key up</option><option value="k_down">key down</option><option value="k_press">key press</option><option value="init">init</option></select><br/><textarea id="handler"></textarea><br/><input id="re" type="button" value="reload"/><br/><pre id="log"></pre></div>
 </div>
 
 <script src="./vendor/codemirror-3.16/lib/codemirror.js"></script>
@@ -143,7 +143,7 @@ var start = function() {
 
   window.player = anm.createPlayer('canvas', {
     'mode': anm.C.M_DYNAMIC,
-    // 'debug': true,
+    'debug': true,
     'muteErrors': false,
     'anim': {
       width: 550,

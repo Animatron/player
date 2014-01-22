@@ -153,14 +153,14 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   });
 
   E.prototype._audio_format_url = function(url) {
-    return url + (this._mpeg_supported() ? ".mp3" : ".ogg");
+    return url + (this._ogg_supported() ? ".ogg" : ".mp3");
   };
 
   E.__test_elm = null;
 
-  E.prototype._mpeg_supported = function() {
+  E.prototype._ogg_supported = function() {
     var a = E.__test_elm ? E.__test_elm : (E.__test_elm = document.createElement('audio'), E.__test_elm);
-    return !!(a.canPlayType && a.canPlayType('audio/mpeg;').replace(/no/, ''));
+    return !!(a.canPlayType && a.canPlayType('audio/ogg;').replace(/no/, ''));
   }
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
@@ -189,6 +189,26 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     }
   };
 
+  // workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
+  function syncStream(node){
+    var buf8 = new Uint8Array(node.buf);
+    buf8.indexOf = Array.prototype.indexOf;
+    var i=node.sync, b=buf8;
+    while(1) {
+        node.retry++;
+        i=b.indexOf(0xFF,i); if(i==-1 || (b[i+1] & 0xE0 == 0xE0 )) break;
+        i++;
+    }
+    if(i!=-1) {
+        var tmp=node.buf.slice(i); //carefull there it returns copy
+        delete(node.buf); node.buf=null;
+        node.buf=tmp;
+        node.sync=i;
+        return true;
+    }
+    return false;
+  }
+
   E.prototype._audioLoad = function() {
     var me = this;
 
@@ -203,23 +223,38 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
             // use Web Audio API if possible
             var url = me._audio_format_url(me._audio_url);
 
+            var node = {};
+
+            var decode = function(node, url) {
+              try {
+                m_ctx._audio_ctx.decodeAudioData(node.buf, function onSuccess(decodedBuffer) {
+                  notify_success(decodedBuffer);
+                }, function(err) {
+                  if (syncStream(node)) decode(node, url);
+                });
+              } catch(e) {
+                notify_error('Unable to load audio ' + url + ': ' + e.message);
+              }
+            };
+
             var loadingDone = function(e) {
               var req = e.target;
               if (req.status == 200) {
-                m_ctx._audio_ctx.decodeAudioData(req.response, function onSuccess(decodedBuffer) {
-                  notify_success(decodedBuffer);
-                }, audioErrProxy(url, notify_error));
+                node.buf = req.response;
+                node.sync = 0;
+                node.retry = 0;
+                decode(node);
               } else {
                 notify_error('Unable to load audio ' + url + ': ' + req.statusText);
               }
             };
 
-            var req = new XMLHttpRequest();
-            req.open('GET', url, true);
-            req.responseType = 'arraybuffer';
-            req.addEventListener('load', loadingDone, false);
-            req.addEventListener('error', audioErrProxy(url, notify_error), false);
-            req.send();
+            node.xhr = new XMLHttpRequest();
+            node.xhr.open('GET', url, true);
+            node.xhr.responseType = 'arraybuffer';
+            node.xhr.addEventListener('load', loadingDone, false);
+            node.xhr.addEventListener('error', audioErrProxy(url, notify_error), false);
+            node.xhr.send();
           } else {
             var el = document.createElement("audio");
             el.setAttribute("preload", "auto");
