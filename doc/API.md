@@ -70,13 +70,19 @@ You have an unbelievable option to include a player in your own page and to load
 
 #### 1.1. Using IFRAME ####
 
-The first option is just to embed the player with some external scene to your site. You may publish one from Animatron tool (when it will be launched) and get the embed code, it will look like this:
+The first option is just to embed the player with some external scene to your site. You may publish one from Animatron tool and get the embed code in a publish dialog, it will look like this:
 
-    <iframe src="http://.../go?4998090d48b10fe0a5a44b80983e25f1-v1.1"></iframe>
+    <iframe src="http://player.animatron.com/go?4998090d48b10fe0a5a44b80983e25f1-v1.1"></iframe>
+
+Or like this:
+
+    <iframe src="http://player.animatron.com/go?4998090d48b10fe0a5a44b80983e25f1-v1.1&w=550&h=450&t=0" width="550" height="450" frameborder="0"></iframe>
+
+Feel free to include it just directly into your HTML file, you don't need anything else.
 
 You may also specify any additional parameters to the embedded `iframe` using URL:
 
-    <iframe src="http://.../go?4998090d48b10fe0a5a44b80983e25f1-v1.1&w=1024&h=768&t=0"></iframe>
+    <iframe src="http://.../go?4998090d48b10fe0a5a44b80983e25f1-v1.1&w=1024&h=768&r=0&z=1&t=25"></iframe>
 
 See detailed information on IFRAME URL parameters below (1.3).
 
