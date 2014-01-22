@@ -68,13 +68,72 @@ Emdedding
 
 You have an unbelievable option to include a player in your own page and to load there any animation you want. You may even [build your own scene](#builder) and show it at your site. This chapter is all you need to make this happen.
 
-#### 1. Using IFRAME ####
+#### 1.1. Using IFRAME ####
 
 The first option is just to embed the player with some external scene to your site. You may publish one from Animatron tool (when it will be launched) and get the embed code, it will look like this:
 
-        <iframe src="http://.../embed?4f97dd3de4b0fd8159a8df75"></iframe>
+    <iframe src="http://.../go?4998090d48b10fe0a5a44b80983e25f1-v1.1"></iframe>
 
-(Customizing player style with embed code is planned) <!-- FIXME: describe -->
+You may also specify any additional parameters to the embedded `iframe` using URL:
+
+    <iframe src="http://.../go?4998090d48b10fe0a5a44b80983e25f1-v1.1&w=1024&h=768&t=0"></iframe>
+
+See detailed information on IFRAME URL parameters below (1.3).
+
+#### 1.1. Using snapshot URL ####
+
+If you have a snapshot URL, something like `http://snapshots.animatron.com/4998090d48b10fe0a5a44b80983e25f1-v1.1` (it may be found deep inside in a publish `go` page), you may include your snapshot without using an IFRAME. here's
+
+    <!DOCTYPE html>
+    <html>
+
+      <head>
+        <title>My Great Page</title>
+     ➭  <script src="http://player.animatron.com/latest/bundle/animatron.js" type="text/javascript"></script>
+     ➭  <script type="text/javascript">
+     ➭     function loadSnapshot() {
+     ➭         var player = anm.Player.forSnapshot('my-canvas',
+     ➭                          'http://snapshots.animatron.com/4998090d48b10fe0a5a44b80983e25f1-v1.1',
+     ➭                          anm.createImporter('animatron'));
+     ➭         player.play();
+     ➭     }
+     ➭  </script>
+       </head>
+
+     ➭ <body onload="loadSnapshot();">
+     ➭   <canvas id="my-canvas"></canvas>
+     ➭ </body>
+
+    </html>
+
+You may provide additional aruments for the snapshot the same way as for `iframe`:
+
+    http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9?w=1024&h=768&t=0
+
+See detailed information on snapshot URL parameters below (1.3).
+
+##### 1.3. URL parameters #####
+
+All the parameters below are also transferred to a player from `iframe` URL, so you may freely add them in the end of it in the same way.
+
+An URL for the snapshot without the parameters may look like:
+
+**`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9`**
+
+Then, an URL with all parameters specified may look like:
+
+**`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9?w=600&h=500&bg=f0fff0&m=0&r=0&z=1&t=25&p=37&debug=0`**
+
+Any of the parameters is optional, here is a definition for each of those:
+
+* **w** is forced width and **h** is forced height of the player, so even if any scene loaded inside the player has another size, player won't be resized to fit it (as by default), but will be forced to scale scene to this size, and add black ribbons if aspect ratio is not the same; however, if player is placed inside of `iframe`, `iframe` size will have major priority above this size.
+* **bg** is the background color of the player in format of **`ff00a6`**; if you don't specify this background, player background is treated as transparent; this color, however, can't contain alpha value, only solid fill; when scene has it's own background (may contain alpha) and there is a player background specified, they are applied in order of: player background below, then scene background;
+* **m** mode of the player, `PREVIEW` (no controls, no handling mouse/kb) is `0`, `DYNAMIC` (no controls, handling mouse/kb) is `4`, `VIDEO` (controls are shown, no mouse/kb handling, default) is `11`. *NB: These values are subject to change in near future*.
+* **r** specifies the repeating mode, `1` is to repeat (*loop*), `0` (*default*) — play once.
+* **z** is zoom of the scene, may be a float value
+* **t** is time to start play from when scene is loaded (by default player is stopped in this case, waiting for user to press *play* control), specified in centiseconds, so `t=370` means "play from 3s 700ms"
+* **p** is time to pause at when scene is loaded (by default player is stopped at time of 0 in this case, waiting for user to press *play* control), specified in centiseconds, so `p=370` means "pause at 3s 700ms"
+* **debug** flag (`0` or `1`, *off* by default) allows to turn on debug information such as FPS and exact time.
 
 #### 2. From Source ####
 
@@ -91,18 +150,16 @@ There is always a fresh copy of player's latest version lying in S3 cloud. To us
     1. __Develop__ ([`bundle/develop.js`](http://player.animatron.com/latest/bundle/develop.js)): vendor files + player + Builder that simplifies working with scenes in a way like JQuery simplifies working with DOM (described below in [Builder](#builder) section) — it will work ok for developing any general (in terms of code complexity) games or script-based animations.
     1. __Hardcore__ ([`bundle/hardcore.js`](http://player.animatron.com/latest/bundle/hardcore.js)): vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games
 * If you want to ensure in which files you do actually add, follow these steps:
-    * For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js), [`anm.js`](http://player.animatron.com/latest/anm.js) and [`player.js`](http://player.animatron.com/latest/player.js)
+    * For most of the cases you need just [`vendor/matrix.js`](http://player.animatron.com/latest/vendor/matrix.js), [`anm.js`](http://player.animatron.com/latest/anm.js), [`engines/dom-engine.js`](http://player.animatron.com/latest/engine/dom-engine.js) and [`player.js`](http://player.animatron.com/latest/player.js)
     * If you plan to program animation in an easy way, include [`builder.js`](http://player.animatron.com/latest/builder.js) next to them.
     * If you want to import animations from Animatron tool, include [`import/animatron-importer.js`](http://player.animatron.com/latest/import/animatron-importer.js) then. The same for other importers.
     * If you want to use some hardcore module, i.e. collisions module, include [`module/collisions.js`](http://player.animatron.com/latest/module/collisions.js) __before__ the builder file (builder will add some features to itself depending on enabled modules), if it is used, or just in any place after player file, if it is not. The same for other modules.
 
-See examples from Local Copy-related chapter below on how to load scenes and play them, just replace there local paths with remote ones, if you want to use them.
+##### 2.3. Use Player from Local Copy #####
 
-##### 2.2. Use Player from Local Copy #####
+###### 2.3.a. ######
 
-###### 2.2.a. ######
-
-To do so, either clone [the repository](https://github.com/Animatron/player) or just download the [`anm.js`](https://raw.github.com/Animatron/player/master/src/anm.js), [`player.js`](https://raw.github.com/Animatron/player/master/src/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
+To do so, either clone [the repository](https://github.com/Animatron/player) or just download the [`anm.js`](https://raw.github.com/Animatron/player/master/src/anm.js), [`engines/dom-engine`](https://raw.github.com/Animatron/player/master/src/engines/dom-engine.js), [`player.js`](https://raw.github.com/Animatron/player/master/src/player.js) and [`matrix.js`](https://raw.github.com/Animatron/player/master/src/vendor/matrix.js) <sub>(the last one is a super-tiny [proxy for transformation matrix](http://simonsarris.com/blog/471-a-transformation-class-for-canvas-to-keep-track-of-the-transformation-matrix), thanks to [Simon Sarris](http://simonsarris.com/))</sub> files in raw format. Now, include them in your HTML file:
 
     <!DOCTYPE html>
     <html>
@@ -110,6 +167,7 @@ To do so, either clone [the repository](https://github.com/Animatron/player) or 
       <head>
         <title>My Great Page</title>
      ➭  <script src="./src/vendor/matrix.js" type="text/javascript"></script>
+     ➭  <script src="./src/engines/dom-engine.js" type="text/javascript"></script>
      ➭  <script src="./src/anm.js" type="text/javascript"></script>
      ➭  <script src="./src/player.js" type="text/javascript"></script>
      ➭  <!-- importer or scene files go here, if one required -->
@@ -130,17 +188,17 @@ If you are importing scene in some custom format, do not forget to include the i
 
 Then, you have a `Player` object.
 
-###### 2.2.b. ######
+###### 2.3.b. ######
 
 Now you may easily create a player with either of two ways below, just provide us with correct id of the canvas to attach to, and ensure that it is accessible through DOM (use `body.onload`, for example, like in previous code sample):
 
     // first way:
-    var player = createPlayer('my-canvas');
+    var player = anm.createPlayer('my-canvas');
     // second way:
     var player = new anm.Player();
         player.init('my-canvas');
 
-###### 2.2.c. ######
+###### 2.3.c. ######
 
 And you may easily rule the flow by loading your own scene or importing one:
 
@@ -159,7 +217,7 @@ You may pass options object to player, if you want to configure it accurately. B
 
 `mode` is a way player will interact with user and how it will look like to him. You may set it this way:
 
-    // var C = anm.C;
+    // var createPlayer = anm.createPlayer, C = anm.C;
     createPlayer('my_canvas', { 'mode': C.M_VIDEO });
 
 Mode can be:
@@ -170,21 +228,22 @@ Mode can be:
 
 There are a bit more variants for `mode` and you may mix them with single pipe (`|`), like here:
 
+    // var createPlayer = anm.createPlayer, C = anm.C;
     createPlayer('my_canvas', { 'mode': C.M_CONTROLS_ENABLED | C.M_INFO_DISABLED | C.M_HANDLE_EVENTS });
 
 But they are intended for rare use and we hope you'll be fine with three predefined ones.
 
-You may also do this with `var player = createPlayer(...); player.mode = C.M_...;`, it has the same effect.
+You may also do this with `var player = anm.createPlayer(...); player.mode = anm.C.M_...;`, it has the same effect.
 
 **NB**: `C.M_VIDEO`, `C.M_PREVIEW` and `C.M_DYNAMIC` are the precalculated mixes of these "precise" options.
 
 #### debug ####
 
-If you want to see the FPS rate, shapes origin points, names of the shapes, the traces of their translate operations, set `debug` to `true`. You may also do this with `var player = createPlayer(...); player.debug = true;`, it has the same effect.
+If you want to see the FPS rate, shapes origin points, names of the shapes, the traces of their translate operations, set `debug` to `true`. You may also do this with `var player = anm.createPlayer(...); player.debug = true;`, it has the same effect.
 
 #### zoom ####
 
-To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = createPlayer(...); player.zoom = ...;`, it has the same effect.
+To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = anm.createPlayer(...); player.zoom = ...;`, it has the same effect.
 
 #### meta ####
 
@@ -265,8 +324,8 @@ Just include the [Importer](#importers) in the head section of your HTML file. I
 
 Loading code:
 
-    createPlayer('my_canvas').load(my_scene, new MyImporter())
-                             .play();
+    anm.createPlayer('my_canvas').load(my_scene, new MyImporter())
+                                 .play();
 
 **Note**: You may re-use one importer to load several scenes.
 
