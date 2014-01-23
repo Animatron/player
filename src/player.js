@@ -1097,15 +1097,21 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.restore();
 }
 Player.prototype._drawLoadingCircles = function() {
+    var theme = Controls.THEME;
     Controls._runLoadingAnimation(this.ctx, function(ctx) {
-        ctx.clearRect(0, 0, 400, 400);
-        Controls._drawLoadingCircles(ctx, 400, 400,
+        var w = ctx.canvas.clientWidth,
+            h = ctx.canvas.clientHeight;
+        // FIXME: render only changed circles
+        ctx.clearRect(0, 0, w, h);
+        Controls._drawBack(ctx, theme, w, h);
+        Controls._drawLoadingCircles(ctx, w, h,
                                      (((Date.now() / 100) % 60) / 60),
-                                     19, '#f00', '#ff0');
+                                     .5 /*theme.radius.outer*/,
+                                     theme.colors.stroke, theme.colors.text);
     });
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
-    Controls._stopLoadingAnimation(ctx);
+    Controls._stopLoadingAnimation(this.ctx);
 }
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
