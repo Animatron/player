@@ -1323,7 +1323,7 @@ Player.prototype.__onerror = function(err) {
 
   if ((player.state.happens == C.LOADING) ||
       (player.state.happens == C.RES_LOADING)) {
-      player._stopLoading();
+      player._stopLoadingAnimation();
   }
 
   try {
@@ -5011,7 +5011,7 @@ Controls.prototype._scheduleLoading = function() {
     }, 50);
 }
 Controls.prototype._stopLoading = function() {
-    if (!this.loadingInterval) return;
+    if (!this._loadingInterval) return;
     clearInterval(this._loadingInterval);
     this._loadingInterval = 0;
     this.forceNextRedraw();
