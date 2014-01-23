@@ -550,6 +550,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     player._reset();
 
     player.state.happens = C.LOADING;
+    player._runLoadingAnimation();
 
     var whenDone = function(result) {
         var scene = player.anim;
@@ -558,6 +559,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
         var remotes = scene._collectRemoteResources();
         if (!remotes.length) {
+            player._stopLoadingAnimation();
             player.fire(C.S_LOAD, result);
             if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
             //$log.debug('no remotes, calling callback');
@@ -573,12 +575,11 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     if (player.anim === result) { // avoid race condition when there were two requests
                                                   // to load different scenes and first one finished loading
                                                   // after the second one
+                        player._stopLoadingAnimation();
                         player.state.happens = C.LOADING;
                         player.fire(C.S_LOAD, result);
                         if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
                         player._callPostpones();
-                        if (player.controls) { player.controls.forceNextRedraw();
-                                               player.controls.render(player.state.time); }
                         if (callback) callback(result);
                     }
                 }
@@ -608,11 +609,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             var controls = player.controls;
             player._loadTarget = C.LT_URL;
             player._loadSrc = object;
-            if (controls) controls._scheduleLoading();
-            L.loadFromUrl(player, object, importer, function(result) {
-                if (controls) controls._stopLoading();
-                whenDone(result);
-            });
+            L.loadFromUrl(player, object, importer, whenDone);
         } else { // any object with importer
             player._loadTarget = C.LT_IMPORT;
             L.loadFromObj(player, object, importer, whenDone);
@@ -872,9 +869,11 @@ Player.prototype.forceRedraw = function() {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
-        case C.NOTHING: case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
+        case C.NOTHING: this._drawSplash(); break;
+        //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
     }
+    if (this.controls) this.controls.render(this.state.time);
 }
 Player.prototype.changeZoom = function(zoom) {
     this.state.zoom = zoom;
@@ -971,7 +970,7 @@ Player.prototype.afterRender = function(callback) {
 }
 Player.prototype.detach = function() {
     if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
-    if (this.controls) this.controls.detach(this.canvas);
+    if (this.controls) this.controls.detach(this.canvas.parentNode);
     $engine.detachPlayer(this.canvas, this);
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
@@ -1097,6 +1096,23 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.fillText(text || Strings.LOADING, 20, 25);
     ctx.restore();
 }
+Player.prototype._drawLoadingCircles = function() {
+    var theme = Controls.THEME;
+    Controls._runLoadingAnimation(this.ctx, function(ctx) {
+        var w = ctx.canvas.clientWidth,
+            h = ctx.canvas.clientHeight;
+        // FIXME: render only changed circles
+        ctx.clearRect(0, 0, w, h);
+        Controls._drawBack(ctx, theme, w, h);
+        Controls._drawLoadingCircles(ctx, w, h,
+                                     (((Date.now() / 100) % 60) / 60),
+                                     .5 /*theme.radius.outer*/,
+                                     theme.colors.stroke, theme.colors.text);
+    });
+}
+Player.prototype._stopDrawingLoadingCircles = function() {
+    Controls._stopLoadingAnimation(this.ctx);
+}
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
     if (this.controls) {
@@ -1114,6 +1130,21 @@ Player.prototype._drawErrorSplash = function(e) {
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 25);
     ctx.restore();
+}
+Player.prototype._runLoadingAnimation = function(what) {
+    if (this.controls) {
+        this._drawLoadingSplash(what);
+        this.controls._scheduleLoading();
+    } else {
+        this._drawLoadingCircles();
+    }
+}
+Player.prototype._stopLoadingAnimation = function() {
+    if (this.controls) {
+        this.controls._stopLoading();
+    } else {
+        this._stopDrawingLoadingCircles();
+    }
 }
 Player.prototype.toString = function() {
     return "[ Player '" + this.id + "' m-" + this.mode + " ]";
@@ -1183,7 +1214,8 @@ Player.prototype._checkMode = function() {
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
     if (this.state.happens === C.NOTHING) { this._drawSplash(); }
-    if (this.state.happens === C.LOADING) { this._drawLoadingSplash(); }
+    if ((this.state.happens === C.LOADING) ||
+        (this.state.happens === C.RES_LOADING)) { this._drawLoadingSplash(); }
     this.controls.enable();
 }
 Player.prototype._disableControls = function() {
@@ -1294,6 +1326,11 @@ Player.prototype.__onerror = function(err) {
   var player = this;
   var doMute = (player.state && player.state.muteErrors);
       doMute = doMute && !(err instanceof SysErr);
+
+  if ((player.state.happens == C.LOADING) ||
+      (player.state.happens == C.RES_LOADING)) {
+      player._stopLoadingAnimation();
+  }
 
   try {
       player.state.happens = C.ERROR;
@@ -3059,8 +3096,6 @@ var L = {}; // means "Loading/Loader"
 L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
-    player._drawLoadingSplash(_strf(Strings.LOADING_ANIMATION, [url.substring(0, 50)]));
-
     var success = function(req) {
         L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
     };
@@ -4689,6 +4724,7 @@ Controls.DEFAULT_THEME = {
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
+Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
@@ -4696,7 +4732,7 @@ Controls.prototype.update = function(parent) {
     var _w = pconf[0],
         _h = pconf[1];
     if (!cvs) {
-        cvs = $engine.addChildCanvas('ctrls', parent,
+        cvs = $engine.addChildCanvas('ctrls-' + Controls.LAST_ID, parent,
                  [ 0, 0, _w, _h ],
                  { _class: 'anm-controls',
                    position: 'absolute',
@@ -4704,6 +4740,7 @@ Controls.prototype.update = function(parent) {
                    zIndex: 100,
                    cursor: 'pointer',
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        Controls.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = $engine.getContext(cvs, '2d');
@@ -4712,6 +4749,7 @@ Controls.prototype.update = function(parent) {
         this.changeTheme(Controls.THEME);
     } else {
         $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.moveElementTo(cvs, $engine.findElementPosition(parent));
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
@@ -4759,6 +4797,10 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
 Controls.prototype.render = function(time) {
     if (this.hidden && !this.__force) return;
 
+    // TODO: may be this function should check player mode by itself and create canvas
+    //       only in case it is required, but player should create Controls instance
+    //       all the time, independently of the mode.
+
     var player = this.player,
         state = player.state,
         _s = state.happens;
@@ -4771,12 +4813,9 @@ Controls.prototype.render = function(time) {
 
     this.rendering = true;
 
-    if (this._progressReq &&
-        ((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
+    if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
         ((_s !== C.LOADING) && (_s !== C.RES_LOADING))) {
-        this._supressLoading = true;
-        __stopAnim(this._progressReq);
-        this._progressReq = null;
+        Controls._stopLoadingAnimation(this.ctx);
     }
 
     this._time = time;
@@ -4817,25 +4856,13 @@ Controls.prototype.render = function(time) {
         Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
-        if (this._progressReq) return;
-        var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
-        this._supressLoading = false;
-        var me = this;
-        function loading_loop() {
-            if (me._supressLoading) return;
-            ctx.save();
-            ctx.setTransform(1, 0, 0, 1, 0, 0);
-            if (ratio != 1) ctx.scale(ratio, ratio);
-            // FIXME: redraw only the changed circles
+        Controls._runLoadingAnimation(ctx, function(ctx) {
             ctx.clearRect(0, 0, _w, _h);
             Controls._drawBack(ctx, theme, _w, _h);
             Controls._drawLoading(ctx, theme, _w, _h,
-                                  (((Date.now() / 100) % 60) / 60),
-                                  isRemoteLoading ? /*player._loadSrc*/ '...' : '');
-            ctx.restore();
-            return __nextFrame(loading_loop);
-        }
-        this._progressReq = __nextFrame(loading_loop);
+                                  (((Date.now() / 100) % 60) / 60), '');
+                                  // isRemoteLoading ? player._loadSrc '...' : '');
+        });
     } else if (_s === C.ERROR) {
         Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
@@ -4983,6 +5010,7 @@ Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
 }
 Controls.prototype._scheduleLoading = function() {
+    if (this._loadingInterval) return;
     var controls = this;
     this._loadingInterval = setInterval(function() {
          controls.forceNextRedraw();
@@ -4990,7 +5018,11 @@ Controls.prototype._scheduleLoading = function() {
     }, 50);
 }
 Controls.prototype._stopLoading = function() {
+    if (!this._loadingInterval) return;
     clearInterval(this._loadingInterval);
+    this._loadingInterval = 0;
+    this.forceNextRedraw();
+    this.render(this.player.state.time);
 }
 Controls.prototype.enable = function() {
     var player = this.player,
@@ -5007,14 +5039,14 @@ Controls.prototype.enable = function() {
 }
 Controls.prototype.disable = function() {
     this.hide();
-    this.detach(this.canvas);
+    this.detach(this.player.canvas.parentNode);
 }
 Controls.prototype.enableInfo = function() {
     if (!this.info) this.info = new InfoBlock(this.player);
     this.info.update(this.player.canvas);
 }
 Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.canvas);
+    if (this.info) this.info.detach(this.player.canvas.parentNode);
     /*if (this.info) */this.info = null;
 }
 Controls.prototype.setDuration = function(value) {
@@ -5137,25 +5169,8 @@ Controls._drawPlay = function(ctx, theme, w, h, focused) {
     Controls._drawGuyInCorner(ctx, theme, w, h);
 }
 Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        circles = 15,
-        outer_rad = Math.min(cx, cy) * theme.radius.outer,
-        circle_rad = Math.min(cx, cy) / 25,
-        two_pi = 2 * Math.PI,
-        hilite_idx = Math.ceil(circles * hilite_pos);
-
-    ctx.translate(cx, cy);
-    for (var i = 0; i <= circles; i++) {
-        ctx.beginPath();
-        ctx.arc(0, outer_rad, circle_rad, 0, two_pi);
-        ctx.fillStyle = (i != hilite_idx) ? theme.colors.stroke : theme.colors.text;
-        ctx.fill();
-        ctx.rotate(two_pi / circles);
-    }
-    ctx.restore();
+    Controls._drawLoadingCircles(ctx, w, h, hilite_pos, theme.radius.outer,
+                                            theme.colors.stroke, theme.colors.text);
 
     if (src) {
         Controls._drawText(ctx, theme,
@@ -5175,6 +5190,27 @@ Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
                    Strings.COPYRIGHT);
 
     Controls._drawGuyInCenter(ctx, theme, w, h);
+}
+Controls._drawLoadingCircles = function(ctx, w, h, hilite_pos, radius, normal_color, hilite_color) {
+    ctx.save();
+
+    var cx = w / 2,
+        cy = h / 2,
+        circles = 15,
+        outer_rad = Math.min(cx, cy) * radius,
+        circle_rad = Math.min(cx, cy) / 25,
+        two_pi = 2 * Math.PI,
+        hilite_idx = Math.ceil(circles * hilite_pos);
+
+    ctx.translate(cx, cy);
+    for (var i = 0; i <= circles; i++) {
+        ctx.beginPath();
+        ctx.arc(0, outer_rad, circle_rad, 0, two_pi);
+        ctx.fillStyle = (i != hilite_idx) ? normal_color : hilite_color;
+        ctx.fill();
+        ctx.rotate(two_pi / circles);
+    }
+    ctx.restore();
 }
 Controls._drawNoScene = function(ctx, theme, w, h, focused) {
     ctx.save();
@@ -5304,6 +5340,33 @@ Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
 
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
 }
+Controls._runLoadingAnimation = function(ctx, paint) {
+    // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
+    //        and Contols._scheduleLoading() should be used to start all the drawing process
+    if (ctx.__anm_loadingReq) return;
+    var ratio = $engine.PX_RATIO;
+    // var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
+    ctx.__anm_supressLoading = false;
+    function loading_loop() {
+        if (ctx.__anm_supressLoading) return;
+        ctx.save();
+        ctx.setTransform(1, 0, 0, 1, 0, 0);
+        if (ratio != 1) ctx.scale(ratio, ratio);
+        // FIXME: redraw only the changed circles
+        paint(ctx);
+        ctx.restore();
+        return __nextFrame(loading_loop);
+    }
+    ctx.__anm_loadingReq = __nextFrame(loading_loop);
+}
+Controls._stopLoadingAnimation = function(ctx, paint) {
+    // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
+    //        and Contols._stopLoading() should be used to stop the drawing process
+    if (!ctx.__anm_loadingReq) return;
+    ctx.__anm_supressLoading = true;
+    __stopAnim(ctx.__anm_loadingReq);
+    ctx.__anm_loadingReq = null;
+}
 
 // Info Block
 // -----------------------------------------------------------------------------
@@ -5327,6 +5390,7 @@ InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
 InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
 InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
+InfoBlock.LAST_ID = 0;
 InfoBlock.prototype.detach = function(parent) {
     if (!this.attached) return;
     $engine.detachElement(this._inParent ? parent : null, this.canvas);
@@ -5339,7 +5403,7 @@ InfoBlock.prototype.update = function(parent) {
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
-        cvs = $engine.addChildCanvas('info', parent,
+        cvs = $engine.addChildCanvas('info-' + InfoBlock.LAST_ID, parent,
                  [ _m, _m, _w, _h ],
                  { _class: 'anm-info ',
                    position: 'absolute',
@@ -5347,13 +5411,18 @@ InfoBlock.prototype.update = function(parent) {
                    zIndex: 110,
                    cursor: 'pointer',
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        InfoBlock.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
+        this.attached = true;
         this.ctx = $engine.getContext(cvs, '2d');
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
+        var parent_pos = $engine.findElementPosition(parent);
         $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.moveElementTo(cvs, [ parent_pos[0] + _m,
+                                     parent_pos[1] + _m ]);
     }
     //var cconf = $engine.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';

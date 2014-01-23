@@ -74,6 +74,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // findElementPosition(elm) -> [ x, y ]
     // findScrollAwarePos(elm) -> [ x, y ]
     // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
+    // moveElementTo(elm, pos) -> none
     // disposeElement(elm) -> none
     // detachElement(parent | null, child) -> none
 
@@ -250,8 +251,12 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var curleft = 0,
             curtop = 0;
         do {
-            curleft += elm.offsetLeft - elm.scrollLeft;
-            curtop += elm.offsetTop - elm.scrollTop;
+            curleft += elm.offsetLeft - ((elm !== document.body)
+                                                    ? elm.scrollLeft
+                                                    : document.documentElement.scrollLeft);
+            curtop += elm.offsetTop - ((elm !== document.body)
+                                                    ? elm.scrollTop
+                                                    : document.documentElement.scrollTop);
         } while (elm = elm.offsetParent);
         return [ curleft, curtop ];
     }
@@ -259,6 +264,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var rect = elm.getBoundingClientRect();
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
+    $DE.moveElementTo = function(elm, pos) {
+        elm.style.left = pos[0] + 'px';
+        elm.style.top  = pos[1] + 'px';
+    }
 
     $DE.__trashBin;
     $DE.disposeElement = function(elm) {
@@ -274,8 +283,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         trashBin.innerHTML = '';
     }
     $DE.detachElement = function(parent, child) {
-        (parent ? parent.parentNode
-                : $doc.body).removeChild(child);
+        (parent || child.parentNode).removeChild(child);
     }
 
     // Creating & Modifying Canvas
