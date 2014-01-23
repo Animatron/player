@@ -970,7 +970,7 @@ Player.prototype.afterRender = function(callback) {
 }
 Player.prototype.detach = function() {
     if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
-    if (this.controls) this.controls.detach(this.canvas);
+    if (this.controls) this.controls.detach(this.canvas.parentNode);
     $engine.detachPlayer(this.canvas, this);
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
@@ -4718,6 +4718,7 @@ Controls.DEFAULT_THEME = {
   }
 };
 Controls.THEME = Controls.DEFAULT_THEME;
+Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
@@ -4725,7 +4726,7 @@ Controls.prototype.update = function(parent) {
     var _w = pconf[0],
         _h = pconf[1];
     if (!cvs) {
-        cvs = $engine.addChildCanvas('ctrls', parent,
+        cvs = $engine.addChildCanvas('ctrls-' + Controls.LAST_ID, parent,
                  [ 0, 0, _w, _h ],
                  { _class: 'anm-controls',
                    position: 'absolute',
@@ -4733,6 +4734,7 @@ Controls.prototype.update = function(parent) {
                    zIndex: 100,
                    cursor: 'pointer',
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        Controls.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = $engine.getContext(cvs, '2d');
@@ -5030,14 +5032,14 @@ Controls.prototype.enable = function() {
 }
 Controls.prototype.disable = function() {
     this.hide();
-    this.detach(this.canvas);
+    this.detach(this.player.canvas.parentNode);
 }
 Controls.prototype.enableInfo = function() {
     if (!this.info) this.info = new InfoBlock(this.player);
     this.info.update(this.player.canvas);
 }
 Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.canvas);
+    if (this.info) this.info.detach(this.player.canvas.parentNode);
     /*if (this.info) */this.info = null;
 }
 Controls.prototype.setDuration = function(value) {
@@ -5381,6 +5383,7 @@ InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
 InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
 InfoBlock.DEFAULT_WIDTH = 0;
 InfoBlock.DEFAULT_HEIGHT = 60;
+InfoBlock.LAST_ID = 0;
 InfoBlock.prototype.detach = function(parent) {
     if (!this.attached) return;
     $engine.detachElement(this._inParent ? parent : null, this.canvas);
@@ -5393,7 +5396,7 @@ InfoBlock.prototype.update = function(parent) {
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
-        cvs = $engine.addChildCanvas('info', parent,
+        cvs = $engine.addChildCanvas('info-' + InfoBlock.LAST_ID, parent,
                  [ _m, _m, _w, _h ],
                  { _class: 'anm-info ',
                    position: 'absolute',
@@ -5401,8 +5404,10 @@ InfoBlock.prototype.update = function(parent) {
                    zIndex: 110,
                    cursor: 'pointer',
                    backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        InfoBlock.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
+        this.attached = true;
         this.ctx = $engine.getContext(cvs, '2d');
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);

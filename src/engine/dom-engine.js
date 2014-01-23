@@ -274,8 +274,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         trashBin.innerHTML = '';
     }
     $DE.detachElement = function(parent, child) {
-        (parent ? parent.parentNode
-                : $doc.body).removeChild(child);
+        (parent || child.parentNode).removeChild(child);
     }
 
     // Creating & Modifying Canvas
