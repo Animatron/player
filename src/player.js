@@ -4749,6 +4749,7 @@ Controls.prototype.update = function(parent) {
         this.changeTheme(Controls.THEME);
     } else {
         $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.moveElementTo(cvs, $engine.findElementPosition(parent));
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
@@ -5418,7 +5419,10 @@ InfoBlock.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
+        var parent_pos = $engine.findElementPosition(parent);
         $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.moveElementTo(cvs, [ parent_pos[0] + _m,
+                                     parent_pos[1] + _m ]);
     }
     //var cconf = $engine.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';
