@@ -279,7 +279,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             $doc.body.appendChild(trashBin);
             $DE.__trashBin = trashBin;
         }
-        trashBin.appendChild(domElm);
+        trashBin.appendChild(elm);
         trashBin.innerHTML = '';
     }
     $DE.detachElement = function(parent, child) {

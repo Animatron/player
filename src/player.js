@@ -1987,7 +1987,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 ctx.drawImage(bcvs, -scene_width, -scene_height,
                               dbl_scene_width, dbl_scene_height);
             }
-        } finally { ctx.restore(); }
+        } catch(e) { $log.error(e); }
+          finally { ctx.restore(); }
     }
     // immediately when drawn, element becomes shown,
     // it is reasonable
