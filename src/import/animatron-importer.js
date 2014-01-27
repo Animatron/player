@@ -67,11 +67,14 @@ Import.project = function(prj) {
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
-    Import._paths = prj.anim.paths;
     var root = new Scene(),
         elems = prj.anim.elements,
         last_scene_band = [ 0, 0 ];
     root.__import_id = cur_import_id;
+
+    Import._paths = prj.anim.paths;
+    Import._path_cache = new ValueCache();
+
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
@@ -106,6 +109,8 @@ Import.project = function(prj) {
     if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
 
     Import._paths = undefined; // clear
+    Import._path_cache = undefined;
+
     return root;
 }
 /** meta **/
@@ -388,7 +393,16 @@ Import._pathDecode = function(src) {
         return src;
     }
 
-    return Import._decodeBinaryPath(Import._paths[src]);
+    var encoded = Import._paths[src];
+    var val = Import._path_cache.get(encoded);
+    if (val) {
+        return val.duplicate().segs;
+    } else {
+        val = Import._decodeBinaryPath(encoded);
+        Import._path_cache.put(encoded, val);
+    }
+
+    return val.segs;
 }
 
 Import._decodeBinaryPath = function(encoded) {
@@ -441,7 +455,7 @@ Import._decodeBinaryPath = function(encoded) {
         }
     }
 
-    return path.segs;
+    return path;
 }
 
 Import._pathReadPoint = function(stream, target, base) {
@@ -859,6 +873,32 @@ Base64Decoder._decode = function(data) {
     dec = tmp_arr.join('');
 
     return dec;
+}
+
+// Path cache
+// -----------------------------------------------------------------------------
+
+function ValueCache() {
+    this.hash2val = {};
+}
+
+ValueCache.prototype.put = function(str, val) {
+    this.hash2val[this.hash(str)] = val;
+}
+
+ValueCache.prototype.get = function(str) {
+    return this.hash2val[this.hash(str)];
+}
+
+ValueCache.prototype.hash = function(str) {
+    var hash = 0, i, char;
+    if (str.length == 0) return hash;
+    for (i = 0, l = str.length; i < l; i++) {
+        char  = str.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+char;
+        hash |= 0; // Convert to 32bit integer
+    }
+    return hash;
 }
 
 // Finish the importer
