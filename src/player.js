@@ -1979,13 +1979,15 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 var scene_width = scene.width,
                     scene_height = scene.height,
                     dbl_scene_width = scene_width * 2,
-                    dbl_scene_height = scene_height * 2;
+                    dbl_scene_height = scene_height * 2,
+                    ratio = $engine.PX_RATIO;
 
                 // at this point:
                 // mcvs.height is twice scene height
                 // mcvs.width  is twice scene width
 
                 bctx.save(); // bctx first open
+                if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, dbl_scene_width,
                                      dbl_scene_height);
 
@@ -2000,9 +2002,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
+                if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, dbl_scene_width,
                                      dbl_scene_height);
                 mctx.translate(scene_width, scene_height);
+                //mctx.scale($engine.PX_RATIO, $engine.PX_RATIO);
                 this.__mask.render(mctx, gtime);
                 mctx.restore(); // mctx first closed
 
