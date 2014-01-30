@@ -592,6 +592,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if (player.anim) {
         player.__unsubscribeDynamicEvents(player.anim);
+        player.anim.__removeMaskCanvases();
     }
 
     if (object) {
@@ -1723,6 +1724,29 @@ Scene.prototype._collectRemoteResources = function() {
     });
     return remotes;
 }
+Scene.prototype.__ensureHasMaskCanvas = function() {
+    if (this.__maskCvs || this.__backCvs) return;
+    this.__maskCvs = $engine.createCanvas([this.width * 2, this.height * 2]);
+    this.__maskCtx = this.__maskCvs.getContext('2d');
+    this.__backCvs = $engine.createCanvas([this.width * 2, this.height * 2]);
+    this.__backCtx = this.__backCvs.getContext('2d');
+    /* $doc.body.appendChild(this.__maskCvs); */
+    /* $doc.body.appendChild(this.__backCvs); */
+}
+Scene.prototype.__removeMaskCanvases = function() {
+    if (this.__maskCvs) {
+        //$log.debug('removing mask canvas for ' + this.id + ' ' + this.name);
+        $engine.disposeElement(this.__maskCvs);
+        this.__maskCvs = null;
+        this.__maskCtx = null;
+    }
+    if (this.__backCvs) {
+        //$log.debug('removing back canvas for ' + this.id + ' ' + this.name);
+        $engine.disposeElement(this.__backCvs);
+        this.__backCvs = null;
+        this.__backCtx = null;
+    }
+}
 Scene.prototype.findById = function(id) {
     return this.hash[id];
 }
@@ -1944,14 +1968,16 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 });
             } else {
                 // draw to back canvas, if has
-                this.__ensureHasMaskCanvas();
-                var mcvs = this.__maskCvs,
-                    mctx = this.__maskCtx,
-                    bcvs = this.__backCvs,
-                    bctx = this.__backCtx;
+                var scene = this.scene;
+                if (!scene) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
+                scene.__ensureHasMaskCanvas();
+                var mcvs = scene.__maskCvs,
+                    mctx = scene.__maskCtx,
+                    bcvs = scene.__backCvs,
+                    bctx = scene.__backCtx;
 
-                var scene_width = this.scene.width,
-                    scene_height = this.scene.height,
+                var scene_width = scene.width,
+                    scene_height = scene.height,
                     dbl_scene_width = scene_width * 2,
                     dbl_scene_height = scene_height * 2;
 
@@ -2344,7 +2370,6 @@ Element.prototype.reset = function() {
     this.__lastJump = null;
     this.__firedStart = false;
     this.__firedStop = false;
-    if (this.__mask) this.__removeMaskCanvases();
     /*this.__clearEvtState();*/
     (function(elm) {
         elm.__forAllModifiers(function(modifier) {
@@ -2477,38 +2502,11 @@ Element.prototype.lrect = function() {
 }
 Element.prototype.setMask = function(elm) {
     if (!elm) throw new AnimErr('No valid masking element was passed');
-    if (this.scene) this.__ensureHasMaskCanvas();
+    if (this.scene) this.scene.__ensureHasMaskCanvas();
     this.__mask = elm;
-}
-Element.prototype.__ensureHasMaskCanvas = function() {
-    if (this.__maskCvs || this.__backCvs) return;
-    //$log.debug('creating mask and back canvases for ' + this.id + ' ' + this.name);
-    var scene = this.scene;
-    if (!scene) throw new AnimErr('Element to be masked should be attached to scene when rendering');
-    this.__maskCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]);
-    this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = $engine.createCanvas([scene.width * 2, scene.height * 2]);
-    this.__backCtx = this.__backCvs.getContext('2d');
-    /* $doc.body.appendChild(this.__maskCvs); */
-    /* $doc.body.appendChild(this.__backCvs); */
-}
-Element.prototype.__removeMaskCanvases = function() {
-    if (this.__maskCvs) {
-        //$log.debug('removing mask canvas for ' + this.id + ' ' + this.name);
-        $engine.disposeElement(this.__maskCvs);
-        this.__maskCvs = null;
-        this.__maskCtx = null;
-    }
-    if (this.__backCvs) {
-        //$log.debug('removing back canvas for ' + this.id + ' ' + this.name);
-        $engine.disposeElement(this.__backCvs);
-        this.__backCvs = null;
-        this.__backCtx = null;
-    }
 }
 Element.prototype.clearMask = function() {
     this.__mask = null;
-    this.__removeMaskCanvases();
 }
 Element.prototype.data = function(val) {
   if (typeof val !== 'undefined') return (this.__data = val);

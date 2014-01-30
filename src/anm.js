@@ -622,6 +622,7 @@
         Errors.A.MODIFIER_REGISTERED = 'Modifier was already added to this element';
         Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
         Errors.A.RESOURCES_FAILED_TO_LOAD = 'Some of resources required to play this animation were failed to load';
+        Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE = 'Element to be masked should be attached to scene when rendering';
 
         // Export
         // -----------------------------------------------------------------------------
