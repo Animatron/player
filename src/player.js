@@ -2689,6 +2689,8 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
         //         ._state._ -> a pointer to the last state, so it will be accessible in
         //                      modifiers as `this._`
 
+        // TODO: think on sorting tweens/band-restricted-modifiers by time
+
         elm.__loadEvts(elm._state);
 
         if (!elm.__forAllModifiers(order,
@@ -3774,6 +3776,8 @@ Path.prototype.add = function(seg) {
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx) {
     var p = this;
+    // TODO: every segment should apply itself
+    // FIXME: simplify this to call seg.apply for every segment
     Path.applyF(ctx, p.fill || Path.DEFAULT_FILL,
                      p.stroke || Path.DEFAULT_STROKE,
                      p.shadow,
@@ -3981,16 +3985,17 @@ Path.prototype.dispose = function() { }
 
 
 Path.applyF = function(ctx, fill, stroke, shadow, func) {
-    ctx.save();
+    ctx.save(); // FIXME: remove it when xdata will contain one paintable object
     ctx.beginPath();
     Brush.fill(ctx, fill);
     Brush.stroke(ctx, stroke);
     Brush.shadow(ctx, shadow);
     func(ctx);
 
+    // FIXME: we may use return value of Brush.create to test if Brush has value
     if (Brush._hasVal(fill)) ctx.fill();
     if (Brush._hasVal(stroke)) ctx.stroke();
-    ctx.restore();
+    ctx.restore(); // FIXME: remove it when xdata will contain one paintable object
 }
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets
@@ -4426,9 +4431,8 @@ var Brush = {};
 // if it was already created before
 Brush.create = function(ctx, src) {
   // FIXME: check if brush is valid color for string
-  if (__str(src)) return src;
-  if (src._style) return src._style;
-  src._style = Brush._create(ctx, src);
+  if (__str(src)) return src; // FIXME: brush should always be an object
+  if (!src._style) { src._style = Brush._create(ctx, src); }
   return src._style;
 }
 // create canvas-compatible style from brush
