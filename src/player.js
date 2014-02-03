@@ -588,7 +588,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     };
     whenDone = player.__defAsyncSafe(whenDone);
 
-    /* TODO: configure canvas using clips bounds */
+    /* TODO: configure canvas using clips bounds? */
 
     if (player.anim) {
         player.__unsubscribeDynamicEvents(player.anim);
@@ -1557,6 +1557,9 @@ Scene.prototype.setDuration = function(val) {
 //                => Element
 // > Scene.add % (builder: Builder)
 Scene.prototype.add = function(arg1, arg2, arg3) {
+    // this method only adds an element to a top-level
+    // FIXME: allow to add elements deeper or rename this
+    //        method to avoid confusion?
     if (arg2) { // element by functions mode
         var _elm = new Element(arg1, arg2);
         if (arg3) _elm.changeTransform(arg3);
@@ -1709,7 +1712,7 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     var pos = -1;
     if (!save_in_tree) {
       while ((pos = this.tree.indexOf(elm)) >= 0) {
-        this.tree.splice(pos, 1);
+        this.tree.splice(pos, 1); // FIXME: why it does not goes deeply in the tree?
       }
     }
     delete this.hash[elm.id];
@@ -1726,27 +1729,37 @@ Scene.prototype._collectRemoteResources = function() {
     });
     return remotes;
 }
-Scene.prototype.__ensureHasMaskCanvas = function() {
-    if (this.__maskCvs || this.__backCvs) return;
-    this.__maskCvs = $engine.createCanvas([this.width * 2, this.height * 2]);
-    this.__maskCtx = this.__maskCvs.getContext('2d');
-    this.__backCvs = $engine.createCanvas([this.width * 2, this.height * 2]);
-    this.__backCtx = this.__backCvs.getContext('2d');
+Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
+    if (this.__maskCvs && this.__backCvs &&
+        this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
+    if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
+    if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
+    this.__maskCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
+    this.__maskCtx[lvl] = this.__maskCvs[lvl].getContext('2d');
+    this.__backCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
+    this.__backCtx[lvl] = this.__backCvs[lvl].getContext('2d');
     /* $doc.body.appendChild(this.__maskCvs); */
     /* $doc.body.appendChild(this.__backCvs); */
 }
 Scene.prototype.__removeMaskCanvases = function() {
+    if (!this.__maskCvs && !this.__backCvs) return;
     if (this.__maskCvs) {
-        //$log.debug('removing mask canvas for ' + this.id + ' ' + this.name);
-        $engine.disposeElement(this.__maskCvs);
-        this.__maskCvs = null;
-        this.__maskCtx = null;
+      for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
+        $engine.disposeElement(this.__maskCvs[i]);
+        this.__maskCvs[i] = null; // is it required?
+        this.__maskCtx[i] = null; // is it required?
+      }
+      this.__maskCvs = null;
+      this.__maskCtx = null;
     }
     if (this.__backCvs) {
-        //$log.debug('removing back canvas for ' + this.id + ' ' + this.name);
-        $engine.disposeElement(this.__backCvs);
-        this.__backCvs = null;
-        this.__backCtx = null;
+      for (var i = 0, il = this.__backCvs.length; i < il; i++) {
+        $engine.disposeElement(this.__backCvs[i]);
+        this.__backCvs[i] = null; // is it required?
+        this.__backCtx[i] = null; // is it required?
+      }
+      this.__maskCvs = null;
+      this.__backCtx = null;
     }
 }
 Scene.prototype.findById = function(id) {
@@ -1848,6 +1861,7 @@ function Element(draw, onframe) {
     this.xdata = Element.createXData(this);
     this.children = [];
     this.parent = null;
+    this.level = 0;
     this.scene = null;
     this.visible = true; // user flag, set by user
     this.shown = false; // system flag, set by engine
@@ -1972,11 +1986,12 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // draw to back canvas, if has
                 var scene = this.scene;
                 if (!scene) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
-                scene.__ensureHasMaskCanvas();
-                var mcvs = scene.__maskCvs,
-                    mctx = scene.__maskCtx,
-                    bcvs = scene.__backCvs,
-                    bctx = scene.__backCtx;
+                var level = this.level;
+                scene.__ensureHasMaskCanvas(level);
+                var mcvs = scene.__maskCvs[level],
+                    mctx = scene.__maskCtx[level],
+                    bcvs = scene.__backCvs[level],
+                    bctx = scene.__backCtx[level];
 
                 var scene_width = scene.width,
                     scene_height = scene.height,
@@ -1987,6 +2002,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // at this point:
                 // mcvs.height is twice scene height
                 // mcvs.width  is twice scene width
+
+                /* FIXME: configure mask canvas using clips bounds (incl. children) */
 
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
@@ -2508,7 +2525,7 @@ Element.prototype.lrect = function() {
 }
 Element.prototype.setMask = function(elm) {
     if (!elm) throw new AnimErr('No valid masking element was passed');
-    if (this.scene) this.scene.__ensureHasMaskCanvas();
+    if (this.scene) this.scene.__ensureHasMaskCanvas(this.level);
     this.__mask = elm;
 }
 Element.prototype.clearMask = function() {
@@ -2540,6 +2557,7 @@ Element.prototype.clone = function() {
     clone.children = [].concat(this.children);
     clone._modifiers = [].concat(this._modifiers);
     clone._painters = [].concat(this._painters);
+    clone.level = this.level;
     clone.xdata = obj_clone(this.xdata);
     clone.xdata.$ = clone;
     clone.__data = this.__data;
@@ -2611,6 +2629,7 @@ Element.prototype.deepClone = function() {
 }
 Element.prototype._addChild = function(elm) {
     elm.parent = this;
+    elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
     if (this.scene) this.scene._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
