@@ -1328,13 +1328,14 @@ Player.prototype.__onerror = function(err) {
   var doMute = (player.state && player.state.muteErrors);
       doMute = doMute && !(err instanceof SysErr);
 
-  if ((player.state.happens == C.LOADING) ||
-      (player.state.happens == C.RES_LOADING)) {
+  if (player.state &&
+      ((player.state.happens == C.LOADING) ||
+       (player.state.happens == C.RES_LOADING))) {
       player._stopLoadingAnimation();
   }
 
   try {
-      player.state.happens = C.ERROR;
+      if (player.state) player.state.happens = C.ERROR;
       player.__lastError = err;
       player.fire(C.S_ERROR, err);
 
@@ -1343,8 +1344,9 @@ Player.prototype.__onerror = function(err) {
   } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
 
   try {
-      if ((player.state.happens != C.NOTHING) ||
-          (player.state.happens != C.STOPPED)) {
+      if (player.state &&
+          ((player.state.happens != C.NOTHING) ||
+           (player.state.happens != C.STOPPED))) {
           player.__unsafe_stop();
       }
   } catch(e) { /* skip this error, it's ok just to fail to stop */ }
