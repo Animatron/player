@@ -1744,22 +1744,26 @@ Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
 Scene.prototype.__removeMaskCanvases = function() {
     if (!this.__maskCvs && !this.__backCvs) return;
     if (this.__maskCvs) {
-      for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
-        $engine.disposeElement(this.__maskCvs[i]);
-        this.__maskCvs[i] = null; // is it required?
-        this.__maskCtx[i] = null; // is it required?
-      }
-      this.__maskCvs = null;
-      this.__maskCtx = null;
+        for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
+            if (this.__maskCvs[i]) { // use `continue`?
+                $engine.disposeElement(this.__maskCvs[i]);
+                this.__maskCvs[i] = null; // is it required?
+                this.__maskCtx[i] = null; // is it required?
+            }
+        }
+        this.__maskCvs = null;
+        this.__maskCtx = null;
     }
     if (this.__backCvs) {
-      for (var i = 0, il = this.__backCvs.length; i < il; i++) {
-        $engine.disposeElement(this.__backCvs[i]);
-        this.__backCvs[i] = null; // is it required?
-        this.__backCtx[i] = null; // is it required?
-      }
-      this.__maskCvs = null;
-      this.__backCtx = null;
+        for (var i = 0, il = this.__backCvs.length; i < il; i++) {
+            if (this.__backCvs[i]) { // use `continue`?
+                $engine.disposeElement(this.__backCvs[i]);
+                this.__backCvs[i] = null; // is it required?
+                this.__backCtx[i] = null; // is it required?
+            }
+        }
+        this.__maskCvs = null;
+        this.__backCtx = null;
     }
 }
 Scene.prototype.findById = function(id) {
