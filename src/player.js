@@ -1734,12 +1734,12 @@ Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
         this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
     if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
     if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
+    this.__maskCvs[lvl] = $engine.createCanvas([this.width, this.height]);
     this.__maskCtx[lvl] = this.__maskCvs[lvl].getContext('2d');
-    this.__backCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
+    this.__backCvs[lvl] = $engine.createCanvas([this.width, this.height]);
     this.__backCtx[lvl] = this.__backCvs[lvl].getContext('2d');
-    /* $doc.body.appendChild(this.__maskCvs); */
-    /* $doc.body.appendChild(this.__backCvs); */
+    //document.body.appendChild(this.__maskCvs[lvl]);
+    //document.body.appendChild(this.__backCvs[lvl]);
 }
 Scene.prototype.__removeMaskCanvases = function() {
     if (!this.__maskCvs && !this.__backCvs) return;
@@ -2006,35 +2006,38 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 /* FIXME: configure mask canvas using clips bounds (incl. children) */
 
                 bctx.save(); // bctx first open
-                if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, dbl_scene_width,
-                                     dbl_scene_height);
+                bctx.clearRect(0, 0, scene_width,
+                                     scene_height);
 
                 bctx.save(); // bctx second open
-                bctx.translate(scene_width, scene_height);
+
+                if (ratio !== 1) bctx.scale(ratio, ratio);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
                 this.draw(bctx, ltime, dt);
-                bctx.restore();
+
+                bctx.restore(); // bctx second closed
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
-                if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, dbl_scene_width,
-                                     dbl_scene_height);
-                mctx.translate(scene_width, scene_height);
-                //mctx.scale($engine.PX_RATIO, $engine.PX_RATIO);
-                this.__mask.render(mctx, gtime);
-                mctx.restore(); // mctx first closed
+                mctx.clearRect(0, 0, scene_width,
+                                     scene_height);
 
-                bctx.drawImage(mcvs, 0, 0, dbl_scene_width,
-                                           dbl_scene_height);
+                if (ratio !== 1) mctx.scale(ratio, ratio);
+                this.__mask.render(mctx, gtime);
+
+                mctx.restore(); // mctx first close
+
+                bctx.drawImage(mcvs, 0, 0,
+                                     dbl_scene_width, dbl_scene_height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, -scene_width, -scene_height,
-                              dbl_scene_width, dbl_scene_height);
+                ctx.drawImage(bcvs, 0, 0,
+                                    scene_width, scene_height);
+                //ctx.drawImage(bcvs, -scene_width, -scene_height,
+                //                    dbl_scene_width, dbl_scene_height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
@@ -3239,8 +3242,8 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
 }
 function __r_at(time, dt, ctx, pl_state, scene, before, after) {
     ctx.save();
-    var ratio = pl_state.ratio;
-    if (ratio != 1) ctx.scale(ratio, ratio); // the scene zoomed to pl_state.zoom later in scene.render
+    var ratio = $engine.PX_RATIO;
+    if (ratio !== 1) ctx.scale(ratio, ratio); // the scene zoomed to pl_state.zoom later in scene.render
     var size_differs = (pl_state.width  != scene.width) ||
                        (pl_state.height != scene.height);
     if (!size_differs) {
