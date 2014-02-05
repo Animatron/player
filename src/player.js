@@ -2014,8 +2014,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.save(); // bctx second open
 
-                Render.p_useReg.call(this.xdata, bctx);
-                //bctx.translate(-this.xdata.reg[0], -this.xdata.reg[1])
+                // using registration point twice was required
+                // at some point, though it shouldn't
+                //Render.p_useReg.call(this.xdata, bctx);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
