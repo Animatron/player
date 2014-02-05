@@ -2001,10 +2001,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     scene_height = scene.height,
                     ratio = $engine.PX_RATIO;
 
-                // at this point:
-                // mcvs.height is twice scene height
-                // mcvs.width  is twice scene width
-
                 /* FIXME: configure mask canvas using clips bounds (incl. children) */
 
                 bctx.save(); // bctx first open
@@ -2035,8 +2031,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.restore(); // mctx first close
 
+                //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0,
-                                     scene_width, scene_width);
+                                     scene_width, scene_height);
                 bctx.restore(); // bctx first closed
 
                 ctx.drawImage(bcvs, 0, 0,
