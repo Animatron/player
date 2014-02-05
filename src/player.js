@@ -2010,6 +2010,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.save(); // bctx second open
 
+                Render.p_useReg.call(this.xdata, bctx);
+                //bctx.translate(-this.xdata.reg[0], -this.xdata.reg[1])
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
@@ -2034,8 +2036,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 ctx.drawImage(bcvs, 0, 0,
                                     scene_width, scene_height);
-                //ctx.drawImage(bcvs, -scene_width, -scene_height,
-                //                    dbl_scene_width, dbl_scene_height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
