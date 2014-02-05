@@ -1995,8 +1995,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var scene_width = scene.width,
                     scene_height = scene.height,
-                    dbl_scene_width = scene_width * 2,
-                    dbl_scene_height = scene_height * 2,
                     ratio = $engine.PX_RATIO;
 
                 // at this point:
@@ -2006,12 +2004,12 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 /* FIXME: configure mask canvas using clips bounds (incl. children) */
 
                 bctx.save(); // bctx first open
+                if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, scene_width,
                                      scene_height);
 
                 bctx.save(); // bctx second open
 
-                if (ratio !== 1) bctx.scale(ratio, ratio);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
@@ -2022,16 +2020,16 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
+                if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, scene_width,
                                      scene_height);
 
-                if (ratio !== 1) mctx.scale(ratio, ratio);
-                this.__mask.render(mctx, gtime);
+                this.__mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 bctx.drawImage(mcvs, 0, 0,
-                                     dbl_scene_width, dbl_scene_height);
+                                     scene_width, scene_width);
                 bctx.restore(); // bctx first closed
 
                 ctx.drawImage(bcvs, 0, 0,
