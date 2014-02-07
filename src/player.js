@@ -1507,7 +1507,7 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
             $engine.setCanvasBackground(player.canvas, '#' + params.bg);
             $engine.lockCanvasStyle(player.canvas); // is it required to lock it?
         }
-        if (callback) callback();
+        if (callback) callback(player);
     }
 
     player.load(snapshotUrl, importer, updateWithParams);
@@ -1734,9 +1734,9 @@ Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
         this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
     if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
     if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = $engine.createCanvas([this.width, this.height]);
+    this.__maskCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
     this.__maskCtx[lvl] = this.__maskCvs[lvl].getContext('2d');
-    this.__backCvs[lvl] = $engine.createCanvas([this.width, this.height]);
+    this.__backCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
     this.__backCtx[lvl] = this.__backCvs[lvl].getContext('2d');
     //document.body.appendChild(this.__maskCvs[lvl]);
     //document.body.appendChild(this.__backCvs[lvl]);
@@ -1927,6 +1927,7 @@ Element.prototype.transform = function(ctx) {
         bs = this.bstate,
         as = Element._mergeStates(bs, s);
     this.astate = as;
+    //this.astate.$ = this;
     s._matrix = Element._getMatrixOf(as, s._matrix);
     ctx.globalAlpha *= as.alpha;
     s._matrix.apply(ctx);
@@ -1987,7 +1988,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     elm.render(ctx, gtime, dt);
                 });
             } else {
-                // draw to back canvas, if has
                 var scene = this.scene;
                 if (!scene) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
                 var level = this.level;
@@ -1999,20 +1999,23 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var scene_width = scene.width,
                     scene_height = scene.height,
+                    dbl_scene_width = scene.width * 2,
+                    dbl_scene_height = scene.height * 2,
                     ratio = $engine.PX_RATIO;
 
                 /* FIXME: configure mask canvas using clips bounds (incl. children) */
 
+                // double size of the canvases ensures that the
+                // element will fit into canvas if its point was
+
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, scene_width,
-                                     scene_height);
+                bctx.clearRect(0, 0, dbl_scene_width,
+                                     dbl_scene_height);
 
                 bctx.save(); // bctx second open
 
-                // using registration point twice was required
-                // at some point, though it shouldn't
-                //Render.p_useReg.call(this.xdata, bctx);
+                bctx.translate(scene_width, scene_height);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
@@ -2024,20 +2027,21 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.save(); // mctx first open
                 if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, scene_width,
-                                     scene_height);
+                mctx.clearRect(0, 0, dbl_scene_width,
+                                     dbl_scene_height);
 
+                mctx.translate(scene_width, scene_height);
                 this.__mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0,
-                                     scene_width, scene_height);
+                                     dbl_scene_width, dbl_scene_height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, 0, 0,
-                                    scene_width, scene_height);
+                ctx.drawImage(bcvs, -scene_width, -scene_height,
+                                    dbl_scene_width, dbl_scene_height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
@@ -3101,8 +3105,9 @@ Element._getMatrixOf = function(s, m) {
                 : new Transform());
     _t.translate(s.x, s.y);
     _t.rotate(s.angle);
-    _t.scale(s.sx, s.sy);
     _t.shear(s.hx, s.hy);
+    _t.scale(s.sx, s.sy);
+    //_t.translate(-s.$.xdata.reg[0], -s.$.xdata.reg[1]);
     return _t;
 }
 Element._getIMatrixOf = function(s, m) {
@@ -4009,7 +4014,7 @@ Path.prototype.dispose = function() { }
 
 
 Path.applyF = function(ctx, fill, stroke, shadow, func) {
-    ctx.save(); // FIXME: remove it when xdata will contain one paintable object
+    //ctx.save(); // FIXME: remove it when xdata will contain one paintable object
     ctx.beginPath();
     Brush.fill(ctx, fill);
     Brush.stroke(ctx, stroke);
@@ -4019,7 +4024,7 @@ Path.applyF = function(ctx, fill, stroke, shadow, func) {
     // FIXME: we may use return value of Brush.create to test if Brush has value
     if (Brush._hasVal(fill)) ctx.fill();
     if (Brush._hasVal(stroke)) ctx.stroke();
-    ctx.restore(); // FIXME: remove it when xdata will contain one paintable object
+    //ctx.restore(); // FIXME: remove it when xdata will contain one paintable object
 }
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets
