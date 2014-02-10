@@ -152,7 +152,7 @@
                 PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
                 IS_DEV = document.location.toString().indexOf('player-dev')>=0,
                 DOMAIN = IS_DEV ? 'animatron-snapshots-dev.s3.amazonaws.com'
-                                : 'snapshots.animatron.com',
+                                : 'animatron-snapshots.s3.amazonaws.com',
                 PLAYER_DOMAIN = IS_DEV ? 'player-dev.animatron.com'
                                        : 'player.animatron.com',
                 URL_PREFIX = PROTOCOL + DOMAIN,
