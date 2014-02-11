@@ -394,11 +394,8 @@ Import.path = function(src) {
  * Could be either String or Binary encoded path
  */
 Import._pathDecode = function(src) {
-    if (!src) return;
-
-    if (is.str(src)) {
-        return src;
-    }
+    if (is.str(src)) return src;
+    if (!is.num(src) || (src == -1)) return null;
 
     var encoded = Import._paths[src];
     if (!encoded) return;
