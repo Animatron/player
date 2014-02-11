@@ -590,10 +590,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     /* TODO: configure canvas using clips bounds? */
 
-    if (player.anim) {
-        player.__unsubscribeDynamicEvents(player.anim);
-        player.anim.__removeMaskCanvases();
-    }
+    if (player.anim) player.__detachScene();
 
     if (object) {
 
@@ -1431,6 +1428,12 @@ Player.prototype._callPostpones = function() {
     }
     this._queue = [];
 }
+Player.prototype.__detachScene = function(scene) {
+    this.__unsubscribeDynamicEvents(player.anim);
+    this.anim.visitElems(function(elm) {
+        elm.__removeMaskCanvases();
+    });
+}
 
 /* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
@@ -1729,43 +1732,6 @@ Scene.prototype._collectRemoteResources = function() {
     });
     return remotes;
 }
-Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
-    if (this.__maskCvs && this.__backCvs &&
-        this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
-    if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
-    if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
-    this.__maskCtx[lvl] = this.__maskCvs[lvl].getContext('2d');
-    this.__backCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
-    this.__backCtx[lvl] = this.__backCvs[lvl].getContext('2d');
-    //document.body.appendChild(this.__maskCvs[lvl]);
-    //document.body.appendChild(this.__backCvs[lvl]);
-}
-Scene.prototype.__removeMaskCanvases = function() {
-    if (!this.__maskCvs && !this.__backCvs) return;
-    if (this.__maskCvs) {
-        for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
-            if (this.__maskCvs[i]) { // use `continue`?
-                $engine.disposeElement(this.__maskCvs[i]);
-                this.__maskCvs[i] = null; // is it required?
-                this.__maskCtx[i] = null; // is it required?
-            }
-        }
-        this.__maskCvs = null;
-        this.__maskCtx = null;
-    }
-    if (this.__backCvs) {
-        for (var i = 0, il = this.__backCvs.length; i < il; i++) {
-            if (this.__backCvs[i]) { // use `continue`?
-                $engine.disposeElement(this.__backCvs[i]);
-                this.__backCvs[i] = null; // is it required?
-                this.__backCtx[i] = null; // is it required?
-            }
-        }
-        this.__maskCvs = null;
-        this.__backCtx = null;
-    }
-}
 Scene.prototype.findById = function(id) {
     return this.hash[id];
 }
@@ -1935,6 +1901,17 @@ Element.prototype.transform = function(ctx) {
     // FIXME: do not store matrix in a state here,
     // but return it
 }
+// applies an inversed matrix to context and,
+// unlike transform(), do not stores results in
+// element
+Element.prototype.itransform = function(ctx) {
+    var s = this.state,
+        bs = this.bstate,
+        as = Element._mergeStates(bs, s);
+    ctx.globalAlpha *= as.alpha;
+    Element._getIMatrixOf(as).apply(ctx);
+    // FIXME: return a matrix
+}
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
@@ -1990,58 +1967,75 @@ Element.prototype.render = function(ctx, gtime, dt) {
             } else {
                 var scene = this.scene;
                 if (!scene) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
-                var level = this.level;
-                scene.__ensureHasMaskCanvas(level);
-                var mcvs = scene.__maskCvs[level],
-                    mctx = scene.__maskCtx[level],
-                    bcvs = scene.__backCvs[level],
-                    bctx = scene.__backCtx[level];
 
-                var scene_width = scene.width,
-                    scene_height = scene.height,
-                    dbl_scene_width = scene.width * 2,
-                    dbl_scene_height = scene.height * 2,
-                    ratio = $engine.PX_RATIO;
+                // to keep truth here, what is called "__mask" argument is a masked element,
+                // and "this" is the actual mask
+                var mask = this,
+                    masked = this.__mask;
+
+                var bounds = this.dbounds ? this.dbounds() : this.bounds(),
+                    width = Math.floor((bounds[2] - bounds[0]) * 1.1),
+                    height = Math.floor((bounds[3] - bounds[1]) * 1.1);
+
+                // TODO: check if bounds changed
+                var mcvs = this.__maskCvs || $engine.createCanvas([width, height]),
+                    mctx = this.__maskCtx || $engine.getContext(mcvs, '2d'),
+                    bcvs = this.__backCvs || $engine.createCanvas([width, height]),
+                    bctx = this.__backCtx || $engine.getContext(bcvs, '2d');
+
+                this.__maskCvs = mcvs;
+                this.__maskCtx = mctx;
+                this.__backCvs = bcvs;
+                this.__backCtx = bctx;
+
+                var ratio = $engine.PX_RATIO;
 
                 /* FIXME: configure mask canvas using clips bounds (incl. children) */
 
-                // double size of the canvases ensures that the
-                // element will fit into canvas if its point was
-
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, dbl_scene_width,
-                                     dbl_scene_height);
+                bctx.clearRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
 
-                bctx.translate(scene_width, scene_height);
-                this.transform(bctx);
-                this.visitChildren(function(elm) {
+                // FIXME: move reg-point into state,
+                //        it should not be used at drawing
+                var reg = mask.xdata.reg;
+                //bctx.translate(reg[0], reg[1]);
+
+                //bctx.translate(bounds[0], bounds[1]);
+                mask.transform(bctx);
+                mask.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
-                this.draw(bctx, ltime, dt);
+                mask.draw(bctx, ltime, dt);
 
                 bctx.restore(); // bctx second closed
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
                 if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, dbl_scene_width,
-                                     dbl_scene_height);
+                mctx.clearRect(0, 0, width, height);
 
-                mctx.translate(scene_width, scene_height);
-                this.__mask.render(mctx, gtime, dt);
+                var reg = masked.xdata.reg;
+                //mctx.translate(reg[0], reg[1]);
+
+                masked.render(mctx, gtime, dt);
+                //mask.itransform(mctx);
+                /*masked.transform(mctx);
+                masked.visitChildren(function(elm) {
+                    elm.render(mctx, gtime, dt);
+                });
+                masked.draw(mctx, ltime, dt);*/
 
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0,
-                                     dbl_scene_width, dbl_scene_height);
+                bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, -scene_width, -scene_height,
-                                    dbl_scene_width, dbl_scene_height);
+                //mask.transform(ctx);
+                ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
@@ -2989,6 +2983,27 @@ Element.prototype._hasRemoteResources = function() {
 Element.prototype._getRemoteResources = function() {
     if (!this.xdata.sheet) return null;
     return [ this.xdata.sheet.src ];
+}
+Element.prototype.__removeMaskCanvases = function() {
+    if (!this.__maskCvs && !this.__backCvs) return;
+    if (this.__maskCvs) {
+        for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
+            if (this.__maskCvs[i]) {
+                $engine.disposeElement(this.__maskCvs[i]);
+                delete this.__maskCvs[i]; // is it required?
+            }
+        }
+        this.__maskCvs = null;
+    }
+    if (this.__backCvs) {
+        for (var i = 0, il = this.__backCvs.length; i < il; i++) {
+            if (this.__backCvs[i]) { // use `continue`?
+                $engine.disposeElement(this.__backCvs[i]);
+                delete this.__backCvs[i]; // is it required?
+            }
+        }
+        this.__maskCvs = null;
+    }
 }
 
 // base (initial) state of the element
@@ -4601,7 +4616,7 @@ Sheet.prototype._drawToCache = function() {
         return;
     }
     var _canvas = $engine.createCanvas(this._dimen, 1 /* FIXME: use real ratio */);
-    var _ctx = _canvas.getContext('2d');
+    var _ctx = $engine.getContext(_canvas, '2d');
     _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
     this._cvs_cache = _canvas;
@@ -5564,7 +5579,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
 
     if (!anmGuyCanvas) {
         anmGuyCanvas = $engine.createCanvas([ w, h ]);
-        anmGuyCtx = anmGuyCanvas.getContext('2d');
+        anmGuyCtx = $engine.getContext(anmGuyCanvas, '2d');
     } else {
         // FIXME: resize only if size was changed
         $engine.configureCanvas(anmGuyCanvas, [ w, h ]);
