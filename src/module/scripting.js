@@ -18,6 +18,8 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
   var C = anm.C;
   var E = anm.Element;
 
+  var $log = anm.log;
+
   var __findByName = function(elm) {
     return function(name, context) {
       return anm.findByName(context || elm.scene, name);
@@ -135,7 +137,9 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
 
       result = true;
       var registar = handler_type == 'init' ? 'on' : 'm_on';
-      eval('this.' + registar + '(handler_map[handler_type], ' + handler_code + ');');
+      try {
+        eval('this.' + registar + '(handler_map[handler_type], ' + handler_code + ');');
+      } catch(e) { $log.error('A potential error in scripting code, skipping: ' + handler_code); }
     }
 
     return result;
