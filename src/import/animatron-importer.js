@@ -238,9 +238,12 @@ Import.branch = function(type, src, all, scene) {
          */
         var lsrc = _layers[li];
 
+        var nsrc = Import._find(lsrc[0], all);
+        if (!nsrc) continue;
+
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(Import._find(lsrc[0], all), all, trg, scene);
+        var ltrg = Import.node(nsrc, all, trg, scene);
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -379,7 +382,9 @@ Import.band = function(src) {
  */
 // -> Path
 Import.path = function(src) {
-    return new Path(Import._pathDecode(src[4]), // Import.pathval
+    var path = Import._pathDecode(src[4]);
+    if (!path) return;
+    return new Path(path, // Import.pathval
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]));
@@ -389,11 +394,12 @@ Import.path = function(src) {
  * Could be either String or Binary encoded path
  */
 Import._pathDecode = function(src) {
-    if (is.str(src)) {
-        return src;
-    }
+    if (is.str(src)) return src;
+    if (!is.num(src) || (src == -1)) return null;
 
     var encoded = Import._paths[src];
+    if (!encoded) return;
+
     var val = Import._path_cache.get(encoded);
     if (val) {
         return val.duplicate().segs;

@@ -8,7 +8,7 @@ Licensed under MIT License, see `LICENSE` file.
 
 See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) for description on current API state (be aware, it may appear not updated to the _real_ current state).
 
-**NB:** Development is in process. See [JS Player Pivotal Tracker page](https://www.pivotaltracker.com/projects/561405) to see what happens in project when you read this.
+**NB:** Development is in process.
 
 #### See in action
 
