@@ -1989,10 +1989,10 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var canvas_wanted = !this.__maskCvs;
 
-                var mcvs = canvas_wanted ? $engine.createCanvas([width, height]) : this.__maskCvs,
-                    mctx = canvas_wanted ? $engine.getContext(mcvs, '2d')        : this.__maskCtx,
-                    bcvs = canvas_wanted ? $engine.createCanvas([width, height]) : this.__backCvs,
-                    bctx = canvas_wanted ? $engine.getContext(bcvs, '2d')        : this.__backCtx;
+                var mcvs = this.__maskCvs || $engine.createCanvas([width, height]),
+                    mctx = this.__maskCtx || $engine.getContext(mcvs, '2d'),
+                    bcvs = this.__backCvs || $engine.createCanvas([width, height]),
+                    bctx = this.__backCtx || $engine.getContext(bcvs, '2d');
 
                 //console.log(this.__maskSize, width, height, canvas_wanted);
 
@@ -2003,9 +2003,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 mcvs.style.borderColor = '#f00';
 
                 if ((last_width < width) || (last_height < height))  {
-                    $engine.configureCanvas(mcvs, [ width, height ]);
-                    this.__maskSize[0] = width;
-                    this.__maskSize[1] = height;
+                    var new_width  = Math.max(last_width,  width);
+                    var new_height = Math.max(last_height, height);
+                    $engine.configureCanvas(mcvs, [ new_width, new_height ]);
+                    this.__maskSize[0] = new_width;
+                    this.__maskSize[1] = new_height;
                 }
 
                 this.__maskCvs = mcvs;
@@ -2063,7 +2065,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.strokeStyle = '#000';
                 ctx.strokeRect(0, 0, width, height);
-                ctx.drawImage(mcvs, 0, 0, width, height);
+                ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.restore();
             }
         } catch(e) { $log.error(e); }
