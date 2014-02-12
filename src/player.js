@@ -1973,9 +1973,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 var mask = this,
                     masked = this.__mask;
 
-                var bounds = this.dbounds ? this.dbounds() : this.bounds(),
-                    width = Math.floor((bounds[2] - bounds[0]) * 1.1),
-                    height = Math.floor((bounds[3] - bounds[1]) * 1.1);
+                var reg = mask.xdata.reg,
+                    bounds = mask.dbounds ? mask.dbounds(ltime) : mask.bounds(ltime),
+                    //width  = Math.floor(((bounds[0] < 0) ? -bounds[0] : 0) + (bounds[2] * 1.1)),
+                    //height = Math.floor(((bounds[1] < 0) ? -bounds[1] : 0) + (bounds[3] * 1.1));
+                    width  = Math.floor(bounds[2] - bounds[0] + reg[0]),
+                    height = Math.floor(bounds[3] - bounds[1] + reg[1]);
+                    //width  = Math.floor((bounds[2] - bounds[0]) * 1.1),
+                    //height = Math.floor((bounds[3] - bounds[1]) * 1.1);
 
                 // TODO: check if bounds changed
                 var mcvs = this.__maskCvs || $engine.createCanvas([width, height]),
@@ -2015,6 +2020,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.save(); // mctx first open
                 if (ratio !== 1) mctx.scale(ratio, ratio);
+                //mctx.translate(bounds[0], bounds[1]);
                 mctx.clearRect(0, 0, width, height);
 
                 var reg = masked.xdata.reg;
@@ -2022,11 +2028,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 masked.render(mctx, gtime, dt);
                 //mask.itransform(mctx);
-                /*masked.transform(mctx);
-                masked.visitChildren(function(elm) {
-                    elm.render(mctx, gtime, dt);
-                });
-                masked.draw(mctx, ltime, dt);*/
+                //masked.transform(mctx);
+                //masked.visitChildren(function(elm) {
+                //    elm.render(mctx, gtime, dt);
+                //});
+                //masked.draw(mctx, ltime, dt);
 
                 mctx.restore(); // mctx first close
 
