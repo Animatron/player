@@ -61,6 +61,33 @@ E.prototype.dbounds = function(t) {
     return [ minX, minY, maxX, maxY ];
 }
 
+E.prototype.abs_bounds = function() {
+    var r = this._pradopt(this._cpa_rect());
+    var minX = Number.MAX_VALUE, maxX = 0,
+        minY = Number.MAX_VALUE, maxY = 0;
+    if (r) {
+        // go through x values
+        for (var i = 0, il = r.length; i < il; i += 2) {
+            minX = Math.min(minX, r[i]);
+            maxX = Math.max(maxX, r[i]);
+        }
+        // go through y values
+        for (var i = 1, il = r.length; i < il; i += 2) {
+            minY = Math.min(minY, r[i]);
+            maxY = Math.max(maxY, r[i]);
+        }
+    }
+    this.visitChildren(function(elm) {
+        var cr = elm.abs_bounds();
+        if (!cr) return;
+        minX = Math.min(minX, cr[0]);
+        minY = Math.min(minY, cb[1]);
+        maxX = Math.max(maxX, cb[2]);
+        maxY = Math.max(maxY, cb[3]);
+    });
+    return [ minX, minY, maxX, maxY ];
+}
+
 E.prototype.rect = function(t) {
     return this._pradopt(this._cpa_rect(), t);
 }
