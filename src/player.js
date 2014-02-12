@@ -1968,13 +1968,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 var scene = this.scene;
                 if (!scene) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
 
-                // to keep truth here, what is called "__mask" argument is a masked element,
-                // and "this" is the actual mask
-                var mask = this,
-                    masked = this.__mask;
+                var mask = this.__mask,
+                    masked = this;
 
-                var reg = mask.xdata.reg,
-                    bounds = mask.dbounds ? mask.dbounds(ltime) : mask.bounds(ltime),
+                var reg = masked.xdata.reg,
+                    bounds = masked.dbounds ? masked.dbounds(ltime) : masked.bounds(ltime),
                     //width  = Math.floor(((bounds[0] < 0) ? -bounds[0] : 0) + (bounds[2] * 1.1)),
                     //height = Math.floor(((bounds[1] < 0) ? -bounds[1] : 0) + (bounds[3] * 1.1));
                     width  = Math.floor(bounds[2] - bounds[0] + reg[0]),
@@ -1995,8 +1993,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var ratio = $engine.PX_RATIO;
 
-                /* FIXME: configure mask canvas using clips bounds (incl. children) */
-
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
@@ -2005,15 +2001,15 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 // FIXME: move reg-point into state,
                 //        it should not be used at drawing
-                var reg = mask.xdata.reg;
+                //var reg = masked.xdata.reg;
                 //bctx.translate(reg[0], reg[1]);
 
                 //bctx.translate(bounds[0], bounds[1]);
-                mask.transform(bctx);
-                mask.visitChildren(function(elm) {
+                masked.transform(bctx);
+                masked.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
-                mask.draw(bctx, ltime, dt);
+                masked.draw(bctx, ltime, dt);
 
                 bctx.restore(); // bctx second closed
                 bctx.globalCompositeOperation = 'destination-in';
@@ -2023,10 +2019,10 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //mctx.translate(bounds[0], bounds[1]);
                 mctx.clearRect(0, 0, width, height);
 
-                var reg = masked.xdata.reg;
+                //var reg = mask.xdata.reg;
                 //mctx.translate(reg[0], reg[1]);
 
-                masked.render(mctx, gtime, dt);
+                mask.render(mctx, gtime, dt);
                 //mask.itransform(mctx);
                 //masked.transform(mctx);
                 //masked.visitChildren(function(elm) {
