@@ -40,15 +40,21 @@
     "examples": "examples"
   },
   "dependencies": {
-    "jake": "*",
-    "uglify-js": "*"
+    "jake": "latest",
+    "uglify-js": "latest"
   },
   "devDependencies": {
-    "jake": "*",
-    "uglify-js": "*",
-    "phantomjs": "*",
-    "jasmine-node": "*",
-    "docco": "*"
+    "jake": "latest",
+    "uglify-js": "latest",
+    "phantomjs": "latest",
+    "jasmine-node": "latest",
+    "docco": "latest"
+  },
+  "optionalDependencies": {
+    "aws2js": "latest",
+    "walk": "latest",
+    "orderly": "latest",
+    "jsonschema": "latest"
   },
   "scripts": {
     "test": "jake test"
