@@ -28,8 +28,7 @@ jake.echo = function(what, where) { fs.appendFileSync(where, what, 'utf8'); };
 
 // CONSTANTS
 
-var BUILD_FILE = 'BUILD',
-    VERSION_FILE = 'VERSION',
+var VERSION_FILE = 'VERSION',
     VERSIONS_FILE = 'VERSIONS',
     VERSION_LOG_FILE = 'VERSION_LOG',
     CHANGES_FILE = 'CHANGES',
@@ -187,6 +186,9 @@ var Validation = {
     Schema: { ANM_SCENE: Dirs.SRC + '/' + SubDirs.IMPORTERS + '/animatron-project-' + VERSION + '.orderly' }
 };
 
+var BUILD_FILE = Dirs.DIST_ROOT + '/' + 'BUILD',
+    BUILD_FORMAT = '%H%n%ci%n%cn <%ce>';
+
 var DONE_MARKER = '<Done>.\n',
     NONE_MARKER = '<None>.\n',
     FAILED_MARKER = '<Failed>.\n';
@@ -222,10 +224,10 @@ task('clean', function() {
 
 desc(_dfit_nl(['Build process, with no cleaning.',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>.',
+               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify'], function() {});
+task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify', '_build-file'], function() {});
 
 desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'so `dist` directory will contain the full '+
@@ -756,7 +758,7 @@ task('_organize', function() {
     });
 
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
-    Files.Ext.ENGINES.forEach(function(engineFile) {
+    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
         jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.ENGINES + '/' + engineFile),
                  _loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
     });
@@ -836,7 +838,9 @@ task('_minify', { async: true }, function() {
                                : 'local (at '+LOCAL_NODE_DIR+')')
                 + ' node.js binaries');
 
-    var BUILD_TIME = now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')';
+    var now = new Date(),
+        BUILD_TIME = now.toISOString() + ' ' + now.getTime() + '\n' +
+                     now.toString();
 
     function minify(src, dst, cb) {
         jake.exec([
@@ -850,7 +854,6 @@ task('_minify', { async: true }, function() {
     }
 
     function copyrightize(file) {
-        var now = new Date();
         var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
                                            .concat(jake.cat(file).trim()  + '\n');
         jake.rmRf(file);
@@ -918,10 +921,52 @@ task('_minify', { async: true }, function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
-    jake.rmRf(_loc(BUILD_FILE));
-    _print('Updating ' + BUILD_FILE + ' file.\n');
-    jake.echo(BUILD_TIME, _loc(BUILD_FILE));
+});
 
+desc(_dfit(['Internal. Create a BUILD file informing about the time and commit of a build.']));
+task('_build-file', { async: true }, function() {
+    _print('Fill ' + BUILD_FILE + ' file with information about current build');
+    _print();
+
+    var _getCommintHash = jake.createExec([
+      [ Binaries.GIT,
+        'log',
+        '-n', '1',
+        '--format=format:"' + BUILD_FORMAT + '"'
+      ].join(' ')
+    ], EXEC_OPTS);
+    _getCommintHash.on('stdout', function(COMMIT_INFO) {
+        var now = new Date(),
+            BUILD_TIME = now.toISOString() + ' ' + now.getTime() + '\n' +
+                         now.toString(),
+            COMMIT_INFO = COMMIT_INFO.toString();
+
+        _print('Build time:');
+        _print(BUILD_TIME);
+        _print();
+        _print('Build commit:');
+        _print(COMMIT_INFO);
+        _print();
+
+        jake.rmRf(_loc(BUILD_FILE));
+        _print('Updating ' + BUILD_FILE + ' file.\n');
+        jake.echo(BUILD_TIME + '\n'
+                  + VERSION + '\n'
+                  + COMMIT_INFO, _loc(BUILD_FILE));
+
+        _print(DONE_MARKER);
+
+        complete();
+    });
+    _getCommintHash.addListener('stderr', function(e) {
+        _print(FAILED_MARKER, msg);
+        throw new Error(msg);
+    });
+    _getCommintHash.addListener('error', function(e) {
+        _print(FAILED_MARKER, msg);
+        throw new Error(msg);
+    });
+    _getCommintHash.run();
 });
 
 // UTILS
