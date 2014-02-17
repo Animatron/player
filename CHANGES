@@ -1,6 +1,8 @@
 v1.1 / Mon Feb 17 2014 14:06:29 +0100 / b6514e824e524cfe758a7927d046acde28d9a0be
 ================================================================================
 
+(a.k.a. v1.1.0)
+
 * Use Engines! i.e. at client, DOM-engine is used as a proxy for all canvas & DOM related functionality
 * There's a root `anm` namespace now, the parent for all classes and utils
 * The `require`-driven modules structure, though not perfect for the moment

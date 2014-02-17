@@ -1,6 +1,6 @@
 {
   "name": "animatron-player",
-  "version": "1.1",
+  "version": "1.1.0",
   "description": "JavaScript Player engine for Animatron",
   "keywords": [
     "html5",
@@ -54,7 +54,8 @@
     "aws2js": "latest",
     "walk": "latest",
     "orderly": "latest",
-    "jsonschema": "latest"
+    "jsonschema": "latest",
+    "markdown": "latest"
   },
   "scripts": {
     "test": "jake test"

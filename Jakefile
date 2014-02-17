@@ -204,6 +204,9 @@ var JSON_INDENT = 2;
 var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
                   printStderr: !jake.program.opts.quiet };
 
+var PRODUCTION_TAG = 'production',
+    DEVELOPMENT_TAG = 'development';
+
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
 // TASKS
@@ -559,7 +562,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
+task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -634,7 +637,7 @@ desc(_dfit_nl(['Pushes `go` page to the S3.',
                'Affects: Only changes S3.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` node.js module.']));
-task('push-go', [], { async: true }, function(_bucket) {
+task('_push-go', [], { async: true }, function(_bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -684,6 +687,81 @@ task('push-go', [], { async: true }, function(_bucket) {
     });
 
 });
+
+desc(_dfit_nl(['Triggers deployment to Production server',
+               'using `production` annotated tag.']));
+task('trig-prod', [], { async: true }, function() {
+    // just applies a tag `production`, so TeamCity will build it and run sequentially:
+    // jake test
+    // jake _push-version[,rls]
+    // jake _push-version[latest,rls]
+    // jake _push-go[rls]
+
+    jake.exec([
+          [ Binaries.GIT,
+            'tag',
+            '-a', '-f',
+            PRODUCTION_TAG,
+            '-m',
+            '"PRODUCTION"' ].join(' ')
+      ], EXEC_OPTS, function() {
+
+      jake.exec([
+          [ Binaries.GIT,
+            'push', '-f',
+            'origin',
+            PRODUCTION_TAG ].join(' ')
+      ], EXEC_OPTS, function() {
+
+        _print(DONE_MARKER);
+
+        complete();
+
+      });
+
+    });
+
+});
+
+desc(_dfit_nl(['Triggers deployment to Development server',
+               'using `development` annotated tag.']));
+task('trig-dev', [], { async: true }, function() {
+    // just applies a tag `development`, so TeamCity will build it and run sequentially:
+    // jake test
+    // jake _push-version
+    // jake _push-version[latest]
+    // jake _push-go
+
+    jake.exec([
+          [ Binaries.GIT,
+            'tag',
+            '-a', '-f',
+            DEVELOPMENT_TAG,
+            '-m',
+            '"DEVELOPMENT"' ].join(' ')
+      ], EXEC_OPTS, function() {
+
+      jake.exec([
+          [ Binaries.GIT,
+            'push', '-f',
+            'origin',
+            DEVELOPMENT_TAG ].join(' ')
+      ], EXEC_OPTS, function() {
+
+        _print(DONE_MARKER);
+
+        complete();
+
+      });
+
+    });
+});
+
+desc('See `trig-prod`.');
+task('trigger-production', ['trig-prod'], {}, function() {});
+
+desc('See `trig-dev`.');
+task('trigger-development', ['trig-dev'], {}, function() {});
 
 /*desc('Run JSHint');
 task('hint', function() {
