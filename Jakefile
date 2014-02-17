@@ -28,13 +28,18 @@ jake.echo = function(what, where) { fs.appendFileSync(where, what, 'utf8'); };
 
 // CONSTANTS
 
-var VERSION_FILE = 'VERSION',
+var BUILD_FILE = 'BUILD',
+    VERSION_FILE = 'VERSION',
     VERSIONS_FILE = 'VERSIONS',
     VERSION_LOG_FILE = 'VERSION_LOG',
     CHANGES_FILE = 'CHANGES',
+    PACKAGE_FILE = 'package.json',
     VERSION = (function(file) {
        return jake.cat(_loc(file)).trim();
-    })(VERSION_FILE);
+    })(VERSION_FILE),
+    PACKAGE = (function(file) {
+       return JSON.parse(jake.cat(_loc(file)).trim());
+    })(PACKAGE_FILE);
 
 var COPYRIGHT_COMMENT =
 [ '/*',
@@ -180,7 +185,7 @@ var Bucket = {
 
 var Validation = {
     Schema: { ANM_SCENE: Dirs.SRC + '/' + SubDirs.IMPORTERS + '/animatron-project-' + VERSION + '.orderly' }
-}
+};
 
 var DONE_MARKER = '<Done>.\n',
     NONE_MARKER = '<None>.\n',
@@ -191,6 +196,8 @@ var DESC_WIDTH = 80,
     DESC_TAB = 7,
     DESC_PFX = '# ',
     DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
+
+var JSON_INDENT = 2;
 
 var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
                   printStderr: !jake.program.opts.quiet };
@@ -442,6 +449,11 @@ task('version', { async: true }, function(param) {
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
+                PACKAGE.version = _v.substr(1); // trim 'v'
+                jake.rmRf(_loc(PACKAGE_FILE));
+                _print('Writing ' + _v + ' to ' + PACKAGE_FILE + ' file.\n');
+                jake.echo(JSON.stringify(PACKAGE, null, JSON_INDENT), _loc(PACKAGE_FILE));
+
                 _print('Writing ' + _v + ' information to ' + VERSIONS_FILE + ' file.\n');
                 _versions.write(_vhash);
 
@@ -508,6 +520,11 @@ task('rm-version', { async: true }, function(param) {
         jake.rmRf(_loc(VERSION_FILE));
         _print(dst_v + ' -> ' + VERSION_FILE);
         jake.echo(dst_v, _loc(VERSION_FILE));
+
+        jake.rmRf(_loc(PACKAGE_FILE));
+        _print(dst_v + ' -> ' + PACKAGE_FILE);
+        PACKAGE.version = dst_v.substr(1);
+        jake.echo(JSON.stringify(PACKAGE, null, JSON_INDENT), _loc(PACKAGE_FILE));
 
         _vhash[src_v] = null;
         delete _vhash[src_v];
@@ -738,6 +755,12 @@ task('_organize', function() {
                  _loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
     });
 
+    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+    Files.Ext.ENGINES.forEach(function(engineFile) {
+        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.ENGINES + '/' + engineFile),
+                 _loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+    });
+
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
         jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.MODULES + '/' + moduleFile),
@@ -770,6 +793,12 @@ task('_versionize', function() {
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
+
+    _print('.. Engines');
+
+    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
+        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES + '/' + engineFile));
+    });
 
     _print('.. Modules');
 
@@ -807,6 +836,8 @@ task('_minify', { async: true }, function() {
                                : 'local (at '+LOCAL_NODE_DIR+')')
                 + ' node.js binaries');
 
+    var BUILD_TIME = now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')';
+
     function minify(src, dst, cb) {
         jake.exec([
             [ Binaries.UGLIFYJS,
@@ -820,8 +851,7 @@ task('_minify', { async: true }, function() {
 
     function copyrightize(file) {
         var now = new Date();
-        var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g,
-                                                    (now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')'))
+        var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
                                            .concat(jake.cat(file).trim()  + '\n');
         jake.rmRf(file);
         jake.echo(new_content, file);
@@ -864,6 +894,14 @@ task('_minify', { async: true }, function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
+    _print('.. Engines');
+
+    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.ENGINES);
+    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
+        minifyWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.ENGINES + '/' + engineFile),
+                            _loc(Dirs.MINIFIED + '/' + SubDirs.ENGINES + '/' + engineFile));
+    });
+
     _print('.. Modules');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
@@ -879,6 +917,10 @@ task('_minify', { async: true }, function() {
         minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
                             _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
+
+    jake.rmRf(_loc(BUILD_FILE));
+    _print('Updating ' + BUILD_FILE + ' file.\n');
+    jake.echo(BUILD_TIME, _loc(BUILD_FILE));
 
 });
 
@@ -983,7 +1025,7 @@ var _versions = (function() {
 
     function _write(_vhash) {
         _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
-        var _vhash_json = JSON.stringify(_vhash, null, 4);
+        var _vhash_json = JSON.stringify(_vhash, null, JSON_INDENT);
         jake.rmRf(_loc(VERSIONS_FILE));
         jake.echo(_vhash_json, _loc(VERSIONS_FILE));
         for (v in _vhash) {
