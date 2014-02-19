@@ -4303,19 +4303,6 @@ CSeg.prototype.tangentAt = function(start, t) {
     // p1 = start, p2 = this.atT(start, t); ?
 
     return Math.atan2(p2[0] - p1[0], p2[1] - p1[1]);
-    /*
-    this._ensure_params(start);
-    var par = this._params;
-    var t1 = t,
-        t2 = t + 0.001;
-
-    var tt1 = t1 * t1, // t1^2
-        tt2 = t2 * t2, // t1^2
-
-    var p1 = [ 3 * par[0] * tt1 + 2 * par[1] * t1 + par[2],
-               3 * par[4] * tt1 + 2 * par[5] * t1 + par[6] ];
-    var p2 = [ 3 * par[0] * tt2 + 2 * par[1] * t2 + par[2],
-               3 * par[4] * tt2 + 2 * par[5] * t2 + par[6] ]; */
 }
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart &&
