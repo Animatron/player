@@ -1035,11 +1035,11 @@ task('_build-file', { async: true }, function() {
 
         complete();
     });
-    _getCommintHash.addListener('stderr', function(e) {
+    _getCommintHash.addListener('stderr', function(msg) {
         _print(FAILED_MARKER, msg);
         throw new Error(msg);
     });
-    _getCommintHash.addListener('error', function(e) {
+    _getCommintHash.addListener('error', function(msg) {
         _print(FAILED_MARKER, msg);
         throw new Error(msg);
     });
