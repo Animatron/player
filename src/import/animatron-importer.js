@@ -271,6 +271,7 @@ Import.branch = function(type, src, all, scene) {
             for (var tweens = lsrc[7], ti = 0, tl = tweens.length;
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
+                if (!t) continue;
                 if (t.type == C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
@@ -577,6 +578,7 @@ Import.sheet = function(src) {
 // -> Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
+    if (type == null) return null;
     return {
         'type': type,
         'band': Import.band(src[1]),
