@@ -917,8 +917,7 @@ task('_minify', { async: true }, function() {
                 + ' node.js binaries');
 
     var now = new Date(),
-        BUILD_TIME = now.toISOString() + ' ' + now.getTime() + '\n' +
-                     now.toString();
+        BUILD_TIME = now.toString() + ' / ' + now.toISOString();
 
     function minify(src, dst, cb) {
         jake.exec([
