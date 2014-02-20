@@ -3524,7 +3524,7 @@ Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, dt, duration, data) {
         var path = this._mpath;
-        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+        if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 Tweens[C.T_SHEAR] =
@@ -3842,18 +3842,21 @@ Path.prototype.parse = function(str) {
     if (str) Path.parse(str, this);
     return this;
 }
-// find a segment data in a path that corresponds to specified distance (t)
-// of the path (0..1),
+// find a segment hit data in a path that corresponds
+// to specified distance (t) of the path (0..1),
 // > Path.hitAt % (t: [0..1]) => Array[Int, 2]
-Path.prototype.hitAt = function(t/*, func*/) {
+Path.prototype.hitAt = function(t) {
+    var plen = this.length(); // path length in pixels
+    if (t < 0 || t > plen) return null;
+
     var startp = this.start();
     if (t === 0) return {
           'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
         };
-    var endp = this.end();
-    /*if (t == 1) return func ? func(startp, endp) : endp;*/
 
-    var plen = this.length(); // path length in pixels
+    /*var endp = this.end();
+      if (t == 1) return func ? func(startp, endp) : endp;*/
+
     var nsegs = this.segs.length; // number of segments
     var distance = t * plen;
     var p = startp;
@@ -3861,22 +3864,26 @@ Path.prototype.hitAt = function(t/*, func*/) {
     var seg, slen;
     for (var si = 0; si < nsegs; si++) {
         seg = this.segs[si];
-        slen = seg.length(p); // segment length
-        if (distance <= (length + slen)) {
-            // inside current segment
-            var segdist = distance - length;
-            return {
-              'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
-            };
+        if (seg.type !== C.P_MOVE_TO) {
+          slen = seg.length(p); // segment length
+          if (distance <= (length + slen)) {
+              // inside current segment
+              var segdist = distance - length;
+              return {
+                'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
+              };
+          }
+          length += slen;
         }
-        length += slen;
         // end point of segment
         p = seg.last();
     };
-    var lseg = this.segs[this.segs.length - 1];
-    return {
-      'seg': lseg, 'start': p, 'slen': lseg.length(p), 'segt': 1.0
-    };
+
+    /*var lseg = this.segs[nsegs - 1];
+      return {
+        'seg': lseg, 'start': p, 'slen': lseg.length(p), 'segt': 1.0
+      };*/
+    return null;
 }
 // find a point on a path at specified distance (t) of the path (0..1),
 // a function that transforms the result point (using given start point of
@@ -3884,12 +3891,14 @@ Path.prototype.hitAt = function(t/*, func*/) {
 // > Path.pointAt % (t: [0..1]) => Array[Int, 2]
 Path.prototype.pointAt = function(t) {
     var hit = this.hitAt(t);
+    if (!hit) return this.start();
     return hit.seg.atT(hit.start, hit.segt);
 }
 // find a tangent on a path at specified distance (t) of the path (0..1)
 // > Path.tangentAt % (t: [0..1]) => Double
 Path.prototype.tangentAt = function(t) {
     var hit = this.hitAt(t);
+    if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
 }
 Path.prototype.start = function() {
@@ -4153,7 +4162,7 @@ MSeg.prototype.atT = function(start, t) {
     return this.atDist(start, null);
 }
 MSeg.prototype.tangentAt = function(start, t) {
-    return Math.atan2(this.pts[0], this.pts[1]);
+    return 0;
 }
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
@@ -4285,13 +4294,25 @@ CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
 }
 CSeg.prototype.tangentAt = function(start, t) {
-    this._ensure_params(start);
+    if ((t < 0) || (t > 1)) return 0;
+
+    var p1 = this.atT(start, t),
+        p2 = this.atT(start, t + 0.001);
+
+    return Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+
+    /*     this._ensure_params(start);
     var par = this._params;
-    var tt = t * t; // t^2
-    var p = [ 3 * par[0] * tt + 2 * par[1] * t + par[2],
-              3 * par[4] * tt + 2 * par[5] * t + par[6] ];
-    /*var p = this.atT(start, t);*/
-    return Math.atan2(p[1], p[0]);
+    var t1 = t,
+        t2 = t + 0.001;
+    var tt1 = t1 * t1, // t1^2
+        tt2 = t2 * t2; // t1^2
+    var p1 = [ 3 * par[0] * tt1 + 2 * par[1] * t1 + par[2],
+               3 * par[4] * tt1 + 2 * par[5] * t1 + par[6] ],
+        p2 = [ 3 * par[0] * tt2 + 2 * par[1] * t2 + par[2],
+               3 * par[4] * tt2 + 2 * par[5] * t2 + par[6] ];
+
+    return Math.atan2(p2[1] - p1[1], p2[0] - p1[0]); */
 }
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart &&
