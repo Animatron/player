@@ -174,13 +174,6 @@ function ell_text(text, max_len) {
          + text.slice(_len - _semilen);
 }
 
-// ### Canvas-related Constants
-/* ---------------------------- */
-
-var DEF_CNVS_WIDTH = 400;
-var DEF_CNVS_HEIGHT = 250;
-var DEF_CNVS_BG = '#fff';
-
 // ### Internal Helpers
 /* -------------------- */
 
@@ -426,8 +419,8 @@ Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
-Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
-                          'height': DEF_CNVS_HEIGHT,
+Player.DEFAULT_CANVAS = { 'width': -1,
+                          'height': -1,
                           'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ }; // FIXME: change to bgfill
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
@@ -441,9 +434,9 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'version': null,
                                            'description': '' },
                                  'anim': { 'fps': 30,
-                                           'width': DEF_CNVS_WIDTH,
-                                           'height': DEF_CNVS_HEIGHT,
-                                           'bgcolor': null, // FIXME: change to bgfill
+                                           'width': Player.DEFAULT_CANVAS.width,
+                                           'height': Player.DEFAULT_CANVAS.height,
+                                           'bgcolor': Player.DEFAULT_CANVAS.bgcolor, // FIXME: change to bgfill
                                            'duration': 0 }
                                };
 
@@ -851,19 +844,15 @@ Player.prototype._postInit = function() {
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
-    this._reconfigureCanvas({
-        width: rect.width,
-        height: rect.height,
-        x: rect.x,
-        y: rect.y,
-        bgcolor: this.state.bgcolor
-    });
+    this._moveTo(rect.x, rect.y);
+    this._resize(rect.width, rect.height);
 }
-Player.prototype._rectChanged = function(rect) {
-    var cur = this._canvasConf;
-    return (cur.width != rect.width) || (cur.height != rect.height) ||
+/* Player.prototype._rectChanged = function(rect) {
+    var cur_w = this.state.width,
+        cur_h = this.state.height;
+    return (cur_w != rect.width) || (cur_w != rect.height) ||
            (cur.x != rect.x) || (cur.y != rect.y);
-}
+} */
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
@@ -894,13 +883,25 @@ Player.prototype.changeZoom = function(zoom) {
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cvs = this.canvas;
+    var lockResize = false,
+        sizeSpecified = (conf.width > 0) && (conf.height > 0);
 
-    if (!conf.width && cvs.hasAttribute('width')) conf.width = cvs.getAttribute('width');
-    if (!conf.height && cvs.hasAttribute('height')) conf.height = cvs.getAttribute('height');
+    if (sizeSpecified) lockResize = true;
+    if (!sizeSpecified && cvs.hasAttribute('width')
+                       && cvs.hasAttribute('height')) {
+        conf.width = cvs.getAttribute('width');
+        conf.height = cvs.getAttribute('height');
+    }
+    if (cvs.hasAttribute('anm-lockResize') && cvs.getAttribute('anm-lockResize')) lockResize = true;
 
-    this._reconfigureCanvas(conf);
+    if (sizeSpecified) { this._resize(conf.width, conf.height); }
+    else { $engine.updateCanvasMetrics(cvs); }
+    if (lockResize) this.lockResize();
 
-    if (conf.bgcolor) this.state.bgcolor = conf.bgcolor;
+    if (conf.bgcolor) this._restyle(conf.bgcolor);
+
+    this.__canvasPrepared = true;
+
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
 
@@ -1165,33 +1166,37 @@ Player.prototype._reset = function() {
     /*this.stop();*/
 }
 Player.prototype._stopAndContinue = function() {
-  //state.__lastPlayConf = [ from, speed, stopAfter ];
-  var state = this.state,
-      last_conf = state.__lastPlayConf;
-  var stoppedAt = state.time;
-  this.stop();
-  this.play(stoppedAt, last_conf[1], last_conf[2]);
+    //state.__lastPlayConf = [ from, speed, stopAfter ];
+    var state = this.state,
+        last_conf = state.__lastPlayConf;
+    var stoppedAt = state.time;
+    this.stop();
+    this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
-// update player's canvas with configuration
-Player.prototype._reconfigureCanvas = function(opts) {
-    var canvas = this.canvas;
-    this._canvasConf = opts;
-    var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
-    var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
-    opts.width = _w;
-    opts.height = _h;
+// FIXME: moveTo is not moving anything for the moment
+Player.prototype._moveTo = function(x, y) {
+    this.state.x = x;
+    this.state.y = y;
+    $engine.setCanvasPos(this.canvas, x, y);
+}
+Player.prototype._resize = function(width, height) {
+    var cvs = this.canvas,
+        cur_size = $engine.getCanvasParams(cvs);
+    if (cur_size && (cur_size[0] === width) && (cur_size === height)) return;
+    var _w = width | 0, _h = height | 0;
     this.state.width = _w;
     this.state.height = _h;
     this.state.ratio = $engine.PX_RATIO; // FIXME: remove overusage of ratio
-    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    opts.lockBg = this.__lockCvsBg;
-    opts.lockResize = this.__lockCvsResize;
-    $engine.configureCanvas(canvas, opts);
-    if (this.controls) this.controls.update(canvas);
-    this.__canvasPrepared = true;
+    $engine.setCanvasSize(cvs, width, height);
+    if (this.controls) this.controls.update(cvs);
     this.forceRedraw();
-    return this;
-}
+    return [ width, height ];
+};
+Player.prototype._restyle = function(bg) {
+    this.state.bgcolor = bg;
+    $engine.setCanvasBackground(this.canvas, bg);
+    this.forceRedraw();
+};
 Player.prototype._checkMode = function() {
     if (!this.canvas) return;
 
@@ -1438,6 +1443,23 @@ Player.prototype._callPostpones = function() {
     }})(this);
 } */
 
+Player.prototype.setSize = function(width, height) {
+    this.unlockResize();
+    this._resize(width, height);
+}
+Player.prototype.lockResize = function() {
+    $engine.lockCanvasResize(this.canvas);
+}
+Player.prototype.unlockResize = function() {
+    $engine.unlockCanvasResize(this.canvas);
+}
+Player.prototype.lockStyle = function() {
+    $engine.lockCanvasStyle(this.canvas);
+}
+Player.prototype.unlockStyle = function() {
+    $engine.unlockCanvasStyle(this.canvas);
+}
+
 Player.createState = function(player) {
     return {
         'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
@@ -1489,8 +1511,8 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
-    if (params.w && params.h) $engine.lockCanvasResize(player.canvas);
-    if (params.bg) $engine.lockCanvasStyle(player.canvas);
+    if (params.w && params.h) player.lockResize();
+    if (params.bg) player.lockStyle();
     function updateWithParams() {
         if (typeof params.t !== 'undefined') {
             player.play(params.t / 100);
@@ -1498,14 +1520,15 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
             player.play(params.p / 100).pause();
         }
         if (params.w && params.h) {
-            $engine.unlockCanvasResize(player.canvas);
-            player._reconfigureCanvas({ width: params.w, height: params.h });
-            $engine.lockCanvasResize(player.canvas); // is it required to lock it?
+            player.unlockResize();
+            player._resize(params.w, params.h);
+            //player.__canvasPrepared = true;
+            player.lockResize(); // is it required to lock it?
         }
         if (params.bg) {
-            $engine.unlockCanvasStyle(player.canvas);
-            $engine.setCanvasBackground(player.canvas, '#' + params.bg);
-            $engine.lockCanvasStyle(player.canvas); // is it required to lock it?
+            player.unlockStyle();
+            player._restyle('#' + params.bg);
+            player.lockStyle(); // is it required to lock it?
         }
         if (callback) callback(player);
     }
@@ -1734,10 +1757,10 @@ Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
         this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
     if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
     if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
-    this.__maskCtx[lvl] = this.__maskCvs[lvl].getContext('2d');
-    this.__backCvs[lvl] = $engine.createCanvas([this.width * 2, this.height * 2]);
-    this.__backCtx[lvl] = this.__backCvs[lvl].getContext('2d');
+    this.__maskCvs[lvl] = $engine.createCanvas(this.width * 2, this.height * 2);
+    this.__maskCtx[lvl] = $engine.getContext(this.__maskCvs[lvl], '2d');
+    this.__backCvs[lvl] = $engine.createCanvas(this.width * 2, this.height * 2);
+    this.__backCtx[lvl] = $engine.getContext(this.__backCvs[lvl], '2d');
     //document.body.appendChild(this.__maskCvs[lvl]);
     //document.body.appendChild(this.__backCvs[lvl]);
 }
@@ -4621,8 +4644,8 @@ Sheet.prototype._drawToCache = function() {
         this._cvs_cache = this._image.__cvs;
         return;
     }
-    var _canvas = $engine.createCanvas(this._dimen, 1 /* FIXME: use real ratio */);
-    var _ctx = _canvas.getContext('2d');
+    var _canvas = $engine.createCanvas(this._dimen[0], this._dimen[1], null, 1 /* FIXME: use real ratio */);
+    var _ctx = $engine.getContext(_canvas, '2d');
     _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
     this._cvs_cache = _canvas;
@@ -4805,7 +4828,7 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
-        $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.setCanvasSize(cvs, _w, _h);
         $engine.moveElementTo(cvs, $engine.findElementPosition(parent));
     }
     this.handleAreaChange();
@@ -5477,7 +5500,7 @@ InfoBlock.prototype.update = function(parent) {
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
         var parent_pos = $engine.findElementPosition(parent);
-        $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.setCanvasSize(cvs, _w, _h);
         $engine.moveElementTo(cvs, [ parent_pos[0] + _m,
                                      parent_pos[1] + _m ]);
     }
@@ -5505,7 +5528,7 @@ InfoBlock.prototype.render = function() {
         _nw = Math.max(_td[0], _bd[0]) + _p + _p,
         _nh = _td[1] + _bd[1] + (_p * 3),
         ctx = this.ctx;
-    $engine.configureCanvas(this.canvas, [ _nw, _nh ]);
+    $engine.setCanvasSize(this.canvas, _nw, _nh);
     ctx.save();
     if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, _nw, _nh);
@@ -5584,11 +5607,11 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
         h = dimensions[1] * scale;
 
     if (!anmGuyCanvas) {
-        anmGuyCanvas = $engine.createCanvas([ w, h ]);
-        anmGuyCtx = anmGuyCanvas.getContext('2d');
+        anmGuyCanvas = $engine.createCanvas(w, h);
+        anmGuyCtx = $engine.getContext(anmGuyCanvas, '2d');
     } else {
         // FIXME: resize only if size was changed
-        $engine.configureCanvas(anmGuyCanvas, [ w, h ]);
+        $engine.setCanvasSize(anmGuyCanvas, w, h);
     }
 
     var maskCanvas = anmGuyCanvas;
