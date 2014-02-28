@@ -174,13 +174,6 @@ function ell_text(text, max_len) {
          + text.slice(_len - _semilen);
 }
 
-// ### Canvas-related Constants
-/* ---------------------------- */
-
-var DEF_CNVS_WIDTH = 400;
-var DEF_CNVS_HEIGHT = 250;
-var DEF_CNVS_BG = '#fff';
-
 // ### Internal Helpers
 /* -------------------- */
 
@@ -426,8 +419,8 @@ Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
-Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
-                          'height': DEF_CNVS_HEIGHT,
+Player.DEFAULT_CANVAS = { 'width': -1,
+                          'height': -1,
                           'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ }; // FIXME: change to bgfill
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'inParent': false,
@@ -441,9 +434,9 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                            'version': null,
                                            'description': '' },
                                  'anim': { 'fps': 30,
-                                           'width': DEF_CNVS_WIDTH,
-                                           'height': DEF_CNVS_HEIGHT,
-                                           'bgcolor': null, // FIXME: change to bgfill
+                                           'width': Player.DEFAULT_CANVAS.width,
+                                           'height': Player.DEFAULT_CANVAS.height,
+                                           'bgcolor': Player.DEFAULT_CANVAS.bgcolor, // FIXME: change to bgfill
                                            'duration': 0 }
                                };
 
@@ -851,14 +844,8 @@ Player.prototype._postInit = function() {
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
-    // FIXME where are x & y used here, we need moveTo?
-    this._reconfigureCanvas({
-        width: rect.width,
-        height: rect.height,
-        x: rect.x,
-        y: rect.y,
-        bgcolor: this.state.bgcolor
-    });
+    this._moveTo(rect.x, rect.y);
+    this._resize(rect.width, rect.height);
 }
 /* Player.prototype._rectChanged = function(rect) {
     var cur_w = this.state.width,
@@ -896,18 +883,25 @@ Player.prototype.changeZoom = function(zoom) {
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
     var cvs = this.canvas;
-    var lockResize = false;
+    var lockResize = false,
+        sizeSpecified = (conf.width > 0) && (conf.height > 0);
 
-    if (conf.width && conf.height) lockResize = true;
-    if (!conf.width && cvs.hasAttribute('width')) conf.width = cvs.getAttribute('width');
-    if (!conf.height && cvs.hasAttribute('height')) conf.height = cvs.getAttribute('height');
+    if (sizeSpecified) lockResize = true;
+    if (!sizeSpecified && cvs.hasAttribute('width')
+                       && cvs.hasAttribute('height')) {
+        conf.width = cvs.getAttribute('width');
+        conf.height = cvs.getAttribute('height');
+    }
     if (cvs.hasAttribute('anm-lockResize') && cvs.getAttribute('anm-lockResize')) lockResize = true;
 
-    this._reconfigureCanvas(conf);
-    this.__canvasPrepared = true;
+    if (sizeSpecified) { this._resize(conf.width, conf.height); }
+    else { $engine.updateCanvasMetrics(cvs); }
     if (lockResize) this.lockResize();
 
-    if (conf.bgcolor) this.state.bgcolor = conf.bgcolor;
+    if (conf.bgcolor) this._restyle(conf.bgcolor);
+
+    this.__canvasPrepared = true;
+
     if (conf.fps) this.state.fps = conf.fps;
     if (conf.duration) this.state.duration = conf.duration;
 
@@ -1179,6 +1173,12 @@ Player.prototype._stopAndContinue = function() {
     this.stop();
     this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
+// FIXME: moveTo is not moving anything for the moment
+Player.prototype._moveTo = function(x, y) {
+    this.state.x = x;
+    this.state.y = y;
+    $engine.setCanvasPos(this.canvas, x, y);
+}
 Player.prototype._resize = function(width, height) {
     var cvs = this.canvas,
         cur_size = $engine.getCanvasParams(cvs);
@@ -1194,7 +1194,7 @@ Player.prototype._resize = function(width, height) {
 };
 Player.prototype._restyle = function(bg) {
     this.state.bgcolor = bg;
-    $engine.setCanvasBackground(cvs, bg);
+    $engine.setCanvasBackground(this.canvas, bg);
     this.forceRedraw();
 };
 Player.prototype._checkMode = function() {

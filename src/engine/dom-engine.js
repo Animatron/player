@@ -88,9 +88,11 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
     // getCanvasSize(canvas) -> [ width, height ]
+    // getCanvasPos(canvas) -> [ x, y ]
     // getCanvasParams(canvas) -> [ width, height, ratio ]
     // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
     // setCanvasSize(canvas, width, height, ratio?) -> none
+    // setCanvasPos(canvas, x, y) -> none
     // setCanvasBackground(canvas, value) -> none
     // lockCanvasResize(canvas) -> none
     // unlockCanvasResize(canvas) -> none
@@ -356,11 +358,14 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.getCanvasSize = function(cvs) {
         return [ cvs.getAttribute('clientWidth'), cvs.getAttribute('clientHeight') ];
     }
+    $DE.getCanvasPos = function(cvs) {
+        return $DE.findScrollAwarePosition(cvs);
+    }
     $DE.getCanvasBounds = function(cvs/*, parent*/) {
         //var parent = parent || cvs.parentNode;
         var params = $DE.getCanvasParams(cvs);
         if (!params) return null;
-        var pos = $DE.findScrollAwarePosition(cvs);
+        var pos = $DE.getCanvasPos(cvs);
         // bounds are: left, top, width, height, ratio.
         // I am not sure if I am correct in providing width/height instead of
         // left+width/top+height, but I think it's better to return values
@@ -369,13 +374,11 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.setCanvasSize = function(cvs, width, height, ratio) {
         //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
-        console.log('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
         if (cvs.__anm_lockResize) return;
         var ratio = ratio || $DE.PX_RATIO;
         var _w = width | 0,
             _h = height | 0;
-        //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
-        console.log('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
+        //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
         cvs.__anm_ratio = ratio;
         cvs.__anm_width = _w;
         cvs.__anm_height = _h;
@@ -386,9 +389,25 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE._saveCanvasPos(cvs);
         return [ _w, _h ];
     }
+    $DE.setCanvasPos = function(cvs, x, y) {
+        cvs.__anm_usr_x = x;
+        cvs.__anm_usr_y = y;
+        // TODO: actually move canvas
+        $engine._saveCanvasPos(this.canvas);
+    }
     $DE.setCanvasBackground = function(cvs, bg) {
         if (cvs.__anm_lockStyle) return;
         cvs.style.backgroundColor = bg;
+    }
+    $DE.updateCanvasMetrics = function(cvs) {
+        var pos = $DE.getCanvasPos(cvs),
+            size = $DE.getCanvasSize(cvs);
+        cvs.__anm_ratio = $DE.PX_RATIO;
+        cvs.__anm_x = pos[0];
+        cvs.__anm_y = pos[1];
+        cvs.__anm_width = size[0];
+        cvs.__anm_height = size[1];
+        $DE._saveCanvasPos(cvs);
     }
     $DE._saveCanvasPos = function(cvs) {
         // FIXME: use getBoundingClientRect?
@@ -433,7 +452,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
     }
     $DE.lockCanvasResize = function(cvs) {
-        console.log('lock canvas resize');
         cvs.__anm_lockResize = true;
     }
     $DE.unlockCanvasResize = function(cvs) {
