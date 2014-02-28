@@ -393,7 +393,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__anm_usr_x = x;
         cvs.__anm_usr_y = y;
         // TODO: actually move canvas
-        $engine._saveCanvasPos(this.canvas);
+        $engine._saveCanvasPos(cvs);
     }
     $DE.setCanvasBackground = function(cvs, bg) {
         if (cvs.__anm_lockStyle) return;
