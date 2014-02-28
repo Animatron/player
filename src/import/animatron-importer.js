@@ -286,6 +286,7 @@ Import.branch = function(type, src, all, scene) {
                     });
                 }
             }
+            translates = [];
         }
 
         /** end-action **/

@@ -3517,7 +3517,7 @@ var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
       return function(t, dt, duration, data) {
-        this.angle = data[0] * (1 - t) + data[1] * t;
+        this.angle = data[0] * (1.0 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
@@ -3870,9 +3870,9 @@ Path.prototype.parse = function(str) {
 // > Path.hitAt % (t: [0..1]) => Array[Int, 2]
 Path.prototype.hitAt = function(t) {
     var plen = this.length(); // path length in pixels
-    if (t < 0 || t > plen) return null;
+    if (t < 0 || t > 1.0) return null;
 
-    var startp = this.start();
+    var startp = this.start(); // start point of segment
     if (t === 0) return {
           'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
         };
