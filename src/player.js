@@ -4808,7 +4808,7 @@ Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
-        pconf = $engine.getCanvasParams(parent);
+        pconf = $engine.getCanvasSize(parent);
     var _w = pconf[0],
         _h = pconf[1];
     if (!cvs) {
@@ -5479,7 +5479,7 @@ InfoBlock.prototype.detach = function(parent) {
 // TODO: move to engine
 InfoBlock.prototype.update = function(parent) {
     var cvs = this.canvas,
-        pconf = $engine.getCanvasParams(parent),
+        pconf = $engine.getCanvasSize(parent),
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {

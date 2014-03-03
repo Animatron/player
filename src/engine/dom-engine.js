@@ -356,7 +356,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
     }
     $DE.getCanvasSize = function(cvs) {
-        return [ cvs.getAttribute('clientWidth'), cvs.getAttribute('clientHeight') ];
+        return [ cvs.getAttribute('clientWidth') || cvs.clientWidth,
+                 cvs.getAttribute('clientHeight') || cvs.clientHeight ];
     }
     $DE.getCanvasPos = function(cvs) {
         return $DE.findScrollAwarePosition(cvs);
