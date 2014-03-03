@@ -15,8 +15,8 @@ doc/README.html
 doc/scripting.html
 doc/api.pdf
 doc/docco.css
-examples/files/anm
+test-scenes
 deploy-www.sh
 *sublime*
 idea-files.zip
-src/import/sample-scene.json
+js-player.iml
