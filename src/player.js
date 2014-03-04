@@ -2677,10 +2677,10 @@ Element.prototype._stateStr = function() {
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
-  var lband = this.xdata.lband,
-      elm_duration = lband[1] - lband[0],
+  var lband = this.xdata.lband, // local band of the _element_
+      elm_duration = lband[1] - lband[0], // duration of the _element_'s local band
       easing = conf.easing,
-      time = conf.time, // time or band of the modifier, if set
+      time = conf.time, // time (or band) of the _modifier_, if set
       relative = conf.relative;
   var _tpair = null;
   if (time == null) {
@@ -3088,7 +3088,7 @@ Element.__addTweenModifier = function(elm, conf) {
       m_tween = tween_f;
     } else {
       m_tween = function(t, dt, duration, data) {
-        return tween_f.call(this, t / duration, dt, duration, data);
+        return tween_f.call(this, duration ? (t / duration) : 0, dt, duration, data);
       };
     }
     return elm.__modify({ type: Element.TWEEN_MOD,
