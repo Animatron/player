@@ -3089,7 +3089,7 @@ Element.__addTweenModifier = function(elm, conf) {
     } else {
       m_tween = function(t, dt, duration, data) {
         return tween_f.call(this, duration ? (__finite(duration) ? (t / duration)
-                                                                 : 1)
+                                                                 : 0)
                                            : 0,
                             dt, duration, data);
       };
