@@ -3088,9 +3088,7 @@ Element.__addTweenModifier = function(elm, conf) {
       m_tween = tween_f;
     } else {
       m_tween = function(t, dt, duration, data) {
-        return tween_f.call(this, duration ? (__finite(duration) ? (t / duration)
-                                                                 : 0)
-                                           : 0,
+        return tween_f.call(this, __finite(duration) && duration ? (t / duration) : 0,
                             dt, duration, data);
       };
     }
