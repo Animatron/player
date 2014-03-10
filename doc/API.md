@@ -284,6 +284,45 @@ The complete options object, filled with default values, looks like this (any op
                 "duration": 10 } } // duration may be auto-calculated, but if provided,
                                   // this value will be taken
 
+#### Sizing rules ####
+
+Player tries to predict the most fitting and smartest way of resizing your scene to the canvas size. Since there are a lot of ways to specify canvas size versus scene size (scene size is only set through `anim` section in options or provided in the snapshot project same way) or (TODO) with `setAnimSize` method of player. So, player/canvas size is primary, and scene size is secondary, so if these sizes differ, player fits a scene inside itself using black ribbons (without breaking aspect ratio), if required. So animation size is never used to resize a player to, except the cases when user forced player to do it (see below).
+
+The problem here is that the animation loading process takes some time (and, in case of `IFRAME`/`player.forSnapshot`, it's asynchronous), so while the animation loads, there is no known size to resize player into. Also, if you plan to use the same player with several scenes, it's better also to avoid occasinal resizing, so by default player is forced to keep one size given by user or a browser through all the usage process, if user haven't specified any flag that turns this behaviour off (see below).
+
+* If your player is located inside IFRAME, and a scene to load is passed using URL to a snapshot, player tries the steps below (you may find `go` file with HTML code in the player sources, it is actually the entry point of IFRAME):
+    * If player size is specified in the URL using URL parameters `w` and `h` or `width`/`height`, the player resizes itself to the given size before loading a scene, and when it got a scene (with asynchronous request), it keeps the given size, and also tries to fit an animation in the given size, keeping aspect ratio and adding black ribbons, if required;
+    * If no player size was specified in the URL, then the player tries to predict size using IFRAME metrics, either using values in `anm-width`/`anm-height` (higher priority) or `width`/`height` (lower priority) pairs of attributes of IFRAME or (if they were not specified), as browser auto-sized IFRAME it in the flow, and also resizes an animation to this size;
+    * If there is no way to get any of this information, the player checks if there is a (TODO) `forcescenesize` attribute (`fss`) in the URL or `anm-force-scene-size` attribute in the IFRAME specified, then it resizes itself to a default size first, but when it got an animation, it resizes itself to the size of this animation.
+    * If everything above failed, the player keeps the default size of the canvas that was set by browser and when it gets a scene, it resizes a scene to this size, so it guarantees no occasinal resize will happen when scene will be received.
+* If `go` page was opened outside of IFRAME (it happens when your animation was published), the rules are exactly the same as for IFRAME, with the exception that the player has no information about IFRAME metrics, since there is no IFRAME, and the player is centered inside the page and fills the empty area with its custom background.
+* If you use player separately by attaching it to CANVAS tag, but do provide some URL by calling `player.forSnapshot`:
+    * If player size is specified in the URL using URL parameters `w` and `h` or `width`/`height`, the player resizes itself to the given size before loading a scene, and when it got a scene (with asynchronous request), it keeps the given size, and also tries to fit an animation in the given size, keeping aspect ratio and adding black ribbons, if required;
+    * If `width` and `height` are specified in the player `options` object, passed to the method, in the root of it, but not inside `anim` sub-object, then this size
+    * If no player size was specified in the URL or `options` object, then the player tries to predict size using CANVAS metrics, either using values in `anm-width`/`anm-height` (higher priority) or `width`/`height` (lower priority) pairs of attributes of CANVAS or (if they were not specified), as browser auto-sized CANVAS it in the flow, and also resizes an animation to this size;
+    * If there is no way to get any of this information, the player checks if there's a (TODO) `forcescenesize` attribute (`fss`) in the snapshot URL or `anm-force-scene-size` attribute in the CANVAS specified; If there is, it keeps the default size of a CANVAS, as a browser had fit it in the flow, and resizes itself to this size before loading a scene, and resizes itself to a received animation size;
+    * If everything above failed, the player keeps the default size of the canvas that was set by browser and when it gets a scene, it resizes a scene to this size, so it guarantees no occasinal resize will happen when scene will be received.
+* If you use player separately by attaching it to CANVAS tag and create player using either `anm.createPlayer` or `player.init`:
+    * If `width` and `height` are specified in the player `options` object, passed to the method, in the root of it, but not inside `anim` sub-object, then this size
+    * If no player size was specified in `options` object, then the player tries to predict size using CANVAS metrics, either using values in `anm-width`/`anm-height` (higher priority) or `width`/`height` (lower priority) pairs of attributes of CANVAS or (if they were not specified), as browser auto-sized CANVAS it in the flow, and also resizes an animation to this size;
+    * If there is no way to get any of this information, the player checks if there's a (TODO) `forcescenesize` attribute (`fss`) in the snapshot URL or `anm-force-scene-size` attribute in the CANVAS specified; If there is, it keeps the default size of a CANVAS, as a browser had fit it in the flow, and resizes itself to this size before loading a scene, and resizes itself to a received animation size;
+    * If everything above failed, the player keeps the default size of the canvas that was set by browser and when it gets a scene, it resizes a scene to this size, so it guarantees no occasinal resize will happen when scene will be received.
+
+Also, you always have the ability to force player to resize in any moment using `player.setSize` method. This size will have the highest priority over all sizes mentioned above, so there will be no way to override it with anything except with the next call to `setSize`.
+
+Pixel ratio (DPI) is always calculated by the player itself, so there is no need for a user to include it in width/height values manually.
+
+To summarize, the priority order for player sizing commonly is:
+
+* If `player.setSize` was called at any point, immediately resize to given size and keep it until the next `setSize` call, if it will happen;
+* If there is snapshot URL provided, and there is `forcescenesize` in it, set a flag to force player to resize to any received scene size, when it will be received (all IFRAME URL parameters (see [Embedding](#Embedding) section) are transferred to snapshot URL automatically) and proceed to the next steps;
+* If there's `anm-force-scene-size` attribute set on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), set the same flag as in previous step and proceed to the next steps;
+* If there is snapshot URL provided, take size from URL parameters `w`/`h` or `width`/`height` (all IFRAME URL parameters (see [Embedding](#Embedding) section) are transferred to snapshot URL) and stop deciding sizes;
+* If there were `width` and `height` values specified in player options object (_not_ in `anim` sub-object), when player was created, use them as size reference, force all scenes to fit this size and stop deciding sizes;
+* If there are `anm-width` and `anm-height` attributes specified on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), use them as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before) and stop deciding sizes;
+* If there are `width` and `height` attributes specified on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), use them as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before) and stop deciding sizes;
+* Try to get the size of `IFRAME` or `CANVAS` as given by browser and use these metrics as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before);
+
 ### Playing API
 
 > ♦ `createPlayer(canvasId: String[, options: Object])`
