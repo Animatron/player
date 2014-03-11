@@ -608,8 +608,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     if (durationPassed) { // FIXME: move to whenDone?
-      player.anim.setDuration(duration);
-      player.setDuration(duration);
+        player.anim.duration = duration;
+        if (player.controls) player.controls.setDuration(duration);
     }
 
     return player;
@@ -640,13 +640,19 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var state = player.state;
 
+    var scene = player.anim;
+    scene.reset();
+
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
-    if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
-
-    state.from = from || state.from;
-    state.speed = speed || state.speed;
+    state.from = from;
+    state.speed = speed * (player.speed || 1) * (scene.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
+    state.duration = (player.mode & C.M_INFINITE_DURATION) ? Infinity
+                     : (scene.duration || (scene.isEmpty() ? 0
+                                                           : Scene.DEFAULT_DURATION));
+
+    if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -663,9 +669,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.happens = C.PLAYING;
 
-    var scene = player.anim;
-    scene.reset();
-    player.setDuration(scene.duration);
 
     //if (state.from > 2) throw new Error('Test');
 
@@ -676,7 +679,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     //        __stopAnim is called "to ensure", may be it's not a good way to ensure,
     //       though...
     state.__firstReq = __r_loop(player.ctx,
-                                state, scene,
+                                player, scene,
                                 player.__beforeFrame(scene),
                                 player.__afterFrame(scene),
                                 player.__userBeforeRender,
@@ -710,7 +713,7 @@ Player.prototype.stop = function() {
         (state.happens === C.PAUSED)) {
         // this flags actually stops the animation,
         // __stopAnim is called just for safety reasons :)
-        player.__supressFrames = true;
+        state.__supressFrames = true;
         __stopAnim(state.__firstReq);
     }
 
@@ -721,7 +724,11 @@ Player.prototype.stop = function() {
     if (scene) {
         state.happens = C.STOPPED;
         if (player.mode & C.M_DRAW_STILL) {
-            player.drawAt(state.duration * Player.PREVIEW_POS);
+            if (__finite(state.duration)) {
+                player.drawAt(state.duration * Player.PREVIEW_POS);
+            } else {
+                player.drawAt(state.from);
+            }
         }
         if (player.controls/* && !player.controls.hidden*/) {
             player._renderControlsAt(state.time);
@@ -827,6 +834,8 @@ Player.prototype._postInit = function() {
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
+    this.x = rect.x; this.y = rect.y;
+    this.width = rect.width; this.height = rect.height;
     this._moveTo(rect.x, rect.y);
     this._resize(rect.width, rect.height);
 }
@@ -849,7 +858,7 @@ Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.render(this.state.time);
 }
 Player.prototype.changeZoom = function(zoom) {
-    this.state.zoom = zoom;
+    this.zoom = zoom;
 }
 // update player state with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -999,20 +1008,16 @@ Player.prototype.subscribeEvents = function(canvas) {
                     })(this)
     });
 }
-Player.prototype.setDuration = function(value) {
-    this.state.duration = (value >= 0) ? value : 0;
-    if (this.controls) this.controls.setDuration((value >= 0) ? value : 0);
-}
 Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
-        w = this.state.width,
-        h = this.state.height;
+        w = this.width,
+        h = this.height;
 
     ctx.save();
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    var ratio = this.state.ratio;
+    var ratio = $engine.PX_RATIO;
     // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
@@ -1119,15 +1124,13 @@ Player.prototype.toString = function() {
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
     var state = this.state;
-    state.debug = this.debug;
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
-    /*state.zoom = 1;*/ // do not override the zoom
     state.duration = undefined;
     if (this.controls) this.controls.reset();
-    this.ctx.clearRect(0, 0, state.width * state.ratio,
-                             state.height * state.ratio);
+    this.ctx.clearRect(0, 0, player.width * $engine.PX_RATIO,
+                             player.height * $engine.PX_RATIO);
     /*this.stop();*/
 }
 Player.prototype._stopAndContinue = function() {
@@ -1140,8 +1143,6 @@ Player.prototype._stopAndContinue = function() {
 }
 // FIXME: moveTo is not moving anything for the moment
 Player.prototype._moveTo = function(x, y) {
-    this.state.x = x;
-    this.state.y = y;
     $engine.setCanvasPos(this.canvas, x, y);
 }
 Player.prototype._resize = function(width, height) {
@@ -1149,16 +1150,12 @@ Player.prototype._resize = function(width, height) {
         cur_size = $engine.getCanvasParams(cvs);
     if (cur_size && (cur_size[0] === width) && (cur_size === height)) return;
     var _w = width | 0, _h = height | 0;
-    this.state.width = _w;
-    this.state.height = _h;
-    this.state.ratio = $engine.PX_RATIO; // FIXME: remove overusage of ratio
     $engine.setCanvasSize(cvs, width, height);
     if (this.controls) this.controls.update(cvs);
     this.forceRedraw();
     return [ width, height ];
 };
 Player.prototype._restyle = function(bg) {
-    this.state.bgcolor = bg;
     $engine.setCanvasBackground(this.canvas, bg);
     this.forceRedraw();
 };
@@ -1262,7 +1259,7 @@ Player.prototype.__beforeFrame = function(scene) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
-                if (state.repeat) {
+                if (player.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
                 } else if (!(player.mode & C.M_INFINITE_DURATION)
@@ -1295,7 +1292,7 @@ Player.prototype.__afterFrame = function(scene) {
 // this error over itself
 Player.prototype.__onerror = function(err) {
   var player = this;
-  var doMute = (player.state && player.state.muteErrors);
+  var doMute = (player.state && player.muteErrors);
       doMute = doMute && !(err instanceof SysErr);
 
   if (player.state &&
@@ -1493,6 +1490,7 @@ function Scene() {
     this.width = undefined;
     this.height = undefined;
     this.zoom = 1.0;
+    this.speed = 1.0;
     this.meta = {};
     //this.fps = undefined;
     this.__informEnabled = true;
@@ -1500,7 +1498,7 @@ function Scene() {
     this._initHandlers(); // TODO: make automatic
 }
 
-Scene.DEFAULT_LEN = 10;
+Scene.DEFAULT_DURATION = 10;
 
 // mouse/keyboard events are assigned in L.loadScene
 /* TODO: move them into scene */
@@ -1511,9 +1509,6 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        // player events
                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
                        C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
-Scene.prototype.setDuration = function(val) {
-  this.duration = (val >= 0) ? val : 0;
-}
 /* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
 // > Scene.add % (elems: Array[Element]) => Clip
@@ -1583,8 +1578,9 @@ Scene.prototype.visitChildren = Scene.prototype.visitRoots;
 Scene.prototype.iterateRoots = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
 }
-Scene.prototype.render = function(ctx, time, dt, zoom) {
+Scene.prototype.render = function(ctx, time, dt) {
     ctx.save();
+    var zoom = this.zoom;
     try {
         if (zoom != 1) {
             ctx.scale(zoom, zoom);
@@ -3148,8 +3144,11 @@ var Render = {}; // means "Render", render loop + system modifiers & painters
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-function __r_loop(ctx, pl_state, scene, before, after, before_render, after_render) {
+function __r_loop(ctx, player, scene, before, after, before_render, after_render) {
+
     if (pl_state.happens !== C.PLAYING) return;
+
+    var pl_state = player.state;
 
     var msec = (Date.now() - pl_state.__startTime);
     var sec = msec / 1000;
@@ -3172,10 +3171,10 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, pl_state, scene, before_render, after_render);
+    __r_at(time, dt, ctx, player, scene, before_render, after_render);
 
     // show fps
-    if (pl_state.debug) { // TODO: move to player.onrender
+    if (player.debug) {
         __r_fps(ctx, pl_state.afps, time);
     }
 
@@ -3186,21 +3185,23 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
     if (pl_state.__supressFrames) return;
 
     return __nextFrame(function() {
-        __r_loop(ctx, pl_state, scene, before, after, before_render, after_render);
+        __r_loop(ctx, player, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, pl_state, scene, before, after) {
+function __r_at(time, dt, ctx, player, scene, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
-    if (ratio !== 1) ctx.scale(ratio, ratio); // the scene zoomed to pl_state.zoom later in scene.render
-    var size_differs = (pl_state.width  != scene.width) ||
-                       (pl_state.height != scene.height);
+    var pl_state = player.state;
+    if (ratio !== 1) ctx.scale(ratio, ratio);
+    var size_differs = (player.width  != scene.width) ||
+                       (player.height != scene.height);
     if (!size_differs) {
         try {
             ctx.clearRect(0, 0, scene.width,
                                 scene.height);
             if (before) before(time, ctx);
-            scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
+            if (player.zoom != 1) ctx.scale(player.zoom, player.zoom);
+            scene.render(ctx, time, dt);
             if (after) after(time, ctx);
         } finally { ctx.restore(); }
     } else {
@@ -3210,7 +3211,8 @@ function __r_at(time, dt, ctx, pl_state, scene, before, after) {
                 try {
                   ctx.clearRect(0, 0, scene.width, scene.height);
                   if (before) before(time, ctx);
-                  scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
+                  if (player.zoom != 1) ctx.scale(player.zoom, player.zoom);
+                  scene.render(ctx, time, dt);
                   if (after) after(time, ctx);
                 } finally { ctx.restore(); }
             });

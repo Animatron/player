@@ -148,8 +148,9 @@ Import.anim = function(prj, trg) {
     trg.fps = _a.framerate;
     trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
     trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
-    trg.bgfill = _a.background ? Import.fill(_a.background) : null;
-    trg.zoom = _a.zoom ? Import.fill(_a.zoom) : null;
+    trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
+    trg.zoom = _a.zoom ? Import.fill(_a.zoom) : undefined;
+    trg.speed = _a.speed ? Import.fill(_a.speed) : undefined;
 }
 
 var TYPE_UNKNOWN =  0,
