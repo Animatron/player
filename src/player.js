@@ -419,25 +419,19 @@ Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
-Player.DEFAULT_CANVAS = { 'width': -1,
-                          'height': -1,
-                          'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ }; // FIXME: change to bgfill
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
-                                 'inParent': false,
-                                 'muteErrors': false,
                                  'repeat': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
-                                 'meta': { 'title': '',
-                                           'author': 'Anonymous',
-                                           'copyright': '',
-                                           'version': null,
-                                           'description': '' },
-                                 'anim': { 'fps': 30,
-                                           'width': Player.DEFAULT_CANVAS.width,
-                                           'height': Player.DEFAULT_CANVAS.height,
-                                           'bgcolor': Player.DEFAULT_CANVAS.bgcolor, // FIXME: change to bgfill
-                                           'duration': 0 }
+                                 'width': undefined,
+                                 'height': undefined,
+                                 //'fps': undefined,
+                                 'useAudio': true,
+                                 'enableControls': undefined, // undefined means 'auto'
+                                 'bgColor': undefined,
+                                 'forceSceneSize': false,
+                                 'inParent': false,
+                                 'muteErrors': false
                                };
 
 // ### Playing Control API
@@ -473,7 +467,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       "anim": { "fps": 30,
 //                 "width": 400,
 //                 "height": 250,
-//                 "bgcolor": { color: "#fff" },
+//                 "bg": { color: "#fff" },
 //                 "duration": 0 } }
 
 Player.prototype.init = function(cvs, opts) {
@@ -828,11 +822,11 @@ Player.prototype._loadOpts = function(opts) {
     this.state.zoom = opts.zoom || 1;
     this.state.repeat = opts.repeat;
 
-    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
+    this.configureAnim(opts.anim);
 
     this._checkMode();
 
-    this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
+    this.configureMeta(opts.meta);
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -877,34 +871,17 @@ Player.prototype.changeZoom = function(zoom) {
 //     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
 //       "width": 640,
 //       "height": 480,
-//       ["bgcolor": { color: "#f00" },] // in canvas-friendly format
+//       ["bg": { color: "#f00" },] // in canvas-friendly format
 //       ["duration": 10.0] // in seconds
 //     }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
-    var cvs = this.canvas;
-    var lockResize = false,
-        sizeSpecified = (conf.width > 0) && (conf.height > 0);
-
-    if (sizeSpecified) lockResize = true;
-    if (!sizeSpecified && cvs.hasAttribute('width')
-                       && cvs.hasAttribute('height')) {
-        conf.width = cvs.getAttribute('width');
-        conf.height = cvs.getAttribute('height');
-    }
-    if (cvs.hasAttribute('anm-lockResize') && cvs.getAttribute('anm-lockResize')) lockResize = true;
-
-    if (sizeSpecified) { this._resize(conf.width, conf.height); }
-    else { $engine.updateCanvasMetrics(cvs); }
-    if (lockResize) this.lockResize();
-
-    if (conf.bgcolor) this._restyle(conf.bgcolor);
-
-    this.__canvasPrepared = true;
-
-    if (conf.fps) this.state.fps = conf.fps;
-    if (conf.duration) this.state.duration = conf.duration;
-
+    // FIXME: move this data into Scene instance
+    this.state.width = conf.width;
+    this.state.height = conf.height;
+    this.state.bg = conf.bg;
+    this.state.duration = conf.duration;
+    this.state.fps = conf.fps;
 }
 // update player information block with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -921,7 +898,7 @@ Player.prototype.configureAnim = function(conf) {
 //     }
 Player.prototype.configureMeta = function(info) {
     this._metaInfo = info;
-    if (this.controls) this.controls.inject(info, this._animInfo);
+    if (this.controls) this.controls.inject(info, this._metaInfo);
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
@@ -1443,23 +1420,6 @@ Player.prototype._callPostpones = function() {
     }})(this);
 } */
 
-Player.prototype.setSize = function(width, height) {
-    this.unlockResize();
-    this._resize(width, height);
-}
-Player.prototype.lockResize = function() {
-    $engine.lockCanvasResize(this.canvas);
-}
-Player.prototype.unlockResize = function() {
-    $engine.unlockCanvasResize(this.canvas);
-}
-Player.prototype.lockStyle = function() {
-    $engine.lockCanvasStyle(this.canvas);
-}
-Player.prototype.unlockStyle = function() {
-    $engine.unlockCanvasStyle(this.canvas);
-}
-
 Player.createState = function(player) {
     return {
         'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
@@ -1485,23 +1445,25 @@ Player._isPlayerEvent = function(type) {
             (type == C.S_ERROR) || (type == C.S_IMPORT));
 }
 Player._mergeOpts = function(what, where) {
-    var res = _mrg_obj(what, where);
-    res.meta = what.meta ? _mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
-    res.anim = what.anim ? _mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
-    return res;
+    return _mrg_obj(what, where);
 }
 Player._optsFromUrlParams = function(params/* as object */) {
-    return { 'debug': params.debug,
-             'inParent': undefined,
-             'muteErrors': false,
-             'repeat': params.r,
-             'mode': params.m,
-             'zoom': params.z,
-             'anim': { 'fps': undefined,
-                       'width': params.w,
-                       'height': params.h,
-                       'bgcolor':  { color: params.bg ? "#" + params.bg : null },
-                       'duration': undefined } };
+    var defaults = Player.DEFAULT_CONFIGURATION;
+    return { 'debug': params.debug || defaults.debug,
+             'inParent': defaults.inParent,
+             'muteErrors': params.me || params.muteerrors || defaults.muteErrors,
+             'repeat': params.r || params.repeat || defaults.repeat,
+             'mode': params.m || params.mode || defaults.mode,
+             'zoom': params.z || params.zoom || defaults.zoom,
+             'width': params.w || params.width || defaults.width,
+             'height': params.h || params.height || defaults.height,
+             //'fps': params.fps || Player.DEFAULT_FPS,
+             'useAudio': (((typeof param.s !== 'undefined') && params.s) ||
+                          ((typeof param.sound !== 'undefined') && params.sound) ||
+                          ((typeof param.audio !== 'undefined') && params.audio)) && defaults.useAudio,
+             'enableControls': (((typeof param.c !== 'undefined') && params.c) ||
+                                ((typeof param.controls !== 'undefined') && params.controls)) && defaults.enableControls,
+             'bgColor': params.bg || params.bgcolor || defaults.bgColor };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
     var urlWithParams = snapshotUrl.split('?'),
@@ -1511,31 +1473,32 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
-    if (params.w && params.h) player.lockResize();
-    if (params.bg) player.lockStyle();
-    function updateWithParams() {
-        if (typeof params.t !== 'undefined') {
-            player.play(params.t / 100);
-        } else if (typeof params.p !== 'undefined') {
-            player.play(params.p / 100).pause();
-        }
-        if (params.w && params.h) {
-            player.unlockResize();
-            player._resize(params.w, params.h);
-            //player.__canvasPrepared = true;
-            player.lockResize(); // is it required to lock it?
-        }
-        if (params.bg) {
-            player.unlockStyle();
-            player._restyle('#' + params.bg);
-            player.lockStyle(); // is it required to lock it?
-        }
-        if (callback) callback(player);
-    }
 
-    player.load(snapshotUrl, importer, updateWithParams);
+    player.load(snapshotUrl, importer, function() {
+        player._applyUrlParamsToAnimation(params);
+        if (callback) callback(player);
+    });
 
     return player;
+}
+Player.prototype._applyUrlParamsToAnimation = function(params) {
+    // NB: this metod is intended to be called only after some animation was loaded completely
+    //     into player, some URL parameters are loaded into player `options` object and applied
+    //     before getting any animation, but it's done using `_optsFromUrlParams` method.
+
+    // these values (t, from, p, still) may be 0 and it's a proper value,
+    // so they require a check for undefined separately
+    // T / FROM
+    if (typeof params.t !== 'undefined') {
+        player.play(params.t / 100);
+    } else if (typeof params.from !== 'undefined') {
+        player.play(params.from / 100);
+    // P / STILL
+    } else if (typeof params.p !== 'undefined') {
+        player.play(params.p / 100).pause();
+    } else if (typeof params.still !== 'undefined') {
+        player.play(params.still / 100).pause();
+    }
 }
 
 // Scene

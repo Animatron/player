@@ -10,6 +10,11 @@
 // HERE GOES THE INITIALISATION OF ANM NAMESPACE, GLOBALS AND GLOBAL HELPERS
 // namespace itself is registered by name inside of the function, with the help of $engine.define
 
+// FIXME: but it actually should go different way, namespace should not be dependent on engine, so
+//        it should be prepared before the engine, and here it should only be filled with engine-dependent
+//        methods. also, modules are still not perfect, may be it's not so good only engine may provide their
+//        support
+
 (function(_GLOBAL_) {
 
     var PUBLIC_NAMESPACE = 'anm';

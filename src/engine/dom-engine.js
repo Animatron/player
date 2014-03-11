@@ -94,10 +94,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // setCanvasSize(canvas, width, height, ratio?) -> none
     // setCanvasPos(canvas, x, y) -> none
     // setCanvasBackground(canvas, value) -> none
-    // lockCanvasResize(canvas) -> none
-    // unlockCanvasResize(canvas) -> none
-    // lockCanvasStyle(canvas) -> none
-    // unlockCanvasStyle(canvas) -> none
     // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
 
     // getEventPos(event, elm?) -> [ x, y ]
@@ -375,7 +371,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.setCanvasSize = function(cvs, width, height, ratio) {
         //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
-        if (cvs.__anm_lockResize) return;
         var ratio = ratio || $DE.PX_RATIO;
         var _w = width | 0,
             _h = height | 0;
@@ -397,7 +392,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $engine._saveCanvasPos(cvs);
     }
     $DE.setCanvasBackground = function(cvs, bg) {
-        if (cvs.__anm_lockStyle) return;
         cvs.style.backgroundColor = bg;
     }
     $DE.updateCanvasMetrics = function(cvs) {
@@ -451,18 +445,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                    a bit slower for events) */
         cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
         cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
-    }
-    $DE.lockCanvasResize = function(cvs) {
-        cvs.__anm_lockResize = true;
-    }
-    $DE.unlockCanvasResize = function(cvs) {
-        cvs.__anm_lockResize = false;
-    }
-    $DE.lockCanvasStyle = function(cvs) {
-        cvs.__anm_lockStyle = true;
-    }
-    $DE.unlockCanvasStyle = function(cvs) {
-        cvs.__anm_lockStyle = false;
     }
     $DE.addChildCanvas = function(id, parent, pos, style, inside) {
         // pos should be: [ x, y, w, h ]

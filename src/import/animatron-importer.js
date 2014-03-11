@@ -144,7 +144,7 @@ Import.anim = function(prj) {
         'fps': _a.framerate,
         'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
         'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgcolor': _a.background ? Import.fill(_a.background) : null
+        'bg': _a.background ? Import.fill(_a.background) : null
     }
 }
 

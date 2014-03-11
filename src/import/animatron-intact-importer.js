@@ -50,7 +50,7 @@ __MYSELF.prototype.configureAnim = function(prj) {
         'fps': _a.framerate,
         'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
         'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgcolor': _a.background ? Convert.fill(_a.background) : null,
+        'bg': _a.background ? Convert.fill(_a.background) : null,
     }
 }
 
