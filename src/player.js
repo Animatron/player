@@ -214,9 +214,9 @@ function obj_clone(what) {
     return dest;
 }
 
-function _mrg_obj(src, backup) {
+function _mrg_obj(src, backup, trg) {
     if (!backup) return src;
-    var res = {};
+    var res = trg || {};
     for (var prop in backup) {
         res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
     return res;
@@ -423,11 +423,12 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'repeat': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
+                                 'speed': 1.0,
                                  'width': undefined,
                                  'height': undefined,
                                  //'fps': undefined,
-                                 'useAudio': true,
-                                 'enableControls': undefined, // undefined means 'auto'
+                                 'audioEnabled': true,
+                                 'controlsEnabled': undefined, // undefined means 'auto'
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
                                  'inParent': false,
@@ -452,31 +453,28 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //
 // options format:
 //
-//     { "debug": false,
-//       "inParent": false,
-//       "muteErrors": false,
-//       "mode": C.M_VIDEO,
-//       "zoom": 1.0,
-//       "meta": { "title": "Default",
-//                 "author": "Anonymous",
-//                 "copyright": "© NaN",
-//                 "version": -1.0,
-//                 "description":
-//                         "Default project description",
-//                 [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
-//       "anim": { "fps": 30,
-//                 "width": 400,
-//                 "height": 250,
-//                 "bg": { color: "#fff" },
-//                 "duration": 0 } }
+//     { 'debug': false,
+//       'repeat': false,
+//       'mode': C.M_VIDEO,
+//       'zoom': 1.0,
+//       'speed': 1.0,
+//       'width': undefined,
+//       'height': undefined,
+//       'bgColor': undefined,
+//       'audioEnabled': true,
+//       'controlsEnabled': undefined, // undefined means 'auto'
+//       'forceSceneSize': false,
+//       'inParent': false,
+//       'muteErrors': false
+//     }
 
 Player.prototype.init = function(cvs, opts) {
     if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
-    var cvs_opts = Player._mergeOpts(this._prepare(cvs),
-                                     Player.DEFAULT_CONFIGURATION);
-    var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
+    var cvs_opts = _mrg_obj(this._prepare(cvs),
+                            Player.DEFAULT_CONFIGURATION);
+    var opts = opts ? _mrg_obj(opts, cvs_opts) : cvs_opts;
     this._loadOpts(opts);
     this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
@@ -813,20 +811,11 @@ Player.prototype._prepare = function(cvs) {
 
     this.subscribeEvents(canvas);
 
-    return $engine.extractUserOptions(canvas);
+    return $engine.extractUserOptions(canvas, Player.DEFAULT_CONFIGURATION);
 }
 Player.prototype._loadOpts = function(opts) {
-    this.inParent = opts.inParent;
-    this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
-    this.debug = opts.debug;
-    this.state.zoom = opts.zoom || 1;
-    this.state.repeat = opts.repeat;
-
-    this.configureAnim(opts.anim);
-
-    this._checkMode();
-
-    this.configureMeta(opts.meta);
+    // will move all options directly in the player object
+    _mrg_obj(opts, Player.DEFAULT_CONFIGURATION, this);
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -871,17 +860,16 @@ Player.prototype.changeZoom = function(zoom) {
 //     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
 //       "width": 640,
 //       "height": 480,
+//       ["zoom": 1.0,]
 //       ["bg": { color: "#f00" },] // in canvas-friendly format
 //       ["duration": 10.0] // in seconds
 //     }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
-    // FIXME: move this data into Scene instance
-    this.state.width = conf.width;
-    this.state.height = conf.height;
-    this.state.bg = conf.bg;
-    this.state.duration = conf.duration;
-    this.state.fps = conf.fps;
+
+    _mrg_obj(conf, {}, this.anim);
+
+    this._checkMode();
 }
 // update player information block with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -1423,14 +1411,7 @@ Player.prototype._callPostpones = function() {
 Player.createState = function(player) {
     return {
         'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
-        'speed': 1, 'fps': 30, 'afps': 0, 'duration': 0,
-        'debug': false, 'iactive': false,
-        /* TODO: use iactive to determine if controls/info should be init-zed */
-        'width': player.canvas.offsetWidth,
-        'height': player.canvas.offsetHeight,
-        'zoom': 1.0, 'bgcolor': null,
-        'happens': C.NOTHING,
-        'duration': undefined,
+        'afps': 0, 'happens': C.NOTHING,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
         /*'__drawInterval': null*/
@@ -1444,9 +1425,6 @@ Player._isPlayerEvent = function(type) {
             (type == C.S_LOAD) || (type == C.S_RES_LOAD) ||
             (type == C.S_ERROR) || (type == C.S_IMPORT));
 }
-Player._mergeOpts = function(what, where) {
-    return _mrg_obj(what, where);
-}
 Player._optsFromUrlParams = function(params/* as object */) {
     var defaults = Player.DEFAULT_CONFIGURATION;
     return { 'debug': params.debug || defaults.debug,
@@ -1455,14 +1433,15 @@ Player._optsFromUrlParams = function(params/* as object */) {
              'repeat': params.r || params.repeat || defaults.repeat,
              'mode': params.m || params.mode || defaults.mode,
              'zoom': params.z || params.zoom || defaults.zoom,
+             'speed': params.v || params.speed || defaults.speed,
              'width': params.w || params.width || defaults.width,
              'height': params.h || params.height || defaults.height,
              //'fps': params.fps || Player.DEFAULT_FPS,
-             'useAudio': (((typeof param.s !== 'undefined') && params.s) ||
-                          ((typeof param.sound !== 'undefined') && params.sound) ||
-                          ((typeof param.audio !== 'undefined') && params.audio)) && defaults.useAudio,
-             'enableControls': (((typeof param.c !== 'undefined') && params.c) ||
-                                ((typeof param.controls !== 'undefined') && params.controls)) && defaults.enableControls,
+             'audioEnabled': (((typeof param.s !== 'undefined') && params.s) ||
+                              ((typeof param.sound !== 'undefined') && params.sound) ||
+                              ((typeof param.audio !== 'undefined') && params.audio)) && defaults.audioEnabled,
+             'controlsEnabled': (((typeof param.c !== 'undefined') && params.c) ||
+                                 ((typeof param.controls !== 'undefined') && params.controls)) && defaults.controlsEnabled,
              'bgColor': params.bg || params.bgcolor || defaults.bgColor };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
@@ -1488,12 +1467,11 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
 
     // these values (t, from, p, still) may be 0 and it's a proper value,
     // so they require a check for undefined separately
-    // T / FROM
+
     if (typeof params.t !== 'undefined') {
         player.play(params.t / 100);
     } else if (typeof params.from !== 'undefined') {
         player.play(params.from / 100);
-    // P / STILL
     } else if (typeof params.p !== 'undefined') {
         player.play(params.p / 100).pause();
     } else if (typeof params.still !== 'undefined') {
@@ -1514,6 +1492,9 @@ function Scene() {
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
+    this.zoom = 1.0;
+    this.meta = {};
+    //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];
     this._initHandlers(); // TODO: make automatic
@@ -3128,12 +3109,6 @@ L.loadFromUrl = function(player, url, importer, callback) {
 }
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
-    if (importer.configureAnim) {
-        player.configureAnim(importer.configureAnim(object));
-    }
-    if (importer.configureMeta) {
-        player.configureMeta(importer.configureMeta(object));
-    }
     var scene = importer.load(object);
     player.fire(C.S_IMPORT, importer, scene, object);
     L.loadScene(player, scene, callback);
@@ -3141,29 +3116,11 @@ L.loadFromObj = function(player, object, importer, callback) {
 L.loadScene = function(player, scene, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
-    if (player.state.debug
+    if (player.debug
         && !global_opts.liveDebug)
         scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
     // assign
     player.anim = scene;
-    // update duration
-    if (player.state.duration == undefined) {
-        var _duration;
-        if (scene.duration !== undefined) { _duration = scene.duration; }
-        else {
-          if (player.mode & C.M_INFINITE_DURATION) { _duration = Infinity; }
-          else {
-            if (scene.isEmpty()) { _duration = 0; }
-            else { _duration = Scene.DEFAULT_LEN; }
-          }
-        }
-        scene.setDuration(_duration);
-        player.setDuration(_duration);
-    }
-    if ((scene.width === undefined) && (scene.height === undefined)) {
-        scene.width = player.state.width;
-        scene.height = player.state.height;
-    }
     if (callback) callback.call(player, scene);
 }
 L.loadClips = function(player, clips, callback) {
@@ -3174,7 +3131,7 @@ L.loadClips = function(player, clips, callback) {
 L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
     _anim.add(builder.v);
-    if (builder.d != undefined) _anim.setDuration(builder.d);
+    if (builder.d != undefined) _anim.duration = builder.d;
     L.loadScene(player, _anim, callback);
 }
 

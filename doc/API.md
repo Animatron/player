@@ -126,14 +126,14 @@ An URL for the snapshot without the parameters may look like:
 
 **`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9`**
 
-Then, an URL with all parameters specified may look like:
+Then, an URL with most of the parameters specified may look like:
 
 **`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9?w=600&h=500&bg=f0fff0&m=0&r=0&z=1&t=25&p=37&debug=0&fss=0&c=1&s=1`**
 
 Any of the parameters is optional, here is a definition for each of those:
 
 * **w**/**width** is forced width and **h**/**height** is forced height of the player, so even if any scene loaded inside the player has another size, player won't be resized to fit it, but will be forced to scale scene to this size, and add black ribbons if aspect ratio is not the same; however, if player is placed inside of `iframe`, `iframe` size will have major priority above this size. See [Sizing Rules](#sizing-rules) below for more detailed information.
-* **bg** or **bgcolor** is the background color of the player in format of **`ff00a6`**; if you don't specify this background, player background is treated as transparent; this color, however, can't contain alpha value, only solid fill; when scene has it's own background (may contain alpha) and there is a player background specified, they are applied in order of: player background below, then scene background;
+* **bg** or **bgcolor** is the background color of the player in format of **`ff00a6`**; if you don't specify this background, player background is treated as transparent; this color, however, can't contain alpha value, only solid fill; when scene has it's own background (may contain alpha) and there is a player background specified, they are applied in order of: player background below, then scene background
 * **r** or **repeat** specifies the repeating mode, `1` is to repeat (*loop*), `0` (*default*) — play once.
 * **z** or **zoom** is zoom of the scene, may be a float value
 * **t** or **from** is time to start play from when scene is loaded (by default player is stopped in this case, waiting for user to press *play* control), specified in centiseconds, so `t=370` means "play from 3s 700ms"
@@ -142,6 +142,7 @@ Any of the parameters is optional, here is a definition for each of those:
 * **s** or **sound** or **audio** flag (`0` or `1`, *on* by default) allows to manually turn audio on or off (so the audio files included in animations, if they are, will both not be loaded and played at all)
 * **c** or **controls** flag (`0` or `1`, by default the value depends on the player mode) allows to manually turn player controls on or off
 * **m** or **mode** is mode of the player, `PREVIEW` (no controls, no handling mouse/kb) is `0`, `DYNAMIC` (no controls, handling mouse/kb) is `4`, `VIDEO` (controls are shown, no mouse/kb handling, default) is `11`. *NB: These values are subject to change in near future*.
+* **v** or **speed** is the speed to play animations with, `1.0` by default
 * **fss** or **forcescenesize** is optional flag to force player to resize itself when it gets an animation of different size that its current size, so your player size will occasionally change over time with this flag turned on, but if you set it, it's probably what you really want.
 
 #### 2. From Source ####

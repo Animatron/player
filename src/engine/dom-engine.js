@@ -83,7 +83,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
     // detachPlayer(canvas, player) -> none
-    // extractUserOptions(canvas) -> options: object | {}
+    // extractUserOptions(canvas, defaults?) -> options: object | {}
     // checkPlayerCanvas(canvas) -> true | false
     // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
@@ -311,31 +311,30 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.getContext = function(cvs, type) {
         return cvs.getContext(type);
     }
-    $DE.extractUserOptions = function(cvs) {
+    $DE.extractUserOptions = function(cvs, defaults) {
       var width, height,
-          ratio = $DE.PX_RATIO;
-      return { 'debug': __attrOr(cvs, 'data-debug', undefined),
-               'inParent': undefined,
-               'muteErrors': __attrOr(cvs, 'data-mute-errors', false),
-               'repeat': __attrOr(cvs, 'data-repeat', undefined),
-               'mode': __attrOr(cvs, 'data-mode', undefined),
-               'zoom': __attrOr(cvs, 'data-zoom', undefined),
-               'meta': { 'title': __attrOr(cvs, 'data-title', undefined),
-                         'author': __attrOr(cvs, 'data-author', undefined),
-                         'copyright': undefined,
-                         'version': undefined,
-                         'description': undefined },
-               'anim': { 'fps': undefined,
-                         'width': (__attrOr(cvs, 'data-width',
-                                  (width = __attrOr(cvs, 'width', undefined),
-                                   width ? (width / ratio) : undefined))),
-                         'height': (__attrOr(cvs, 'data-height',
-                                   (height = __attrOr(cvs, 'height', undefined),
-                                    height ? (height / ratio) : undefined))),
-                         'bgcolor': cvs.hasAttribute('data-bgcolor')
-                                   ? cvs.getAttribute('data-bgcolor')
-                                   : undefined,
-                         'duration': undefined } };
+          ratio = $DE.PX_RATIO,
+          defaults = defaults || {};
+      return { 'debug': __attrOr(cvs, 'anm-debug', defaults.debug),
+               'mode': __attrOr(cvs, 'anm-mode', defaults.mode),
+               'repeat': __attrOr(cvs, 'anm-repeat', defaults.repeat),
+               'zoom': __attrOr(cvs, 'anm-zoom', defaults.zoom),
+               'speed': __attrOr(cvs, 'anm-speed', defaults.speed),
+               'width': (__attrOr(cvs, 'anm-width',
+                                  (width = __attrOr(cvs, 'width', defaults.width),
+                                   width ? (width / ratio) : defaults.width))),
+               'height': (__attrOr(cvs, 'anm-height',
+                                   (height = __attrOr(cvs, 'height', defaults.height),
+                                    height ? (height / ratio) : defaults.height))),
+               'bgColor': cvs.hasAttribute('anm-bgcolor')
+                          ? cvs.getAttribute('anm-bgcolor')
+                          : defaults.bgColor,
+               'audioEnabled': __attrOr(cvs, 'anm-audio-enabled', defaults.audioEnabled),
+               'controlsEnabled': __attrOr(cvs, 'anm-controls-enabled', defaults.controlsEnabled),
+               'forceSceneSize': __attrOr(cvs, 'anm-force-scene-size', defaults.forceSceneSize),
+               'inParent': defaults.inParent,
+               'muteErrors': __attrOr(cvs, 'anm-mute-errors', defaults.muteErrors)
+             };
     }
     $DE.checkPlayerCanvas = function(cvs) {
         return true;
