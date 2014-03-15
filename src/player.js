@@ -412,6 +412,7 @@ function Player() {
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
     this.__makeSafe(Player._SAFE_METHODS);
+    this._addOpts(Player.DEFAULT_CONFIGURATION);
 }
 Player.__instances = 0;
 
@@ -472,10 +473,9 @@ Player.prototype.init = function(cvs, opts) {
     if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
-    var cvs_opts = _mrg_obj(this._prepare(cvs),
-                            Player.DEFAULT_CONFIGURATION);
-    var opts = opts ? _mrg_obj(opts, cvs_opts) : cvs_opts;
-    this._loadOpts(opts);
+    this._prepare(cvs);
+    this._addOpts($engine.extractUserOptions(cvs));
+    this._addOpts(opts);
     this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
@@ -817,12 +817,28 @@ Player.prototype._prepare = function(cvs) {
     this.state = Player.createState(this);
 
     this.subscribeEvents(canvas);
-
-    return $engine.extractUserOptions(canvas, Player.DEFAULT_CONFIGURATION);
 }
-Player.prototype._loadOpts = function(opts) {
+Player.prototype._addOpts = function(opts) {
+    // TODO: use addOpts to add any additional options to current ones
     // will move all options directly in the player object
-    _mrg_obj(opts, Player.DEFAULT_CONFIGURATION, this);
+    this.debug = opts.debug || this.debug;
+    this.mode = (typeof opts.mode !== 'undefined') ? opts.mode : this.mode;
+    this.repeat = opts.repeat || this.repeat;
+    this.zoom = opts.zoom || this.zoom;
+    this.speed = opts.speed || this.speed;
+    this.width = opts.width || this.width;
+    this.height = opts.height || this.height;
+    this.bgColor = opts.bgColor || this.bgColor;
+    this.audioEnabled = (typeof opts.audioEnabled !== 'undefined')
+                        ? opts.audioEnabled : this.audioEnabled;
+    this.controlsEnabled = (typeof opts.controlsEnabled !== 'undefined')
+                           ? opts.controlsEnabled : this.controlsEnabled;
+    this.forceSceneSize = (typeof opts.forceSceneSize !== 'undefined')
+                          ? opts.forceSceneSize : this.forceSceneSize;
+    this.inParent = (typeof opts.inParent !== 'undefined')
+                    ? opts.inParent : this.inParent;
+    this.muteErrors = (typeof opts.muteErrors !== 'undefined')
+                      ? opts.muteErrors : this.muteErrors;
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {

@@ -41,13 +41,7 @@ $glob.__anm_engine = $engine;
 
 function DomEngine() { return (function() { // wrapper here is just to isolate it, executed immediately
 
-    // DomEngine utils
-
-    function __attrOr(canvas, attr, _default) {
-        return canvas.hasAttribute(attr)
-               ? canvas.getAttribute(attr)
-               : _default;
-    }
+    // DomEngine constants
 
     var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
         URL_ATTR = 'data-url';
@@ -83,7 +77,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
     // detachPlayer(canvas, player) -> none
-    // extractUserOptions(canvas, defaults?) -> options: object | {}
+    // extractUserOptions(canvas) -> options: object | {}
     // checkPlayerCanvas(canvas) -> true | false
     // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
@@ -311,29 +305,31 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.getContext = function(cvs, type) {
         return cvs.getContext(type);
     }
-    $DE.extractUserOptions = function(cvs, defaults) {
-      var width, height,
-          ratio = $DE.PX_RATIO,
-          defaults = defaults || {};
-      return { 'debug': __attrOr(cvs, 'anm-debug', defaults.debug),
-               'mode': __attrOr(cvs, 'anm-mode', defaults.mode),
-               'repeat': __attrOr(cvs, 'anm-repeat', defaults.repeat),
-               'zoom': __attrOr(cvs, 'anm-zoom', defaults.zoom),
-               'speed': __attrOr(cvs, 'anm-speed', defaults.speed),
-               'width': (__attrOr(cvs, 'anm-width',
-                                  (width = __attrOr(cvs, 'width', defaults.width),
-                                   width ? (width / ratio) : defaults.width))),
-               'height': (__attrOr(cvs, 'anm-height',
-                                   (height = __attrOr(cvs, 'height', defaults.height),
-                                    height ? (height / ratio) : defaults.height))),
-               'bgColor': cvs.hasAttribute('anm-bgcolor')
-                          ? cvs.getAttribute('anm-bgcolor')
-                          : defaults.bgColor,
-               'audioEnabled': __attrOr(cvs, 'anm-audio-enabled', defaults.audioEnabled),
-               'controlsEnabled': __attrOr(cvs, 'anm-controls-enabled', defaults.controlsEnabled),
-               'forceSceneSize': __attrOr(cvs, 'anm-force-scene-size', defaults.forceSceneSize),
-               'inParent': defaults.inParent,
-               'muteErrors': __attrOr(cvs, 'anm-mute-errors', defaults.muteErrors)
+    $DE.extractUserOptions = function(cvs) {
+      var ratio = $DE.PX_RATIO;
+      var width = cvs.getAttribute('anm-width');
+      if (!width) {
+          width = cvs.hasAttribute('width') ? (cvs.getAttribute('width') / ratio)
+                                            : undefined;
+      }
+      var height = cvs.getAttribute('anm-height');
+      if (!height) {
+          height = cvs.hasAttribute('height') ? (cvs.getAttribute('height') / ratio)
+                                              : undefined;
+      }
+      return { 'debug': cvs.getAttribute('anm-debug'),
+               'mode': cvs.getAttribute('anm-mode'),
+               'repeat': cvs.getAttribute('anm-repeat'),
+               'zoom': cvs.getAttribute('anm-zoom'),
+               'speed': cvs.getAttribute('anm-speed'),
+               'width': width,
+               'height': height,
+               'bgColor': cvs.getAttribute('anm-bgcolor'),
+               'audioEnabled': cvs.getAttribute('anm-audio-enabled')
+               'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
+               'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
+               'inParent': undefined, // TODO: check if we're in tag?
+               'muteErrors': cvs.getAttribute('anm-mute-errors')
              };
     }
     $DE.checkPlayerCanvas = function(cvs) {
