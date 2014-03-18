@@ -423,13 +423,17 @@ Player.NO_TIME = -1;
 
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'repeat': false,
+                                 'autoPlay': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
                                  'speed': 1.0,
                                  'width': undefined,
                                  'height': undefined,
                                  //'fps': undefined,
+                                 'infiniteDuration': undefined, // undefined means 'auto'
+                                 'drawStill': undefined, // undefined means 'auto'
                                  'audioEnabled': true,
+                                 'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
@@ -456,6 +460,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 // options format:
 //
 //     { 'debug': false,
+//       'autoPlay': false,
 //       'repeat': false,
 //       'mode': C.M_VIDEO,
 //       'zoom': 1.0,
@@ -464,7 +469,10 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'height': undefined,
 //       'bgColor': undefined,
 //       'audioEnabled': true,
+//       'inifiniteDuration': false,
+//       'drawStill': false,
 //       'controlsEnabled': undefined, // undefined means 'auto'
+//       'handleEvents': undefined, // undefined means 'auto'
 //       'forceSceneSize': false,
 //       'inParent': false,
 //       'muteErrors': false
@@ -479,6 +487,7 @@ Player.prototype.init = function(cvs, opts) {
     this._addOpts($engine.extractUserOptions(this.canvas));
     this._addOpts(opts);
     this._postInit();
+    this._checkOpts();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
     _PlrMan.fire(C.S_NEW_PLAYER, this);
@@ -541,14 +550,14 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     var whenDone = function(result) {
         var scene = player.anim;
-        if (player.mode & C.M_HANDLE_EVENTS) {
+        if (player.handleEvents) {
             player.__subscribeDynamicEvents(scene);
         }
         var remotes = scene._collectRemoteResources();
         if (!remotes.length) {
             player._stopLoadingAnimation();
             player.fire(C.S_LOAD, result);
-            if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+            if (!player.handleEvents) player.stop();
             //$log.debug('no remotes, calling callback');
             if (callback) callback(result);
         } else {
@@ -565,7 +574,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player._stopLoadingAnimation();
                         player.state.happens = C.LOADING;
                         player.fire(C.S_LOAD, result);
-                        if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+                        if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback(result);
                     }
@@ -622,7 +631,7 @@ var __nextFrame = $engine.getRequestFrameFunc(),
 Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) {
-        if (this.mode & C.M_HANDLE_EVENTS) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+        if (this.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
     if (this.state.happens === C.RES_LOADING) { this._postpone('play', arguments);
@@ -650,7 +659,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.from = from;
     state.speed = speed * (player.speed || 1) * (scene.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
-    state.duration = (player.mode & C.M_INFINITE_DURATION) ? Infinity
+    state.duration = player.inifiniteDuration ? Infinity
                      : (scene.duration || (scene.isEmpty() ? 0
                                                            : Scene.DEFAULT_DURATION));
 
@@ -725,8 +734,8 @@ Player.prototype.stop = function() {
 
     if (scene) {
         state.happens = C.STOPPED;
-        if (player.mode & C.M_DRAW_STILL) {
-            if (__finite(state.duration)) {
+        if (player.drawStill) {
+            if (!player.infiniteDuration && __finite(state.duration)) {
                 player.drawAt(state.duration * Player.PREVIEW_POS);
             } else {
                 player.drawAt(state.from);
@@ -828,9 +837,10 @@ Player.prototype._prepare = function(cvs) {
 Player.prototype._addOpts = function(opts) {
     // TODO: use addOpts to add any additional options to current ones
     // will move all options directly in the player object
-    this.debug =   __defined(opts.debug)  ? opts.debug  : this.debug;
-    this.mode =    __defined(opts.mode)   ? opts.mode   : this.mode;
-    this.repeat =  __defined(opts.repeat) ? opts.repeat : this.repeat;
+    this.debug =    __defined(opts.debug)    ? opts.debug    : this.debug;
+    this.mode =     __defined(opts.mode)     ? opts.mode     : this.mode;
+    this.repeat =   __defined(opts.repeat)   ? opts.repeat   : this.repeat;
+    this.autoPlay = __defined(opts.autoPlay) ? opts.autoPlay : this.autoPlay;
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
     this.width =   opts.width || this.width;
@@ -840,12 +850,55 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.audioEnabled : this.audioEnabled;
     this.controlsEnabled = __defined(opts.controlsEnabled)
                         ? opts.controlsEnabled : this.controlsEnabled;
+    this.handleEvents = __defined(opts.handleEvents)
+                        ? opts.handleEvents : this.handleEvents;
+    this.drawStill = __defined(opts.drawStill)
+                        ? opts.drawStill : this.drawStill;
+    this.infiniteDuration = __defined(opts.infiniteDuration)
+                        ? opts.infiniteDuration : this.infiniteDuration;
     this.forceSceneSize = __defined(opts.forceSceneSize)
                         ? opts.forceSceneSize : this.forceSceneSize;
     this.inParent = __defined(opts.inParent)
                         ? opts.inParent : this.inParent;
     this.muteErrors = __defined(opts.muteErrors)
                         ? opts.muteErrors : this.muteErrors;
+}
+Player.prototype._checkOpts = function() {
+    if (!this.canvas) return;
+
+    this.infiniteDuration = __defined(this.infiniteDuration)
+                            ? this.infiniteDuration
+                            : (this.mode ? (this.mode & C.M_INFINITE_DURATION) : undefined);
+    this.handleEvents = __defined(this.handleEvents)
+                            ? this.handleEvents
+                            : (this.mode ? (this.mode & C.M_HANDLE_EVENTS) : undefined);
+    this.controlsEnabled = __defined(this.controlsEnabled)
+                            ? this.controlsEnabled
+                            : (this.mode ? (this.mode & C.M_CONTROLS_ENABLED) : undefined);
+    this.infoEnabled = __defined(this.infoEnabled)
+                            ? this.infoEnabled
+                            : (this.mode ? (this.mode & C.M_INFO_ENABLED) : undefined);
+    this.drawStill = __defined(this.drawStill)
+                            ? this.drawStill
+                            : (this.mode ? (this.mode & C.M_DRAW_STILL) : undefined);
+
+    this._resize(this.width, this.height);
+
+    if (this.anim && this.handleEvents) {
+        this.__subscribeDynamicEvents(this.anim);
+    }
+
+    if (this.controlsEnabled) {
+        this._enableControls();
+        if (this.infoEnabled) { // FIXME: allow using info without controls
+            this._enableInfo();
+        } else {
+            this._disableInfo();
+        }
+    } else {
+        this._disableInfo();
+        this._disableControls();
+    }
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -901,7 +954,7 @@ Player.prototype.configureAnim = function(conf) {
 
     _mrg_obj(conf, {}, this.anim);
 
-    this._checkMode();
+    this._checkOpts();
 }
 // update player information block with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -1012,7 +1065,7 @@ Player.prototype.subscribeEvents = function(canvas) {
         mouseover: (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
-                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                (player.handleEvents) &&
                                 player.canvas) {
                                 player.canvas.focus();
                             }
@@ -1022,7 +1075,7 @@ Player.prototype.subscribeEvents = function(canvas) {
         mouseout:   (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
-                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                (player.handleEvents) &&
                                 player.canvas) {
                                 player.canvas.blur();
                             }
@@ -1182,25 +1235,6 @@ Player.prototype._restyle = function(bg) {
     $engine.setCanvasBackground(this.canvas, bg);
     this.forceRedraw();
 };
-Player.prototype._checkMode = function() {
-    if (!this.canvas) return;
-
-    if (this.anim && (this.mode & C.M_HANDLE_EVENTS)) {
-        this.__subscribeDynamicEvents(this.anim);
-    }
-
-    if (this.mode & C.M_CONTROLS_ENABLED) {
-        this._enableControls();
-        if (this.mode & C.M_INFO_ENABLED) {
-            this._enableInfo();
-        } else {
-            this._disableInfo();
-        }
-    } else {
-        this._disableInfo();
-        this._disableControls();
-    }
-}
 // FIXME: methods below may be removed, but they are required for tests
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
@@ -1285,7 +1319,7 @@ Player.prototype.__beforeFrame = function(scene) {
                 if (player.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
-                } else if (!(player.mode & C.M_INFINITE_DURATION)
+                } else if (!player.infiniteDuration
                        && __finite(state.duration)) {
                    player.drawAt(state.duration);
                 }
@@ -1454,12 +1488,16 @@ Player._optsFromUrlParams = function(params/* as object */) {
     return { 'debug': params.debug,
              'muteErrors': params.me || params.muteerrors,
              'repeat': params.r || params.repeat,
+             'autoPlay': params.a || params.auto,
              'mode': params.m || params.mode,
              'zoom': params.z || params.zoom,
              'speed': params.v || params.speed,
              'width': params.w || params.width,
              'height': params.h || params.height,
              //'fps': params.fps || Player.DEFAULT_FPS,
+             'infiniteDuration': (__defined(param.i) && params.i) ||
+                                 (__defined(param.inf) && params.inf) ||
+                                 (__defined(param.infinite) && params.infinite),
              'audioEnabled': (__defined(param.s) && params.s) ||
                              (__defined(param.sound) && params.sound) ||
                              (__defined(param.audio) && params.audio),
@@ -1517,6 +1555,7 @@ function Scene() {
     this.height = undefined;
     this.zoom = 1.0;
     this.speed = 1.0;
+    this.repeat = false;
     this.meta = {};
     //this.fps = undefined;
     this.__informEnabled = true;
@@ -3172,9 +3211,9 @@ var Render = {}; // means "Render", render loop + system modifiers & painters
 // when the first time must occur and it will chain its own calls automatically)
 function __r_loop(ctx, player, scene, before, after, before_render, after_render) {
 
-    if (pl_state.happens !== C.PLAYING) return;
-
     var pl_state = player.state;
+
+    if (pl_state.happens !== C.PLAYING) return;
 
     var msec = (Date.now() - pl_state.__startTime);
     var sec = msec / 1000;

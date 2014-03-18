@@ -375,8 +375,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__anm_ratio = ratio;
         cvs.__anm_width = _w;
         cvs.__anm_height = _h;
-        cvs.style.width = _w + 'px';
-        cvs.style.height = _h + 'px';
+        if (!cvs.style.width)  cvs.style.width = _w + 'px';
+        if (!cvs.style.height) cvs.style.height = _h + 'px';
         cvs.setAttribute('width', _w * (ratio || 1));
         cvs.setAttribute('height', _h * (ratio || 1));
         $DE._saveCanvasPos(cvs);
