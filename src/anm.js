@@ -466,6 +466,9 @@
 
             // #### value check
 
+            var __defined = function(v) { return !((typeof v === 'undefined') || (typeof v === 'null') ||
+                                                   (v === null) || (v === undefined)); }
+
             var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
 
             var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
@@ -496,6 +499,7 @@
             }
 
             var __is = {};
+            __is.defined = __defined;
             __is.finite  = __finite;
             __is.nan     = __nan;
             __is.builder = __builder;

@@ -80,7 +80,8 @@ var guid = anm.guid;
 
 // value/typecheck
 var is = anm.is;
-var __finite  = is.finite,
+var __defined = is.defined,
+    __finite  = is.finite,
     __nan     = is.nan,
     __builder = is.builder,
     __arr     = is.arr,
@@ -218,14 +219,14 @@ function _mrg_obj(src, backup, trg) {
     if (!backup) return src;
     var res = trg || {};
     for (var prop in backup) {
-        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
+        res[prop] = __defined(src[prop]) ? src[prop] : backup[prop]; };
     return res;
 }
 
 function _strf(str, subst) {
   var args = subst;
   return str.replace(/{(\d+)}/g, function(match, number) {
-    return typeof args[number] != 'undefined'
+    return __defined(args[number])
       ? args[number]
       : match
     ;
@@ -474,7 +475,8 @@ Player.prototype.init = function(cvs, opts) {
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
     this._prepare(cvs);
-    this._addOpts($engine.extractUserOptions(cvs));
+    this._addOpts(Player.DEFAULT_CONFIGURATION);
+    this._addOpts($engine.extractUserOptions(this.canvas));
     this._addOpts(opts);
     this._postInit();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
@@ -801,44 +803,49 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
-    var cvs_id, canvas;
+    if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
+    var canvas_id, canvas;
     if (__str(cvs)) {
-        cvs_id = cvs;
-        canvas = $engine.assignPlayerToCanvas(cvs_id, this);
+        canvas_id = cvs;
+        canvas = $engine.getElementById(canvas_id);
+        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
     } else {
-        if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-        this.id = cvs.id;
-        this.canvas = cvs;
+        if (!cvs.id) cvs.id = ('anm-player-' + Player.__instances);
+        canvas_id = cvs.id;
+        canvas = cvs;
     }
-    if (!$engine.checkPlayerCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this.id = cvs_id;
+    $engine.assignPlayerToCanvas(canvas, this);
+    if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    this.id = canvas_id;
     this.canvas = canvas;
     this.ctx = $engine.getContext(canvas, '2d');
     this.state = Player.createState(this);
 
     this.subscribeEvents(canvas);
+
+    this.__canvasPrepared = true;
 }
 Player.prototype._addOpts = function(opts) {
     // TODO: use addOpts to add any additional options to current ones
     // will move all options directly in the player object
-    this.debug = opts.debug || this.debug;
-    this.mode = (typeof opts.mode !== 'undefined') ? opts.mode : this.mode;
-    this.repeat = opts.repeat || this.repeat;
-    this.zoom = opts.zoom || this.zoom;
-    this.speed = opts.speed || this.speed;
-    this.width = opts.width || this.width;
-    this.height = opts.height || this.height;
+    this.debug =   __defined(opts.debug)  ? opts.debug  : this.debug;
+    this.mode =    __defined(opts.mode)   ? opts.mode   : this.mode;
+    this.repeat =  __defined(opts.repeat) ? opts.repeat : this.repeat;
+    this.zoom =    opts.zoom || this.zoom;
+    this.speed =   opts.speed || this.speed;
+    this.width =   opts.width || this.width;
+    this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
-    this.audioEnabled = (typeof opts.audioEnabled !== 'undefined')
+    this.audioEnabled = __defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
-    this.controlsEnabled = (typeof opts.controlsEnabled !== 'undefined')
-                           ? opts.controlsEnabled : this.controlsEnabled;
-    this.forceSceneSize = (typeof opts.forceSceneSize !== 'undefined')
-                          ? opts.forceSceneSize : this.forceSceneSize;
-    this.inParent = (typeof opts.inParent !== 'undefined')
-                    ? opts.inParent : this.inParent;
-    this.muteErrors = (typeof opts.muteErrors !== 'undefined')
-                      ? opts.muteErrors : this.muteErrors;
+    this.controlsEnabled = __defined(opts.controlsEnabled)
+                        ? opts.controlsEnabled : this.controlsEnabled;
+    this.forceSceneSize = __defined(opts.forceSceneSize)
+                        ? opts.forceSceneSize : this.forceSceneSize;
+    this.inParent = __defined(opts.inParent)
+                        ? opts.inParent : this.inParent;
+    this.muteErrors = __defined(opts.muteErrors)
+                        ? opts.muteErrors : this.muteErrors;
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -937,7 +944,7 @@ Player.prototype.drawAt = function(time) {
     scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, 0, this.ctx, this.state, this.anim, u_before, u_after);
+    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, u_before, u_after);
 
     if (this.controls) this._renderControlsAt(time);
 
@@ -1422,9 +1429,14 @@ Player.prototype._callPostpones = function() {
 } */
 
 Player.createState = function(player) {
+    // Player state contains only things that actually change while playing a scene,
+    // it's current time, time when player started to play or was stopped at,
+    // happens reflects what player does now, `afps` is actual FPS.
     return {
+        'happens': C.NOTHING,
         'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
-        'afps': 0, 'happens': C.NOTHING,
+        'afps': 0, 'speed': 0,
+        'duration': undefined,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
         /*'__drawInterval': null*/
@@ -1439,23 +1451,21 @@ Player._isPlayerEvent = function(type) {
             (type == C.S_ERROR) || (type == C.S_IMPORT));
 }
 Player._optsFromUrlParams = function(params/* as object */) {
-    var defaults = Player.DEFAULT_CONFIGURATION;
-    return { 'debug': params.debug || defaults.debug,
-             'inParent': defaults.inParent,
-             'muteErrors': params.me || params.muteerrors || defaults.muteErrors,
-             'repeat': params.r || params.repeat || defaults.repeat,
-             'mode': params.m || params.mode || defaults.mode,
-             'zoom': params.z || params.zoom || defaults.zoom,
-             'speed': params.v || params.speed || defaults.speed,
-             'width': params.w || params.width || defaults.width,
-             'height': params.h || params.height || defaults.height,
+    return { 'debug': params.debug,
+             'muteErrors': params.me || params.muteerrors,
+             'repeat': params.r || params.repeat,
+             'mode': params.m || params.mode,
+             'zoom': params.z || params.zoom,
+             'speed': params.v || params.speed,
+             'width': params.w || params.width,
+             'height': params.h || params.height,
              //'fps': params.fps || Player.DEFAULT_FPS,
-             'audioEnabled': (((typeof param.s !== 'undefined') && params.s) ||
-                              ((typeof param.sound !== 'undefined') && params.sound) ||
-                              ((typeof param.audio !== 'undefined') && params.audio)) && defaults.audioEnabled,
-             'controlsEnabled': (((typeof param.c !== 'undefined') && params.c) ||
-                                 ((typeof param.controls !== 'undefined') && params.controls)) && defaults.controlsEnabled,
-             'bgColor': params.bg || params.bgcolor || defaults.bgColor };
+             'audioEnabled': (__defined(param.s) && params.s) ||
+                             (__defined(param.sound) && params.sound) ||
+                             (__defined(param.audio) && params.audio),
+             'controlsEnabled': (__defined(param.c) && params.c) ||
+                                (__defined(param.controls) && params.controls),
+             'bgColor': params.bg || params.bgcolor };
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
     var urlWithParams = snapshotUrl.split('?'),
@@ -1481,13 +1491,13 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     // these values (t, from, p, still) may be 0 and it's a proper value,
     // so they require a check for undefined separately
 
-    if (typeof params.t !== 'undefined') {
+    if (__defined(params.t)) {
         player.play(params.t / 100);
-    } else if (typeof params.from !== 'undefined') {
+    } else if (__defined(params.from)) {
         player.play(params.from / 100);
-    } else if (typeof params.p !== 'undefined') {
+    } else if (__defined(params.p)) {
         player.play(params.p / 100).pause();
-    } else if (typeof params.still !== 'undefined') {
+    } else if (__defined(params.still)) {
         player.play(params.still / 100).pause();
     }
 }
@@ -3187,7 +3197,7 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, player, scene, before_render, after_render);
+    __r_at(time, dt, ctx, scene, player.width, player.height, player.zoom, before_render, after_render);
 
     // show fps
     if (player.debug) {
@@ -3204,30 +3214,29 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
         __r_loop(ctx, player, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, player, scene, before, after) {
+function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
-    var pl_state = player.state;
     if (ratio !== 1) ctx.scale(ratio, ratio);
-    var size_differs = (player.width  != scene.width) ||
-                       (player.height != scene.height);
+    var size_differs = (width  != scene.width) ||
+                       (height != scene.height);
     if (!size_differs) {
         try {
             ctx.clearRect(0, 0, scene.width,
                                 scene.height);
             if (before) before(time, ctx);
-            if (player.zoom != 1) ctx.scale(player.zoom, player.zoom);
+            if (zoom != 1) ctx.scale(zoom, zoom);
             scene.render(ctx, time, dt);
             if (after) after(time, ctx);
         } finally { ctx.restore(); }
     } else {
-        __r_with_ribbons(ctx, pl_state.width, pl_state.height,
+        __r_with_ribbons(ctx, width, height,
                               scene.width, scene.height,
             function(_scale) {
                 try {
                   ctx.clearRect(0, 0, scene.width, scene.height);
                   if (before) before(time, ctx);
-                  if (player.zoom != 1) ctx.scale(player.zoom, player.zoom);
+                  if (zoom != 1) ctx.scale(zoom, zoom);
                   scene.render(ctx, time, dt);
                   if (after) after(time, ctx);
                 } finally { ctx.restore(); }

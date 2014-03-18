@@ -65,6 +65,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // createTransform() -> Transform
 
+    // getElementById(id) -> Element
     // findElementPosition(elm) -> [ x, y ]
     // findScrollAwarePos(elm) -> [ x, y ]
     // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
@@ -226,6 +227,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // Elements
 
+    $DE.getElementById = function(id) {
+        return $doc.getElementById(id);
+    }
     /* FIXME: replace with elm.getBoundingClientRect();
        see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
     // returns position on a screen, _including_ scroll
@@ -287,11 +291,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (bg) $DE.setCanvasBackground(cvs, bg);
         return cvs;
     }
-    $DE.assignPlayerToCanvas = function(id, player) {
-        var cvs = $doc.getElementById(id);
-        //if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+    $DE.assignPlayerToCanvas = function(cvs, player) {
         //if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-        if (!cvs) throw new Errror('No canvas with id \'' + id + '\' was found.');
+        if (!cvs) return null;
         if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + id + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
         return cvs;
@@ -325,7 +327,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                'width': width,
                'height': height,
                'bgColor': cvs.getAttribute('anm-bgcolor'),
-               'audioEnabled': cvs.getAttribute('anm-audio-enabled')
+               'audioEnabled': cvs.getAttribute('anm-audio-enabled'),
                'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
                'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
                'inParent': undefined, // TODO: check if we're in tag?

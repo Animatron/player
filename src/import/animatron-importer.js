@@ -74,6 +74,7 @@ Import.project = function(prj) {
 
     root.meta = Import.meta(prj);
     Import.anim(prj, root); // will inject all required properties directly in scene object
+    if (prj.meta.duration) root.duration = prj.meta.duration;
 
     var _a = prj.anim;
 
@@ -109,9 +110,6 @@ Import.project = function(prj) {
         node_res.xdata.gband = [last_scene_band[0], Infinity];
         node_res.xdata.lband = node_res.xdata.gband;
     }
-
-    if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
-    if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
 
     Import._paths = undefined; // clear
     Import._path_cache = undefined;
