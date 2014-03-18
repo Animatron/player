@@ -657,7 +657,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
     state.from = from;
-    state.speed = speed * (player.speed || 1) * (scene.speed || 1);
+    state.time = Player.NO_TIME;
+    state.speed = (speed || 1) * (player.speed || 1) * (scene.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
     state.duration = player.inifiniteDuration ? Infinity
                      : (scene.duration || (scene.isEmpty() ? 0
@@ -981,7 +982,7 @@ Player.prototype.drawAt = function(time) {
                                                           // postpone this task and exit. postponed tasks
                                                           // will be called when all remote resources were
                                                           // finished loading
-    if ((time < 0) || (time > this.state.duration)) {
+    if ((time < 0) || (time > this.anim.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     var scene = this.anim,
@@ -1488,7 +1489,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     return { 'debug': params.debug,
              'muteErrors': params.me || params.muteerrors,
              'repeat': params.r || params.repeat,
-             'autoPlay': params.a || params.auto,
+             'autoPlay': params.a || params.auto || params.autoplay,
              'mode': params.m || params.mode,
              'zoom': params.z || params.zoom,
              'speed': params.v || params.speed,
