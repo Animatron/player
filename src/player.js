@@ -413,7 +413,6 @@ function Player() {
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
     this.__makeSafe(Player._SAFE_METHODS);
-    this._addOpts(Player.DEFAULT_CONFIGURATION);
 }
 Player.__instances = 0;
 
@@ -433,6 +432,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'infiniteDuration': undefined, // undefined means 'auto'
                                  'drawStill': undefined, // undefined means 'auto'
                                  'audioEnabled': true,
+                                 'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'bgColor': undefined,
@@ -849,6 +849,8 @@ Player.prototype._addOpts = function(opts) {
     this.bgColor = opts.bgColor || this.bgColor;
     this.audioEnabled = __defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
+    this.shadowsEnabled = __defined(opts.shadowsEnabled)
+                        ? opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = __defined(opts.controlsEnabled)
                         ? opts.controlsEnabled : this.controlsEnabled;
     this.handleEvents = __defined(opts.handleEvents)
@@ -900,6 +902,8 @@ Player.prototype._checkOpts = function() {
         this._disableInfo();
         this._disableControls();
     }
+
+    if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -1029,6 +1033,7 @@ Player.prototype.detach = function() {
     if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
     if (this.controls) this.controls.detach(this.canvas.parentNode);
     $engine.detachPlayer(this.canvas, this);
+    if (this.ctx) delete this.ctx.__anm_skipShadows;
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
@@ -1477,7 +1482,7 @@ Player.createState = function(player) {
     return {
         'happens': C.NOTHING,
         'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
-        'afps': 0, 'speed': 0,
+        'afps': 0, 'speed': 1,
         'duration': undefined,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
@@ -4564,7 +4569,7 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows) return;
+    if (!shadow || $conf.doNotRenderShadows || ctx.__anm_skipShadows) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -4987,7 +4992,7 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.mode === C.M_DYNAMIC || this.player.handleEvents) return;
     this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
@@ -5060,6 +5065,8 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     $engine.detachElement(this._inParent ? parent : null, this.canvas);
     if (this.info) this.info.detach(parent);
+    if (this.ctx && this.ctx.__anm_loadingReq) delete this.ctx.__anm_loadingReq;
+    if (this.ctx) delete this.ctx.__anm_supressLoading;
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;

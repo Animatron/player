@@ -285,6 +285,7 @@ The complete options object, filled with default values, looks like this (any op
       'bgColor': undefined, // background color of player canvas (so, if animation will have transparent
                             // background or semi-transparent, this color will be visible through)
       'audioEnabled': true, // do load audio files and play sound in player
+      'shadowsEnabled': true, // do render shadows, sometimes it affects performance
       'controlsEnabled': undefined, // specifies if controls/info-block overlay should be shown over a player,
                                     // `false` means disable controls and don't show/call them at all.
                                     // `undefined` means `auto` (dependent on `mode`)
