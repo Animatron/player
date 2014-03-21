@@ -327,8 +327,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                'width': width,
                'height': height,
                'bgColor': cvs.getAttribute('anm-bgcolor'),
+               'drawStill': cvs.getAttribute('anm-draw-still'),
                'audioEnabled': cvs.getAttribute('anm-audio-enabled'),
                'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
+               'handleEvents': cvs.getAttribute('anm-handle-events'),
                'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
                'inParent': undefined, // TODO: check if we're in tag?
                'muteErrors': cvs.getAttribute('anm-mute-errors')

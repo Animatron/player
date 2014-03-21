@@ -1004,6 +1004,10 @@ Player.prototype.drawAt = function(time) {
 
     return this;
 }
+Player.prototype.setSize = function(width, height) {
+    this.__userSize = [ width, height ];
+    this._resize();
+}
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
     if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFOREFRAME_BEFORE_PLAY);
@@ -1224,13 +1228,16 @@ Player.prototype._moveTo = function(x, y) {
 }
 Player.prototype._resize = function(width, height) {
     var cvs = this.canvas,
+        new_size = this.__userSize || [ width, height ],
         cur_size = $engine.getCanvasParams(cvs);
-    if (cur_size && (cur_size[0] === width) && (cur_size === height)) return;
-    var _w = width | 0, _h = height | 0;
-    $engine.setCanvasSize(cvs, width, height);
+    if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
+    if (!new_size[0] || !new_size[1]) {
+        new_size = $engine.getCanvasSize(cvs);
+    };
+    $engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     if (this.controls) this.controls.update(cvs);
     this.forceRedraw();
-    return [ width, height ];
+    return new_size;
 };
 Player.prototype._restyle = function(bg) {
     $engine.setCanvasBackground(this.canvas, bg);

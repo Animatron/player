@@ -269,36 +269,37 @@ To zoom an animation besides the canvas size (normally all animations fit the ca
 
 #### Example ####
 
-The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you want):
+The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you really want):
 
-    { "debug": false, // in debug mode, FPS, shapes names and moving paths are shown
-      "muteErrors": false, // supress errors while playing or not
-      "mode": C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC
-      "zoom": 1.0, // zoom ratio for animation.
-      "repeat": false, // repeat the scene again when it finished to play or not
-      "width": undefined, // forced user width, has the highest priority over
-                          // different ways to specify size, but anyway can't be applied
-                          // to the canvas before player was created there
-      "height": undefined, // forced user height, has the highest priority over
-                           // different ways to specify size, but anyway can't be applied
-                           // to the canvas before player was created therewas created there
-      "sound": 1, // turns off all the sound for playing
-      "controls", undefined, // depends on mode if undefined, if defined and false, forces player to disable controls
-      "meta": { "title": "Default", // meta data is injected in info block
-                "author": "Anonymous",
-                "copyright": "© NaN",
-                "version": -1.0,
-                "description":
-                        "Default project description",
-                [ "modified": 12272727271871 ] }, // in milliseconds, not used currently
-      "anim": { ["fps": 30,] // time coefficient, not used currently
-                "width": 400, // animation width, player will be resized if required
-                "height": 250, // animation height, player will be resized if required
-                "bgfill": { color: "#fff" }, // canvas background color
-                "duration": 10 } } // duration may be auto-calculated, but if provided,
-                                  // this value will be taken
+    { 'debug': false, // in debug mode, FPS, shapes names and moving paths are shown
+      'mode': C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC, different modes combine
+                         // `inifiniteDuration`/`drawStill`/`controlsEnabled`/`handleEvents` options
+                         // in different combinations, so they may be specified separately and override
+                         // the `mode` value, if `mode` was specified at all.
+      'repeat': false, // repeat an animation again when it finished to play or not
+      'autoPlay': false, // start to play immediately after loading an animation
+      'zoom': 1.0, // zoom ratio for animation.
+      'speed': 1.0, // speed to play animation with
+      'width': undefined, // forced user width, see Sizing Rules below regarding the priority of sizing
+      'height': undefined, // forced user width, see Sizing Rules below regarding the priority of sizing
+      'bgColor': undefined, // background color of player canvas (so, if animation will have transparent
+                            // background or semi-transparent, this color will be visible through)
+      'audioEnabled': true, // do load audio files and play sound in player
+      'controlsEnabled': undefined, // specifies if controls/info-block overlay should be shown over a player,
+                                    // `false` means disable controls and don't show/call them at all.
+                                    // `undefined` means `auto` (dependent on `mode`)
+      'handleEvents': undefined, // specifies if player should handle mouse/keyboard events (useful for games)
+                                 // `undefined` means `auto` (so, dependent on `mode`)
+      'drawStill': undefined, // draw first frame before playing an animation or not
+                              // `undefined` means `auto` (so, dependent on `mode`)
+      'inifiniteDuration': undefined, // override scene duration and make playing process infinite (useful for games)
+                                      // `undefined` means `auto` (so, dependent on `mode`)
+      'forceSceneSize': false, // when some animation is loaded into player, force player to resize to animation size,
+                               // instead of keeping the size as it was given at initialization
+      'muteErrors': false // supress errors while playing or not
+    }
 
-#### Sizing rules ####
+#### Sizing Rules ####
 
 Be aware that when you pass any size to player, it may resize the canvas only after it was actually created/intialized there, so in most cases it'd be fine to leave canvas `width`/`height` attributes on IFRAME/CANVAS as they are or specify them manually either in CSS or in HTML (in the latter case they need to include pixel ratio), so player will keep this size, if you want canvas to be the same size from the start.
 
@@ -338,6 +339,16 @@ To summarize, the priority order for player sizing commonly is:
 * If there are `anm-width` and `anm-height` attributes specified on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), use them as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before) and stop deciding sizes;
 * If there are `width` and `height` attributes specified on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), use them as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before) and stop deciding sizes;
 * Try to get the size of `IFRAME` or `CANVAS` as given by browser and use these metrics as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before);
+
+And even shorter, first is the highest priority:
+
+* `setSize` method of player
+* `force-scene-size` in URL or CANVAS or IFRAME
+* `width`+`height`/`w`+`h` attrinbutes in URL of snapshot or IFRAME
+* `width`+`height` properties in player's options object when creating
+* `anm-width`+`anm-height` properties of CANVAS or IFRAME tag
+* `width`+`height` properties of CANVAS or IFRAME
+* browser-flow-defined size
 
 ### Playing API
 
