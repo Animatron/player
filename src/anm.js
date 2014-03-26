@@ -10,6 +10,11 @@
 // HERE GOES THE INITIALISATION OF ANM NAMESPACE, GLOBALS AND GLOBAL HELPERS
 // namespace itself is registered by name inside of the function, with the help of $engine.define
 
+// FIXME: but it actually should go different way, namespace should not be dependent on engine, so
+//        it should be prepared before the engine, and here it should only be filled with engine-dependent
+//        methods. also, modules are still not perfect, may be it's not so good only engine may provide their
+//        support
+
 (function(_GLOBAL_) {
 
     var PUBLIC_NAMESPACE = 'anm';
@@ -302,7 +307,7 @@
             this._waiting = {};
             this._subscriptions = [];
         }
-        ResourceManager.prototype.subscribe = function(urls, callbacks) {
+        ResourceManager.prototype.subscribe = function(/*subject, */urls, callbacks) {
             var filteredUrls = [];
             if ($conf.logResMan) { $log.debug('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
             for (var i = 0; i < urls.length; i++){
@@ -310,7 +315,7 @@
                 if (urls[i]) filteredUrls.push(urls[i]);
             }
 
-            this._subscriptions.push([ filteredUrls,
+            this._subscriptions.push([ /*subject, */filteredUrls,
                                        __is.arr(callbacks) ? callbacks : [ callbacks ] ]);
             this.check();
         }
@@ -378,6 +383,7 @@
             if ($conf.logResMan)
                { $log.debug('number of subscriptions: ' + subscriptions.length); }
             for (var i = 0, il = subscriptions.length; i < il; i++) {
+                //var subscriber = subscriptions[i][0],
                 var urls = subscriptions[i][0],
                     callbacks = subscriptions[i][1],
                     error_count = 0,
@@ -398,6 +404,7 @@
                     if ($conf.logResMan)
                        { $log.debug('notifying subscribers that ' + urls + ' are all ready'); }
                     for (var k = 0, kl = callbacks.length; k < kl; k++) {
+                        //callbacks[k].call(subscriber, ready, error_count);
                         callbacks[k](ready, error_count);
                     }
                     if (!to_remove) to_remove = [];
@@ -461,6 +468,9 @@
 
             // #### value check
 
+            var __defined = function(v) { return !((typeof v === 'undefined') || (typeof v === 'null') ||
+                                                   (v === null) || (v === undefined)); }
+
             var __finite = isFinite || Number.isFinite || function(n) { return n !== Infinity; };
 
             var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
@@ -491,6 +501,7 @@
             }
 
             var __is = {};
+            __is.defined = __defined;
             __is.finite  = __finite;
             __is.nan     = __nan;
             __is.builder = __builder;

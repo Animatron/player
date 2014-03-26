@@ -72,6 +72,12 @@ Import.project = function(prj) {
         last_scene_band = [ 0, 0 ];
     root.__import_id = cur_import_id;
 
+    root.meta = Import.meta(prj);
+    Import.anim(prj, root); // will inject all required properties directly in scene object
+    if (prj.meta.duration) root.duration = prj.meta.duration;
+
+    var _a = prj.anim;
+
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();
 
@@ -105,9 +111,6 @@ Import.project = function(prj) {
         node_res.xdata.lband = node_res.xdata.gband;
     }
 
-    if (prj.meta.duration != undefined) root.setDuration(prj.meta.duration);
-    if (prj.anim.background) root.bgfill = Import.fill(prj.anim.background);
-
     Import._paths = undefined; // clear
     Import._path_cache = undefined;
 
@@ -138,14 +141,15 @@ Import.meta = function(prj) {
  * } *anim*;
  */
 // -> Object
-Import.anim = function(prj) {
+Import.anim = function(prj, trg) {
     var _a = prj.anim;
-    return {
-        'fps': _a.framerate,
-        'width': _a.dimension ? Math.floor(_a.dimension[0]) : undefined,
-        'height': _a.dimension ? Math.floor(_a.dimension[1]): undefined,
-        'bgcolor': _a.background ? Import.fill(_a.background) : null
-    }
+    trg.fps = _a.framerate;
+    trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
+    trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
+    trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
+    trg.zoom = _a.zoom ? Import.fill(_a.zoom) : undefined;
+    trg.speed = _a.speed ? Import.fill(_a.speed) : undefined;
+    if (_a.loop && (_a.loop === 'true')) trg.repeat = true;
 }
 
 var TYPE_UNKNOWN =  0,
@@ -914,10 +918,6 @@ ValueCache.prototype.hash = function(str) {
 // -----------------------------------------------------------------------------
 
 function __MYSELF() { }
-
-__MYSELF.prototype.configureMeta = Import.meta;
-
-__MYSELF.prototype.configureAnim = Import.anim;
 
 __MYSELF.prototype.load = Import.project;
 
