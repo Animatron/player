@@ -31,6 +31,10 @@
 
       var player = null;
 
+      function createPlayer() {
+          return anm.createPlayer('canvas', { audioEnabled: false });
+      }
+
       function load() {
           if (!player) return;
 
@@ -43,7 +47,7 @@
           var importer = new AnimatronImporter();
           player.detach();
           //var importer = new AnimatronImporter();
-          player = anm.createPlayer('canvas', {mode: anm.C.M_VIDEO});
+          player = createPlayer();
           //player.debug = true;
           player.load(project, importer);
           //var b = Builder._$;
@@ -58,7 +62,7 @@
 
           document.getElementById('scene-input').value = DEFAULT_SCENE;
 
-          player = anm.createPlayer('canvas', { width: 1000, height: 50 });
+          player = createPlayer();
           //load();
       }
     </script>

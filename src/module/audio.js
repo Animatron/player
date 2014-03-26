@@ -163,7 +163,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
   E.prototype._hasRemoteResources = function(scene, player) {
-    return !prev__hasRemoteResources.apply(this, arguments) || (this.isAudio && player.audioEnabled);
+    return prev__hasRemoteResources.apply(this, arguments) || (this.isAudio && player.audioEnabled);
   }
 
   var prev__collectRemoteResources = E.prototype._collectRemoteResources;

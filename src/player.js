@@ -552,6 +552,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     var whenDone = function(result) {
         var scene = player.anim;
         if (player.handleEvents) {
+            // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(scene);
         }
         var remotes = scene._collectRemoteResources(player);
@@ -561,6 +562,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             if (!player.handleEvents) player.stop();
             //$log.debug('no remotes, calling callback');
             if (callback) callback(result);
+            if (player.autoPlay) player.play();
         } else {
             player.state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
@@ -578,6 +580,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback(result);
+                        if (player.autoPlay) player.play();
                     }
                 }
             ) ]);
@@ -658,7 +661,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
-    state.from = from;
+    state.from = from || 0;
     state.time = Player.NO_TIME;
     state.speed = (speed || 1) * (player.speed || 1) * (scene.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
@@ -892,6 +895,7 @@ Player.prototype._checkOpts = function() {
     this._resize(this.width, this.height);
 
     if (this.anim && this.handleEvents) {
+        // checks inside if was already subscribed before, skips if so
         this.__subscribeDynamicEvents(this.anim);
     }
 
