@@ -432,6 +432,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'infiniteDuration': undefined, // undefined means 'auto'
                                  'drawStill': undefined, // undefined means 'auto'
                                  'audioEnabled': true,
+                                 'imagesEnabled': true,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
@@ -485,7 +486,7 @@ Player.prototype.init = function(cvs, opts) {
     this._prepare(cvs);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts($engine.extractUserOptions(this.canvas));
-    this._addOpts(opts);
+    this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
@@ -553,7 +554,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (player.handleEvents) {
             player.__subscribeDynamicEvents(scene);
         }
-        var remotes = scene._collectRemoteResources();
+        var remotes = scene._collectRemoteResources(player);
         if (!remotes.length) {
             player._stopLoadingAnimation();
             player.fire(C.S_LOAD, result);
@@ -580,6 +581,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     }
                 }
             ) ]);
+            scene._loadRemoteResources(player);
         }
     };
     whenDone = player.__defAsyncSafe(whenDone);
@@ -849,6 +851,8 @@ Player.prototype._addOpts = function(opts) {
     this.bgColor = opts.bgColor || this.bgColor;
     this.audioEnabled = __defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
+    this.imagesEnabled = __defined(opts.imagesEnabled)
+                        ? opts.imagesEnabled : this.imagesEnabled;
     this.shadowsEnabled = __defined(opts.shadowsEnabled)
                         ? opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = __defined(opts.controlsEnabled)
@@ -891,14 +895,14 @@ Player.prototype._checkOpts = function() {
         this.__subscribeDynamicEvents(this.anim);
     }
 
-    if (this.controlsEnabled) {
+    if (this.controlsEnabled && !this.controls) {
         this._enableControls();
         if (this.infoEnabled) { // FIXME: allow using info without controls
             this._enableInfo();
         } else {
             this._disableInfo();
         }
-    } else {
+    } else if (!this.controlsEnabled && this.controls) {
         this._disableInfo();
         this._disableControls();
     }
@@ -1761,14 +1765,23 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     elm.scene = null;
     //elm.parent = null;
 }
-Scene.prototype._collectRemoteResources = function() {
-    var remotes = [];
+Scene.prototype._collectRemoteResources = function(player) {
+    var remotes = [],
+        scene = this;
     this.visitElems(function(elm) {
-        if (elm._hasRemoteResources()) {
-           remotes = remotes.concat(elm._getRemoteResources());
+        if (elm._hasRemoteResources(scene, player)) {
+           remotes = remotes.concat(elm._collectRemoteResources(scene, player)/* || []*/);
         }
     });
     return remotes;
+}
+Scene.prototype._loadRemoteResources = function(player) {
+    var scene = this;
+    this.visitElems(function(elm) {
+        if (elm._hasRemoteResources(scene, player)) {
+           elm._loadRemoteResources(scene, player);
+        }
+    });
 }
 Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
@@ -3024,12 +3037,18 @@ Element.prototype.__resetState = function() {
     s._appliedAt = null;
     s._matrix.reset();
 }
-Element.prototype._hasRemoteResources = function() {
-    if (this.xdata.sheet) return true;
+Element.prototype._hasRemoteResources = function(scene, player) {
+    if (player.imagesEnabled && this.xdata.sheet) return true;
 }
-Element.prototype._getRemoteResources = function() {
+Element.prototype._collectRemoteResources = function(scene, player) {
+    if (!player.imagesEnabled) return null;
     if (!this.xdata.sheet) return null;
     return [ this.xdata.sheet.src ];
+}
+Element.prototype._loadRemoteResources = function(scene, player) {
+    if (!player.imagesEnabled) return;
+    if (!this.xdata.sheet) return;
+    this.xdata.sheet.load();
 }
 
 // base (initial) state of the element
@@ -4599,9 +4618,10 @@ function Sheet(src, callback, start_region) {
     this.wasError = false;
     this._image = null;
     this._cvs_cache = null;
-    this.load(callback);
+    this._callback = callback;
 }
 Sheet.prototype.load = function(callback) {
+    var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     _ResMan.loadOrGet(me.src,

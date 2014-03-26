@@ -257,17 +257,21 @@ If you want to see the FPS rate, shapes origin points, names of the shapes, the 
 
 #### zoom ####
 
-To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = anm.createPlayer(...); player.zoom = ...;`, it has the same effect.
+To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = anm.createPlayer(...); player.zoom = ...;`, it has the same effect. It does not changes the size of player, though.
 
-#### meta ####
+### speed ###
 
-`meta` block provides the information about the animation author, title and copyright. However, if you load the Scene with [Importer](#importers), it will be overriden from there (it also is useful if you associate one separate scene with one separate player).
+Change the player's playing speed. It is used as a multiplier for all the scenes it will play after
 
-#### anim ####
+### repeat ###
 
-`anim` (shorten from 'animation') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
+Play the animation again from the start just after it finished playing from previous time. To stop it, you may call the `stop()` method of player, turn off `player.repeat` flag and do whatever you want.
 
-#### Example ####
+### autoPlay ###
+
+Immediately start playing when the animation just after it was loaded into the player.
+
+### other options ####
 
 The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you really want):
 

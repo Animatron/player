@@ -307,7 +307,7 @@
             this._waiting = {};
             this._subscriptions = [];
         }
-        ResourceManager.prototype.subscribe = function(urls, callbacks) {
+        ResourceManager.prototype.subscribe = function(/*subject, */urls, callbacks) {
             var filteredUrls = [];
             if ($conf.logResMan) { $log.debug('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
             for (var i = 0; i < urls.length; i++){
@@ -315,7 +315,7 @@
                 if (urls[i]) filteredUrls.push(urls[i]);
             }
 
-            this._subscriptions.push([ filteredUrls,
+            this._subscriptions.push([ /*subject, */filteredUrls,
                                        __is.arr(callbacks) ? callbacks : [ callbacks ] ]);
             this.check();
         }
@@ -383,6 +383,7 @@
             if ($conf.logResMan)
                { $log.debug('number of subscriptions: ' + subscriptions.length); }
             for (var i = 0, il = subscriptions.length; i < il; i++) {
+                //var subscriber = subscriptions[i][0],
                 var urls = subscriptions[i][0],
                     callbacks = subscriptions[i][1],
                     error_count = 0,
@@ -403,6 +404,7 @@
                     if ($conf.logResMan)
                        { $log.debug('notifying subscribers that ' + urls + ' are all ready'); }
                     for (var k = 0, kl = callbacks.length; k < kl; k++) {
+                        //callbacks[k].call(subscriber, ready, error_count);
                         callbacks[k](ready, error_count);
                     }
                     if (!to_remove) to_remove = [];
