@@ -1362,7 +1362,7 @@ Player.prototype.__beforeFrame = function(scene) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
-                if (player.repeat) {
+                if (player.repeat || scene.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
                 } else if (!player.infiniteDuration
@@ -1534,7 +1534,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     function __boolParam(val) {
         if (!val) return false;
         if (val == 0) return false;
-        if (val == 1) return false;
+        if (val == 1) return true;
         if (val == 'false') return false;
         if (val == 'true') return true;
         if (val == 'off') return false;
