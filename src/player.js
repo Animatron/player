@@ -741,11 +741,13 @@ Player.prototype.stop = function() {
     if (scene) {
         state.happens = C.STOPPED;
         if (player.drawStill) {
-            if (!player.infiniteDuration && __finite(state.duration)) {
+            if (!player.infiniteDuration && __finite(scene.duration)) {
                 player.drawAt(state.duration * Player.PREVIEW_POS);
             } else {
                 player.drawAt(state.from);
             }
+        } else {
+            player._drawEmpty();
         }
         if (player.controls/* && !player.controls.hidden*/) {
             player._renderControlsAt(state.time);
@@ -891,6 +893,12 @@ Player.prototype._checkOpts = function() {
     this.drawStill = __defined(this.drawStill)
                             ? this.drawStill
                             : (this.mode ? (this.mode & C.M_DRAW_STILL) : undefined);
+
+    if (!this.width || !this.height) {
+        var cvs_size = $engine.getCanvasSize(this.canvas);
+        this.width = cvs_size[0];
+        this.height = cvs_size[1];
+    }
 
     this._resize(this.width, this.height);
 
@@ -1102,6 +1110,22 @@ Player.prototype.subscribeEvents = function(canvas) {
                     })(this)
     });
 }
+Player.prototype._drawEmpty = function() {
+    var ctx = this.ctx,
+        w = this.width,
+        h = this.height;
+
+    ctx.save();
+
+    var ratio = $engine.PX_RATIO;
+    // FIXME: somehow scaling context by ratio here makes all look bad
+
+    // background
+    ctx.fillStyle = '#ffe';
+    ctx.fillRect(0, 0, w * ratio, h * ratio);
+
+    ctx.restore();
+}
 Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
         w = this.width,
@@ -1178,6 +1202,7 @@ Player.prototype._drawLoadingCircles = function() {
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     Controls._stopLoadingAnimation(this.ctx);
+    this._drawEmpty();
 }
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
@@ -1223,8 +1248,8 @@ Player.prototype._reset = function() {
     state.time = Player.NO_TIME;
     state.duration = undefined;
     if (this.controls) this.controls.reset();
-    this.ctx.clearRect(0, 0, player.width * $engine.PX_RATIO,
-                             player.height * $engine.PX_RATIO);
+    this.ctx.clearRect(0, 0, this.width * $engine.PX_RATIO,
+                             this.height * $engine.PX_RATIO);
     /*this.stop();*/
 }
 Player.prototype._stopAndContinue = function() {
@@ -1370,7 +1395,7 @@ Player.prototype.__afterFrame = function(scene) {
 // this error over itself
 Player.prototype.__onerror = function(err) {
   var player = this;
-  var doMute = (player.state && player.muteErrors);
+  var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof SysErr);
 
   if (player.state &&
@@ -1506,25 +1531,39 @@ Player._isPlayerEvent = function(type) {
             (type == C.S_ERROR) || (type == C.S_IMPORT));
 }
 Player._optsFromUrlParams = function(params/* as object */) {
-    return { 'debug': params.debug,
-             'muteErrors': params.me || params.muteerrors,
-             'repeat': params.r || params.repeat,
-             'autoPlay': params.a || params.auto || params.autoplay,
-             'mode': params.m || params.mode,
-             'zoom': params.z || params.zoom,
-             'speed': params.v || params.speed,
-             'width': params.w || params.width,
-             'height': params.h || params.height,
-             //'fps': params.fps || Player.DEFAULT_FPS,
-             'infiniteDuration': (__defined(param.i) && params.i) ||
-                                 (__defined(param.inf) && params.inf) ||
-                                 (__defined(param.infinite) && params.infinite),
-             'audioEnabled': (__defined(param.s) && params.s) ||
-                             (__defined(param.sound) && params.sound) ||
-                             (__defined(param.audio) && params.audio),
-             'controlsEnabled': (__defined(param.c) && params.c) ||
-                                (__defined(param.controls) && params.controls),
-             'bgColor': params.bg || params.bgcolor };
+    function __boolParam(val) {
+        if (!val) return false;
+        if (val == 0) return false;
+        if (val == 1) return false;
+        if (val == 'false') return false;
+        if (val == 'true') return true;
+        if (val == 'off') return false;
+        if (val == 'on') return true;
+        if (val == 'no') return false;
+        if (val == 'yes') return true;
+    }
+    function __extractBool() {
+        var variants = arguments;
+        for (var i = 0; i < variants.length; i++) {
+            if (__defined(params[variants[i]])) return __boolParam(params[variants[i]]);
+        }
+        return undefined;
+    }
+    var opts = {};
+    opts.debug = __defined(params.debug) ? __boolParam(params.debug) : undefined;
+    opts.muteErrors = __extractBool('me', 'muterrors');
+    opts.repeat = __extractBool('r', 'repeat');
+    opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
+    opts.mode = params.m || params.mode || undefined;
+    opts.zoom = params.z || params.zoom;
+    opts.speed = params.v || params.speed;
+    opts.width = params.w || params.width;
+    opts.height = params.h || params.height;
+    opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
+    opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
+    opts.controlsEnabled = __extractBool('c', 'controls');
+    opts.bgColor = params.bg || params.bgcolor;
+    return opts;
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
     var urlWithParams = snapshotUrl.split('?'),
@@ -1551,13 +1590,13 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     // so they require a check for undefined separately
 
     if (__defined(params.t)) {
-        player.play(params.t / 100);
+        this.play(params.t / 100);
     } else if (__defined(params.from)) {
-        player.play(params.from / 100);
+        this.play(params.from / 100);
     } else if (__defined(params.p)) {
-        player.play(params.p / 100).pause();
+        this.play(params.p / 100).pause();
     } else if (__defined(params.still)) {
-        player.play(params.still / 100).pause();
+        this.play(params.still / 100).pause();
     }
 }
 
@@ -3293,6 +3332,8 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
     if (ratio !== 1) ctx.scale(ratio, ratio);
+    var width = width | 0,
+        height = height | 0;
     var size_differs = (width  != scene.width) ||
                        (height != scene.height);
     if (!size_differs) {
