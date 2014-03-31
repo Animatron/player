@@ -149,7 +149,7 @@ Import.anim = function(prj, trg) {
     trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
     trg.zoom = _a.zoom ? Import.fill(_a.zoom) : undefined;
     trg.speed = _a.speed ? Import.fill(_a.speed) : undefined;
-    if (_a.loop && (_a.loop === 'true')) trg.repeat = true;
+    if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
 }
 
 var TYPE_UNKNOWN =  0,
