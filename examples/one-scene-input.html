@@ -32,7 +32,7 @@
       var player = null;
 
       function createPlayer() {
-          return anm.createPlayer('canvas', { audioEnabled: false });
+          return anm.createPlayer('canvas', { audioEnabled: false, controlsEnabled: false, autoPlay: true });
       }
 
       function load() {
