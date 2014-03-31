@@ -20,6 +20,12 @@ Navigate to [corresponding Animatron site section](http://animatron.com/player),
 
 Run one of the `tests/index.html` and run any of the tests to see if something is broken in your version of player.
 
+##### Embedding
+
+See [Embedding section in API docs](http://animatron.com/player/doc/API.html#Embedding) (or [at github](https://github.com/Animatron/player/blob/master/doc/API.md#Embedding)) on detailed information about embedding process.
+
+Also, a detailed article about it is [located here](TODO).
+
 #### Accessible from Cloud
 
 The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what you want to take:

@@ -126,20 +126,24 @@ An URL for the snapshot without the parameters may look like:
 
 **`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9`**
 
-Then, an URL with all parameters specified may look like:
+Then, an URL with most of the parameters specified may look like:
 
-**`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9?w=600&h=500&bg=f0fff0&m=0&r=0&z=1&t=25&p=37&debug=0`**
+**`http://animatron-snapshots.s3.amazonaws.com/3f68b131-8a6a-4e0f-82f8-99a2576ab9d9?w=600&h=500&bg=f0fff0&m=0&r=0&z=1&t=25&p=37&debug=0&fss=0&c=1&s=1`**
 
 Any of the parameters is optional, here is a definition for each of those:
 
-* **w** is forced width and **h** is forced height of the player, so even if any scene loaded inside the player has another size, player won't be resized to fit it (as by default), but will be forced to scale scene to this size, and add black ribbons if aspect ratio is not the same; however, if player is placed inside of `iframe`, `iframe` size will have major priority above this size.
-* **bg** is the background color of the player in format of **`ff00a6`**; if you don't specify this background, player background is treated as transparent; this color, however, can't contain alpha value, only solid fill; when scene has it's own background (may contain alpha) and there is a player background specified, they are applied in order of: player background below, then scene background;
-* **m** mode of the player, `PREVIEW` (no controls, no handling mouse/kb) is `0`, `DYNAMIC` (no controls, handling mouse/kb) is `4`, `VIDEO` (controls are shown, no mouse/kb handling, default) is `11`. *NB: These values are subject to change in near future*.
-* **r** specifies the repeating mode, `1` is to repeat (*loop*), `0` (*default*) — play once.
-* **z** is zoom of the scene, may be a float value
-* **t** is time to start play from when scene is loaded (by default player is stopped in this case, waiting for user to press *play* control), specified in centiseconds, so `t=370` means "play from 3s 700ms"
-* **p** is time to pause at when scene is loaded (by default player is stopped at time of 0 in this case, waiting for user to press *play* control), specified in centiseconds, so `p=370` means "pause at 3s 700ms"
-* **debug** flag (`0` or `1`, *off* by default) allows to turn on debug information such as FPS and exact time.
+* **w**/**width** is forced width and **h**/**height** is forced height of the player, so even if any scene loaded inside the player has another size, player won't be resized to fit it, but will be forced to scale scene to this size, and add black ribbons if aspect ratio is not the same; however, if player is placed inside of `iframe`, `iframe` size will have major priority above this size. See [Sizing Rules](#sizing-rules) below for more detailed information.
+* **bg** or **bgcolor** is the background color of the player in format of **`ff00a6`**; if you don't specify this background, player background is treated as transparent; this color, however, can't contain alpha value, only solid fill; when scene has it's own background (may contain alpha) and there is a player background specified, they are applied in order of: player background below, then scene background
+* **r** or **repeat** specifies the repeating mode, `1` is to repeat (*loop*), `0` (*default*) — play once.
+* **z** or **zoom** is zoom of the scene, may be a float value
+* **t** or **from** is time to start play from when scene is loaded (by default player is stopped in this case, waiting for user to press *play* control), specified in centiseconds, so `t=370` means "play from 3s 700ms"
+* **p** or **still** is time to pause at when scene is loaded (by default player is stopped at time of 0 in this case, waiting for user to press *play* control), specified in centiseconds, so `p=370` means "pause at 3s 700ms"
+* **d** or **debug** flag (`0` or `1`, *off* by default) allows to turn on debug information such as FPS and exact time.
+* **s** or **sound** or **audio** flag (`0` or `1`, *on* by default) allows to manually turn audio on or off (so the audio files included in animations, if they are, will both not be loaded and played at all)
+* **c** or **controls** flag (`0` or `1`, by default the value depends on the player mode) allows to manually turn player controls on or off
+* **m** or **mode** is mode of the player, `PREVIEW` (no controls, no handling mouse/kb) is `0`, `DYNAMIC` (no controls, handling mouse/kb) is `4`, `VIDEO` (controls are shown, no mouse/kb handling, default) is `11`. *NB: These values are subject to change in near future*.
+* **v** or **speed** is the speed to play animations with, `1.0` by default
+* **fss** or **forcescenesize** is optional flag to force player to resize itself when it gets an animation of different size that its current size, so your player size will occasionally change over time with this flag turned on, but if you set it, it's probably what you really want.
 
 #### 2. From Source ####
 
@@ -243,46 +247,113 @@ You may also do this with `var player = anm.createPlayer(...); player.mode = anm
 
 **NB**: `C.M_VIDEO`, `C.M_PREVIEW` and `C.M_DYNAMIC` are the precalculated mixes of these "precise" options.
 
+#### width / height ####
+
+It's the forced width / height of a player, not an animation, so the player will force itself and animations loaded inside to fit this size as user-requested. See [Sizing Rules](#sizing-rules) below for more detailed information.
+
 #### debug ####
 
 If you want to see the FPS rate, shapes origin points, names of the shapes, the traces of their translate operations, set `debug` to `true`. You may also do this with `var player = anm.createPlayer(...); player.debug = true;`, it has the same effect.
 
 #### zoom ####
 
-To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = anm.createPlayer(...); player.zoom = ...;`, it has the same effect.
+To zoom an animation besides the canvas size (normally all animations fit the canvas), you may use `zoom` option. You may also do this with `var player = anm.createPlayer(...); player.zoom = ...;`, it has the same effect. It does not changes the size of player, though.
 
-#### meta ####
+### speed ###
 
-`meta` block provides the information about the animation author, title and copyright. However, if you load the Scene with [Importer](#importers), it will be overriden from there (it also is useful if you associate one separate scene with one separate player).
+Change the player's playing speed. It is used as a multiplier for all the scenes it will play after
 
-#### anim ####
+### repeat ###
 
-`anim` (shorten from 'animation') is the tuning of the canvas size, player background color and the default duration of the scene (it also is useful if you associate one separate scene with one separate player).
+Play the animation again from the start just after it finished playing from previous time. To stop it, you may call the `stop()` method of player, turn off `player.repeat` flag and do whatever you want.
 
-**NB:** If canvas element where player attached to has `width` and `height` attributes set, then they have a higher priority over configuration when loading a scene. So if you want player to update its size dynamically from options or animation configuration, ensure to remove these attributes from element.
+### autoPlay ###
 
-#### Example ####
+Immediately start playing when the animation just after it was loaded into the player.
 
-The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you want):
+### other options ####
 
-    { "debug": false, // in debug mode, FPS, shapes names and moving paths are shown
-      "muteErrors": false, // supress errors while playing or not
-      "mode": C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC
-      "zoom": 1.0, // zoom ratio for animation.
-      "repeat": false, // repeat the scene again when it finished to play or not
-      "meta": { "title": "Default", // meta data is injected in info block
-                "author": "Anonymous",
-                "copyright": "© NaN",
-                "version": -1.0,
-                "description":
-                        "Default project description",
-                [ "modified": 12272727271871 ] }, // in milliseconds, not used currently
-      "anim": { ["fps": 30,] // time coefficient, not used currently
-                "width": 400, // animation width, player will be resized if required
-                "height": 250, // animation height, player will be resized if required
-                "bgfill": { color: "#fff" }, // canvas background color
-                "duration": 10 } } // duration may be auto-calculated, but if provided,
-                                  // this value will be taken
+The complete options object, filled with default values, looks like this (any option is optional, pardon the tautology: you may even pass an empty object, if you really want):
+
+    { 'debug': false, // in debug mode, FPS, shapes names and moving paths are shown
+      'mode': C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC, different modes combine
+                         // `inifiniteDuration`/`drawStill`/`controlsEnabled`/`handleEvents` options
+                         // in different combinations, so they may be specified separately and override
+                         // the `mode` value, if `mode` was specified at all.
+      'repeat': false, // repeat an animation again when it finished to play or not
+      'autoPlay': false, // start to play immediately after loading an animation
+      'zoom': 1.0, // zoom ratio for animation.
+      'speed': 1.0, // speed to play animation with
+      'width': undefined, // forced user width, see Sizing Rules below regarding the priority of sizing
+      'height': undefined, // forced user width, see Sizing Rules below regarding the priority of sizing
+      'bgColor': undefined, // background color of player canvas (so, if animation will have transparent
+                            // background or semi-transparent, this color will be visible through)
+      'audioEnabled': true, // do load audio files and play sound in player
+      'shadowsEnabled': true, // do render shadows, sometimes it affects performance
+      'controlsEnabled': undefined, // specifies if controls/info-block overlay should be shown over a player,
+                                    // `false` means disable controls and don't show/call them at all.
+                                    // `undefined` means `auto` (dependent on `mode`)
+      'handleEvents': undefined, // specifies if player should handle mouse/keyboard events (useful for games)
+                                 // `undefined` means `auto` (so, dependent on `mode`)
+      'drawStill': undefined, // draw first frame before playing an animation or not
+                              // `undefined` means `auto` (so, dependent on `mode`)
+      'inifiniteDuration': undefined, // override scene duration and make playing process infinite (useful for games)
+                                      // `undefined` means `auto` (so, dependent on `mode`)
+      'forceSceneSize': false, // when some animation is loaded into player, force player to resize to animation size,
+                               // instead of keeping the size as it was given at initialization
+      'muteErrors': false // supress errors while playing or not
+    }
+
+#### Sizing Rules ####
+
+Be aware that when you pass any size to player, it may resize the canvas only after it was actually created/intialized there, so in most cases it'd be fine to leave canvas `width`/`height` attributes on IFRAME/CANVAS as they are or specify them manually either in CSS or in HTML (in the latter case they need to include pixel ratio), so player will keep this size, if you want canvas to be the same size from the start.
+
+Player tries to predict the most fitting and smartest way of resizing your scene to the canvas size. Since there are a lot of ways to specify canvas size versus scene size (scene size is only set through `anim` section in options or provided in the snapshot project same way) or (TODO) with `setAnimSize` method of player. So, player/canvas size is primary, and scene size is secondary, so if these sizes differ, player fits a scene inside itself using black ribbons (without breaking aspect ratio), if required. So animation size is never used to resize a player to, except the cases when user forced player to do it (see below).
+
+The problem here is that the animation loading process takes some time (and, in case of `IFRAME`/`player.forSnapshot`, it's asynchronous), so while the animation loads, there is no known size to resize player into. Also, if you plan to use the same player with several scenes, it's better also to avoid occasinal resizing, so by default player is forced to keep one size given by user or a browser through all the usage process, if user haven't specified any flag that turns this behaviour off (see below).
+
+* If your player is located inside IFRAME, and a scene to load is passed using URL to a snapshot, player tries the steps below (you may find `go` file with HTML code in the player sources, it is actually the entry point of IFRAME):
+    * If player size is specified in the URL using URL parameters `w` and `h` or `width`/`height`, the player resizes itself to the given size before loading a scene, and when it got a scene (with asynchronous request), it keeps the given size, and also tries to fit an animation in the given size, keeping aspect ratio and adding black ribbons, if required;
+    * If no player size was specified in the URL, then the player tries to predict size using IFRAME metrics, either using values in `anm-width`/`anm-height` (higher priority) or `width`/`height` (lower priority) pairs of attributes of IFRAME or (if they were not specified), as browser auto-sized IFRAME it in the flow, and also resizes an animation to this size;
+    * If there is no way to get any of this information, the player checks if there is a (TODO) `forcescenesize` attribute (`fss`) in the URL or `anm-force-scene-size` attribute in the IFRAME specified, then it resizes itself to a default size first, but when it got an animation, it resizes itself to the size of this animation.
+    * If everything above failed, the player keeps the default size of the canvas that was set by browser and when it gets a scene, it resizes a scene to this size, so it guarantees no occasinal resize will happen when scene will be received.
+* If `go` page was opened outside of IFRAME (it happens when your animation was published), the rules are exactly the same as for IFRAME, with the exception that the player has no information about IFRAME metrics, since there is no IFRAME, and the player is centered inside the page and fills the empty area with its custom background.
+* If you use player separately by attaching it to CANVAS tag, but do provide some URL by calling `player.forSnapshot`:
+    * If player size is specified in the URL using URL parameters `w` and `h` or `width`/`height`, the player resizes itself to the given size before loading a scene, and when it got a scene (with asynchronous request), it keeps the given size, and also tries to fit an animation in the given size, keeping aspect ratio and adding black ribbons, if required;
+    * If `width` and `height` are specified in the player `options` object, passed to the method, in the root of it, but not inside `anim` sub-object, then this size
+    * If no player size was specified in the URL or `options` object, then the player tries to predict size using CANVAS metrics, either using values in `anm-width`/`anm-height` (higher priority) or `width`/`height` (lower priority) pairs of attributes of CANVAS or (if they were not specified), as browser auto-sized CANVAS it in the flow, and also resizes an animation to this size;
+    * If there is no way to get any of this information, the player checks if there's a (TODO) `forcescenesize` attribute (`fss`) in the snapshot URL or `anm-force-scene-size` attribute in the CANVAS specified; If there is, it keeps the default size of a CANVAS, as a browser had fit it in the flow, and resizes itself to this size before loading a scene, and resizes itself to a received animation size;
+    * If everything above failed, the player keeps the default size of the canvas that was set by browser and when it gets a scene, it resizes a scene to this size, so it guarantees no occasinal resize will happen when scene will be received.
+* If you use player separately by attaching it to CANVAS tag and create player using either `anm.createPlayer` or `player.init`:
+    * If `width` and `height` are specified in the player `options` object, passed to the method, in the root of it, but not inside `anim` sub-object, then this size
+    * If no player size was specified in `options` object, then the player tries to predict size using CANVAS metrics, either using values in `anm-width`/`anm-height` (higher priority) or `width`/`height` (lower priority) pairs of attributes of CANVAS or (if they were not specified), as browser auto-sized CANVAS it in the flow, and also resizes an animation to this size;
+    * If there is no way to get any of this information, the player checks if there's a (TODO) `forcescenesize` attribute (`fss`) in the snapshot URL or `anm-force-scene-size` attribute in the CANVAS specified; If there is, it keeps the default size of a CANVAS, as a browser had fit it in the flow, and resizes itself to this size before loading a scene, and resizes itself to a received animation size;
+    * If everything above failed, the player keeps the default size of the canvas that was set by browser and when it gets a scene, it resizes a scene to this size, so it guarantees no occasinal resize will happen when scene will be received.
+
+Also, you always have the ability to force player to resize in any moment using `player.setSize` method. This size will have the highest priority over all sizes mentioned above, so there will be no way to override it with anything except with the next call to `setSize`.
+
+Pixel ratio (DPI) is always calculated by the player itself, so there is no need for a user to include it in width/height values manually. Except the case with IFRAME/CANVAS `width`/`height` attributes, when browser requires user to specify these values _with_ pixel ratio included. But it _does not_ required for
+
+To summarize, the priority order for player sizing commonly is:
+
+* If `player.setSize` was called at any point, immediately resize to given size and keep it until the next `setSize` call, if it will happen;
+* If there is snapshot URL provided, and there is `forcescenesize` in it, set a flag to force player to resize to any received scene size, when it will be received (all IFRAME URL parameters (see [Embedding](#embedding) section) are transferred to snapshot URL automatically) and proceed to the next steps;
+* If there's `anm-force-scene-size` attribute set on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), set the same flag as in previous step and proceed to the next steps;
+* If there is snapshot URL provided, take size from URL parameters `w`/`h` or `width`/`height` (all IFRAME URL parameters (see [Embedding](#embedding) section) are transferred to snapshot URL) and stop deciding sizes;
+* If there were `width` and `height` values specified in player options object (_not_ in `anim` sub-object), when player was created, use them as size reference, force all scenes to fit this size and stop deciding sizes;
+* If there are `anm-width` and `anm-height` attributes specified on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), use them as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before) and stop deciding sizes;
+* If there are `width` and `height` attributes specified on `IFRAME` (if player is inside it, so higher priority) or `CANVAS` (lower priority), use them as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before) and stop deciding sizes;
+* Try to get the size of `IFRAME` or `CANVAS` as given by browser and use these metrics as a player size, force all scenes to fit this size (if no `force-scene-size` flag was specified before);
+
+And even shorter, first is the highest priority:
+
+* `setSize` method of player
+* `force-scene-size` in URL or CANVAS or IFRAME
+* `width`+`height`/`w`+`h` attrinbutes in URL of snapshot or IFRAME
+* `width`+`height` properties in player's options object when creating
+* `anm-width`+`anm-height` properties of CANVAS or IFRAME tag
+* `width`+`height` properties of CANVAS or IFRAME
+* browser-flow-defined size
 
 ### Playing API
 

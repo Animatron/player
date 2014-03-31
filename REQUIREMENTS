@@ -19,23 +19,25 @@ jake test
   npm install uglify-js
   npm install phantomjs
   npm install jasmine-node
-jake push-go
-jake push-go[rls]
+jake _push-go
+jake _push-go[rls]
   .s3 file
   npm install aws2js
-jake publish-version
-jake publish-version[latest]
-jake publish-version[,rls]
-jake publish-version[latest,rls]
+jake _push-version
+jake _push-version[latest]
+jake _push-version[,rls]
+jake _push-version[latest,rls]
   .s3 file
   npm install aws2js
   npm install walk
   npm install uglify-js
-jake docs:
+jake docs
   npm install docco
   easy_install markdown
 jake anm-scene-valid
   npm install orderly
   npm install jsonschema
 jake -T
+jake trig-prod
+jake trig-dev
   [nothing]

@@ -147,8 +147,6 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
       // assign custom render function
       this.__frameProcessors.push(_audio_customRender);
-
-      this._audioLoad();
     }
   });
 
@@ -164,17 +162,23 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   }
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
-  E.prototype._hasRemoteResources = function() {
-    return prev__hasRemoteResources.call(this, arguments) || this.isAudio;
+  E.prototype._hasRemoteResources = function(scene, player) {
+    return prev__hasRemoteResources.apply(this, arguments) || (this.isAudio && player.audioEnabled);
   }
 
-  var prev__getRemoteResources = E.prototype._getRemoteResources;
-  E.prototype._getRemoteResources = function() {
-    var prev = prev__getRemoteResources.call(this, arguments);
-    if (!this.isAudio && !prev) return null;
+  var prev__collectRemoteResources = E.prototype._collectRemoteResources;
+  E.prototype._collectRemoteResources = function(scene, player) {
+    var prev = prev__collectRemoteResources.apply(this, arguments);
+    if (!player.audioEnabled) return prev;
     if (!this.isAudio) return prev;
         // return [ this._audio_url ].concat(prev || [])
     return prev ? [ this._audio_url ].concat(prev) : [ this._audio_url ];
+  }
+
+  var prev__loadRemoteResources = E.prototype._loadRemoteResources;
+  E.prototype._loadRemoteResources = function(scene, player) {
+    var prev = prev__loadRemoteResources.apply(this, arguments);
+    if (this.isAudio && player.audioEnabled) this._audioLoad();
   }
 
   function audioErrProxy(src, pass_to) {

@@ -2,9 +2,11 @@
 .idea
 .s3
 .DS_Store
-idea-files.zip
+BUILD
+VERSION_LOG
 node_modules
 dist
+doc/public
 doc/anm.html
 doc/player.html
 doc/builder.html
@@ -13,9 +15,8 @@ doc/README.html
 doc/scripting.html
 doc/api.pdf
 doc/docco.css
-doc/public
-examples/files/anm
-src/import/sample-scene.json
-VERSION_LOG
+test-scenes
 deploy-www.sh
 *sublime*
+idea-files.zip
+js-player.iml

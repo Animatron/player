@@ -32,9 +32,13 @@ var VERSION_FILE = 'VERSION',
     VERSIONS_FILE = 'VERSIONS',
     VERSION_LOG_FILE = 'VERSION_LOG',
     CHANGES_FILE = 'CHANGES',
+    PACKAGE_FILE = 'package.json',
     VERSION = (function(file) {
        return jake.cat(_loc(file)).trim();
-    })(VERSION_FILE);
+    })(VERSION_FILE),
+    PACKAGE = (function(file) {
+       return JSON.parse(jake.cat(_loc(file)).trim());
+    })(PACKAGE_FILE);
 
 var COPYRIGHT_COMMENT =
 [ '/*',
@@ -180,7 +184,10 @@ var Bucket = {
 
 var Validation = {
     Schema: { ANM_SCENE: Dirs.SRC + '/' + SubDirs.IMPORTERS + '/animatron-project-' + VERSION + '.orderly' }
-}
+};
+
+var BUILD_FILE = Dirs.DIST_ROOT + '/' + 'BUILD',
+    BUILD_FORMAT = '%H%n%ci%n%cn <%ce>';
 
 var DONE_MARKER = '<Done>.\n',
     NONE_MARKER = '<None>.\n',
@@ -192,8 +199,13 @@ var DESC_WIDTH = 80,
     DESC_PFX = '# ',
     DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
 
+var JSON_INDENT = 2;
+
 var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
                   printStderr: !jake.program.opts.quiet };
+
+var PRODUCTION_TAG = 'production',
+    DEVELOPMENT_TAG = 'development';
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
@@ -215,10 +227,10 @@ task('clean', function() {
 
 desc(_dfit_nl(['Build process, with no cleaning.',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>.',
+               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify'], function() {});
+task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify', '_build-file'], function() {});
 
 desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'so `dist` directory will contain the full '+
@@ -442,6 +454,11 @@ task('version', { async: true }, function(param) {
                 _print('Writing ' + _v + ' to ' + VERSION_FILE + ' file.\n');
                 jake.echo(_v, _loc(VERSION_FILE));
 
+                PACKAGE.version = _v.substr(1); // trim 'v'
+                jake.rmRf(_loc(PACKAGE_FILE));
+                _print('Writing ' + _v + ' to ' + PACKAGE_FILE + ' file.\n');
+                jake.echo(JSON.stringify(PACKAGE, null, JSON_INDENT), _loc(PACKAGE_FILE));
+
                 _print('Writing ' + _v + ' information to ' + VERSIONS_FILE + ' file.\n');
                 _versions.write(_vhash);
 
@@ -509,6 +526,11 @@ task('rm-version', { async: true }, function(param) {
         _print(dst_v + ' -> ' + VERSION_FILE);
         jake.echo(dst_v, _loc(VERSION_FILE));
 
+        jake.rmRf(_loc(PACKAGE_FILE));
+        _print(dst_v + ' -> ' + PACKAGE_FILE);
+        PACKAGE.version = dst_v.substr(1);
+        jake.echo(JSON.stringify(PACKAGE, null, JSON_INDENT), _loc(PACKAGE_FILE));
+
         _vhash[src_v] = null;
         delete _vhash[src_v];
         _vhash['latest'] = dst_v;
@@ -540,7 +562,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
+task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -615,7 +637,7 @@ desc(_dfit_nl(['Pushes `go` page to the S3.',
                'Affects: Only changes S3.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` node.js module.']));
-task('push-go', [], { async: true }, function(_bucket) {
+task('_push-go', [], { async: true }, function(_bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -665,6 +687,81 @@ task('push-go', [], { async: true }, function(_bucket) {
     });
 
 });
+
+desc(_dfit_nl(['Triggers deployment to Production server',
+               'using `production` annotated tag.']));
+task('trig-prod', [], { async: true }, function() {
+    // just applies a tag `production`, so TeamCity will build it and run sequentially:
+    // jake test
+    // jake _push-version[,rls]
+    // jake _push-version[latest,rls]
+    // jake _push-go[rls]
+
+    jake.exec([
+          [ Binaries.GIT,
+            'tag',
+            '-a', '-f',
+            PRODUCTION_TAG,
+            '-m',
+            '"PRODUCTION"' ].join(' ')
+      ], EXEC_OPTS, function() {
+
+      jake.exec([
+          [ Binaries.GIT,
+            'push', '-f',
+            'origin',
+            PRODUCTION_TAG ].join(' ')
+      ], EXEC_OPTS, function() {
+
+        _print(DONE_MARKER);
+
+        complete();
+
+      });
+
+    });
+
+});
+
+desc(_dfit_nl(['Triggers deployment to Development server',
+               'using `development` annotated tag.']));
+task('trig-dev', [], { async: true }, function() {
+    // just applies a tag `development`, so TeamCity will build it and run sequentially:
+    // jake test
+    // jake _push-version
+    // jake _push-version[latest]
+    // jake _push-go
+
+    jake.exec([
+          [ Binaries.GIT,
+            'tag',
+            '-a', '-f',
+            DEVELOPMENT_TAG,
+            '-m',
+            '"DEVELOPMENT"' ].join(' ')
+      ], EXEC_OPTS, function() {
+
+      jake.exec([
+          [ Binaries.GIT,
+            'push', '-f',
+            'origin',
+            DEVELOPMENT_TAG ].join(' ')
+      ], EXEC_OPTS, function() {
+
+        _print(DONE_MARKER);
+
+        complete();
+
+      });
+
+    });
+});
+
+desc('See `trig-prod`.');
+task('trigger-production', ['trig-prod'], {}, function() {});
+
+desc('See `trig-dev`.');
+task('trigger-development', ['trig-dev'], {}, function() {});
 
 /*desc('Run JSHint');
 task('hint', function() {
@@ -738,6 +835,12 @@ task('_organize', function() {
                  _loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
     });
 
+    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
+        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.ENGINES + '/' + engineFile),
+                 _loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+    });
+
     jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
         jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.MODULES + '/' + moduleFile),
@@ -770,6 +873,12 @@ task('_versionize', function() {
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
     versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
+
+    _print('.. Engines');
+
+    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
+        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES + '/' + engineFile));
+    });
 
     _print('.. Modules');
 
@@ -807,6 +916,9 @@ task('_minify', { async: true }, function() {
                                : 'local (at '+LOCAL_NODE_DIR+')')
                 + ' node.js binaries');
 
+    var now = new Date(),
+        BUILD_TIME = now.toString() + ' / ' + now.toISOString();
+
     function minify(src, dst, cb) {
         jake.exec([
             [ Binaries.UGLIFYJS,
@@ -819,9 +931,7 @@ task('_minify', { async: true }, function() {
     }
 
     function copyrightize(file) {
-        var now = new Date();
-        var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g,
-                                                    (now.toString() + ' (' + now.toISOString() + ' / ' + now.getTime() + ')'))
+        var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
                                            .concat(jake.cat(file).trim()  + '\n');
         jake.rmRf(file);
         jake.echo(new_content, file);
@@ -864,6 +974,14 @@ task('_minify', { async: true }, function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
+    _print('.. Engines');
+
+    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.ENGINES);
+    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
+        minifyWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.ENGINES + '/' + engineFile),
+                            _loc(Dirs.MINIFIED + '/' + SubDirs.ENGINES + '/' + engineFile));
+    });
+
     _print('.. Modules');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
@@ -880,6 +998,52 @@ task('_minify', { async: true }, function() {
                             _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
+});
+
+desc(_dfit(['Internal. Create a BUILD file informing about the time and commit of a build.']));
+task('_build-file', { async: true }, function() {
+    _print('Fill ' + BUILD_FILE + ' file with information about current build');
+    _print();
+
+    var _getCommintHash = jake.createExec([
+      [ Binaries.GIT,
+        'log',
+        '-n', '1',
+        '--format=format:"' + BUILD_FORMAT + '"'
+      ].join(' ')
+    ], EXEC_OPTS);
+    _getCommintHash.on('stdout', function(COMMIT_INFO) {
+        var now = new Date(),
+            BUILD_TIME = now.toISOString() + ' ' + now.getTime() + '\n' +
+                         now.toString(),
+            COMMIT_INFO = COMMIT_INFO.toString();
+
+        _print('Build time:');
+        _print(BUILD_TIME);
+        _print();
+        _print('Build commit:');
+        _print(COMMIT_INFO);
+        _print();
+
+        jake.rmRf(_loc(BUILD_FILE));
+        _print('Updating ' + BUILD_FILE + ' file.\n');
+        jake.echo(BUILD_TIME + '\n'
+                  + VERSION + '\n'
+                  + COMMIT_INFO, _loc(BUILD_FILE));
+
+        _print(DONE_MARKER);
+
+        complete();
+    });
+    _getCommintHash.addListener('stderr', function(msg) {
+        _print(FAILED_MARKER, msg);
+        throw new Error(msg);
+    });
+    _getCommintHash.addListener('error', function(msg) {
+        _print(FAILED_MARKER, msg);
+        throw new Error(msg);
+    });
+    _getCommintHash.run();
 });
 
 // UTILS
@@ -983,7 +1147,7 @@ var _versions = (function() {
 
     function _write(_vhash) {
         _print('Updating versions in ' + VERSIONS_FILE + ' file.\n');
-        var _vhash_json = JSON.stringify(_vhash, null, 4);
+        var _vhash_json = JSON.stringify(_vhash, null, JSON_INDENT);
         jake.rmRf(_loc(VERSIONS_FILE));
         jake.echo(_vhash_json, _loc(VERSIONS_FILE));
         for (v in _vhash) {
@@ -995,3 +1159,8 @@ var _versions = (function() {
     return { read: _read,
              write: _write };
 })();
+
+// TODO
+/* function _check_npm_packages(list) {
+
+} */

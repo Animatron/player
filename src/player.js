@@ -80,7 +80,8 @@ var guid = anm.guid;
 
 // value/typecheck
 var is = anm.is;
-var __finite  = is.finite,
+var __defined = is.defined,
+    __finite  = is.finite,
     __nan     = is.nan,
     __builder = is.builder,
     __arr     = is.arr,
@@ -174,13 +175,6 @@ function ell_text(text, max_len) {
          + text.slice(_len - _semilen);
 }
 
-// ### Canvas-related Constants
-/* ---------------------------- */
-
-var DEF_CNVS_WIDTH = 400;
-var DEF_CNVS_HEIGHT = 250;
-var DEF_CNVS_BG = '#fff';
-
 // ### Internal Helpers
 /* -------------------- */
 
@@ -221,18 +215,18 @@ function obj_clone(what) {
     return dest;
 }
 
-function _mrg_obj(src, backup) {
+function _mrg_obj(src, backup, trg) {
     if (!backup) return src;
-    var res = {};
+    var res = trg || {};
     for (var prop in backup) {
-        res[prop] = (typeof src[prop] !== 'undefined') ? src[prop] : backup[prop]; };
+        res[prop] = __defined(src[prop]) ? src[prop] : backup[prop]; };
     return res;
 }
 
 function _strf(str, subst) {
   var args = subst;
   return str.replace(/{(\d+)}/g, function(match, number) {
-    return typeof args[number] != 'undefined'
+    return __defined(args[number])
       ? args[number]
       : match
     ;
@@ -426,25 +420,26 @@ Player.PREVIEW_POS = 0; // was 1/3
 Player.PEFF = 0; // seconds to play more when reached end of movie
 Player.NO_TIME = -1;
 
-Player.DEFAULT_CANVAS = { 'width': DEF_CNVS_WIDTH,
-                          'height': DEF_CNVS_HEIGHT,
-                          'bgcolor': null/*{ 'color': DEF_CNVS_BG }*/ }; // FIXME: change to bgfill
 Player.DEFAULT_CONFIGURATION = { 'debug': false,
-                                 'inParent': false,
-                                 'muteErrors': false,
                                  'repeat': false,
+                                 'autoPlay': false,
                                  'mode': C.M_VIDEO,
                                  'zoom': 1.0,
-                                 'meta': { 'title': '',
-                                           'author': 'Anonymous',
-                                           'copyright': '',
-                                           'version': null,
-                                           'description': '' },
-                                 'anim': { 'fps': 30,
-                                           'width': DEF_CNVS_WIDTH,
-                                           'height': DEF_CNVS_HEIGHT,
-                                           'bgcolor': null, // FIXME: change to bgfill
-                                           'duration': 0 }
+                                 'speed': 1.0,
+                                 'width': undefined,
+                                 'height': undefined,
+                                 //'fps': undefined,
+                                 'infiniteDuration': undefined, // undefined means 'auto'
+                                 'drawStill': undefined, // undefined means 'auto'
+                                 'audioEnabled': true,
+                                 'imagesEnabled': true,
+                                 'shadowsEnabled': true,
+                                 'handleEvents': undefined, // undefined means 'auto'
+                                 'controlsEnabled': undefined, // undefined means 'auto'
+                                 'bgColor': undefined,
+                                 'forceSceneSize': false,
+                                 'inParent': false,
+                                 'muteErrors': false
                                };
 
 // ### Playing Control API
@@ -465,33 +460,35 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //
 // options format:
 //
-//     { "debug": false,
-//       "inParent": false,
-//       "muteErrors": false,
-//       "mode": C.M_VIDEO,
-//       "zoom": 1.0,
-//       "meta": { "title": "Default",
-//                 "author": "Anonymous",
-//                 "copyright": "© NaN",
-//                 "version": -1.0,
-//                 "description":
-//                         "Default project description",
-//                 [ "modified": "2012-04-10T15:06:12.246Z" ] }, // not used
-//       "anim": { "fps": 30,
-//                 "width": 400,
-//                 "height": 250,
-//                 "bgcolor": { color: "#fff" },
-//                 "duration": 0 } }
+//     { 'debug': false,
+//       'autoPlay': false,
+//       'repeat': false,
+//       'mode': C.M_VIDEO,
+//       'zoom': 1.0,
+//       'speed': 1.0,
+//       'width': undefined,
+//       'height': undefined,
+//       'bgColor': undefined,
+//       'audioEnabled': true,
+//       'inifiniteDuration': false,
+//       'drawStill': false,
+//       'controlsEnabled': undefined, // undefined means 'auto'
+//       'handleEvents': undefined, // undefined means 'auto'
+//       'forceSceneSize': false,
+//       'inParent': false,
+//       'muteErrors': false
+//     }
 
 Player.prototype.init = function(cvs, opts) {
     if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
-    var cvs_opts = Player._mergeOpts(this._prepare(cvs),
-                                     Player.DEFAULT_CONFIGURATION);
-    var opts = opts ? Player._mergeOpts(opts, cvs_opts) : cvs_opts;
-    this._loadOpts(opts);
+    this._prepare(cvs);
+    this._addOpts(Player.DEFAULT_CONFIGURATION);
+    this._addOpts($engine.extractUserOptions(this.canvas));
+    this._addOpts(opts || {});
     this._postInit();
+    this._checkOpts();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
     _PlrMan.fire(C.S_NEW_PLAYER, this);
@@ -554,16 +551,18 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     var whenDone = function(result) {
         var scene = player.anim;
-        if (player.mode & C.M_HANDLE_EVENTS) {
+        if (player.handleEvents) {
+            // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(scene);
         }
-        var remotes = scene._collectRemoteResources();
+        var remotes = scene._collectRemoteResources(player);
         if (!remotes.length) {
             player._stopLoadingAnimation();
             player.fire(C.S_LOAD, result);
-            if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+            if (!player.handleEvents) player.stop();
             //$log.debug('no remotes, calling callback');
             if (callback) callback(result);
+            if (player.autoPlay) player.play();
         } else {
             player.state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
@@ -578,12 +577,14 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player._stopLoadingAnimation();
                         player.state.happens = C.LOADING;
                         player.fire(C.S_LOAD, result);
-                        if (!(player.mode & C.M_HANDLE_EVENTS)) player.stop();
+                        if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback(result);
+                        if (player.autoPlay) player.play();
                     }
                 }
             ) ]);
+            scene._loadRemoteResources(player);
         }
     };
     whenDone = player.__defAsyncSafe(whenDone);
@@ -620,8 +621,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     if (durationPassed) { // FIXME: move to whenDone?
-      player.anim.setDuration(duration);
-      player.setDuration(duration);
+        player.anim.duration = duration;
+        if (player.controls) player.controls.setDuration(duration);
     }
 
     return player;
@@ -632,7 +633,7 @@ var __nextFrame = $engine.getRequestFrameFunc(),
 Player.prototype.play = function(from, speed, stopAfter) {
 
     if (this.state.happens === C.PLAYING) {
-        if (this.mode & C.M_HANDLE_EVENTS) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+        if (this.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
     if (this.state.happens === C.RES_LOADING) { this._postpone('play', arguments);
@@ -652,13 +653,20 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     var state = player.state;
 
+    var scene = player.anim;
+    scene.reset();
+
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
-    if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
-
-    state.from = from || state.from;
-    state.speed = speed || state.speed;
+    state.from = from || 0;
+    state.time = Player.NO_TIME;
+    state.speed = (speed || 1) * (player.speed || 1) * (scene.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
+    state.duration = player.inifiniteDuration ? Infinity
+                     : (scene.duration || (scene.isEmpty() ? 0
+                                                           : Scene.DEFAULT_DURATION));
+
+    if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -675,9 +683,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.happens = C.PLAYING;
 
-    var scene = player.anim;
-    scene.reset();
-    player.setDuration(scene.duration);
 
     //if (state.from > 2) throw new Error('Test');
 
@@ -688,7 +693,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     //        __stopAnim is called "to ensure", may be it's not a good way to ensure,
     //       though...
     state.__firstReq = __r_loop(player.ctx,
-                                state, scene,
+                                player, scene,
                                 player.__beforeFrame(scene),
                                 player.__afterFrame(scene),
                                 player.__userBeforeRender,
@@ -722,7 +727,7 @@ Player.prototype.stop = function() {
         (state.happens === C.PAUSED)) {
         // this flags actually stops the animation,
         // __stopAnim is called just for safety reasons :)
-        player.__supressFrames = true;
+        state.__supressFrames = true;
         __stopAnim(state.__firstReq);
     }
 
@@ -732,8 +737,14 @@ Player.prototype.stop = function() {
 
     if (scene) {
         state.happens = C.STOPPED;
-        if (player.mode & C.M_DRAW_STILL) {
-            player.drawAt(state.duration * Player.PREVIEW_POS);
+        if (player.drawStill) {
+            if (!player.infiniteDuration && __finite(scene.duration)) {
+                player.drawAt(state.duration * Player.PREVIEW_POS);
+            } else {
+                player.drawAt(state.from);
+            }
+        } else {
+            player._drawEmpty();
         }
         if (player.controls/* && !player.controls.hidden*/) {
             player._renderControlsAt(state.time);
@@ -806,37 +817,106 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
 Player.prototype._prepare = function(cvs) {
-    var cvs_id, canvas;
+    if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
+    var canvas_id, canvas;
     if (__str(cvs)) {
-        cvs_id = cvs;
-        canvas = $engine.assignPlayerToCanvas(cvs_id, this);
+        canvas_id = cvs;
+        canvas = $engine.getElementById(canvas_id);
+        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
     } else {
-        if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-        this.id = cvs.id;
-        this.canvas = cvs;
+        if (!cvs.id) cvs.id = ('anm-player-' + Player.__instances);
+        canvas_id = cvs.id;
+        canvas = cvs;
     }
-    if (!$engine.checkPlayerCanvas(cvs)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this.id = cvs_id;
+    $engine.assignPlayerToCanvas(canvas, this);
+    if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    this.id = canvas_id;
     this.canvas = canvas;
     this.ctx = $engine.getContext(canvas, '2d');
     this.state = Player.createState(this);
 
     this.subscribeEvents(canvas);
 
-    return $engine.extractUserOptions(canvas);
+    this.__canvasPrepared = true;
 }
-Player.prototype._loadOpts = function(opts) {
-    this.inParent = opts.inParent;
-    this.mode = (opts.mode != null) ? opts.mode : C.M_VIDEO;
-    this.debug = opts.debug;
-    this.state.zoom = opts.zoom || 1;
-    this.state.repeat = opts.repeat;
+Player.prototype._addOpts = function(opts) {
+    // TODO: use addOpts to add any additional options to current ones
+    // will move all options directly in the player object
+    this.debug =    __defined(opts.debug)    ? opts.debug    : this.debug;
+    this.mode =     __defined(opts.mode)     ? opts.mode     : this.mode;
+    this.repeat =   __defined(opts.repeat)   ? opts.repeat   : this.repeat;
+    this.autoPlay = __defined(opts.autoPlay) ? opts.autoPlay : this.autoPlay;
+    this.zoom =    opts.zoom || this.zoom;
+    this.speed =   opts.speed || this.speed;
+    this.width =   opts.width || this.width;
+    this.height =  opts.height || this.height;
+    this.bgColor = opts.bgColor || this.bgColor;
+    this.audioEnabled = __defined(opts.audioEnabled)
+                        ? opts.audioEnabled : this.audioEnabled;
+    this.imagesEnabled = __defined(opts.imagesEnabled)
+                        ? opts.imagesEnabled : this.imagesEnabled;
+    this.shadowsEnabled = __defined(opts.shadowsEnabled)
+                        ? opts.shadowsEnabled : this.shadowsEnabled;
+    this.controlsEnabled = __defined(opts.controlsEnabled)
+                        ? opts.controlsEnabled : this.controlsEnabled;
+    this.handleEvents = __defined(opts.handleEvents)
+                        ? opts.handleEvents : this.handleEvents;
+    this.drawStill = __defined(opts.drawStill)
+                        ? opts.drawStill : this.drawStill;
+    this.infiniteDuration = __defined(opts.infiniteDuration)
+                        ? opts.infiniteDuration : this.infiniteDuration;
+    this.forceSceneSize = __defined(opts.forceSceneSize)
+                        ? opts.forceSceneSize : this.forceSceneSize;
+    this.inParent = __defined(opts.inParent)
+                        ? opts.inParent : this.inParent;
+    this.muteErrors = __defined(opts.muteErrors)
+                        ? opts.muteErrors : this.muteErrors;
+}
+Player.prototype._checkOpts = function() {
+    if (!this.canvas) return;
 
-    this.configureAnim(opts.anim || Player.DEFAULT_CONFIGURATION.anim);
+    this.infiniteDuration = __defined(this.infiniteDuration)
+                            ? this.infiniteDuration
+                            : (this.mode ? (this.mode & C.M_INFINITE_DURATION) : undefined);
+    this.handleEvents = __defined(this.handleEvents)
+                            ? this.handleEvents
+                            : (this.mode ? (this.mode & C.M_HANDLE_EVENTS) : undefined);
+    this.controlsEnabled = __defined(this.controlsEnabled)
+                            ? this.controlsEnabled
+                            : (this.mode ? (this.mode & C.M_CONTROLS_ENABLED) : undefined);
+    this.infoEnabled = __defined(this.infoEnabled)
+                            ? this.infoEnabled
+                            : (this.mode ? (this.mode & C.M_INFO_ENABLED) : undefined);
+    this.drawStill = __defined(this.drawStill)
+                            ? this.drawStill
+                            : (this.mode ? (this.mode & C.M_DRAW_STILL) : undefined);
 
-    this._checkMode();
+    if (!this.width || !this.height) {
+        var cvs_size = $engine.getCanvasSize(this.canvas);
+        this.width = cvs_size[0];
+        this.height = cvs_size[1];
+    }
 
-    this.configureMeta(opts.meta || Player.DEFAULT_CONFIGURATION.meta);
+    this._resize(this.width, this.height);
+
+    if (this.anim && this.handleEvents) {
+        // checks inside if was already subscribed before, skips if so
+        this.__subscribeDynamicEvents(this.anim);
+    }
+
+    if (this.controlsEnabled && !this.controls) {
+        this._enableControls();
+        if (this.infoEnabled) { // FIXME: allow using info without controls
+            this._enableInfo();
+        } else {
+            this._disableInfo();
+        }
+    } else if (!this.controlsEnabled && this.controls) {
+        this._disableInfo();
+        this._disableControls();
+    }
+
+    if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -848,19 +928,17 @@ Player.prototype._postInit = function() {
                             this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
 }
 Player.prototype.changeRect = function(rect) {
-    this._reconfigureCanvas({
-        width: rect.width,
-        height: rect.height,
-        x: rect.x,
-        y: rect.y,
-        bgcolor: this.state.bgcolor
-    });
+    this.x = rect.x; this.y = rect.y;
+    this.width = rect.width; this.height = rect.height;
+    this._moveTo(rect.x, rect.y);
+    this._resize(rect.width, rect.height);
 }
-Player.prototype._rectChanged = function(rect) {
-    var cur = this._canvasConf;
-    return (cur.width != rect.width) || (cur.height != rect.height) ||
+/* Player.prototype._rectChanged = function(rect) {
+    var cur_w = this.state.width,
+        cur_h = this.state.height;
+    return (cur_w != rect.width) || (cur_w != rect.height) ||
            (cur.x != rect.x) || (cur.y != rect.y);
-}
+} */
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
@@ -874,7 +952,7 @@ Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.render(this.state.time);
 }
 Player.prototype.changeZoom = function(zoom) {
-    this.state.zoom = zoom;
+    this.zoom = zoom;
 }
 // update player state with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -885,22 +963,16 @@ Player.prototype.changeZoom = function(zoom) {
 //     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
 //       "width": 640,
 //       "height": 480,
-//       ["bgcolor": { color: "#f00" },] // in canvas-friendly format
+//       ["zoom": 1.0,]
+//       ["bg": { color: "#f00" },] // in canvas-friendly format
 //       ["duration": 10.0] // in seconds
 //     }
 Player.prototype.configureAnim = function(conf) {
     this._animInfo = conf;
-    var cvs = this.canvas;
 
-    if (!conf.width && cvs.hasAttribute('width')) conf.width = cvs.getAttribute('width');
-    if (!conf.height && cvs.hasAttribute('height')) conf.height = cvs.getAttribute('height');
+    _mrg_obj(conf, {}, this.anim);
 
-    this._reconfigureCanvas(conf);
-
-    if (conf.bgcolor) this.state.bgcolor = conf.bgcolor;
-    if (conf.fps) this.state.fps = conf.fps;
-    if (conf.duration) this.state.duration = conf.duration;
-
+    this._checkOpts();
 }
 // update player information block with passed configuration, usually done before
 // loading some scene or by importer, `conf` has the data about title,
@@ -917,7 +989,7 @@ Player.prototype.configureAnim = function(conf) {
 //     }
 Player.prototype.configureMeta = function(info) {
     this._metaInfo = info;
-    if (this.controls) this.controls.inject(info, this._animInfo);
+    if (this.controls) this.controls.inject(info, this._metaInfo);
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
@@ -927,7 +999,7 @@ Player.prototype.drawAt = function(time) {
                                                           // postpone this task and exit. postponed tasks
                                                           // will be called when all remote resources were
                                                           // finished loading
-    if ((time < 0) || (time > this.state.duration)) {
+    if ((time < 0) || (time > this.anim.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     var scene = this.anim,
@@ -943,11 +1015,15 @@ Player.prototype.drawAt = function(time) {
     scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, 0, this.ctx, this.state, this.anim, u_before, u_after);
+    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, u_before, u_after);
 
     if (this.controls) this._renderControlsAt(time);
 
     return this;
+}
+Player.prototype.setSize = function(width, height) {
+    this.__userSize = [ width, height ];
+    this._resize();
 }
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
@@ -970,6 +1046,7 @@ Player.prototype.detach = function() {
     if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
     if (this.controls) this.controls.detach(this.canvas.parentNode);
     $engine.detachPlayer(this.canvas, this);
+    if (this.ctx) delete this.ctx.__anm_skipShadows;
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
@@ -1011,7 +1088,7 @@ Player.prototype.subscribeEvents = function(canvas) {
         mouseover: (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
-                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                (player.handleEvents) &&
                                 player.canvas) {
                                 player.canvas.focus();
                             }
@@ -1021,7 +1098,7 @@ Player.prototype.subscribeEvents = function(canvas) {
         mouseout:   (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
-                                (player.mode & C.M_HANDLE_EVENTS) &&
+                                (player.handleEvents) &&
                                 player.canvas) {
                                 player.canvas.blur();
                             }
@@ -1030,20 +1107,32 @@ Player.prototype.subscribeEvents = function(canvas) {
                     })(this)
     });
 }
-Player.prototype.setDuration = function(value) {
-    this.state.duration = (value >= 0) ? value : 0;
-    if (this.controls) this.controls.setDuration((value >= 0) ? value : 0);
+Player.prototype._drawEmpty = function() {
+    var ctx = this.ctx,
+        w = this.width,
+        h = this.height;
+
+    ctx.save();
+
+    var ratio = $engine.PX_RATIO;
+    // FIXME: somehow scaling context by ratio here makes all look bad
+
+    // background
+    ctx.fillStyle = '#ffe';
+    ctx.fillRect(0, 0, w * ratio, h * ratio);
+
+    ctx.restore();
 }
 Player.prototype._drawSplash = function() {
     var ctx = this.ctx,
-        w = this.state.width,
-        h = this.state.height;
+        w = this.width,
+        h = this.height;
 
     ctx.save();
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    var ratio = this.state.ratio;
+    var ratio = $engine.PX_RATIO;
     // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
@@ -1110,6 +1199,7 @@ Player.prototype._drawLoadingCircles = function() {
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     Controls._stopLoadingAnimation(this.ctx);
+    this._drawEmpty();
 }
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
@@ -1150,64 +1240,44 @@ Player.prototype.toString = function() {
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
     var state = this.state;
-    state.debug = this.debug;
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
-    /*state.zoom = 1;*/ // do not override the zoom
     state.duration = undefined;
     if (this.controls) this.controls.reset();
-    this.ctx.clearRect(0, 0, state.width * state.ratio,
-                             state.height * state.ratio);
+    this.ctx.clearRect(0, 0, this.width * $engine.PX_RATIO,
+                             this.height * $engine.PX_RATIO);
     /*this.stop();*/
 }
 Player.prototype._stopAndContinue = function() {
-  //state.__lastPlayConf = [ from, speed, stopAfter ];
-  var state = this.state,
-      last_conf = state.__lastPlayConf;
-  var stoppedAt = state.time;
-  this.stop();
-  this.play(stoppedAt, last_conf[1], last_conf[2]);
+    //state.__lastPlayConf = [ from, speed, stopAfter ];
+    var state = this.state,
+        last_conf = state.__lastPlayConf;
+    var stoppedAt = state.time;
+    this.stop();
+    this.play(stoppedAt, last_conf[1], last_conf[2]);
 }
-// update player's canvas with configuration
-Player.prototype._reconfigureCanvas = function(opts) {
-    var canvas = this.canvas;
-    this._canvasConf = opts;
-    var _w = opts.width ? Math.floor(opts.width) : DEF_CNVS_WIDTH;
-    var _h = opts.height ? Math.floor(opts.height) : DEF_CNVS_HEIGHT;
-    opts.width = _w;
-    opts.height = _h;
-    this.state.width = _w;
-    this.state.height = _h;
-    this.state.ratio = $engine.PX_RATIO; // FIXME: remove overusage of ratio
-    if (opts.bgcolor) this.state.bgcolor = opts.bgcolor;
-    opts.lockBg = this.__lockCvsBg;
-    opts.lockResize = this.__lockCvsResize;
-    $engine.configureCanvas(canvas, opts);
-    if (this.controls) this.controls.update(canvas);
-    this.__canvasPrepared = true;
+// FIXME: moveTo is not moving anything for the moment
+Player.prototype._moveTo = function(x, y) {
+    $engine.setCanvasPos(this.canvas, x, y);
+}
+Player.prototype._resize = function(width, height) {
+    var cvs = this.canvas,
+        new_size = this.__userSize || [ width, height ],
+        cur_size = $engine.getCanvasParams(cvs);
+    if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
+    if (!new_size[0] || !new_size[1]) {
+        new_size = $engine.getCanvasSize(cvs);
+    };
+    $engine.setCanvasSize(cvs, new_size[0], new_size[1]);
+    if (this.controls) this.controls.update(cvs);
     this.forceRedraw();
-    return this;
-}
-Player.prototype._checkMode = function() {
-    if (!this.canvas) return;
-
-    if (this.anim && (this.mode & C.M_HANDLE_EVENTS)) {
-        this.__subscribeDynamicEvents(this.anim);
-    }
-
-    if (this.mode & C.M_CONTROLS_ENABLED) {
-        this._enableControls();
-        if (this.mode & C.M_INFO_ENABLED) {
-            this._enableInfo();
-        } else {
-            this._disableInfo();
-        }
-    } else {
-        this._disableInfo();
-        this._disableControls();
-    }
-}
+    return new_size;
+};
+Player.prototype._restyle = function(bg) {
+    $engine.setCanvasBackground(this.canvas, bg);
+    this.forceRedraw();
+};
 // FIXME: methods below may be removed, but they are required for tests
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
@@ -1289,10 +1359,10 @@ Player.prototype.__beforeFrame = function(scene) {
                 state.time = 0;
                 scene.reset();
                 player.stop();
-                if (state.repeat) {
+                if (player.repeat || scene.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
-                } else if (!(player.mode & C.M_INFINITE_DURATION)
+                } else if (!player.infiniteDuration
                        && __finite(state.duration)) {
                    player.drawAt(state.duration);
                 }
@@ -1322,7 +1392,7 @@ Player.prototype.__afterFrame = function(scene) {
 // this error over itself
 Player.prototype.__onerror = function(err) {
   var player = this;
-  var doMute = (player.state && player.state.muteErrors);
+  var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof SysErr);
 
   if (player.state &&
@@ -1442,15 +1512,13 @@ Player.prototype.__detachScene = function(scene) {
 } */
 
 Player.createState = function(player) {
+    // Player state contains only things that actually change while playing a scene,
+    // it's current time, time when player started to play or was stopped at,
+    // happens reflects what player does now, `afps` is actual FPS.
     return {
-        'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
-        'speed': 1, 'fps': 30, 'afps': 0, 'duration': 0,
-        'debug': false, 'iactive': false,
-        /* TODO: use iactive to determine if controls/info should be init-zed */
-        'width': player.canvas.offsetWidth,
-        'height': player.canvas.offsetHeight,
-        'zoom': 1.0, 'bgcolor': null,
         'happens': C.NOTHING,
+        'time': Player.NO_TIME, 'from': 0, 'stop': Player.NO_TIME,
+        'afps': 0, 'speed': 1,
         'duration': undefined,
         '__startTime': -1,
         '__redraws': 0, '__rsec': 0
@@ -1465,24 +1533,40 @@ Player._isPlayerEvent = function(type) {
             (type == C.S_LOAD) || (type == C.S_RES_LOAD) ||
             (type == C.S_ERROR) || (type == C.S_IMPORT));
 }
-Player._mergeOpts = function(what, where) {
-    var res = _mrg_obj(what, where);
-    res.meta = what.meta ? _mrg_obj(what.meta, where.meta || {}) : (where.meta || {});
-    res.anim = what.anim ? _mrg_obj(what.anim, where.anim || {}) : (where.anim || {});
-    return res;
-}
 Player._optsFromUrlParams = function(params/* as object */) {
-    return { 'debug': params.debug,
-             'inParent': undefined,
-             'muteErrors': false,
-             'repeat': params.r,
-             'mode': params.m,
-             'zoom': params.z,
-             'anim': { 'fps': undefined,
-                       'width': params.w,
-                       'height': params.h,
-                       'bgcolor':  { color: params.bg ? "#" + params.bg : null },
-                       'duration': undefined } };
+    function __boolParam(val) {
+        if (!val) return false;
+        if (val == 0) return false;
+        if (val == 1) return true;
+        if (val == 'false') return false;
+        if (val == 'true') return true;
+        if (val == 'off') return false;
+        if (val == 'on') return true;
+        if (val == 'no') return false;
+        if (val == 'yes') return true;
+    }
+    function __extractBool() {
+        var variants = arguments;
+        for (var i = 0; i < variants.length; i++) {
+            if (__defined(params[variants[i]])) return __boolParam(params[variants[i]]);
+        }
+        return undefined;
+    }
+    var opts = {};
+    opts.debug = __defined(params.debug) ? __boolParam(params.debug) : undefined;
+    opts.muteErrors = __extractBool('me', 'muterrors');
+    opts.repeat = __extractBool('r', 'repeat');
+    opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
+    opts.mode = params.m || params.mode || undefined;
+    opts.zoom = params.z || params.zoom;
+    opts.speed = params.v || params.speed;
+    opts.width = params.w || params.width;
+    opts.height = params.h || params.height;
+    opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
+    opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
+    opts.controlsEnabled = __extractBool('c', 'controls');
+    opts.bgColor = params.bg || params.bgcolor;
+    return opts;
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
     var urlWithParams = snapshotUrl.split('?'),
@@ -1492,30 +1576,31 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
-    if (params.w && params.h) $engine.lockCanvasResize(player.canvas);
-    if (params.bg) $engine.lockCanvasStyle(player.canvas);
-    function updateWithParams() {
-        if (typeof params.t !== 'undefined') {
-            player.play(params.t / 100);
-        } else if (typeof params.p !== 'undefined') {
-            player.play(params.p / 100).pause();
-        }
-        if (params.w && params.h) {
-            $engine.unlockCanvasResize(player.canvas);
-            player._reconfigureCanvas({ width: params.w, height: params.h });
-            $engine.lockCanvasResize(player.canvas); // is it required to lock it?
-        }
-        if (params.bg) {
-            $engine.unlockCanvasStyle(player.canvas);
-            $engine.setCanvasBackground(player.canvas, '#' + params.bg);
-            $engine.lockCanvasStyle(player.canvas); // is it required to lock it?
-        }
-        if (callback) callback(player);
-    }
 
-    player.load(snapshotUrl, importer, updateWithParams);
+    player.load(snapshotUrl, importer, function() {
+        player._applyUrlParamsToAnimation(params);
+        if (callback) callback(player);
+    });
 
     return player;
+}
+Player.prototype._applyUrlParamsToAnimation = function(params) {
+    // NB: this metod is intended to be called only after some animation was loaded completely
+    //     into player, some URL parameters are loaded into player `options` object and applied
+    //     before getting any animation, but it's done using `_optsFromUrlParams` method.
+
+    // these values (t, from, p, still) may be 0 and it's a proper value,
+    // so they require a check for undefined separately
+
+    if (__defined(params.t)) {
+        this.play(params.t / 100);
+    } else if (__defined(params.from)) {
+        this.play(params.from / 100);
+    } else if (__defined(params.p)) {
+        this.play(params.p / 100).pause();
+    } else if (__defined(params.still)) {
+        this.play(params.still / 100).pause();
+    }
 }
 
 // Scene
@@ -1531,12 +1616,17 @@ function Scene() {
     this.bgfill = null;
     this.width = undefined;
     this.height = undefined;
+    this.zoom = 1.0;
+    this.speed = 1.0;
+    this.repeat = false;
+    this.meta = {};
+    //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];
     this._initHandlers(); // TODO: make automatic
 }
 
-Scene.DEFAULT_LEN = 10;
+Scene.DEFAULT_DURATION = 10;
 
 // mouse/keyboard events are assigned in L.loadScene
 /* TODO: move them into scene */
@@ -1547,9 +1637,6 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        // player events
                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
                        C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
-Scene.prototype.setDuration = function(val) {
-  this.duration = (val >= 0) ? val : 0;
-}
 /* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
 // > Scene.add % (elems: Array[Element]) => Clip
@@ -1619,8 +1706,9 @@ Scene.prototype.visitChildren = Scene.prototype.visitRoots;
 Scene.prototype.iterateRoots = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
 }
-Scene.prototype.render = function(ctx, time, dt, zoom) {
+Scene.prototype.render = function(ctx, time, dt) {
     ctx.save();
+    var zoom = this.zoom;
     try {
         if (zoom != 1) {
             ctx.scale(zoom, zoom);
@@ -1723,14 +1811,23 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     elm.scene = null;
     //elm.parent = null;
 }
-Scene.prototype._collectRemoteResources = function() {
-    var remotes = [];
+Scene.prototype._collectRemoteResources = function(player) {
+    var remotes = [],
+        scene = this;
     this.visitElems(function(elm) {
-        if (elm._hasRemoteResources()) {
-           remotes = remotes.concat(elm._getRemoteResources());
+        if (elm._hasRemoteResources(scene, player)) {
+           remotes = remotes.concat(elm._collectRemoteResources(scene, player)/* || []*/);
         }
     });
     return remotes;
+}
+Scene.prototype._loadRemoteResources = function(player) {
+    var scene = this;
+    this.visitElems(function(elm) {
+        if (elm._hasRemoteResources(scene, player)) {
+           elm._loadRemoteResources(scene, player);
+        }
+    });
 }
 Scene.prototype.findById = function(id) {
     return this.hash[id];
@@ -2557,7 +2654,7 @@ Element.prototype.lrect = function() {
 }
 Element.prototype.setMask = function(elm) {
     if (!elm) throw new AnimErr('No valid masking element was passed');
-    if (this.scene) this.scene.__ensureHasMaskCanvas(this.level);
+    //if (this.scene) this.scene.__ensureHasMaskCanvas(this.level);
     this.__mask = elm;
 }
 Element.prototype.clearMask = function() {
@@ -2679,10 +2776,10 @@ Element.prototype._stateStr = function() {
            "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
-  var lband = this.xdata.lband,
-      elm_duration = lband[1] - lband[0],
+  var lband = this.xdata.lband, // local band of the _element_
+      elm_duration = lband[1] - lband[0], // duration of the _element_'s local band
       easing = conf.easing,
-      time = conf.time, // time or band of the modifier, if set
+      time = conf.time, // time (or band) of the _modifier_, if set
       relative = conf.relative;
   var _tpair = null;
   if (time == null) {
@@ -3008,12 +3105,18 @@ Element.prototype.__resetState = function() {
     s._appliedAt = null;
     s._matrix.reset();
 }
-Element.prototype._hasRemoteResources = function() {
-    if (this.xdata.sheet) return true;
+Element.prototype._hasRemoteResources = function(scene, player) {
+    if (player.imagesEnabled && this.xdata.sheet) return true;
 }
-Element.prototype._getRemoteResources = function() {
+Element.prototype._collectRemoteResources = function(scene, player) {
+    if (!player.imagesEnabled) return null;
     if (!this.xdata.sheet) return null;
     return [ this.xdata.sheet.src ];
+}
+Element.prototype._loadRemoteResources = function(scene, player) {
+    if (!player.imagesEnabled) return;
+    if (!this.xdata.sheet) return;
+    this.xdata.sheet.load();
 }
 Element.prototype.__removeMaskCanvases = function() {
     if (!this.__maskCvs && !this.__backCvs) return;
@@ -3111,7 +3214,8 @@ Element.__addTweenModifier = function(elm, conf) {
       m_tween = tween_f;
     } else {
       m_tween = function(t, dt, duration, data) {
-        return tween_f.call(this, t / duration, dt, duration, data);
+        return tween_f.call(this, __finite(duration) && duration ? (t / duration) : 0,
+                            dt, duration, data);
       };
     }
     return elm.__modify({ type: Element.TWEEN_MOD,
@@ -3187,12 +3291,6 @@ L.loadFromUrl = function(player, url, importer, callback) {
 }
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
-    if (importer.configureAnim) {
-        player.configureAnim(importer.configureAnim(object));
-    }
-    if (importer.configureMeta) {
-        player.configureMeta(importer.configureMeta(object));
-    }
     var scene = importer.load(object);
     player.fire(C.S_IMPORT, importer, scene, object);
     L.loadScene(player, scene, callback);
@@ -3200,29 +3298,11 @@ L.loadFromObj = function(player, object, importer, callback) {
 L.loadScene = function(player, scene, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
-    if (player.state.debug
+    if (player.debug
         && !global_opts.liveDebug)
         scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
     // assign
     player.anim = scene;
-    // update duration
-    if (player.state.duration == undefined) {
-        var _duration;
-        if (scene.duration !== undefined) { _duration = scene.duration; }
-        else {
-          if (player.mode & C.M_INFINITE_DURATION) { _duration = Infinity; }
-          else {
-            if (scene.isEmpty()) { _duration = 0; }
-            else { _duration = Scene.DEFAULT_LEN; }
-          }
-        }
-        scene.setDuration(_duration);
-        player.setDuration(_duration);
-    }
-    if ((scene.width === undefined) && (scene.height === undefined)) {
-        scene.width = player.state.width;
-        scene.height = player.state.height;
-    }
     if (callback) callback.call(player, scene);
 }
 L.loadClips = function(player, clips, callback) {
@@ -3233,7 +3313,7 @@ L.loadClips = function(player, clips, callback) {
 L.loadBuilder = function(player, builder, callback) {
     var _anim = new Scene();
     _anim.add(builder.v);
-    if (builder.d != undefined) _anim.setDuration(builder.d);
+    if (builder.d != undefined) _anim.duration = builder.d;
     L.loadScene(player, _anim, callback);
 }
 
@@ -3250,7 +3330,10 @@ var Render = {}; // means "Render", render loop + system modifiers & painters
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-function __r_loop(ctx, pl_state, scene, before, after, before_render, after_render) {
+function __r_loop(ctx, player, scene, before, after, before_render, after_render) {
+
+    var pl_state = player.state;
+
     if (pl_state.happens !== C.PLAYING) return;
 
     var msec = (Date.now() - pl_state.__startTime);
@@ -3274,10 +3357,10 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, pl_state, scene, before_render, after_render);
+    __r_at(time, dt, ctx, scene, player.width, player.height, player.zoom, before_render, after_render);
 
     // show fps
-    if (pl_state.debug) { // TODO: move to player.onrender
+    if (player.debug) {
         __r_fps(ctx, pl_state.afps, time);
     }
 
@@ -3288,31 +3371,35 @@ function __r_loop(ctx, pl_state, scene, before, after, before_render, after_rend
     if (pl_state.__supressFrames) return;
 
     return __nextFrame(function() {
-        __r_loop(ctx, pl_state, scene, before, after, before_render, after_render);
+        __r_loop(ctx, player, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, pl_state, scene, before, after) {
+function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
-    if (ratio !== 1) ctx.scale(ratio, ratio); // the scene zoomed to pl_state.zoom later in scene.render
-    var size_differs = (pl_state.width  != scene.width) ||
-                       (pl_state.height != scene.height);
+    if (ratio !== 1) ctx.scale(ratio, ratio);
+    var width = width | 0,
+        height = height | 0;
+    var size_differs = (width  != scene.width) ||
+                       (height != scene.height);
     if (!size_differs) {
         try {
             ctx.clearRect(0, 0, scene.width,
                                 scene.height);
             if (before) before(time, ctx);
-            scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
+            if (zoom != 1) ctx.scale(zoom, zoom);
+            scene.render(ctx, time, dt);
             if (after) after(time, ctx);
         } finally { ctx.restore(); }
     } else {
-        __r_with_ribbons(ctx, pl_state.width, pl_state.height,
+        __r_with_ribbons(ctx, width, height,
                               scene.width, scene.height,
             function(_scale) {
                 try {
                   ctx.clearRect(0, 0, scene.width, scene.height);
                   if (before) before(time, ctx);
-                  scene.render(ctx, time, dt, pl_state.zoom/*, pl_state.afps*/);
+                  if (zoom != 1) ctx.scale(zoom, zoom);
+                  scene.render(ctx, time, dt);
                   if (after) after(time, ctx);
                 } finally { ctx.restore(); }
             });
@@ -3540,7 +3627,7 @@ var Tweens = {};
 Tweens[C.T_ROTATE] =
     function() {
       return function(t, dt, duration, data) {
-        this.angle = data[0] * (1 - t) + data[1] * t;
+        this.angle = data[0] * (1.0 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
@@ -3570,7 +3657,7 @@ Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, dt, duration, data) {
         var path = this._mpath;
-        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+        if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 Tweens[C.T_SHEAR] =
@@ -3888,18 +3975,21 @@ Path.prototype.parse = function(str) {
     if (str) Path.parse(str, this);
     return this;
 }
-// find a segment data in a path that corresponds to specified distance (t)
-// of the path (0..1),
+// find a segment hit data in a path that corresponds
+// to specified distance (t) of the path (0..1),
 // > Path.hitAt % (t: [0..1]) => Array[Int, 2]
-Path.prototype.hitAt = function(t/*, func*/) {
-    var startp = this.start();
+Path.prototype.hitAt = function(t) {
+    var plen = this.length(); // path length in pixels
+    if (t < 0 || t > 1.0) return null;
+
+    var startp = this.start(); // start point of segment
     if (t === 0) return {
           'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
         };
-    var endp = this.end();
-    /*if (t == 1) return func ? func(startp, endp) : endp;*/
 
-    var plen = this.length(); // path length in pixels
+    /*var endp = this.end();
+      if (t == 1) return func ? func(startp, endp) : endp;*/
+
     var nsegs = this.segs.length; // number of segments
     var distance = t * plen;
     var p = startp;
@@ -3907,22 +3997,26 @@ Path.prototype.hitAt = function(t/*, func*/) {
     var seg, slen;
     for (var si = 0; si < nsegs; si++) {
         seg = this.segs[si];
-        slen = seg.length(p); // segment length
-        if (distance <= (length + slen)) {
-            // inside current segment
-            var segdist = distance - length;
-            return {
-              'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
-            };
+        if (seg.type !== C.P_MOVE_TO) {
+          slen = seg.length(p); // segment length
+          if (distance <= (length + slen)) {
+              // inside current segment
+              var segdist = distance - length;
+              return {
+                'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
+              };
+          }
+          length += slen;
         }
-        length += slen;
         // end point of segment
         p = seg.last();
     };
-    var lseg = this.segs[this.segs.length - 1];
-    return {
-      'seg': lseg, 'start': p, 'slen': lseg.length(p), 'segt': 1.0
-    };
+
+    /*var lseg = this.segs[nsegs - 1];
+      return {
+        'seg': lseg, 'start': p, 'slen': lseg.length(p), 'segt': 1.0
+      };*/
+    return null;
 }
 // find a point on a path at specified distance (t) of the path (0..1),
 // a function that transforms the result point (using given start point of
@@ -3930,12 +4024,14 @@ Path.prototype.hitAt = function(t/*, func*/) {
 // > Path.pointAt % (t: [0..1]) => Array[Int, 2]
 Path.prototype.pointAt = function(t) {
     var hit = this.hitAt(t);
+    if (!hit) return this.start();
     return hit.seg.atT(hit.start, hit.segt);
 }
 // find a tangent on a path at specified distance (t) of the path (0..1)
 // > Path.tangentAt % (t: [0..1]) => Double
 Path.prototype.tangentAt = function(t) {
     var hit = this.hitAt(t);
+    if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
 }
 Path.prototype.start = function() {
@@ -4199,7 +4295,7 @@ MSeg.prototype.atT = function(start, t) {
     return this.atDist(start, null);
 }
 MSeg.prototype.tangentAt = function(start, t) {
-    return Math.atan2(this.pts[0], this.pts[1]);
+    return 0;
 }
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
@@ -4331,13 +4427,25 @@ CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
 }
 CSeg.prototype.tangentAt = function(start, t) {
-    this._ensure_params(start);
+    if ((t < 0) || (t > 1)) return 0;
+
+    var p1 = this.atT(start, t),
+        p2 = this.atT(start, t + 0.001);
+
+    return Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
+
+    /*     this._ensure_params(start);
     var par = this._params;
-    var tt = t * t; // t^2
-    var p = [ 3 * par[0] * tt + 2 * par[1] * t + par[2],
-              3 * par[4] * tt + 2 * par[5] * t + par[6] ];
-    /*var p = this.atT(start, t);*/
-    return Math.atan2(p[1], p[0]);
+    var t1 = t,
+        t2 = t + 0.001;
+    var tt1 = t1 * t1, // t1^2
+        tt2 = t2 * t2; // t1^2
+    var p1 = [ 3 * par[0] * tt1 + 2 * par[1] * t1 + par[2],
+               3 * par[4] * tt1 + 2 * par[5] * t1 + par[6] ],
+        p2 = [ 3 * par[0] * tt2 + 2 * par[1] * t2 + par[2],
+               3 * par[4] * tt2 + 2 * par[5] * t2 + par[6] ];
+
+    return Math.atan2(p2[1] - p1[1], p2[0] - p1[0]); */
 }
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart &&
@@ -4571,7 +4679,7 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows) return;
+    if (!shadow || $conf.doNotRenderShadows || ctx.__anm_skipShadows) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -4601,9 +4709,10 @@ function Sheet(src, callback, start_region) {
     this.wasError = false;
     this._image = null;
     this._cvs_cache = null;
-    this.load(callback);
+    this._callback = callback;
 }
 Sheet.prototype.load = function(callback) {
+    var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     _ResMan.loadOrGet(me.src,
@@ -4646,7 +4755,7 @@ Sheet.prototype._drawToCache = function() {
         this._cvs_cache = this._image.__cvs;
         return;
     }
-    var _canvas = $engine.createCanvas(this._dimen, 1 /* FIXME: use real ratio */);
+    var _canvas = $engine.createCanvas(this._dimen[0], this._dimen[1], null, 1 /* FIXME: use real ratio */);
     var _ctx = $engine.getContext(_canvas, '2d');
     _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
@@ -4810,7 +4919,7 @@ Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas,
-        pconf = $engine.getCanvasParams(parent);
+        pconf = $engine.getCanvasSize(parent);
     var _w = pconf[0],
         _h = pconf[1];
     if (!cvs) {
@@ -4830,7 +4939,7 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
-        $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.setCanvasSize(cvs, _w, _h);
         $engine.moveElementTo(cvs, $engine.findElementPosition(parent));
     }
     this.handleAreaChange();
@@ -4994,7 +5103,7 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.mode === C.M_DYNAMIC || this.player.handleEvents) return;
     this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
@@ -5067,6 +5176,8 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     $engine.detachElement(this._inParent ? parent : null, this.canvas);
     if (this.info) this.info.detach(parent);
+    if (this.ctx && this.ctx.__anm_loadingReq) delete this.ctx.__anm_loadingReq;
+    if (this.ctx) delete this.ctx.__anm_supressLoading;
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
@@ -5481,7 +5592,7 @@ InfoBlock.prototype.detach = function(parent) {
 // TODO: move to engine
 InfoBlock.prototype.update = function(parent) {
     var cvs = this.canvas,
-        pconf = $engine.getCanvasParams(parent),
+        pconf = $engine.getCanvasSize(parent),
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
@@ -5502,7 +5613,7 @@ InfoBlock.prototype.update = function(parent) {
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
         var parent_pos = $engine.findElementPosition(parent);
-        $engine.configureCanvas(cvs, [ _w, _h ]);
+        $engine.setCanvasSize(cvs, _w, _h);
         $engine.moveElementTo(cvs, [ parent_pos[0] + _m,
                                      parent_pos[1] + _m ]);
     }
@@ -5530,7 +5641,7 @@ InfoBlock.prototype.render = function() {
         _nw = Math.max(_td[0], _bd[0]) + _p + _p,
         _nh = _td[1] + _bd[1] + (_p * 3),
         ctx = this.ctx;
-    $engine.configureCanvas(this.canvas, [ _nw, _nh ]);
+    $engine.setCanvasSize(this.canvas, _nw, _nh);
     ctx.save();
     if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, _nw, _nh);
@@ -5609,11 +5720,11 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
         h = dimensions[1] * scale;
 
     if (!anmGuyCanvas) {
-        anmGuyCanvas = $engine.createCanvas([ w, h ]);
+        anmGuyCanvas = $engine.createCanvas(w, h);
         anmGuyCtx = $engine.getContext(anmGuyCanvas, '2d');
     } else {
         // FIXME: resize only if size was changed
-        $engine.configureCanvas(anmGuyCanvas, [ w, h ]);
+        $engine.setCanvasSize(anmGuyCanvas, w, h);
     }
 
     var maskCanvas = anmGuyCanvas;

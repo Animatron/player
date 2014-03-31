@@ -1,7 +1,29 @@
-v1.1 / Fri Nov 22 2013 16:55:38 +0100 / 66cf7ea90808de92406c315a7ebd45d8dfaa9a01
+v1.1 / Mon Feb 17 2014 14:06:29 +0100 / b6514e824e524cfe758a7927d046acde28d9a0be
 ================================================================================
 
-* Change `HIDDEN` flag to `VISIBLE` again when improting Animatron scenes :)
+(a.k.a. v1.1.0)
+
+* Use Engines! i.e. at client, DOM-engine is used as a proxy for all canvas & DOM related functionality
+* There's a root `anm` namespace now, the parent for all classes and utils
+* The `require`-driven modules structure, though not perfect for the moment
+* Implement importing binary-encoded paths from Animatron
+* Implement paths caching when importing from Animatron
+* Fixes in masks
+* Give the ability for external scripts to disable loading audio or images or both, it was required for preview generation.
+* Pass time in scripting module handlers
+* Make projects always infinite in scripting module
+* Jumps in scripting module
+* Support master audio
+* Fix `contains` test to include scale in applying of pivot/registration point
+* Fix image mockup in tests
+* Change `VISIBLE` flag to `HIDDEN` when importing
+* Support scripting for groups
+* Fixes for controls (when resizing and detaching player)
+* Stop loading animation on error, if last happened.
+* Fixes for importing local time
+* Fixes in audio & scripting modules
+* Loading screen for player w/o controls
+* Build system improvements
 
 
 

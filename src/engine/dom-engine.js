@@ -41,13 +41,7 @@ $glob.__anm_engine = $engine;
 
 function DomEngine() { return (function() { // wrapper here is just to isolate it, executed immediately
 
-    // DomEngine utils
-
-    function __attrOr(canvas, attr, _default) {
-        return canvas.hasAttribute(attr)
-               ? canvas.getAttribute(attr)
-               : _default;
-    }
+    // DomEngine constants
 
     var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
         URL_ATTR = 'data-url';
@@ -71,6 +65,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // createTransform() -> Transform
 
+    // getElementById(id) -> Element
     // findElementPosition(elm) -> [ x, y ]
     // findScrollAwarePos(elm) -> [ x, y ]
     // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
@@ -78,7 +73,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // disposeElement(elm) -> none
     // detachElement(parent | null, child) -> none
 
-    // createCanvas(params | [width, height], ratio?) -> canvas
+    // createCanvas(width, height, bg?, ratio?) -> canvas
     // assignPlayerToCanvas(id, player) -> canvas
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
@@ -87,14 +82,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // checkPlayerCanvas(canvas) -> true | false
     // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
+    // getCanvasSize(canvas) -> [ width, height ]
+    // getCanvasPos(canvas) -> [ x, y ]
     // getCanvasParams(canvas) -> [ width, height, ratio ]
     // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
-    // configureCanvas(canvas, options, ratio) -> none
-    // setCanvasBackground(value) -> none
-    // lockCanvasResize(canvas) -> none
-    // unlockCanvasResize(canvas) -> none
-    // lockCanvasStyle(canvas) -> none
-    // unlockCanvasStyle(canvas) -> none
+    // setCanvasSize(canvas, width, height, ratio?) -> none
+    // setCanvasPos(canvas, x, y) -> none
+    // setCanvasBackground(canvas, value) -> none
     // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
 
     // getEventPos(event, elm?) -> [ x, y ]
@@ -233,6 +227,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // Elements
 
+    $DE.getElementById = function(id) {
+        return $doc.getElementById(id);
+    }
     /* FIXME: replace with elm.getBoundingClientRect();
        see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
     // returns position on a screen, _including_ scroll
@@ -288,16 +285,15 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // Creating & Modifying Canvas
 
-    $DE.createCanvas = function(dimen, ratio) {
+    $DE.createCanvas = function(width, height, bg, ratio) {
         var cvs = $doc.createElement('canvas');
-        $DE.configureCanvas(cvs, dimen, ratio);
+        $DE.setCanvasSize(cvs, width, height, ratio);
+        if (bg) $DE.setCanvasBackground(cvs, bg);
         return cvs;
     }
-    $DE.assignPlayerToCanvas = function(id, player) {
-        var cvs = $doc.getElementById(id);
-        //if (!cvs) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+    $DE.assignPlayerToCanvas = function(cvs, player) {
         //if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-        if (!cvs) throw new Errror('No canvas with id \'' + id + '\' was found.');
+        if (!cvs) return null;
         if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + id + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
         return cvs;
@@ -312,30 +308,33 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return cvs.getContext(type);
     }
     $DE.extractUserOptions = function(cvs) {
-      var width, height,
-          ratio = $DE.PX_RATIO;
-      return { 'debug': __attrOr(cvs, 'data-debug', undefined),
-               'inParent': undefined,
-               'muteErrors': __attrOr(cvs, 'data-mute-errors', false),
-               'repeat': __attrOr(cvs, 'data-repeat', undefined),
-               'mode': __attrOr(cvs, 'data-mode', undefined),
-               'zoom': __attrOr(cvs, 'data-zoom', undefined),
-               'meta': { 'title': __attrOr(cvs, 'data-title', undefined),
-                         'author': __attrOr(cvs, 'data-author', undefined),
-                         'copyright': undefined,
-                         'version': undefined,
-                         'description': undefined },
-               'anim': { 'fps': undefined,
-                         'width': (__attrOr(cvs, 'data-width',
-                                  (width = __attrOr(cvs, 'width', undefined),
-                                   width ? (width / ratio) : undefined))),
-                         'height': (__attrOr(cvs, 'data-height',
-                                   (height = __attrOr(cvs, 'height', undefined),
-                                    height ? (height / ratio) : undefined))),
-                         'bgcolor': cvs.hasAttribute('data-bgcolor')
-                                   ? cvs.getAttribute('data-bgcolor')
-                                   : undefined,
-                         'duration': undefined } };
+      var ratio = $DE.PX_RATIO;
+      var width = cvs.getAttribute('anm-width');
+      if (!width) {
+          width = cvs.hasAttribute('width') ? (cvs.getAttribute('width') / ratio)
+                                            : undefined;
+      }
+      var height = cvs.getAttribute('anm-height');
+      if (!height) {
+          height = cvs.hasAttribute('height') ? (cvs.getAttribute('height') / ratio)
+                                              : undefined;
+      }
+      return { 'debug': cvs.getAttribute('anm-debug'),
+               'mode': cvs.getAttribute('anm-mode'),
+               'repeat': cvs.getAttribute('anm-repeat'),
+               'zoom': cvs.getAttribute('anm-zoom'),
+               'speed': cvs.getAttribute('anm-speed'),
+               'width': width,
+               'height': height,
+               'bgColor': cvs.getAttribute('anm-bgcolor'),
+               'drawStill': cvs.getAttribute('anm-draw-still'),
+               'audioEnabled': cvs.getAttribute('anm-audio-enabled'),
+               'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
+               'handleEvents': cvs.getAttribute('anm-handle-events'),
+               'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
+               'inParent': undefined, // TODO: check if we're in tag?
+               'muteErrors': cvs.getAttribute('anm-mute-errors')
+             };
     }
     $DE.checkPlayerCanvas = function(cvs) {
         return true;
@@ -347,43 +346,62 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.setAttribute('tabindex', idx);
     }
     $DE.getCanvasParams = function(cvs) {
-        //var ratio = $DE.PX_RATIO;
-        // ensure ratio is set when canvas created
+        // if canvas size was not initialized by player, will return null
+        if (!cvs.__anm_width || !cvs.__anm_height) return null;
         return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
+    }
+    $DE.getCanvasSize = function(cvs) {
+        return [ cvs.getAttribute('clientWidth') || cvs.clientWidth,
+                 cvs.getAttribute('clientHeight') || cvs.clientHeight ];
+    }
+    $DE.getCanvasPos = function(cvs) {
+        return $DE.findScrollAwarePosition(cvs);
     }
     $DE.getCanvasBounds = function(cvs/*, parent*/) {
         //var parent = parent || cvs.parentNode;
-        var pos = $DE.findScrollAwarePosition(cvs),
-            params = $DE.getCanvasParams(cvs);
+        var params = $DE.getCanvasParams(cvs);
+        if (!params) return null;
+        var pos = $DE.getCanvasPos(cvs);
         // bounds are: left, top, width, height, ratio.
         // I am not sure if I am correct in providing width/height instead of
         // left+width/top+height, but I think it's better to return values
         // not required to sum up/subtract in this case.
         return [ pos[0], pos[1], params[0], params[1], params[2] ];
     }
-    $DE.configureCanvas = function(cvs, opts, ratio) {
+    $DE.setCanvasSize = function(cvs, width, height, ratio) {
+        //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
         var ratio = ratio || $DE.PX_RATIO;
-        var isObj = !(opts instanceof Array),
-            _w = isObj ? opts.width : opts[0],
-            _h = isObj ? opts.height : opts[1];
-        if (!cvs.__anm_lockStyle && isObj && opts.bgcolor) {
-            $DE.setCanvasBackground(cvs, opts.bgcolor);
-        }
-        if (!cvs.__anm_lockResize) {
-            cvs.__anm_ratio = ratio;
-            cvs.__anm_width = _w;
-            cvs.__anm_height = _h;
-            cvs.style.width = _w + 'px';
-            cvs.style.height = _h + 'px';
-            cvs.setAttribute('width', _w * (ratio || 1));
-            cvs.setAttribute('height', _h * (ratio || 1));
-        }
+        var _w = width | 0,
+            _h = height | 0;
+        //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
+        cvs.__anm_ratio = ratio;
+        cvs.__anm_width = _w;
+        cvs.__anm_height = _h;
+        if (!cvs.style.width)  cvs.style.width = _w + 'px';
+        if (!cvs.style.height) cvs.style.height = _h + 'px';
+        cvs.setAttribute('width', _w * (ratio || 1));
+        cvs.setAttribute('height', _h * (ratio || 1));
         $DE._saveCanvasPos(cvs);
-        return cvs.__anm_lockResize ? [ cvs.getAttribute('clientWidth'), cvs.getAttribute('clientHeight') ]
-                                    : [ _w, _h ];
+        return [ _w, _h ];
     }
-    $DE.setCanvasBackground = function(cvs, val) {
-        cvs.style.backgroundColor = val;
+    $DE.setCanvasPos = function(cvs, x, y) {
+        cvs.__anm_usr_x = x;
+        cvs.__anm_usr_y = y;
+        // TODO: actually move canvas
+        $engine._saveCanvasPos(cvs);
+    }
+    $DE.setCanvasBackground = function(cvs, bg) {
+        cvs.style.backgroundColor = bg;
+    }
+    $DE.updateCanvasMetrics = function(cvs) {
+        var pos = $DE.getCanvasPos(cvs),
+            size = $DE.getCanvasSize(cvs);
+        cvs.__anm_ratio = $DE.PX_RATIO;
+        cvs.__anm_x = pos[0];
+        cvs.__anm_y = pos[1];
+        cvs.__anm_width = size[0];
+        cvs.__anm_height = size[1];
+        $DE._saveCanvasPos(cvs);
     }
     $DE._saveCanvasPos = function(cvs) {
         // FIXME: use getBoundingClientRect?
@@ -427,20 +445,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
         cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
     }
-    $DE.lockCanvasResize = function(cvs) {
-        cvs.__anm_lockResize = true;
-    }
-    $DE.unlockCanvasResize = function(cvs) {
-        cvs.__anm_lockResize = false;
-    }
-    $DE.lockCanvasStyle = function(cvs) {
-        cvs.__anm_lockStyle = true;
-    }
-    $DE.unlockCanvasStyle = function(cvs) {
-        cvs.__anm_lockStyle = false;
-    }
     $DE.addChildCanvas = function(id, parent, pos, style, inside) {
-        // pos should be: [ x, y, w, h]
+        // pos should be: [ x, y, w, h ]
         // style may contain _class attr
         var _ratio = $DE.PX_RATIO,
             _x = pos[0], _y = pos[1],
@@ -451,7 +457,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
                              parent.parentNode.offsetTop  + parent.clientTop + _y ]
                            : _bp; // position to set in styles
-        var cvs = $DE.createCanvas([ _w, _h ], _ratio);
+        var cvs = $DE.createCanvas(_w, _h, null, _ratio);
         cvs.id = parent.id ? ('__' + parent.id + '_' + id) : ('__anm_' + id) ;
         if (style._class) cvs.className = style._class;
         for (var prop in style) {
