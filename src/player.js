@@ -2086,9 +2086,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var canvas_wanted = !this.__maskCvs;
 
-                var mcvs = this.__maskCvs || $engine.createCanvas([width, height]),
+                var mcvs = this.__maskCvs || $engine.createCanvas(width, height),
                     mctx = this.__maskCtx || $engine.getContext(mcvs, '2d'),
-                    bcvs = this.__backCvs || $engine.createCanvas([width, height]),
+                    bcvs = this.__backCvs || $engine.createCanvas(width, height),
                     bctx = this.__backCtx || $engine.getContext(bcvs, '2d');
 
                 //console.log(this.__maskSize, width, height, canvas_wanted);
@@ -2102,7 +2102,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if ((last_width < width) || (last_height < height))  {
                     var new_width  = Math.max(last_width,  width);
                     var new_height = Math.max(last_height, height);
-                    $engine.configureCanvas(mcvs, [ new_width, new_height ]);
+                    $engine.setCanvasSize(mcvs, new_width, new_height);
                     this.__maskSize[0] = new_width;
                     this.__maskSize[1] = new_height;
                 }
@@ -4745,7 +4745,7 @@ Sheet.prototype._drawToCache = function() {
         this._cvs_cache = this._image.__cvs;
         return;
     }
-    var _canvas = $engine.createCanvas(this._dimen[0], this._dimen[1], null, 1 /* FIXME: use real ratio */);
+    var _canvas = $engine.createCanvas(this._dimen[0], this._dimen[1], null/*bgfill*/, 1 /* FIXME: use real ratio */);
     var _ctx = $engine.getContext(_canvas, '2d');
     _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
     this._image.__cvs = _canvas;
