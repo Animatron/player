@@ -3121,22 +3121,12 @@ Element.prototype._loadRemoteResources = function(scene, player) {
 Element.prototype.__removeMaskCanvases = function() {
     if (!this.__maskCvs && !this.__backCvs) return;
     if (this.__maskCvs) {
-        for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
-            if (this.__maskCvs[i]) {
-                $engine.disposeElement(this.__maskCvs[i]);
-                delete this.__maskCvs[i]; // is it required?
-            }
-        }
+        $engine.disposeElement(this.__maskCvs);
         this.__maskCvs = null;
     }
     if (this.__backCvs) {
-        for (var i = 0, il = this.__backCvs.length; i < il; i++) {
-            if (this.__backCvs[i]) { // use `continue`?
-                $engine.disposeElement(this.__backCvs[i]);
-                delete this.__backCvs[i]; // is it required?
-            }
-        }
-        this.__maskCvs = null;
+        $engine.disposeElement(this.__backCvs);
+        this.__backCvs = null;
     }
 }
 
