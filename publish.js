@@ -27,6 +27,13 @@ var _u = (function () { /* utils */
                     '$1' + name + '=' + value
             );
         },
+        injectIfNotPresent: function (params, name, value) {
+            if (!this.extractVal(params, name)) {
+                return this.injectVal(params, name, value);
+            } else {
+                return params;
+            }
+        },
 
         getRequiredRect: function () {
             if (inIFrame) {
@@ -80,43 +87,35 @@ var start = (function () {
 
     var VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
 
-    var _search = location.search,
-        _first_amp_pos = _search.indexOf('&'),
-        _dash_pos = _search.indexOf('-'),
-        _before_amp = (_first_amp_pos > 0) ? _search.substring(1, _first_amp_pos)
-            : _search.substring(1),
-        _version_specified = (_first_amp_pos > 0) ? ((_dash_pos > 0) && (_dash_pos < _first_amp_pos))
-            : (_dash_pos > 0),
-        _snapshot_id_len = (_version_specified ? _dash_pos
-            : (_first_amp_pos || _search.length)) - 1; // 1 is first '?' in _search
-
     var CANVAS_ID = 'target',
         PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
-        SNAPSHOT_VERSION_ID = _version_specified ? _before_amp.substring(_snapshot_id_len + 1)
-            : 'latest',
-        PLAYER_VERSION_ID = SNAPSHOT_VERSION_ID;
+        PLAYER_VERSION_ID = playerVersion;
 
-    if (!SNAPSHOT_VERSION_ID || !SNAPSHOT_VERSION_ID.match(VERSION_MASK)) {
-        _u.reportError(new Error('Snapshot Version ID \'' + SNAPSHOT_VERSION_ID + '\' is incorrect'));
+    if (!playerVersion || !playerVersion.match(VERSION_MASK)) {
+        _u.reportError(new Error('Snapshot Version ID \'' + playerVersion + '\' is incorrect'));
         return;
     }
 
     inIFrame = (window.self !== window.top);
 
-    var _params_ = (_first_amp_pos > 0) ? '?' + _search.substring(_first_amp_pos + 1) : null;
+    var _params_ = location.search;
     var rect = _u.getRequiredRect();
     if (rect) {
         if (_params_) {
-            _params_ = _u.injectVal(_params_, 'w', rect[0]);
-            _params_ = _u.injectVal(_params_, 'h', rect[1]);
-        }
-        else {
+            _params_ = _u.injectIfNotPresent(_params_, "w", rect[0]);
+            _params_ = _u.injectIfNotPresent(_params_, "h", rect[1]);
+        } else {
             _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
         }
     }
-    var _snapshotUrl_ = amazonDomain + '/' + filename +
-        (_version_specified ? ('-' + SNAPSHOT_VERSION_ID)
-            : '') + (_params_ || '');
+    if (autostart) {
+        _params_ = _u.injectIfNotPresent(_params_, "t", 0);
+    }
+    if (loop) {
+        _params_ = _u.injectIfNotPresent(_params_, "r", 1);
+    }
+
+    var _snapshotUrl_ = amazonDomain + '/' + filename + (_params_ || '');
 
     var temp_v = null;
     if (temp_v = _u.extractVal(_params_, 'v')) {
