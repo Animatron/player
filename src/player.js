@@ -4851,7 +4851,7 @@ Controls.DEFAULT_THEME = {
       //'stroke': 'rgba(180,180,180,.85)'
       'stroke': 'rgba(50,158,192,.85)',
       'fill': 'rgba(255,255,255,1)',
-      'hoverfill': 'rgba(250,250,240,1)',
+      'hoverfill': 'rgba(250,250,235,.8)',
       'disabledfill': 'rgba(124,30,30,0)',
       'text': 'rgba(90,90,90,.8)',
       'error': 'rgba(250,0,0,.8)',
