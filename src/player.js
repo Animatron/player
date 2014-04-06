@@ -1193,7 +1193,7 @@ Player.prototype._drawLoadingCircles = function() {
             h = ctx.canvas.clientHeight;
         // FIXME: render only changed circles
         ctx.clearRect(0, 0, w, h);
-        Controls._drawBack(ctx, theme, w, h);
+        //Controls._drawBack(ctx, theme, w, h);
         Controls._drawLoadingCircles(ctx, w, h,
                                      (((Date.now() / 100) % 60) / 60),
                                      .5 /*theme.radius.outer*/,
@@ -4815,7 +4815,7 @@ Controls.DEFAULT_THEME = {
       'substatus': .9
   },
   'width': { // stroke width
-      'inner': 6, // button stroke
+      'inner': 5, // button stroke
       'outer': 3, // progress stroke
       'button': 7 // button stroke
   },
@@ -4835,8 +4835,8 @@ Controls.DEFAULT_THEME = {
       }, */
       'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
                   // and end is at (1.0 * Math.max(width/height))
-          [ .2, 'rgba(124,124,124,.2)' ],
-          [ .4, 'rgba(255,255,255,0)' ]
+          [ .2, 'rgba(124,124,124,.35)' ],
+          [ .3, 'rgba(255,255,255,0)' ]
       ],
       'progress': {
           //'passed': 'rgba(0,0,0,.05)',
@@ -4851,7 +4851,7 @@ Controls.DEFAULT_THEME = {
       //'stroke': 'rgba(180,180,180,.85)'
       'stroke': 'rgba(50,158,192,.85)',
       'fill': 'rgba(255,255,255,1)',
-      'hoverfill': 'rgba(250,250,235,.8)',
+      'hoverfill': 'rgba(255,255,255,1)',
       'disabledfill': 'rgba(124,30,30,0)',
       'text': 'rgba(90,90,90,.8)',
       'error': 'rgba(250,0,0,.8)',
@@ -5003,12 +5003,12 @@ Controls.prototype.render = function(time) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
     } else if (_s === C.NOTHING) {
-        Controls._drawBack(ctx, theme, _w, _h);
+        //Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         Controls._runLoadingAnimation(ctx, function(ctx) {
             ctx.clearRect(0, 0, _w, _h);
-            Controls._drawBack(ctx, theme, _w, _h);
+            //Controls._drawBack(ctx, theme, _w, _h);
             Controls._drawLoading(ctx, theme, _w, _h,
                                   (((Date.now() / 100) % 60) / 60), '');
                                   // isRemoteLoading ? player._loadSrc '...' : '');
