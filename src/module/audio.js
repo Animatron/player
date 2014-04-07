@@ -97,17 +97,21 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
   var _onAudioStop = function(ltime, duration) {
     if (this._audio_is_playing) {
-      if (m_ctx._audio_ctx) {
-        if (this._source.stop) {
-          this._source.stop(0);
-        } else {
-          this._source.noteOff(0);
-        }
+      try {
+        if (m_ctx._audio_ctx) {
+          if (this._source.stop) {
+            this._source.stop(0);
+          } else {
+            this._source.noteOff(0);
+          }
 
-        this._source = null;
-      } else {
-        this._audio.pause();
-        this._audio.volume = 0;
+          this._source = null;
+        } else {
+          this._audio.pause();
+          this._audio.volume = 0;
+        }
+      } catch (err) {
+        // do noting
       }
 
       this._audio_is_playing = false;
