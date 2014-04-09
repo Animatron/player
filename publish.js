@@ -149,7 +149,7 @@ var start = (function () {
                     if (offline) {
                         anm.createPlayer(CANVAS_ID).load(animation, anm.createImporter('animatron'));
                     } else {
-                        anm.Player.load(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
+                        anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                     }
                 }
             );
