@@ -1190,7 +1190,7 @@ Player.prototype._drawLoadingCircles = function() {
             h = ctx.canvas.clientHeight;
         // FIXME: render only changed circles
         ctx.clearRect(0, 0, w, h);
-        Controls._drawBack(ctx, theme, w, h);
+        //Controls._drawBack(ctx, theme, w, h);
         Controls._drawLoadingCircles(ctx, w, h,
                                      (((Date.now() / 100) % 60) / 60),
                                      .5 /*theme.radius.outer*/,
@@ -4851,7 +4851,7 @@ Controls.DEFAULT_THEME = {
       'substatus': .9
   },
   'width': { // stroke width
-      'inner': 3, // button stroke
+      'inner': 5, // button stroke
       'outer': 3, // progress stroke
       'button': 7 // button stroke
   },
@@ -4860,7 +4860,7 @@ Controls.DEFAULT_THEME = {
       'button': 'round' // join for button stroke
   },
   'colors': {
-      'bggrad': { // back gradient start is at (0.1 * Math.max(width/height))
+      /* 'bggrad': { // back gradient start is at (0.1 * Math.max(width/height))
                   // and end is at (1.0 * Math.max(width/height))
           //'start': 'rgba(30,30,30,.7)',
           //'end': 'rgba(30,30,30,1)'
@@ -4868,7 +4868,12 @@ Controls.DEFAULT_THEME = {
           //'end': 'rgba(30,30,30,.05)' // eae5d8
           'start': 'rgba(234,229,216,.8)',
           'end': 'rgba(234,229,216,.8)'
-      },
+      }, */
+      'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
+                  // and end is at (1.0 * Math.max(width/height))
+          [ .2, 'rgba(124,124,124,.35)' ],
+          [ .3, 'rgba(0,0,0,0)' ]
+      ],
       'progress': {
           //'passed': 'rgba(0,0,0,.05)',
           //'left': 'rgba(255,255,255,1)'
@@ -4881,9 +4886,9 @@ Controls.DEFAULT_THEME = {
       'button': 'rgba(50,158,192,1)',
       //'stroke': 'rgba(180,180,180,.85)'
       'stroke': 'rgba(50,158,192,.85)',
-      'fill': 'rgba(255,255,255,.6)',
-      'hoverfill': 'rgba(255,255,255,.6)',
-      'disabledfill': 'rgba(20,0,0,.2)',
+      'fill': 'rgba(255,255,255,1)',
+      'hoverfill': 'rgba(255,255,255,1)',
+      'disabledfill': 'rgba(124,30,30,0)',
       'text': 'rgba(90,90,90,.8)',
       'error': 'rgba(250,0,0,.8)',
       'infobg': 'rgba(128,0,0,.8)',
@@ -5034,12 +5039,12 @@ Controls.prototype.render = function(time) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
     } else if (_s === C.NOTHING) {
-        Controls._drawBack(ctx, theme, _w, _h);
+        //Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         Controls._runLoadingAnimation(ctx, function(ctx) {
             ctx.clearRect(0, 0, _w, _h);
-            Controls._drawBack(ctx, theme, _w, _h);
+            //Controls._drawBack(ctx, theme, _w, _h);
             Controls._drawLoading(ctx, theme, _w, _h,
                                   (((Date.now() / 100) % 60) / 60), '');
                                   // isRemoteLoading ? player._loadSrc '...' : '');
@@ -5245,8 +5250,10 @@ Controls._drawBack = function(ctx, theme, w, h) {
 
     var grd = ctx.createRadialGradient(cx, cy, 0,
                                        cx, cy, Math.max(cx, cy) * 1.2);
-    grd.addColorStop(.1, theme.colors.bggrad.start);
-    grd.addColorStop(1, theme.colors.bggrad.end);
+    var stops = theme.colors.bggrad;
+    for (var i = 0, il = stops.length; i < il; i++) {
+        grd.addColorStop(stops[i][0], stops[i][1]);
+    }
 
     ctx.fillStyle = grd;
     ctx.fillRect(0, 0, w, h);
@@ -5501,11 +5508,11 @@ Controls._drawText = function(ctx, theme, x, y, size, text, color, align) {
 }
 Controls._drawGuyInCorner = function(ctx, theme, w, h, colors, pos, scale) {
     // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
-    Controls._drawText(ctx, theme,
-                       w - 10,
-                       theme.anmguy.copy_pos[1] * h,
-                       (theme.font.statussize - (1600 / w)),
-                       Strings.COPYRIGHT, theme.colors.secondary, 'right');
+    // Controls._drawText(ctx, theme,
+    //                    w - 10,
+    //                    theme.anmguy.copy_pos[1] * h,
+    //                    (theme.font.statussize - (1600 / w)),
+    //                    Strings.COPYRIGHT, theme.colors.secondary, 'right');
 
     /* if ((w / ratio) >= 400) {
       drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.corner_pos[0]) * w,

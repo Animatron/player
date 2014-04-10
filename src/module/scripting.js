@@ -169,8 +169,8 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
       if (is_dynamic[scene.__import_id]) { // __import_id is equal to prj_id passed to customImporter,
                                            // if it is actually the same scene that was imported there
          player.mode = C.M_DYNAMIC;
-         player.anim.setDuration(Infinity); // sure? :^)
-         player._checkMode();
+         player.anim.duration = Infinity; // sure? :^)
+         player._checkOpts();
          scene.__player_instance = player;
          player.play();
       }

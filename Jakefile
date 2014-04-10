@@ -630,7 +630,7 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
 });
 
-desc(_dfit_nl(['Pushes `go` page to the S3.',
+desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
                'Usage: {jake push-go} to push to `dev` bucket. '+
                    'To push to another bucket, pass it as a param: '+
                    '{jake push-go[rls]}',
@@ -667,20 +667,30 @@ task('_push-go', [], { async: true }, function(_bucket) {
 
     var GO_LOCAL_PATH = _loc('go'),
         GO_REMOTE_PATH = '/go';
+    var PUBLISHJS_LOCAL_PATH = _loc('publish.js'),
+        PUBLISHJS_REMOTE_PATH = '/publish.js';
     var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
         FAVICON_REMOTE_PATH = '/favicon.ico';
+
 
     s3.putFile(GO_REMOTE_PATH, GO_LOCAL_PATH, 'public-read', { 'content-type': 'text/html' }, function(err, res) {
 
         if (err) { _print(FAILED_MARKER); throw err; }
         _print(GO_LOCAL_PATH + ' -> s3 as ' + GO_REMOTE_PATH);
 
-        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
+        s3.putFile(PUBLISHJS_REMOTE_PATH, PUBLISHJS_LOCAL_PATH, 'public-read', { 'content-type': 'text/javascript' }, function(err, res) {
 
             if (err) { _print(FAILED_MARKER); throw err; }
-            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
+            _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
 
-            complete();
+            s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
+
+                if (err) { _print(FAILED_MARKER); throw err; }
+                _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
+
+                complete();
+
+            });
 
         });
 
