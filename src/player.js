@@ -4836,7 +4836,7 @@ Controls.DEFAULT_THEME = {
       'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
                   // and end is at (1.0 * Math.max(width/height))
           [ .2, 'rgba(124,124,124,.35)' ],
-          [ .3, 'rgba(255,255,255,0)' ]
+          [ .3, 'rgba(0,0,0,0)' ]
       ],
       'progress': {
           //'passed': 'rgba(0,0,0,.05)',
