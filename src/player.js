@@ -1498,7 +1498,7 @@ Player.prototype._callPostpones = function() {
     }
     this._queue = [];
 }
-Player.prototype.__detachScene = function(scene) {
+Player.prototype.__detachScene = function() {
     this.__unsubscribeDynamicEvents(player.anim);
     this.anim.visitElems(function(elm) {
         elm.__removeMaskCanvases();
@@ -4874,6 +4874,12 @@ Controls.DEFAULT_THEME = {
           [ .2, 'rgba(124,124,124,.35)' ],
           [ .3, 'rgba(0,0,0,0)' ]
       ],
+      /* 'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
+                  // and end is at (1.0 * Math.max(width/height))
+          [ .2, 'rgba(0,0,0,1)' ],
+          [ .23, 'rgba(0,0,0,1)' ],
+          [ .231, 'rgba(0,0,0,0)' ]
+      ], */
       'progress': {
           //'passed': 'rgba(0,0,0,.05)',
           //'left': 'rgba(255,255,255,1)'
@@ -5091,6 +5097,8 @@ Controls.prototype.refreshByMousePos = function(pos) {
     if (lfocused !== this.focused) {
         this.forceNextRedraw();
     }
+    // FIXME: it is called with happens === NOTHING (and then calls Controls._drawNoScene)
+    // for every mouse move, even if some scene is in process of playing
     this.render(state.time);
 }
 Controls.prototype.handleAreaChange = function() {
@@ -5098,7 +5106,7 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
-    if (this.player.mode === C.M_DYNAMIC || this.player.handleEvents) return;
+    if (this.player.handleEvents) return;
     this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
@@ -5109,7 +5117,7 @@ Controls.prototype.handleMouseMove = function(evt) {
     }
 }
 Controls.prototype.handleClick = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.handleEvents) return;
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
@@ -5117,7 +5125,7 @@ Controls.prototype.handleClick = function() {
     if (state.happens === C.PLAYING) this.hide();
 }
 Controls.prototype.handlePlayerClick = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.handleEvents) return;
     var state = this.player.state;
     if (state.happens === C.PLAYING) {
         this.show();
@@ -5127,7 +5135,7 @@ Controls.prototype.handlePlayerClick = function() {
     }
 }
 Controls.prototype.handleMouseOver = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.handleEvents) return;
     var state = this.player.state;
     if (state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
@@ -5136,7 +5144,7 @@ Controls.prototype.handleMouseOver = function() {
     }
 }
 Controls.prototype.handleMouseOut = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.handleEvents) return;
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
