@@ -742,7 +742,7 @@ Player.prototype.stop = function() {
         state.happens = C.STOPPED;
         if (player.drawStill) {
             if (!player.infiniteDuration && __finite(scene.duration)) {
-                player.drawAt(state.duration * Player.PREVIEW_POS);
+                player.drawAt(scene.duration * Player.PREVIEW_POS);
             } else {
                 player.drawAt(state.from);
             }
