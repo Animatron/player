@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2012 by Animatron.
+ * Copyright (c) 2011-2014 by Animatron.
  * All rights are reserved.
  */
 
@@ -146,11 +146,7 @@ var start = (function () {
             }
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js',
                 function () {
-                    if (offline) {
-                        anm.createPlayer(CANVAS_ID).load(animation, anm.createImporter('animatron'));
-                    } else {
-                        anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
-                    }
+                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }
             );
         } catch (e) {

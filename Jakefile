@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2013 by Animatron.
+ * Copyright (c) 2011-2014 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
@@ -40,12 +40,13 @@ var VERSION_FILE = 'VERSION',
        return JSON.parse(jake.cat(_loc(file)).trim());
     })(PACKAGE_FILE);
 
+var COPYRIGHT_YEAR = 2014;
 var COPYRIGHT_COMMENT =
 [ '/*',
-  ' * Copyright (c) 2011-2013 by Animatron.',
+  ' * Copyright (c) 2011-' + COPYRIGHT_YEAR + ' by Animatron.',
   ' * All rights are reserved.',
   ' * ',
-  ' * Animatron player is licensed under the MIT License.',
+  ' * Animatron Player is licensed under the MIT License.',
   ' * ',
   ' * ' + VERSION + ', built at @BUILD_TIME',
   ' */'].join('\n') + '\n';
@@ -208,6 +209,13 @@ var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
+
+function _build_time() { var now = new Date();
+                         return now.toString() + ' / ' + now.toISOString(); }
+function _extended_build_time() { var now = new Date();
+                                  return now.toISOString() + ' ' +
+                                         now.getTime() + '\n' +
+                                         now.toString(); }
 
 // TASKS
 
@@ -792,13 +800,17 @@ task('_prepare', function() {
 
 desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder']));
 task('_bundles', function() {
-    _print('Create Bundles..')
-
+    _print('Create Bundles..');
+    var BUILD_TIME = _build_time();
     var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
     Bundles.forEach(function(bundle) {
         _print('Package bundle \'' + bundle.name + '\'');
         var targetFile = targetDir + '/' + bundle.file + '.js';
+        _print('.. (c) > ' + targetFile);
+        jake.echo(COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
+                                   .concat('\n\n\n'),
+                  _loc(targetFile));
         bundle.includes.forEach(function(bundleFile) {
             jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n', _loc(targetFile));
             _print('.. ' + bundleFile + ' > ' + targetFile);
@@ -812,6 +824,7 @@ desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.AS_IS+
                'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
 task('_bundle', function(param) {
     if (!param) throw new Error('This task requires a concrete bundle name to be specified');
+    var BUILD_TIME = _build_time();
     var bundle;
     Bundles.forEach(function(b) {
         if (b.name == param) { bundle = b; }
@@ -821,8 +834,13 @@ task('_bundle', function(param) {
     jake.mkdirP(_loc(targetDir));
     _print('Package bundle \'' + bundle.name + '\'');
     var targetFile = targetDir + '/' + bundle.file + '.js';
+    _print('.. (c) > ' + targetFile);
+    jake.echo(COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
+                               .concat('\n\n\n'),
+              _loc(targetFile));
     bundle.includes.forEach(function(bundleFile) {
-            jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n', _loc(targetFile));
+            jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n\n',
+                      _loc(targetFile));
             _print('.. ' + bundleFile + ' > ' + targetFile);
         });
 });
@@ -872,7 +890,8 @@ task('_versionize', function() {
 
     function versionize(file) {
         var new_content = jake.cat(file).trim()
-                                        .replace(/@VERSION/g, VERSION);
+                                        .replace(/@VERSION/g, VERSION)
+                                        .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
         jake.rmRf(file);
         jake.echo(new_content + '\n', file);
         _print('v -> ' + file);
@@ -926,8 +945,7 @@ task('_minify', { async: true }, function() {
                                : 'local (at '+LOCAL_NODE_DIR+')')
                 + ' node.js binaries');
 
-    var now = new Date(),
-        BUILD_TIME = now.toString() + ' / ' + now.toISOString();
+    var BUILD_TIME = _build_time();
 
     function minify(src, dst, cb) {
         jake.exec([
@@ -1023,9 +1041,7 @@ task('_build-file', { async: true }, function() {
       ].join(' ')
     ], EXEC_OPTS);
     _getCommintHash.on('stdout', function(COMMIT_INFO) {
-        var now = new Date(),
-            BUILD_TIME = now.toISOString() + ' ' + now.getTime() + '\n' +
-                         now.toString(),
+        var BUILD_TIME = _extended_build_time(),
             COMMIT_INFO = COMMIT_INFO.toString();
 
         _print('Build time:');
