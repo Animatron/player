@@ -1,9 +1,4 @@
 /*
- * Copyright (c) 2011-2012 by Animatron.
- * All rights are reserved.
- */
-
-/*
     http://www.JSON.org/json2.js
     2011-10-19
 

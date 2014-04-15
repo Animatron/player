@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2011-2014 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
 // file://localhost/Users/shamansir/Workspace/js-player/tests/04.builder.tests.html?spec=static%20modification
 // file://localhost/Users/shamansir/Workspace/js-player/tests/04.builder.tests.html?spec=builder%2C%20regarding%20masks
 // file://localhost/Users/shamansir/Workspace/js-player/tests/04.builder.tests.html?spec=tweens%20while%20in%20playing%3B%20changed%20base%20state

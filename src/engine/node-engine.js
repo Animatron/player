@@ -1,3 +1,12 @@
+/*
+ * Copyright (c) 2011-@COPYRIGHT_YEAR by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron Player is licensed under the MIT License, see LICENSE.
+ *
+ * @VERSION
+ */
+
 exports.Engine = (function() {
 
     var Transform = require('../vendor/matrix.js').Transform;
