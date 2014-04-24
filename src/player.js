@@ -3589,6 +3589,7 @@ Tweens[C.T_TRANSLATE] =
     function() {
       return function(t, dt, duration, data) {
           var p = data.pointAt(t);
+          if (!p) return;
           this._mpath = data;
           this.x = p[0];
           this.y = p[1];
@@ -3934,9 +3935,11 @@ Path.prototype.parse = function(str) {
 // > Path.hitAt % (t: [0..1]) => Array[Int, 2]
 Path.prototype.hitAt = function(t) {
     var plen = this.length(); // path length in pixels
+    if (plen == 0) return null;
     if (t < 0 || t > 1.0) return null;
 
     var startp = this.start(); // start point of segment
+
     if (t === 0) return {
           'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
         };
@@ -3945,6 +3948,8 @@ Path.prototype.hitAt = function(t) {
       if (t == 1) return func ? func(startp, endp) : endp;*/
 
     var nsegs = this.segs.length; // number of segments
+    if (nsegs == 0) return null;
+
     var distance = t * plen;
     var p = startp;
     var length = 0; // checked length in pixels

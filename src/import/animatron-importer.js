@@ -411,6 +411,7 @@ Import._pathDecode = function(src) {
         return val.duplicate().segs;
     } else {
         val = Import._decodeBinaryPath(encoded);
+        if (!val) return null;
         Import._path_cache.put(encoded, val);
     }
 
@@ -461,9 +462,11 @@ Import._decodeBinaryPath = function(encoded) {
                 }
             } else {
                 _reportError('Unable to decode Path "' + encoded + '"');
+                return null;
             }
         } catch (err) {
             _reportError('Unable to decode Path "' + encoded + '"');
+            return null;
         }
     }
 
@@ -473,9 +476,9 @@ Import._decodeBinaryPath = function(encoded) {
 Import._pathReadPoint = function(stream, target, base) {
     var l = stream.readBits(5);
     if (l <= 0) {
-        _reportError('Unable to decode path, wrong length (<= 0)');
+        throw new Error('Failed to decode path, wrong length (<= 0)');
     }
-    
+
     var x = stream.readSBits(l);
     var y = stream.readSBits(l);
 
