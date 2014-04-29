@@ -40,6 +40,27 @@ E.prototype.bounds = function(t) {
     return this._pradopt(this._cpa_bounds(), t);
 }
 
+E.prototype.xbounds = function(t) {
+    var b = this._cpa_bounds();
+    var minX, minY, maxX, maxY;
+    if (b) {
+        minX = b[0]; minY = b[1];
+        maxX = b[2]; maxY = b[3];
+    } else {
+        minX = minY = Number.MAX_VALUE;
+        maxX = maxY = 0;
+    }
+    this.travelChildren(function(elm) {
+        var cb = elm.bounds(t);
+        if (!cb) return;
+        minX = Math.min(minX, cb[0]);
+        minY = Math.min(minY, cb[1]);
+        maxX = Math.max(maxX, cb[2]);
+        maxY = Math.max(maxY, cb[3]);
+    });
+    return [ minX, minY, maxX, maxY ];
+}
+
 E.prototype.dbounds = function(t) {
     var b = this.bounds(t);
     var minX, minY, maxX, maxY;

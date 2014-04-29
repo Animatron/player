@@ -2071,16 +2071,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (!this.__maskSize) this.__maskSize = [0, 0];
 
                 var reg = masked.xdata.reg,
-                    bounds = masked.dbounds ? masked.dbounds(ltime) : masked.bounds(ltime),
+                    bounds = masked.xbounds ? masked.xbounds(ltime) : masked.bounds(ltime),
                     last_width  = this.__maskSize[0],
                     last_height = this.__maskSize[1],
-                    //bounds = masked.abs_bounds ? masked.abs_bounds() : masked.bounds(),
-                    //width  = Math.floor(((bounds[0] < 0) ? -bounds[0] : 0) + (bounds[2] * 1.1)),
-                    //height = Math.floor(((bounds[1] < 0) ? -bounds[1] : 0) + (bounds[3] * 1.1));
-                    width  = Math.ceil(bounds[2] + Math.abs(bounds[0]) + reg[0]),
-                    height = Math.ceil(bounds[3] + Math.abs(bounds[1]) + reg[1]);
-                    //width  = Math.floor((bounds[2] - bounds[0]) * 1.1),
-                    //height = Math.floor((bounds[3] - bounds[1]) * 1.1);
+                    width  = Math.floor(bounds[2] - bounds[0]),
+                    height = Math.floor(bounds[3] - bounds[1]);
+
+                //console.log(ltime, masked.name, 'reg', reg, 'bounds', bounds[0], bounds[1],
+                //                                                bounds[2], bounds[3], '->', width, height);
 
                 // TODO: check if bounds changed
 
@@ -2090,6 +2088,32 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     mctx = this.__maskCtx || $engine.getContext(mcvs, '2d'),
                     bcvs = this.__backCvs || $engine.createCanvas(width, height),
                     bctx = this.__backCtx || $engine.getContext(bcvs, '2d');
+
+                // FIXME: REMOVE THIS
+                if (!this.__mcvs_attached) {
+                    document.body.appendChild(mcvs);
+                    mcvs.style.position = 'fixed';
+                    mcvs.style.borderWidth = '1px';
+                    mcvs.style.borderStyle = 'solid';
+                    mcvs.style.borderColor = '#f00';
+                    mcvs.style.left = '10px';
+                    mcvs.style.top = '10px';
+                    //$engine.setCanvasPos(mcvs, 10, 10);
+                }
+                if (!this.__bcvs_attached) {
+                    document.body.appendChild(bcvs);
+                    bcvs.style.position = 'fixed';
+                    bcvs.style.borderWidth = '1px';
+                    bcvs.style.borderStyle = 'solid';
+                    bcvs.style.borderColor = '#00f';
+                    //bcvs.style.left = '200px';
+                    bcvs.style.left = '10px';
+                    bcvs.style.top = '10px';
+                    bcvs.style.opacity = 0.5;
+                    //$engine.setCanvasPos(bcvs, 10, 100);
+                }
+                this.__mcvs_attached = true;
+                this.__bcvs_attached = true;
 
                 //console.log(this.__maskSize, width, height, canvas_wanted);
 
@@ -2102,7 +2126,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if ((last_width < width) || (last_height < height))  {
                     var new_width  = Math.max(last_width,  width);
                     var new_height = Math.max(last_height, height);
-                    $engine.setCanvasSize(mcvs, new_width, new_height);
+                    $engine.setCanvasSize(mcvs, new_width * 5, new_height * 5);
+                    $engine.setCanvasSize(bcvs, new_width * 5, new_height * 5);
                     this.__maskSize[0] = new_width;
                     this.__maskSize[1] = new_height;
                 }
@@ -2118,34 +2143,38 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
 
-                // FIXME: move reg-point into state,
-                //        it should not be used at drawing
-                //var reg = masked.xdata.reg;
-                //bctx.translate(reg[0], reg[1]);
+                bctx.save(); // bctx second open
 
-                bctx.save();
-
-                //bctx.translate(bounds[0], bounds[1]);
-                masked.transform(bctx);
+                var reg1 = masked.xdata.reg;
+                bctx.translate(reg1[0], reg1[1]);
+                //masked.transform(bctx);
                 masked.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
                 masked.draw(bctx, ltime, dt);
+                //masked.render(bctx, gtime, dt);
 
                 bctx.restore(); // bctx second closed
+
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
+                mctx.setTransform(1, 0, 0, 1, 0, 0);
                 if (ratio !== 1) mctx.scale(ratio, ratio);
-                //mctx.translate(bounds[0], bounds[1]);
                 mctx.clearRect(0, 0, width, height);
 
-                var reg = mask.xdata.reg;
-                mctx.translate(reg[0], reg[1]);
+                //mctx.translate(width, height);
+                //mask.render(mctx, gtime, dt);
 
-                mask.render(mctx, gtime, dt);
-                //mask.itransform(mctx);
+
                 //mask.transform(mctx);
+                masked.itransform(mctx);
+                //mctx.translate(-reg1[0], -reg1[1]);
+                var reg2 = mask.xdata.reg;
+                mctx.translate(-reg2[0], -reg2[1]);
+                //mctx.translate(-masked.state.x,-masked.state.y);
+                //mctx.translate(100, 100);
+                mask.render(mctx, ltime, dt);
                 //mask.visitChildren(function(elm) {
                 //    elm.render(mctx, gtime, dt);
                 //});
@@ -2154,14 +2183,20 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0, width, height);
-                bctx.restore();
+                //bctx.drawImage(mcvs, 0, 0, width, height);
+                bctx.restore(); // bctx first closed
+
+                //bctx.fillStyle = '#000'; // REMOVE
+                //bctx.fillRect(0, 0, width, height); // REMOVE
+
+                ctx.drawImage(bcvs, 0, 0,
+                                    width, height);
 
                 //mask.transform(ctx);
                 ctx.save();
-                ctx.setTransform(1, 0, 0, 1, 0, 0);
+                //ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.strokeStyle = '#000';
-                ctx.strokeRect(0, 0, width, height);
+                ctx.strokeRect(-1, -1, width + 1, height + 1);
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.restore();
             }
