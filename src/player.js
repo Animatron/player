@@ -1511,10 +1511,10 @@ Player.prototype._notifyAPI = function() {
     var _loadSrc = this._loadSrc,
         _anm_id = this.anim.meta._anm_id,
         _nop = function() {};
-    if (_loadSrc.indexOf('/animatron-snapshots-dev')) { // it's not so ok to be 0 in this case
+    if (_loadSrc.indexOf('/animatron-snapshots-dev') > 0) { // it's not so ok to be 0 in this case
         $engine.ajax('http://api.animatron-test.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
-    } else if (_loadSrc.indexOf('.animatron.com') ||
-               _loadSrc.indexOf('/animatron-snapshots')) { // it's not so ok to be 0 in these cases
+    } else if ((_loadSrc.indexOf('.animatron.com') > 0) ||
+               (_loadSrc.indexOf('/animatron-snapshots') > 0)) { // it's not so ok to be 0 in these cases
         $engine.ajax('http://api.animatron.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
     }
 };
