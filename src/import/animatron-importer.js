@@ -128,7 +128,8 @@ Import.meta = function(prj) {
         'description': _m.description,
         'duration': _m.duration,
         'created': _m.created,
-        'modified': _m.modified
+        'modified': _m.modified,
+        '_anm_id': _m.id
     };
 }
 /** anim **/

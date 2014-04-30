@@ -684,6 +684,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
         clearInterval(player.state.__drawInterval);
     }*/
 
+    player._notifyAPI(); // checks if it's really required just inside
+
     state.happens = C.PLAYING;
 
 
@@ -1501,6 +1503,21 @@ Player.prototype._callPostpones = function() {
     }
     this._queue = [];
 }
+Player.prototype._notifyAPI = function() {
+    // currently, notifies only about playing start
+    if (this._loadTarget !== C.LT_URL) return;
+    if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
+    if (!this._loadSrc || (this._loadSrc.indexOf('http') !== 0)) return;
+    var _loadSrc = this._loadSrc,
+        _anm_id = this.anim.meta._anm_id,
+        _nop = function() {};
+    if (_loadSrc.indexOf('/animatron-snapshots-dev')) { // it's not so ok to be 0 in this case
+        $engine.ajax('http://api.animatron-test.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
+    } else if (_loadSrc.indexOf('.animatron.com') ||
+               _loadSrc.indexOf('/animatron-snapshots')) { // it's not so ok to be 0 in these cases
+        $engine.ajax('http://api.animatron.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
+    }
+};
 
 /* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
