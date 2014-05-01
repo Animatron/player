@@ -2070,8 +2070,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 if (!this.__maskSize) this.__maskSize = [0, 0];
 
-                var reg = masked.xdata.reg,
-                    bounds = masked.xbounds ? masked.xbounds(ltime) : masked.bounds(ltime),
+                var bounds = masked.dbounds ? masked.dbounds(ltime) : masked.bounds(ltime),
                     last_width  = this.__maskSize[0],
                     last_height = this.__maskSize[1],
                     width  = Math.floor(bounds[2] - bounds[0]),
@@ -2107,7 +2106,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bcvs.style.borderStyle = 'solid';
                     bcvs.style.borderColor = '#00f';
                     //bcvs.style.left = '200px';
-                    bcvs.style.left = '10px';
+                    bcvs.style.left = '100px';
                     bcvs.style.top = '10px';
                     bcvs.style.opacity = 0.5;
                     //$engine.setCanvasPos(bcvs, 10, 100);
@@ -2126,8 +2125,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if ((last_width < width) || (last_height < height))  {
                     var new_width  = Math.max(last_width,  width);
                     var new_height = Math.max(last_height, height);
-                    $engine.setCanvasSize(mcvs, new_width * 5, new_height * 5);
-                    $engine.setCanvasSize(bcvs, new_width * 5, new_height * 5);
+                    $engine.setCanvasSize(mcvs, new_width, new_height);
+                    $engine.setCanvasSize(bcvs, new_width, new_height);
                     this.__maskSize[0] = new_width;
                     this.__maskSize[1] = new_height;
                 }
@@ -2168,17 +2167,17 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
 
                 //mask.transform(mctx);
-                masked.itransform(mctx);
+                //masked.itransform(mctx);
                 //mctx.translate(-reg1[0], -reg1[1]);
                 var reg2 = mask.xdata.reg;
                 mctx.translate(-reg2[0], -reg2[1]);
                 //mctx.translate(-masked.state.x,-masked.state.y);
                 //mctx.translate(100, 100);
-                mask.render(mctx, ltime, dt);
-                //mask.visitChildren(function(elm) {
-                //    elm.render(mctx, gtime, dt);
-                //});
-                //mask.draw(mctx, ltime, dt);
+                //mask.render(mctx, ltime, dt);
+                mask.visitChildren(function(elm) {
+                    elm.render(mctx, gtime, dt);
+                });
+                mask.draw(mctx, ltime, dt);
 
                 mctx.restore(); // mctx first close
 
