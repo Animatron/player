@@ -2070,14 +2070,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 if (!this.__maskSize) this.__maskSize = [0, 0];
 
-                var bounds = mask.dbounds ? mask.dbounds(ltime) : mask.bounds(ltime),
+                var bounds = mask.bounds ? mask.bounds(ltime) : mask.bounds(ltime),
                     last_width  = this.__maskSize[0],
                     last_height = this.__maskSize[1],
                     width  = Math.floor(bounds[2] - bounds[0]),
                     height = Math.floor(bounds[3] - bounds[1]);
 
-                //console.log(ltime, masked.name, 'reg', reg, 'bounds', bounds[0], bounds[1],
-                //                                                bounds[2], bounds[3], '->', width, height);
+                console.log(ltime, mask.name, 'bounds', bounds[0], bounds[1],
+                                                        bounds[2], bounds[3], '->', width, height);
 
                 // TODO: check if bounds changed
 
@@ -2144,10 +2144,10 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.save(); // bctx second open
 
-                var reg1 = masked.xdata.reg;
-                bctx.translate(reg1[0], reg1[1]);
+                //var reg1 = masked.xdata.reg;
+                //bctx.translate(reg1[0], reg1[1]);
                 bctx.translate(-bounds[0], -bounds[1]);
-                //masked.transform(bctx);
+                masked.transform(bctx);
                 masked.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
@@ -2166,14 +2166,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //mask.render(mctx, gtime, dt);
 
 
-                //mask.transform(mctx);
                 //masked.itransform(mctx);
                 //mctx.translate(-reg1[0], -reg1[1]);
                 mctx.translate(-bounds[0], -bounds[1]);
                 var reg2 = mask.xdata.reg;
-                mctx.translate(-reg2[0], -reg2[1]);
+                //mctx.translate(-reg2[0], -reg2[1]);
                 //mctx.translate(100, 100);
                 //mask.render(mctx, gtime, dt);
+                mask.transform(mctx);
                 mask.visitChildren(function(elm) {
                     elm.render(mctx, gtime, dt);
                 });
@@ -2193,9 +2193,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 //mask.transform(ctx);
                 ctx.save();
-                //ctx.setTransform(1, 0, 0, 1, 0, 0);
+                ctx.setTransform(1, 0, 0, 1, 0, 0);
                 ctx.strokeStyle = '#000';
                 ctx.strokeRect(-1, -1, width + 1, height + 1);
+                ctx.strokeStyle = '#f00';
+                ctx.strokeRect(bounds[0], bounds[1], bounds[2], bounds[3]);
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.restore();
             }
