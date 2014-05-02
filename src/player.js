@@ -2070,7 +2070,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 if (!this.__maskSize) this.__maskSize = [0, 0];
 
-                var bounds = masked.dbounds ? masked.dbounds(ltime) : masked.bounds(ltime),
+                var bounds = mask.dbounds ? mask.dbounds(ltime) : mask.bounds(ltime),
                     last_width  = this.__maskSize[0],
                     last_height = this.__maskSize[1],
                     width  = Math.floor(bounds[2] - bounds[0]),
@@ -2146,19 +2146,19 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var reg1 = masked.xdata.reg;
                 bctx.translate(reg1[0], reg1[1]);
+                bctx.translate(-bounds[0], -bounds[1]);
                 //masked.transform(bctx);
                 masked.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
                 masked.draw(bctx, ltime, dt);
-                //masked.render(bctx, gtime, dt);
 
                 bctx.restore(); // bctx second closed
 
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
-                mctx.setTransform(1, 0, 0, 1, 0, 0);
+                //mctx.setTransform(1, 0, 0, 1, 0, 0);
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
@@ -2169,11 +2169,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //mask.transform(mctx);
                 //masked.itransform(mctx);
                 //mctx.translate(-reg1[0], -reg1[1]);
+                mctx.translate(-bounds[0], -bounds[1]);
                 var reg2 = mask.xdata.reg;
                 mctx.translate(-reg2[0], -reg2[1]);
-                //mctx.translate(-masked.state.x,-masked.state.y);
                 //mctx.translate(100, 100);
-                //mask.render(mctx, ltime, dt);
+                //mask.render(mctx, gtime, dt);
                 mask.visitChildren(function(elm) {
                     elm.render(mctx, gtime, dt);
                 });
@@ -2188,8 +2188,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //bctx.fillStyle = '#000'; // REMOVE
                 //bctx.fillRect(0, 0, width, height); // REMOVE
 
-                ctx.drawImage(bcvs, 0, 0,
-                                    width, height);
+                //ctx.drawImage(bcvs, 0, 0,
+                //                    width, height);
 
                 //mask.transform(ctx);
                 ctx.save();
