@@ -1506,8 +1506,7 @@ Player.prototype._callPostpones = function() {
 Player.prototype._notifyAPI = function() {
     // currently, notifies only about playing start
     if (this._loadTarget !== C.LT_URL) return;
-    if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
-    if (!this._loadSrc || (this._loadSrc.indexOf('http') !== 0)) return;
+    if (!this._loadSrc || !this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     var _loadSrc = this._loadSrc,
         _anm_id = this.anim.meta._anm_id,
         _nop = function() {};
