@@ -958,23 +958,30 @@ task('_minify_compress', { async: true }, function() {
 
     var BUILD_TIME = _build_time();
 
-    function minifyAndCompress(src, dst, cb) {
+    function minify(src, dst, cb) {
         jake.exec([
           [ Binaries.UGLIFYJS,
             '--ascii',
             '-o',
             dst, src
           ].join(' ')
+        ], EXEC_OPTS, cb);
+        _print('min -> ' + src + ' -> ' + dst);
+    }
+
+    function compress(file, cb) {
+        jake.cpR(file, file + '.tmp');
+        jake.exec([
+          [ Binaries.GZIP,
+            '-9',
+            '-c',
+            file + '.tmp', '>', file
+          ].join(' ')
         ], EXEC_OPTS, function() {
-          jake.exec([
-            [ Binaries.GZIP,
-              '-9',
-              '-c',
-              src, '>', dst
-            ].join(' ')
-          ], EXEC_OPTS, cb);
+          jake.rmRf(file + '.tmp');
+          cb();
         });
-        _print('min -> gzip -> ' + src + ' -> ' + dst);
+        _print('gzip -> ' + file + '.tmp' + ' -> ' + file);
     }
 
     function copyrightize(file) {
@@ -985,15 +992,31 @@ task('_minify_compress', { async: true }, function() {
         _print('(c) -> ' + file);
     }
 
-    var tasks = 0;
+    var queue = {};
+
+    function minifyAndCompress(src, dst) {
+        var task_id = _guid();
+        queue[task_id] = {};
+        minify(src, dst, function() {
+            compress(dst, function() {
+              _print(DONE_MARKER);
+              delete queue[task_id];
+              if (!Object.keys(queue).length) complete();
+            });
+        });
+    }
+
     function minifyAndCompressWithCopyright(src, dst) {
-        tasks++;
-        minifyAndCompress(src, dst, function() {
+        var task_id = _guid();
+        queue[task_id] = {};
+        minify(src, dst, function() {
             copyrightize(dst);
-            _print(DONE_MARKER);
-            tasks--;
-            if (!tasks) complete();
-        })
+            compress(dst, function() {
+              _print(DONE_MARKER);
+              delete queue[task_id];
+              if (!Object.keys(queue).length) complete();
+            });
+        });
     }
 
     _print('.. Vendor Files');
@@ -1162,6 +1185,11 @@ function _fit(lines, prefix, spaces, tabs, width, def_prefix) {
 function _version(val) {
     if (!val) return null;
     return (val.indexOf('v') == '0') ? val : ('v' + val)
+}
+
+function _guid() {
+    return Math.random().toString(36).substring(2, 10) +
+           Math.random().toString(36).substring(2, 10);
 }
 
 var _versions = (function() {
