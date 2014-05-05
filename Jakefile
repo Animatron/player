@@ -63,7 +63,8 @@ var Binaries = {
     CAT: 'cat',
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
-    GIT: 'git'
+    GIT: 'git',
+    GZIP: 'gzip'
 };
 
 var Dirs = {
@@ -187,7 +188,8 @@ var Validation = {
     Schema: { ANM_SCENE: Dirs.SRC + '/' + SubDirs.IMPORTERS + '/animatron-project-' + VERSION + '.orderly' }
 };
 
-var BUILD_FILE = Dirs.DIST_ROOT + '/' + 'BUILD',
+var BUILD_FILE_NAME = 'BUILD',
+    BUILD_FILE = Dirs.DIST_ROOT + '/' + BUILD_FILE_NAME,
     BUILD_FORMAT = '%H%n%ci%n%cn <%ce>';
 
 var DONE_MARKER = '<Done>.\n',
@@ -235,10 +237,10 @@ task('clean', function() {
 
 desc(_dfit_nl(['Build process, with no cleaning.',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
+               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify_compress>, <_build-file>.',
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify', '_build-file'], function() {});
+task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify_compress', '_build-file'], function() {});
 
 desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'so `dist` directory will contain the full '+
@@ -594,7 +596,8 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
                      trg_dir +  // destination
                      root.substring(root.indexOf(Dirs.DIST_ROOT) +
                                     Dirs.DIST_ROOT.length) + '/'
-                     + stat.name ]);
+                     + stat.name,
+                     (root.indexOf(Dirs.AS_IS) < 0) && (stat.name !== BUILD_FILE_NAME) ]); // is this file gzipped or not
         next();
     });
 
@@ -618,20 +621,28 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
         s3.setBucket(trg_bucket);
 
-        s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', { 'content-type': 'text/json' }, function(err, res) {
+        var jsonHeaders = { 'content-type': 'text/json' },
+            jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
+            gzippedJsHeaders = { 'content-type': 'text/javascript',
+                                 'content-encoding': 'gzip' };
+
+        s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', jsonHeaders, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
             _print(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
 
             var files_count = files.length;
 
             files.forEach(function(file) {
-                s3.putFile(file[1], _loc(file[0]), 'public-read', { 'content-type': 'text/javascript' /*application/x-javascript*/ }, (function(file) {
-                  return function(err,res) {
-                    if (err) { _print(FAILED_MARKER); throw err; }
-                    _print(file[0] + ' -> S3 as ' + file[1]);
-                    if (!files_count) { _print(DONE_MARKER); complete(); }
-                  }
-                })(file));
+                s3.putFile(file[1], _loc(file[0]), 'public-read',
+                  file[2] ? gzippedJsHeaders : jsHeaders,
+                  (function(file) {
+                    return function(err,res) {
+                      if (err) { _print(FAILED_MARKER); throw err; }
+                      _print(file[0] + ' -> S3 as ' + file[1]);
+                      if (!files_count) { _print(DONE_MARKER); complete(); }
+                    }
+                  })(file)
+                );
             });
         });
     });
@@ -936,9 +947,9 @@ task('_versionize', function() {
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
+desc(_dfit(['Internal. Create a minified and compressed copy of all the sources and bundles '+
                'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
-task('_minify', { async: true }, function() {
+task('_minify_compress', { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
 
     _print('Using ' + (NODE_GLOBAL ? 'global'
@@ -947,15 +958,23 @@ task('_minify', { async: true }, function() {
 
     var BUILD_TIME = _build_time();
 
-    function minify(src, dst, cb) {
+    function minifyAndCompress(src, dst, cb) {
         jake.exec([
-            [ Binaries.UGLIFYJS,
-              '--ascii',
-              '-o',
-              dst, src
+          [ Binaries.UGLIFYJS,
+            '--ascii',
+            '-o',
+            dst, src
+          ].join(' ')
+        ], EXEC_OPTS, function() {
+          jake.exec([
+            [ Binaries.GZIP,
+              '-9',
+              '-c',
+              src, '>', dst
             ].join(' ')
-        ], EXEC_OPTS, cb);
-        _print('min -> ' + src + ' -> ' + dst);
+          ], EXEC_OPTS, cb);
+        });
+        _print('min -> gzip -> ' + src + ' -> ' + dst);
     }
 
     function copyrightize(file) {
@@ -967,9 +986,9 @@ task('_minify', { async: true }, function() {
     }
 
     var tasks = 0;
-    function minifyWithCopyright(src, dst) {
+    function minifyAndCompressWithCopyright(src, dst) {
         tasks++;
-        minify(src, dst, function() {
+        minifyAndCompress(src, dst, function() {
             copyrightize(dst);
             _print(DONE_MARKER);
             tasks--;
@@ -981,49 +1000,49 @@ task('_minify', { async: true }, function() {
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.VENDOR);
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        minify(_loc(Dirs.AS_IS    + '/' + SubDirs.VENDOR + '/' + vendorFile),
-               _loc(Dirs.MINIFIED + '/' + SubDirs.VENDOR + '/' + vendorFile));
+        minifyAndCompress(_loc(Dirs.AS_IS    + '/' + SubDirs.VENDOR + '/' + vendorFile),
+                          _loc(Dirs.MINIFIED + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
 
     _print('.. Main files');
 
-    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
-                        _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
-    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
-                        _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
-    minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
-                        _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
+    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
+                                   _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
+    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
+                                   _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
+    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
+                                   _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
 
     _print('.. Bundles');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.BUNDLES);
     Bundles.forEach(function(bundle) {
-        minifyWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'),
-                            _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'),
+                                       _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('.. Engines');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.ENGINES);
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        minifyWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.ENGINES + '/' + engineFile),
-                            _loc(Dirs.MINIFIED + '/' + SubDirs.ENGINES + '/' + engineFile));
+        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.ENGINES + '/' + engineFile),
+                                       _loc(Dirs.MINIFIED + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
-                            _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
+        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
+                                       _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
     jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS);
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        minifyWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                            _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
+                                       _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
 });
