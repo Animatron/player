@@ -1510,10 +1510,21 @@ Player.prototype._notifyAPI = function() {
     var _loadSrc = this._loadSrc,
         _anm_id = this.anim.meta._anm_id,
         _nop = function() {};
-    if (_loadSrc.indexOf('/animatron-snapshots-dev') > 0) { // it's not so ok to be 0 in this case
+    var locatedAtTest = false,
+        locatedAtProd = false;
+    locatedAtTest = (_loadSrc.indexOf('/animatron-snapshots-dev') > 0) ||
+                    (_loadSrc.indexOf('.animatron-test.com') > 0); // it's not so ok to be 0 in these cases
+    locatedAtTest = locatedAtTest || (((_loadSrc.indexOf('./') == 0) ||
+                                       (_loadSrc.indexOf('/') == 0)) &&
+                                      (window.location && (window.location.hostname == 'animatron-test.com')));
+    locatedAtProd = (_loadSrc.indexOf('/animatron-snapshots') > 0) ||
+                    (_loadSrc.indexOf('.animatron.com') > 0); // it's not so ok to be 0 in these cases
+    locatedAtProd = locatedAtProd || (((_loadSrc.indexOf('./') == 0) ||
+                                       (_loadSrc.indexOf('/') == 0)) &&
+                                      (window.location && (window.location.hostname == 'animatron.com')));
+    if (locatedAtTest) {
         $engine.ajax('http://api.animatron-test.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
-    } else if ((_loadSrc.indexOf('.animatron.com') > 0) ||
-               (_loadSrc.indexOf('/animatron-snapshots') > 0)) { // it's not so ok to be 0 in these cases
+    } else if (locatedAtProd) {
         $engine.ajax('http://api.animatron.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
     }
 };

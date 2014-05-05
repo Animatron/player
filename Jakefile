@@ -597,7 +597,9 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
                      root.substring(root.indexOf(Dirs.DIST_ROOT) +
                                     Dirs.DIST_ROOT.length) + '/'
                      + stat.name,
-                     (root.indexOf(Dirs.AS_IS) < 0) && (stat.name !== BUILD_FILE_NAME) ]); // is this file gzipped or not
+                     (root.indexOf(Dirs.AS_IS) < 0) &&
+                     (root.indexOf(Dirs.MINIFIED) >= 0) &&
+                     (stat.name !== BUILD_FILE_NAME) ]); // is this file gzipped or not
         next();
     });
 
