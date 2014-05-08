@@ -3282,6 +3282,10 @@ L.loadScene = function(player, scene, callback) {
     if (player.debug
         && !global_opts.liveDebug)
         scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
+    if (!scene.width || !scene.height) {
+      scene.width = player.width;
+      scene.height = player.height;
+    }
     // assign
     player.anim = scene;
     if (callback) callback.call(player, scene);
