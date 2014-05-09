@@ -170,7 +170,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
                                            // if it is actually the same scene that was imported there
          player.mode = C.M_DYNAMIC;
          player.anim.duration = Infinity; // sure? :^)
-         player._checkOpts();
+         player._updateMode();
          scene.__player_instance = player;
          player.play();
       }

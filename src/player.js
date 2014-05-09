@@ -155,6 +155,7 @@ function to_rgba(r, g, b, a) {
 }
 
 function fmt_time(time) {
+  if (!__finite(time)) return '∞';
   var _time = Math.abs(time),
         _h = Math.floor(_time / 3600),
         _m = Math.floor((_time - (_h * 3600)) / 60),
@@ -922,6 +923,21 @@ Player.prototype._checkOpts = function() {
     }
 
     if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
+
+    this.__appliedMode = this.mode;
+}
+Player.prototype._updateMode = function() {
+    if (!this.canvas || !this.mode) return;
+    if (!this.__appliedMode == this.mode) return;
+
+    // force to re-use the mode value in _checkOpts
+    this.infiniteDuration = undefined;
+    this.handleEvents = undefined;
+    this.controlsEnabled = undefined;
+    this.infoEnabled = undefined;
+    this.drawStill = undefined;
+
+    this._checkOpts();
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -5098,7 +5114,6 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
-    if (this.player.mode === C.M_DYNAMIC || this.player.handleEvents) return;
     this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
@@ -5109,7 +5124,6 @@ Controls.prototype.handleMouseMove = function(evt) {
     }
 }
 Controls.prototype.handleClick = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
@@ -5117,7 +5131,7 @@ Controls.prototype.handleClick = function() {
     if (state.happens === C.PLAYING) this.hide();
 }
 Controls.prototype.handlePlayerClick = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
+    if (this.player.handleEvents) return;
     var state = this.player.state;
     if (state.happens === C.PLAYING) {
         this.show();
@@ -5127,7 +5141,6 @@ Controls.prototype.handlePlayerClick = function() {
     }
 }
 Controls.prototype.handleMouseOver = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
     var state = this.player.state;
     if (state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
@@ -5136,7 +5149,6 @@ Controls.prototype.handleMouseOver = function() {
     }
 }
 Controls.prototype.handleMouseOut = function() {
-    if (this.player.mode === C.M_DYNAMIC) return;
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
@@ -5261,6 +5273,8 @@ Controls._drawBack = function(ctx, theme, w, h) {
     ctx.restore();
 }
 Controls._drawProgress = function(ctx, theme, w, h, progress) {
+    if (!__finite(progress)) return;
+
     ctx.save();
 
     var cx = w / 2,

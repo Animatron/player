@@ -22,7 +22,7 @@ function sandbox() {
     window.C = anm.C;
 
     this.player = anm.createPlayer('my-canvas', {
-        //'mode': anm.C.M_PREVIEW,
+        'mode': anm.C.M_SANDBOX,
         'muteErrors': true,
         'anim': {
             width: 400,
@@ -30,8 +30,8 @@ function sandbox() {
             bgcolor: '#fff' }
     });
 
-    this.player.mode = anm.C.M_SANDBOX;
-    this.player._checkMode();
+    //this.player.mode = anm.C.M_SANDBOX;
+    //this.player._updateMode();
 
     _player = this.player;
 
@@ -191,7 +191,7 @@ function sandbox() {
     function change_mode(radio) {
       if (_player) {
         _player.mode = C[radio.value];
-        _player._checkMode();
+        _player._updateMode();
         refreshFromStart();
       }
     }
