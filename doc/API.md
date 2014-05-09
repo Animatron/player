@@ -913,7 +913,9 @@ Some of the functions described below (such as tweens, easings, repeat modes and
         * `C.S_PLAY` — Playing started
         * `C.S_PAUSE` — Playing paused
         * `C.S_STOP` — Playing stopped
+        * `C.S_COMPLETE` — Completed playing a scene
         * `C.S_LOAD` — Scene loaded
+        * `C.S_RES_LOAD` — Player started to load remote resources for a scene
         * `C.S_REPEAT` — Auto-repeat was called
         * `C.S_ERROR` — Error happened
     * Element
