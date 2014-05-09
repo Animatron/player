@@ -357,6 +357,7 @@ registerEvent('X_STOP', 'stop', 'x_stop');
 registerEvent('S_PLAY', 'play', 'play');
 registerEvent('S_PAUSE', 'pause', 'pause');
 registerEvent('S_STOP', 'stop', 'stop');
+registerEvent('S_COMPLETE', 'complete', 'complete');
 registerEvent('S_REPEAT', 'repeat', 'repeat');
 registerEvent('S_IMPORT', 'import', 'import');
 registerEvent('S_LOAD', 'load', 'load');
@@ -821,7 +822,9 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-provideEvents(Player, [C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
+provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
+                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
+                        C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
     var canvas_id, canvas;
@@ -1376,7 +1379,9 @@ Player.prototype.__beforeFrame = function(scene) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
-                 (time > (state.duration + Player.PEFF))) {
+                 (__finite(state.duration) &&
+                    (time > (state.duration + Player.PEFF)))) {
+                player.fire(C.S_COMPLETE);
                 state.time = 0;
                 scene.reset();
                 player.stop();
@@ -1567,11 +1572,12 @@ Player.createState = function(player) {
 }
 
 Player._isPlayerEvent = function(type) {
-    // TODO: make some marker to group types of events
-    return ((type == C.S_PLAY) || (type == C.S_PAUSE) ||
-            (type == C.S_STOP) || (type == C.S_REPEAT) ||
-            (type == C.S_LOAD) || (type == C.S_RES_LOAD) ||
-            (type == C.S_ERROR) || (type == C.S_IMPORT));
+    // FIXME: make some marker to group types of events
+    return ((type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
+            (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
+            (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
+            (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
+            (type == C.S_COMPLETE));
 }
 Player._optsFromUrlParams = function(params/* as object */) {
     function __boolParam(val) {
@@ -1675,7 +1681,7 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW,
                        // player events
-                       C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
+                       C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                        C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 /* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
@@ -2044,7 +2050,7 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_DRAW, C.X_START, C.X_STOP,
                          // player events
-                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
+                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
