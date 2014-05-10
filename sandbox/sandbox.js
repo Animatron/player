@@ -16,14 +16,15 @@ function sandbox() {
     this.selectElm = document.getElementById('examples-list');
     this.tangleElm = document.getElementById('refresh-calc');
     this.debugElm = document.getElementById('enable-debug');
+    this.logErrorsElm = document.getElementById('log-errors');
 
     window.b = anm.Builder._$;
     window.B = anm.Builder;
     window.C = anm.C;
 
     this.player = anm.createPlayer('my-canvas', {
-        'mode': anm.C.M_SANDBOX,
-        'muteErrors': true,
+        mode: anm.C.M_SANDBOX,
+        muteErrors: true,
         width: 400,
         height: 250,
         bgColor: '#fff'
@@ -36,6 +37,8 @@ function sandbox() {
 
     var lastCode = '';
     if (localStorage) lastCode = load_last_code();
+
+    var logErrors = false;
 
     this.cm = CodeMirror.fromTextArea(this.codeElm,
               { mode: 'javascript',
@@ -101,7 +104,7 @@ function sandbox() {
         } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
-        if (console && console.error) {
+        if (logErrors && console && console.error) {
           console.error(e.stack);
           if (e2) console.error(e2.stack);
         }
@@ -171,6 +174,10 @@ function sandbox() {
     this.debugElm.onchange = function() {
         s.player.debug = !s.player.debug;
         refreshFromCurrentMoment();
+    }
+
+    this.logErrorsElm.onchange = function() {
+        logErrors = !logErrors;
     }
 
     var tangleModel = {

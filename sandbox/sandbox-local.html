@@ -15,14 +15,14 @@
     <link rel="stylesheet" href="./vendor/Tangle-0.1.0/TangleKit/TangleKit.css" type="text/css" />
     <link rel="stylesheet" href="./sandbox.css" type="text/css" />
 
-    <!-- <script src="../src/engine/dom-engine.js" type="text/javascript"></script>
+    <script src="../src/engine/dom-engine.js" type="text/javascript"></script>
     <script src="../src/vendor/matrix.js" type="text/javascript"></script>
     <script src="../src/vendor/matrix.js" type="text/javascript"></script>
     <script src="../src/anm.js" type="text/javascript"></script>
     <script src="../src/player.js" type="text/javascript"></script>
     <script src="../src/module/collisions.js" type="text/javascript"></script>
-    <script src="../src/builder.js" type="text/javascript"></script> -->
-    <script src="../dist/bundle/hardcore.js" type="text/javascript"></script>
+    <script src="../src/builder.js" type="text/javascript"></script>
+    <!-- <script src="../dist/bundle/hardcore.js" type="text/javascript"></script> -->
     <!-- <script src="../dist/bundle/full/hardcore.js" type="text/javascript"></script> -->
 
     <script src="./vendor/codemirror-3.16/lib/codemirror.js"></script>
@@ -52,7 +52,9 @@
       </div>
 
       <div><p id="refresh-calc">Current refresh period: <span data-var="secPeriod" class="TKAdjustableNumber" data-max="60"> seconds</span>.<br/>Animation will be reloaded <span data-var="perMinute"> times</span> per minute</p>
-      <p id="debug-options">Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></p>
+      <p id="debug-options"><span>Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></span>
+                            <span>Log errors:&nbsp;<input type="checkbox" id="log-errors"></input></span></p>
+
       <p id="switch-mode-l">Switch mode:&nbsp;</p>
       <form id="switch-mode">
          <input type="radio" value="M_SANDBOX" checked="checked" name="mode" onclick="change_mode(this);" />&nbsp;<span>SANDBOX</span>
