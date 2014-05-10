@@ -24,10 +24,9 @@ function sandbox() {
     this.player = anm.createPlayer('my-canvas', {
         'mode': anm.C.M_SANDBOX,
         'muteErrors': true,
-        'anim': {
-            width: 400,
-            height: 250,
-            bgcolor: '#fff' }
+        width: 400,
+        height: 250,
+        bgColor: '#fff'
     });
 
     //this.player.mode = anm.C.M_SANDBOX;

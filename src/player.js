@@ -2035,8 +2035,9 @@ function Element(draw, onframe) {
         default_on = this.on;
     this.on = function(type, handler) {
         if (type & C.XT_CONTROL) {
-            this.m_on.call(_me, type, handler);
-        } else default_on.call(_me, type, handler);
+            return this.m_on.call(_me, type, handler);
+        } else return default_on.call(_me, type, handler);
+        // return this; // FIXME: make chainable
     };
     Element.__addSysModifiers(this);
     Element.__addSysPainters(this);

@@ -242,6 +242,7 @@
                 if (!handler) throw new Error('You are trying to assign ' +
                                                 'undefined handler for event ' + event);
                 this.handlers[event].push(handler);
+                // FIXME: make it chainable, use handler instance to unbind, instead of index
                 return (this.handlers[event].length - 1);
             };
             subj.prototype.fire = function(event/*, args*/) {
