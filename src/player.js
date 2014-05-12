@@ -5160,7 +5160,8 @@ Controls.prototype.handleMouseOut = function() {
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
         (state.happens === C.RES_LOADING) ||
-        (state.happens === C.ERROR)) {
+        (state.happens === C.ERROR) ||
+        (state.happens === C.STOPPED)) {
         this.forceNextRedraw();
         this.render(state.time);
     } else {
