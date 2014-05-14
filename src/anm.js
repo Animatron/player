@@ -143,10 +143,22 @@
             log: nop, info: nop, warn: nop, error: nop
         };
         $publ.log = {
-            debug: function() { if ($conf.logLevel & C.L_DEBUG) (console.debug || console.log).apply(console, arguments); },
-            info:  function() { if ($conf.logLevel & C.L_INFO)  (console.info  || console.log).apply(console, arguments); },
-            warn:  function() { if ($conf.logLevel & C.L_WARN)  (console.warn  || console.log).apply(console, arguments); },
-            error: function() { if ($conf.logLevel & C.L_ERROR) (console.error || console.log).apply(console, arguments); },
+            debug: function() {
+                if ($conf.logLevel & C.L_DEBUG) {
+                    (console.debug || console.log).call(console, arguments);
+                } },
+            info:  function() {
+                if ($conf.logLevel & C.L_INFO) {
+                    (console.info  || console.log).call(console, arguments);
+                } },
+            warn:  function() {
+                if ($conf.logLevel & C.L_WARN) {
+                    (console.warn  || console.log).call(console, arguments);
+                } },
+            error: function() {
+                if ($conf.logLevel & C.L_ERROR) {
+                    (console.error || console.log).call(console, arguments);
+                } },
         };
         var $log = $publ.log;
 
