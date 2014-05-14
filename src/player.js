@@ -2120,8 +2120,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 if (!this.__maskSize) this.__maskSize = [0, 0];
 
-                var bounds = mask.bounds ? mask.bounds(ltime) : mask.bounds(ltime),
-                    last_width  = this.__maskSize[0],
+                var bounds = mask.dbounds ? mask.dbounds(ltime) : mask.bounds(ltime);
+
+                if (!bounds) return; // FIXME: is it right?
+
+                var last_width  = this.__maskSize[0],
                     last_height = this.__maskSize[1],
                     width  = Math.floor(bounds[2] - bounds[0]),
                     height = Math.floor(bounds[3] - bounds[1]);
@@ -5201,10 +5204,6 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
-<<<<<<< HEAD
-    if (this.player.handleEvents) return;
-=======
->>>>>>> master
     this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
@@ -5215,10 +5214,6 @@ Controls.prototype.handleMouseMove = function(evt) {
     }
 }
 Controls.prototype.handleClick = function() {
-<<<<<<< HEAD
-    if (this.player.handleEvents) return;
-=======
->>>>>>> master
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
@@ -5236,10 +5231,6 @@ Controls.prototype.handlePlayerClick = function() {
     }
 }
 Controls.prototype.handleMouseOver = function() {
-<<<<<<< HEAD
-    if (this.player.handleEvents) return;
-=======
->>>>>>> master
     var state = this.player.state;
     if (state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
@@ -5248,10 +5239,6 @@ Controls.prototype.handleMouseOver = function() {
     }
 }
 Controls.prototype.handleMouseOut = function() {
-<<<<<<< HEAD
-    if (this.player.handleEvents) return;
-=======
->>>>>>> master
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
