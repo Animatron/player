@@ -2732,11 +2732,11 @@ Element.prototype.bounds = function(t) {
     var b = subj? subj.bounds(): null;
 
     var pnts = b? [b[0], b[1], b[0]+b[2], b[1]+b[3]]: null;
-    this._adopt(pnts, t);
+    pnts = this._adopt(pnts, t);
 
     if(this.hasChildren()) {
         this.visitChildren(function(child) {
-            var b = child.bounds();
+            var b = child.bounds(t);
             if (b) {
                 var p = [b[0], b[1], b[0] + b[2], b[1] + b[3]];
                 if (!pnts) pnts = p;
@@ -2752,8 +2752,8 @@ Element.prototype.bounds = function(t) {
 
     return [pnts[0], pnts[1], pnts[2]-pnts[0], pnts[3]-pnts[1]];
 }
-Element.prototype.rect = function() {
-    var b = this.bounds();
+Element.prototype.rect = function(t) {
+    var b = this.bounds(t);
     if (b) {
         // returns clockwise coordinates of the points
         // for easier drawing

@@ -377,7 +377,7 @@ function p_drawCPath(ctx, cPath) {
     cPath.apply(ctx);
 }
 function p_drawAdoptedRect(ctx) {
-    var rect = this.$.rect();
+    var rect = this.$.rect(0);
     if (rect) {
         var ratio = $engine.PX_RATIO || 1;
         ctx.save();
