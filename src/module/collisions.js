@@ -36,69 +36,50 @@ var Path = anm.Path, MSeg = anm.MSeg,
                      CSeg = anm.CSeg;
 var Scene = anm.Scene;
 
+var prevBounds = E.prototype.bounds;
 E.prototype.bounds = function(t) {
-    return this._pradopt(this._cpa_bounds(), t);
-}
-
-E.prototype.rect = function(t) {
-    return this._pradopt(this._cpa_rect(), t);
+    var cpath = this.xdata.__cpath;
+    return cpath
+        ? cpath.bounds()
+        : prevBounds.call(this, t);
 }
 
 E.prototype.reactAs = function(path) {
     this.xdata.__cpath = path;
-}
-E.prototype.reactWith = function(func) {
-    this.xdata.__cfunc = func;
 }
 
 E.prototype.collectPoints = function() {
     var x = this.xdata;
     if (x.__cpath) return x.__cpath.getPoints();
     if (x.path) return x.path.getPoints();
-    if (x.image || x.text) return this.lrect();
+    if (x.image || x.text) return this.rect();
 }
 
 E.prototype.contains = function(pt, t) {
     if (!pt) return false;
-    var b = this._cpa_bounds();
-    if (!b) {
+    var b = this.bounds();
+
+    if(b && G.__inBounds(b, pt)) {
+        pt = this._adopt(pt, t);
         if (this.hasChildren()) {
             var result = false;
-            this.iterateChildren(function(child) {
+            this.visitChildren(function(child) {
                 if(!result && child.contains(pt, t)) {
                     result = true;
                 }
             });
             return result;
+        } else {
+            //console.log(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
+            var x = this.xdata;
+            //$log.debug(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
+            if (!opts.pathDriven) return true;
+            if (x.__cpath) return x.__cpath.contains(pt);
+            if (x.path) return x.path.contains(pt);
+            if (x.image || x.text) return true;
         }
-
-        return false;
-    }
-    //console.log(this.name, 'src-pt', pt[0], pt[1], 'bounds', b[0], b[1], b[2], b[3], 't', t);
-    var pt = this._padopt(pt, t);
-    var x = this.xdata;
-    if (x.__cfunc) return x.__cfunc.call(this, pt);
-    //$log.debug(this.name, 'adopted-pt', pt[0], pt[1], x.path.str);
-    var inBounds;
-    if (inBounds = G.__inBounds(b, pt)) {
-        if (!opts.pathDriven) return true;
-        if (x.__cpath) return x.__cpath.contains(pt);
-        if (x.path) return x.path.contains(pt);
-        if (x.image || x.text) return inBounds;
     }
     return false;
-}
-E.prototype.dcontains = function(pt, t) {
-    var matched = [];
-    if (this.contains(pt, t)) {
-        matched.push(this);
-    }
-    if (this.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(celm.dcontains(pt, t));
-        });
-    }
-    return matched;
 }
 
 E.prototype.intersects = function(elm, t) {
@@ -125,18 +106,6 @@ E.prototype.intersects = function(elm, t) {
         return false;
     }
 }
-E.prototype.dintersects = function(elm, t) {
-    var matched = [];
-    if (this.intersects(elm, t)) {
-        matched.push(this);
-    }
-    if (this.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(celm.dintersects(elm, t));
-        });
-    }
-    return matched;
-}
 
 E.prototype.collides = function(elm, func) {
     if (!this._collisionTests) this._collisionTests = [];
@@ -148,16 +117,14 @@ E.prototype.dcollides = function(elm, t) {
     throw new Error('Not implemented');
 }
 
-E.prototype._adopt = function(pts, t) { // adopt point by current or time-matrix
+E.prototype._adopt = function(pts, t) {
     if (!pts) return null;
-    //if (!Array.isArray(pts)) throw new Error('Wrong point format');
     this.__ensureTimeTestAllowedFor(t);
     var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
-    if (!s._applied) return __filled(pts, Number.MIN_VALUE);
-    //return this.__adoptWithM(pts, s._matrix);
-    //return this.__adoptWithM(pts, E._getIMatrixOf(this.__getStateWithRegAndPivot(s)));
-    return this.__adoptWithM(this.__updateWithRegAndPivot(pts, s.sx, s.sy), E._getIMatrixOf(s));
+    if (/*(t !== null) && */!s._applied) return __filled(pts, Number.MIN_VALUE);
+    return this.__adoptWithM(pts, E._getMatrixOfTBD(s));
 }
+
 E.prototype._radopt = function(pts, t) { // adopt point by reversed current or time-matrix
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
@@ -167,14 +134,6 @@ E.prototype._radopt = function(pts, t) { // adopt point by reversed current or t
     //return this.__adoptWithM(pts, s._matrix.inverted());
     //return this.__adoptWithM(pts, E._getMatrixOf(this.__getStateWithRegAndPivot(s)));
     return this.__adoptWithM(this.__rupdateWithRegAndPivot(pts, s.sx, s.sy), E._getMatrixOf(s));
-}
-E.prototype._padopt = function(pt, t) { // recursively adopt point by current or time-matrix
-    var p = this.parent;
-    while (p) {
-        pt = p._adopt(pt, t);
-        p = p.parent;
-    }
-    return this._adopt(pt, t);
 }
 E.prototype._pradopt = function(pt, t) { // recursively adopt point by reversed current or time-matrix
     var pt = this._radopt(pt, t);
@@ -354,19 +313,7 @@ E.prototype.__pathAt = function(t) {
 E.prototype.__pointsAt = function(t) {
     return this._pradopt(this.collectPoints(), t);
 }
-E.prototype._cpa_bounds = function() { // collision-path-aware bounds
-    var cpath = this.xdata.__cpath;
-    return cpath
-            ? cpath.bounds()
-            : this.bounds();
-}
 
-E.prototype._cpa_rect = function() { // collision-path-aware rect
-    var cpath = this.xdata.__cpath;
-    return cpath
-            ? cpath.rect()
-            : this.lrect();
-}
 E.prototype.__ensureTimeTestAllowedFor = function(t) {
     if ((t != null) &&
         (this.__modifying != null)
@@ -729,10 +676,7 @@ CSeg.prototype.crosses = function(start, point) {
 var G = {}; // geometry
 
 G.__zeroBounds = function(b) {
-    return (b[0] === b[1]) &&
-           (b[1] === b[2]) &&
-           (b[2] === b[3])/* &&
-           (b[3] === b[0])*/;
+    return (b[2] === 0) && (b[3] === 0);
 }
 G.__zeroRect = function(r) {
     return (r[0] === r[1]) && (r[1] === r[2]) &&
@@ -745,9 +689,9 @@ G.__inBounds = function(b, pt, zeroTest) {
     // zero-bounds don't match
     if (zeroTest && G.__zeroBounds(b)) return false;
     return ((pt[0] >= b[0]) &&
-            (pt[0] <= b[2]) &&
+            (pt[0] <= b[0]+b[2]) &&
             (pt[1] >= b[1]) &&
-            (pt[1] <= b[3]));
+            (pt[1] <= b[1]+b[3]));
 }
 G.__inRect = function(r, pt, zeroTest) {
     if (!r) throw new Error('Rect is not accessible');
