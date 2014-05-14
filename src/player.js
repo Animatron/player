@@ -1971,7 +1971,7 @@ Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
-    this.bstate = Element.createBaseState();
+    this.bstate = Element.createBaseState(this);
     this.state = Element.createState(this);
     this.astate = null; // actual state
     this.xdata = Element.createXData(this);
@@ -3240,7 +3240,7 @@ Element.prototype.__removeMaskCanvases = function() {
 }
 
 // base (initial) state of the element
-Element.createBaseState = function() {
+Element.createBaseState = function(owner) {
     return { 'x': 0, 'y': 0,   // dynamic position
              'angle': 0,       // rotation angle
              'sx': 1, 'sy': 1, // scale by x / by y
@@ -3249,7 +3249,8 @@ Element.createBaseState = function() {
              'p': null, 't': null, 'key': null,
                                // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
                                // if both are null — stays as defined
-             '_applied': true }; // always applied
+             '_applied': true,  // always applied
+             '$': owner };
 }
 // state of the element
 Element.createState = function(owner) {
@@ -3345,7 +3346,9 @@ Element._mergeStates = function(s1, s2) {
         hx: s1.hx + s2.hx, hy: s1.hy + s2.hy,
         angle: s1.angle + s2.angle,
         alpha: s1.alpha * s2.alpha,
-        _applied: s1._applied && s2._applied/*, TODO:
+        _applied: s1._applied && s2._applied,
+        $: s1.$ || s2.$
+        /*, TODO:
         _appliedAt: s1._appliedAt || s2._appliedAt*/
     }
 }

@@ -380,7 +380,6 @@ function p_drawAdoptedRect(ctx) {
     var rect = this.$.rect();
     if (rect) {
         var ratio = $engine.PX_RATIO || 1;
-        rect = this.$._adopt(rect);
         ctx.save();
         ctx.fillStyle = '#0f0';
         ctx.fillRect(rect[0]-2,rect[1]-2,4,4);
@@ -403,7 +402,6 @@ function p_drawAdoptedRect(ctx) {
 function p_drawAdoptedPoints(ctx) {
     var pts = this.$.collectPoints();
     if (pts) {
-        pts = this.$._adopt(pts);
         ctx.save();
         ctx.fillStyle = '#00f';
         for (var pi = 0, pl = pts.length; pi < pl; pi += 2) {
