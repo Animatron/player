@@ -40,68 +40,8 @@ E.prototype.bounds = function(t) {
     return this._pradopt(this._cpa_bounds(), t);
 }
 
-E.prototype.dbounds = function(t) {
-    var b = this.bounds(t);
-    var minX, minY, maxX, maxY;
-    if (b) {
-        minX = b[0]; minY = b[1];
-        maxX = b[2]; maxY = b[3];
-    } else {
-        minX = minY = Number.MAX_VALUE;
-        maxX = maxY = 0;
-    }
-    this.travelChildren(function(elm) {
-        var cb = elm.bounds(t);
-        if (!cb) return;
-        minX = Math.min(minX, cb[0]);
-        minY = Math.min(minY, cb[1]);
-        maxX = Math.max(maxX, cb[2]);
-        maxY = Math.max(maxY, cb[3]);
-    });
-    return [ minX, minY, maxX, maxY ];
-}
-
 E.prototype.rect = function(t) {
     return this._pradopt(this._cpa_rect(), t);
-}
-
-E.prototype.drect = function(t) {
-    var r = this.rect(t);
-    var x1, y1, x2, y2, x3, y3, x4, y4;
-    if (r) {
-        x1 = r[0]; y1 = r[1];
-        x2 = r[2]; y2 = r[3];
-        x3 = r[4]; y3 = r[5];
-        x4 = r[6]; y4 = r[7];
-    } else {
-        x1 = y1 = y2 = x4 = Number.MAX_VALUE;
-        x2 = y4 = x3 = y3 = 0;
-    }
-    this.travelChildren(function(elm) {
-        var cr = elm.rect(t);
-        if (!cr) return;
-        x1 = Math.min(x1, cr[0]); y1 = Math.min(y1, cr[1]);
-        x2 = Math.max(x2, cr[2]); y2 = Math.min(y2, cr[3]);
-        x3 = Math.max(x3, cr[4]); y3 = Math.max(y3, cr[5]);
-        x4 = Math.min(x4, cr[6]); y4 = Math.max(y4, cr[7]);
-        // it may be rotate, so we correct it before
-    });
-    return [ x1, y1, x2, y2, x3, y3, x4, y4 ];
-}
-
-E.prototype.local = function(pt, t) {
-    /*var off = this.offset();
-    var lpt = this._adopt(pt, t);
-    return [ lpt[0] - off[0],
-             lpt[1] - off[1] ];*/
-    return this._padopt(pt, t);
-}
-E.prototype.global = function(pt, t) {
-    /*var off = this.offset();
-    var gpt = this._radopt(pt, t);
-    return [ gpt[0] + off[0],
-             gpt[1] + off[1] ];*/
-    return this._pradopt(pt, t);
 }
 
 E.prototype.reactAs = function(path) {
@@ -418,7 +358,7 @@ E.prototype._cpa_bounds = function() { // collision-path-aware bounds
     var cpath = this.xdata.__cpath;
     return cpath
             ? cpath.bounds()
-            : this.lbounds();
+            : this.bounds();
 }
 
 E.prototype._cpa_rect = function() { // collision-path-aware rect

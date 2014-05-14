@@ -2662,13 +2662,13 @@ Element.prototype.dimen = function() {
     var subj = x.path || x.text || x.sheet;
     if (subj) return subj.dimen();
 }
-Element.prototype.lbounds = function() {
+Element.prototype.bounds = function() {
     var x = this.xdata;
     var subj = x.path || x.text || x.sheet;
     if (subj) return subj.bounds();
 }
 Element.prototype.lrect = function() {
-    var b = this.lbounds();
+    var b = this.bounds();
     if (!b) return null;
     // returns clockwise coordinates of the points
     // for easier drawing
@@ -4059,24 +4059,28 @@ Path.prototype.end = function() {
     return [ this.segs[lastidx].pts[s-2],   // last-x
              this.segs[lastidx].pts[s-1] ]; // last-y
 }
+Path.prototype.invalidateBounds = function() {
+    this.__bounds = null;
+}
 Path.prototype.bounds = function() {
-    // FIXME: it is not ok for curve path, possibly
-    if (this.segs.length <= 0) return [0, 0, 0, 0];
-    var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
-        minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
-    this.visit(function(segment) {
-        var pts = segment.pts,
-            pnum = pts.length;
-        for (var pi = 0; pi < pnum; pi+=2) {
-            minX = Math.min(minX, pts[pi]);
-            maxX = Math.max(maxX, pts[pi]);
-        }
-        for (var pi = 1; pi < pnum; pi+=2) {
-            minY = Math.min(minY, pts[pi]);
-            maxY = Math.max(maxY, pts[pi]);
-        }
-    });
-    return [ minX, minY, maxX, maxY ];
+    if (!this.__bounds) {
+        // FIXME: it is not ok for curve path, possibly
+        if (this.segs.length <= 0) return [0, 0, 0, 0];
+        var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
+            minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
+        this.visit(function (segment) {
+            var pts = segment.pts,
+                pnum = pts.length;
+            for (var pi = 0; pi < pnum; pi += 2) {
+                minX = Math.min(minX, pts[pi]);
+                maxX = Math.max(maxX, pts[pi]);
+                minY = Math.min(minY, pts[pi + 1]);
+                maxY = Math.max(maxY, pts[pi + 1]);
+            }
+        });
+        this.__bounds = [ minX, minY, maxX-minX, maxY-minY ];
+    }
+    return this.__bounds;
 }
 Path.prototype.dimen = function() {
     var bounds = this.bounds();
