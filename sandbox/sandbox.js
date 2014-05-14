@@ -16,27 +16,29 @@ function sandbox() {
     this.selectElm = document.getElementById('examples-list');
     this.tangleElm = document.getElementById('refresh-calc');
     this.debugElm = document.getElementById('enable-debug');
+    this.logErrorsElm = document.getElementById('log-errors');
 
     window.b = anm.Builder._$;
     window.B = anm.Builder;
     window.C = anm.C;
 
     this.player = anm.createPlayer('my-canvas', {
-        //'mode': anm.C.M_PREVIEW,
-        'muteErrors': true,
-        'anim': {
-            width: 400,
-            height: 250,
-            bgcolor: '#fff' }
+        mode: anm.C.M_SANDBOX,
+        muteErrors: true,
+        width: 400,
+        height: 250,
+        bgColor: '#fff'
     });
 
-    this.player.mode = anm.C.M_SANDBOX;
-    this.player._checkMode();
+    //this.player.mode = anm.C.M_SANDBOX;
+    //this.player._updateMode();
 
     _player = this.player;
 
     var lastCode = '';
     if (localStorage) lastCode = load_last_code();
+
+    var logErrors = false;
 
     this.cm = CodeMirror.fromTextArea(this.codeElm,
               { mode: 'javascript',
@@ -102,7 +104,7 @@ function sandbox() {
         } catch(e) { e2 = e; };
         s.errorsElm.style.display = 'block';
         s.errorsElm.innerHTML = '<strong>Error:&nbsp;</strong>'+e.message;
-        if (console && console.error) {
+        if (logErrors && console && console.error) {
           console.error(e.stack);
           if (e2) console.error(e2.stack);
         }
@@ -174,6 +176,10 @@ function sandbox() {
         refreshFromCurrentMoment();
     }
 
+    this.logErrorsElm.onchange = function() {
+        logErrors = !logErrors;
+    }
+
     var tangleModel = {
         initialize: function () {
             this.secPeriod = refreshRate / 1000;
@@ -191,7 +197,7 @@ function sandbox() {
     function change_mode(radio) {
       if (_player) {
         _player.mode = C[radio.value];
-        _player._checkMode();
+        _player._updateMode();
         refreshFromStart();
       }
     }

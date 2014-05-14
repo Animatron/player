@@ -155,6 +155,7 @@ function to_rgba(r, g, b, a) {
 }
 
 function fmt_time(time) {
+  if (!__finite(time)) return '∞';
   var _time = Math.abs(time),
         _h = Math.floor(_time / 3600),
         _m = Math.floor((_time - (_h * 3600)) / 60),
@@ -356,6 +357,7 @@ registerEvent('X_STOP', 'stop', 'x_stop');
 registerEvent('S_PLAY', 'play', 'play');
 registerEvent('S_PAUSE', 'pause', 'pause');
 registerEvent('S_STOP', 'stop', 'stop');
+registerEvent('S_COMPLETE', 'complete', 'complete');
 registerEvent('S_REPEAT', 'repeat', 'repeat');
 registerEvent('S_IMPORT', 'import', 'import');
 registerEvent('S_LOAD', 'load', 'load');
@@ -681,6 +683,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
         clearInterval(player.state.__drawInterval);
     }*/
 
+    player._notifyAPI(); // checks if it's really required just inside
+
     state.happens = C.PLAYING;
 
 
@@ -815,7 +819,9 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-provideEvents(Player, [C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT, C.S_ERROR]);
+provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
+                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
+                        C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
     var canvas_id, canvas;
@@ -917,6 +923,21 @@ Player.prototype._checkOpts = function() {
     }
 
     if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
+
+    this.__appliedMode = this.mode;
+}
+Player.prototype._updateMode = function() {
+    if (!this.canvas || !this.mode) return;
+    if (!this.__appliedMode == this.mode) return;
+
+    // force to re-use the mode value in _checkOpts
+    this.infiniteDuration = undefined;
+    this.handleEvents = undefined;
+    this.controlsEnabled = undefined;
+    this.infoEnabled = undefined;
+    this.drawStill = undefined;
+
+    this._checkOpts();
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -1355,7 +1376,9 @@ Player.prototype.__beforeFrame = function(scene) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
-                 (time > (state.duration + Player.PEFF))) {
+                 (__finite(state.duration) &&
+                    (time > (state.duration + Player.PEFF)))) {
+                player.fire(C.S_COMPLETE);
                 state.time = 0;
                 scene.reset();
                 player.stop();
@@ -1504,6 +1527,31 @@ Player.prototype.__detachScene = function() {
         elm.__removeMaskCanvases();
     });
 }
+Player.prototype._notifyAPI = function() {
+    // currently, notifies only about playing start
+    if (this._loadTarget !== C.LT_URL) return;
+    if (!this._loadSrc || !this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
+    var _loadSrc = this._loadSrc,
+        _anm_id = this.anim.meta._anm_id,
+        _nop = function() {};
+    var locatedAtTest = false,
+        locatedAtProd = false;
+    locatedAtTest = (_loadSrc.indexOf('/animatron-snapshots-dev') > 0) ||
+                    (_loadSrc.indexOf('.animatron-test.com') > 0); // it's not so ok to be 0 in these cases
+    locatedAtTest = locatedAtTest || (((_loadSrc.indexOf('./') == 0) ||
+                                       (_loadSrc.indexOf('/') == 0)) &&
+                                      (window.location && (window.location.hostname == 'animatron-test.com')));
+    locatedAtProd = (_loadSrc.indexOf('/animatron-snapshots') > 0) ||
+                    (_loadSrc.indexOf('.animatron.com') > 0); // it's not so ok to be 0 in these cases
+    locatedAtProd = locatedAtProd || (((_loadSrc.indexOf('./') == 0) ||
+                                       (_loadSrc.indexOf('/') == 0)) &&
+                                      (window.location && (window.location.hostname == 'animatron.com')));
+    if (locatedAtTest) {
+        $engine.ajax('http://api.animatron-test.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
+    } else if (locatedAtProd) {
+        $engine.ajax('http://api.animatron.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
+    }
+}
 
 /* Player.prototype.__originateErrors = function() {
     return (function(player) { return function(err) {
@@ -1527,11 +1575,12 @@ Player.createState = function(player) {
 }
 
 Player._isPlayerEvent = function(type) {
-    // TODO: make some marker to group types of events
-    return ((type == C.S_PLAY) || (type == C.S_PAUSE) ||
-            (type == C.S_STOP) || (type == C.S_REPEAT) ||
-            (type == C.S_LOAD) || (type == C.S_RES_LOAD) ||
-            (type == C.S_ERROR) || (type == C.S_IMPORT));
+    // FIXME: make some marker to group types of events
+    return ((type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
+            (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
+            (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
+            (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
+            (type == C.S_COMPLETE));
 }
 Player._optsFromUrlParams = function(params/* as object */) {
     function __boolParam(val) {
@@ -1635,7 +1684,7 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW,
                        // player events
-                       C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
+                       C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                        C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 /* TODO: add chaining to all external Scene methods? */
 // > Scene.add % (elem: Element | Clip)
@@ -1952,8 +2001,9 @@ function Element(draw, onframe) {
         default_on = this.on;
     this.on = function(type, handler) {
         if (type & C.XT_CONTROL) {
-            this.m_on.call(_me, type, handler);
-        } else default_on.call(_me, type, handler);
+            return this.m_on.call(_me, type, handler);
+        } else return default_on.call(_me, type, handler);
+        // return this; // FIXME: make chainable
     };
     Element.__addSysModifiers(this);
     Element.__addSysPainters(this);
@@ -1967,7 +2017,7 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_DRAW, C.X_START, C.X_STOP,
                          // player events
-                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_REPEAT,
+                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
@@ -3327,6 +3377,10 @@ L.loadScene = function(player, scene, callback) {
     if (player.debug
         && !global_opts.liveDebug)
         scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
+    if (!scene.width || !scene.height) {
+      scene.width = player.width;
+      scene.height = player.height;
+    }
     // assign
     player.anim = scene;
     if (callback) callback.call(player, scene);
@@ -5147,7 +5201,10 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
+<<<<<<< HEAD
     if (this.player.handleEvents) return;
+=======
+>>>>>>> master
     this._last_mevt = evt;
     var pos = $engine.getEventPos(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
@@ -5158,7 +5215,10 @@ Controls.prototype.handleMouseMove = function(evt) {
     }
 }
 Controls.prototype.handleClick = function() {
+<<<<<<< HEAD
     if (this.player.handleEvents) return;
+=======
+>>>>>>> master
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
@@ -5176,7 +5236,10 @@ Controls.prototype.handlePlayerClick = function() {
     }
 }
 Controls.prototype.handleMouseOver = function() {
+<<<<<<< HEAD
     if (this.player.handleEvents) return;
+=======
+>>>>>>> master
     var state = this.player.state;
     if (state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
@@ -5185,12 +5248,16 @@ Controls.prototype.handleMouseOver = function() {
     }
 }
 Controls.prototype.handleMouseOut = function() {
+<<<<<<< HEAD
     if (this.player.handleEvents) return;
+=======
+>>>>>>> master
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
         (state.happens === C.RES_LOADING) ||
-        (state.happens === C.ERROR)) {
+        (state.happens === C.ERROR) ||
+        (state.happens === C.STOPPED)) {
         this.forceNextRedraw();
         this.render(state.time);
     } else {
@@ -5310,6 +5377,8 @@ Controls._drawBack = function(ctx, theme, w, h) {
     ctx.restore();
 }
 Controls._drawProgress = function(ctx, theme, w, h, progress) {
+    if (!__finite(progress)) return;
+
     ctx.save();
 
     var cx = w / 2,

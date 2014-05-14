@@ -407,7 +407,7 @@ Builder.prototype.band = function(band) {
 Builder.prototype.duration = function(value) {
     if (this.v.parent) throw new Error('Please set duration only to the root element');
     this.d = value;
-    //if (this.v.scene) this.v.scene.setDuration(value);
+    //if (this.v.scene) this.v.scene.duration = value;
     return this;
 }
 

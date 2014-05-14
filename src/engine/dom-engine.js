@@ -68,7 +68,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getRequestFrameFunc() -> function(callback)
     // getCancelFrameFunc() -> function(id)
 
-    // ajax(url, callback) -> none
+    // ajax(url, callback?, errback?, method?) -> none
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
@@ -152,7 +152,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     $DE.PX_RATIO = $wnd.devicePixelRatio || 1;
 
-    $DE.ajax = function(url, callback, errback) {
+    $DE.ajax = function(url, callback, errback, method) {
         var req = false;
 
         if (!$wnd.ActiveXObject) {
@@ -192,7 +192,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         };
 
         req.onreadystatechange = whenDone;
-        req.open('GET', url, true);
+        req.open(method || 'GET', url, true);
         req.send(null);
     }
 

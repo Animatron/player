@@ -110,8 +110,14 @@ Transform.prototype.transformPoint = function(px, py) {
 // customized methods
 
 Transform.prototype.shear = function(hx, hy) {
-  this.m[2] += hx;
-  this.m[1] += hy;
+  var m11 = this.m[0] + this.m[2] * hy;
+  var m12 = this.m[1] + this.m[3] * hy;
+  var m21 = this.m[0] * hx + this.m[2];
+  var m22 = this.m[1] * hx + this.m[3];
+  this.m[0] = m11;
+  this.m[1] = m12;
+  this.m[2] = m21;
+  this.m[3] = m22;
 };
 
 Transform.prototype.apply = function(ctx) {
