@@ -445,6 +445,10 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'muteErrors': false
                                };
 
+Player.EMPTY_BG = 'rgba(0,0,0,.05)';
+Player.EMPTY_STROKE = 'rgba(50,158,192,.5)';
+Player.EMPTY_STROKE_WIDTH = 3;
+
 // ### Playing Control API
 /* ----------------------- */
 
@@ -1114,8 +1118,11 @@ Player.prototype._drawEmpty = function() {
     // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
-    ctx.fillStyle = '#ffe';
+    ctx.fillStyle = Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
+    ctx.strokeStyle = Player.EMPTY_STROKE;
+    ctx.strokeWidth = Player.EMPTY_STROKE_WIDTH;
+    ctx.strokeRect(0, 0, w * ratio, h * ratio);
 
     ctx.restore();
 }
@@ -1132,8 +1139,11 @@ Player.prototype._drawSplash = function() {
     // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
-    ctx.fillStyle = '#ffe';
+    ctx.fillStyle = Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
+    ctx.strokeStyle = Player.EMPTY_STROKE;
+    ctx.strokeWidth = Player.EMPTY_STROKE_WIDTH;
+    ctx.strokeRect(0, 0, w * ratio, h * ratio);
 
     if (this.controls) {
        ctx.restore();
@@ -1189,8 +1199,8 @@ Player.prototype._drawLoadingCircles = function() {
         //Controls._drawBack(ctx, theme, w, h);
         Controls._drawLoadingCircles(ctx, w, h,
                                      (((Date.now() / 100) % 60) / 60),
-                                     .5 /*theme.radius.outer*/,
-                                     theme.colors.stroke, theme.colors.text);
+                                     theme.radius.loader,
+                                     theme.colors.progress.left, theme.colors.progress.passed);
     });
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
@@ -4840,6 +4850,7 @@ Controls.DEFAULT_THEME = {
   'radius': { // all radius values are relative to (Math.min(width, height) / 2)
       'inner': .25,
       'outer': .28,
+      'loader': .25,
       'buttonv': .15, // height of a button
       'buttonh': .14, // width of a button
       'time': .5, // time text position
@@ -5364,8 +5375,8 @@ Controls._drawPlay = function(ctx, theme, w, h, focused) {
     Controls._drawGuyInCorner(ctx, theme, w, h);
 }
 Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
-    Controls._drawLoadingCircles(ctx, w, h, hilite_pos, theme.radius.outer,
-                                            theme.colors.stroke, theme.colors.text);
+    Controls._drawLoadingCircles(ctx, w, h, hilite_pos, theme.radius.loader,
+                                            theme.colors.progress.left, theme.colors.progress.passed);
 
     if (src) {
         Controls._drawText(ctx, theme,
