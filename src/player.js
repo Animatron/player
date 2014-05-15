@@ -4897,8 +4897,8 @@ Controls.DEFAULT_THEME = {
       }, */
       'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
                   // and end is at (1.0 * Math.max(width/height))
-          [ .2, 'rgba(124,124,124,.35)' ],
-          [ .3, 'rgba(0,0,0,0)' ]
+          [ .2, .3 ], // [ stop position, alpha ]
+          [ .32, 0 ]    // [ stop position, alpha ]
       ],
       'progress': {
           //'passed': 'rgba(0,0,0,.05)',
@@ -5065,7 +5065,6 @@ Controls.prototype.render = function(time) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
     } else if (_s === C.NOTHING) {
-        //Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         Controls._runLoadingAnimation(ctx, function(ctx) {
@@ -5076,7 +5075,6 @@ Controls.prototype.render = function(time) {
                                   // isRemoteLoading ? player._loadSrc '...' : '');
         });
     } else if (_s === C.ERROR) {
-        Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
     }
 
@@ -5266,16 +5264,26 @@ Controls.prototype.setDuration = function(value) {
 Controls.prototype.inject = function(meta, anim) {
     if (this.info) this.info.inject(meta, anim);
 }
-Controls._drawBack = function(ctx, theme, w, h) {
+Controls._drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
     var cx = w / 2,
         cy = h / 2;
+
+    var rgb = [ 175, 175, 175 ],
+        bgcolor = bgcolor || '#fff';
+
+    // FIXME: use color parser here!
+    if ((bgcolor == '#000') ||
+        (bgcolor == '#000000')) rgb = [ 0, 0, 0 ];
 
     var grd = ctx.createRadialGradient(cx, cy, 0,
                                        cx, cy, Math.max(cx, cy) * 1.2);
     var stops = theme.colors.bggrad;
     for (var i = 0, il = stops.length; i < il; i++) {
-        grd.addColorStop(stops[i][0], stops[i][1]);
+        grd.addColorStop(stops[i][0], 'rgba(' + rgb[0] + ','
+                                              + rgb[1] + ','
+                                              + rgb[2] + ','
+                                              + stops[i][1] + ')');
     }
 
     ctx.fillStyle = grd;
@@ -5432,17 +5440,8 @@ Controls._drawNoScene = function(ctx, theme, w, h, focused) {
 
     var cx = w / 2,
         cy = h / 2,
-        inner_rad = Math.min(cx, cy) * theme.radius.inner,
         button_width = Math.min(cx, cy) * theme.radius.buttonh,
         button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = focused ? theme.colors.disabledfill : theme.colors.fill;
-    ctx.strokeStyle = theme.colors.stroke;
-    ctx.lineWidth = theme.width.inner;
-    ctx.stroke();
-    ctx.fill();
 
     ctx.translate(cx, cy);
 
@@ -5473,17 +5472,8 @@ Controls._drawError = function(ctx, theme, w, h, error, focused) {
 
     var cx = w / 2,
         cy = h / 2,
-        inner_rad = Math.min(cx, cy) * theme.radius.inner,
         button_width = Math.min(cx, cy) * theme.radius.buttonh,
         button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = focused ? theme.colors.disabledfill : theme.colors.fill;
-    ctx.strokeStyle = theme.colors.stroke;
-    ctx.lineWidth = theme.width.inner;
-    ctx.stroke();
-    ctx.fill();
 
     ctx.translate(cx, cy);
 
