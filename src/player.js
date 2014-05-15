@@ -4894,12 +4894,14 @@ Controls.DEFAULT_THEME = {
           //'end': 'rgba(30,30,30,.05)' // eae5d8
           'start': 'rgba(234,229,216,.8)',
           'end': 'rgba(234,229,216,.8)'
-      },
+      }, */
       'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
                   // and end is at (1.0 * Math.max(width/height))
-          [ .2, .3 ], // [ stop position, alpha ]
-          [ .32, 0 ]    // [ stop position, alpha ]
-      ], */
+          [ .2,  .2 ],  // [ stop position, alpha ]
+          [ .24, .15 ], // [ stop position, alpha ]
+          [ .27, .1 ], // [ stop position, alpha ]
+          [ .4, 0 ]    // [ stop position, alpha ]
+      ],
       'progress': {
           //'passed': 'rgba(0,0,0,.05)',
           //'left': 'rgba(255,255,255,1)'
@@ -5048,15 +5050,17 @@ Controls.prototype.render = function(time) {
     ctx.clearRect(0, 0, _w, _h);
 
     if (_s === C.PLAYING) {
-        /*
+        /* Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawProgress(ctx, theme, _w, _h, progress);
         Controls._drawPause(ctx, theme, _w, _h, this.focused);
         if (duration) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         } */
     } else if (_s === C.STOPPED) {
+        Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawPlay(ctx, theme, _w, _h, this.focused);
     } else if (_s === C.PAUSED) {
+        Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawProgress(ctx, theme, _w, _h, progress);
         Controls._drawPlay(ctx, theme, _w, _h, this.focused);
         if (duration) {
@@ -5261,6 +5265,33 @@ Controls.prototype.setDuration = function(value) {
 }
 Controls.prototype.inject = function(meta, anim) {
     if (this.info) this.info.inject(meta, anim);
+}
+Controls._drawBack = function(ctx, theme, w, h, bgcolor) {
+    ctx.save();
+    var cx = w / 2,
+        cy = h / 2;
+
+    var rgb = [ 175, 200, 200 ],
+        bgcolor = bgcolor || '#fff';
+
+    // FIXME: use color parser here!
+    //if ((bgcolor == '#000') ||
+    //    (bgcolor == '#000000')) rgb = [ 0, 0, 0 ];
+
+    var grd = ctx.createRadialGradient(cx, cy, 0,
+                                       cx, cy, Math.max(cx, cy) * 1.2);
+    var stops = theme.colors.bggrad;
+    for (var i = 0, il = stops.length; i < il; i++) {
+        grd.addColorStop(stops[i][0], 'rgba(' + rgb[0] + ','
+                                              + rgb[1] + ','
+                                              + rgb[2] + ','
+                                              + stops[i][1] + ')');
+    }
+
+    ctx.fillStyle = grd;
+    ctx.fillRect(0, 0, w, h);
+
+    ctx.restore();
 }
 Controls._drawProgress = function(ctx, theme, w, h, progress) {
     if (!__finite(progress)) return;
