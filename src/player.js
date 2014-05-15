@@ -2099,7 +2099,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     }
     if (drawMe) {
         ctx.save();
-        try {
+//        try {
             // update global time with new local time (it may've been
             // changed if there were jumps or something), so children will
             // get the proper value
@@ -2254,8 +2254,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.restore();
             }
+/*
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
+*/
+        ctx.restore();
     }
     // immediately when drawn, element becomes shown,
     // it is reasonable
@@ -2735,10 +2738,12 @@ Element.prototype.bounds = function(t) {
     pnts = this._adopt(pnts, t);
 
     if(this.hasChildren()) {
+        var parent = this;
         this.visitChildren(function(child) {
             var b = child.bounds(t);
             if (b) {
                 var p = [b[0], b[1], b[0] + b[2], b[1] + b[3]];
+                p = parent._adopt(p, t);
                 if (!pnts) pnts = p;
                 else {
                     pnts[0] = Math.min(pnts[0], p[0]);

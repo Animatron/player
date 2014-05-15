@@ -125,6 +125,13 @@ E.prototype._adopt = function(pts, t) {
     return this.__adoptWithM(pts, E._getMatrixOfTBD(s));
 }
 
+E.prototype._getMatrixOf = function(t) {
+    this.__ensureTimeTestAllowedFor(t);
+    var s = (t == null) ? (this.astate || this.bstate) : this.stateAt(t);
+    if (!s._applied) return new Transform();
+    return E._getMatrixOfTBD(s);
+}
+
 E.prototype._radopt = function(pts, t) { // adopt point by reversed current or time-matrix
     if (!pts) return null;
     //if (!Array.isArray(pts)) throw new Error('Wrong point format');
@@ -376,11 +383,14 @@ function p_drawCPath(ctx, cPath) {
     cPath.cstroke('#f00', 2.0);
     cPath.apply(ctx);
 }
-function p_drawAdoptedRect(ctx) {
-    var rect = this.$.rect(0);
+function p_drawAdoptedRect(ctx, data, t) {
+    var rect = this.$.rect(t);
     if (rect) {
         var ratio = $engine.PX_RATIO || 1;
         ctx.save();
+        var m = this.$._getMatrixOf(t);
+        m.invert();
+        m.apply(ctx);
         ctx.fillStyle = '#0f0';
         ctx.fillRect(rect[0]-2,rect[1]-2,4,4);
         ctx.fillRect(rect[2]-2,rect[3]-2,4,4);
@@ -399,7 +409,7 @@ function p_drawAdoptedRect(ctx) {
         ctx.restore();
     }
 }
-function p_drawAdoptedPoints(ctx) {
+function p_drawAdoptedPoints(ctx, data, t) {
     var pts = this.$.collectPoints();
     if (pts) {
         ctx.save();
