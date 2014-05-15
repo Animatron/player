@@ -296,7 +296,7 @@ C.M_DYNAMIC = C.M_CONTROLS_DISABLED
               | C.M_DO_NOT_DRAW_STILL
               | C.M_INFINITE_DURATION;
 C.M_VIDEO = C.M_CONTROLS_ENABLED
-            | C.M_INFO_ENABLED
+            | C.M_INFO_DISABLED
             | C.M_DO_NOT_HANDLE_EVENTS
             | C.M_DRAW_STILL
             | C.M_FINITE_DURATION;
@@ -438,6 +438,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
+                                 'infoEnabled': undefined, // undefined means 'auto'
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
                                  'inParent': false,
@@ -475,6 +476,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'inifiniteDuration': false,
 //       'drawStill': false,
 //       'controlsEnabled': undefined, // undefined means 'auto'
+//       'infoEnabled': undefined, // undefined means 'auto'
 //       'handleEvents': undefined, // undefined means 'auto'
 //       'forceSceneSize': false,
 //       'inParent': false,
@@ -560,6 +562,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         var remotes = scene._collectRemoteResources(player);
         if (!remotes.length) {
             player._stopLoadingAnimation();
+            if (player.controls) player.controls.inject(scene);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
             //$log.debug('no remotes, calling callback');
@@ -577,6 +580,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                                                   // to load different scenes and first one finished loading
                                                   // after the second one
                         player._stopLoadingAnimation();
+                        if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
                         player.fire(C.S_LOAD, result);
                         if (!player.handleEvents) player.stop();
@@ -871,6 +875,8 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = __defined(opts.controlsEnabled)
                         ? opts.controlsEnabled : this.controlsEnabled;
+    this.infoEnabled = __defined(opts.infoEnabled)
+                        ? opts.infoEnabled : this.infoEnabled;
     this.handleEvents = __defined(opts.handleEvents)
                         ? opts.handleEvents : this.handleEvents;
     this.drawStill = __defined(opts.drawStill)
@@ -980,43 +986,6 @@ Player.prototype.forceRedraw = function() {
 }
 Player.prototype.changeZoom = function(zoom) {
     this.zoom = zoom;
-}
-// update player state with passed configuration, usually done before
-// loading some scene or by importer, `conf` has the data about title,
-// author/copyright, fps and width/height of the player
-//
-// Anim-info format:
-//
-//     { ["fps": 24.0,] // NB: currently not applied in any way, default is 30
-//       "width": 640,
-//       "height": 480,
-//       ["zoom": 1.0,]
-//       ["bg": { color: "#f00" },] // in canvas-friendly format
-//       ["duration": 10.0] // in seconds
-//     }
-Player.prototype.configureAnim = function(conf) {
-    this._animInfo = conf;
-
-    _mrg_obj(conf, {}, this.anim);
-
-    this._checkOpts();
-}
-// update player information block with passed configuration, usually done before
-// loading some scene or by importer, `conf` has the data about title,
-// author/copyright, version.
-//
-// Meta-info format:
-//
-//     { ["id": "......",]
-//       "title": "Default",
-//       "author": "Anonymous",
-//       "copyright": "© 2011",
-//       "version": 0.1,
-//       "description": "Default project description"
-//     }
-Player.prototype.configureMeta = function(info) {
-    this._metaInfo = info;
-    if (this.controls) this.controls.inject(info, this._metaInfo);
 }
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
@@ -1614,6 +1583,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
     opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
     opts.controlsEnabled = __extractBool('c', 'controls');
+    opts.infoEnabled = __extractBool('info');
     opts.bgColor = params.bg || params.bgcolor;
     return opts;
 }
@@ -4864,8 +4834,8 @@ Controls.DEFAULT_THEME = {
       'weight': 'bold',
       'timesize': 13.5,
       'statussize': 8.5,
-      'infosize_a': 12,
-      'infosize_b': 10
+      'infosize_a': 10,
+      'infosize_b': 8
   },
   'radius': { // all radius values are relative to (Math.min(width, height) / 2)
       'inner': .25,
@@ -4917,7 +4887,7 @@ Controls.DEFAULT_THEME = {
       'fill': 'rgba(255,255,255,1)',
       'hoverfill': 'rgba(255,255,255,1)',
       'disabledfill': 'rgba(124,30,30,0)',
-      'text': 'rgba(90,90,90,.8)',
+      'text': 'rgba(50,158,192,.85)',
       'error': 'rgba(250,0,0,.8)',
       'infobg': 'rgba(128,0,0,.8)',
       'secondary': 'rgba(255,255,255,.6)'
@@ -5263,8 +5233,8 @@ Controls.prototype.disableInfo = function() {
 Controls.prototype.setDuration = function(value) {
     if (this.info) this.info.setDuration(value);
 }
-Controls.prototype.inject = function(meta, anim) {
-    if (this.info) this.info.inject(meta, anim);
+Controls.prototype.inject = function(anim, duration) {
+    if (this.info) this.info.inject(anim, duration);
 }
 Controls._drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
@@ -5595,7 +5565,7 @@ InfoBlock.MARGIN = 5;
 InfoBlock.FONT = Controls.THEME.font.face;
 InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
 InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
-InfoBlock.DEFAULT_WIDTH = 150;
+InfoBlock.DEFAULT_WIDTH = 100; // FIXME: use found text width
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.LAST_ID = 0;
 InfoBlock.prototype.detach = function(parent) {
@@ -5670,8 +5640,10 @@ InfoBlock.prototype.render = function() {
     _bl.apply(ctx);
     ctx.restore();
 }
-InfoBlock.prototype.inject = function(meta, anim, duration) {
-    this.__data = [ meta, anim, duration || meta.duration ];
+InfoBlock.prototype.inject = function(anim, duration) {
+    if (!anim) return;
+    var meta = anim.meta;
+    this.__data = [ anim, meta, duration || (meta && meta.duration) || anim.duration || 0 ];
     if (this.ready) this.render();
 }
 InfoBlock.prototype.reset = function() {
@@ -5686,7 +5658,7 @@ InfoBlock.prototype.show = function() {
     this.canvas.style.visibility = 'visible';
 }
 InfoBlock.prototype.setDuration = function(value) {
-    if (this.__data) this.inject(this.__data[0], this.__data[1], value);
+    if (this.__data) this.inject(this.__data[0], value);
 }
 InfoBlock.prototype.changeTheme = function(front, back) {
     this.__fgcolor = front;

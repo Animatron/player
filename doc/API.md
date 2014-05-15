@@ -277,7 +277,7 @@ The complete options object, filled with default values, looks like this (any op
 
     { 'debug': false, // in debug mode, FPS, shapes names and moving paths are shown
       'mode': C.M_VIDEO, // player mode, may also be C.M_PREVIEW or C.M_DYNAMIC, different modes combine
-                         // `inifiniteDuration`/`drawStill`/`controlsEnabled`/`handleEvents` options
+                         // `inifiniteDuration`/`drawStill`/`controlsEnabled`/`infoEnabled`/`handleEvents` options
                          // in different combinations, so they may be specified separately and override
                          // the `mode` value, if `mode` was specified at all.
       'repeat': false, // repeat an animation again when it finished to play or not
@@ -290,8 +290,11 @@ The complete options object, filled with default values, looks like this (any op
                             // background or semi-transparent, this color will be visible through)
       'audioEnabled': true, // do load audio files and play sound in player
       'shadowsEnabled': true, // do render shadows, sometimes it affects performance
-      'controlsEnabled': undefined, // specifies if controls/info-block overlay should be shown over a player,
+      'controlsEnabled': undefined, // specifies if controls overlay should be shown over a player,
                                     // `false` means disable controls and don't show/call them at all.
+                                    // `undefined` means `auto` (dependent on `mode`)
+      'infoEnabled': undefined, // specifies if info-block overlay should be shown over a player,
+                                    // `false` means disable controls and don't show/call it at all.
                                     // `undefined` means `auto` (dependent on `mode`)
       'handleEvents': undefined, // specifies if player should handle mouse/keyboard events (useful for games)
                                  // `undefined` means `auto` (so, dependent on `mode`)
