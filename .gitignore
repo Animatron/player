@@ -15,6 +15,7 @@ doc/README.html
 doc/scripting.html
 doc/api.pdf
 doc/docco.css
+doc/*.sketch
 test-scenes
 deploy-www.sh
 *sublime*

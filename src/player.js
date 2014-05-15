@@ -754,7 +754,10 @@ Player.prototype.stop = function() {
             player._drawEmpty();
         }
         if (player.controls/* && !player.controls.hidden*/) {
-            player._renderControlsAt(state.time);
+            // FIXME: subscribe controls to S_STOP event instead
+            player.controls.show();
+            player.controls.forceNextRedraw();
+            player.controls.render(state.time);
         }
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
@@ -1041,7 +1044,7 @@ Player.prototype.drawAt = function(time) {
     // because it is a single function
     __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, u_before, u_after);
 
-    if (this.controls) this._renderControlsAt(time);
+    if (this.controls) this.controls.render(time);
 
     return this;
 }
@@ -1403,7 +1406,7 @@ Player.prototype.__afterFrame = function(scene) {
     return (function(player, state, scene, callback) {
         return function(time) {
             if (player.controls && !player.controls.hidden) {
-                player._renderControlsAt(time);
+                player.controls.render(time);
             }
             if (callback) callback(time);
 
@@ -5600,7 +5603,7 @@ InfoBlock.MARGIN = 5;
 InfoBlock.FONT = Controls.THEME.font.face;
 InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
 InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
-InfoBlock.DEFAULT_WIDTH = 0;
+InfoBlock.DEFAULT_WIDTH = 150;
 InfoBlock.DEFAULT_HEIGHT = 60;
 InfoBlock.LAST_ID = 0;
 InfoBlock.prototype.detach = function(parent) {
