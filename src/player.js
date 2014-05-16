@@ -769,7 +769,7 @@ Player.prototype.stop = function() {
         }
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
-        player._drawSplash();
+        if (!player.controls) player._drawSplash();
     }
 
     player.fire(C.S_STOP);
@@ -982,7 +982,7 @@ Player.prototype.forceRedraw = function() {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
         case C.PLAYING: if (this.anim) { this._stopAndContinue(); } break;
-        case C.NOTHING: this._drawSplash(); break;
+        case C.NOTHING: if (!this.controls) this._drawSplash(); break;
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
     }
@@ -1127,6 +1127,8 @@ Player.prototype._drawEmpty = function() {
     ctx.restore();
 }
 Player.prototype._drawSplash = function() {
+    if (this.controls) return;
+
     var ctx = this.ctx,
         w = this.width,
         h = this.height;
@@ -1179,8 +1181,8 @@ Player.prototype._drawSplash = function() {
 
 }
 Player.prototype._drawLoadingSplash = function(text) {
-    this._drawSplash();
     if (this.controls) return;
+    this._drawSplash();
     var ctx = this.ctx;
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
@@ -1190,6 +1192,7 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.restore();
 }
 Player.prototype._drawLoadingCircles = function() {
+    if (this.controls) return;
     var theme = Controls.THEME;
     Controls._runLoadingAnimation(this.ctx, function(ctx) {
         var w = ctx.canvas.clientWidth,
@@ -1204,6 +1207,7 @@ Player.prototype._drawLoadingCircles = function() {
     });
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
+    if (this.controls) return;
     Controls._stopLoadingAnimation(this.ctx);
     this._drawEmpty();
 }
@@ -1287,9 +1291,9 @@ Player.prototype._restyle = function(bg) {
 // FIXME: methods below may be removed, but they are required for tests
 Player.prototype._enableControls = function() {
     if (!this.controls) this.controls = new Controls(this);
-    if (this.state.happens === C.NOTHING) { this._drawSplash(); }
-    if ((this.state.happens === C.LOADING) ||
-        (this.state.happens === C.RES_LOADING)) { this._drawLoadingSplash(); }
+    // if (this.state.happens === C.NOTHING) { this._drawSplash(); }
+    // if ((this.state.happens === C.LOADING) ||
+    //     (this.state.happens === C.RES_LOADING)) { this._drawLoadingSplash(); }
     this.controls.enable();
 }
 Player.prototype._disableControls = function() {
@@ -5048,6 +5052,7 @@ Controls.prototype.render = function(time) {
             Controls._drawTime(ctx, theme, _w, _h, time, duration);
         }
     } else if (_s === C.NOTHING) {
+        Controls._drawBack(ctx, theme, _w, _h);
         Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         Controls._runLoadingAnimation(ctx, function(ctx) {
@@ -5426,6 +5431,9 @@ Controls._drawNoScene = function(ctx, theme, w, h, focused) {
         button_width = Math.min(cx, cy) * theme.radius.buttonh,
         button_height = Math.min(cx, cy) * theme.radius.buttonv;
 
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(3, 3, w - 3, h - 3);
+
     ctx.translate(cx, cy);
 
     ctx.lineWidth = theme.width.button;
@@ -5457,6 +5465,9 @@ Controls._drawError = function(ctx, theme, w, h, error, focused) {
         cy = h / 2,
         button_width = Math.min(cx, cy) * theme.radius.buttonh,
         button_height = Math.min(cx, cy) * theme.radius.buttonv;
+
+    ctx.fillStyle = '#eee';
+    ctx.fillRect(3, 3, w - 3, h - 3);
 
     ctx.translate(cx, cy);
 
