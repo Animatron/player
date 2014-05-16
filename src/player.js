@@ -2058,6 +2058,10 @@ Element.prototype.transform = function(ctx) {
         as = Element._mergeStates(bs, s);
     this.astate = as;
     //this.astate.$ = this;
+    //apply color tween if available
+    if (this.xdata.path && s.colorTween) {
+      this.xdata.path.fill = s.colorTween;
+    };
     s._matrix = Element._getMatrixOf(as, s._matrix);
     ctx.globalAlpha *= as.alpha;
     s._matrix.apply(ctx);
@@ -3598,6 +3602,7 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
+C.T_COLOR       = 'COLOR';
 
 var Tween = {}; // FIXME: make tween a class
 var Easing = {};
@@ -3611,6 +3616,7 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
+Tween.TWEENS_PRIORITY[C.T_COLOR]       = 9;
 
 Tween.TWEENS_COUNT = 6;
 
@@ -3659,7 +3665,87 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
+Tweens[C.T_COLOR] = 
+    function() {
+      var hexToRgb = function(hex) {
+        var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+        return result ? {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16)
+        } : null;
+      };
 
+      var rgbToHex = function(rgb) {
+        return "#" + ((1 << 24) + (rgb.r << 16) + (rgb.g << 8) + rgb.b).toString(16).slice(1);
+      };
+
+      var currentRound = function(a,b,t){return Math.round(a*(1-t)+b*t);};
+      var current = function(a,b,t){return a*(1-t)+b*t;};
+
+      var currentColor = function(c1, c2, t) {
+        var from = hexToRgb(c1),
+            to = hexToRgb(c2),
+            color = {
+              r: currentRound(from.r, to.r, t),
+              g: currentRound(from.g, to.g, t),
+              b: currentRound(from.b, to.b, t)
+            };
+        return rgbToHex(color);
+      }
+
+      var currentProp = function(p1, p2, t) {
+         if (anm.is.num(p1)) {
+            //floats are an easy job
+            return current(p1, p2, t);
+          } else if (anm.is.str(p1) && (/^#[a-f\d]{6}$/i).test(p1)) {
+            //that's an HTML color!
+            return currentColor(p1, p2, t);
+          } else if (anm.is.obj(p1)) {
+            // object or array? pass it down for inspection
+            return currentObj(p1, p2, t);
+          } else {
+            //we don't know how to animate other things
+            return t > 0.5 ? p2 : p1;
+          }
+      }
+
+      var currentObj = function(o1, o2, t) {
+        var result;
+        //check if our objects are arrays or just plain objects
+        if (anm.is.arr(o1)) {
+          result = [];
+          for (var i = 0; i < o1.length; i++) {
+            result.push(currentProp(o1[i], o2[i], t));
+          };
+        } else {
+          result = {};
+          for(var prop in o1) {
+            if (!o1.hasOwnProperty(prop)) continue;
+            result[prop] = currentProp(o1[prop], o2[prop], t);
+          }
+        }
+        return result;
+      }
+      
+      return function(t, dt, duration, data) {
+        // we assume the types of start and end brush are the same.
+        // let's hope there will not be a dire need to convert a linear gradient to a radial one
+
+        if (data[0].color) {
+          //solid fill
+          this.colorTween = currentColor(data[0].color, data[1].color, t);
+        } else if (data[0].lgrad || data[0].rgrad) {
+          this.colorTween = currentObj(data[0], data[1], t);
+        } else {
+          this.colorTween = null;
+        }
+
+       
+
+        
+      }
+    };
 // Easings
 // -----------------------------------------------------------------------------
 

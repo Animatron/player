@@ -1,0 +1,86 @@
+<!--
+ ~ Copyright (c) 2011-2014 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The Animatron HTML5 Player Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
+    <link rel="stylesheet" href="./demo.css" type="text/css" />
+
+    <script src="../src/vendor/matrix.js" type="text/javascript"></script>
+    <script src="../src/engine/dom-engine.js" type="text/javascript"></script>
+    <script src="../src/anm.js" type="text/javascript"></script>
+    <script src="../src/player.js" type="text/javascript"></script>
+    <script src="../src/builder.js" type="text/javascript"></script>
+    <script src="../src/module/audio.js" type="text/javascript"></script>
+    <script src="../src/module/collisions.js" type="text/javascript"></script>
+    <script src="../src/module/scripting.js" type="text/javascript"></script>
+    <script src="../src/import/animatron-importer.js" type="text/javascript"></script>
+
+    <!-- <script src="../dist/full/bundle/animatron.js" type="text/javascript"></script> -->
+
+    <script type="text/javascript">
+
+      var SOLID_SCENE = '{"meta":{"id":"20a974539ddd0285035f4c78","created":1400152160456,"modified":1400152160456,"author":"Yuriy Opryshko","description":"","name":" Copy 2","copyright":"Copyright (c) by Anonymous","duration":2.0,"numberOfScenes":1,"projectAccess":{"visibility":"UNLISTED","writeAccess":[],"readAccess":["PUBLIC"]}},"anim":{"dimension":[550.0,450.0],"framerate":24.0,"loop":false,"background":"#ffffff","paths":["IgAARVZQAACzaoJLpg9UFqcAACgtTYAAQSXQ+FoAAAmS1AAAEyWhbRh8KwpWUAAKFKyAABC2jMHrgAAFm1Y=","JlEOF3+jNlkBwIYw","KI4XA+QYhMA="],"elements":[[2,"$$$LIBRARY$$$",10.0,[],{}],[2,"Scene1",2.0,[[2,"Shape 1","","",[42.0,35.5],"",4,[[9,[0.0,2.0],"",["#ff0000","#800080"]],[9,[2.0],"",["#800080","#800080"]],[2,[0.0,2.0],"",[1.0,1.0,2.6,2.97]],[2,[2.0],"",[2.6,2.97]],[4,[0.0,2.0],"",1],[4,[2.0],"",2]],{}]],{}],[6,"#ff0000","","",0]],"scenes":[1]}}';
+      var LINEAR_SCENE = '{"meta":{"id":"73ba755333f9f4caa27e7350","created":1400223913408,"modified":1400223913408,"author":"Yuriy Opryshko","description":"","name":" Copy 3","copyright":"Copyright (c) by Anonymous","duration":2,"numberOfScenes":1,"projectAccess":{"visibility":"UNLISTED","writeAccess":[],"readAccess":["PUBLIC"]}},"anim":{"dimension":[550,450],"framerate":24,"loop":false,"background":"#ffffff","paths":["IgAAdTBRAABfo+DTny4jFBQoAAKKChQAAQac9o74gAAQLjRAAAgXGEsYtHfG+vYAAKN9ewAAQljGXEYgAAv0fg==","JlCRGVRjRWbQAD6M","KNUihlzohMA="],"elements":[[2,"$$$LIBRARY$$$",10,[],{}],[2,"Scene1",2,[[2,"Shape 1","","",[60.5,60],"",4,[[9,[0,2],"",[[[0,60,121,60],["#f88080","#74fa74"],[0,1]],[[0,0,121,120],["#f83bf5","#f7b000"],[0,1]]]],[4,[0,2],"",1],[4,[2],"",2]],{}]],{}],[6,[[0,0,121,120],["#a3f203","#f7f001"],[0,1]],"","",0]],"scenes":[1]}}';
+      var RADIAL_SCENE = '{"meta":{"id":"73ba755333f9f4caa27e7350","created":1400223913408,"modified":1400223913408,"author":"Yuriy Opryshko","description":"","name":" Copy 3","copyright":"Copyright (c) by Anonymous","duration":4,"numberOfScenes":1,"projectAccess":{"visibility":"UNLISTED","writeAccess":[],"readAccess":["PUBLIC"]}},"anim":{"dimension":[550,450],"framerate":24,"loop":false,"background":"#ffffff","paths":["IgAAV+RQAACe64J8nYpsGIpAACgxFIAAQT5JOs4AAAwitAAAGEUhYNydZwndcAAKE7rgABCwbbFNgAAE92Y=","JLqGLqGM1KFD1HjA","KIEmipMIzW8wQb6M","KNzygsrYhMA="],"elements":[[2,"$$$LIBRARY$$$",10,[],{}],[2,"Scene1",4,[[2,"Shape 1","","",[45.5,45],"",4,[[9,[0,2],"",[[[45.5,45,0,45.5,45,45.5],["#000000","#ffffff"],[0,1]],[[45.5,45,0,45.5,45,45.5],["#ffffff","#000000"],[0,1]]]],[9,[2,4],"",[[[45.5,45,0,45.5,45,45.5],["#ffffff","#000000"],[0,1]],[[45.5,45,0,45.5,45,45.5],["#f83bf5","#f7b000"],[0,1]]]],[4,[0,2],"",1],[4,[2,4],"",2],[4,[4],"",3]],{}]],{}],[6,"rgba(0,0,0,0.0)","","",0]],"scenes":[1]}}';
+
+      var player = null;
+
+      function createPlayer() {
+          return anm.createPlayer('canvas', { audioEnabled: false, /*controlsEnabled: false, autoPlay: true*/ });
+      }
+
+      function load(json) {
+          if (!player) return;
+
+          var /*b = Builder._$, */C = anm.C;
+          var AnimatronImporter = anm.getImporter('animatron');
+
+          var project = JSON.parse(json);
+
+          // canvas0
+          var importer = new AnimatronImporter();
+          player.detach();
+          //var importer = new AnimatronImporter();
+          player = createPlayer();
+          //player.debug = true;
+          player.load(project, importer);
+          //var b = Builder._$;
+          //player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
+          //player.play();
+      }
+
+      function start() {
+          if (!window.__anm_conf) window.__anm_conf = {};
+          window.__anm_conf.logImport = true;
+          window.__anm_conf.logResMan = true;
+
+          player = createPlayer();
+          //load();
+      }
+    </script>
+  </head>
+
+  <body onload="start();">
+    <h1 style="margin-bottom: 20px">Color tween demo</h1>
+
+    <canvas id="canvas" width="600" height="600"></canvas>
+
+    <p style="float: right"><label for="scene-input">Scene :</label>
+      <button onclick="load(SOLID_SCENE)">Solid</button>
+      <button onclick="load(LINEAR_SCENE)">Linear</button>
+      <button onclick="load(RADIAL_SCENE)">Radial</button>
+    </p>
+
+    <div id="copyright" style="clear: both"><span>© O_o</span></div>
+
+  </body>
+
+</html>
