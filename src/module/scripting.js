@@ -71,18 +71,20 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
   function tpl(bounds, inner) {
     if (bounds) {
       return _tpl_base(
-        'if (this.$.contains(evt.pos, t)) { ' +
+        'var elm = this.$ || this; ' +
+        'if (elm.contains(evt.pos, t)) { ' +
           '(function(ctx, evt, t) { ' +
             'var _b = anm.Builder._$;' +
               inner +
-          '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
+          '\n}).call(user_ctx(elm), ctx, evt, t);' +
         '}');
     } else {
       return _tpl_base(
+        'var elm = this.$ || this; ' +
         '(function(ctx, evt, t) { ' +
           'var _b = anm.Builder._$;' +
               inner +
-          '\n}).call(user_ctx(this.$ || this), ctx, evt, t);');
+          '\n}).call(user_ctx(elm), ctx, evt, t);');
     }
   };
 
@@ -112,23 +114,25 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
           break;
         case 'm_enter':
           handler_code = _tpl_base(
-          'if ((this.$.__last_p_in == undefined || !this.$.contains(this.$.__last_p_in, t)) && this.$.contains(evt.pos, t)) { ' +
+          'var elm = this.$ || this; ' +
+          'if ((elm.__last_p_in == undefined || !elm.contains(elm.__last_p_in, t)) && elm.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
               'var _b = anm.Builder._$;' +
               body +
-            '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
+            '\n}).call(user_ctx(elm), ctx, evt, t);' +
           '}' +
-          'this.$.__last_p_in = evt.pos;');
+          'elm.__last_p_in = evt.pos;');
           break;
         case 'm_leave':
           handler_code = _tpl_base(
-            'if (this.$.__last_p_out != undefined && this.$.contains(this.$.__last_p_out, t) && !this.$.contains(evt.pos, t)) { ' +
+            'var elm = this.$ || this; ' +
+            'if (elm.__last_p_out != undefined && elm.contains(elm.__last_p_out, t) && !elm.contains(evt.pos, t)) { ' +
             '(function(ctx, evt, t) { ' +
               'var _b = anm.Builder._$;' +
               body +
-            '\n}).call(user_ctx(this.$ || this), ctx, evt, t);' +
+            '\n}).call(user_ctx(elm), ctx, evt, t);' +
           '}' +
-          'this.$.__last_p_out = evt.pos;');
+          'elm.__last_p_out = evt.pos;');
           break;
         default:
           handler_code = tpl(e_type == 255, body);
@@ -136,9 +140,9 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
       }
 
       result = true;
-      var registar = handler_type == 'init' ? 'on' : 'm_on';
+      var registrar = handler_type == 'init' ? 'on' : 'm_on';
       try {
-        eval('this.' + registar + '(handler_map[handler_type], ' + handler_code + ');');
+        eval('this.' + registrar + '(handler_map[handler_type], ' + handler_code + ');');
       } catch(e) { $log.error('A potential error in scripting code, skipping: ' + handler_code); }
     }
 
