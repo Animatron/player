@@ -3602,6 +3602,7 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
+C.T_COLOR       = 'COLOR';
 
 var Tween = {}; // FIXME: make tween a class
 var Easing = {};
@@ -3615,8 +3616,9 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
+Tween.TWEENS_PRIORITY[C.T_COLOR]       = 6;
 
-Tween.TWEENS_COUNT = 6;
+Tween.TWEENS_COUNT = 7;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
@@ -3663,7 +3665,20 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
+Tweens[C.T_COLOR] = 
+    function() {
+      return function(t, dt, duration, data) {
+        // we assume the types of start and end brush are the same.
+        // let's hope there will not be a dire need to convert a linear gradient to a radial one
 
+        if (data[0].color) {
+          //solid fill - use a shortcut and just animate the color
+          this.$.xdata.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
+        } else if (data[0].lgrad || data[0].rgrad) {
+          this.$.xdata.path.fill = Brush.interpolate(data[0], data[1], t);
+        } 
+      }
+    };
 // Easings
 // -----------------------------------------------------------------------------
 
@@ -4689,6 +4704,61 @@ Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
+//utility functions
+Brush.hexToRgb = function(hex) {
+    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16)
+    } : null;
+};
+
+Brush.rgbToHex = function(rgb) {
+    return "#" + ((1 << 24) + (rgb.r << 16) + (rgb.g << 8) + rgb.b).toString(16).slice(1);
+};
+
+
+Brush.interpolateFloat = function(a, b, t) {
+    return a*(1-t)+b*t;
+}
+
+Brush.interpolateColor = function(c1, c2, t) {
+  var from = Brush.hexToRgb(c1),
+      to = Brush.hexToRgb(c2),
+      color = {
+        r: Math.round(Brush.interpolateFloat(from.r, to.r, t)),
+        g: Math.round(Brush.interpolateFloat(from.g, to.g, t)),
+        b: Math.round(Brush.interpolateFloat(from.b, to.b, t))
+      };
+  return Brush.rgbToHex(color);
+}
+
+
+Brush.interpolate = function(a, b, t){
+    var result;
+    if (anm.is.num(a)) {
+        return Brush.interpolateFloat(a, b, t);
+    } else if (anm.is.str(a) && (/^#[a-f\d]{6}$/i).test(a)) {
+        //that's an HTML color!
+        return Brush.interpolateColor(a, b, t);
+    } else if (anm.is.arr(a)) {
+        result = [];
+        for (var i = 0; i < a.length; i++) {
+          result.push(Brush.interpolate(a[i], b[i], t));
+        };
+    } else if (anm.is.obj(a)) {
+        result = {};
+        for(var prop in a) {
+          if (!a.hasOwnProperty(prop)) continue;
+          result[prop] = Brush.interpolate(a[prop], b[prop], t);
+        }
+    } else {
+        //we don't know how to interpolate other things
+        result = t > 0.5 ? p2 : p1;
+    }
+    return result;
+};
 // Sheet
 // -----------------------------------------------------------------------------
 
