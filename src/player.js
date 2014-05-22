@@ -3602,7 +3602,7 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
-C.T_COLOR       = 'COLOR';
+C.T_FILL       = 'FILL';
 
 var Tween = {}; // FIXME: make tween a class
 var Easing = {};
@@ -3616,7 +3616,7 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
-Tween.TWEENS_PRIORITY[C.T_COLOR]       = 6;
+Tween.TWEENS_PRIORITY[C.T_FILL]       = 6;
 
 Tween.TWEENS_COUNT = 7;
 
@@ -3665,7 +3665,7 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_COLOR] = 
+Tweens[C.T_FILL] = 
     function() {
       return function(t, dt, duration, data) {
         // we assume the types of start and end brush are the same.

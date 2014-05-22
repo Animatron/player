@@ -608,7 +608,7 @@ Import.tweentype = function(src) {
     if (src === 3) return C.T_SHEAR;
     if (src === 4) return C.T_TRANSLATE;
     //if (src === 5) return C.T_ROT_TO_PATH;
-    if (src === 9) return C.T_COLOR;
+    if (src === 9) return C.T_FILL;
 }
 /** tweendata **/
 // -> Any
@@ -629,7 +629,7 @@ Import.tweendata = function(type, src) {
         if (src.length == 1) return [ [ src[0], src[0] ],
                                       [ src[0], src[0] ] ];
     }
-    if(type === C.T_COLOR) {
+    if(type === C.T_FILL) {
         return [Import.brush(src[0]), Import.brush(src[1])];
     }
 }
