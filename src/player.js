@@ -315,6 +315,15 @@ C.LT_CLIPS = 3;
 C.LT_IMPORT = 4;
 C.LT_URL = 5;
 
+// ### Loading modes
+/* ---------------- */
+
+C.LM_DEFAULT = 'default';
+C.LM_ONREQUEST = C.LM_DEFAULT;
+C.LM_ONPLAY = 'onplay';
+// C.LM_ONSCROLL
+// C.LM_ONSCROLLIN
+
 // ### Events
 /* ---------- */
 
@@ -439,6 +448,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'infoEnabled': undefined, // undefined means 'auto'
+                                 'loadingMode': undefined, // undefined means 'auto'
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
                                  'inParent': false,
@@ -482,6 +492,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'controlsEnabled': undefined, // undefined means 'auto'
 //       'infoEnabled': undefined, // undefined means 'auto'
 //       'handleEvents': undefined, // undefined means 'auto'
+//       'loadingMode': undefined, // undefined means 'auto'
 //       'forceSceneSize': false,
 //       'inParent': false,
 //       'muteErrors': false
@@ -503,11 +514,27 @@ Player.prototype.init = function(cvs, opts) {
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
-    var player = this;
+    var player = this,
+        state = player.state;
+
+    if ((state.happens === C.PLAYING) ||
+        (state.happens === C.PAUSED)) {
+        throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
+    }
+
+    if ((player.loadingMode == C.LM_ONPLAY) &&
+        (!player._loadAutoCall)) {
+        if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
+        // since this one is related to loading mode, rather than calling later some methods which
+        // were called during the process of loading (and were required to be called when it was finished).
+        player._postponedLoad = arguments;
+        return;
+    }
 
     // clear postponed tasks if player started to load remote resources,
     // they are not required since new scene is loading in the player now
-    if (player.state.happens === C.RES_LOADING) {
+    if (state.happens === C.RES_LOADING) {
         player._clearPostpones();
         // TODO: cancel resource requests?
     }
@@ -545,16 +572,11 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         throw new PlayerErr(Errors.P.NO_SCENE_PASSED);
     }
 
-    if ((player.state.happens === C.PLAYING) ||
-        (player.state.happens === C.PAUSED)) {
-        throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
-    }
-
     if (!player.__canvasPrepared) throw new PlayerErr(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
-    player.state.happens = C.LOADING;
+    state.happens = C.LOADING;
     player._runLoadingAnimation();
 
     var whenDone = function(result) {
@@ -573,7 +595,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             if (callback) callback(result);
             if (player.autoPlay) player.play();
         } else {
-            player.state.happens = C.RES_LOADING;
+            state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
             //$log.debug('load with remotes, subscribing ', remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
@@ -645,17 +667,22 @@ var __nextFrame = $engine.getRequestFrameFunc(),
     __stopAnim  = $engine.getCancelFrameFunc();
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) {
-        if (this.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+    var player = this;
+
+    if (player.state.happens === C.PLAYING) {
+        if (player.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
-    if (this.state.happens === C.RES_LOADING) { this._postpone('play', arguments);
-                                                return; } // if player loads remote resources just now,
-                                                          // postpone this task and exit. postponed tasks
-                                                          // will be called when all remote resources were
-                                                          // finished loading
+    if (player.state.happens === C.RES_LOADING) { player._postpone('play', arguments);
+                                                  return; } // if player loads remote resources just now,
+                                                            // postpone this task and exit. postponed tasks
+                                                            // will be called when all remote resources were
+                                                            // finished loading
 
-    var player = this;
+    if (player.loadingMode == C.LM_ONPLAY) {
+      // use _postponedLoad with _loadAutoCall flag
+      // call play when loading was finished
+    }
 
     // reassigns var to ensure proper function is used
     //__nextFrame = $engine.getRequestFrameFunc();
@@ -772,6 +799,8 @@ Player.prototype.stop = function() {
         if (!player.controls) player._drawSplash();
     }
 
+    player._postponedLoad = null;
+
     player.fire(C.S_STOP);
 
     if (scene) scene.reset();
@@ -871,6 +900,8 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+    this.loadingMode = __defined(opts.loadingMode)
+                        ? opts.loadingMode : this.loadingMode;
     this.audioEnabled = __defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
     this.imagesEnabled = __defined(opts.imagesEnabled)
@@ -1024,6 +1055,13 @@ Player.prototype.drawAt = function(time) {
 Player.prototype.setSize = function(width, height) {
     this.__userSize = [ width, height ];
     this._resize();
+}
+Player.prototype.setThumbnail = function(url) {
+    var thumb = new Sheet(url);
+    var player = this;
+    thumb.load(function() {
+       player.__thumb = thumb;
+    });
 }
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
@@ -1598,6 +1636,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
     opts.controlsEnabled = __extractBool('c', 'controls');
     opts.infoEnabled = __extractBool('info');
+    opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.bgColor = params.bg || params.bgcolor;
     return opts;
 }
@@ -3665,7 +3704,7 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_COLOR] = 
+Tweens[C.T_COLOR] =
     function() {
       return function(t, dt, duration, data) {
         // we assume the types of start and end brush are the same.
@@ -3676,7 +3715,7 @@ Tweens[C.T_COLOR] =
           this.$.xdata.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
         } else if (data[0].lgrad || data[0].rgrad) {
           this.$.xdata.path.fill = Brush.interpolate(data[0], data[1], t);
-        } 
+        }
       }
     };
 // Easings
@@ -4780,15 +4819,17 @@ function Sheet(src, callback, start_region) {
     this._image = null;
     this._cvs_cache = null;
     this._callback = callback;
+    this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
-Sheet.prototype.load = function(callback) {
+Sheet.prototype.load = function(callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
-            if ($conf.doNotLoadImages) { notify_error('Loading images is turned off');
-                                              return; }
+            if (!this._thumbnail && $conf.doNotLoadImages) {
+              notify_error('Loading images is turned off');
+              return; }
             var _img = new Image();
             _img.onload = _img.onreadystatechange = function() {
                 if (_img.__anm_ready) return;
@@ -4817,7 +4858,8 @@ Sheet.prototype.load = function(callback) {
         },
         function(err) { $log.error(err.message || err);
                         me.ready = true;
-                        me.wasError = true; });
+                        me.wasError = true;
+                        if (errback) errback.call(me, err); });
 }
 Sheet.prototype._drawToCache = function() {
     if (!this.ready || this.wasError) return;
