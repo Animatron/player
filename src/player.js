@@ -522,23 +522,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
-    if ((player.loadingMode == C.LM_ONPLAY) &&
-        (!player._loadAutoCall)) {
-        if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
-        // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
-        // since this one is related to loading mode, rather than calling later some methods which
-        // were called during the process of loading (and were required to be called when it was finished).
-        player._postponedLoad = arguments;
-        return;
-    }
-
-    // clear postponed tasks if player started to load remote resources,
-    // they are not required since new scene is loading in the player now
-    if (state.happens === C.RES_LOADING) {
-        player._clearPostpones();
-        // TODO: cancel resource requests?
-    }
-
     /* object */
     /* object, callback */
     /* object, importer */
@@ -547,7 +530,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     /* object, duration, callback */
     /* object, duration, importer, callback */
 
-    var object = arg1, duration, importer, callback;
+    var object = arg1,
+        duration, importer, callback;
 
     var durationPassed = false;
 
@@ -563,6 +547,24 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     } else if (__obj(arg2)) { /* object, importer[, ...] */
         importer = arg2;
         callback = arg3;
+    }
+
+    if ((player.loadingMode == C.LM_ONPLAY) &&
+        (!player._loadAutoCall)) {
+        if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
+        // since this one is related to loading mode, rather than calling later some methods which
+        // were called during the process of loading (and were required to be called when it was finished).
+        player._postponedLoad = [ object, duration, importer, callback ];
+        return;
+    }
+
+    // clear postponed tasks if player started to load remote resources,
+    // they are not required since new scene is loading in the player now
+    if ((player.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) {
+        player._clearPostpones();
+        // TODO: cancel resource requests?
     }
 
     if (!object) {
@@ -667,22 +669,35 @@ var __nextFrame = $engine.getRequestFrameFunc(),
     __stopAnim  = $engine.getCancelFrameFunc();
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    var player = this;
+    var player = this,
+        state = player.state;
 
-    if (player.state.happens === C.PLAYING) {
+    if (state.happens === C.PLAYING) {
         if (player.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
-    if (player.state.happens === C.RES_LOADING) { player._postpone('play', arguments);
-                                                  return; } // if player loads remote resources just now,
-                                                            // postpone this task and exit. postponed tasks
-                                                            // will be called when all remote resources were
-                                                            // finished loading
 
-    if (player.loadingMode == C.LM_ONPLAY) {
+    if (player.loadingMode === C.LM_ONPLAY) {
       // use _postponedLoad with _loadAutoCall flag
       // call play when loading was finished
+      player._loadAutoCall = true;
+      var loadArgs = player._postponedLoad,
+          playArgs = arguments;
+      var loadCallback = loadArgs[3];
+      function afterLoad() {
+        player._loadAutoCall = false;
+        Player.prototype.play.call(player, playArgs);
+        if (loadCallback) loadCallback.call(player, arguments);
+      };
+      return;
     }
+
+    if ((player.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) { player._postpone('play', arguments);
+                                             return; } // if player loads remote resources just now,
+                                                       // postpone this task and exit. postponed tasks
+                                                       // will be called when all remote resources were
+                                                       // finished loading
 
     // reassigns var to ensure proper function is used
     //__nextFrame = $engine.getRequestFrameFunc();
