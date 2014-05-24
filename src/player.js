@@ -711,6 +711,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     var scene = player.anim;
     scene.reset();
 
+    // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
     state.from = from || 0;
@@ -768,7 +769,8 @@ Player.prototype.stop = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if (this.state.happens === C.RES_LOADING) {
+    if ((this.state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) {
         this._postpone('stop', arguments);
         return;
     }
@@ -794,15 +796,7 @@ Player.prototype.stop = function() {
 
     if (scene) {
         state.happens = C.STOPPED;
-        if (player.drawStill) {
-            if (!player.infiniteDuration && __finite(scene.duration)) {
-                player.drawAt(scene.duration * Player.PREVIEW_POS);
-            } else {
-                player.drawAt(state.from);
-            }
-        } else {
-            player._drawEmpty();
-        }
+        player._drawStill();
         if (player.controls/* && !player.controls.hidden*/) {
             // FIXME: subscribe controls to S_STOP event instead
             player.controls.show();
@@ -830,7 +824,8 @@ Player.prototype.pause = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if (player.state.happens === C.RES_LOADING) {
+    if ((player.state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) {
         player._postpone('pause', arguments);
         return;
     }
@@ -1040,11 +1035,12 @@ Player.prototype.changeZoom = function(zoom) {
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-    if (this.state.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
-                                                return; } // if player loads remote resources just now,
-                                                          // postpone this task and exit. postponed tasks
-                                                          // will be called when all remote resources were
-                                                          // finished loading
+    if ((this.state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
+                                                   return; } // if player loads remote resources just now,
+                                                             // postpone this task and exit. postponed tasks
+                                                             // will be called when all remote resources were
+                                                             // finished loading
     if ((time < 0) || (time > this.anim.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
@@ -1179,8 +1175,39 @@ Player.prototype._drawEmpty = function() {
 
     ctx.restore();
 }
+// _drawStill decides if current player condition matches either to draw
+// thumbnail image or a still frame at some time point
+Player.prototype._drawStill = function() {
+    // drawStill is a flag, while _drawStill is a method
+    // since we have no hungarian notation is't treated as ok
+    if (this.drawStill) {
+        if (this.__thumb) {
+            this._drawThumbnail();
+        } else {
+            if (!player.infiniteDuration && __finite(scene.duration)) {
+                player.drawAt(scene.duration * Player.PREVIEW_POS);
+            } else {
+                player.drawAt(state.from);
+            }
+        }
+    } else {
+        this._drawEmpty();
+    }
+}
+// _drawThumbnail draws a prepared thumbnail image, which is set by user
+Player.prototype._drawThumbnail = function() {
+
+}
+// _drawSplash draws splash screen if there is no scene loaded in the player
+// or the scene is inaccessible; if there is a preloaded thumbnail accessible,
+// it applies the thumbnail instead
 Player.prototype._drawSplash = function() {
     if (this.controls) return;
+
+    if (this.__thumb && this.drawStill) {
+        this._drawThumbnail();
+        return;
+    }
 
     var ctx = this.ctx,
         w = this.width,
