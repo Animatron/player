@@ -1196,7 +1196,12 @@ Player.prototype._drawStill = function() {
 }
 // _drawThumbnail draws a prepared thumbnail image, which is set by user
 Player.prototype._drawThumbnail = function() {
-
+    var thumb_dimen = this.__thumb.dimen();
+    var ctx = this.ctx;
+    ctx.save();
+    ctx.scale(thumb_dimen[0] / this.width, thumb_dimen[1] / this.height);
+    this.__thumb.apply(ctx);
+    ctx.restore();
 }
 // _drawSplash draws splash screen if there is no scene loaded in the player
 // or the scene is inaccessible; if there is a preloaded thumbnail accessible,
