@@ -1088,8 +1088,18 @@ Player.prototype.setSize = function(width, height) {
     this.__userSize = [ width, height ];
     this._resize();
 }
-Player.prototype.setThumbnail = function(url) {
-    console.log('setThumbnail', url);
+// it's optional to specify target_width/target_height, especially if aspect ratio
+// of scene(s) that will be loaded into player matches to aspect ratio of player itself.
+// if not, target_width and target_height, if specified, are recommended to be equal
+// to a size of a scene(s) that will be loaded into player with this thumbnail;
+// so, since scene will be received later, and if aspect ratios of scene and player
+// does not match, both thumbnail and the animation will be drawn at a same position
+// with same black ribbons applied;
+// if size will not be specified, player will try to match aspect ratio of an image to
+// show it without stretches, so if thumbnail image size matches to scene size has
+// the same aspect ratio as a scene, it is also ok to omit the size data here
+Player.prototype.setThumbnail = function(url, target_width, target_height) {
+    console.log('setThumbnail', url, target_width, target_height);
     var player = this;
     if (player.__thumb &&
         player.__thumb.src == url) return;
@@ -1097,6 +1107,9 @@ Player.prototype.setThumbnail = function(url) {
     thumb.load(function() {
         console.log('thumbnail was loaded');
         player.__thumb = thumb;
+        if (target_width || target_height) {
+            player.__thumbSize = [ target_width, target_height ];
+        }
         if ((player.state.happens !== C.PLAYING) &&
             (player.state.happens !== C.PAUSED)) {
             console.log('drawing thumbnail');
@@ -1209,10 +1222,10 @@ Player.prototype._drawEmpty = function() {
 // thumbnail image or a still frame at some time point
 Player.prototype._drawStill = function() {
     // drawStill is a flag, while _drawStill is a method
-    // since we have no hungarian notation is't treated as ok
+    // since we have no hungarian notation is't treated as ok (for now)
     var player = this,
         scene = player.anim;
-    if (player.drawStill) {
+    if (player.drawStill) { // it's a flag!
         if (player.__thumb) {
             player._drawThumbnail();
         } else if (scene) {
@@ -1228,12 +1241,41 @@ Player.prototype._drawStill = function() {
 }
 // _drawThumbnail draws a prepared thumbnail image, which is set by user
 Player.prototype._drawThumbnail = function() {
-    var thumb_dimen = this.__thumb.dimen();
+    var thumb_dimen   = this.__thumbSize || this.__thumb.dimen(),
+        thumb_width   = thumb_dimen[0],
+        thumb_height  = thumb_dimen[1],
+        player_width  = this.width,
+        player_height = this.height;
     var ctx = this.ctx;
-    ctx.save();
-    ctx.scale(thumb_dimen[0] / this.width, thumb_dimen[1] / this.height);
-    this.__thumb.apply(ctx);
-    ctx.restore();
+    if ((thumb_width  == player_width) &&
+        (thumb_height == player_height)) {
+        this.__thumb.apply(ctx);
+    } else {
+        var f_rects    = __fit_rects(player_width, player_height,
+                                     thumb_width,  thumb_height),
+            factor     = f_rects[0],
+            thumb_rect = f_rects[1],
+            rect1      = f_rects[2],
+            rect2      = f_rects[3];
+        ctx.save();
+        if (rect1 || rect2) {
+            ctx.fillStyle = '#000';
+            if (rect1) ctx.fillRect(rect1[0], rect1[1],
+                                    rect1[2], rect1[3]);
+            if (rect2) ctx.fillRect(rect2[0], rect2[1],
+                                    rect2[2], rect2[3]);
+        }
+        if (thumb_rect && (factor != 1)) {
+            ctx.beginPath();
+            ctx.rect(thumb_rect[0], thumb_rect[1],
+                     thumb_rect[2], thumb_rect[3]);
+            ctx.clip();
+            ctx.translate(thumb_rect[0], thumb_rect[1]);
+        }
+        if (factor != 1) ctx.scale(factor, factor);
+        this.__thumb.apply(ctx);
+        ctx.restore();
+    }
 }
 // _drawSplash draws splash screen if there is no scene loaded in the player
 // or the scene is inaccessible; if there is a preloaded thumbnail accessible,
@@ -3518,35 +3560,33 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     }
 }
 function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
-    var xw = pw / sw,
-        xh = ph / sh;
-    var x = Math.min(xw, xh);
-    var hcoord = (pw - sw * x) / 2,
-        vcoord = (ph - sh * x) / 2;
-    var scaled = (xw != 1) || (xh != 1);
-    if (scaled) {
-        ctx.save(); // first open
+    // pw == player width, ph == player height
+    // sw == scene width,  sh == scene height
+    var f_rects    = __fit_rects(pw, ph, sw, sh),
+        factor     = f_rects[0],
+        scene_rect = f_rects[1],
+        rect1      = f_rects[2],
+        rect2      = f_rects[3];
+    ctx.save();
+    if (rect1 || rect2) { // scene_rect is null if no
         ctx.save(); // second open
         ctx.fillStyle = '#000';
-        if (hcoord != 0) {
-          ctx.fillRect(0, 0, hcoord, ph);
-          ctx.fillRect(hcoord + (sw * x), 0, hcoord, ph);
-        }
-        if (vcoord != 0) {
-          ctx.fillRect(0, 0, pw, vcoord);
-          ctx.fillRect(0, vcoord + (sh * x), pw, vcoord);
-        }
-        ctx.restore(); // second closed
+        if (rect1) ctx.fillRect(rect1[0], rect1[1],
+                                rect1[2], rect1[3]);
+        if (rect2) ctx.fillRect(rect2[0], rect2[1],
+                                rect2[2], rect2[3]);
+        ctx.restore();
+    }
+    if (scene_rect && (factor != 1)) {
         ctx.beginPath();
-        ctx.rect(hcoord, vcoord, sw * x, sh * x);
+        ctx.rect(scene_rect[0], scene_rect[1],
+                 scene_rect[2], scene_rect[3]);
         ctx.clip();
-        ctx.translate(hcoord, vcoord);
-        ctx.scale(x, x);
+        ctx.translate(scene_rect[0], scene_rect[1]);
     }
-    draw_f(x);
-    if (scaled) {
-        ctx.restore(); // first closed
-    }
+    if (factor != 1) ctx.scale(factor, factor);
+    draw_f(factor);
+    ctx.restore();
 }
 function __r_fps(ctx, fps, time) {
     ctx.fillStyle = '#999';
@@ -3554,6 +3594,29 @@ function __r_fps(ctx, fps, time) {
     ctx.fillText(Math.floor(fps), 8, 20);
     ctx.font = '10px sans-serif';
     ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
+}
+function __fit_rects(pw, ph, sw, sh) {
+    // pw == player width, ph == player height
+    // sw == scene width,  sh == scene height
+    var xw = pw / sw,
+        xh = ph / sh;
+    var factor = Math.min(xw, xh);
+    var hcoord = (pw - sw * factor) / 2,
+        vcoord = (ph - sh * factor) / 2;
+    if ((xw != 1) || (xh != 1)) {
+        var scene_rect = [ hcoord, vcoord, sw * factor, sh * factor ];
+        if (hcoord != 0) {
+            return [ factor,
+                     scene_rect,
+                     [ 0, 0, hcoord, ph ],
+                     [ hcoord + (sw * factor), 0, hcoord, ph ] ];
+        } else if (vcoord != 0) {
+            return [ factor,
+                     scene_rect,
+                     [ 0, 0, pw, vcoord ],
+                     [ 0, vcoord + (sh * factor), pw, vcoord ] ];
+        } else return [ factor, scene_rect ];
+    } else return [ 1, [ 0, 0, sw, sh ] ];
 }
 Render.loop = __r_loop;
 Render.at = __r_at;
