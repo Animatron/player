@@ -562,6 +562,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                              // FIXME: may be playLock was set by player and user calls this method
                              //        while some scene is already loading
         if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        player._lastReceivedSceneId = null;
         console.log('load was called, postponing it');
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
@@ -689,9 +690,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
 
-    if ((player.loadingMode === C.LM_ONPLAY) &&
-        !player._playAfterLoad) { // playAfterLoad flag is set to force play call when scene is already loaded,
-                                  // it is set to true below, in afterLoad callback
+    if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedSceneId) {
         if (player._playLock) return; // we already loading something
         // use _postponedLoad with _playLock flag set
         // call play when loading was finished
@@ -707,15 +706,13 @@ Player.prototype.play = function(from, speed, stopAfter) {
             console.log('load was finished, we\'re after callback, so we call postponed play');
             player._postponedLoad = null;
             player._playLock = false;
-            player._playAfterLoad = true;
+            player._lastReceivedSceneId = player.anim.id;
             Player.prototype.play.apply(player, playArgs);
         };
         loadArgs[3] = afterLoad; // substitute callback with our variant which calls the previous one
         Player.prototype.load.apply(player, loadArgs);
         return;
     }
-
-    player._playAfterLoad = false;
 
     if ((player.loadingMode === C.LM_ONREQUEST) &&
         (state.happens === C.RES_LOADING)) { player._postpone('play', arguments);
@@ -1258,7 +1255,6 @@ Player.prototype._drawSplash = function() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     var ratio = $engine.PX_RATIO;
-    // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
     ctx.fillStyle = Player.EMPTY_BG;
