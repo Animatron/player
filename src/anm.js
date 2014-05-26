@@ -613,6 +613,7 @@
         Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
                             'please stop player before loading';
         Errors.P.LOAD_WAS_ALREADY_POSTPONED = 'Load was called while loading process was already in progress';
+        Errors.P.NO_LOAD_CALL_BEFORE_PLAY = 'No animation was loaded into player before the request to play';
         Errors.P.BEFOREFRAME_BEFORE_PLAY = 'Please assign beforeFrame callback before calling play()';
         Errors.P.AFTERFRAME_BEFORE_PLAY = 'Please assign afterFrame callback before calling play()';
         Errors.P.BEFORERENDER_BEFORE_PLAY = 'Please assign beforeRender callback before calling play()';

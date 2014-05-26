@@ -533,12 +533,19 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     var object = arg1,
         duration, importer, callback;
 
+    if (object && object.id && player.anim && (player.anim.id == object.id)) {
+        $log.info('Scene with ID=' + object.id + ' is already loaded in player, skipping the call');
+        return;
+    }
+
     var durationPassed = false;
 
     if (__fun(arg2)) { callback = arg2 } /* object, callback */
-    else if (__num(arg2)) { /* object, duration[, ...] */
-        duration = arg2;
-        durationPassed = true;
+    else if (__num(arg2) || !arg2) { /* object, duration[, ...] */
+        if (__num(arg2)) {
+          duration = arg2;
+          durationPassed = true;
+        }
         if (__obj(arg3)) { /* object, duration, importer[, callback] */
           importer = arg3; callback = arg4;
         } else if (__fun(arg3)) { /* object, duration, callback */
@@ -550,12 +557,17 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     if ((player.loadingMode == C.LM_ONPLAY) &&
-        (!player._loadAutoCall)) {
+        !player._playLock) { // if play lock is set, we should just load a scene normally, since
+                             // it was requested after the call to 'play', or else it was called by user
+                             // FIXME: may be playLock was set by player and user calls this method
+                             //        while some scene is already loading
         if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        console.log('load was called, postponing it');
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
         // were called during the process of loading (and were required to be called when it was finished).
         player._postponedLoad = [ object, duration, importer, callback ];
+        player.stop();
         return;
     }
 
@@ -677,20 +689,33 @@ Player.prototype.play = function(from, speed, stopAfter) {
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
 
-    if (player.loadingMode === C.LM_ONPLAY) {
-      // use _postponedLoad with _loadAutoCall flag
-      // call play when loading was finished
-      player._loadAutoCall = true;
-      var loadArgs = player._postponedLoad,
-          playArgs = arguments;
-      var loadCallback = loadArgs[3];
-      function afterLoad() {
-        player._loadAutoCall = false;
-        Player.prototype.play.call(player, playArgs);
-        if (loadCallback) loadCallback.call(player, arguments);
-      };
-      return;
+    if ((player.loadingMode === C.LM_ONPLAY) &&
+        !player._playAfterLoad) { // playAfterLoad flag is set to force play call when scene is already loaded,
+                                  // it is set to true below, in afterLoad callback
+        if (player._playLock) return; // we already loading something
+        // use _postponedLoad with _playLock flag set
+        // call play when loading was finished
+        console.log('play was called, calling postponed load before');
+        player._playLock = true;
+        var loadArgs = player._postponedLoad,
+            playArgs = arguments;
+        if (!loadArgs) throw new PlayerErr(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
+        var loadCallback = loadArgs[3];
+        function afterLoad() {
+            console.log('load was finished, we\'re before callback');
+            if (loadCallback) loadCallback.call(player, arguments);
+            console.log('load was finished, we\'re after callback, so we call postponed play');
+            player._postponedLoad = null;
+            player._playLock = false;
+            player._playAfterLoad = true;
+            Player.prototype.play.apply(player, playArgs);
+        };
+        loadArgs[3] = afterLoad; // substitute callback with our variant which calls the previous one
+        Player.prototype.load.apply(player, loadArgs);
+        return;
     }
+
+    player._playAfterLoad = false;
 
     if ((player.loadingMode === C.LM_ONREQUEST) &&
         (state.happens === C.RES_LOADING)) { player._postpone('play', arguments);
@@ -794,7 +819,8 @@ Player.prototype.stop = function() {
     state.from = 0;
     state.stop = Player.NO_TIME;
 
-    if (scene) {
+    if (scene || ((player.loadingMode == C.LM_ONPLAY) &&
+                   player._postponedLoad)) {
         state.happens = C.STOPPED;
         player._drawStill();
         if (player.controls/* && !player.controls.hidden*/) {
@@ -807,8 +833,6 @@ Player.prototype.stop = function() {
         state.happens = C.NOTHING;
         if (!player.controls) player._drawSplash();
     }
-
-    player._postponedLoad = null;
 
     player.fire(C.S_STOP);
 
@@ -1068,10 +1092,19 @@ Player.prototype.setSize = function(width, height) {
     this._resize();
 }
 Player.prototype.setThumbnail = function(url) {
-    var thumb = new Sheet(url);
+    console.log('setThumbnail', url);
     var player = this;
+    if (player.__thumb &&
+        player.__thumb.src == url) return;
+    var thumb = new Sheet(url);
     thumb.load(function() {
-       player.__thumb = thumb;
+        console.log('thumbnail was loaded');
+        player.__thumb = thumb;
+        if ((player.state.happens !== C.PLAYING) &&
+            (player.state.happens !== C.PAUSED)) {
+            console.log('drawing thumbnail');
+            player._drawStill();
+        }
     });
 }
 // TODO: change to before/after for events?
@@ -1180,10 +1213,12 @@ Player.prototype._drawEmpty = function() {
 Player.prototype._drawStill = function() {
     // drawStill is a flag, while _drawStill is a method
     // since we have no hungarian notation is't treated as ok
-    if (this.drawStill) {
-        if (this.__thumb) {
-            this._drawThumbnail();
-        } else {
+    var player = this,
+        scene = player.anim;
+    if (player.drawStill) {
+        if (player.__thumb) {
+            player._drawThumbnail();
+        } else if (scene) {
             if (!player.infiniteDuration && __finite(scene.duration)) {
                 player.drawAt(scene.duration * Player.PREVIEW_POS);
             } else {
@@ -1191,7 +1226,7 @@ Player.prototype._drawStill = function() {
             }
         }
     } else {
-        this._drawEmpty();
+        player._drawEmpty();
     }
 }
 // _drawThumbnail draws a prepared thumbnail image, which is set by user
