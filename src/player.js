@@ -563,7 +563,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                              //        while some scene is already loading
         if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
         player._lastReceivedSceneId = null;
-        console.log('load was called, postponing it');
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
         // were called during the process of loading (and were required to be called when it was finished).
@@ -694,16 +693,13 @@ Player.prototype.play = function(from, speed, stopAfter) {
         if (player._playLock) return; // we already loading something
         // use _postponedLoad with _playLock flag set
         // call play when loading was finished
-        console.log('play was called, calling postponed load before');
         player._playLock = true;
         var loadArgs = player._postponedLoad,
             playArgs = arguments;
         if (!loadArgs) throw new PlayerErr(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
         var loadCallback = loadArgs[3];
         function afterLoad() {
-            console.log('load was finished, we\'re before callback');
             if (loadCallback) loadCallback.call(player, arguments);
-            console.log('load was finished, we\'re after callback, so we call postponed play');
             player._postponedLoad = null;
             player._playLock = false;
             player._lastReceivedSceneId = player.anim.id;
@@ -1099,7 +1095,6 @@ Player.prototype.setSize = function(width, height) {
 // show it without stretches, so if thumbnail image size matches to scene size has
 // the same aspect ratio as a scene, it is also ok to omit the size data here
 Player.prototype.setThumbnail = function(url, target_width, target_height) {
-    console.log('setThumbnail', url, target_width, target_height);
     var player = this;
     if (player.__thumb &&
         player.__thumb.src == url) return;
@@ -1114,7 +1109,6 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
     thumb.load(function() {
-        console.log('thumbnail was loaded');
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
@@ -1122,7 +1116,6 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
         }
         if ((player.state.happens !== C.PLAYING) &&
             (player.state.happens !== C.PAUSED)) {
-            console.log('drawing thumbnail');
             player._drawStill();
         }
     });
