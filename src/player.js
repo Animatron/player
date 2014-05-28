@@ -315,6 +315,15 @@ C.LT_CLIPS = 3;
 C.LT_IMPORT = 4;
 C.LT_URL = 5;
 
+// ### Loading modes
+/* ---------------- */
+
+C.LM_DEFAULT = 'default';
+C.LM_ONREQUEST = C.LM_DEFAULT;
+C.LM_ONPLAY = 'onplay';
+// C.LM_ONSCROLL
+// C.LM_ONSCROLLIN
+
 // ### Events
 /* ---------- */
 
@@ -439,6 +448,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'infoEnabled': undefined, // undefined means 'auto'
+                                 'loadingMode': undefined, // undefined means 'auto'
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
                                  'inParent': false,
@@ -482,6 +492,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'controlsEnabled': undefined, // undefined means 'auto'
 //       'infoEnabled': undefined, // undefined means 'auto'
 //       'handleEvents': undefined, // undefined means 'auto'
+//       'loadingMode': undefined, // undefined means 'auto'
 //       'forceSceneSize': false,
 //       'inParent': false,
 //       'muteErrors': false
@@ -503,13 +514,12 @@ Player.prototype.init = function(cvs, opts) {
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
-    var player = this;
+    var player = this,
+        state = player.state;
 
-    // clear postponed tasks if player started to load remote resources,
-    // they are not required since new scene is loading in the player now
-    if (player.state.happens === C.RES_LOADING) {
-        player._clearPostpones();
-        // TODO: cancel resource requests?
+    if ((state.happens === C.PLAYING) ||
+        (state.happens === C.PAUSED)) {
+        throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
     /* object */
@@ -520,14 +530,22 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     /* object, duration, callback */
     /* object, duration, importer, callback */
 
-    var object = arg1, duration, importer, callback;
+    var object = arg1,
+        duration, importer, callback;
+
+    if (object && object.id && player.anim && (player.anim.id == object.id)) {
+        $log.info('Scene with ID=' + object.id + ' is already loaded in player, skipping the call');
+        return;
+    }
 
     var durationPassed = false;
 
     if (__fun(arg2)) { callback = arg2 } /* object, callback */
-    else if (__num(arg2)) { /* object, duration[, ...] */
-        duration = arg2;
-        durationPassed = true;
+    else if (__num(arg2) || !arg2) { /* object, duration[, ...] */
+        if (__num(arg2)) {
+          duration = arg2;
+          durationPassed = true;
+        }
         if (__obj(arg3)) { /* object, duration, importer[, callback] */
           importer = arg3; callback = arg4;
         } else if (__fun(arg3)) { /* object, duration, callback */
@@ -538,6 +556,29 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         callback = arg3;
     }
 
+    if ((player.loadingMode == C.LM_ONPLAY) &&
+        !player._playLock) { // if play lock is set, we should just load a scene normally, since
+                             // it was requested after the call to 'play', or else it was called by user
+                             // FIXME: may be playLock was set by player and user calls this method
+                             //        while some scene is already loading
+        if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        player._lastReceivedSceneId = null;
+        // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
+        // since this one is related to loading mode, rather than calling later some methods which
+        // were called during the process of loading (and were required to be called when it was finished).
+        player._postponedLoad = [ object, duration, importer, callback ];
+        player.stop();
+        return;
+    }
+
+    // clear postponed tasks if player started to load remote resources,
+    // they are not required since new scene is loading in the player now
+    if ((player.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) {
+        player._clearPostpones();
+        // TODO: cancel resource requests?
+    }
+
     if (!object) {
         player.anim = null;
         player._reset();
@@ -545,16 +586,11 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         throw new PlayerErr(Errors.P.NO_SCENE_PASSED);
     }
 
-    if ((player.state.happens === C.PLAYING) ||
-        (player.state.happens === C.PAUSED)) {
-        throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
-    }
-
     if (!player.__canvasPrepared) throw new PlayerErr(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
-    player.state.happens = C.LOADING;
+    state.happens = C.LOADING;
     player._runLoadingAnimation();
 
     var whenDone = function(result) {
@@ -573,7 +609,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             if (callback) callback(result);
             if (player.autoPlay) player.play();
         } else {
-            player.state.happens = C.RES_LOADING;
+            state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
             //$log.debug('load with remotes, subscribing ', remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
@@ -645,17 +681,41 @@ var __nextFrame = $engine.getRequestFrameFunc(),
     __stopAnim  = $engine.getCancelFrameFunc();
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    if (this.state.happens === C.PLAYING) {
-        if (this.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+    var player = this,
+        state = player.state;
+
+    if (state.happens === C.PLAYING) {
+        if (player.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
-    if (this.state.happens === C.RES_LOADING) { this._postpone('play', arguments);
-                                                return; } // if player loads remote resources just now,
-                                                          // postpone this task and exit. postponed tasks
-                                                          // will be called when all remote resources were
-                                                          // finished loading
 
-    var player = this;
+    if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedSceneId) {
+        if (player._playLock) return; // we already loading something
+        // use _postponedLoad with _playLock flag set
+        // call play when loading was finished
+        player._playLock = true;
+        var loadArgs = player._postponedLoad,
+            playArgs = arguments;
+        if (!loadArgs) throw new PlayerErr(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
+        var loadCallback = loadArgs[3];
+        function afterLoad() {
+            if (loadCallback) loadCallback.call(player, arguments);
+            player._postponedLoad = null;
+            player._playLock = false;
+            player._lastReceivedSceneId = player.anim.id;
+            Player.prototype.play.apply(player, playArgs);
+        };
+        loadArgs[3] = afterLoad; // substitute callback with our variant which calls the previous one
+        Player.prototype.load.apply(player, loadArgs);
+        return;
+    }
+
+    if ((player.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) { player._postpone('play', arguments);
+                                             return; } // if player loads remote resources just now,
+                                                       // postpone this task and exit. postponed tasks
+                                                       // will be called when all remote resources were
+                                                       // finished loading
 
     // reassigns var to ensure proper function is used
     //__nextFrame = $engine.getRequestFrameFunc();
@@ -669,6 +729,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     var scene = player.anim;
     scene.reset();
 
+    // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
     state.from = from || 0;
@@ -726,7 +787,8 @@ Player.prototype.stop = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if (this.state.happens === C.RES_LOADING) {
+    if ((this.state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) {
         this._postpone('stop', arguments);
         return;
     }
@@ -750,17 +812,10 @@ Player.prototype.stop = function() {
     state.from = 0;
     state.stop = Player.NO_TIME;
 
-    if (scene) {
+    if (scene || ((player.loadingMode == C.LM_ONPLAY) &&
+                   player._postponedLoad)) {
         state.happens = C.STOPPED;
-        if (player.drawStill) {
-            if (!player.infiniteDuration && __finite(scene.duration)) {
-                player.drawAt(scene.duration * Player.PREVIEW_POS);
-            } else {
-                player.drawAt(state.from);
-            }
-        } else {
-            player._drawEmpty();
-        }
+        player._drawStill();
         if (player.controls/* && !player.controls.hidden*/) {
             // FIXME: subscribe controls to S_STOP event instead
             player.controls.show();
@@ -786,7 +841,8 @@ Player.prototype.pause = function() {
     // postpone this task and exit. postponed tasks
     // will be called when all remote resources were
     // finished loading
-    if (player.state.happens === C.RES_LOADING) {
+    if ((player.state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) {
         player._postpone('pause', arguments);
         return;
     }
@@ -871,6 +927,8 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+    this.loadingMode = __defined(opts.loadingMode)
+                        ? opts.loadingMode : this.loadingMode;
     this.audioEnabled = __defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
     this.imagesEnabled = __defined(opts.imagesEnabled)
@@ -994,11 +1052,12 @@ Player.prototype.changeZoom = function(zoom) {
 // draw current scene at specified time
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
-    if (this.state.happens === C.RES_LOADING) { this._postpone('drawAt', arguments);
-                                                return; } // if player loads remote resources just now,
-                                                          // postpone this task and exit. postponed tasks
-                                                          // will be called when all remote resources were
-                                                          // finished loading
+    if ((this.state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
+                                                   return; } // if player loads remote resources just now,
+                                                             // postpone this task and exit. postponed tasks
+                                                             // will be called when all remote resources were
+                                                             // finished loading
     if ((time < 0) || (time > this.anim.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
@@ -1024,6 +1083,42 @@ Player.prototype.drawAt = function(time) {
 Player.prototype.setSize = function(width, height) {
     this.__userSize = [ width, height ];
     this._resize();
+}
+// it's optional to specify target_width/target_height, especially if aspect ratio
+// of scene(s) that will be loaded into player matches to aspect ratio of player itself.
+// if not, target_width and target_height, if specified, are recommended to be equal
+// to a size of a scene(s) that will be loaded into player with this thumbnail;
+// so, since scene will be received later, and if aspect ratios of scene and player
+// does not match, both thumbnail and the animation will be drawn at a same position
+// with same black ribbons applied;
+// if size will not be specified, player will try to match aspect ratio of an image to
+// show it without stretches, so if thumbnail image size matches to scene size has
+// the same aspect ratio as a scene, it is also ok to omit the size data here
+Player.prototype.setThumbnail = function(url, target_width, target_height) {
+    var player = this;
+    if (player.__thumb &&
+        player.__thumb.src == url) return;
+    if (player.ctx) { // FIXME: make this a function
+      var ratio = $engine.PX_RATIO,
+          ctx = player.ctx;
+      ctx.save();
+      ctx.clearRect(0, 0, player.width * ratio, player.height * ratio);
+      player._drawEmpty();
+      ctx.restore();
+    }
+    var thumb = new Sheet(url);
+    player.__thumbLoading = true;
+    thumb.load(function() {
+        player.__thumbLoading = false;
+        player.__thumb = thumb;
+        if (target_width || target_height) {
+            player.__thumbSize = [ target_width, target_height ];
+        }
+        if ((player.state.happens !== C.PLAYING) &&
+            (player.state.happens !== C.PAUSED)) {
+            player._drawStill();
+        }
+    });
 }
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
@@ -1126,8 +1221,79 @@ Player.prototype._drawEmpty = function() {
 
     ctx.restore();
 }
+// _drawStill decides if current player condition matches either to draw
+// thumbnail image or a still frame at some time point
+Player.prototype._drawStill = function() {
+    // drawStill is a flag, while _drawStill is a method
+    // since we have no hungarian notation is't treated as ok (for now)
+    var player = this,
+        scene = player.anim;
+    if (player.drawStill) { // it's a flag!
+        if (player.__thumb) {
+            player._drawThumbnail();
+        } else if (scene) {
+            if (!player.infiniteDuration && __finite(scene.duration)) {
+                player.drawAt(scene.duration * Player.PREVIEW_POS);
+            } else {
+                player.drawAt(state.from);
+            }
+        }
+    } else {
+        player._drawEmpty();
+    }
+}
+// _drawThumbnail draws a prepared thumbnail image, which is set by user
+Player.prototype._drawThumbnail = function() {
+    var thumb_dimen   = this.__thumbSize || this.__thumb.dimen(),
+        thumb_width   = thumb_dimen[0],
+        thumb_height  = thumb_dimen[1],
+        player_width  = this.width,
+        player_height = this.height,
+        px_ratio      = $engine.PX_RATIO;
+    var ctx = this.ctx;
+    if ((thumb_width  == player_width) &&
+        (thumb_height == player_height)) {
+        this.__thumb.apply(ctx);
+    } else {
+        var f_rects    = __fit_rects(player_width, player_height,
+                                     thumb_width,  thumb_height),
+            factor     = f_rects[0],
+            thumb_rect = f_rects[1],
+            rect1      = f_rects[2],
+            rect2      = f_rects[3];
+        ctx.save();
+        if (px_ratio != 1) ctx.scale(px_ratio, px_ratio);
+        if (rect1 || rect2) {
+            ctx.fillStyle = '#000';
+            if (rect1) ctx.fillRect(rect1[0], rect1[1],
+                                    rect1[2], rect1[3]);
+            if (rect2) ctx.fillRect(rect2[0], rect2[1],
+                                    rect2[2], rect2[3]);
+        }
+        if (thumb_rect && (factor != 1)) {
+            ctx.beginPath();
+            ctx.rect(thumb_rect[0], thumb_rect[1],
+                     thumb_rect[2], thumb_rect[3]);
+            ctx.clip();
+            ctx.translate(thumb_rect[0], thumb_rect[1]);
+        }
+        if (factor != 1) ctx.scale(factor, factor);
+        this.__thumb.apply(ctx);
+        ctx.restore();
+    }
+}
+// _drawSplash draws splash screen if there is no scene loaded in the player
+// or the scene is inaccessible; if there is a preloaded thumbnail accessible,
+// it applies the thumbnail instead
 Player.prototype._drawSplash = function() {
     if (this.controls) return;
+
+    if (this.__thumbLoading) return;
+
+    if (this.__thumb && this.drawStill) {
+        this._drawThumbnail();
+        return;
+    }
 
     var ctx = this.ctx,
         w = this.width,
@@ -1138,7 +1304,6 @@ Player.prototype._drawSplash = function() {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
     var ratio = $engine.PX_RATIO;
-    // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
     ctx.fillStyle = Player.EMPTY_BG;
@@ -1598,6 +1763,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
     opts.controlsEnabled = __extractBool('c', 'controls');
     opts.infoEnabled = __extractBool('info');
+    opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.bgColor = params.bg || params.bgcolor;
     return opts;
 }
@@ -3401,35 +3567,33 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     }
 }
 function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
-    var xw = pw / sw,
-        xh = ph / sh;
-    var x = Math.min(xw, xh);
-    var hcoord = (pw - sw * x) / 2,
-        vcoord = (ph - sh * x) / 2;
-    var scaled = (xw != 1) || (xh != 1);
-    if (scaled) {
-        ctx.save(); // first open
+    // pw == player width, ph == player height
+    // sw == scene width,  sh == scene height
+    var f_rects    = __fit_rects(pw, ph, sw, sh),
+        factor     = f_rects[0],
+        scene_rect = f_rects[1],
+        rect1      = f_rects[2],
+        rect2      = f_rects[3];
+    ctx.save();
+    if (rect1 || rect2) { // scene_rect is null if no
         ctx.save(); // second open
         ctx.fillStyle = '#000';
-        if (hcoord != 0) {
-          ctx.fillRect(0, 0, hcoord, ph);
-          ctx.fillRect(hcoord + (sw * x), 0, hcoord, ph);
-        }
-        if (vcoord != 0) {
-          ctx.fillRect(0, 0, pw, vcoord);
-          ctx.fillRect(0, vcoord + (sh * x), pw, vcoord);
-        }
-        ctx.restore(); // second closed
+        if (rect1) ctx.fillRect(rect1[0], rect1[1],
+                                rect1[2], rect1[3]);
+        if (rect2) ctx.fillRect(rect2[0], rect2[1],
+                                rect2[2], rect2[3]);
+        ctx.restore();
+    }
+    if (scene_rect && (factor != 1)) {
         ctx.beginPath();
-        ctx.rect(hcoord, vcoord, sw * x, sh * x);
+        ctx.rect(scene_rect[0], scene_rect[1],
+                 scene_rect[2], scene_rect[3]);
         ctx.clip();
-        ctx.translate(hcoord, vcoord);
-        ctx.scale(x, x);
+        ctx.translate(scene_rect[0], scene_rect[1]);
     }
-    draw_f(x);
-    if (scaled) {
-        ctx.restore(); // first closed
-    }
+    if (factor != 1) ctx.scale(factor, factor);
+    draw_f(factor);
+    ctx.restore();
 }
 function __r_fps(ctx, fps, time) {
     ctx.fillStyle = '#999';
@@ -3437,6 +3601,29 @@ function __r_fps(ctx, fps, time) {
     ctx.fillText(Math.floor(fps), 8, 20);
     ctx.font = '10px sans-serif';
     ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
+}
+function __fit_rects(pw, ph, sw, sh) {
+    // pw == player width, ph == player height
+    // sw == scene width,  sh == scene height
+    var xw = pw / sw,
+        xh = ph / sh;
+    var factor = Math.min(xw, xh);
+    var hcoord = (pw - sw * factor) / 2,
+        vcoord = (ph - sh * factor) / 2;
+    if ((xw != 1) || (xh != 1)) {
+        var scene_rect = [ hcoord, vcoord, sw * factor, sh * factor ];
+        if (hcoord != 0) {
+            return [ factor,
+                     scene_rect,
+                     [ 0, 0, hcoord, ph ],
+                     [ hcoord + (sw * factor), 0, hcoord, ph ] ];
+        } else if (vcoord != 0) {
+            return [ factor,
+                     scene_rect,
+                     [ 0, 0, pw, vcoord ],
+                     [ 0, vcoord + (sh * factor), pw, vcoord ] ];
+        } else return [ factor, scene_rect ];
+    } else return [ 1, [ 0, 0, sw, sh ] ];
 }
 Render.loop = __r_loop;
 Render.at = __r_at;
@@ -3665,7 +3852,7 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_COLOR] = 
+Tweens[C.T_COLOR] =
     function() {
       return function(t, dt, duration, data) {
         // we assume the types of start and end brush are the same.
@@ -3676,7 +3863,7 @@ Tweens[C.T_COLOR] =
           this.$.xdata.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
         } else if (data[0].lgrad || data[0].rgrad) {
           this.$.xdata.path.fill = Brush.interpolate(data[0], data[1], t);
-        } 
+        }
       }
     };
 // Easings
@@ -4780,15 +4967,17 @@ function Sheet(src, callback, start_region) {
     this._image = null;
     this._cvs_cache = null;
     this._callback = callback;
+    this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
-Sheet.prototype.load = function(callback) {
+Sheet.prototype.load = function(callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
-            if ($conf.doNotLoadImages) { notify_error('Loading images is turned off');
-                                              return; }
+            if (!this._thumbnail && $conf.doNotLoadImages) {
+              notify_error('Loading images is turned off');
+              return; }
             var _img = new Image();
             _img.onload = _img.onreadystatechange = function() {
                 if (_img.__anm_ready) return;
@@ -4817,7 +5006,8 @@ Sheet.prototype.load = function(callback) {
         },
         function(err) { $log.error(err.message || err);
                         me.ready = true;
-                        me.wasError = true; });
+                        me.wasError = true;
+                        if (errback) errback.call(me, err); });
 }
 Sheet.prototype._drawToCache = function() {
     if (!this.ready || this.wasError) return;

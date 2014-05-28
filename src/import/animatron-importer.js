@@ -841,6 +841,7 @@ BitStream.prototype.readSBits = function(n) {
 
 function Base64Decoder() {}
 
+// FIXME: one function is also enough here
 /*
  * Returns int8array
  */
@@ -902,6 +903,8 @@ Base64Decoder._decode = function(data) {
 
 // Path cache
 // -----------------------------------------------------------------------------
+
+// FIXME: use an object and a hash function for this, no need in special class
 
 function ValueCache() {
     this.hash2val = {};
