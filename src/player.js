@@ -1103,9 +1103,19 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
     var player = this;
     if (player.__thumb &&
         player.__thumb.src == url) return;
+    if (player.ctx) { // FIXME: make this a function
+      var ratio = $engine.PX_RATIO,
+          ctx = player.ctx;
+      ctx.save();
+      ctx.clearRect(0, 0, player.width * ratio, player.height * ratio);
+      player._drawEmpty();
+      ctx.restore();
+    }
     var thumb = new Sheet(url);
+    player.__thumbLoading = true;
     thumb.load(function() {
         console.log('thumbnail was loaded');
+        player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
             player.__thumbSize = [ target_width, target_height ];
@@ -1245,7 +1255,8 @@ Player.prototype._drawThumbnail = function() {
         thumb_width   = thumb_dimen[0],
         thumb_height  = thumb_dimen[1],
         player_width  = this.width,
-        player_height = this.height;
+        player_height = this.height,
+        px_ratio      = $engine.PX_RATIO;
     var ctx = this.ctx;
     if ((thumb_width  == player_width) &&
         (thumb_height == player_height)) {
@@ -1258,6 +1269,7 @@ Player.prototype._drawThumbnail = function() {
             rect1      = f_rects[2],
             rect2      = f_rects[3];
         ctx.save();
+        if (px_ratio != 1) ctx.scale(px_ratio, px_ratio);
         if (rect1 || rect2) {
             ctx.fillStyle = '#000';
             if (rect1) ctx.fillRect(rect1[0], rect1[1],
@@ -1282,6 +1294,8 @@ Player.prototype._drawThumbnail = function() {
 // it applies the thumbnail instead
 Player.prototype._drawSplash = function() {
     if (this.controls) return;
+
+    if (this.__thumbLoading) return;
 
     if (this.__thumb && this.drawStill) {
         this._drawThumbnail();
