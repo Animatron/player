@@ -1773,7 +1773,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.bgColor = params.bg || params.bgcolor;
     return opts;
 }
-Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
+Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opts) {
     var urlWithParams = snapshotUrl.split('?'),
         snapshotUrl = urlWithParams[0],
         urlParams = urlWithParams[1], // TODO: validate them?
@@ -1781,6 +1781,7 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback) {
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
+    if (alt_opts) player._addOpts(alt_opts);
 
     player.load(snapshotUrl, importer, function() {
         player._applyUrlParamsToAnimation(params);
