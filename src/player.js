@@ -449,6 +449,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'infoEnabled': undefined, // undefined means 'auto'
                                  'loadingMode': undefined, // undefined means 'auto'
+                                 'thumbnail': undefined,
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
                                  'inParent': false,
@@ -493,6 +494,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'infoEnabled': undefined, // undefined means 'auto'
 //       'handleEvents': undefined, // undefined means 'auto'
 //       'loadingMode': undefined, // undefined means 'auto'
+//       'thumbnail': undefuned,
 //       'forceSceneSize': false,
 //       'inParent': false,
 //       'muteErrors': false
@@ -927,6 +929,7 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+    this.thumbnail = opts.thumbnail || this.thumbnail;
     this.loadingMode = __defined(opts.loadingMode)
                         ? opts.loadingMode : this.loadingMode;
     this.audioEnabled = __defined(opts.audioEnabled)
@@ -999,6 +1002,8 @@ Player.prototype._checkOpts = function() {
     if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
 
     this.__appliedMode = this.mode;
+
+    if (this.thumbnail) this.setThumbnail(this.thumbnail);
 }
 Player.prototype._updateMode = function() {
     if (!this.canvas || !this.mode) return;
@@ -1764,6 +1769,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.controlsEnabled = __extractBool('c', 'controls');
     opts.infoEnabled = __extractBool('info');
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
+    opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
     return opts;
 }
