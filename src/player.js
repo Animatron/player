@@ -494,7 +494,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'infoEnabled': undefined, // undefined means 'auto'
 //       'handleEvents': undefined, // undefined means 'auto'
 //       'loadingMode': undefined, // undefined means 'auto'
-//       'thumbnail': undefuned,
+//       'thumbnail': undefined,
 //       'forceSceneSize': false,
 //       'inParent': false,
 //       'muteErrors': false
