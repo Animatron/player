@@ -1256,6 +1256,8 @@ Player.prototype._drawThumbnail = function() {
         player_height = this.height,
         px_ratio      = $engine.PX_RATIO;
     var ctx = this.ctx;
+    ctx.save();
+    if (px_ratio != 1) ctx.scale(px_ratio, px_ratio);
     if ((thumb_width  == player_width) &&
         (thumb_height == player_height)) {
         this.__thumb.apply(ctx);
@@ -1266,8 +1268,6 @@ Player.prototype._drawThumbnail = function() {
             thumb_rect = f_rects[1],
             rect1      = f_rects[2],
             rect2      = f_rects[3];
-        ctx.save();
-        if (px_ratio != 1) ctx.scale(px_ratio, px_ratio);
         if (rect1 || rect2) {
             ctx.fillStyle = '#000';
             if (rect1) ctx.fillRect(rect1[0], rect1[1],
@@ -1284,8 +1284,8 @@ Player.prototype._drawThumbnail = function() {
         }
         if (factor != 1) ctx.scale(factor, factor);
         this.__thumb.apply(ctx);
-        ctx.restore();
     }
+    ctx.restore();
 }
 // _drawSplash draws splash screen if there is no scene loaded in the player
 // or the scene is inaccessible; if there is a preloaded thumbnail accessible,
@@ -1781,7 +1781,10 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opt
         options = Player._optsFromUrlParams(params),
         player = new Player();
     player.init(canvasId, options);
-    if (alt_opts) player._addOpts(alt_opts);
+    if (alt_opts) {
+      player._addOpts(alt_opts);
+      player._checkOpts();
+    }
 
     player.load(snapshotUrl, importer, function() {
         player._applyUrlParamsToAnimation(params);
