@@ -335,14 +335,21 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                'speed': cvs.getAttribute('anm-speed'),
                'width': width,
                'height': height,
+               'autoPlay': cvs.getAttribute('anm-auto-play'),
                'bgColor': cvs.getAttribute('anm-bgcolor'),
                'drawStill': cvs.getAttribute('anm-draw-still'),
+               'imagesEnabled': cvs.getAttribute('anm-images-enabled'),
+               'shadowsEnabled': cvs.getAttribute('anm-shadows-enabled'),
                'audioEnabled': cvs.getAttribute('anm-audio-enabled'),
                'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
+               'infoEnabled': cvs.getAttribute('anm-info-enabled'),
                'handleEvents': cvs.getAttribute('anm-handle-events'),
+               'infiniteDuration': cvs.getAttribute('anm-infinite-duration'),
                'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
                'inParent': undefined, // TODO: check if we're in tag?
-               'muteErrors': cvs.getAttribute('anm-mute-errors')
+               'muteErrors': cvs.getAttribute('anm-mute-errors'),
+               'loadingMode': cvs.getAttribute('anm-loading-mode'),
+               'thumbnail': cvs.getAttribute('anm-thumbnail')
              };
     }
     $DE.checkPlayerCanvas = function(cvs) {
