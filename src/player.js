@@ -5464,6 +5464,7 @@ Controls.prototype.inBounds = function(pos) {
 Controls.prototype.localInBounds = function(pos) {
     //if (this.hidden) return false;
     var _b = this.bounds;
+    if (!_b) return false;
     return (pos[0] >= 0) &&
            (pos[0] <= _b[2]) &&
            (pos[1] >= 0) &&
