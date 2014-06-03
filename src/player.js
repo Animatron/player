@@ -1100,6 +1100,7 @@ Player.prototype.setSize = function(width, height) {
 // show it without stretches, so if thumbnail image size matches to scene size has
 // the same aspect ratio as a scene, it is also ok to omit the size data here
 Player.prototype.setThumbnail = function(url, target_width, target_height) {
+    if (!url) return;
     var player = this;
     if (player.__thumb &&
         player.__thumb.src == url) return;
@@ -3454,7 +3455,9 @@ L.loadFromUrl = function(player, url, importer, callback) {
         throw new SysErr('Snapshot failed to load');
     });
 
-    $engine.ajax(url, success, failure);
+    var anm_cookie = $engine.getCookie('_animatronauth');
+
+    $engine.ajax(url, success, failure, 'GET', anm_cookie ? { 'Animatron-Security-Token': anm_cookie } : null);
 }
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);

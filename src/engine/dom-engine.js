@@ -69,6 +69,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getCancelFrameFunc() -> function(id)
 
     // ajax(url, callback?, errback?, method?) -> none
+    // getCookie(name) -> String
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
@@ -152,7 +153,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     $DE.PX_RATIO = $wnd.devicePixelRatio || 1;
 
-    $DE.ajax = function(url, callback, errback, method) {
+    $DE.ajax = function(url, callback, errback, method, headers) {
         var req = false;
 
         if (!$wnd.ActiveXObject) {
@@ -193,7 +194,27 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
         req.onreadystatechange = whenDone;
         req.open(method || 'GET', url, true);
+
+        if (headers) {
+            for (var header in headers) {
+                req.setRequestHeader(header, headers[header]);
+            }
+        }
+
         req.send(null);
+    }
+    $DE.getCookie = function(name) {
+        // from http://www.codelib.net/javascript/cookies.html
+        var s = document.cookie, i;
+        if (s)
+        for (i=0, s=s.split('; '); i<s.length; i++) {
+        s[i] = s[i].split('=', 2);
+        if (unescape(s[i][0]) == name)
+        return unescape(s[i][1]);
+        }
+        return null;
+        /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec(document.cookie);
+        return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
     }
 
     $DE.__textBuf = null;
