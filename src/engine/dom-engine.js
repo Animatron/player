@@ -68,7 +68,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getRequestFrameFunc() -> function(callback)
     // getCancelFrameFunc() -> function(id)
 
-    // ajax(url, callback?, errback?, method?) -> none
+    // ajax(url, callback?, errback?, method?, headers?) -> none
     // getCookie(name) -> String
 
     // createTextMeasurer() -> function(text) -> [ width, height ]

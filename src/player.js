@@ -318,11 +318,12 @@ C.LT_URL = 5;
 // ### Loading modes
 /* ---------------- */
 
-C.LM_DEFAULT = 'default';
-C.LM_ONREQUEST = C.LM_DEFAULT;
+C.LM_ONREQUEST = 'onrequest';
 C.LM_ONPLAY = 'onplay';
 // C.LM_ONSCROLL
 // C.LM_ONSCROLLIN
+
+C.LM_DEFAULT = C.LM_ONREQUEST;
 
 // ### Events
 /* ---------- */
@@ -448,7 +449,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
                                  'infoEnabled': undefined, // undefined means 'auto'
-                                 'loadingMode': undefined, // undefined means 'auto'
+                                 'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
@@ -683,11 +684,14 @@ var __nextFrame = $engine.getRequestFrameFunc(),
     __stopAnim  = $engine.getCancelFrameFunc();
 Player.prototype.play = function(from, speed, stopAfter) {
 
-    var player = this,
-        state = player.state;
+    var player = this;
+
+    player._ensureHasState();
+
+    var state = player.state;
 
     if (state.happens === C.PLAYING) {
-        if (player.handleEvents) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+        if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
 
@@ -724,9 +728,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
     //__stopAnim = $engine.getCancelFrameFunc();
 
     player._ensureHasAnim();
-    player._ensureHasState();
-
-    var state = player.state;
 
     var scene = player.anim;
     scene.reset();
@@ -785,22 +786,21 @@ Player.prototype.play = function(from, speed, stopAfter) {
 Player.prototype.stop = function() {
     /* if (state.happens === C.STOPPED) return; */
 
-    // if player loads remote resources just now,
-    // postpone this task and exit. postponed tasks
-    // will be called when all remote resources were
-    // finished loading
-    if ((this.state.happens === C.RES_LOADING) &&
-        (player.loadingMode === C.LM_ONREQUEST)) {
-        this._postpone('stop', arguments);
-        return;
-    }
-
-    var player = this,
-        scene = player.anim;
+    var player = this;
 
     player._ensureHasState();
 
     var state = player.state;
+
+    // if player loads remote resources just now,
+    // postpone this task and exit. postponed tasks
+    // will be called when all remote resources were
+    // finished loading
+    if ((state.happens === C.RES_LOADING) &&
+        (player.loadingMode === C.LM_ONREQUEST)) {
+        player._postpone('stop', arguments);
+        return;
+    }
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
@@ -813,6 +813,8 @@ Player.prototype.stop = function() {
     state.time = Player.NO_TIME;
     state.from = 0;
     state.stop = Player.NO_TIME;
+
+    var scene = player.anim;
 
     if (scene || ((player.loadingMode == C.LM_ONPLAY) &&
                    player._postponedLoad)) {
