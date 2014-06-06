@@ -69,9 +69,7 @@ var Binaries = {
 
 var Dirs = {
     SRC: 'src',
-    AS_IS: 'dist/full',
-    MINIFIED: 'dist',
-    DIST_ROOT: 'dist',
+    DIST: 'dist',
     TESTS: 'tests',
     DOCS: 'doc'
 };
@@ -189,7 +187,7 @@ var Validation = {
 };
 
 var BUILD_FILE_NAME = 'BUILD',
-    BUILD_FILE = Dirs.DIST_ROOT + '/' + BUILD_FILE_NAME,
+    BUILD_FILE = Dirs.DIST + '/' + BUILD_FILE_NAME,
     BUILD_FORMAT = '%H%n%ci%n%cn <%ce>';
 
 var DONE_MARKER = '<Done>.\n',
@@ -230,8 +228,7 @@ task('default', ['dist'], function() {});
 desc(_dfit_nl(['Clean previous build artifacts.']));
 task('clean', function() {
     _print('Clean previous build artifacts..');
-    jake.rmRf(_loc(Dirs.AS_IS));
-    jake.rmRf(_loc(Dirs.MINIFIED));
+    jake.rmRf(_loc(Dirs.DIST));
     _print(DONE_MARKER);
 });
 
@@ -589,13 +586,13 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
     var files   = [];
 
-    var walker  = walk.walk(_loc(Dirs.DIST_ROOT), { followLinks: false });
+    var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
         files.push([ root + '/' + stat.name, // source
                      trg_dir +  // destination
-                     root.substring(root.indexOf(Dirs.DIST_ROOT) +
-                                    Dirs.DIST_ROOT.length) + '/'
+                     root.substring(root.indexOf(Dirs.DIST) +
+                                    Dirs.DIST.length) + '/'
                      + stat.name,
                      (root.indexOf(Dirs.AS_IS) < 0) &&
                      (root.indexOf(Dirs.MINIFIED) >= 0) &&
@@ -801,21 +798,19 @@ task('hint', function() {
 
 // ======= SUBTASKS
 
-desc(_dfit(['Internal. Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders']));
+desc(_dfit(['Internal. Create '+Dirs.DIST+' folder']));
 task('_prepare', function() {
     _print('Create required destination folders..');
-    _print('mkdir -p ' + _loc(Dirs.MINIFIED));
-    jake.mkdirP(_loc(Dirs.MINIFIED));
-    _print('mkdir -p ' + _loc(Dirs.AS_IS));
-    jake.mkdirP(_loc(Dirs.AS_IS));
+    _print('mkdir -p ' + _loc(Dirs.DIST));
+    jake.mkdirP(_loc(Dirs.DIST));
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder']));
+desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder']));
 task('_bundles', function() {
     _print('Create Bundles..');
     var BUILD_TIME = _build_time();
-    var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
+    var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
     Bundles.forEach(function(bundle) {
         _print('Package bundle \'' + bundle.name + '\'');
@@ -833,7 +828,7 @@ task('_bundles', function() {
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.AS_IS+' folder, '+
+desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder, '+
                'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
 task('_bundle', function(param) {
     if (!param) throw new Error('This task requires a concrete bundle name to be specified');
@@ -843,7 +838,7 @@ task('_bundle', function(param) {
         if (b.name == param) { bundle = b; }
     });
     if (!bundle) throw new Error('Bundle with name ' + param + ' was not found');
-    var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
+    var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
     _print('Package bundle \'' + bundle.name + '\'');
     var targetFile = targetDir + '/' + bundle.file + '.js';
@@ -858,48 +853,48 @@ task('_bundle', function(param) {
         });
 });
 
-desc(_dfit(['Internal. Copy source files to '+Dirs.AS_IS+' folder']));
+desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
 task('_organize', function() {
 
-    _print('Copy files to ' + Dirs.AS_IS + '..');
+    _print('Copy files to ' + Dirs.DIST + '..');
 
-    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.INIT),
-             _loc(Dirs.AS_IS + '/' + Files.Main.INIT));
-    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.PLAYER),
-             _loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
-    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.BUILDER),
-             _loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
+    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.INIT),
+             _loc(Dirs.DIST + '/' + Files.Main.INIT));
+    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.PLAYER),
+             _loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.BUILDER),
+             _loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.VENDOR));
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.VENDOR + '/' + vendorFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.VENDOR + '/' + vendorFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.VENDOR));
     });
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.ENGINES));
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.ENGINES + '/' + engineFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.ENGINES + '/' + engineFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.ENGINES));
     });
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.MODULES));
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.MODULES + '/' + moduleFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.MODULES + '/' + moduleFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.MODULES));
     });
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.IMPORTERS + '/' + importerFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
     });
 
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Inject version in all '+Dirs.AS_IS+' files']));
+desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
 task('_versionize', function() {
-    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.AS_IS + '..');
+    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
 
     function versionize(file) {
         var new_content = jake.cat(file).trim()
@@ -912,32 +907,32 @@ task('_versionize', function() {
 
     _print('.. Main files');
 
-    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
-    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
-    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
+    versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    versionize(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES + '/' + engineFile));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES + '/' + moduleFile));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('..Docs');
@@ -950,9 +945,9 @@ task('_versionize', function() {
 });
 
 desc(_dfit(['Internal. Create a minified and compressed copy of all the sources and bundles '+
-               'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
+               'from '+Dirs.DIST+' folder and append a .min suffix to them']));
 task('_minify_compress', { async: true }, function() {
-    _print('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
+    _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
 
     _print('Using ' + (NODE_GLOBAL ? 'global'
                                : 'local (at '+LOCAL_NODE_DIR+')')
@@ -960,30 +955,33 @@ task('_minify_compress', { async: true }, function() {
 
     var BUILD_TIME = _build_time();
 
-    function minify(src, dst, cb) {
+    function minify(src, cb) {
+        var dst = _minified(src);
         jake.exec([
           [ Binaries.UGLIFYJS,
             '--ascii',
-            '-o',
-            dst, src
+            '--compress',
+            '--screw-ie8', // since April 2014
+            '--source-map', _src_map(dst),
+            // '--source-map-root', src,
+            // '--comments', ...,
+            '--output', dst,
+            src
           ].join(' ')
-        ], EXEC_OPTS, cb);
+        ], EXEC_OPTS, function() { cb(dst); });
         _print('min -> ' + src + ' -> ' + dst);
     }
 
-    function compress(file, cb) {
-        jake.cpR(file, file + '.tmp');
+    function compress(src, cb) {
+        var dst = _compressed(src);
         jake.exec([
           [ Binaries.GZIP,
             '-9',
             '-c',
-            file + '.tmp', '>', file
+            src, '>', dst
           ].join(' ')
-        ], EXEC_OPTS, function() {
-          jake.rmRf(file + '.tmp');
-          cb();
-        });
-        _print('gzip -> ' + file + '.tmp' + ' -> ' + file);
+        ], EXEC_OPTS, cb);
+        _print('gzip -> ' + scr + ' -> ' + dst);
     }
 
     function copyrightize(file) {
@@ -996,10 +994,10 @@ task('_minify_compress', { async: true }, function() {
 
     var queue = {};
 
-    function minifyAndCompress(src, dst) {
+    function minifyAndCompress(src) {
         var task_id = _guid();
         queue[task_id] = {};
-        minify(src, dst, function() {
+        minify(src, function(dst) {
             compress(dst, function() {
               _print(DONE_MARKER);
               delete queue[task_id];
@@ -1008,10 +1006,10 @@ task('_minify_compress', { async: true }, function() {
         });
     }
 
-    function minifyAndCompressWithCopyright(src, dst) {
+    function minifyAndCompressWithCopyright(src) {
         var task_id = _guid();
         queue[task_id] = {};
-        minify(src, dst, function() {
+        minify(src, function(dst) {
             copyrightize(dst);
             compress(dst, function() {
               _print(DONE_MARKER);
@@ -1023,51 +1021,38 @@ task('_minify_compress', { async: true }, function() {
 
     _print('.. Vendor Files');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.VENDOR);
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        minifyAndCompress(_loc(Dirs.AS_IS    + '/' + SubDirs.VENDOR + '/' + vendorFile),
-                          _loc(Dirs.MINIFIED + '/' + SubDirs.VENDOR + '/' + vendorFile));
+        minifyAndCompress(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
 
     _print('.. Main files');
 
-    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
-                                   _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
-    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
-                                   _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
-    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
-                                   _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
+    minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     _print('.. Bundles');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.BUNDLES);
     Bundles.forEach(function(bundle) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('.. Engines');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.ENGINES);
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.ENGINES + '/' + engineFile),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.ENGINES + '/' + engineFile));
+        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
+        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS);
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
 });
