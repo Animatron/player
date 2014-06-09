@@ -3450,12 +3450,15 @@ var L = {}; // means "Loading/Loader"
 L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
-    var success = function(req) {
-        L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
-    };
     var failure = player.__defAsyncSafe(function(err) {
         throw new SysErr('Snapshot failed to load');
     });
+
+    var success = function(req) {
+        try {
+            L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
+        } catch(e) { failure(e); }
+    };
 
     var anm_cookie = $engine.getCookie('_animatronauth');
 
