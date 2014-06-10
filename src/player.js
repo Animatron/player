@@ -4712,7 +4712,7 @@ function Text(lines, font,
     this.shadow = shadow;
     this.align = align || Text.DEFAULT_ALIGN;
     this.baseline = baseline || Text.DEFAULT_BASELINE;
-    this.underlined = underlined || Text.DEFAULT_UNDERLINE;
+    this.underlined = __defined(underlined) ? underlined : Text.DEFAULT_UNDERLINE;
     this._bnds = null;
 }
 
@@ -4723,7 +4723,7 @@ Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
 Text.DEFAULT_ALIGN = 'left';
-Text.DEFAULT_BASELINE = 'bottom';
+Text.DEFAULT_BASELINE = 'bottom'; // FIXME: also change to middle?
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 Text.DEFAULT_UNDERLINE = false;
 
