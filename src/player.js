@@ -4734,7 +4734,7 @@ Text.prototype.apply = function(ctx, pos, baseline) {
         ascent = this.ascent(dimen[1]),
         underlined = this.underlined;
     ctx.font = this.font;
-    ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
+    ctx.textBaseline = baseline || this.baseline || Text.DEFAULT_BASELINE;
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     ctx.translate(pos[0]/* + (dimen[0] / 2)*/, pos[1]);
     if (Brush._hasVal(this.fill)) {

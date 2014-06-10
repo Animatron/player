@@ -514,8 +514,9 @@ Import.text = function(src) {
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]),
+                    src[5], // align
                     (src[7] & TEXT_MID_BASELINE) ? 'middle' : 'bottom',
-                    src[5], (src[7] & TEXT_UNDERLINE) ? true : false);
+                    (src[7] & TEXT_UNDERLINE) ? true : false);
 }
 /** sheet (image) **/
 /*
