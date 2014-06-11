@@ -4754,7 +4754,7 @@ Text.prototype.apply = function(ctx, pos, baseline) {
     ctx.font = this.font;
     ctx.textBaseline = baseline || this.baseline || Text.DEFAULT_BASELINE;
 
-    var ascent = this.ascent(dimen[1], ctx.textBaseline);
+    var ascent = this.ascent(height, ctx.textBaseline);
 
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     ctx.translate(pos[0], pos[1]);
