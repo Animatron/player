@@ -4386,7 +4386,7 @@ Path.applyF = function(ctx, fill, stroke, shadow, func) {
     // FIXME: we may use return value of Brush.create to test if Brush has value
     if (Brush._hasVal(fill)) ctx.fill();
 
-    Brush.removeShadow(ctx);
+    Brush.clearShadow(ctx);
 
     if (Brush._hasVal(stroke)) ctx.stroke();
     //ctx.restore(); // FIXME: remove it when xdata will contain one paintable object
@@ -4706,6 +4706,21 @@ CSeg.prototype._calc_params = function(start) {
 // Text
 // -----------------------------------------------------------------------------
 
+// text contsants
+
+// align
+C.TA_LEFT = 'left';
+C.TA_CENTER = 'center';
+C.TA_RIGHT = 'right';
+
+// baseline
+C.BL_TOP = 'top';
+C.BL_MIDDLE = 'middle';
+C.BL_BOTTOM = 'bottom';
+C.BL_ALPHABETIC = 'alphabetic';
+C.BL_HANGING = 'hanging';
+C.BL_IDEOGRAPHIC = 'ideographic';
+
 function Text(lines, font,
               fill, stroke, shadow, align, baseline, underlined) {
     this.lines = lines;
@@ -4725,8 +4740,8 @@ Text.DEFAULT_FFACE = 'sans-serif';
 Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
-Text.DEFAULT_ALIGN = 'left';
-Text.DEFAULT_BASELINE = 'bottom'; // FIXME: also change to middle?
+Text.DEFAULT_ALIGN = C.TA_LEFT;
+Text.DEFAULT_BASELINE = C.BL_BOTTOM; // FIXME: also change to middle?
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 Text.DEFAULT_UNDERLINE = false;
 
@@ -4734,7 +4749,7 @@ Text.prototype.apply = function(ctx, pos, baseline) {
     ctx.save();
     var pos = pos || [0, 0],
         dimen = this.dimen(),
-        height = dimen[1]/this.lineCount(),
+        height = (dimen[1] / this.lineCount()),
         underlined = this.underlined;
     ctx.font = this.font;
     ctx.textBaseline = baseline || this.baseline || Text.DEFAULT_BASELINE;
@@ -4751,7 +4766,7 @@ Text.prototype.apply = function(ctx, pos, baseline) {
             ctx.fillText(line, 0, y+ascent);
             y += height;
         });
-        Brush.removeShadow(ctx);
+        Brush.clearShadow(ctx);
     }
     if (Brush._hasVal(this.stroke)) {
         Brush.stroke(ctx, this.stroke);
@@ -4788,8 +4803,9 @@ Text.prototype.bounds = function() {
     var dimen = this.dimen();
     return [ 0, 0, dimen[0], dimen[1] ];
 }
+// should be static
 Text.prototype.ascent = function(height, baseline) {
-    return baseline.equals('middle')? height/2: height;
+    return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
 }
 Text.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -4806,7 +4822,7 @@ Text.prototype.cfill = function(color) {
 }
 Text.prototype.lineCount = function() {
     var lines = this.lines;
-    return __arr(lines)? lines.length: 1;
+    return __arr(lines) ? lines.length : 1;
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
@@ -4911,7 +4927,7 @@ Brush.shadow = function(ctx, shadow) {
     ctx.shadowOffsetX = shadow.offsetX;
     ctx.shadowOffsetY = shadow.offsetY;
 }
-Brush.removeShadow = function(ctx) {
+Brush.clearShadow = function(ctx) {
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
