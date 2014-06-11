@@ -4385,6 +4385,9 @@ Path.applyF = function(ctx, fill, stroke, shadow, func) {
 
     // FIXME: we may use return value of Brush.create to test if Brush has value
     if (Brush._hasVal(fill)) ctx.fill();
+
+    Brush.clearShadow(ctx);
+
     if (Brush._hasVal(stroke)) ctx.stroke();
     //ctx.restore(); // FIXME: remove it when xdata will contain one paintable object
 }
@@ -4703,6 +4706,21 @@ CSeg.prototype._calc_params = function(start) {
 // Text
 // -----------------------------------------------------------------------------
 
+// text contsants
+
+// align
+C.TA_LEFT = 'left';
+C.TA_CENTER = 'center';
+C.TA_RIGHT = 'right';
+
+// baseline
+C.BL_TOP = 'top';
+C.BL_MIDDLE = 'middle';
+C.BL_BOTTOM = 'bottom';
+C.BL_ALPHABETIC = 'alphabetic';
+C.BL_HANGING = 'hanging';
+C.BL_IDEOGRAPHIC = 'ideographic';
+
 function Text(lines, font,
               fill, stroke, shadow, align, baseline, underlined) {
     this.lines = lines;
@@ -4712,7 +4730,7 @@ function Text(lines, font,
     this.shadow = shadow;
     this.align = align || Text.DEFAULT_ALIGN;
     this.baseline = baseline || Text.DEFAULT_BASELINE;
-    this.underlined = underlined || Text.DEFAULT_UNDERLINE;
+    this.underlined = __defined(underlined) ? underlined : Text.DEFAULT_UNDERLINE;
     this._bnds = null;
 }
 
@@ -4722,8 +4740,8 @@ Text.DEFAULT_FFACE = 'sans-serif';
 Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_FILL = { 'color': '#000' };
-Text.DEFAULT_ALIGN = 'left';
-Text.DEFAULT_BASELINE = 'bottom';
+Text.DEFAULT_ALIGN = C.TA_LEFT;
+Text.DEFAULT_BASELINE = C.BL_BOTTOM; // FIXME: also change to middle?
 Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 Text.DEFAULT_UNDERLINE = false;
 
@@ -4731,49 +4749,48 @@ Text.prototype.apply = function(ctx, pos, baseline) {
     ctx.save();
     var pos = pos || [0, 0],
         dimen = this.dimen(),
-        ascent = this.ascent(dimen[1]),
+        height = (dimen[1] / this.lineCount()),
         underlined = this.underlined;
     ctx.font = this.font;
-    ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
+    ctx.textBaseline = baseline || this.baseline || Text.DEFAULT_BASELINE;
+
+    var ascent = this.ascent(height, ctx.textBaseline);
+
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
-    ctx.translate(pos[0]/* + (dimen[0] / 2)*/, pos[1]);
+    ctx.translate(pos[0], pos[1]);
+    var y = 0;
     if (Brush._hasVal(this.fill)) {
         Brush.shadow(ctx, this.shadow);
         Brush.fill(ctx, this.fill);
-        ctx.save();
         this.visitLines(function(line) {
-            ctx.fillText(line, 0, ascent);
-            ctx.translate(0, ascent);
+            ctx.fillText(line, 0, y+ascent);
+            y += height;
         });
-        ctx.restore();
+        Brush.clearShadow(ctx);
     }
     if (Brush._hasVal(this.stroke)) {
-        Brush.shadow(ctx, this.shadow);
         Brush.stroke(ctx, this.stroke);
-        ctx.save();
+        y = 0;
         this.visitLines(function(line) {
-            ctx.strokeText(line, 0, ascent);
-            ctx.translate(0, ascent);
+            ctx.strokeText(line, 0, y+ascent);
+            y += height;
         });
-        ctx.restore();
     }
     if (underlined) {
-        var offset = 0,
-            stroke = this.fill,
+        var stroke = this.fill,
             me = this; //obj_clone(this.fill);
-        ctx.save();
+        y = 0;
         Brush.stroke(ctx, stroke);
         ctx.lineWidth = 1;
         this.visitLines(function(line) {
             var width = me.dimen(line)[0];
             ctx.beginPath();
-            ctx.moveTo(0, offset + ascent);
-            ctx.lineTo(width, offset + ascent);
+            ctx.moveTo(0, y + height);      // not entirely correct
+            ctx.lineTo(width, y + height);
             ctx.stroke();
 
-            offset += ascent;
+            y += height;
         });
-        ctx.restore();
     }
     ctx.restore();
 }
@@ -4786,8 +4803,9 @@ Text.prototype.bounds = function() {
     var dimen = this.dimen();
     return [ 0, 0, dimen[0], dimen[1] ];
 }
-Text.prototype.ascent = function(height) {
-    return height; /* FIXME */
+// should be static
+Text.prototype.ascent = function(height, baseline) {
+    return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
 }
 Text.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -4801,6 +4819,10 @@ Text.prototype.cfill = function(color) {
     this.fill = {
         'color': color
     };
+}
+Text.prototype.lineCount = function() {
+    var lines = this.lines;
+    return __arr(lines) ? lines.length : 1;
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
@@ -4904,6 +4926,11 @@ Brush.shadow = function(ctx, shadow) {
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
     ctx.shadowOffsetY = shadow.offsetY;
+}
+Brush.clearShadow = function(ctx) {
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
 }
 Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
