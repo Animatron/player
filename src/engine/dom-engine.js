@@ -227,20 +227,19 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             _div.style.position = 'absolute';
             _div.style.top = -10000 + 'px';
             _div.style.left = -10000 + 'px';
-            var _span = $doc.createElement('span');
-            _div.appendChild(_span);
             $doc.body.appendChild(_div);
-            $DE.__textBuf = _span;
+            $DE.__textBuf = _div;
             buff = $DE.__textBuf;
         }
         return function(text, lines_arg) {
             var has_arg = (typeof lines_arg !== 'undefined');
             var lines = has_arg ? lines_arg : text.lines;
             buff.style.font = text.font;
-            buff.style.textAlign = text.align;
-            buff.style.verticalAlign = text.baseline || 'bottom';
+            //buff.style.textAlign = text.align;
+            //buff.style.verticalAlign = text.baseline || 'bottom';
+            buff.style.whiteSpace = 'pre';
             if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
-                buff.textContent = text.lines.join('<br/>');
+                buff.textContent = text.lines.join('\n');
             } else {
                 buff.textContent = text.lines.toString();
             }

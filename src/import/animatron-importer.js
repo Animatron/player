@@ -504,6 +504,8 @@ Import._pathReadPoint = function(stream, target, base) {
  *     number;           // 7, flags, currently just one: 1 - underline // IMPL
  * } *text_element*;
  */
+var TEXT_UNDERLINE = 1,
+    TEXT_MID_BASELINE = 2;
 // -> Text
 Import.text = function(src) {
     var lines = is.arr(src[6]) ? src : src[6].split('\n');
@@ -512,8 +514,9 @@ Import.text = function(src) {
                     Import.fill(src[1]),
                     Import.stroke(src[2]),
                     Import.shadow(src[3]),
-                    null,
-                    src[5], src[7] ? true : false);
+                    src[5], // align
+                    (src[7] & TEXT_MID_BASELINE) ? 'middle' : 'bottom',
+                    (src[7] & TEXT_UNDERLINE) ? true : false);
 }
 /** sheet (image) **/
 /*
