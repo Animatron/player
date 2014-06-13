@@ -196,8 +196,8 @@ var DONE_MARKER = '<Done>.\n',
     FAILED_MARKER = '<Failed>.\n';
 
 var DESC_WIDTH = 80,
-    DESC_PAD = 23,
-    DESC_TAB = 7,
+    DESC_PAD = 27,
+    DESC_TAB = 4,
     DESC_PFX = '# ',
     DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
 
@@ -796,8 +796,8 @@ task('push-go', [], { async: true }, function(_bucket) {
 
 // trig-prod ===================================================================
 
-desc(_dfit_nl(['Triggers deployment to Production server',
-               'using `production` annotated tag.']));
+/*desc(_dfit_nl(['Triggers deployment to Production server',
+                 'using `production` annotated tag. (Reversed for future use)']));*/
 task('trig-prod', [], { async: true }, function() {
     // just applies a tag `production`, so TeamCity will build it and run sequentially:
     // jake test
@@ -833,8 +833,8 @@ task('trig-prod', [], { async: true }, function() {
 
 // trig-dev ====================================================================
 
-desc(_dfit_nl(['Triggers deployment to Development server',
-               'using `development` annotated tag.']));
+/*desc(_dfit_nl(['Triggers deployment to Development server',
+                 'using `development` annotated tag. (Reversed for future use)']));*/
 task('trig-dev', [], { async: true }, function() {
     // just applies a tag `development`, so TeamCity will build it and run sequentially:
     // jake test
@@ -867,10 +867,10 @@ task('trig-dev', [], { async: true }, function() {
     });
 });
 
-desc('See `trig-prod`.');
+//desc('See `trig-prod`.');
 task('trigger-production', ['trig-prod'], {}, function() {});
 
-desc('See `trig-dev`.');
+//desc('See `trig-dev`.');
 task('trigger-development', ['trig-dev'], {}, function() {});
 
 /*desc('Run JSHint');
