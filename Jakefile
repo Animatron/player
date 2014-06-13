@@ -1053,8 +1053,8 @@ task('_minify', { async: true }, function() {
             '--screw-ie8', // since April 2014
             '--source-map-url', _src_map_url(dst),
             '--source-map', _src_map(dst),
-            //'--source-map-root', 'foobar',
-            //'--prefix', 1,
+            '--source-map-root', './',
+            '--prefix', 2,
             '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
             '--output', dst,
             src
