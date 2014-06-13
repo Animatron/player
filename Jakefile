@@ -1053,6 +1053,8 @@ task('_minify', { async: true }, function() {
             '--screw-ie8', // since April 2014
             '--source-map-url', _src_map_url(dst),
             '--source-map', _src_map(dst),
+            //'--source-map-root', 'foobar',
+            //'--prefix', 1,
             '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
             '--output', dst,
             src
@@ -1199,11 +1201,11 @@ function _minified(path) {
 function _src_map(path) {
   if (path.substr(path.length - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
                                                               'Can\'t determine minified path.');
-  return path + '.map';
+  return path.replace('\.min', '') + '.map';
 }
 
 function _src_map_url(path) {
-  return path.replace(Dirs.DIST + '/', '') + '.map';
+  return path.replace('\.min', '').replace(Dirs.DIST + '/', '') + '.map';
 }
 
 function _dfit(lines) {
