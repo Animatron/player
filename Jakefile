@@ -217,7 +217,9 @@ function _extended_build_time() { var now = new Date();
                                          now.getTime() + '\n' +
                                          now.toString(); }
 
-// TASKS
+// TASKS =======================================================================
+
+// default =====================================================================
 
 desc(_dfit_nl(['Get full distribution in the /dist directory.',
                'Exactly the same as calling {jake dist}.',
@@ -232,12 +234,16 @@ task('clean', function() {
     _print(DONE_MARKER);
 });
 
+// build =======================================================================
+
 desc(_dfit_nl(['Build process, with no cleaning.',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify_compress>, <_build-file>.',
+               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify_compress', '_build-file'], function() {});
+task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify', '_build-file'], function() {});
+
+// dist ========================================================================
 
 desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'so `dist` directory will contain the full '+
@@ -247,6 +253,8 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist', ['clean', 'build'], function() {});
+
+// test ========================================================================
 
 desc(_dfit_nl(['Run tests for the sources (not the distribution).',
                'Usage: Among with {jake test} may be called with '+
@@ -275,6 +283,8 @@ task('test', { async: true }, function(param) {
                            _print(DONE_MARKER);
                            complete(); });
 });
+
+// docs ========================================================================
 
 desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                   'HTML files inside of the /doc directory.',
@@ -346,6 +356,8 @@ task('docs', { async: true }, function() {
 //mv doc/README.tmp.html doc/scripting.html
 });
 
+// anm-scene-valid =============================================================
+
 desc(_dfit_nl(['Validate Animatron scene JSON file.',
                'Uses /src/import/animatron-project-VERSION.orderly '+
                   'as validation scheme.',
@@ -365,6 +377,8 @@ task('anm-scene-valid', function(param) {
 
   _print(DONE_MARKER);
 });
+
+// version =====================================================================
 
 desc(_dfit_nl(['Get current version or apply a new version to the '+
                   'current state of files. If applies a new version, '+
@@ -487,6 +501,8 @@ task('version', { async: true }, function(param) {
 
 });
 
+// rm-version ==================================================================
+
 desc(_dfit_nl(['Remove given version information from versions '+
                   'data files among with the git tag. Pushes nothing.',
                'Usage: {jake version[v0.9:v0.8]} to remove version 0.9 '+
@@ -556,6 +572,8 @@ task('rm-version', { async: true }, function(param) {
 
 });
 
+// push-version ================================================================
+
 desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                    'to S3 at the path of `<VERSION>/` or `latest/`. '+
                    'No git switching to tag or anything smarter than just build and push to directory. '+
@@ -569,7 +587,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
+task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -588,15 +606,23 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
     var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
+    var jsonHeaders = { 'content-type': 'text/json' }, // for VERSIONS file, used below
+        jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
+        gzippedJsHeaders = { 'content-type': 'text/javascript',
+                             'content-encoding': 'gzip' },
+        plainTextHeaders = { 'content-type': 'text/plain' };
+
     walker.on('file', function(root, stat, next) {
+        var gzip_it = (stat.name.indexOf('.min') >= 0) &&
+                      (stat.name !== BUILD_FILE_NAME);
         files.push([ root + '/' + stat.name, // source
-                     trg_dir +  // destination
-                     root.substring(root.indexOf(Dirs.DIST) +
-                                    Dirs.DIST.length) + '/'
-                     + stat.name,
-                     (root.indexOf(Dirs.AS_IS) < 0) &&
-                     (root.indexOf(Dirs.MINIFIED) >= 0) &&
-                     (stat.name !== BUILD_FILE_NAME) ]); // is this file gzipped or not
+                     trg_dir + '/' + stat.name, // destination
+                     gzip_it, // is this file should be gzipped or not
+                     // destination headers, all files except BUILD are javascript files
+                     gzip_it ? gzippedJsHeaders
+                             : ((stat.name !== BUILD_FILE_NAME) ? jsHeaders
+                                                                : plainTextHeaders);
+                   ]);
         next();
     });
 
@@ -620,33 +646,54 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
         s3.setBucket(trg_bucket);
 
-        var jsonHeaders = { 'content-type': 'text/json' },
-            jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
-            gzippedJsHeaders = { 'content-type': 'text/javascript',
-                                 'content-encoding': 'gzip' };
-
         s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', jsonHeaders, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
             _print(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
 
             var files_count = files.length;
 
+            var on_complete = function(src, dst) {
+              return function(err,res) {
+                if (err) { _print(FAILED_MARKER); throw err; }
+                _print(src + ' -> S3 as ' + dst);
+                files_conut--;
+                if (!files_count) { _print(DONE_MARKER); complete(); }
+              }
+            }
+
+            // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
+            function compress(src, cb) {
+                var gzip_cmd = jake.createExec([
+                  [ Binaries.GZIP,
+                    '-9',
+                    '-c',
+                    '--stdout',
+                    src,
+                  ].join(' ') ], EXEC_OPTS);
+                gzip_cmd.addListener('stdout', cb);
+                _print('gzip <- ' + src);
+            }
+
             files.forEach(function(file) {
-                s3.putFile(file[1], _loc(file[0]), 'public-read',
-                  file[2] ? gzippedJsHeaders : jsHeaders,
-                  (function(file) {
-                    return function(err,res) {
-                      if (err) { _print(FAILED_MARKER); throw err; }
-                      _print(file[0] + ' -> S3 as ' + file[1]);
-                      if (!files_count) { _print(DONE_MARKER); complete(); }
-                    }
-                  })(file)
-                );
+                var src = file[0], dst = file[1],
+                    gzip_it = file[2],
+                    headers = file[3];
+                if (gzip_it) {
+                    compress(_loc(src), function(content) {
+                      s3.putStream(dst, content, 'public-read',
+                        headers, on_complete(src, dst));
+                    });
+                } else {
+                    s3.putFile(dst, _loc(src), 'public-read',
+                      headers, on_complete(src, dst));
+                }
             });
         });
     });
 
 });
+
+// push-go =====================================================================
 
 desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
                'Usage: {jake push-go} to push to `dev` bucket. '+
@@ -655,7 +702,7 @@ desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
                'Affects: Only changes S3.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` node.js module.']));
-task('_push-go', [], { async: true }, function(_bucket) {
+task('push-go', [], { async: true }, function(_bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -716,6 +763,8 @@ task('_push-go', [], { async: true }, function(_bucket) {
 
 });
 
+// trig-prod ===================================================================
+
 desc(_dfit_nl(['Triggers deployment to Production server',
                'using `production` annotated tag.']));
 task('trig-prod', [], { async: true }, function() {
@@ -750,6 +799,8 @@ task('trig-prod', [], { async: true }, function() {
     });
 
 });
+
+// trig-dev ====================================================================
 
 desc(_dfit_nl(['Triggers deployment to Development server',
                'using `development` annotated tag.']));
@@ -796,7 +847,9 @@ task('hint', function() {
     // TODO
 });*/
 
-// ======= SUBTASKS
+// SUBTASKS ====================================================================
+
+// _prepare ====================================================================
 
 desc(_dfit(['Internal. Create '+Dirs.DIST+' folder']));
 task('_prepare', function() {
@@ -805,6 +858,8 @@ task('_prepare', function() {
     jake.mkdirP(_loc(Dirs.DIST));
     _print(DONE_MARKER);
 });
+
+// _bundles ====================================================================
 
 desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder']));
 task('_bundles', function() {
@@ -827,6 +882,8 @@ task('_bundles', function() {
 
     _print(DONE_MARKER);
 });
+
+// _bundle =====================================================================
 
 desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder, '+
                'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
@@ -852,6 +909,8 @@ task('_bundle', function(param) {
             _print('.. ' + bundleFile + ' > ' + targetFile);
         });
 });
+
+// _organize ===================================================================
 
 desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
 task('_organize', function() {
@@ -892,17 +951,19 @@ task('_organize', function() {
     _print(DONE_MARKER);
 });
 
+// _versionize =================================================================
+
 desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
 task('_versionize', function() {
     _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
 
-    function versionize(file) {
-        var new_content = jake.cat(file).trim()
-                                        .replace(/@VERSION/g, VERSION)
-                                        .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
-        jake.rmRf(file);
-        jake.echo(new_content + '\n', file);
-        _print('v -> ' + file);
+    function versionize(src) {
+        var new_content = jake.cat(src).trim()
+                                       .replace(/@VERSION/g, VERSION)
+                                       .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
+        jake.rmRf(src);
+        jake.echo(new_content + '\n', src);
+        _print('v -> ' + src);
     }
 
     _print('.. Main files');
@@ -944,9 +1005,11 @@ task('_versionize', function() {
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create a minified and compressed copy of all the sources and bundles '+
+// _minify =====================================================================
+
+desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.DIST+' folder and append a .min suffix to them']));
-task('_minify_compress', { async: true }, function() {
+task('_minify', { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
 
     _print('Using ' + (NODE_GLOBAL ? 'global'
@@ -955,6 +1018,7 @@ task('_minify_compress', { async: true }, function() {
 
     var BUILD_TIME = _build_time();
 
+    // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
     function minify(src, cb) {
         var dst = _minified(src);
         jake.exec([
@@ -972,90 +1036,77 @@ task('_minify_compress', { async: true }, function() {
         _print('min -> ' + src + ' -> ' + dst);
     }
 
-    function compress(src, cb) {
-        var dst = _compressed(src);
-        jake.exec([
-          [ Binaries.GZIP,
-            '-9',
-            '-c',
-            src, '>', dst
-          ].join(' ')
-        ], EXEC_OPTS, cb);
-        _print('gzip -> ' + scr + ' -> ' + dst);
-    }
-
-    function copyrightize(file) {
+    function copyrightize(src) {
         var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
-                                           .concat(jake.cat(file).trim()  + '\n');
-        jake.rmRf(file);
-        jake.echo(new_content, file);
-        _print('(c) -> ' + file);
+                                           .concat(jake.cat(src).trim()  + '\n');
+        jake.rmRf(src);
+        jake.echo(new_content, src);
+        _print('(c) -> ' + src);
     }
 
+    // since there is only one thread, it will [hopefully] work ok
     var queue = {};
 
-    function minifyAndCompress(src) {
+    function minifyInQueue(src) {
         var task_id = _guid();
         queue[task_id] = {};
         minify(src, function(dst) {
-            compress(dst, function() {
-              _print(DONE_MARKER);
-              delete queue[task_id];
-              if (!Object.keys(queue).length) complete();
-            });
+            _print(DONE_MARKER);
+            delete queue[task_id];
+            if (!Object.keys(queue).length) complete();
         });
     }
 
-    function minifyAndCompressWithCopyright(src) {
+    function minifyInQueueWithCopyright(src) {
         var task_id = _guid();
         queue[task_id] = {};
         minify(src, function(dst) {
             copyrightize(dst);
-            compress(dst, function() {
-              _print(DONE_MARKER);
-              delete queue[task_id];
-              if (!Object.keys(queue).length) complete();
-            });
+            _print(DONE_MARKER);
+            delete queue[task_id];
+            if (!Object.keys(queue).length) complete();
         });
     }
 
     _print('.. Vendor Files');
 
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        minifyAndCompress(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
+        minifyInQueue(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
 
     _print('.. Main files');
 
-    minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-    minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
+    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
 });
+
+// _build-file =================================================================
 
 desc(_dfit(['Internal. Create a BUILD file informing about the time and commit of a build.']));
 task('_build-file', { async: true }, function() {
@@ -1101,7 +1152,7 @@ task('_build-file', { async: true }, function() {
     _getCommintHash.run();
 });
 
-// UTILS
+// UTILS =======================================================================
 
 function _in_dir(dir, files) {
     var res = [];
@@ -1112,6 +1163,13 @@ function _in_dir(dir, files) {
 }
 
 function _loc(path) { return './' + path; }
+
+function _minified(path) {
+  var len = path.length;
+  if (path.substr(len - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
+                                                      'Can\'t determine minified path.');
+  return path.substr(len - 3) + '.min.js';
+};
 
 function _dfit(lines) {
     return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX);
