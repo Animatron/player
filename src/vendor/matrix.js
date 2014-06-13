@@ -1,4 +1,6 @@
-/* ===========================================
+/*
+ * Storing Transform Matrix
+ * ===========================================
  * Last updated September 2011 by Simon Sarris
  * www.simonsarris.com
  * sarris@acm.org

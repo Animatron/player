@@ -638,10 +638,13 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
     var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
-        var gzip_it = (stat.name.indexOf('.min') >= 0) &&
+        var gzip_it = (stat.name.indexOf('.min') > 0) &&
                       (stat.name !== BUILD_FILE_NAME);
         files.push([ root + '/' + stat.name, // source
-                     trg_dir + '/' + stat.name, // destination
+                     trg_dir +
+                     root.substring(root.indexOf(Dirs.DIST) +
+                                    Dirs.DIST.length) + '/'
+                     + stat.name, // destination
                      gzip_it, // is this file should be gzipped or not
                      // destination headers, all files except BUILD are javascript files
                      gzip_it ? gzippedJsHeaders
@@ -677,39 +680,42 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
 
             var files_count = files.length;
 
-            var on_complete = function(src, dst) {
+            var on_complete = function(src, dst, gzipped) {
               return function(err,res) {
+                if (gzipped) jake.rmRf(gzipped);
                 if (err) { _print(FAILED_MARKER); throw err; }
                 _print(src + ' -> S3 as ' + dst);
-                files_conut--;
+                files_count--;
                 if (!files_count) { _print(DONE_MARKER); complete(); }
               }
             }
 
             // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
             function compress(src, cb) {
-                var gzip_cmd = jake.createExec([
+                var dst = src + '.gz';
+                jake.exec([
                   [ Binaries.GZIP,
                     '-9',
                     '-c',
-                    '--stdout',
-                    src,
-                  ].join(' ') ], EXEC_OPTS);
-                gzip_cmd.addListener('stdout', cb);
+                    src, '>', dst
+                  ].join(' ') ], EXEC_OPTS, function() {
+                     cb(dst);
+                  });
                 _print('gzip <- ' + src);
             }
 
             files.forEach(function(file) {
-                var src = file[0], dst = file[1],
+                var src = file[0],
+                    dst = file[1],
                     gzip_it = file[2],
                     headers = file[3];
                 if (gzip_it) {
-                    compress(_loc(src), function(content) {
-                      s3.putStream(dst, content, 'public-read',
-                        headers, on_complete(src, dst));
+                    compress(src, function(gzipped) {
+                      s3.putFile(dst, gzipped, 'public-read',
+                        headers, on_complete(src, dst, gzipped));
                     });
                 } else {
-                    s3.putFile(dst, _loc(src), 'public-read',
+                    s3.putFile(dst, src, 'public-read',
                       headers, on_complete(src, dst));
                 }
             });
