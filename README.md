@@ -89,9 +89,9 @@ When you build player with jake, it also creates several bundles, they are:
 
 #### Development
 
-To build locally, you'll need to have both [`jake`](https://github.com/mde/jake) and [`uglify-js` >= 2](https://github.com/mishoo/UglifyJS2) installed.
+To build locally, you'll only need to have [`jake`](https://github.com/mde/jake) intalled. Optionally, if you want to get minified sources, please install [`uglify-js` >= 2](https://github.com/mishoo/UglifyJS2) in addition.
 
-Warning: Building system currently uses `cat` and `mv` commands from UNIX shell, so it will need some UNIX-friendly environment to build correctly. However, node.js for MS Windows currently provides an integrated console that supports stuff like that, so probably it will work ok even without installing MinGW or Cygwin.
+Warning: Build system currently uses `cat`, `mv` and some other commands from UNIX shell, so it will need some UNIX-friendly environment to build correctly. However, node.js for MS Windows currently provides an integrated console that supports stuff like that, so probably it will work ok even without installing MinGW or Cygwin.
 
 Then, you'll just need to run:
 
@@ -99,7 +99,13 @@ Then, you'll just need to run:
     # or, the same
     jake dist
 
-And you have all the variants of the files in `dist` folder.
+And you have all the required files in proper structure inside the `./dist` sub-directory. (Actually, it just prepares bundles and copies only the sources used in distribution).
+
+You also may want to run `dist-and-min` to tell `jake` to additionally generate and put minified files (what is UglifyJS for) in the very same `dist` directory, among with prepared source maps:
+
+    jake dist-min
+
+The latter task generates all the files which required for distribution. Actually, it should read "dist __and__ min", but `dist-n-min` looks harder to type.
 
 If you want to generate [docco](http://jashkenas.github.com/docco/) (install it first) docs, run:
 

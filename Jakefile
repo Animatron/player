@@ -50,6 +50,7 @@ var COPYRIGHT_COMMENT =
   ' * ',
   ' * ' + VERSION + ', built at @BUILD_TIME',
   ' */'].join('\n') + '\n';
+var MINIFY_KEEP_COPYRIGHTS = '/WARRANTY|Free to use/';
 
 var NODE_GLOBAL = false,
     LOCAL_NODE_DIR = './node_modules';
@@ -203,7 +204,9 @@ var DESC_WIDTH = 80,
 var JSON_INDENT = 2;
 
 var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
-                  printStderr: !jake.program.opts.quiet };
+                  printStderr: !jake.program.opts.quiet },
+    SILENT_EXEC_OPTS = { printStdout: false,
+                         printStderr: !jake.program.opts.quiet };
 
 var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
@@ -227,6 +230,8 @@ desc(_dfit_nl(['Get full distribution in the /dist directory.',
                'Produces: /dist directory.']));
 task('default', ['dist'], function() {});
 
+// clean =======================================================================
+
 desc(_dfit_nl(['Clean previous build artifacts.']));
 task('clean', function() {
     _print('Clean previous build artifacts..');
@@ -236,12 +241,21 @@ task('clean', function() {
 
 // build =======================================================================
 
-desc(_dfit_nl(['Build process, with no cleaning.',
+desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist>.',
+               'Depends on: <_prepare>, <_organize>, <_build-file>.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
+task('build', ['_prepare', '_organize', '_bundles', '_build-file'], function() {});
+
+// build-min ===================================================================
+
+desc(_dfit_nl(['Build process (with no prior cleaning).',
+               'Called by <dist-min>.',
                'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify', '_build-file'], function() {});
+task('build-min', ['_prepare', '_organize', '_bundles', '_versionize', '_minify', '_build-file'], function() {});
 
 // dist ========================================================================
 
@@ -253,6 +267,17 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist', ['clean', 'build'], function() {});
+
+// dist-min ====================================================================
+
+desc(_dfit_nl(['Clean previous build and create distribution files, '+
+                  'so `dist` directory will contain the full '+
+                  'distribution for this version, including '+
+                  'all required files — sources and bundles.',
+               'Coherently calls <clean> and <build>.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
+task('dist-min', ['clean', 'build-min'], function() {});
 
 // test ========================================================================
 
@@ -587,7 +612,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
+task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -600,17 +625,17 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _b
 
     _print('Collecting file paths to upload');
 
-    var walk = require('walk');
-
-    var files   = [];
-
-    var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
-
     var jsonHeaders = { 'content-type': 'text/json' }, // for VERSIONS file, used below
         jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
         gzippedJsHeaders = { 'content-type': 'text/javascript',
                              'content-encoding': 'gzip' },
         plainTextHeaders = { 'content-type': 'text/plain' };
+
+    var walk    = require('walk');
+
+    var files   = [];
+
+    var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
         var gzip_it = (stat.name.indexOf('.min') >= 0) &&
@@ -621,7 +646,7 @@ task('push-version', [/*'test',*/'dist'], { async: true }, function(_version, _b
                      // destination headers, all files except BUILD are javascript files
                      gzip_it ? gzippedJsHeaders
                              : ((stat.name !== BUILD_FILE_NAME) ? jsHeaders
-                                                                : plainTextHeaders);
+                                                                : plainTextHeaders)
                    ]);
         next();
     });
@@ -1024,11 +1049,11 @@ task('_minify', { async: true }, function() {
         jake.exec([
           [ Binaries.UGLIFYJS,
             '--ascii',
-            '--compress',
+            '--compress warnings=false',
             '--screw-ie8', // since April 2014
+            '--source-map-url', _src_map_url(dst),
             '--source-map', _src_map(dst),
-            // '--source-map-root', src,
-            // '--comments', ...,
+            '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
             '--output', dst,
             src
           ].join(' ')
@@ -1168,8 +1193,18 @@ function _minified(path) {
   var len = path.length;
   if (path.substr(len - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
                                                       'Can\'t determine minified path.');
-  return path.substr(len - 3) + '.min.js';
-};
+  return path.substr(0, len - 3) + '.min.js';
+}
+
+function _src_map(path) {
+  if (path.substr(path.length - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
+                                                              'Can\'t determine minified path.');
+  return path + '.map';
+}
+
+function _src_map_url(path) {
+  return path.replace(Dirs.DIST + '/', '') + '.map';
+}
 
 function _dfit(lines) {
     return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX);

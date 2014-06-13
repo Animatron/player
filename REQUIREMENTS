@@ -13,20 +13,25 @@ Python?
   markdown? ?
 
 jake
-jake _build
+  // none
+jake build
+jake dist
+  // none
+jake dist-min
+jake build-min
   npm install uglify-js
 jake test
   npm install uglify-js
   npm install phantomjs
   npm install jasmine-node
-jake _push-go
-jake _push-go[rls]
+jake push-go
+jake push-go[rls]
   .s3 file
   npm install aws2js
-jake _push-version
-jake _push-version[latest]
-jake _push-version[,rls]
-jake _push-version[latest,rls]
+jake push-version
+jake push-version[latest]
+jake push-version[,rls]
+jake push-version[latest,rls]
   .s3 file
   npm install aws2js
   npm install walk

@@ -1,9 +1,12 @@
-// Last updated September 2011 by Simon Sarris
-// www.simonsarris.com
-// sarris@acm.org
-//
-// Free to use and distribute at will
-// So long as you are nice to people, etc
+/* ===========================================
+ * Last updated September 2011 by Simon Sarris
+ * www.simonsarris.com
+ * sarris@acm.org
+ *
+ * Free to use and distribute at will
+ * So long as you are nice to people, etc
+ *
+ * (slightly modified by shaman.sir@gmail.com) */
 
 // Simple class for keeping track of the current transformation matrix
 
