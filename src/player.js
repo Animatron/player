@@ -133,46 +133,46 @@ function __collect_to(str, start, ch) {
 // TODO: move to Color class
 
 function get_rgb(hex) {
-  if (!hex || !hex.length) return [0, 0, 0];
-  var _hex = hex.substring(1);
-  if (_hex.length === 3) {
-    _hex = _hex[0] + _hex[0] +
-           _hex[1] + _hex[1] +
-           _hex[2] + _hex[2];
-  }
-  var bigint = parseInt(_hex, 16);
-  return [ (bigint >> 16) & 255,
-           (bigint >> 8) & 255,
-           bigint & 255 ];
+    if (!hex || !hex.length) return [0, 0, 0];
+    var _hex = hex.substring(1);
+    if (_hex.length === 3) {
+        _hex = _hex[0] + _hex[0] +
+               _hex[1] + _hex[1] +
+               _hex[2] + _hex[2];
+    }
+    var bigint = parseInt(_hex, 16);
+    return [ (bigint >> 16) & 255,
+             (bigint >> 8) & 255,
+             bigint & 255 ];
 }
 
 function to_rgba(r, g, b, a) {
-  return "rgba(" + Math.floor(r) + "," +
-                   Math.floor(g) + "," +
-                   Math.floor(b) + "," +
-                   ((typeof a !== 'undefined')
-                          ? a : 1) + ")";
+    return "rgba(" + Math.floor(r) + "," +
+                     Math.floor(g) + "," +
+                     Math.floor(b) + "," +
+                     ((typeof a !== 'undefined')
+                            ? a : 1) + ")";
 }
 
 function fmt_time(time) {
-  if (!__finite(time)) return '∞';
-  var _time = Math.abs(time),
-        _h = Math.floor(_time / 3600),
-        _m = Math.floor((_time - (_h * 3600)) / 60),
-        _s = Math.floor(_time - (_h * 3600) - (_m * 60));
+    if (!__finite(time)) return '∞';
+    var _time = Math.abs(time),
+           _h = Math.floor(_time / 3600),
+           _m = Math.floor((_time - (_h * 3600)) / 60),
+           _s = Math.floor(_time - (_h * 3600) - (_m * 60));
 
-  return ((time < 0) ? '-' : '') +
-          ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
-          ((_m < 10) ? ('0' + _m) : _m) + ':' +
-          ((_s < 10) ? ('0' + _s) : _s)
+    return ((time < 0) ? '-' : '') +
+           ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
+           ((_m < 10) ? ('0' + _m) : _m) + ':' +
+           ((_s < 10) ? ('0' + _s) : _s);
 }
 
 function ell_text(text, max_len) {
-  if (!text) return '';
-  var _len = text.length;
-  if (_len <= max_len) return text;
-  var _semilen = Math.floor(_len / 2) - 2;
-  return text.slice(0, _semilen) + '...'
+    if (!text) return '';
+    var _len = text.length;
+    if (_len <= max_len) return text;
+    var _semilen = Math.floor(_len / 2) - 2;
+    return text.slice(0, _semilen) + '...'
          + text.slice(_len - _semilen);
 }
 
@@ -202,9 +202,9 @@ function __roundTo(n, precision) {
 // #### other
 
 function __paramsToObj(pstr) {
-  var o = {}, ps = pstr.split('&'), i = ps.length, pair;
-  while (i--) { pair = ps[i].split('='); o[pair[0]] = pair[1]; }
-  return o;
+    var o = {}, ps = pstr.split('&'), i = ps.length, pair;
+    while (i--) { pair = ps[i].split('='); o[pair[0]] = pair[1]; }
+    return o;
 }
 
 // for one-level objects, so no hasOwnProperty check
@@ -225,13 +225,13 @@ function _mrg_obj(src, backup, trg) {
 }
 
 function _strf(str, subst) {
-  var args = subst;
-  return str.replace(/{(\d+)}/g, function(match, number) {
-    return __defined(args[number])
-      ? args[number]
-      : match
-    ;
-  });
+    var args = subst;
+    return str.replace(/{(\d+)}/g, function(match, number) {
+      return __defined(args[number])
+        ? args[number]
+        : match
+      ;
+    });
 };
 
 /* TODO: Create custom `undefined`, consider changing Infinity to Number.POSITIVE_INIFINITY */
@@ -245,13 +245,13 @@ var TIME_PRECISION = 9; // the number of digits after the floating point
                         // used to get rid of floating point-conversion issues
 
 function __adjust(t) {
-  return __roundTo(t, TIME_PRECISION);
+    return __roundTo(t, TIME_PRECISION);
 }
 
 function __t_cmp(t0, t1) {
-  if (__adjust(t0) > __adjust(t1)) return 1;
-  if (__adjust(t0) < __adjust(t1)) return -1;
-  return 0;
+    if (__adjust(t0) > __adjust(t1)) return 1;
+    if (__adjust(t0) < __adjust(t1)) return -1;
+    return 0;
 }
 
 // Constants
