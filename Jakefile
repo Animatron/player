@@ -1057,10 +1057,10 @@ task('_minify', { async: true }, function() {
             '--ascii',
             '--compress warnings=false',
             '--screw-ie8', // since April 2014
-            '--source-map-url', _src_map_url(dst),
-            '--source-map', _src_map(dst),
-            '--source-map-root', './',
-            '--prefix', 2,
+            '--source-map-url', _src_map_url(src),
+            '--source-map', _src_map(src),
+            '--source-map-root', _src_map_root(src),
+            '--prefix', _src_map_prefix(src),
             '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
             '--output', dst,
             src
@@ -1198,20 +1198,23 @@ function _in_dir(dir, files) {
 function _loc(path) { return './' + path; }
 
 function _minified(path) {
-  var len = path.length;
-  if (path.substr(len - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
+    var len = path.length;
+    if (path.substr(len - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
                                                       'Can\'t determine minified path.');
-  return path.substr(0, len - 3) + '.min.js';
+    return path.substr(0, len - 3) + '.min.js';
 }
 
-function _src_map(path) {
-  if (path.substr(path.length - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
-                                                              'Can\'t determine minified path.');
-  return path.replace('\.min', '') + '.map';
-}
+function _src_map(path) { return path + '.map'; }
 
 function _src_map_url(path) {
-  return path.replace('\.min', '').replace(Dirs.DIST + '/', '') + '.map';
+    var path = path.replace(Dirs.DIST + '/', '');
+    return '.' + path.substr(path.lastIndexOf('/')) + '.map';
+}
+
+function _src_map_root(path) { return './'; }
+
+function _src_map_prefix(path) {
+    return path.split('/').length - 1;
 }
 
 function _dfit(lines) {
