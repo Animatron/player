@@ -144,7 +144,7 @@ var start = (function () {
             } else if (!inIFrame) {
                 cvs.className += ' no-rect';
             }
-            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js',
+            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
                       anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }
