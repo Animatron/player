@@ -291,6 +291,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
     $DE.moveElementTo = function(elm, pos) {
+        //console.log(elm, pos);
         elm.style.left = pos[0] + 'px';
         elm.style.top  = pos[1] + 'px';
     }

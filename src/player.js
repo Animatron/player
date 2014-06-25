@@ -902,7 +902,7 @@ Player.prototype._prepare = function(cvs) {
     if (__str(cvs)) {
         canvas_id = cvs;
         canvas = $engine.getElementById(canvas_id);
-        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [canvas_id]));
     } else {
         if (!cvs.id) cvs.id = ('anm-player-' + Player.__instances);
         canvas_id = cvs.id;
@@ -1164,20 +1164,7 @@ Player.attachedTo = function(canvas, player) {
 }
 Player.__getPosAndRedraw = function(player) {
     return function(evt) {
-        /*var canvas = player.canvas;
-        var pos = find_pos(canvas),
-            rect = {
-                'width': canvas.clientWidth,
-                'height': canvas.clientHeight,
-                'x': pos[0],
-                'y': pos[1]
-            };
-        if (player._rectChanged(rect)) player.changeRect(rect);*/
-        if (player.controls) {
-            player.controls.update(player.canvas);
-            //player.controls.handleAreaChange();
-            //player._renderControls();
-        }
+        if (player.controls) player.controls.update(player.canvas);
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
