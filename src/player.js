@@ -3064,52 +3064,52 @@ Element.prototype._stateStr = function() {
            "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
-  var lband = this.xdata.lband, // local band of the _element_
-      elm_duration = lband[1] - lband[0], // duration of the _element_'s local band
-      easing = conf.easing,
-      time = conf.time, // time (or band) of the _modifier_, if set
-      relative = conf.relative;
-  var _tpair = null;
-  if (time == null) {
-      _tpair = [ relative
+  var elm_band = this.lband, // local band of the _element_
+      elm_duration = elm_band[1] - elm_band[0], // duration of the _element_'s local band
+      mod_easing = conf.easing,
+      mod_time = conf.time, // time (or band) of the _modifier_, if set
+      mod_relative = conf.relative;
+  var _tpair = null; // tpair
+  if (mod_time == null) {
+      _tpair = [ mod_relative
                      ? __adjust(ltime) / __adjust(elm_duration)
                      : __adjust(ltime),
                  __adjust(elm_duration) ];
-  } else if (__arr(time)) { // modifier is band-restricted
-      var band = time;
-      if (!relative) {
-          var mod_duration = band[1] - band[0];
-          if (__t_cmp(ltime, band[0]) < 0) return false;
-          if (__t_cmp(ltime, band[1]) > 0) return false;
-          _tpair = [ __adjust(ltime - band[0]),
+  } else if (__arr(mod_time)) { // modifier is band-restricted
+      var mod_band = mod_time;
+      if (!mod_relative) {
+          var mod_duration = mod_band[1] - mod_band[0];
+          if (__t_cmp(ltime, mod_band[0]) < 0) return false;
+          if (__t_cmp(ltime, mod_band[1]) > 0) return false;
+          _tpair = [ __adjust(ltime - mod_band[0]),
                      __adjust(mod_duration) ];
       } else {
-          var abs_band = [ band[0] * elm_duration,
-                           band[1] * elm_duration ];
-          var mod_duration = abs_band[1] - abs_band[0];
-          if (__t_cmp(ltime, abs_band[0]) < 0) return false;
-          if (__t_cmp(ltime, abs_band[1]) > 0) return false;
-          _tpair = [ __adjust(ltime - abs_band[0]) / __adjust(mod_duration),
+          mod_band = [ mod_band[0] * elm_duration,
+                       mod_band[1] * elm_duration ];
+          var mod_duration = mod_band[1] - mod_band[0];
+          if (__t_cmp(ltime, mod_band[0]) < 0) return false;
+          if (__t_cmp(ltime, mod_band[1]) > 0) return false;
+          _tpair = [ __adjust(ltime - mod_band[0]) / __adjust(mod_duration),
                      __adjust(mod_duration) ];
       }
-  } else if (__num(time)) {
+  } else if (__num(mod_time)) {
       if (modifier.__wasCalled && modifier.__wasCalled[this.id]) return false;
-      var tpos = relative ? (time * elm_duration) : time;
+      var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
       if (__t_cmp(ltime, tpos) >= 0) {
           if (!modifier.__wasCalled) modifier.__wasCalled = {};
           if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       } else return false;
-      _tpair = [ relative
+      _tpair = [ mod_relative
                      ? __adjust(ltime) / __adjust(elm_duration)
                      : __adjust(ltime),
                  __adjust(elm_duration) ];
-  } else _tpair = [ relative
+  } else _tpair = [ mod_relative
                         ? __adjust(ltime) / __adjust(elm_duration)
                         : __adjust(ltime),
                     __adjust(elm_duration) ];
-  return !easing ? _tpair : [ easing(_tpair[0], _tpair[1]), _tpair[1] ];
+  return !mod_easing ? _tpair : [ mod_easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, dt) {
     return (function(elm) {
