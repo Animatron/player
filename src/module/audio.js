@@ -73,7 +73,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   var prev_transferVisuals = E.transferVisuals;
   E.transferVisuals = function(src, trg) {
     prev_transferVisuals(src, trg);
-    trg.audio = src.audio;
+    trg.audio = src.audio ? src.audio.clone() : null;
+    // FIXME: transfer other flags
   }
 
   var _audio_customRender = function(gtime, ltime, ctx) {

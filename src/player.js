@@ -2278,7 +2278,7 @@ Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
     this.mode = C.R_ONCE; // playing mode
     this.nrep = Infinity; // number of repetions for the mode
-    this.lband = [0, Element.DEFAULT_LEN]; // local band
+    this.lband = [0, Element.DEFAULT_LEN]; // local band // FIXME: rename to "band"!
     this.gband = [0, Element.DEFAULT_LEN]; // global band
 
     this.keys = {}; // aliases for time jumps
@@ -2979,6 +2979,12 @@ Element.prototype.clone = function() {
     clone._modifiers = [].concat(this._modifiers);
     clone._painters = [].concat(this._painters);
     clone.level = this.level;
+    //clone.visible = this.visible;
+    //clone.disabled = this.disabled;
+    // .scene pointer, .parent pointer & .registered flag
+    // are not transferred because the clone is another
+    // element that should be separately added to some scene
+    // in its own time to start working properly
     Element.transferState(this, clone);
     Element.transferVisuals(this, clone);
     Element.transferTime(this, clone);
@@ -2986,14 +2992,14 @@ Element.prototype.clone = function() {
     clone.__u_data = this.__u_data;
     return clone;
 }
-Element.prototype.deepClone = function() {
+Element.prototype.shallow = function() {
     var clone = this.clone();
     clone.children = [];
     var src_children = this.children;
     var trg_children = clone.children;
     for (var sci = 0, scl = src_children.length; sci < scl; sci++) {
         var csrc = src_children[sci],
-            cclone = csrc.deepClone();
+            cclone = csrc.shallow();
         cclone.parent = clone;
         trg_children.push(cclone);
     }
@@ -3037,17 +3043,6 @@ Element.prototype.deepClone = function() {
         }
     }
     clone.__u_data = obj_clone(this.__u_data);
-    var src_x = this.xdata,
-        trg_x = clone.xdata;
-    if (src_x.path) trg_x.path = src_x.path.clone();
-    if (src_x.text) trg_x.text = src_x.text.clone();
-    if (src_x.sheet) trg_x.sheet = src_x.sheet.clone();
-    trg_x.pos = [].concat(src_x.pos);
-    trg_x.pvt = [].concat(src_x.pvt);
-    trg_x.reg = [].concat(src_x.reg);
-    trg_x.lband = [].concat(src_x.lband);
-    trg_x.gband = [].concat(src_x.gband);
-    trg_x.keys = obj_clone(src_x.keys);
     return clone;
 }
 Element.prototype._addChild = function(elm) {
@@ -3413,16 +3408,20 @@ Element.transferState = function(src, trg) {
     trg.alpha = src.alpha;
 }
 Element.transferVisuals = function(src, trg) {
-    trg.reg = src.reg; trg.pivot = src.pivot;
-    trg.fill = src.fill; trg.stroke = src.stroke;
-    trg.path = src.path; trg.text = src.text; trg.image = src.image;
+    trg.reg = [].concat(src.reg); trg.pivot = [].concat(src.pivot);
+    trg.fill = src.fill ? src.fill.clone() : null;
+    trg.stroke = src.stroke ? src.stroke.clone() : null;
+    trg.path = src.path ? src.path.clone() : null;
+    trg.text = src.text ? src.text.clone() : null;
+    trg.image = src.image ? src.image.clone() : null;
     trg.composite_po = src.composite_op;
-    trg.mpath = src.mpath;
+    trg.mpath = src.mpath ? src.mpath.clone() : null;
 }
 Element.transferTime = function(src, trg) {
     trg.mode = src.mode; trg.nrep = src.nrep;
-    trg.lband = src.lband; trg.gband = src.gband;
-    trg.keys = src.keys;
+    trg.lband = [].concat(src.lband);
+    trg.gband = [].concat(src.gband);
+    trg.keys = [].concat(src.keys);
     trg.tf = src.tf;
 }
 // TODO: rename to matrixOf ?

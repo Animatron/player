@@ -27,7 +27,7 @@ __anm_engine.define('anm/modules/video', ['anm', 'anm/Player'], function(anm/*, 
   var prev_transferVisuals = E.transferVisuals;
   E.transferVisuals = function(src, trg) {
     prev_transferVisuals(src, trg);
-    trg.video = src.video;
+    trg.video = src.video ? src.video.clone() : null;
   }
 
   var prev_dimen = E.prototype.dimen;
