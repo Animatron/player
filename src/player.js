@@ -919,6 +919,8 @@ Player.prototype._prepare = function(cvs) {
 
     this.__canvasPrepared = true;
 }
+// TODO: move state inside
+// Player.prototype._initState = function() {}
 Player.prototype._addOpts = function(opts) {
     // TODO: use addOpts to add any additional options to current ones
     // will move all options directly in the player object
@@ -2096,6 +2098,14 @@ Scene.prototype.invokeLater = function(f) {
 // Element
 // -----------------------------------------------------------------------------
 
+// type
+C.ET_EMPTY = 'empty';
+C.ET_PATH = 'path';
+C.ET_TEXT = 'text';
+C.ET_SHEET = 'image';
+C.ET_AUDIO = 'audio'; // FIXME: move to audio module
+C.ET_VIDEO = 'video'; // TODO
+
 // repeat mode
 C.R_ONCE = 0;
 C.R_STAY = 1;
@@ -2119,16 +2129,16 @@ C.C_XOR = 12;
 C.AC_NAMES = [];
 C.AC_NAMES[C.C_SRC_OVER] = 'source-over';
 C.AC_NAMES[C.C_SRC_ATOP] = 'source-atop';
-C.AC_NAMES[C.C_SRC_IN] = 'source-in';
-C.AC_NAMES[C.C_SRC_OUT] = 'source-out';
+C.AC_NAMES[C.C_SRC_IN]   = 'source-in';
+C.AC_NAMES[C.C_SRC_OUT]  = 'source-out';
 C.AC_NAMES[C.C_DST_OVER] = 'destination-over';
 C.AC_NAMES[C.C_DST_ATOP] = 'destination-atop';
-C.AC_NAMES[C.C_DST_IN] = 'destination-in';
-C.AC_NAMES[C.C_DST_OUT] = 'destination-out';
-C.AC_NAMES[C.C_LIGHTER] = 'lighter';
-C.AC_NAMES[C.C_DARKER] = 'darker';
-C.AC_NAMES[C.C_COPY] = 'copy';
-C.AC_NAMES[C.C_XOR] = 'xor';
+C.AC_NAMES[C.C_DST_IN]   = 'destination-in';
+C.AC_NAMES[C.C_DST_OUT]  = 'destination-out';
+C.AC_NAMES[C.C_LIGHTER]  = 'lighter';
+C.AC_NAMES[C.C_DARKER]   = 'darker';
+C.AC_NAMES[C.C_COPY]     = 'copy';
+C.AC_NAMES[C.C_XOR]      = 'xor';
 
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
@@ -2171,10 +2181,7 @@ Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
 function Element(draw, onframe) {
     this.id = guid();
     this.name = '';
-    this.bstate = Element.createBaseState();
-    this.state = Element.createState(this);
-    this.astate = null; // actual state
-    this.xdata = Element.createXData(this);
+    this.type = C.ET_EMPTY;
     this.children = [];
     this.parent = null;
     this.level = 0;
@@ -2184,7 +2191,8 @@ function Element(draw, onframe) {
     this.registered = false;
     this.disabled = false;
     this.rendering = false;
-    this.__data = null;
+    this._initState();
+    this._initXData();
     this._modifiers = [];
     this._painters = [];
     if (onframe) this.__modify({ type: Element.USER_MOD }, onframe);
@@ -2219,6 +2227,42 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          // player events
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+Element.prototype._initState = function() {
+    this.x = 0; this.y = 0;   // dynamic position
+    this.angle = 0;           // rotation angle
+    this.sx = 1; this.sy = 1; // scale by x / by y
+    this.hx = 1; this.hy = 1; // shear by x / by y
+    this.alpha = 1;           // opacity
+    this.p = null; this.t = null; this.key = null;
+                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
+                               // if both are null — stays as defined
+    // this._st_applied = true // is state applied
+    this.matrix = $engine.createTransform();
+    this.evts = {};
+    this._evt_st = 0;
+}
+Element.prototype._initXData = function() {
+    this.reg = Element.DEFAULT_REG;   // registration point (static values)
+    this.pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
+
+    this.fill = null;   // Fill instance
+    this.stroke = null; // Stroke instance
+
+    this.path = null;  // Path instanse, if it is a shape
+    this.text = null;  // Text data, if it is a text
+    this.image = null; // Sheet instance, if it is an image or a sprite sheet
+
+    this.mode = C.R_ONCE; // playing mode
+    this.nrep = Infinity; // number of repetions for the mode
+    this.lband = [0, Element.DEFAULT_LEN]; // local band
+    this.gband = [0, Element.DEFAULT_LEN]; // global band
+
+    this.keys = {}; // aliases for time jumps
+    this.tf = null; // time jumping function
+    this.composite_op = null; // composition operation
+
+    this.mpath = null; // move path
+}
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.state._matrix.reset();
