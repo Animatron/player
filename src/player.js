@@ -2103,8 +2103,6 @@ C.ET_EMPTY = 'empty';
 C.ET_PATH = 'path';
 C.ET_TEXT = 'text';
 C.ET_SHEET = 'image';
-C.ET_AUDIO = 'audio'; // FIXME: move to audio module
-C.ET_VIDEO = 'video'; // TODO
 
 // repeat mode
 C.R_ONCE = 0;
@@ -2203,6 +2201,7 @@ function Element(draw, onframe) {
     this.__painting = null; // current painters class, if painting
     this.__detachQueue = [];
     this.__frameProcessors = [];
+    this.__u_data = null; // user data
     this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
     // TODO: call '.reset() here?'
     var _me = this,
@@ -2227,9 +2226,12 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          // player events
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+Element.prototype.is = function(type) {
+    return this.type == type;
+}
 Element.prototype.initState = function() {
-    // current state
 
+    // current state
     this.x = 0; this.y = 0;   // dynamic position
     this.sx = 1; this.sy = 1; // scale by x / by y
     this.hx = 1; this.hy = 1; // shear by x / by y
@@ -2925,17 +2927,15 @@ Element.prototype.global = function(pt) {
 Element.prototype.dimen = function() {
     // TODO: allow to set _dimen?
     if (this._dimen) return this._dimen;
-    var x = this.xdata;
-    var subj = x.path || x.text || x.sheet;
+    var subj = this.path || this.text || this.sheet;
     if (subj) return subj.dimen();
 }
-Element.prototype.lbounds = function() {
-    var x = this.xdata;
-    var subj = x.path || x.text || x.sheet;
+Element.prototype.bounds = function() {
+    var subj = this.path || this.text || this.sheet;
     if (subj) return subj.bounds();
 }
-Element.prototype.lrect = function() {
-    var b = this.lbounds();
+Element.prototype.rect = function() {
+    var b = this.bounds();
     if (!b) return null;
     // returns clockwise coordinates of the points
     // for easier drawing
@@ -2953,8 +2953,8 @@ Element.prototype.clearMask = function() {
     this.__mask = null;
 }
 Element.prototype.data = function(val) {
-  if (typeof val !== 'undefined') return (this.__data = val);
-  return this.__data;
+  if (typeof val !== 'undefined') return (this.__u_data = val);
+  return this.__u_data;
 }
 Element.prototype.toString = function() {
     var buf = [ '[ Element ' ];
@@ -2979,9 +2979,11 @@ Element.prototype.clone = function() {
     clone._modifiers = [].concat(this._modifiers);
     clone._painters = [].concat(this._painters);
     clone.level = this.level;
-    clone.xdata = obj_clone(this.xdata);
-    clone.xdata.$ = clone;
-    clone.__data = this.__data;
+    Element.transferState(this, clone);
+    Element.transferVisuals(this, clone);
+    Element.transferTime(this, clone);
+    // FIXME: What else?
+    clone.__u_data = this.__u_data;
     return clone;
 }
 Element.prototype.deepClone = function() {
@@ -3034,7 +3036,7 @@ Element.prototype.deepClone = function() {
             }
         }
     }
-    clone.__data = obj_clone(this.__data);
+    clone.__u_data = obj_clone(this.__u_data);
     var src_x = this.xdata,
         trg_x = clone.xdata;
     if (src_x.path) trg_x.path = src_x.path.clone();
@@ -3396,19 +3398,6 @@ Element.prototype._loadRemoteResources = function(scene, player) {
     if (!this.xdata.sheet) return;
     this.xdata.sheet.load();
 }
-
-// base (initial) state of the element
-Element.createBaseState = function() {
-    return { 'x': 0, 'y': 0,   // dynamic position
-             'angle': 0,       // rotation angle
-             'sx': 1, 'sy': 1, // scale by x / by y
-             'hx': 0, 'hy': 0, // shear by x / by y
-             'alpha': 1,       // opacity
-             'p': null, 't': null, 'key': null,
-                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
-                               // if both are null — stays as defined
-             '_applied': true }; // always applied
-}
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
     trg.sx = src1.sx * src2.sx; trg.sy = src1.sy * src2.sy;
@@ -3416,6 +3405,27 @@ Element.mergeStates = function(src1, src2, trg) {
     trg.angle = src1.angle + src2.angle;
     trg.alpha = src1.alpha + src2.alpha;
 }
+Element.transferState = function(src, trg) {
+    trg.x = src.x; trg.y = src.y;
+    trg.sx = src.sx; trg.sy = src.sy;
+    trg.hx = src.hx; trg.hy = src.hy;
+    trg.angle = src.angle;
+    trg.alpha = src.alpha;
+}
+Element.transferVisuals = function(src, trg) {
+    trg.reg = src.reg; trg.pivot = src.pivot;
+    trg.fill = src.fill; trg.stroke = src.stroke;
+    trg.path = src.path; trg.text = src.text; trg.image = src.image;
+    trg.composite_po = src.composite_op;
+    trg.mpath = src.mpath;
+}
+Element.transferTime = function(src, trg) {
+    trg.mode = src.mode; trg.nrep = src.nrep;
+    trg.lband = src.lband; trg.gband = src.gband;
+    trg.keys = src.keys;
+    trg.tf = src.tf;
+}
+// TODO: rename to matrixOf ?
 Element.getMatrixOf = function(elm, m) {
     var _t = (m ? (m.reset(), m)
                 : new Transform());
@@ -3423,7 +3433,7 @@ Element.getMatrixOf = function(elm, m) {
     _t.rotate(elm.angle);
     _t.shear(elm.hx, elm.hy);
     _t.scale(elm.sx, elm.sy);
-    //_t.translate(-s.$.xdata.reg[0], -s.$.xdata.reg[1]);
+    //_t.translate(-elm.reg[0], -elm.reg[1]);
     return _t;
 }
 Element.getIMatrixOf = function(elm, m) {
