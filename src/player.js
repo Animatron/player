@@ -2188,25 +2188,22 @@ function Element(draw, onframe) {
     this.scene = null;
     this.visible = true; // user flag, set by user
     this.shown = false; // system flag, set by engine
-    this.registered = false;
+    this.registered = false; // registered in scene or not
     this.disabled = false;
-    this.rendering = false;
-    this.evts = {}; // events cache
-    this._evt_st = 0; // events state
-    this._initState();
-    this._initXData();
+    this.rendering = false; // in process of rendering or not
+    this.initState(); // initializes matrix, values for transformations
+    this.initVisuals(); // initializes visual representation storage and data
+    this.initTime(); // initialize time position and everything related to time jumps
+    this.initEvents(); // initialize events storage and mechanics
     this._modifiers = [];
     this._painters = [];
     if (onframe) this.__modify({ type: Element.USER_MOD }, onframe);
     if (draw) this.__paint({ type: Element.USER_PNT }, draw);
-    this.__lastJump = null;
-    this.__jumpLock = false;
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if painting
-    this.__evtCache = [];
     this.__detachQueue = [];
     this.__frameProcessors = [];
-    this._initHandlers(); // TODO: make automatic
+    this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
     // TODO: call '.reset() here?'
     var _me = this,
         default_on = this.on;
@@ -2230,9 +2227,58 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          // player events
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+Element.prototype.initState = function() {
+    this.x = 0; this.y = 0;   // dynamic position
+    this.sx = 1; this.sy = 1; // scale by x / by y
+    this.hx = 1; this.hy = 1; // shear by x / by y
+    this.angle = 0;           // rotation angle
+    this.alpha = 1;           // opacity
+    this.p = null; this.t = null; this.key = null;
+                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
+                               // if both are null — stays as defined
+    if (this.matrix) { this.matrix.reset() }
+    else { this.matrix = $engine.createTransform(); }
+    this._st_applied = false; // is state applied
+    this._st_appliedAt = null; // time when state was applied
+}
+Element.prototype.resetState = Element.prototype.initState;
+Element.prototype.initVisuals = function() {
+    this.reg = Element.DEFAULT_REG;   // registration point (static values)
+    this.pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
+
+    this.fill = null;   // Fill instance
+    this.stroke = null; // Stroke instance
+
+    this.path = null;  // Path instanse, if it is a shape
+    this.text = null;  // Text data, if it is a text
+    this.image = null; // Sheet instance, if it is an image or a sprite sheet
+
+    this.mpath = null; // move path
+}
+Element.prototype.resetVisuals = Element.prototype.initVisuals;
+Element.prototype.initTime = function() {
+    this.mode = C.R_ONCE; // playing mode
+    this.nrep = Infinity; // number of repetions for the mode
+    this.lband = [0, Element.DEFAULT_LEN]; // local band
+    this.gband = [0, Element.DEFAULT_LEN]; // global band
+
+    this.keys = {}; // aliases for time jumps
+    this.tf = null; // time jumping function
+    this.composite_op = null; // composition operation
+
+    this.__lastJump = null; // a time of last jump in time
+    this.__jumpLock = false; // set when jumping in time
+}
+Element.prototype.resetTime = Element.prototype.initTime;
+Element.prototype.initEvents = function() {
+    this.evts = {}; // events cache
+    this._evt_st = 0; // events state
+    this.__evtCache = [];
+}
+Element.prototype.resetEvents = Element.prototype.initEvents;
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
-    this.state._matrix.reset();
+    this.matrix.reset();
     return true;
 }
 // > Element.onframe % (ltime: Float, dt: Float) => Boolean
@@ -2247,17 +2293,10 @@ Element.prototype.drawTo = function(ctx, t, dt) {
 Element.prototype.draw = Element.prototype.drawTo;
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
-    var s = this.state,
-        bs = this.bstate,
-        as = Element._mergeStates(bs, s);
-    this.astate = as;
-    //this.astate.$ = this;
-    s._matrix = Element._getMatrixOf(as, s._matrix);
-    ctx.globalAlpha *= as.alpha;
-    s._matrix.apply(ctx);
-    as._matrix = s._matrix;
-    // FIXME: do not store matrix in a state here,
-    // but return it
+    this.matrix = Element.getMatrixOf(this, this.matrix);
+    ctx.globalAlpha *= this.alpha;
+    this.matrix.apply(ctx);
+    return this.matrix;
 }
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
@@ -2973,48 +3012,10 @@ Element.prototype._addChildren = function(elms) {
     }
 }
 Element.prototype._stateStr = function() {
-    var state = this.state;
-    return "x: " + s.x + " y: " + s.y + '\n' +
-           "sx: " + s.sx + " sy: " + s.sy + '\n' +
-           "angle: " + s.angle + " alpha: " + s.alpha + '\n' +
-           "p: " + s.p + " t: " + s.t + " key: " + s.key + '\n';
-}
-Element.prototype._initState = function() {
-    this.x = 0; this.y = 0;   // dynamic position
-    this.sx = 1; this.sy = 1; // scale by x / by y
-    this.hx = 1; this.hy = 1; // shear by x / by y
-    this.angle = 0;           // rotation angle
-    this.alpha = 1;           // opacity
-    this.p = null; this.t = null; this.key = null;
-                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
-                               // if both are null — stays as defined
-    if (this.matrix) { this.matrix.reset() }
-    else { this.matrix = $engine.createTransform(); }
-    this._st_applied = false; // is state applied
-    this._st_appliedAt = null; // time when state was applied
-}
-Element.prototype._resetState = Element.prototype._initState;
-Element.prototype._initXData = function() {
-    this.reg = Element.DEFAULT_REG;   // registration point (static values)
-    this.pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
-
-    this.fill = null;   // Fill instance
-    this.stroke = null; // Stroke instance
-
-    this.path = null;  // Path instanse, if it is a shape
-    this.text = null;  // Text data, if it is a text
-    this.image = null; // Sheet instance, if it is an image or a sprite sheet
-
-    this.mode = C.R_ONCE; // playing mode
-    this.nrep = Infinity; // number of repetions for the mode
-    this.lband = [0, Element.DEFAULT_LEN]; // local band
-    this.gband = [0, Element.DEFAULT_LEN]; // global band
-
-    this.keys = {}; // aliases for time jumps
-    this.tf = null; // time jumping function
-    this.composite_op = null; // composition operation
-
-    this.mpath = null; // move path
+    return "x: " + this.x + " y: " + this.y + '\n' +
+           "sx: " + this.sx + " sy: " + this.sy + '\n' +
+           "angle: " + this.angle + " alpha: " + this.alpha + '\n' +
+           "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
   var lband = this.xdata.lband, // local band of the _element_
