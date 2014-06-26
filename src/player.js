@@ -2228,18 +2228,33 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 Element.prototype.initState = function() {
+    // current state
+
     this.x = 0; this.y = 0;   // dynamic position
     this.sx = 1; this.sy = 1; // scale by x / by y
     this.hx = 1; this.hy = 1; // shear by x / by y
     this.angle = 0;           // rotation angle
     this.alpha = 1;           // opacity
-    this.p = null; this.t = null; this.key = null;
-                               // cur local time (p) or 0..1 time (t) or by key (p have highest priority),
+    // these values are for user to set
+    this.t = null; this.rt = null; this.key = null;
+                               // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
     if (this.matrix) { this.matrix.reset() }
     else { this.matrix = $engine.createTransform(); }
-    this._st_applied = false; // is state applied
-    this._st_appliedAt = null; // time when state was applied
+
+    // previous state
+    this._x = 0; this._y = 0;   // dynamic position
+    this._sx = 1; this._sy = 1; // scale by x / by y
+    this._hx = 1; this._hy = 1; // shear by x / by y
+    this._angle = 0;            // rotation angle
+    this._alpha = 1;            // opacity
+    // these values are set by engine to provide user with information
+    // when previous state was rendered
+    this._t = null; this._rt = null; this._key = null;
+                                // cur local time (t) and 0..1 time (rt) and,
+                                // if it was ever applied, the last applied key
+    if (this._matrix) { this._matrix.reset() }
+    else { this._matrix = $engine.createTransform(); }
 }
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
@@ -2253,7 +2268,9 @@ Element.prototype.initVisuals = function() {
     this.text = null;  // Text data, if it is a text
     this.image = null; // Sheet instance, if it is an image or a sprite sheet
 
-    this.mpath = null; // move path
+    this.composite_op = null; // composition operation
+
+    this.mpath = null; // move path, though it's not completely "visual"
 }
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
@@ -2264,15 +2281,19 @@ Element.prototype.initTime = function() {
 
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
-    this.composite_op = null; // composition operation
 
-    this.__lastJump = null; // a time of last jump in time
-    this.__jumpLock = false; // set when jumping in time
+    this.__resetTimeFlags();
 }
+Element.prototype.__resetTimeFlags = function() {
+    this.__lastJump = null; // a time of last jump in time
+    this.__jumpLock = false; // set to turn off jumping in time
+    this.__firedStart = false; // fired start event
+    this.__firedStop = false;  // fired stop event
+};
 Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
-    this._evt_st = 0; // events state
+    this.__evt_st = 0; // events state
     this.__evtCache = [];
 }
 Element.prototype.resetEvents = Element.prototype.initEvents;
@@ -2586,12 +2607,12 @@ Element.prototype.detach = function() {
 // > Element.makeBandFit % ()
 Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
-    this.xdata.gband = wband;
-    this.xdata.lband[1] = wband[1] - wband[0];
+    this.gband = wband;
+    this.lband[1] = wband[1] - wband[0];
 }
 // > Element.setBand % (band: Array[2, Float])
 Element.prototype.setBand = function(band) {
-    this.xdata.lband = band;
+    this.lband = band;
     Bands.recalc(this);
 }
 // > Element.fits % (ltime: Float) -> Boolean
@@ -2603,11 +2624,11 @@ Element.prototype.fits = function(ltime) {
     // time is before the actual band of the element. See a comment in `render`
     // method or `ltime` method for more details.
     if (ltime < 0) return false;
-    return __t_cmp(ltime, this.xdata.lband[1] - this.xdata.lband[0]) <= 0;
+    return __t_cmp(ltime, this.lband[1] - this.lband[0]) <= 0;
 }
 // > Element.gtime % (ltime: Float) -> Float
 Element.prototype.gtime = function(ltime) {
-    return this.xdata.gband[0] + ltime;
+    return this.gband[0] + ltime;
 }
 // > Element.ltime % (gtime: Float) -> Float
 Element.prototype.ltime = function(gtime) {
@@ -2620,46 +2641,34 @@ Element.prototype.ltime = function(gtime) {
     // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
     // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
     // value returned here). See `render()` method comment regarding `ltime` for more details.
-    var x = this.xdata;
-    if (!__finite(x.gband[1])) return this.__checkJump(gtime - x.gband[0]);
-    switch (x.mode) {
+    var gband = this.gband, lband = this.lband;
+    if (!__finite(gband[1])) return this.__checkJump(gtime - gband[0]);
+    switch (this.mode) {
         case C.R_ONCE:
-            return this.__checkJump(gtime - x.gband[0]);
+            return this.__checkJump(gtime - gband[0]);
         case C.R_STAY:
-            return (__t_cmp(gtime, x.gband[1]) <= 0)
-                   ? this.__checkJump(gtime - x.gband[0])
-                   : this.__checkJump(x.lband[1] - x.lband[0]);
+            return (__t_cmp(gtime, gband[1]) <= 0)
+                   ? this.__checkJump(gtime - gband[0])
+                   : this.__checkJump(lband[1] - lband[0]);
         case C.R_LOOP: {
-                var p = this.parent,
-                    px = p ? p.xdata : null;
-                var durtn = x.lband[1] -
-                            x.lband[0],
-                    pdurtn = p
-                        ? (px.lband[1] -
-                           px.lband[0])
-                        : durtn;
+                var durtn = lband[1] -
+                            lband[0];
                 if (durtn < 0) return -1;
-                var ffits = (gtime - x.gband[0]) / durtn,
+                var ffits = (gtime - gband[0]) / durtn,
                     fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > x.nrep)) return -1;
-                var t = (gtime - x.gband[0]) - (fits * durtn);
+                if ((fits < 0) || (ffits > this.nrep)) return -1;
+                var t = (gtime - gband[0]) - (fits * durtn);
                 return this.__checkJump(t);
             }
         case C.R_BOUNCE: {
-                var p = this.parent,
-                    px = p ? p.xdata : null;
-                var durtn = x.lband[1] -
-                            x.lband[0],
-                    pdurtn = p
-                        ? (px.lband[1] -
-                           px.lband[0])
-                        : durtn;
+                var durtn = lband[1] -
+                            lband[0];
                 if (durtn < 0) return -1;
-                var ffits = (gtime - x.gband[0]) / durtn,
+                var ffits = (gtime - gband[0]) / durtn,
                     fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > x.nrep)) return -1;
-                var t = (gtime - x.gband[0]) - (fits * durtn),
-                    t = ((fits % 2) === 0) ? t : durtn - t;
+                if ((fits < 0) || (ffits > this.nrep)) return -1;
+                var t = (gtime - gband[0])s - (fits * durtn),
+                    t = ((fits % 2) === 0) ? t : (durtn - t);
                 return this.__checkJump(t);
             }
     }
@@ -2672,7 +2681,7 @@ Element.prototype.handlePlayerEvent = function(event, handler) {
 // > Element.inform % (ltime: Float)
 Element.prototype.inform = function(ltime) {
     if (__t_cmp(ltime, 0) >= 0) {
-        var duration = this.xdata.lband[1] - this.xdata.lband[0],
+        var duration = this.lband[1] - this.lband[0],
             cmp = __t_cmp(ltime, duration);
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
@@ -2703,14 +2712,14 @@ Element.prototype.inform = function(ltime) {
 }
 // > Element.duration % () -> Float
 Element.prototype.duration = function() {
-    return this.xdata.lband[1] - this.xdata.lband[0];
+    return this.lband[1] - this.lband[0];
 }
 /* TODO: duration cut with global band */
 /* Element.prototype.rel_duration = function() {
     return
 } */
 Element.prototype._max_tpos = function() {
-    return (this.xdata.gband[1] >= 0) ? this.xdata.gband[1] : 0;
+    return (this.gband[1] >= 0) ? this.gband[1] : 0;
 }
 /* Element.prototype.neg_duration = function() {
     return (this.xdata.lband[0] < 0)
@@ -2721,9 +2730,9 @@ Element.prototype.m_on = function(type, handler) {
     return this.__modify({ type: Element.EVENT_MOD },
       function(t) { /* FIXME: handlers must have priority? */
         if (this.__evt_st & type) {
-          var evts = this.__evts[type];
+          var evts = this.evts[type];
           for (var i = 0, el = evts.length; i < el; i++) {
-              if (handler.call(this,evts[i],t) === false) return false;
+              if (handler.call(this, evts[i], t) === false) return false;
           }
         }
     });
@@ -2738,33 +2747,32 @@ Element.prototype.m_on = function(type, handler) {
 /* FIXME: test */
 Element.prototype.findWrapBand = function() {
     var children = this.children;
-    if (children.length === 0) return this.xdata.gband;
+    if (children.length === 0) return this.gband;
     var result = [ Infinity, 0 ];
     this.visitChildren(function(elm) {
-        result = Bands.expand(result, elm.xdata.gband);
+        result = Bands.expand(result, elm.gband);
         //result = Bands.expand(result, elm.findWrapBand());
     });
     return (result[0] !== Infinity) ? result : null;
 }
 Element.prototype.dispose = function() {
     this.disposeHandlers();
-    this.disposeXData();
+    this.disposeVisuals();
     this.visitChildren(function(elm) {
         elm.dispose();
     });
 }
-Element.prototype.disposeXData = function() {
-    if (this.xdata.path) this.xdata.path.dispose();
-    if (this.xdata.text) this.xdata.text.dispose();
-    if (this.xdata.sheet) this.xdata.sheet.dispose();
+// FIXME: what's the difference with resetVisuals?
+Element.prototype.disposeVisuals = function() {
+    if (this.path)  this.path.dispose();
+    if (this.text)  this.text.dispose();
+    if (this.sheet) this.sheet.dispose();
+    if (this.mpath) this.mpath.dispose();
 }
 Element.prototype.reset = function() {
-    this._resetState();
-    this.evts = {};
-    this._evt_st = 0;
-    this.__lastJump = null;
-    this.__firedStart = false;
-    this.__firedStop = false;
+    this.resetState();
+    this.resetEvents();
+    this.__resetTimeFlags();
     /*this.__clearEvtState();*/
     (function(elm) {
         elm.__forAllModifiers(function(modifier) {
@@ -2831,36 +2839,77 @@ Element.prototype.clear = function() {
     }
 }
 Element.prototype.lock = function() {
-    this.__jumpLock = true;
-    this.__lstate = obj_clone(this.state);
-    this.__pstate = this._state ? obj_clone(this._state) : null;
+    this.__jumpLock = true; // disable jumps in time
+    this.__state = this.extractState();
+    this.__pstate = this.extractPrevState();
 }
-Element.prototype.unlock = function() {
-    var result = this.state;
-    this.state = this.__lstate;
-    this._state = this.__pstate;
-    this.__lstate = null;
+Element.prototype.unlock = function(collect_res) { // collect_res flag is optional
+    var result = collect_res ? this.extractState() : undefined;
+    this.applyState(this.__state);
+    this.applyPrevState(this.__pstate);
+    this.__state = null;
+    this.__pstate = null;
     this.__jumpLock = false;
     return result;
 }
+// FIXME: rename and merge get/set into .state() & .prev_state() ?
+Element.prototype.extractState = function() {
+    // see .initState() for values definition
+    return {
+      x: this.x, y: this.y,
+      sx: this.sx, sy: this.sy,
+      hx: this.hx, hy: this.hy,
+      angle: this.angle,
+      alpha: this.alpha,
+      t: this.t, rt: this.rt, key: this.key
+    }
+}
+Element.prototype.extractPrevState = function() {
+    // see .initState() for values definition
+    return {
+      x: this._x, y: this._y,
+      sx: this._sx, sy: this._sy,
+      hx: this._hx, hy: this._hy,
+      angle: this._angle,
+      alpha: this._alpha,
+      t: this._t, rt: this._rt, key: this._key
+    }
+}
+Element.prototype.applyState = function(s) {
+    this.x = s.x; this.y = s.y;
+    this.sx = s.sx; this.sy = s.sy;
+    this.hx = s.hx; this.hy = s.hy;
+    this.angle = s.angle;
+    this.alpha = s.alpha;
+    this.t = s.t; this.rt = s.rt; this.key: s.key;
+}
+// actually, only has sense for state caching purposes
+Element.prototype.applyPrevState = function(s) {
+    this._x = s.x; this._y = s.y;
+    this._sx = s.sx; this._sy = s.sy;
+    this._hx = s.hx; this._hy = s.hy;
+    this._angle = s.angle;
+    this._alpha = s.alpha;
+    this._t = s.t; this._rt = s.rt; this._key: s.key;
+}
 Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
-    var success = this.__callModifiers(Element.NOEVT_MODIFIERS, t, 0);
-    var state = this.unlock();
-    return success ? Element._mergeStates(this.bstate, state) : null;
+    // calls all modifiers with given time and then unlocks the element
+    // and returns resulting state if modifiers succeeded
+    // (unlock should be performed independently of success)
+    return this.unlock(/* success => return previous state */
+              this.__callModifiers(Element.NOEVT_MODIFIERS, t, 0) // returns true if succeeded
+           );
 }
 Element.prototype.getPosition = function() {
-    return [ this.bstate.x + this.state.x,
-             this.bstate.y + this.state.y ];
+    return [ this.x, this.y ];
 }
 Element.prototype.offset = function() {
     var xsum = 0, ysum = 0;
     var p = this.parent;
     while (p) {
-        var pbs = p.bstate,
-            ps = p.state;
-        xsum += pbs.x + ps.x;
-        ysum += pbs.y + ps.y;
+        xsum += p.x;
+        ysum += p.y;
         p = p.parent;
     }
     return [ xsum, ysum ];
@@ -3316,15 +3365,12 @@ Element.prototype.__loadEvts = function(to) {
             edata = cache[ei];
             type = edata[0];
             to.__evt_st |= type;
-            evts = to.__evts;
+            evts = to.evts;
             if (!evts[type]) evts[type] = [];
             evts[type].push(edata[1]);
         }
         this.__evtCache = [];
     }
-}
-Element.prototype.__clearEvts = function(from) {
-    from.__evt_st = 0; from.__evts = {};
 }
 Element.prototype.__preRender = function(gtime, ltime, ctx) {
     var cr = this.__frameProcessors;
