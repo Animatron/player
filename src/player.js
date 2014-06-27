@@ -3064,11 +3064,10 @@ Element.prototype._stateStr = function() {
            "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
 }
 Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
-  var elm_band = this.lband, // local band of the _element_
-      elm_duration = elm_band[1] - elm_band[0], // duration of the _element_'s local band
-      mod_easing = conf.easing,
-      mod_time = conf.time, // time (or band) of the _modifier_, if set
-      mod_relative = conf.relative;
+  var elm_duration = this.lband[1] - this.lband[0], // duration of the element's local band
+      mod_easing = conf.easing, // modifier easing
+      mod_time = conf.time, // time (or band) of the modifier, if set
+      mod_relative = conf.relative; // is modifier time relative to elm duration or not
   var _tpair = null; // tpair
   if (mod_time == null) {
       _tpair = [ mod_relative
@@ -3115,9 +3114,13 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
     return (function(elm) {
 
         // save the previous state
-        elm.state._ = null; // clear the pointer, so it will not be cloned
-        elm._state = Element.createState(elm);
-        elm._state._ = obj_clone(elm.state);
+        elm.applyPrevState(elm);
+
+        // FIXME: it should be the time when previous state was applied
+        // FIXME: checkJump is performed before, may be it should store its values inside here?
+        elm._t   = ltime;
+        elm._rt  = ltime * (elm.lband[1] - elm.lband[0]); // FIXME: ensure this value is proper
+        elm._key = null; // FIXME: set the key if it was used in time jump
 
         // now it looks like:
         //
@@ -3160,6 +3163,9 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
             };
 
         elm.__modifying = null;
+
+
+
         elm._state._applied = true;
         elm._state._appliedAt = ltime;
 
