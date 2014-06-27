@@ -176,6 +176,10 @@ function __roundTo(n, precision) {
     return Math.round(n * multiplier) / multiplier;
 }
 
+function __interpolateFloat(a, b, t) {
+    return a*(1-t)+b*t;
+}
+
 // #### other
 
 function __paramsToObj(pstr) {
@@ -3772,6 +3776,7 @@ C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
 C.T_FILL       = 'FILL';
+C.T_STROKE       = 'STROKE';
 
 var Tween = {}; // FIXME: make tween a class
 var Easing = {};
@@ -3785,9 +3790,10 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
-Tween.TWEENS_PRIORITY[C.T_FILL]       = 6;
+Tween.TWEENS_PRIORITY[C.T_FILL]        = 6;
+Tween.TWEENS_PRIORITY[C.T_STROKE]      = 7;
 
-Tween.TWEENS_COUNT = 7;
+Tween.TWEENS_COUNT = 8;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
@@ -3834,55 +3840,80 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_FILL] = 
-    function(data) {
-  	  // we assume the types of start and end brush are the same.
-      // let's hope there will not be a dire need to convert a linear gradient to a radial one
-      var from, to;
+
+
+function __colorTween(data) {
+	  //returns a func which interpolates colors/gradients. used in T_FILL and T_STROKE
+
+	  var from, to;
    	  if (data[0].color) {
-   	  	from = { rgba: Brush.strToColor(data[0].color) };
-   	  	to = { rgba: Brush.strToColor(data[1].color) };
+   	  	from = { rgba: Color.fromStr(data[0].color) };
+   	  	to = { rgba: Color.fromStr(data[1].color) };
    	  } else if (data[0].lgrad || data[0].rgrad) {
    	  	from = { grad: data[0].lgrad || data[0].rgrad };
    	  	to = { grad: data[1].lgrad || data[1].rgrad };
    	  	//parse the color stop values
    	  	for (var i = 0; i < from.grad.stops.length; i++) {
-   	  		from.grad.stops[i][1] = Brush.strToColor(from.grad.stops[i][1]);
-   	  		to.grad.stops[i][1] = Brush.strToColor(to.grad.stops[i][1]);
+   	  		from.grad.stops[i][1] = Color.fromStr(from.grad.stops[i][1]);
+   	  		to.grad.stops[i][1] = Color.fromStr(to.grad.stops[i][1]);
    	  	};
    	  } 
 
-      return function(t) {
+   	  return function(t) {
         if (from.rgba) {
-          this.$.xdata.path.fill = Brush.colorToRgbaStr(Brush.interpolateRgba(from.rgba, to.rgba, t));
+          return { color: Color.toRgbaStr(Color.interpolate(from.rgba, to.rgba, t)) };
         } else if (from.grad) {
-          //as we know the grad's structure, we shall construct the resulting object
-          //manually instead of a rather expensive Brush.interpolate() call
           var grad = { dir: [], stops: []}, fromg = from.grad, tog = to.grad, i;
           for(i = 0; i < fromg.dir.length; i++) {
           	grad.dir.push([
-          		Brush.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
-          		Brush.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
+          		__interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
+          		__interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
           		]);
           };
           for(i = 0; i < fromg.stops.length; i++) {
           	grad.stops.push([
-          			Brush.interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
-          			Brush.colorToRgbaStr(Brush.interpolateRgba(fromg.stops[i][1], tog.stops[i][1], t))
+          			__interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
+          			Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t))
           		]);
           };
           if (fromg.r) {
       		grad.r = [
-      			Brush.interpolateFloat(fromg.r[0], tog.r[0], t),
-      			Brush.interpolateFloat(fromg.r[1], tog.r[1], t)
+      			__interpolateFloat(fromg.r[0], tog.r[0], t),
+      			__interpolateFloat(fromg.r[1], tog.r[1], t)
       			];
-      		this.$.xdata.path.fill = {rgrad: grad};
+      		return {rgrad: grad};
           } else {
-      		this.$.xdata.path.fill =  {lgrad: grad};
+      		return {lgrad: grad};
           }
       	}    
       }
+}
+
+Tweens[C.T_FILL] = 
+    function(data) {
+  	  var colorTween = __colorTween(data);
+  	  return function(t) {
+  	  	this.$.xdata.path.fill = colorTween(t);
+  	  }
     };
+
+Tweens[C.T_STROKE] = 
+    function(data) {
+      var from = data[0], to = data[1];
+  	  var colorTween = __colorTween(data);
+  	  return function(t) {
+  	  	var result = colorTween(t);
+	  	//add the stroke-specific properties
+	  	result.width = __interpolateFloat(from.width, to.width, t);
+	  	result.mitter = __interpolateFloat(from.mitter, to.mitter, t);
+	  	//should we do this?
+	  	result.cap = t>0.5 ? from.cap : to.cap;
+	  	result.join = t>0.5 ? from.joint : to.join;
+
+	  	this.$.xdata.path.stroke = result;
+  	  }
+    };
+
 // Easings
 // -----------------------------------------------------------------------------
 
@@ -4935,15 +4966,17 @@ Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
-//utility functions
-Brush.strToColor = function(str) {
-	return Brush.hexToColor(str)
-		|| Brush.rgbToColor(str)
-		|| Brush.rgbaToColor(str)
-		|| { r:0, g:0, b:0, a:0 };
-};
+//a set of functions for parsing and intepolating color values
+var Color = {};
 
-Brush.hexToColor = function(hex) {
+Color.fromStr = function(str) {
+	return Color.fromHex(str)
+		|| Color.fromRgb(str)
+		|| Color.fromRgba(str)
+		|| { r:0, g:0, b:0, a:0};
+}
+
+Color.fromHex = function(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
         r: parseInt(result[1], 16),
@@ -4953,7 +4986,7 @@ Brush.hexToColor = function(hex) {
     } : null;
 };
 
-Brush.rgbToColor = function(rgb) {
+Color.fromRgb = function(rgb) {
     var result = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i.exec(rgb);
     return result ? {
         r: parseInt(result[1]),
@@ -4963,7 +4996,7 @@ Brush.rgbToColor = function(rgb) {
     } : null;
 };
 
-Brush.rgbaToColor = function(rgba) {
+Color.fromRgba = function(rgba) {
     var result = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.])?\d+)\)$/i.exec(rgba);
     return result ? {
         r: parseInt(result[1], 16),
@@ -4973,62 +5006,19 @@ Brush.rgbaToColor = function(rgba) {
     } : null;
 };
 
-
-Brush.rgbToHex = function(rgb) {
-    return "#" + ((1 << 24) + (rgb.r << 16) + (rgb.g << 8) + rgb.b).toString(16).slice(1);
-};
-
-Brush.colorToRgbaStr = function(rgba) {
-	return 'rgba('+rgba.r+','+rgba.g+','+rgba.b+','+rgba.a.toFixed(2)+')';
+Color.toRgbaStr = function(color) {
+	return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
 }
 
-
-Brush.interpolateFloat = function(a, b, t) {
-    return a*(1-t)+b*t;
-}
-
-Brush.interpolateColor = function(c1, c2, t) {
-  	var from = Brush.strToColor(c1),
-    	to = Brush.strToColor(c2);
-	return Brush.colorToRgbaStr(Brush.interpolateRgba(from, to, t));
-}
-
-Brush.interpolateRgba = function(r1, r2, t) {
+Color.interpolate = function(c1, c2, t) {
 	return {
-		r: Math.round(Brush.interpolateFloat(r1.r, r2.r, t)),
-        g: Math.round(Brush.interpolateFloat(r1.g, r2.g, t)),
-        b: Math.round(Brush.interpolateFloat(r1.b, r2.b, t)),
-        a: Brush.interpolateFloat(r1.a, r2.a, t),
+		r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
+        g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
+        b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
+        a: __interpolateFloat(c1.a, c2.a, t),
 	};
 }
 
-
-Brush.interpolate = function(a, b, t){
-    var result;
-    if (anm.is.num(a)) {
-        return Brush.interpolateFloat(a, b, t);
-    } else if (anm.is.str(a) && (/^#[a-f\d]{6}$/i).test(a)) {
-        //that's an HTML color!
-        return Brush.interpolateColor(a, b, t);
-    } else if (anm.is.arr(a)) {
-        result = [];
-        for (var i = 0; i < a.length; i++) {
-          result.push(Brush.interpolate(a[i], b[i], t));
-        };
-    } else if (anm.is.obj(a)) {
-        result = {};
-        for(var prop in a) {
-          if (!a.hasOwnProperty(prop)) continue;
-          result[prop] = Brush.interpolate(a[prop], b[prop], t);
-        }
-    } else {
-        //we don't know how to interpolate other things
-        result = t > 0.5 ? p2 : p1;
-    }
-    return result;
-};
-// Sheet
-// -----------------------------------------------------------------------------
 
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;
@@ -6164,6 +6154,7 @@ return (function($trg) {
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
+    $trg.Color = Color;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
 
     $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
