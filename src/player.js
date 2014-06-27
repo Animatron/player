@@ -6,7 +6,6 @@
  *
  * @VERSION
  */
-
 // Player Core
 // =============================================================================
 
@@ -132,39 +131,17 @@ function __collect_to(str, start, ch) {
 
 // TODO: move to Color class
 
-function get_rgb(hex) {
-    if (!hex || !hex.length) return [0, 0, 0];
-    var _hex = hex.substring(1);
-    if (_hex.length === 3) {
-        _hex = _hex[0] + _hex[0] +
-               _hex[1] + _hex[1] +
-               _hex[2] + _hex[2];
-    }
-    var bigint = parseInt(_hex, 16);
-    return [ (bigint >> 16) & 255,
-             (bigint >> 8) & 255,
-             bigint & 255 ];
-}
-
-function to_rgba(r, g, b, a) {
-    return "rgba(" + Math.floor(r) + "," +
-                     Math.floor(g) + "," +
-                     Math.floor(b) + "," +
-                     ((typeof a !== 'undefined')
-                            ? a : 1) + ")";
-}
-
 function fmt_time(time) {
-    if (!__finite(time)) return '∞';
-    var _time = Math.abs(time),
-           _h = Math.floor(_time / 3600),
-           _m = Math.floor((_time - (_h * 3600)) / 60),
-           _s = Math.floor(_time - (_h * 3600) - (_m * 60));
+  if (!__finite(time)) return '∞';
+  var _time = Math.abs(time),
+        _h = Math.floor(_time / 3600),
+        _m = Math.floor((_time - (_h * 3600)) / 60),
+        _s = Math.floor(_time - (_h * 3600) - (_m * 60));
 
-    return ((time < 0) ? '-' : '') +
-           ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
-           ((_m < 10) ? ('0' + _m) : _m) + ':' +
-           ((_s < 10) ? ('0' + _s) : _s);
+  return ((time < 0) ? '-' : '') +
+          ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
+          ((_m < 10) ? ('0' + _m) : _m) + ':' +
+          ((_s < 10) ? ('0' + _s) : _s)
 }
 
 function ell_text(text, max_len) {
@@ -197,6 +174,10 @@ function __roundTo(n, precision) {
     //return n.toPrecision(precision);
     var multiplier = Math.pow(10, precision);
     return Math.round(n * multiplier) / multiplier;
+}
+
+function __interpolateFloat(a, b, t) {
+    return a*(1-t)+b*t;
 }
 
 // #### other
@@ -3363,7 +3344,7 @@ Element.__addDebugRender = function(elm) {
 }
 Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
-    var tween_f = Tweens[conf.type](),
+    var tween_f = Tweens[conf.type](conf.data),
         m_tween;
     // all tweens functions actually work with 0..1 parameter, but modifiers
     // differ by 'relative' option
@@ -3794,7 +3775,8 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
-C.T_COLOR       = 'COLOR';
+C.T_FILL       = 'FILL';
+C.T_STROKE       = 'STROKE';
 
 var Tween = {}; // FIXME: make tween a class
 var Easing = {};
@@ -3808,9 +3790,10 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
-Tween.TWEENS_PRIORITY[C.T_COLOR]       = 6;
+Tween.TWEENS_PRIORITY[C.T_FILL]        = 6;
+Tween.TWEENS_PRIORITY[C.T_STROKE]      = 7;
 
-Tween.TWEENS_COUNT = 7;
+Tween.TWEENS_COUNT = 8;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
@@ -3857,20 +3840,80 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_COLOR] =
-    function() {
-      return function(t, dt, duration, data) {
-        // we assume the types of start and end brush are the same.
-        // let's hope there will not be a dire need to convert a linear gradient to a radial one
 
-        if (data[0].color) {
-          //solid fill - use a shortcut and just animate the color
-          this.$.xdata.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
-        } else if (data[0].lgrad || data[0].rgrad) {
-          this.$.xdata.path.fill = Brush.interpolate(data[0], data[1], t);
-        }
+
+function __colorTween(data) {
+	  //returns a func which interpolates colors/gradients. used in T_FILL and T_STROKE
+
+	  var from, to;
+   	  if (data[0].color) {
+   	  	from = { rgba: Color.fromStr(data[0].color) };
+   	  	to = { rgba: Color.fromStr(data[1].color) };
+   	  } else if (data[0].lgrad || data[0].rgrad) {
+   	  	from = { grad: data[0].lgrad || data[0].rgrad };
+   	  	to = { grad: data[1].lgrad || data[1].rgrad };
+   	  	//parse the color stop values
+   	  	for (var i = 0; i < from.grad.stops.length; i++) {
+   	  		from.grad.stops[i][1] = Color.fromStr(from.grad.stops[i][1]);
+   	  		to.grad.stops[i][1] = Color.fromStr(to.grad.stops[i][1]);
+   	  	};
+   	  } 
+
+   	  return function(t) {
+        if (from.rgba) {
+          return { color: Color.toRgbaStr(Color.interpolate(from.rgba, to.rgba, t)) };
+        } else if (from.grad) {
+          var grad = { dir: [], stops: []}, fromg = from.grad, tog = to.grad, i;
+          for(i = 0; i < fromg.dir.length; i++) {
+          	grad.dir.push([
+          		__interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
+          		__interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
+          		]);
+          };
+          for(i = 0; i < fromg.stops.length; i++) {
+          	grad.stops.push([
+          			__interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
+          			Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t))
+          		]);
+          };
+          if (fromg.r) {
+      		grad.r = [
+      			__interpolateFloat(fromg.r[0], tog.r[0], t),
+      			__interpolateFloat(fromg.r[1], tog.r[1], t)
+      			];
+      		return {rgrad: grad};
+          } else {
+      		return {lgrad: grad};
+          }
+      	}    
       }
+}
+
+Tweens[C.T_FILL] = 
+    function(data) {
+  	  var colorTween = __colorTween(data);
+  	  return function(t) {
+  	  	this.$.xdata.path.fill = colorTween(t);
+  	  }
     };
+
+Tweens[C.T_STROKE] = 
+    function(data) {
+      var from = data[0], to = data[1];
+  	  var colorTween = __colorTween(data);
+  	  return function(t) {
+  	  	var result = colorTween(t);
+	  	//add the stroke-specific properties
+	  	result.width = __interpolateFloat(from.width, to.width, t);
+	  	result.mitter = __interpolateFloat(from.mitter, to.mitter, t);
+	  	//should we do this?
+	  	result.cap = t>0.5 ? from.cap : to.cap;
+	  	result.join = t>0.5 ? from.joint : to.join;
+
+	  	this.$.xdata.path.stroke = result;
+  	  }
+    };
+
 // Easings
 // -----------------------------------------------------------------------------
 
@@ -4923,63 +4966,59 @@ Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
-//utility functions
-Brush.hexToRgb = function(hex) {
+//a set of functions for parsing and intepolating color values
+var Color = {};
+
+Color.fromStr = function(str) {
+	return Color.fromHex(str)
+		|| Color.fromRgb(str)
+		|| Color.fromRgba(str)
+		|| { r:0, g:0, b:0, a:0};
+}
+
+Color.fromHex = function(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
+        b: parseInt(result[3], 16),
+        a: 1
     } : null;
 };
 
-Brush.rgbToHex = function(rgb) {
-    return "#" + ((1 << 24) + (rgb.r << 16) + (rgb.g << 8) + rgb.b).toString(16).slice(1);
+Color.fromRgb = function(rgb) {
+    var result = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i.exec(rgb);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: 1
+    } : null;
 };
 
-
-Brush.interpolateFloat = function(a, b, t) {
-    return a*(1-t)+b*t;
-}
-
-Brush.interpolateColor = function(c1, c2, t) {
-  var from = Brush.hexToRgb(c1),
-      to = Brush.hexToRgb(c2),
-      color = {
-        r: Math.round(Brush.interpolateFloat(from.r, to.r, t)),
-        g: Math.round(Brush.interpolateFloat(from.g, to.g, t)),
-        b: Math.round(Brush.interpolateFloat(from.b, to.b, t))
-      };
-  return Brush.rgbToHex(color);
-}
-
-
-Brush.interpolate = function(a, b, t){
-    var result;
-    if (anm.is.num(a)) {
-        return Brush.interpolateFloat(a, b, t);
-    } else if (anm.is.str(a) && (/^#[a-f\d]{6}$/i).test(a)) {
-        //that's an HTML color!
-        return Brush.interpolateColor(a, b, t);
-    } else if (anm.is.arr(a)) {
-        result = [];
-        for (var i = 0; i < a.length; i++) {
-          result.push(Brush.interpolate(a[i], b[i], t));
-        };
-    } else if (anm.is.obj(a)) {
-        result = {};
-        for(var prop in a) {
-          if (!a.hasOwnProperty(prop)) continue;
-          result[prop] = Brush.interpolate(a[prop], b[prop], t);
-        }
-    } else {
-        //we don't know how to interpolate other things
-        result = t > 0.5 ? p2 : p1;
-    }
-    return result;
+Color.fromRgba = function(rgba) {
+    var result = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.])?\d+)\)$/i.exec(rgba);
+    return result ? {
+        r: parseInt(result[1], 16),
+        g: parseInt(result[2], 16),
+        b: parseInt(result[3], 16),
+        a: 1
+    } : null;
 };
-// Sheet
-// -----------------------------------------------------------------------------
+
+Color.toRgbaStr = function(color) {
+	return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
+}
+
+Color.interpolate = function(c1, c2, t) {
+	return {
+		r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
+        g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
+        b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
+        a: __interpolateFloat(c1.a, c2.a, t),
+	};
+}
+
 
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;
@@ -6115,6 +6154,7 @@ return (function($trg) {
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
+    $trg.Color = Color;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
 
     $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
