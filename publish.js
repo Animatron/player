@@ -115,7 +115,7 @@ var start = (function () {
         _params_ = _u.injectIfNotPresent(_params_, "r", 1);
     }
 
-    var _snapshotUrl_ = amazonDomain + '/' + filename + (_params_ || '');
+    var _snapshotUrl_ = './' + filename + (_params_ || '');
 
     var temp_v = null;
     if (temp_v = _u.extractVal(_params_, 'v')) {
@@ -144,7 +144,7 @@ var start = (function () {
             } else if (!inIFrame) {
                 cvs.className += ' no-rect';
             }
-            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js',
+            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
                       anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }

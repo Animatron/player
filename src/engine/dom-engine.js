@@ -68,7 +68,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // getRequestFrameFunc() -> function(callback)
     // getCancelFrameFunc() -> function(id)
 
-    // ajax(url, callback?, errback?, method?) -> none
+    // ajax(url, callback?, errback?, method?, headers?) -> none
+    // getCookie(name) -> String
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
@@ -152,7 +153,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     $DE.PX_RATIO = $wnd.devicePixelRatio || 1;
 
-    $DE.ajax = function(url, callback, errback, method) {
+    $DE.ajax = function(url, callback, errback, method, headers) {
         var req = false;
 
         if (!$wnd.ActiveXObject) {
@@ -193,7 +194,27 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
         req.onreadystatechange = whenDone;
         req.open(method || 'GET', url, true);
+
+        if (headers) {
+            for (var header in headers) {
+                req.setRequestHeader(header, headers[header]);
+            }
+        }
+
         req.send(null);
+    }
+    $DE.getCookie = function(name) {
+        // from http://www.codelib.net/javascript/cookies.html
+        var s = document.cookie, i;
+        if (s)
+        for (i=0, s=s.split('; '); i<s.length; i++) {
+        s[i] = s[i].split('=', 2);
+        if (unescape(s[i][0]) == name)
+        return unescape(s[i][1]);
+        }
+        return null;
+        /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec(document.cookie);
+        return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
     }
 
     $DE.__textBuf = null;
@@ -206,20 +227,19 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             _div.style.position = 'absolute';
             _div.style.top = -10000 + 'px';
             _div.style.left = -10000 + 'px';
-            var _span = $doc.createElement('span');
-            _div.appendChild(_span);
             $doc.body.appendChild(_div);
-            $DE.__textBuf = _span;
+            $DE.__textBuf = _div;
             buff = $DE.__textBuf;
         }
         return function(text, lines_arg) {
             var has_arg = (typeof lines_arg !== 'undefined');
             var lines = has_arg ? lines_arg : text.lines;
             buff.style.font = text.font;
-            buff.style.textAlign = text.align;
-            buff.style.verticalAlign = text.baseline || 'bottom';
+            //buff.style.textAlign = text.align;
+            //buff.style.verticalAlign = text.baseline || 'bottom';
+            buff.style.whiteSpace = 'pre';
             if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
-                buff.textContent = text.lines.join('<br/>');
+                buff.textContent = text.lines.join('\n');
             } else {
                 buff.textContent = text.lines.toString();
             }
@@ -271,6 +291,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
     $DE.moveElementTo = function(elm, pos) {
+        //console.log(elm, pos);
         elm.style.left = pos[0] + 'px';
         elm.style.top  = pos[1] + 'px';
     }
@@ -335,14 +356,21 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                'speed': cvs.getAttribute('anm-speed'),
                'width': width,
                'height': height,
+               'autoPlay': cvs.getAttribute('anm-auto-play'),
                'bgColor': cvs.getAttribute('anm-bgcolor'),
                'drawStill': cvs.getAttribute('anm-draw-still'),
+               'imagesEnabled': cvs.getAttribute('anm-images-enabled'),
+               'shadowsEnabled': cvs.getAttribute('anm-shadows-enabled'),
                'audioEnabled': cvs.getAttribute('anm-audio-enabled'),
                'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
+               'infoEnabled': cvs.getAttribute('anm-info-enabled'),
                'handleEvents': cvs.getAttribute('anm-handle-events'),
+               'infiniteDuration': cvs.getAttribute('anm-infinite-duration'),
                'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
                'inParent': undefined, // TODO: check if we're in tag?
-               'muteErrors': cvs.getAttribute('anm-mute-errors')
+               'muteErrors': cvs.getAttribute('anm-mute-errors'),
+               'loadingMode': cvs.getAttribute('anm-loading-mode'),
+               'thumbnail': cvs.getAttribute('anm-thumbnail')
              };
     }
     $DE.checkPlayerCanvas = function(cvs) {

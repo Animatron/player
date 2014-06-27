@@ -50,6 +50,7 @@ var COPYRIGHT_COMMENT =
   ' * ',
   ' * ' + VERSION + ', built at @BUILD_TIME',
   ' */'].join('\n') + '\n';
+var MINIFY_KEEP_COPYRIGHTS = '/WARRANTY|Free to use/';
 
 var NODE_GLOBAL = false,
     LOCAL_NODE_DIR = './node_modules';
@@ -69,9 +70,7 @@ var Binaries = {
 
 var Dirs = {
     SRC: 'src',
-    AS_IS: 'dist/full',
-    MINIFIED: 'dist',
-    DIST_ROOT: 'dist',
+    DIST: 'dist',
     TESTS: 'tests',
     DOCS: 'doc'
 };
@@ -189,7 +188,7 @@ var Validation = {
 };
 
 var BUILD_FILE_NAME = 'BUILD',
-    BUILD_FILE = Dirs.DIST_ROOT + '/' + BUILD_FILE_NAME,
+    BUILD_FILE = Dirs.DIST + '/' + BUILD_FILE_NAME,
     BUILD_FORMAT = '%H%n%ci%n%cn <%ce>';
 
 var DONE_MARKER = '<Done>.\n',
@@ -197,15 +196,17 @@ var DONE_MARKER = '<Done>.\n',
     FAILED_MARKER = '<Failed>.\n';
 
 var DESC_WIDTH = 80,
-    DESC_PAD = 23,
-    DESC_TAB = 7,
+    DESC_PAD = 27,
+    DESC_TAB = 4,
     DESC_PFX = '# ',
     DESC_1ST_PFX = DESC_PAD + DESC_PFX.length;
 
 var JSON_INDENT = 2;
 
 var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
-                  printStderr: !jake.program.opts.quiet };
+                  printStderr: !jake.program.opts.quiet },
+    SILENT_EXEC_OPTS = { printStdout: false,
+                         printStderr: !jake.program.opts.quiet };
 
 var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
@@ -219,7 +220,9 @@ function _extended_build_time() { var now = new Date();
                                          now.getTime() + '\n' +
                                          now.toString(); }
 
-// TASKS
+// TASKS =======================================================================
+
+// default =====================================================================
 
 desc(_dfit_nl(['Get full distribution in the /dist directory.',
                'Exactly the same as calling {jake dist}.',
@@ -227,20 +230,34 @@ desc(_dfit_nl(['Get full distribution in the /dist directory.',
                'Produces: /dist directory.']));
 task('default', ['dist'], function() {});
 
+// clean =======================================================================
+
 desc(_dfit_nl(['Clean previous build artifacts.']));
 task('clean', function() {
     _print('Clean previous build artifacts..');
-    jake.rmRf(_loc(Dirs.AS_IS));
-    jake.rmRf(_loc(Dirs.MINIFIED));
+    jake.rmRf(_loc(Dirs.DIST));
     _print(DONE_MARKER);
 });
 
-desc(_dfit_nl(['Build process, with no cleaning.',
+// build =======================================================================
+
+desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify_compress>, <_build-file>.',
+               'Depends on: <_prepare>, <_organize>, <_build-file>.',
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_bundles', '_organize', '_versionize', '_minify_compress', '_build-file'], function() {});
+task('build', ['_prepare', '_organize', '_bundles', '_build-file'], function() {});
+
+// build-min ===================================================================
+
+desc(_dfit_nl(['Build process (with no prior cleaning).',
+               'Called by <dist-min>.',
+               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
+task('build-min', ['_prepare', '_organize', '_bundles', '_versionize', '_minify', '_build-file'], function() {});
+
+// dist ========================================================================
 
 desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'so `dist` directory will contain the full '+
@@ -250,6 +267,19 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist', ['clean', 'build'], function() {});
+
+// dist-min ====================================================================
+
+desc(_dfit_nl(['Clean previous build and create distribution files, '+
+                  'so `dist` directory will contain the full '+
+                  'distribution for this version, including '+
+                  'all required files — sources and bundles.',
+               'Coherently calls <clean> and <build>.',
+               'Requires: `uglifyjs`.',
+               'Produces: /dist directory.']));
+task('dist-min', ['clean', 'build-min'], function() {});
+
+// test ========================================================================
 
 desc(_dfit_nl(['Run tests for the sources (not the distribution).',
                'Usage: Among with {jake test} may be called with '+
@@ -278,6 +308,8 @@ task('test', { async: true }, function(param) {
                            _print(DONE_MARKER);
                            complete(); });
 });
+
+// docs ========================================================================
 
 desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                   'HTML files inside of the /doc directory.',
@@ -349,6 +381,8 @@ task('docs', { async: true }, function() {
 //mv doc/README.tmp.html doc/scripting.html
 });
 
+// anm-scene-valid =============================================================
+
 desc(_dfit_nl(['Validate Animatron scene JSON file.',
                'Uses /src/import/animatron-project-VERSION.orderly '+
                   'as validation scheme.',
@@ -368,6 +402,8 @@ task('anm-scene-valid', function(param) {
 
   _print(DONE_MARKER);
 });
+
+// version =====================================================================
 
 desc(_dfit_nl(['Get current version or apply a new version to the '+
                   'current state of files. If applies a new version, '+
@@ -490,6 +526,8 @@ task('version', { async: true }, function(param) {
 
 });
 
+// rm-version ==================================================================
+
 desc(_dfit_nl(['Remove given version information from versions '+
                   'data files among with the git tag. Pushes nothing.',
                'Usage: {jake version[v0.9:v0.8]} to remove version 0.9 '+
@@ -559,6 +597,8 @@ task('rm-version', { async: true }, function(param) {
 
 });
 
+// push-version ================================================================
+
 desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                    'to S3 at the path of `<VERSION>/` or `latest/`. '+
                    'No git switching to tag or anything smarter than just build and push to directory. '+
@@ -572,7 +612,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _bucket) {
+task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -585,21 +625,32 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
     _print('Collecting file paths to upload');
 
-    var walk = require('walk');
+    var jsonHeaders = { 'content-type': 'text/json' }, // for VERSIONS file, used below
+        jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
+        gzippedJsHeaders = { 'content-type': 'text/javascript',
+                             'content-encoding': 'gzip' },
+        plainTextHeaders = { 'content-type': 'text/plain' };
+
+    var walk    = require('walk');
 
     var files   = [];
 
-    var walker  = walk.walk(_loc(Dirs.DIST_ROOT), { followLinks: false });
+    var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
+        var gzip_it = (stat.name.indexOf('.min') > 0) &&
+                      (stat.name !== BUILD_FILE_NAME);
         files.push([ root + '/' + stat.name, // source
-                     trg_dir +  // destination
-                     root.substring(root.indexOf(Dirs.DIST_ROOT) +
-                                    Dirs.DIST_ROOT.length) + '/'
-                     + stat.name,
-                     (root.indexOf(Dirs.AS_IS) < 0) &&
-                     (root.indexOf(Dirs.MINIFIED) >= 0) &&
-                     (stat.name !== BUILD_FILE_NAME) ]); // is this file gzipped or not
+                     trg_dir +
+                     root.substring(root.indexOf(Dirs.DIST) +
+                                    Dirs.DIST.length) + '/'
+                     + stat.name, // destination
+                     gzip_it, // is this file should be gzipped or not
+                     // destination headers, all files except BUILD are javascript files
+                     gzip_it ? gzippedJsHeaders
+                             : ((stat.name !== BUILD_FILE_NAME) ? jsHeaders
+                                                                : plainTextHeaders)
+                   ]);
         next();
     });
 
@@ -623,33 +674,57 @@ task('_push-version', [/*'test',*/'dist'], { async: true }, function(_version, _
 
         s3.setBucket(trg_bucket);
 
-        var jsonHeaders = { 'content-type': 'text/json' },
-            jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
-            gzippedJsHeaders = { 'content-type': 'text/javascript',
-                                 'content-encoding': 'gzip' };
-
         s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', jsonHeaders, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
             _print(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
 
             var files_count = files.length;
 
+            var on_complete = function(src, dst, gzipped) {
+              return function(err,res) {
+                if (gzipped) jake.rmRf(gzipped);
+                if (err) { _print(FAILED_MARKER); throw err; }
+                _print(src + ' -> S3 as ' + dst);
+                files_count--;
+                if (!files_count) { _print(DONE_MARKER); complete(); }
+              }
+            }
+
+            // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
+            function compress(src, cb) {
+                var dst = src + '.gz';
+                jake.exec([
+                  [ Binaries.GZIP,
+                    '-9',
+                    '-c',
+                    src, '>', dst
+                  ].join(' ') ], EXEC_OPTS, function() {
+                     cb(dst);
+                  });
+                _print('gzip <- ' + src);
+            }
+
             files.forEach(function(file) {
-                s3.putFile(file[1], _loc(file[0]), 'public-read',
-                  file[2] ? gzippedJsHeaders : jsHeaders,
-                  (function(file) {
-                    return function(err,res) {
-                      if (err) { _print(FAILED_MARKER); throw err; }
-                      _print(file[0] + ' -> S3 as ' + file[1]);
-                      if (!files_count) { _print(DONE_MARKER); complete(); }
-                    }
-                  })(file)
-                );
+                var src = file[0],
+                    dst = file[1],
+                    gzip_it = file[2],
+                    headers = file[3];
+                if (gzip_it) {
+                    compress(src, function(gzipped) {
+                      s3.putFile(dst, gzipped, 'public-read',
+                        headers, on_complete(src, dst, gzipped));
+                    });
+                } else {
+                    s3.putFile(dst, src, 'public-read',
+                      headers, on_complete(src, dst));
+                }
             });
         });
     });
 
 });
+
+// push-go =====================================================================
 
 desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
                'Usage: {jake push-go} to push to `dev` bucket. '+
@@ -658,7 +733,7 @@ desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
                'Affects: Only changes S3.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` node.js module.']));
-task('_push-go', [], { async: true }, function(_bucket) {
+task('push-go', [], { async: true }, function(_bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -719,8 +794,10 @@ task('_push-go', [], { async: true }, function(_bucket) {
 
 });
 
-desc(_dfit_nl(['Triggers deployment to Production server',
-               'using `production` annotated tag.']));
+// trig-prod ===================================================================
+
+/*desc(_dfit_nl(['Triggers deployment to Production server',
+                 'using `production` annotated tag. (Reversed for future use)']));*/
 task('trig-prod', [], { async: true }, function() {
     // just applies a tag `production`, so TeamCity will build it and run sequentially:
     // jake test
@@ -754,8 +831,10 @@ task('trig-prod', [], { async: true }, function() {
 
 });
 
-desc(_dfit_nl(['Triggers deployment to Development server',
-               'using `development` annotated tag.']));
+// trig-dev ====================================================================
+
+/*desc(_dfit_nl(['Triggers deployment to Development server',
+                 'using `development` annotated tag. (Reversed for future use)']));*/
 task('trig-dev', [], { async: true }, function() {
     // just applies a tag `development`, so TeamCity will build it and run sequentially:
     // jake test
@@ -788,10 +867,10 @@ task('trig-dev', [], { async: true }, function() {
     });
 });
 
-desc('See `trig-prod`.');
+//desc('See `trig-prod`.');
 task('trigger-production', ['trig-prod'], {}, function() {});
 
-desc('See `trig-dev`.');
+//desc('See `trig-dev`.');
 task('trigger-development', ['trig-dev'], {}, function() {});
 
 /*desc('Run JSHint');
@@ -799,23 +878,25 @@ task('hint', function() {
     // TODO
 });*/
 
-// ======= SUBTASKS
+// SUBTASKS ====================================================================
 
-desc(_dfit(['Internal. Create '+Dirs.MINIFIED+' & '+Dirs.AS_IS+' folders']));
+// _prepare ====================================================================
+
+desc(_dfit(['Internal. Create '+Dirs.DIST+' folder']));
 task('_prepare', function() {
     _print('Create required destination folders..');
-    _print('mkdir -p ' + _loc(Dirs.MINIFIED));
-    jake.mkdirP(_loc(Dirs.MINIFIED));
-    _print('mkdir -p ' + _loc(Dirs.AS_IS));
-    jake.mkdirP(_loc(Dirs.AS_IS));
+    _print('mkdir -p ' + _loc(Dirs.DIST));
+    jake.mkdirP(_loc(Dirs.DIST));
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.AS_IS+' folder']));
+// _bundles ====================================================================
+
+desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder']));
 task('_bundles', function() {
     _print('Create Bundles..');
     var BUILD_TIME = _build_time();
-    var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
+    var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
     Bundles.forEach(function(bundle) {
         _print('Package bundle \'' + bundle.name + '\'');
@@ -833,7 +914,9 @@ task('_bundles', function() {
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.AS_IS+' folder, '+
+// _bundle =====================================================================
+
+desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder, '+
                'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
 task('_bundle', function(param) {
     if (!param) throw new Error('This task requires a concrete bundle name to be specified');
@@ -843,7 +926,7 @@ task('_bundle', function(param) {
         if (b.name == param) { bundle = b; }
     });
     if (!bundle) throw new Error('Bundle with name ' + param + ' was not found');
-    var targetDir = Dirs.AS_IS + '/' + SubDirs.BUNDLES;
+    var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
     jake.mkdirP(_loc(targetDir));
     _print('Package bundle \'' + bundle.name + '\'');
     var targetFile = targetDir + '/' + bundle.file + '.js';
@@ -858,86 +941,90 @@ task('_bundle', function(param) {
         });
 });
 
-desc(_dfit(['Internal. Copy source files to '+Dirs.AS_IS+' folder']));
+// _organize ===================================================================
+
+desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
 task('_organize', function() {
 
-    _print('Copy files to ' + Dirs.AS_IS + '..');
+    _print('Copy files to ' + Dirs.DIST + '..');
 
-    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.INIT),
-             _loc(Dirs.AS_IS + '/' + Files.Main.INIT));
-    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.PLAYER),
-             _loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
-    jake.cpR(_loc(Dirs.SRC   + '/' + Files.Main.BUILDER),
-             _loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
+    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.INIT),
+             _loc(Dirs.DIST + '/' + Files.Main.INIT));
+    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.PLAYER),
+             _loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.BUILDER),
+             _loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.VENDOR));
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.VENDOR + '/' + vendorFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.VENDOR));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.VENDOR + '/' + vendorFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.VENDOR));
     });
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.ENGINES));
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.ENGINES + '/' + engineFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.ENGINES));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.ENGINES + '/' + engineFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.ENGINES));
     });
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.MODULES));
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.MODULES + '/' + moduleFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.MODULES));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.MODULES + '/' + moduleFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.MODULES));
     });
 
-    jake.mkdirP(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
+    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        jake.cpR(_loc(Dirs.SRC   + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                 _loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS));
+        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.IMPORTERS + '/' + importerFile),
+                 _loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
     });
 
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Inject version in all '+Dirs.AS_IS+' files']));
-task('_versionize', function() {
-    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.AS_IS + '..');
+// _versionize =================================================================
 
-    function versionize(file) {
-        var new_content = jake.cat(file).trim()
-                                        .replace(/@VERSION/g, VERSION)
-                                        .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
-        jake.rmRf(file);
-        jake.echo(new_content + '\n', file);
-        _print('v -> ' + file);
+desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
+task('_versionize', function() {
+    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
+
+    function versionize(src) {
+        var new_content = jake.cat(src).trim()
+                                       .replace(/@VERSION/g, VERSION)
+                                       .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
+        jake.rmRf(src);
+        jake.echo(new_content + '\n', src);
+        _print('v -> ' + src);
     }
 
     _print('.. Main files');
 
-    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.INIT));
-    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.PLAYER));
-    versionize(_loc(Dirs.AS_IS + '/' + Files.Main.BUILDER));
+    versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    versionize(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.ENGINES + '/' + engineFile));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.MODULES + '/' + moduleFile));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        versionize(_loc(Dirs.AS_IS + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('..Docs');
@@ -949,10 +1036,12 @@ task('_versionize', function() {
     _print(DONE_MARKER);
 });
 
-desc(_dfit(['Internal. Create a minified and compressed copy of all the sources and bundles '+
-               'from '+Dirs.AS_IS+' folder and put them into '+Dirs.MINIFIED+'/ folder root']));
-task('_minify_compress', { async: true }, function() {
-    _print('Minify all the files and put them in ' + Dirs.MINIFIED + ' folder');
+// _minify =====================================================================
+
+desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
+               'from '+Dirs.DIST+' folder and append a .min suffix to them']));
+task('_minify', { async: true }, function() {
+    _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
 
     _print('Using ' + (NODE_GLOBAL ? 'global'
                                : 'local (at '+LOCAL_NODE_DIR+')')
@@ -960,117 +1049,97 @@ task('_minify_compress', { async: true }, function() {
 
     var BUILD_TIME = _build_time();
 
-    function minify(src, dst, cb) {
+    // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
+    function minify(src, cb) {
+        var dst = _minified(src);
         jake.exec([
           [ Binaries.UGLIFYJS,
             '--ascii',
-            '-o',
-            dst, src
+            '--compress warnings=false',
+            '--screw-ie8', // since April 2014
+            '--source-map-url', _src_map_url(src),
+            '--source-map', _src_map(src),
+            '--source-map-root', _src_map_root(src),
+            '--prefix', _src_map_prefix(src),
+            '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
+            '--output', dst,
+            src
           ].join(' ')
-        ], EXEC_OPTS, cb);
+        ], EXEC_OPTS, function() { cb(dst); });
         _print('min -> ' + src + ' -> ' + dst);
     }
 
-    function compress(file, cb) {
-        jake.cpR(file, file + '.tmp');
-        jake.exec([
-          [ Binaries.GZIP,
-            '-9',
-            '-c',
-            file + '.tmp', '>', file
-          ].join(' ')
-        ], EXEC_OPTS, function() {
-          jake.rmRf(file + '.tmp');
-          cb();
-        });
-        _print('gzip -> ' + file + '.tmp' + ' -> ' + file);
-    }
-
-    function copyrightize(file) {
+    function copyrightize(src) {
         var new_content = COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
-                                           .concat(jake.cat(file).trim()  + '\n');
-        jake.rmRf(file);
-        jake.echo(new_content, file);
-        _print('(c) -> ' + file);
+                                           .concat(jake.cat(src).trim()  + '\n');
+        jake.rmRf(src);
+        jake.echo(new_content, src);
+        _print('(c) -> ' + src);
     }
 
+    // since there is only one thread, it will [hopefully] work ok
     var queue = {};
 
-    function minifyAndCompress(src, dst) {
+    function minifyInQueue(src) {
         var task_id = _guid();
         queue[task_id] = {};
-        minify(src, dst, function() {
-            compress(dst, function() {
-              _print(DONE_MARKER);
-              delete queue[task_id];
-              if (!Object.keys(queue).length) complete();
-            });
+        minify(src, function(dst) {
+            _print(DONE_MARKER);
+            delete queue[task_id];
+            if (!Object.keys(queue).length) complete();
         });
     }
 
-    function minifyAndCompressWithCopyright(src, dst) {
+    function minifyInQueueWithCopyright(src) {
         var task_id = _guid();
         queue[task_id] = {};
-        minify(src, dst, function() {
+        minify(src, function(dst) {
             copyrightize(dst);
-            compress(dst, function() {
-              _print(DONE_MARKER);
-              delete queue[task_id];
-              if (!Object.keys(queue).length) complete();
-            });
+            _print(DONE_MARKER);
+            delete queue[task_id];
+            if (!Object.keys(queue).length) complete();
         });
     }
 
     _print('.. Vendor Files');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.VENDOR);
     Files.Ext.VENDOR.forEach(function(vendorFile) {
-        minifyAndCompress(_loc(Dirs.AS_IS    + '/' + SubDirs.VENDOR + '/' + vendorFile),
-                          _loc(Dirs.MINIFIED + '/' + SubDirs.VENDOR + '/' + vendorFile));
+        minifyInQueue(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
 
     _print('.. Main files');
 
-    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.INIT),
-                                   _loc(Dirs.MINIFIED + '/' + Files.Main.INIT));
-    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.PLAYER),
-                                   _loc(Dirs.MINIFIED + '/' + Files.Main.PLAYER));
-    minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + Files.Main.BUILDER),
-                                   _loc(Dirs.MINIFIED + '/' + Files.Main.BUILDER));
+    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     _print('.. Bundles');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.BUNDLES);
     Bundles.forEach(function(bundle) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('.. Engines');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.ENGINES);
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS +    '/' + SubDirs.ENGINES + '/' + engineFile),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.ENGINES + '/' + engineFile));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.MODULES);
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.MODULES + '/' + moduleFile),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.MODULES + '/' + moduleFile));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
-    jake.mkdirP(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS);
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        minifyAndCompressWithCopyright(_loc(Dirs.AS_IS    + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                                       _loc(Dirs.MINIFIED + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
 });
+
+// _build-file =================================================================
 
 desc(_dfit(['Internal. Create a BUILD file informing about the time and commit of a build.']));
 task('_build-file', { async: true }, function() {
@@ -1116,7 +1185,7 @@ task('_build-file', { async: true }, function() {
     _getCommintHash.run();
 });
 
-// UTILS
+// UTILS =======================================================================
 
 function _in_dir(dir, files) {
     var res = [];
@@ -1127,6 +1196,26 @@ function _in_dir(dir, files) {
 }
 
 function _loc(path) { return './' + path; }
+
+function _minified(path) {
+    var len = path.length;
+    if (path.substr(len - 3) !== '.js') throw new Error('The path ' + path + ' points to file with no .js suffix; ' +
+                                                      'Can\'t determine minified path.');
+    return path.substr(0, len - 3) + '.min.js';
+}
+
+function _src_map(path) { return path + '.map'; }
+
+function _src_map_url(path) {
+    var path = path.replace(Dirs.DIST + '/', '');
+    return '.' + path.substr(path.lastIndexOf('/')) + '.map';
+}
+
+function _src_map_root(path) { return './'; }
+
+function _src_map_prefix(path) {
+    return path.split('/').length - 1;
+}
 
 function _dfit(lines) {
     return _fit(lines, DESC_PFX, DESC_PAD, DESC_TAB, DESC_WIDTH, DESC_1ST_PFX);
