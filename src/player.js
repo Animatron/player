@@ -2265,7 +2265,7 @@ Element.prototype.initState = function() {
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
     this.reg = Element.DEFAULT_REG;   // registration point (static values)
-    this.pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
+    this.pvt = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
     this.fill = null;   // Fill instance
     this.stroke = null; // Stroke instance
@@ -3399,7 +3399,7 @@ Element.transferState = function(src, trg) {
     trg.alpha = src.alpha;
 }
 Element.transferVisuals = function(src, trg) {
-    trg.reg = [].concat(src.reg); trg.pivot = [].concat(src.pivot);
+    trg.reg = [].concat(src.reg); trg.pvt = [].concat(src.pvt);
     trg.fill = src.fill ? src.fill.clone() : null;
     trg.stroke = src.stroke ? src.stroke.clone() : null;
     trg.path = src.path ? src.path.clone() : null;

@@ -119,7 +119,7 @@ __MYSELF.prototype.convertNode = function(src, all) {
             if (!ltrg.name) { ltrg.name = lsrc.name; }
             // transfer layer data from the layer source into the
             // target — contains bands, tweens and pivot
-            this._transferLayerData(lsrc, ltrg, trg.xdata.gband, ltype);
+            this._transferLayerData(lsrc, ltrg, trg.gband, ltype);
             if (!lsrc.masked) {
                 // layer is a normal one
                 trg.add(ltrg);
@@ -159,9 +159,9 @@ __MYSELF.prototype.convertNode = function(src, all) {
         if (trg.importCustomData) trg.importCustomData(src, type, IMPORTER_ID);
     }
     /*if (trg &&
-        (trg.xdata.mode != C.R_ONCE) &&
+        (trg.mode != C.R_ONCE) &&
         (trg.children.length > 0) &&
-        (!test.finite(trg.xdata.gband[1]))) {
+        (!test.finite(trg.gband[1]))) {
         trg.makeBandFit();
     }*/
     return trg;
@@ -173,28 +173,27 @@ __MYSELF.prototype.findNode = function(id, source) {
     throw new Error("Node with id " + id + " was not found in passed source");
 }
 __MYSELF.prototype._transferShapeData = function(src, trg, type) {
-    if (src.url && (type == TYPE_IMAGE)) trg.xdata.sheet = Convert.sheet(src.url, src.size);
-    if (src.path) trg.xdata.path = Convert.path(src.path, src.fill, src.stroke, src.shadow);
-    if (src.text) trg.xdata.text = Convert.text(src.text, src.font,
-                                                src.fill, src.stroke, src.shadow);
+    if (src.url && (type == TYPE_IMAGE)) trg.image = Convert.sheet(src.url, src.size);
+    if (src.path) trg.path = Convert.path(src.path, src.fill, src.stroke, src.shadow);
+    if (src.text) trg.text = Convert.text(src.text, src.font,
+                                          src.fill, src.stroke, src.shadow);
 }
 // collect required data from source layer
 __MYSELF.prototype._transferLayerData = function(src, trg, in_band, type) {
     if (src.visible === false) trg.disabled = true; // to.visible = false;
-    var x = trg.xdata;
     if (type == TYPE_GROUP) {
-        x.gband = [ 0, src.band[1] ];
-        x.lband = [ 0, src.band[1] ];
-        // x.gband = Convert.band(src.band);
-        // x.lband = [ x.gband[0] - in_band[0],
-        //             x.gband[1] - in_band[0] ];
+        trg.gband = [ 0, src.band[1] ];
+        trg.lband = [ 0, src.band[1] ];
+        // trg.gband = Convert.band(src.band);
+        // trg.lband = [ trg.gband[0] - in_band[0],
+        //               trg.gband[1] - in_band[0] ];
     } else {
-        x.lband = Convert.band(src.band);
-        x.gband = in_band ? Bands.wrap(in_band, x.lband)
-                          : x.lband;
+        trg.lband = Convert.band(src.band);
+        trg.gband = in_band ? Bands.wrap(in_band, trg.lband)
+                            : trg.lband;
     }
-    x.pvt = [ 0, 0 ];
-    x.reg = src.reg || [ 0, 0 ];
+    trg.pvt = [ 0, 0 ];
+    trg.reg = src.reg || [ 0, 0 ];
     if (src.tweens) {
         var translate;
         for (var tweens = src.tweens, ti = 0, tl = tweens.length;
@@ -212,15 +211,14 @@ __MYSELF.prototype._transferLayerData = function(src, trg, in_band, type) {
 };
 __MYSELF.prototype._transferRepetitionData = function(src, trg) {
     // 'on-end' is the old-style end, 'end' is the current-style
-    var x = trg.xdata;
-    x.mode = src['end'] ? Convert.mode(src['end'].type)
-                        : Convert.oldschool_mode(src['on-end']);
-    x.nrep = (src['end'] && (src['end'].counter !== undefined))
-                        ? src['end'].counter : Infinity;
+    trg.mode = src['end'] ? Convert.mode(src['end'].type)
+                          : Convert.oldschool_mode(src['on-end']);
+    trg.nrep = (src['end'] && (src['end'].counter !== undefined))
+                             ? src['end'].counter : Infinity;
 
-    if (src['end'] && (x.mode == C.R_LOOP)) {
+    if (src['end'] && (trg.mode == C.R_LOOP)) {
         trg.travelChildren(function(child) {
-            child.xdata.mode = C.R_LOOP;
+            child.mode = C.R_LOOP;
         });
     }
 };

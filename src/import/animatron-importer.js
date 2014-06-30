@@ -91,24 +91,24 @@ Import.project = function(prj) {
             // gband[1] contains the duration of the scene there, while gband[0] contains 0
             // (see SCENE type handling in Import.node)
             // TODO: fix it with proper native scenes when they will be supported in player
-            var gband_before = node_res.xdata.gband;
-            node_res.xdata.gband = [ last_scene_band[1] + gband_before[0],
-                                     last_scene_band[1] + gband_before[1] ];
+            var gband_before = node_res.gband;
+            node_res.gband = [ last_scene_band[1] + gband_before[0],
+                               last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
-            node_res.xdata.lband = node_res.xdata.gband;
+            node_res.lband = node_res.gband;
             node_res.travelChildren(function(elm) {
-                var e_gband_before = elm.xdata.gband;
-                elm.xdata.gband = [ last_scene_band[1] + e_gband_before[0],
-                                    last_scene_band[1] + e_gband_before[1] ];
+                var e_gband_before = elm.gband;
+                elm.gband = [ last_scene_band[1] + e_gband_before[0],
+                              last_scene_band[1] + e_gband_before[1] ];
             });
         }
-        last_scene_band = node_res.xdata.gband;
+        last_scene_band = node_res.gband;
         root.add(node_res);
     }
 
     if (scenes_ids.length > 0) {
-        node_res.xdata.gband = [last_scene_band[0], Infinity];
-        node_res.xdata.lband = node_res.xdata.gband;
+        node_res.gband = [last_scene_band[0], Infinity];
+        node_res.lband = node_res.gband;
     }
 
     Import._paths = undefined; // clear
@@ -220,11 +220,11 @@ Import.branch = function(type, src, all, scene) {
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type == TYPE_SCENE) {
-        trg.xdata.gband = [ 0, src[2] ];
-        trg.xdata.lband = [ 0, src[2] ];
+        trg.gband = [ 0, src[2] ];
+        trg.lband = [ 0, src[2] ];
     } else {
-        trg.xdata.gband = [ 0, Infinity ];
-        trg.xdata.lband = [ 0, Infinity ];
+        trg.gband = [ 0, Infinity ];
+        trg.lband = [ 0, Infinity ];
     }
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
@@ -254,20 +254,19 @@ Import.branch = function(type, src, all, scene) {
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
-        var x = ltrg.xdata,
-            b = Import.band(lsrc[2]);
+        var b = Import.band(lsrc[2]);
         if (type == TYPE_GROUP) {
-            x.gband = [ 0, b[1] ];
-            x.lband = [ 0, b[1] ];
+            ltrg.gband = [ 0, b[1] ];
+            ltrg.lband = [ 0, b[1] ];
         } else {
-            x.lband = b;
-            x.gband = b; //in_band ? Bands.wrap(in_band, b) : b;
+            ltrg.lband = b;
+            ltrg.gband = b; //in_band ? Bands.wrap(in_band, b) : b;
         }
-        x.pvt = [ 0, 0 ];
-        x.reg = lsrc[4] || [ 0, 0 ];
+        ltrg.pvt = [ 0, 0 ];
+        ltrg.reg = lsrc[4] || [ 0, 0 ];
         /* if (lsrc[4]) {
-            ltrg.bstate.x = lsrc[4][0];
-            ltrg.bstate.y = lsrc[4][1];
+            ltrg.x = lsrc[4][0];
+            ltrg.y = lsrc[4][1];
         }; */
 
         // apply tweens
@@ -303,12 +302,12 @@ Import.branch = function(type, src, all, scene) {
          */
         // transfer repetition data
         if (lsrc[5]) {
-            x.mode = Import.mode(lsrc[5][0]);
+            ltrg.mode = Import.mode(lsrc[5][0]);
             if (lsrc[5].length > 1) {
-                x.nrep = lsrc[5][1] || Infinity;
+                ltrg.nrep = lsrc[5][1] || Infinity;
             }
         } else {
-            x.mode = Import.mode(null);
+            ltrg.mode = Import.mode(null);
         }
 
         // if do not masks any layers, just add to target
@@ -338,8 +337,8 @@ Import.branch = function(type, src, all, scene) {
 
         // [todo] temporary implementation
         if (ltrg._audio_master) {
-            x.lband = [x.lband[0], Infinity];
-            x.gband = [x.gband[0], Infinity];
+            ltrg.lband = [ltrg.lband[0], Infinity];
+            ltrg.gband = [ltrg.gband[0], Infinity];
             trg.remove(ltrg);
             scene.add(ltrg);
         }
@@ -350,10 +349,9 @@ Import.branch = function(type, src, all, scene) {
 // -> Element
 Import.leaf = function(type, src, parent, scene) {
     var trg = new Element();
-    var x = trg.xdata;
-         if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
-    else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }
-    else if (type != TYPE_AUDIO) { x.path  = Import.path(src); }
+         if (type == TYPE_IMAGE) { trg.image = Import.sheet(src); }
+    else if (type == TYPE_TEXT)  { trg.text  = Import.text(src);  }
+    else if (type != TYPE_AUDIO) { trg.path  = Import.path(src); }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
 }
