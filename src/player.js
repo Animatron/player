@@ -2673,7 +2673,7 @@ Element.prototype.ltime = function(gtime) {
                 var ffits = (gtime - gband[0]) / durtn,
                     fits = Math.floor(ffits);
                 if ((fits < 0) || (ffits > this.nrep)) return -1;
-                var t = (gtime - gband[0])s - (fits * durtn),
+                var t = (gtime - gband[0]) - (fits * durtn),
                     t = ((fits % 2) === 0) ? t : (durtn - t);
                 return this.__checkJump(t);
             }
@@ -3142,7 +3142,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(lbtime[0], dt, lbtime[1], conf.data);
+                return modifier.call(elm, lbtime[0], dt, lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -3171,7 +3171,7 @@ Element.prototype.__callPainters = function(order, ctx, t, dt) {
     (function(elm) {
         elm.__forAllPainters(order,
             function(painter, conf) { /* each painter */
-                painter.call(ctx, conf.data, t, dt);
+                painter.call(elm, ctx, conf.data, t, dt);
             }, function(type) { /* before each new type */
                 elm.__painting = type;
                 elm.__pbefore(ctx, type);
@@ -5068,7 +5068,7 @@ Sheet.prototype.load = function(callback, errback) {
     var me = this;
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
-            if (!this._thumbnail && $conf.doNotLoadImages) {
+            if (!me._thumbnail && $conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
               return; }
             var _img = new Image();
@@ -5097,7 +5097,7 @@ Sheet.prototype.load = function(callback, errback) {
             me._drawToCache();
             if (callback) callback.call(me, image);
         },
-        function(err) { $log.error(err.message || err);
+        function(err) { $log.error(err.srcElement || err.path, err.message || err);
                         me.ready = true;
                         me.wasError = true;
                         if (errback) errback.call(me, err); });
