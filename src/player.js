@@ -3405,8 +3405,8 @@ Element.transferVisuals = function(src, trg) {
     trg.path = src.path ? src.path.clone() : null;
     trg.text = src.text ? src.text.clone() : null;
     trg.image = src.image ? src.image.clone() : null;
-    trg.composite_po = src.composite_op;
     trg.mpath = src.mpath ? src.mpath.clone() : null;
+    trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {
     trg.mode = src.mode; trg.nrep = src.nrep;
@@ -3438,7 +3438,7 @@ Element.getIMatrixOf = function(elm, m) {
 
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
-    /* if (xdata.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, xdata.gband); */
+    /* if (this.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, this.gband); */
     // elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
     // elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
 }
@@ -3446,7 +3446,7 @@ Element.__addSysPainters = function(elm) {
     elm.__paint({ type: Element.SYS_PNT }, Render.p_usePivot);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_useReg);
     elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawXData);
+    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawVisuals);
 }
 Element.__addDebugRender = function(elm) {
     elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
@@ -3701,10 +3701,9 @@ Render._drawFPS = __r_fps;
 
 Render.p_drawPivot = function(ctx, pvt) {
     if (!(pvt = pvt || this.pvt)) return;
-    var dimen = this.$.dimen() || [ 0, 0 ];
+    var dimen = this.dimen() || [ 0, 0 ];
     var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
-    // WHY it is required??
     ctx.translate(pvt[0] * dimen[0],
                   pvt[1] * dimen[1]);
     ctx.beginPath();
@@ -3726,7 +3725,6 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#00f';
     ctx.fillStyle = 'rgba(0,0,255,.3)';
-    // WHY it is required??
     ctx.translate(reg[0], reg[1]);
     ctx.beginPath();
     ctx.moveTo(-4, -4);
@@ -3746,14 +3744,14 @@ Render.p_drawReg = function(ctx, reg) {
 }
 // TODO: p_drawReg
 
-Render.p_drawXData = function(ctx) {
-    var subj = this.path || this.text || this.sheet;
+Render.p_drawVisuals = function(ctx) {
+    var subj = this.path || this.text || this.image;
     if (!subj) return;
     subj.apply(ctx); // apply does ctx.save/ctx.restore by itself
 }
 
 Render.p_drawName = function(ctx, name) {
-    if (!(name = name || this.$.name)) return;
+    if (!(name = name || this.name)) return;
     ctx.save();
     ctx.fillStyle = '#666';
     ctx.font = '12px sans-serif';
@@ -3762,7 +3760,7 @@ Render.p_drawName = function(ctx, name) {
 }
 
 Render.p_applyAComp = function(ctx) {
-    if (this.acomp) ctx.globalCompositeOperation = C.AC_NAMES[this.acomp];
+    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
 }
 
 Render.p_useReg = function(ctx) {
@@ -3772,7 +3770,7 @@ Render.p_useReg = function(ctx) {
 }
 
 Render.p_usePivot = function(ctx) {
-    var dimen = this.$.dimen(),
+    var dimen = this.dimen(),
         pvt = this.pvt;
     if (!dimen) return;
     if ((pvt[0] === 0) && (pvt[1] === 0)) return;
@@ -3781,7 +3779,7 @@ Render.p_usePivot = function(ctx) {
 }
 
 Render.p_drawMPath = function(ctx, mPath) {
-    if (!(mPath = mPath || this.$.state._mpath)) return;
+    if (!(mPath = mPath || this.mpath)) return;
     ctx.save();
     //var s = this.$.astate;
     //Render.p_usePivot.call(this.xdata, ctx);
@@ -3808,15 +3806,14 @@ var Bands = {};
 // recalculate all global bands down to the very
 // child, starting from given element
 Bands.recalc = function(elm, in_band) {
-    var x = elm.xdata;
     var in_band = in_band ||
                   ( elm.parent
-                  ? elm.parent.xdata.gband
+                  ? elm.parent.gband
                   : [0, 0] );
-    x.gband = [ in_band[0] + x.lband[0],
-                in_band[0] + x.lband[1] ];
+    elm.gband = [ in_band[0] + elm.lband[0],
+                  in_band[0] + elm.lband[1] ];
     elm.visitChildren(function(celm) {
-        Bands.recalc(celm, x.gband);
+        Bands.recalc(celm, elm.gband);
     });
 }
 
@@ -3890,7 +3887,7 @@ Tweens[C.T_TRANSLATE] =
       return function(t, dt, duration, data) {
           var p = data.pointAt(t);
           if (!p) return;
-          this._mpath = data;
+          this.mpath = data;
           this.x = p[0];
           this.y = p[1];
       };
@@ -3911,7 +3908,7 @@ Tweens[C.T_SCALE] =
 Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, dt, duration, data) {
-        var path = this._mpath;
+        var path = this.mpath;
         if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
@@ -3930,9 +3927,9 @@ Tweens[C.T_COLOR] =
 
         if (data[0].color) {
           //solid fill - use a shortcut and just animate the color
-          this.$.xdata.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
+          this.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
         } else if (data[0].lgrad || data[0].rgrad) {
-          this.$.xdata.path.fill = Brush.interpolate(data[0], data[1], t);
+          this.path.fill = Brush.interpolate(data[0], data[1], t);
         }
       }
     };
@@ -5017,7 +5014,6 @@ Brush.interpolateColor = function(c1, c2, t) {
       };
   return Brush.rgbToHex(color);
 }
-
 
 Brush.interpolate = function(a, b, t){
     var result;

@@ -11,6 +11,8 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
 __anm_engine.define('anm/modules/video', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
+  // This module is just a stub template for the moment
+
   var C = anm.C,
       E = anm.Element;
 

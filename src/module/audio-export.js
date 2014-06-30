@@ -11,23 +11,18 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
 __anm_engine.define('anm/modules/audio-export', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
-var Player = anm.Player;
-
-var _export_audio_data = function(data) {
-  return {
-    "url": data.$._audio_url,
-    "band_offset": data.$._audio_band_offset,
-    "start": data.gband[0],
-    "end": data.gband[1]
-  };
-};
+var Player = anm.Player,
+    C = anm.C;
 
 Player.prototype.exportAudio = function() {
   var result = [];
   if (this.anim) {
-    this.anim.visitElems(function(el) {
-      if (el.isAudio != undefined && el.isAudio) {
-        result.push(_export_audio_data(el.xdata));
+    this.anim.visitElems(function(elm) {
+      if (elm.is(C.ET_AUDIO)) {
+        result.push({ 'url': elm._audio_url,
+                      'band_offset': elm._audio_band_offset,
+                      'start': elm.gband[0],
+                      'end': elm.gband[1] });
       }
     });
   }

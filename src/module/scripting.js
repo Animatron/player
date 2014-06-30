@@ -33,7 +33,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
         elm.scene.invokeLater(function() {
           if (elm.scene.__player_instance) {
               elm.scene.__player_instance.pause();
-              elm.scene.__player_instance.play(scenes[0].xdata.gband[0]);
+              elm.scene.__player_instance.play(scenes[0].gband[0]);
           }
         });
       }
@@ -52,6 +52,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
   };
 
   function user_ctx(elm) {
+    // FIXME: this will fail in scripting
     var ctx = elm.bstate || {};
     ctx.findByName = __findByName(elm);
     ctx.jumpToScene = __jumpToScene(elm);
