@@ -3843,53 +3843,56 @@ Tweens[C.T_SHEAR] =
 
 
 function __colorTween(data) {
-	  //returns a func which interpolates colors/gradients. used in T_FILL and T_STROKE
+    //returns a func which interpolates colors/gradients. used in T_FILL and T_STROKE
 
-	  var from, to;
-   	  if (data[0].color) {
-   	  	from = { rgba: Color.fromStr(data[0].color) };
-   	  	to = { rgba: Color.fromStr(data[1].color) };
-   	  } else if (data[0].lgrad || data[0].rgrad) {
-   	  	from = { grad: data[0].lgrad || data[0].rgrad };
-   	  	to = { grad: data[1].lgrad || data[1].rgrad };
-   	  	//parse the color stop values
-   	  	for (var i = 0; i < from.grad.stops.length; i++) {
-   	  		from.grad.stops[i][1] = Color.fromStr(from.grad.stops[i][1]);
-   	  		to.grad.stops[i][1] = Color.fromStr(to.grad.stops[i][1]);
-   	  	};
-   	  } 
+    var from, to;
+    if (data[0].color) {
+        from = { rgba: Color.fromStr(data[0].color) };
+        to = { rgba: Color.fromStr(data[1].color) };
+    } else if (data[0].lgrad || data[0].rgrad) {
+        from = { grad: data[0].lgrad || data[0].rgrad };
+        to = { grad: data[1].lgrad || data[1].rgrad };
+        //parse the color stop values
+        for (var i = 0; i < from.grad.stops.length; i++) {
+            from.grad.stops[i][1] = Color.fromStr(from.grad.stops[i][1]);
+            to.grad.stops[i][1] = Color.fromStr(to.grad.stops[i][1]);
+        }
+        ;
+    }
 
-   	  return function(t) {
+    return function (t) {
         if (from.rgba) {
-          return { color: Color.toRgbaStr(Color.interpolate(from.rgba, to.rgba, t)) };
+            return { color: Color.toRgbaStr(Color.interpolate(from.rgba, to.rgba, t)) };
         } else if (from.grad) {
-          var grad = { dir: [], stops: []}, fromg = from.grad, tog = to.grad, i;
-          for(i = 0; i < fromg.dir.length; i++) {
-          	grad.dir.push([
-          		__interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
-          		__interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
-          		]);
-          };
-          for(i = 0; i < fromg.stops.length; i++) {
-          	grad.stops.push([
-          			__interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
-          			Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t))
-          		]);
-          };
-          if (fromg.r) {
-      		grad.r = [
-      			__interpolateFloat(fromg.r[0], tog.r[0], t),
-      			__interpolateFloat(fromg.r[1], tog.r[1], t)
-      			];
-      		return {rgrad: grad};
-          } else {
-      		return {lgrad: grad};
-          }
-      	}    
-      }
+            var grad = { dir: [], stops: []}, fromg = from.grad, tog = to.grad, i;
+            for (i = 0; i < fromg.dir.length; i++) {
+                grad.dir.push([
+                    __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
+                    __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
+                ]);
+            }
+            ;
+            for (i = 0; i < fromg.stops.length; i++) {
+                grad.stops.push([
+                    __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
+                    Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t))
+                ]);
+            }
+            ;
+            if (fromg.r) {
+                grad.r = [
+                    __interpolateFloat(fromg.r[0], tog.r[0], t),
+                    __interpolateFloat(fromg.r[1], tog.r[1], t)
+                ];
+                return {rgrad: grad};
+            } else {
+                return {lgrad: grad};
+            }
+        }
+    }
 }
 
-Tweens[C.T_FILL] = 
+Tweens[C.T_FILL] =
     function(data) {
   	  var colorTween = __colorTween(data);
   	  return function(t) {
@@ -3897,21 +3900,21 @@ Tweens[C.T_FILL] =
   	  }
     };
 
-Tweens[C.T_STROKE] = 
-    function(data) {
-      var from = data[0], to = data[1];
-  	  var colorTween = __colorTween(data);
-  	  return function(t) {
-  	  	var result = colorTween(t);
-	  	//add the stroke-specific properties
-	  	result.width = __interpolateFloat(from.width, to.width, t);
-	  	result.mitter = __interpolateFloat(from.mitter, to.mitter, t);
-	  	//should we do this?
-	  	result.cap = t>0.5 ? from.cap : to.cap;
-	  	result.join = t>0.5 ? from.joint : to.join;
+Tweens[C.T_STROKE] =
+    function (data) {
+        var from = data[0], to = data[1];
+        var colorTween = __colorTween(data);
+        return function (t) {
+            var result = colorTween(t);
+            //add the stroke-specific properties
+            result.width = __interpolateFloat(from.width, to.width, t);
+            result.mitter = from.mitter;
+            //should we do this?
+            result.cap = from.cap;
+            result.join = from.join;
 
-	  	this.$.xdata.path.stroke = result;
-  	  }
+            this.$.xdata.path.stroke = result;
+        }
     };
 
 // Easings
@@ -4997,27 +5000,27 @@ Color.fromRgb = function(rgb) {
 };
 
 Color.fromRgba = function(rgba) {
-    var result = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.])?\d+)\)$/i.exec(rgba);
+    var result = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i.exec(rgba);
     return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
-        a: 1
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: parseFloat(result[4])
     } : null;
 };
 
 Color.toRgbaStr = function(color) {
 	return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
-}
+};
 
 Color.interpolate = function(c1, c2, t) {
-	return {
-		r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
+    return {
+        r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
         g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
         b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
-        a: __interpolateFloat(c1.a, c2.a, t),
-	};
-}
+        a: __interpolateFloat(c1.a, c2.a, t)
+    };
+};
 
 
 Sheet.instances = 0;
