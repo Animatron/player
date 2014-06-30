@@ -919,8 +919,6 @@ Player.prototype._prepare = function(cvs) {
 
     this.__canvasPrepared = true;
 }
-// TODO: move state inside
-// Player.prototype._initState = function() {}
 Player.prototype._addOpts = function(opts) {
     // TODO: use addOpts to add any additional options to current ones
     // will move all options directly in the player object
@@ -2245,6 +2243,12 @@ Element.prototype.initState = function() {
     else { this.matrix = $engine.createTransform(); }
 
     // previous state
+    // FIXME: get rid of previous state completely?
+    //        cons: it is useful for collisions, and user can't store it himself
+    //        because modifiers modify the state in their order and there will be
+    //        no exact moment when it is 'previous', since there always will be
+    //        some system modifiers which will work before the user's ones
+    //        (or it's ok?)
     this._x = 0; this._y = 0;   // dynamic position
     this._sx = 1; this._sy = 1; // scale by x / by y
     this._hx = 1; this._hy = 1; // shear by x / by y
@@ -2883,16 +2887,15 @@ Element.prototype.applyState = function(s) {
     this.hx = s.hx; this.hy = s.hy;
     this.angle = s.angle;
     this.alpha = s.alpha;
-    this.t = s.t; this.rt = s.rt; this.key: s.key;
+    this.t = s.t; this.rt = s.rt; this.key = s.key;
 }
-// actually, only has sense for state caching purposes
 Element.prototype.applyPrevState = function(s) {
     this._x = s.x; this._y = s.y;
     this._sx = s.sx; this._sy = s.sy;
     this._hx = s.hx; this._hy = s.hy;
     this._angle = s.angle;
     this._alpha = s.alpha;
-    this._t = s.t; this._rt = s.rt; this._key: s.key;
+    this._t = s.t; this._rt = s.rt; this._key = s.key;
 }
 Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
@@ -3063,7 +3066,7 @@ Element.prototype._stateStr = function() {
            "angle: " + this.angle + " alpha: " + this.alpha + '\n' +
            "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
 }
-Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
+Element.prototype.__adaptModTime = function(ltime, conf, modifier) {
   var elm_duration = this.lband[1] - this.lband[0], // duration of the element's local band
       mod_easing = conf.easing, // modifier easing
       mod_time = conf.time, // time (or band) of the modifier, if set
@@ -3113,31 +3116,24 @@ Element.prototype.__adaptModTime = function(ltime, conf, state, modifier) {
 Element.prototype.__callModifiers = function(order, ltime, dt) {
     return (function(elm) {
 
-        // save the previous state
+        // copy current state as previous one
         elm.applyPrevState(elm);
 
-        // FIXME: it should be the time when previous state was applied
         // FIXME: checkJump is performed before, may be it should store its values inside here?
-        elm._t   = ltime;
-        elm._rt  = ltime * (elm.lband[1] - elm.lband[0]); // FIXME: ensure this value is proper
-        elm._key = null; // FIXME: set the key if it was used in time jump
-
-        // now it looks like:
-        //
-        //     this.
-        //         .state    -> state from the last modifiers call
-        //         ._state   -> clone of the last state, it is passed to modifiers as `this`
-        //         ._state._ -> a pointer to the last state, so it will be accessible in
-        //                      modifiers as `this._`
+        if (__num(elm.__appliedAt)) {
+          elm._t   = elm.__appliedAt;
+          elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+        }
+        // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
 
         // TODO: think on sorting tweens/band-restricted-modifiers by time
 
-        elm.__loadEvts(elm._state);
+        elm.__loadEvents();
 
         if (!elm.__forAllModifiers(order,
             function(modifier, conf) { /* each modifier */
                 // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, conf, elm._state, modifier);
+                var lbtime = elm.__adaptModTime(ltime, conf, modifier);
                 // `false` will be returned from `__adaptModTime`
                 // for trigger-like modifier if it is required to skip current one,
                 // on the other hand `true` in `forAllModifiers` means
@@ -3146,7 +3142,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
                 if (lbtime === false) return true;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                return modifier.call(elm._state, lbtime[0], dt, lbtime[1], conf.data);
+                return modifier.call(lbtime[0], dt, lbtime[1], conf.data);
             }, function(type) { /* before each new type */
                 elm.__modifying = type;
                 elm.__mbefore(type);
@@ -3156,7 +3152,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
                 // forget things...
                 elm.__mafter(ltime, elm.__modifying, false);
                 elm.__modifying = null;
-                elm.__clearEvts(elm._state);
+                // elm.__clearEvts(); // why do it second time after all modifiers then?
                 // NB: nothing happens to the state or element here,
                 //     the modified things are not applied
                 return false; // ...and get out of the function
@@ -3164,19 +3160,10 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
 
         elm.__modifying = null;
 
+        elm.__appliedAt = ltime;
 
+        elm.resetEvents();
 
-        elm._state._applied = true;
-        elm._state._appliedAt = ltime;
-
-        elm.__clearEvts(elm._state);
-
-        // save modified state as last
-        elm.state = elm._state;
-        elm._state = null;
-        // state._ keeps pointing to prev state
-
-        // apply last state
         return true;
     })(this);
 }
@@ -3184,7 +3171,7 @@ Element.prototype.__callPainters = function(order, ctx, t, dt) {
     (function(elm) {
         elm.__forAllPainters(order,
             function(painter, conf) { /* each painter */
-                painter.call(elm.xdata, ctx, conf.data, t, dt);
+                painter.call(ctx, conf.data, t, dt);
             }, function(type) { /* before each new type */
                 elm.__painting = type;
                 elm.__pbefore(ctx, type);
@@ -3296,20 +3283,18 @@ Element.prototype.__pbefore = function(ctx, type) { }
 Element.prototype.__pafter = function(ctx, type) { }
 Element.prototype.__checkJump = function(at) {
     // FIXME: test if jumping do not fails with floating points problems
-    var x = this.xdata,
-        s = this.state;
-    if (x.tf) return x.tf(at);
+    if (this.tf) return this.tf(at);
     var t = null,
-        duration = x.lband[1] - x.lband[0];
+        duration = this.lband[1] - this.lband[0];
     // if jump-time was set either
     // directly or relatively or with key,
     // get its absolute local value
-    t = (s.p !== null) ? s.p : null;
-    t = ((t === null) && (s.t !== null))
-        ? s.t * duration
+    t = (this.p !== null) ? this.p : null;
+    t = ((t === null) && (this.t !== null))
+        ? this.t * duration
         : t;
-    t = ((t === null) && (s.key !== null))
-        ? x.keys[s.key]
+    t = ((t === null) && (this.key !== null))
+        ? this.keys[this.key]
         : t;
     if (t !== null) {
         if ((t < 0) || (t > duration)) {
@@ -3320,9 +3305,9 @@ Element.prototype.__checkJump = function(at) {
             // were set:
             // save jump time and return it
             this.__lastJump = [ at, t ];
-            s.p = null;
-            s.t = null;
-            s.key = null;
+            this.p = null;
+            this.t = null;
+            this.key = null;
             return t;
         }
     }
@@ -3337,9 +3322,9 @@ Element.prototype.__checkJump = function(at) {
        // or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
        // it will be just ended there
-       /* return ((this.__lastJump + t) > x.gband[1])
+       /* return ((this.__lastJump + t) > this.gband[1])
              ? (this.__lastJump + t)
-             : x.gband[1]; */
+             : this.gband[1]; */
     }
     return t;
 }
@@ -3358,17 +3343,17 @@ Element.prototype.handle__x = function(type, evt) {
 Element.prototype.__saveEvt = function(type, evt) {
     this.__evtCache.push([type, evt]);
 }
-Element.prototype.__loadEvts = function(to) {
+Element.prototype.__loadEvents = function() {
     var cache = this.__evtCache;
     var cache_len = cache.length;
-    this.__clearEvts(to);
+    this.resetEvents();
     if (cache_len > 0) {
         var edata, type, evts;
         for (var ei = 0; ei < cache_len; ei++) {
             edata = cache[ei];
             type = edata[0];
-            to.__evt_st |= type;
-            evts = to.evts;
+            this.__evt_st |= type;
+            evts = this.evts;
             if (!evts[type]) evts[type] = [];
             evts[type].push(edata[1]);
         }
@@ -3387,17 +3372,17 @@ Element.prototype.__postRender = function() {
     this.__performDetach();
 }
 Element.prototype._hasRemoteResources = function(scene, player) {
-    if (player.imagesEnabled && this.xdata.sheet) return true;
+    if (player.imagesEnabled && this.image) return true;
 }
 Element.prototype._collectRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return null;
-    if (!this.xdata.sheet) return null;
-    return [ this.xdata.sheet.src ];
+    if (!this.image) return null;
+    return [ this.image.src ];
 }
 Element.prototype._loadRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return;
-    if (!this.xdata.sheet) return;
-    this.xdata.sheet.load();
+    if (!this.image) return;
+    this.image.load();
 }
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
