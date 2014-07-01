@@ -1293,7 +1293,7 @@ Player.prototype._drawSplash = function() {
     var ratio = $engine.PX_RATIO;
 
     // background
-    ctx.fillStyle = Player.EMPTY_BG;
+    ctx.fillStyle = this.bgColor || Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
     ctx.strokeStyle = Player.EMPTY_STROKE;
     ctx.strokeWidth = Player.EMPTY_STROKE_WIDTH;
@@ -1306,10 +1306,10 @@ Player.prototype._drawSplash = function() {
 
     // text
     ctx.fillStyle = '#999966';
-    ctx.font = '18px sans-serif';
+    ctx.font = '10px sans-serif';
     ctx.fillText(Strings.COPYRIGHT, 20 * ratio, (h - 20) * ratio);
 
-    ctx.globalAlpha = .6;
+    /* ctx.globalAlpha = .6;
 
     ctx.beginPath();
     ctx.arc(w / 2 * ratio, h / 2 * ratio,
@@ -1326,7 +1326,7 @@ Player.prototype._drawSplash = function() {
     ctx.restore();
 
     Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, [ '#fff', '#900' ],
-                              [ 0.5, 0.5 ], .2);
+                              [ 0.5, 0.5 ], .2); */
 
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]); */
