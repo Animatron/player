@@ -609,7 +609,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
             //$log.debug('no remotes, calling callback');
-            if (callback) callback(result);
+            if (callback) callback.call(player, result);
             if (player.autoPlay) player.play();
         } else {
             state.happens = C.RES_LOADING;
@@ -628,7 +628,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.fire(C.S_LOAD, result);
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
-                        if (callback) callback(result);
+                        if (callback) callback.call(player, result);
                         if (player.autoPlay) player.play();
                     }
                 }
@@ -1778,7 +1778,7 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opt
 
     player.load(snapshotUrl, importer, function() {
         player._applyUrlParamsToAnimation(params);
-        if (callback) callback(player);
+        if (callback) callback.call(player);
     });
 
     return player;
