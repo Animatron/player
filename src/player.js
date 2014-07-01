@@ -524,6 +524,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     var durationPassed = false;
 
+    // FIXME: it is possible that importer constructor function will be passed
+    //        as importer (it will have IMPORTER_ID property as a marker),
+    //        since `anm.getImporter` name is not obvious;
+    //        we can't let ourselves create an importer instance manually here,
+    //        so it's considered a problem of naming.
+    if ((arg2 && arg2.IMPORTER_ID) || (arg3 && arg3.IMPORTER_ID)) {
+        throw new Error(Errors.P.IMPORTER_CONSTRUCTOR_PASSED);
+    }
+
     if (__fun(arg2)) { callback = arg2 } /* object, callback */
     else if (__num(arg2) || !arg2) { /* object, duration[, ...] */
         if (__num(arg2)) {
@@ -1332,8 +1341,11 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.fillText(text || Strings.LOADING, 20, 25);
     ctx.restore();
 }
-Player.prototype._drawLoadingCircles = function() {
-    if (this.controls) return;
+Player.prototype._drawLoadingProgress = function() {
+    // Temporarily, do nothing.
+    // Later we will show a line at the top, may be
+
+    /* if (this.controls) return;
     var theme = Controls.THEME;
     Controls._runLoadingAnimation(this.ctx, function(ctx) {
         var w = ctx.canvas.clientWidth,
@@ -1341,11 +1353,11 @@ Player.prototype._drawLoadingCircles = function() {
         // FIXME: render only changed circles
         ctx.clearRect(0, 0, w, h);
         //Controls._drawBack(ctx, theme, w, h);
-        Controls._drawLoadingCircles(ctx, w, h,
-                                     (((Date.now() / 100) % 60) / 60),
-                                     theme.radius.loader,
-                                     theme.colors.progress.left, theme.colors.progress.passed);
-    });
+        Controls._drawLoadingProgress(ctx, w, h,
+                                      (((Date.now() / 100) % 60) / 60),
+                                      theme.radius.loader,
+                                      theme.colors.progress.left, theme.colors.progress.passed);
+    }); */
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     if (this.controls) return;
@@ -1375,7 +1387,7 @@ Player.prototype._runLoadingAnimation = function(what) {
         this._drawLoadingSplash(what);
         this.controls._scheduleLoading();
     } else {
-        this._drawLoadingCircles();
+        this._drawLoadingProgress();
     }
 }
 Player.prototype._stopLoadingAnimation = function() {
@@ -3419,7 +3431,8 @@ L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
     var failure = player.__defAsyncSafe(function(err) {
-        throw new SysErr('Snapshot failed to load');
+        throw new SysErr(_strf(Errors.P.SNAPSHOT_LOADING_FAILED,
+                               [ (err ? (err.message || err) : '¿Por qué?') ]));
     });
 
     var success = function(req) {
@@ -5715,8 +5728,8 @@ Controls._drawPlay = function(ctx, theme, w, h, focused) {
     Controls._drawGuyInCorner(ctx, theme, w, h);
 }
 Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
-    Controls._drawLoadingCircles(ctx, w, h, hilite_pos, theme.radius.loader,
-                                            theme.colors.progress.left, theme.colors.progress.passed);
+    Controls._drawLoadingProgress(ctx, w, h, hilite_pos, theme.radius.loader,
+                                             theme.colors.progress.left, theme.colors.progress.passed);
 
     if (src) {
         Controls._drawText(ctx, theme,
@@ -5737,7 +5750,7 @@ Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
 
     Controls._drawGuyInCenter(ctx, theme, w, h);
 }
-Controls._drawLoadingCircles = function(ctx, w, h, hilite_pos, radius, normal_color, hilite_color) {
+Controls._drawLoadingProgress = function(ctx, w, h, hilite_pos, radius, normal_color, hilite_color) {
     ctx.save();
 
     var cx = w / 2,

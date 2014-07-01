@@ -185,10 +185,12 @@
             I[alias] = conf;
         }
 
+        // returns importer constructor (not an instance)
         function getImporter(alias) {
             return I[alias];
         }
 
+        // creates importer instance
         function createImporter(alias) {
             return new I[alias]();
         }
@@ -624,6 +626,9 @@
         Errors.P.ALREADY_ATTACHED = 'Player is already attached to this canvas, please use another one';
         Errors.P.INIT_TWICE = 'Initialization was called twice';
         Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
+        Errors.P.SNAPSHOT_LOADING_FAILED = 'Snapshot failed to load ({0})';
+        Errors.P.IMPORTER_CONSTRUCTOR_PASSED = 'You\'ve passed importer constructor to snapshot loader, but not an instance! ' +
+                                               'Probably you used anm.getImporter instead of anm.createImporter.';
         Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
         Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
         Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
