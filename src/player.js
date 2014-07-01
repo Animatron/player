@@ -974,6 +974,8 @@ Player.prototype._checkOpts = function() {
 
     this._resize(this.width, this.height);
 
+    if (this.bgColor) this.canvas.style.backgroundColor = this.bgColor;
+
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
         this.__subscribeDynamicEvents(this.anim);

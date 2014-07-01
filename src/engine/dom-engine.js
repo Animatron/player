@@ -338,40 +338,57 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return cvs.getContext(type);
     }
     $DE.extractUserOptions = function(cvs) {
-      var ratio = $DE.PX_RATIO;
-      var width = cvs.getAttribute('anm-width');
-      if (!width) {
-          width = cvs.hasAttribute('width') ? (cvs.getAttribute('width') / ratio)
-                                            : undefined;
-      }
-      var height = cvs.getAttribute('anm-height');
-      if (!height) {
-          height = cvs.hasAttribute('height') ? (cvs.getAttribute('height') / ratio)
+
+        function __boolAttr(val) {
+            //if (val === undefined) return undefined;
+            if (typeof val === 'undefined') return undefined;
+            if (val === null) return null;
+            if (val == '0') return false;
+            if (val == '1') return true;
+            if (val == 'false') return false;
+            if (val == 'true') return true;
+            if (val == 'off') return false;
+            if (val == 'on') return true;
+            if (val == 'no') return false;
+            if (val == 'yes') return true;
+        }
+
+        var ratio = $DE.PX_RATIO;
+        var width = cvs.getAttribute('anm-width');
+        if (!width) {
+            width = cvs.hasAttribute('width') ? (cvs.getAttribute('width') / ratio)
                                               : undefined;
-      }
-      return { 'debug': cvs.getAttribute('anm-debug'),
-               'mode': cvs.getAttribute('anm-mode'),
-               'repeat': cvs.getAttribute('anm-repeat'),
-               'zoom': cvs.getAttribute('anm-zoom'),
-               'speed': cvs.getAttribute('anm-speed'),
-               'width': width,
-               'height': height,
-               'autoPlay': cvs.getAttribute('anm-autoplay') || cvs.getAttribute('anm-auto-play'),
-               'bgColor': cvs.getAttribute('anm-bgcolor'),
-               'drawStill': cvs.getAttribute('anm-draw-still'),
-               'imagesEnabled': cvs.getAttribute('anm-images') || cvs.getAttribute('anm-images-enabled'),
-               'shadowsEnabled': cvs.getAttribute('anm-shadows') || cvs.getAttribute('anm-shadows-enabled'),
-               'audioEnabled': cvs.getAttribute('anm-audio') || cvs.getAttribute('anm-audio-enabled'),
-               'controlsEnabled': cvs.getAttribute('anm-controls') || cvs.getAttribute('anm-controls-enabled'),
-               'infoEnabled': cvs.getAttribute('anm-info') || cvs.getAttribute('anm-info-enabled'),
-               'handleEvents': cvs.getAttribute('anm-handle-events'),
-               'infiniteDuration': cvs.getAttribute('anm-infinite-duration'),
-               'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
-               'inParent': undefined, // TODO: check if we're in tag?
-               'muteErrors': cvs.getAttribute('anm-mute-errors'),
-               'loadingMode': cvs.getAttribute('anm-loading-mode'),
-               'thumbnail': cvs.getAttribute('anm-thumbnail')
-             };
+        }
+        var height = cvs.getAttribute('anm-height');
+        if (!height) {
+            height = cvs.hasAttribute('height') ? (cvs.getAttribute('height') / ratio)
+                                                : undefined;
+        }
+        return { 'debug': __boolAttr(cvs.getAttribute('anm-debug')),
+                 'mode': cvs.getAttribute('anm-mode'),
+                 'repeat': __boolAttr(cvs.getAttribute('anm-repeat')),
+                 'zoom': cvs.getAttribute('anm-zoom'),
+                 'speed': cvs.getAttribute('anm-speed'),
+                 'width': width,
+                 'height': height,
+                 'autoPlay': __boolAttr(cvs.getAttribute('anm-autoplay') || cvs.getAttribute('anm-auto-play')),
+                 'bgColor': cvs.getAttribute('anm-bgcolor') || cvs.getAttribute('anm-bg-color'),
+                 'drawStill': __boolAttr(cvs.getAttribute('anm-draw-still')
+                                         || cvs.getAttribute('anm-draw-thumbnail')
+                                         || cvs.getAttribute('anm-draw-thumb')),
+                 'imagesEnabled': __boolAttr(cvs.getAttribute('anm-images') || cvs.getAttribute('anm-images-enabled')),
+                 'shadowsEnabled': __boolAttr(cvs.getAttribute('anm-shadows') || cvs.getAttribute('anm-shadows-enabled')),
+                 'audioEnabled': __boolAttr(cvs.getAttribute('anm-audio') || cvs.getAttribute('anm-audio-enabled')),
+                 'controlsEnabled': __boolAttr(cvs.getAttribute('anm-controls') || cvs.getAttribute('anm-controls-enabled')),
+                 'infoEnabled': __boolAttr(cvs.getAttribute('anm-info') || cvs.getAttribute('anm-info-enabled')),
+                 'handleEvents': __boolAttr(cvs.getAttribute('anm-events') || cvs.getAttribute('anm-handle-events')),
+                 'infiniteDuration': __boolAttr(cvs.getAttribute('anm-infinite') || cvs.getAttribute('anm-infinite-duration')),
+                 'forceSceneSize': __boolAttr(cvs.getAttribute('anm-scene-size') || cvs.getAttribute('anm-force-scene-size')),
+                 'inParent': undefined, // TODO: check if we're in tag?
+                 'muteErrors': __boolAttr(cvs.getAttribute('anm-mute-errors')),
+                 'loadingMode': cvs.getAttribute('anm-loading-mode'),
+                 'thumbnail': cvs.getAttribute('anm-thumbnail')
+               };
     }
     $DE.checkPlayerCanvas = function(cvs) {
         return true;
