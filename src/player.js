@@ -5345,6 +5345,8 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
 Controls.prototype.render = function(time) {
     if (this.hidden && !this.__force) return;
 
+    if (!this.bounds) return;
+
     // TODO: may be this function should check player mode by itself and create canvas
     //       only in case it is required, but player should create Controls instance
     //       all the time, independently of the mode.
@@ -5438,6 +5440,7 @@ Controls.prototype.react = function(time) {
     if (_s === C.PLAYING) { /*$log.debug('pause at' + time);*/ this._time = time; _p.pause(); return; }
 }
 Controls.prototype.refreshByMousePos = function(pos) {
+    if (!this.bounds) return;
     var state = this.player.state,
         _lx = pos[0],
         _ly = pos[1],
@@ -5455,6 +5458,7 @@ Controls.prototype.refreshByMousePos = function(pos) {
     this.render(state.time);
 }
 Controls.prototype.handleAreaChange = function() {
+    if (!this.player || !this.player.canvas) return;
     this.bounds = $engine.getCanvasBounds(this.canvas);
 }
 Controls.prototype.handleMouseMove = function(evt) {

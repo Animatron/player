@@ -3,6 +3,7 @@
 [Currently all tests are disabled and not time-bombed in refactoring purposes (some will be turned back on after refactoring iterations, some not), so the badge below just provides nice ecologically green color for us to feel safe]
 
 [![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player)
+<!-- [![Code Climate](https://codeclimate.com/github/Animatron/player.png)](https://codeclimate.com/github/Animatron/player) -->
 
 Licensed under MIT License, see `LICENSE` file.
 

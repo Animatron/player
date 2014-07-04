@@ -263,6 +263,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
        see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
     // returns position on a screen, _including_ scroll
     $DE.findElementPosition = function(elm) {
+        if (elm.getBoundingClientRect) {
+           var rect = elm.getBoundingClientRect();
+           return [ rect.left, rect.top ];
+        }
         var curleft = 0,
             curtop = 0;
         do {
@@ -272,17 +276,31 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ curleft, curtop ];
     }
     $DE.findScrollAwarePosition = function(elm) {
+        if (elm.getBoundingClientRect) {
+            var curleft = 0,
+                curtop = 0;
+            var rect = elm.getBoundingClientRect();
+            do {
+                curleft += ((elm !== document.body)
+                            ? elm.scrollLeft
+                            : document.documentElement.scrollLeft);
+                curtop += ((elm !== document.body)
+                            ? elm.scrollTop
+                            : document.documentElement.scrollTop);
+            } while (elm = elm.offsetParent);
+            return [ rect.left - curleft, rect.top - curtop ];
+        }
         //var bound = elm.getBoundingClientRect();
         //return [ bound.left, bound.top ];
         var curleft = 0,
             curtop = 0;
         do {
             curleft += elm.offsetLeft - ((elm !== document.body)
-                                                    ? elm.scrollLeft
-                                                    : document.documentElement.scrollLeft);
+                                         ? elm.scrollLeft
+                                         : document.documentElement.scrollLeft);
             curtop += elm.offsetTop - ((elm !== document.body)
-                                                    ? elm.scrollTop
-                                                    : document.documentElement.scrollTop);
+                                         ? elm.scrollTop
+                                         : document.documentElement.scrollTop);
         } while (elm = elm.offsetParent);
         return [ curleft, curtop ];
     }
