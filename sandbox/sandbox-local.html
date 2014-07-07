@@ -20,8 +20,8 @@
     <script src="../src/vendor/matrix.js" type="text/javascript"></script>
     <script src="../src/anm.js" type="text/javascript"></script>
     <script src="../src/player.js" type="text/javascript"></script>
+    <script src="../src/module/shapes.js" type="text/javascript"></script>
     <script src="../src/module/collisions.js" type="text/javascript"></script>
-    <script src="../src/builder.js" type="text/javascript"></script>
     <!-- <script src="../dist/bundle/hardcore.js" type="text/javascript"></script> -->
     <!-- <script src="../dist/bundle/full/hardcore.js" type="text/javascript"></script> -->
 
@@ -52,7 +52,7 @@
       </div>
 
       <div><p id="refresh-calc">Current refresh period: <span data-var="secPeriod" class="TKAdjustableNumber" data-max="60"> seconds</span>.<br/>Animation will be reloaded <span data-var="perMinute"> times</span> per minute</p>
-      <p id="debug-options"><span>Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></span>
+      <p id="debug-options"><span>Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></span> /
                             <span>Log errors:&nbsp;<input type="checkbox" id="log-errors"></input></span></p>
 
       <p id="switch-mode-l">Switch mode:&nbsp;</p>
@@ -74,7 +74,7 @@
 
     <div id="right-pane">
 
-            <pre class="locked">var b = anm.Builder._$, B = anm.Builder, C = anm.C;
+            <pre class="locked">var e = anm.Element._$, E = anm.Element; C = anm.C;
 
 var scene = (function() {</pre>
 

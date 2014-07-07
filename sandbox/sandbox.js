@@ -18,8 +18,8 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
 
-    window.b = anm.Builder._$;
-    window.B = anm.Builder;
+    window.e = anm.Element._$;
+    window.E = anm.Element;
     window.C = anm.C;
 
     this.player = anm.createPlayer('my-canvas', {
