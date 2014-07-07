@@ -2143,40 +2143,12 @@ Element.TYPE_MAX_BIT = 16;
 Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
     // they are: (type << TYPE_MAX_BIT) | (priot << PRRT_MAX_BIT) | i
 
-// modifiers classes
-// the order is also determined with value
-Element.SYS_MOD = 0;
-Element.TWEEN_MOD = 1;
-Element.USER_MOD = 2;
-/* TODO: JUMP_MOD */
-Element.EVENT_MOD = 3;
-// these two simplify checking in __mafter/__mbefore
-Element.FIRST_MOD = Element.SYS_MOD;
-Element.LAST_MOD = Element.EVENT_MOD;
-// modifiers groups
-Element.ALL_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD,
-                          Element.USER_MOD, Element.EVENT_MOD ];
-Element.NOEVT_MODIFIERS = [ Element.SYS_MOD, Element.TWEEN_MOD,
-                            Element.USER_MOD ];
-
-// painters classes
-// the order is also determined with value
-Element.SYS_PNT = 0;
-Element.USER_PNT = 1;
-Element.DEBUG_PNT = 2;
-// these two simplify checking in __mafter/__mbefore
-Element.FIRST_PNT = Element.SYS_PNT;
-Element.LAST_PNT = Element.DEBUG_PNT;
-// painters groups
-Element.ALL_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT,
-                         Element.DEBUG_PNT ];
-Element.NODBG_PAINTERS = [ Element.SYS_PNT, Element.USER_PNT ];
-
-// > Element % (draw: Function(ctx: Context),
+// > Element % (name: String,
+//              draw: Function(ctx: Context),
 //              onframe: Function(time: Float))
-function Element(draw, onframe) {
+function Element(name, draw, onframe) {
     this.id = guid();
-    this.name = '';
+    this.name = name || '';
     this.type = C.ET_EMPTY;
     this.children = [];
     this.parent = null;
@@ -2214,6 +2186,7 @@ function Element(draw, onframe) {
     Element.__addSysPainters(this);
     if (global_opts.liveDebug) Element.__addDebugRender(this);
 }
+Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); }
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
@@ -2261,6 +2234,8 @@ Element.prototype.initState = function() {
                                 // if it was ever applied, the last applied key
     if (this._matrix) { this._matrix.reset() }
     else { this._matrix = $engine.createTransform(); }
+
+    return this;
 }
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
@@ -2277,6 +2252,8 @@ Element.prototype.initVisuals = function() {
     this.composite_op = null; // composition operation
 
     this.mpath = null; // move path, though it's not completely "visual"
+
+    return this;
 }
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
@@ -2289,18 +2266,21 @@ Element.prototype.initTime = function() {
     this.tf = null; // time jumping function
 
     this.__resetTimeFlags();
+
+    return this;
 }
+Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.__resetTimeFlags = function() {
     this.__lastJump = null; // a time of last jump in time
     this.__jumpLock = false; // set to turn off jumping in time
     this.__firedStart = false; // fired start event
     this.__firedStop = false;  // fired stop event
 };
-Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
     this.__evt_st = 0; // events state
     this.__evtCache = [];
+    return this;
 }
 Element.prototype.resetEvents = Element.prototype.initEvents;
 // > Element.prepare % () => Boolean
@@ -2308,16 +2288,16 @@ Element.prototype.prepare = function() {
     this.matrix.reset();
     return true;
 }
-// > Element.onframe % (ltime: Float, dt: Float) => Boolean
-Element.prototype.onframe = function(ltime, dt) {
-    return this.__callModifiers(Element.ALL_MODIFIERS, ltime, dt);
+// > Element.modifiers % (ltime: Float, dt: Float[, types: Array]) => Boolean
+Element.prototype.modifiers = function(ltime, dt, types) {
+    return this.__callModifiers(types || Element.ALL_MODIFIERS, ltime, dt);
 }
-// > Element.drawTo % (ctx: Context, t: Float, dt: Float)
-Element.prototype.drawTo = function(ctx, t, dt) {
-    return this.__callPainters(Element.ALL_PAINTERS, ctx, t, dt);
+// > Element.painters % (ctx: Context, t: Float, dt: Float[, types: Array]) => Boolean
+Element.prototype.painters = function(ctx, t, dt, types) {
+    return this.__callPainters(types || Element.ALL_PAINTERS, ctx, t, dt);
 }
 // > Element.draw % (ctx: Context)
-Element.prototype.draw = Element.prototype.drawTo;
+Element.prototype.draw = Element.prototype.painters;
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
     this.matrix = Element.getMatrixOf(this, this.matrix);
@@ -2359,7 +2339,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (this.scene && this.scene.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
-                 && this.onframe(ltime, dt)
+                 && this.modifiers(ltime, dt)
                  && this.prepare()
                  && this.visible;
     }
@@ -2373,7 +2353,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             if (!this.__mask) {
                 // draw directly to context, if has no mask
                 this.transform(ctx);
-                this.draw(ctx, ltime, dt);
+                this.painters(ctx, ltime, dt);
                 this.visitChildren(function(elm) {
                     elm.render(ctx, gtime, dt);
                 });
@@ -2442,6 +2422,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     this.__postRender();
     this.rendering = false;
     if (drawMe) this.fire(C.X_DRAW,ctx);
+    return this;
 }
 // > Element.addModifier % (( configuration: Object,
 //                            modifier: Function(time: Float,
@@ -3493,6 +3474,71 @@ Element.__convertEasing = function(easing, data, relative) {
 }
 
 var Clip = Element;
+
+// Modifier & Painter
+// -----------------------------------------------------------------------------
+
+// TODO: move to constants?
+
+// modifiers classes
+// the order is also determined with value
+Modifier.SYS_MOD = 0;
+Modifier.TWEEN_MOD = 1;
+Modifier.USER_MOD = 2;
+/* TODO: JUMP_MOD */
+Modifier.EVENT_MOD = 3;
+// these two simplify checking in __mafter/__mbefore
+Modifier.FIRST_MOD = Element.SYS_MOD;
+Modifier.LAST_MOD = Element.EVENT_MOD;
+// modifiers groups
+Modifier.ALL_MODIFIERS = [ Modifier.SYS_MOD, Modifier.TWEEN_MOD,
+                           Modifier.USER_MOD, Modifier.EVENT_MOD ];
+Modifier.NOEVT_MODIFIERS = [ Modifier.SYS_MOD, Modifier.TWEEN_MOD,
+                             Modifier.USER_MOD ];
+
+function Modifier(func, type) {
+    this.type = type || ;
+    this.band = null;
+    this.priority =
+    this.relative = false;
+    this.easing = null;
+}
+Modifier.prototype.band = function() {
+    return this;
+}
+Modifier.prototype.priority = function() {
+    return this;
+}
+Modifier.prototype.relative = function() {
+    return this;
+}
+Modifier.prototype.priority = function() {
+    return this;
+}
+Modifier.prototype.easing = function() {
+    return this;
+}
+
+// painters classes
+// the order is also determined with value
+Painter.SYS_PNT = 0;
+Painter.USER_PNT = 1;
+Painter.DEBUG_PNT = 2;
+// these two simplify checking in __mafter/__mbefore
+Painter.FIRST_PNT = Element.SYS_PNT;
+Painter.LAST_PNT = Element.DEBUG_PNT;
+// painters groups
+Painter.ALL_PAINTERS = [ Painter.SYS_PNT, Painter.USER_PNT,
+                         Painter.DEBUG_PNT ];
+Painter.NODBG_PAINTERS = [ Painter.SYS_PNT, Painter.USER_PNT ];
+
+function Painter(func, type) {
+
+}
+
+function Tween() {
+
+}
 
 // Import
 // -----------------------------------------------------------------------------
@@ -6174,6 +6220,7 @@ return (function($trg) {
     $trg.Player = Player;
     $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
+    $trg.Modifier = Modifier; $trg.Painter = Painter;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
