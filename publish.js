@@ -3,6 +3,18 @@
  * All rights are reserved.
  */
 
+/* Variables we get from template:
+   playerDomain - a URL to player domain host, e.g. player.animatron.com
+   amazonDomain — a URL to snapshot storage host, e.g. http://snapshots.animatron.com/<snapshot-id>
+   width — width of the animation
+   height - height of the animation
+   playerVersion = player version, default 'latest'
+   filename = filename of snapshot, used as amazonDomain + filename
+   autostart = (boolean) autostart of movie on player load
+   loop = (boolean) loop animation instead of stoping at the end
+   animation = JSON object of animatron movie (currently not used)
+*/
+
 var inIFrame = false;
 
 var _u = (function () { /* utils */
