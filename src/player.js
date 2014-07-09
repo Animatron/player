@@ -434,7 +434,6 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
                                  'forceSceneSize': false,
-                                 'inParent': false,
                                  'muteErrors': false
                                };
 
@@ -478,7 +477,6 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'loadingMode': undefined, // undefined means 'auto'
 //       'thumbnail': undefined,
 //       'forceSceneSize': false,
-//       'inParent': false,
 //       'muteErrors': false
 //     }
 
@@ -942,8 +940,6 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.infiniteDuration : this.infiniteDuration;
     this.forceSceneSize = __defined(opts.forceSceneSize)
                         ? opts.forceSceneSize : this.forceSceneSize;
-    this.inParent = __defined(opts.inParent)
-                        ? opts.inParent : this.inParent;
     this.muteErrors = __defined(opts.muteErrors)
                         ? opts.muteErrors : this.muteErrors;
 }
@@ -1162,9 +1158,7 @@ Player.__getPosAndRedraw = function(player) {
 Player.prototype.subscribeEvents = function(canvas) {
     var doRedraw = Player.__getPosAndRedraw(this);
     $engine.subscribeWindowEvents({
-        load: doRedraw,
-        scroll: doRedraw,
-        resize: doRedraw
+        load: doRedraw
     });
     $engine.subscribeCanvasEvents(canvas, {
         mouseover: (function(player) {
@@ -5189,7 +5183,6 @@ function Controls(player) {
     this._time = -1000;
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
-    this._inParent = player.inParent;
 }
 Controls.DEFAULT_THEME = {
   'font': {
@@ -5275,19 +5268,15 @@ Controls.THEME = Controls.DEFAULT_THEME;
 Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var cvs = this.canvas,
-        pconf = $engine.getCanvasSize(parent);
-    var _w = pconf[0],
-        _h = pconf[1];
+    var cvs = this.canvas;
     if (!cvs) {
-        cvs = $engine.addChildCanvas('ctrls-' + Controls.LAST_ID, parent,
-                 [ 0, 0, _w, _h ],
+        cvs = $engine.addCanvasOverlay('ctrls-' + Controls.LAST_ID, parent,
+                 [ 0, 0, 1, 1 ],
                  { _class: 'anm-controls',
-                   position: 'absolute',
                    //opacity: Controls.OPACITY,
                    zIndex: 100,
                    cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+                   backgroundColor: 'rgba(0, 0, 0, 0)' });
         Controls.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -5296,21 +5285,13 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
-        $engine.setCanvasSize(cvs, _w, _h);
-        $engine.moveElementTo(cvs, $engine.findElementPosition(parent));
+        $engine.updateCanvasOverlays(parent);
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
 }
 Controls.prototype.subscribeEvents = function(canvas, parent) {
     $engine.subscribeWindowEvents({
-        scroll: (function(controls) {
-                return function(evt) {
-                    controls.handleAreaChange();
-                    controls.forceNextRedraw();
-                    controls.handleMouseMove(controls._last_mevt);
-                };
-            })(this),
         mousemove: (function(controls) {
                 return function(evt) {
                     controls.handleMouseMove(evt);
@@ -5531,7 +5512,7 @@ Controls.prototype.reset = function() {
     if (this.info) this.info.reset();
 }
 Controls.prototype.detach = function(parent) {
-    $engine.detachElement(this._inParent ? parent : null, this.canvas);
+    $engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
     if (this.ctx && this.ctx.__anm_loadingReq) delete this.ctx.__anm_loadingReq;
     if (this.ctx) delete this.ctx.__anm_supressLoading;
@@ -5929,7 +5910,6 @@ function InfoBlock(player) {
     this.ctx = null;
     this.ready = false;
     this.hidden = false;
-    this._inParent = player.inParent;
     this.attached = false;
 }
 /* FIXME: merge Info Block and Controls? */
@@ -5937,16 +5917,17 @@ InfoBlock.BASE_BGCOLOR = Controls.THEME.colors.infobg;
 InfoBlock.BASE_FGCOLOR = Controls.THEME.colors.text;
 InfoBlock.OPACITY = 1;
 InfoBlock.PADDING = 6;
-InfoBlock.MARGIN = 5;
+InfoBlock.OFFSET_X = 0.03; // percents of canvas height
+InfoBlock.OFFSET_Y = 0.02; // percents of canvas width
 InfoBlock.FONT = Controls.THEME.font.face;
 InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
 InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
-InfoBlock.DEFAULT_WIDTH = 100; // FIXME: use found text width
-InfoBlock.DEFAULT_HEIGHT = 60;
+InfoBlock.DEFAULT_WIDTH = 0.3; // percents of canvas height
+InfoBlock.DEFAULT_HEIGHT = 0.1; // percents of canvas height
 InfoBlock.LAST_ID = 0;
 InfoBlock.prototype.detach = function(parent) {
     if (!this.attached) return;
-    $engine.detachElement(this._inParent ? parent : null, this.canvas);
+    $engine.detachElement(parent, this.canvas);
     this.attached = false;
 }
 // TODO: move to engine
@@ -5956,14 +5937,14 @@ InfoBlock.prototype.update = function(parent) {
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
-        cvs = $engine.addChildCanvas('info-' + InfoBlock.LAST_ID, parent,
-                 [ _m, _m, _w, _h ],
+        cvs = $engine.addCanvasOverlay('info-' + InfoBlock.LAST_ID, parent,
+                 [ InfoBlock.OFFSET_X, InfoBlock.OFFSET_Y,
+                   InfoBlock.DEFAULT_WIDTH, InfoBlock.DEFAULT_HEIGHT ],
                  { _class: 'anm-info ',
-                   position: 'absolute',
                    opacity: InfoBlock.OPACITY,
                    zIndex: 110,
                    cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+                   backgroundColor: 'rgba(0, 0, 0, 0)' });
         InfoBlock.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -5972,10 +5953,7 @@ InfoBlock.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
-        var parent_pos = $engine.findElementPosition(parent);
-        $engine.setCanvasSize(cvs, _w, _h);
-        $engine.moveElementTo(cvs, [ parent_pos[0] + _m,
-                                     parent_pos[1] + _m ]);
+        $engine.updateCanvasOverlays(parent);
     }
     //var cconf = $engine.getCanvasParams(cvs);
     // _canvas.style.left = _cp[0] + 'px';
