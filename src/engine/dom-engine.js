@@ -337,6 +337,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     $DE.createCanvas = function(width, height, bg, ratio) {
         var cvs = $doc.createElement('canvas');
+        cvs.style.verticalAlign = 'top'; // FIXME: a hack, because canvas is `display: inline` by default
+                                         //        and has `vertical-align: middle` with virtual bottom margin
+                                         //        because of this, so it causes controls positioning to break
         $DE.setCanvasSize(cvs, width, height, ratio);
         if (bg) $DE.setCanvasBackground(cvs, bg);
         return cvs;
@@ -346,6 +349,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (!cvs) return null;
         if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + id + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
+        cvs.style.verticalAlign = 'top'; // FIXME: a hack, because canvas is `display: inline` by default
+                                         //        and has `vertical-align: middle` with virtual bottom margin
+                                         //        because of this, so it causes controls positioning to break
         return cvs;
     }
     $DE.playerAttachedTo = function(cvs, player) {
@@ -425,7 +431,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
     }
     $DE.getCanvasSize = function(cvs) {
-        return [ cvs.getAttribute('clientWidth') || cvs.clientWidth,
+        if (cvs.getBoundingClientRect) {
+           var rect = cvs.getBoundingClientRect();
+           return [ rect.width, rect.height ];
+        }
+        return [ /* cvs.getAttribute('offsetWidth') || cvs.offsetWidth || */
+                 cvs.getAttribute('clientWidth') || cvs.clientWidth,
+                 /* cvs.getAttribute('offsetHeight') || cvs.offsetHeight || */
                  cvs.getAttribute('clientHeight') || cvs.clientHeight ];
     }
     $DE.getCanvasPos = function(cvs) {
@@ -534,10 +546,23 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             cvs.style[prop] = style[prop];
         }
         cvs.style.position = 'relative';
-        var new_x = x * pw,
-            new_y = -ph + (y * ph);
+        cvs.style.verticalAlign = 'top'; // FIXME: a hack, because canvas is `display: inline` by default
+                                         //        and has `vertical-align: middle` with virtual bottom margin
+                                         //        because of this, so it causes controls positioning to break
+        // offset calculation is also only required because of `position: relative`
+        var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(parent) : parent.currentStyle;
+        var off_x = (parseFloat(p_style.getPropertyValue('margin-left')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('border-left-width')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('padding-left')) || 0),
+            off_y = (parseFloat(p_style.getPropertyValue('margin-top')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('border-top-width')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('padding-top')) || 0);
+        var new_x = off_x + (x * pw),
+            new_y = -(off_y + ph) + (y * ph);
         cvs.style.left = (new_x === 0) ? '0' : (new_x + 'px');
         cvs.style.top  = (new_y === 0) ? '0' : (new_y + 'px');
+        // FIXME: it's a hack to serve user with not having any wrapping `div`-s around
+        // his canvas (if we're ok with wrapper, `position: absolute` would work for overlay)
         cvs.style.marginBottom = (new_y === 0) ? '0' : (new_y + 'px');
         // .insertBefore() in combination with .nextSibling works as .insertAfter() simulation
         (parent.parentNode || $doc.body).insertBefore(cvs, parent.nextSibling);

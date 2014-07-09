@@ -36,6 +36,8 @@ hr {
 
 canvas[anm-player=true] {
 	border: 1px solid #ccc;
+	/* padding: 10px; */
+	/* margin: 20px; */
 }
 
 textarea {
