@@ -539,7 +539,19 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             w = conf[2], h = conf[3];
         var pconf = $DE.getCanvasSize(parent),
             pw = pconf[0], ph = pconf[1];
-        var cvs = $DE.createCanvas(w * pw, h * ph);
+        var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(parent) : parent.currentStyle;
+        // TODO: include padding in offsets and diffs?
+        var width_diff  = (parseFloat(p_style.getPropertyValue('border-left-width')) || 0) +
+                          (parseFloat(p_style.getPropertyValue('border-right-width')) || 0),
+            height_diff = (parseFloat(p_style.getPropertyValue('border-top-width')) || 0) +
+                          (parseFloat(p_style.getPropertyValue('border-bottom-width')) || 0);
+        var off_x = (parseFloat(p_style.getPropertyValue('margin-left')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('border-left-width')) || 0),
+            off_y = (parseFloat(p_style.getPropertyValue('margin-top')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('border-top-width')) || 0);
+        var new_w = (w * pw) - width_diff,
+            new_h = (h * ph) - height_diff;
+        var cvs = $DE.createCanvas(new_w, new_h);
         cvs.id = parent.id ? ('__' + parent.id + '_' + id) : ('__anm_' + id);
         if (style._class) cvs.className = style._class;
         for (var prop in style) {
@@ -550,15 +562,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                                          //        and has `vertical-align: middle` with virtual bottom margin
                                          //        because of this, so it causes controls positioning to break
         // offset calculation is also only required because of `position: relative`
-        var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(parent) : parent.currentStyle;
-        var off_x = (parseFloat(p_style.getPropertyValue('margin-left')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('border-left-width')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('padding-left')) || 0),
-            off_y = (parseFloat(p_style.getPropertyValue('margin-top')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('border-top-width')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('padding-top')) || 0);
-        var new_x = off_x + (x * pw),
-            new_y = -(off_y + ph) + (y * ph);
+        var new_x = off_x + (x * new_w),
+            new_y = -(off_y + new_h) + (y * new_h);
         cvs.style.left = (new_x === 0) ? '0' : (new_x + 'px');
         cvs.style.top  = (new_y === 0) ? '0' : (new_y + 'px');
         // FIXME: it's a hack to serve user with not having any wrapping `div`-s around
