@@ -7,9 +7,9 @@
 
 Licensed under MIT License, see `LICENSE` file.
 
-See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) for description on current API state (be aware, it may appear not updated to the _real_ current state).
+**NB:** **Development is in progress. Some links below may not work at all, some documentation is outdated, API is radically changing just in this very minute, so we will update docs when it comes to a more stable state, sorry!**
 
-**NB:** Development is in process.
+See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) for description on current API state (be aware, it may appear not updated to the _real_ current state).
 
 #### See in action
 
