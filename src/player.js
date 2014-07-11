@@ -3483,49 +3483,76 @@ var Clip = Element;
 // Modifier & Painter
 // -----------------------------------------------------------------------------
 
-// TODO: move to constants?
-
 // modifiers classes
-// the order is also determined with value
-Modifier.SYS_MOD = 1;
-Modifier.TWEEN_MOD = 2;
-Modifier.USER_MOD = 3;
-/* TODO: JUMP_MOD */
-Modifier.EVENT_MOD = 4;
-// these two simplify checking in __mafter/__mbefore
-Modifier.FIRST_MOD = Element.SYS_MOD;
-Modifier.LAST_MOD = Element.EVENT_MOD;
-// modifiers groups
-Modifier.ALL_MODIFIERS = [ Modifier.SYS_MOD, Modifier.TWEEN_MOD,
-                           Modifier.USER_MOD, Modifier.EVENT_MOD ];
-Modifier.NOEVT_MODIFIERS = [ Modifier.SYS_MOD, Modifier.TWEEN_MOD,
-                             Modifier.USER_MOD ];
+C.MOD_SYSTEM = 1;
+C.MOD_TWEEN = 2;
+C.MOD_USER = 3;
+C.MOD_EVENT = 4;
 
+// FIXME: order should not be important, system should add modifiers in proper order
+//        by itself.
+
+Modifier.ORDER = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER, C.MOD_EVENT ];
+// these two simplify checking in __mafter/__mbefore
+Modifier.FIRST_MOD = C.MOD_SYSTEM;
+Modifier.LAST_MOD = C.MOD_EVENT;
+// modifiers groups
+Modifier.ALL_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER, C.MOD_EVENT ];
+Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
+
+// It's not a common constructor below, but the function (though still pretending to
+// be a constructor), which adds custom properties to a given Function instance
+// (and it is almost ok, since no `Function.prototype` is harmed this way, but only an instance).
+// For user it looks and acts as a common constructor, the difference is just in internals.
+// This allows us to store modifiers as plain functions and give user ability to add them
+// by just pushing into array.
+
+// FIXME: `t` should be a property of an element, even `dt` also may appear like so,
+//        duration is accessible through this.duration() inside the modifier
+
+// Modifier % (func: Function(t, dt, elm_duration, data)[, type: C.MOD_*])
 function Modifier(func, type) {
-    this.type = type || Modifier.USER_MOD;
-    this.band = null;
-    this.relative = false;
-    this.easing = null;
+    func.type = type || C.MOD_USER;
+    func.band = null;
+    func.relative = false;
+    func.easing = null;
+    return func;
 }
 
 // painters classes
-// the order is also determined with value
-Painter.SYS_PNT = 1;
-Painter.USER_PNT = 2;
-Painter.DEBUG_PNT = 3;
+C.PNT_SYSTEM = 1;
+C.PNT_USER = 2;
+C.PNT_DEBUG = 3;
+
+// FIXME: order should not be important, system should add painters in proper order
+//        by itself.
+
+Painter.ORDER = [ C.PNT_SYSTEM, C.PNT_USER, C.PNT_DEBUG ];
 // these two simplify checking in __mafter/__mbefore
-Painter.FIRST_PNT = Element.SYS_PNT;
-Painter.LAST_PNT = Element.DEBUG_PNT;
+Painter.FIRST_PNT = C.PNT_SYSTEM;
+Painter.LAST_PNT = C.PNT_DEBUG;
 // painters groups
-Painter.ALL_PAINTERS = [ Painter.SYS_PNT, Painter.USER_PNT,
-                         Painter.DEBUG_PNT ];
-Painter.NODBG_PAINTERS = [ Painter.SYS_PNT, Painter.USER_PNT ];
+Painter.ALL_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER, C.PNT_DEBUG ];
+Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 
+// See description above for Modifier constructor for details, same technique
+
+// Painter % (func: Function(ctx, data[, t, dt])[, type: C.PNT_*])
 function Painter(func, type) {
-
+    func.type = type || C.PNT_USER;
+    return func;
 }
 
 function Tween() {
+
+}
+
+// TODO:
+/* function ModBuilder() {
+
+} */
+
+function TweenBuilder() {
 
 }
 
@@ -6210,7 +6237,7 @@ return (function($trg) {
     $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Modifier = Modifier; $trg.Painter = Painter;
-    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
+    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing; $trg.TweenBuilder;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
 
