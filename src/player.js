@@ -2239,19 +2239,24 @@ Element.prototype.initState = function() {
 }
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
+
     this.reg = Element.DEFAULT_REG;   // registration point (static values)
     this.pvt = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
-    this.fill = null;   // Fill instance
-    this.stroke = null; // Stroke instance
+    // since properties below will conflict with getters/setters having same names,
+    // they're renamed with dollar-sign. this way also allows methods to be replaced
+    // with native JS 1.5 getters/setters just in few steps. (TODO)
 
-    this.path = null;  // Path instanse, if it is a shape
-    this.text = null;  // Text data, if it is a text
-    this.image = null; // Sheet instance, if it is an image or a sprite sheet
+    this.$fill = null;   // Fill instance
+    this.$stroke = null; // Stroke instance
+
+    this.$path = null;  // Path instanse, if it is a shape
+    this.$text = null;  // Text data, if it is a text
+    this.$image = null; // Sheet instance, if it is an image or a sprite sheet
 
     this.composite_op = null; // composition operation
 
-    this.mpath = null; // move path, though it's not completely "visual"
+    this.$mpath = null; // move path, though it's not completely "visual"
 
     return this;
 }
@@ -2751,10 +2756,10 @@ Element.prototype.dispose = function() {
 }
 // FIXME: what's the difference with resetVisuals?
 Element.prototype.disposeVisuals = function() {
-    if (this.path)  this.path.dispose();
-    if (this.text)  this.text.dispose();
-    if (this.sheet) this.sheet.dispose();
-    if (this.mpath) this.mpath.dispose();
+    if (this.$path)  this.$path.dispose();
+    if (this.$text)  this.$text.dispose();
+    if (this.$image) this.$image.dispose();
+    if (this.$mpath) this.$mpath.dispose();
 }
 Element.prototype.reset = function() {
     this.resetState();
@@ -2911,11 +2916,11 @@ Element.prototype.global = function(pt) {
 Element.prototype.dimen = function() {
     // TODO: allow to set _dimen?
     if (this._dimen) return this._dimen;
-    var subj = this.path || this.text || this.sheet;
+    var subj = this.$path || this.$text || this.$image;
     if (subj) return subj.dimen();
 }
 Element.prototype.bounds = function() {
-    var subj = this.path || this.text || this.sheet;
+    var subj = this.$path || this.$text || this.$image;
     if (subj) return subj.bounds();
 }
 Element.prototype.rect = function() {
@@ -3353,17 +3358,17 @@ Element.prototype.__postRender = function() {
     this.__performDetach();
 }
 Element.prototype._hasRemoteResources = function(scene, player) {
-    if (player.imagesEnabled && this.image) return true;
+    if (player.imagesEnabled && this.$image) return true;
 }
 Element.prototype._collectRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return null;
-    if (!this.image) return null;
-    return [ this.image.src ];
+    if (!this.$image) return null;
+    return [ this.$image.src ];
 }
 Element.prototype._loadRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return;
-    if (!this.image) return;
-    this.image.load();
+    if (!this.$image) return;
+    this.$image.load();
 }
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
@@ -3381,12 +3386,12 @@ Element.transferState = function(src, trg) {
 }
 Element.transferVisuals = function(src, trg) {
     trg.reg = [].concat(src.reg); trg.pvt = [].concat(src.pvt);
-    trg.fill = src.fill ? src.fill.clone() : null;
-    trg.stroke = src.stroke ? src.stroke.clone() : null;
-    trg.path = src.path ? src.path.clone() : null;
-    trg.text = src.text ? src.text.clone() : null;
-    trg.image = src.image ? src.image.clone() : null;
-    trg.mpath = src.mpath ? src.mpath.clone() : null;
+    trg.$fill = src.$fill ? src.$fill.clone() : null;
+    trg.$stroke = src.$stroke ? src.$stroke.clone() : null;
+    trg.$path = src.$path ? src.$path.clone() : null;
+    trg.$text = src.$text ? src.$text.clone() : null;
+    trg.$image = src.$image ? src.$image.clone() : null;
+    trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {
@@ -3482,11 +3487,11 @@ var Clip = Element;
 
 // modifiers classes
 // the order is also determined with value
-Modifier.SYS_MOD = 0;
-Modifier.TWEEN_MOD = 1;
-Modifier.USER_MOD = 2;
+Modifier.SYS_MOD = 1;
+Modifier.TWEEN_MOD = 2;
+Modifier.USER_MOD = 3;
 /* TODO: JUMP_MOD */
-Modifier.EVENT_MOD = 3;
+Modifier.EVENT_MOD = 4;
 // these two simplify checking in __mafter/__mbefore
 Modifier.FIRST_MOD = Element.SYS_MOD;
 Modifier.LAST_MOD = Element.EVENT_MOD;
@@ -3497,33 +3502,17 @@ Modifier.NOEVT_MODIFIERS = [ Modifier.SYS_MOD, Modifier.TWEEN_MOD,
                              Modifier.USER_MOD ];
 
 function Modifier(func, type) {
-    this.type = type || ;
+    this.type = type || Modifier.USER_MOD;
     this.band = null;
-    this.priority =
     this.relative = false;
     this.easing = null;
-}
-Modifier.prototype.band = function() {
-    return this;
-}
-Modifier.prototype.priority = function() {
-    return this;
-}
-Modifier.prototype.relative = function() {
-    return this;
-}
-Modifier.prototype.priority = function() {
-    return this;
-}
-Modifier.prototype.easing = function() {
-    return this;
 }
 
 // painters classes
 // the order is also determined with value
-Painter.SYS_PNT = 0;
-Painter.USER_PNT = 1;
-Painter.DEBUG_PNT = 2;
+Painter.SYS_PNT = 1;
+Painter.USER_PNT = 2;
+Painter.DEBUG_PNT = 3;
 // these two simplify checking in __mafter/__mbefore
 Painter.FIRST_PNT = Element.SYS_PNT;
 Painter.LAST_PNT = Element.DEBUG_PNT;
@@ -3791,7 +3780,7 @@ Render.p_drawReg = function(ctx, reg) {
 // TODO: p_drawReg
 
 Render.p_drawVisuals = function(ctx) {
-    var subj = this.path || this.text || this.image;
+    var subj = this.$path || this.$text || this.$image;
     if (!subj) return;
     subj.apply(ctx); // apply does ctx.save/ctx.restore by itself
 }
@@ -3825,7 +3814,7 @@ Render.p_usePivot = function(ctx) {
 }
 
 Render.p_drawMPath = function(ctx, mPath) {
-    if (!(mPath = mPath || this.mpath)) return;
+    if (!(mPath = mPath || this.$mpath)) return;
     ctx.save();
     //var s = this.$.astate;
     //Render.p_usePivot.call(this.xdata, ctx);
@@ -3933,7 +3922,7 @@ Tweens[C.T_TRANSLATE] =
       return function(t, dt, duration, data) {
           var p = data.pointAt(t);
           if (!p) return;
-          this.mpath = data;
+          this.$mpath = data;
           this.x = p[0];
           this.y = p[1];
       };
@@ -3954,7 +3943,7 @@ Tweens[C.T_SCALE] =
 Tweens[C.T_ROT_TO_PATH] =
     function() {
       return function(t, dt, duration, data) {
-        var path = this.mpath;
+        var path = this.$mpath;
         if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
@@ -3973,9 +3962,9 @@ Tweens[C.T_COLOR] =
 
         if (data[0].color) {
           //solid fill - use a shortcut and just animate the color
-          this.path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
+          this.$path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
         } else if (data[0].lgrad || data[0].rgrad) {
-          this.path.fill = Brush.interpolate(data[0], data[1], t);
+          this.$path.fill = Brush.interpolate(data[0], data[1], t);
         }
       }
     };
