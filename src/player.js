@@ -2163,8 +2163,8 @@ function Element(name, draw, onframe) {
     this.initVisuals(); // initializes visual representation storage and data
     this.initTime(); // initialize time position and everything related to time jumps
     this.initEvents(); // initialize events storage and mechanics
-    this._modifiers = [];
-    this._painters = [];
+    this.$modifiers = {};
+    this.$painters = {};
     if (onframe) this.__modify({ type: Element.USER_MOD }, onframe);
     if (draw) this.__paint({ type: Element.USER_PNT }, draw);
     this.__modifying = null; // current modifiers class, if modifying
@@ -2295,11 +2295,11 @@ Element.prototype.prepare = function() {
 }
 // > Element.modifiers % (ltime: Float, dt: Float[, types: Array]) => Boolean
 Element.prototype.modifiers = function(ltime, dt, types) {
-    return this.__callModifiers(types || Element.ALL_MODIFIERS, ltime, dt);
+    return this.__callModifiers(types || Modifier.ALL_MODIFIERS, ltime, dt);
 }
 // > Element.painters % (ctx: Context, t: Float, dt: Float[, types: Array]) => Boolean
 Element.prototype.painters = function(ctx, t, dt, types) {
-    return this.__callPainters(types || Element.ALL_PAINTERS, ctx, t, dt);
+    return this.__callPainters(types || Painter.ALL_PAINTERS, ctx, t, dt);
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
@@ -3055,7 +3055,7 @@ Element.prototype._stateStr = function() {
 Element.prototype.__adaptModTime = function(ltime, conf, modifier) {
   var elm_duration = this.lband[1] - this.lband[0], // duration of the element's local band
       mod_easing = conf.easing, // modifier easing
-      mod_time = conf.time, // time (or band) of the modifier, if set
+      mod_time = conf.band || conf.time, // time (or band) of the modifier, if set
       mod_relative = conf.relative; // is modifier time relative to elm duration or not
   var _tpair = null; // tpair
   if (mod_time == null) {
@@ -3100,21 +3100,35 @@ Element.prototype.__adaptModTime = function(ltime, conf, modifier) {
   return !mod_easing ? _tpair : [ mod_easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__callModifiers = function(order, ltime, dt) {
+    var elm = this;
+
+    // copy current state as previous one
+    elm.applyPrevState(elm);
+
+    // FIXME: checkJump is performed before, may be it should store its values inside here?
+    if (__num(elm.__appliedAt)) {
+      elm._t   = elm.__appliedAt;
+      elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+    }
+
+    // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
+
+    // TODO: think on sorting tweens/band-restricted-modifiers by time
+
+    elm.__loadEvents();
+
+
+    // TODO:!!!!
+
+
     return (function(elm) {
 
-        // copy current state as previous one
-        elm.applyPrevState(elm);
 
-        // FIXME: checkJump is performed before, may be it should store its values inside here?
-        if (__num(elm.__appliedAt)) {
-          elm._t   = elm.__appliedAt;
-          elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
-        }
-        // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
 
-        // TODO: think on sorting tweens/band-restricted-modifiers by time
 
-        elm.__loadEvents();
+
+
+
 
         if (!elm.__forAllModifiers(order,
             function(modifier, conf) { /* each modifier */
@@ -3190,6 +3204,9 @@ Element.prototype.__addTypedModifier = function(conf, modifier) {
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
 Element.prototype.__forAllModifiers = function(order, f, before_type, after_type) {
+
+
+
     var modifiers = this._modifiers;
     var type, seq, cur;
     for (var typenum = 0, last = order.length;
@@ -3484,10 +3501,10 @@ var Clip = Element;
 // -----------------------------------------------------------------------------
 
 // modifiers classes
-C.MOD_SYSTEM = 1;
-C.MOD_TWEEN = 2;
-C.MOD_USER = 3;
-C.MOD_EVENT = 4;
+C.MOD_SYSTEM = 'system';
+C.MOD_TWEEN = 'tween';
+C.MOD_USER = 'user';
+C.MOD_EVENT = 'event';
 
 // FIXME: order should not be important, system should add modifiers in proper order
 //        by itself.
@@ -3513,16 +3530,24 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
 // Modifier % (func: Function(t, dt, elm_duration, data)[, type: C.MOD_*])
 function Modifier(func, type) {
     func.type = type || C.MOD_USER;
-    func.band = null;
+    func.band = null; // either band or time is specified
+    func.time = null; // either band or time is specified
     func.relative = false;
     func.easing = null;
     return func;
 }
 
+function Tween(tween_type) {
+    if (!tween_type) throw new Error('Tween type is required to be specified');
+    var func = Tweens[tween_type]();
+    func.tween = tween_type;
+    return Modifier(func, C.MOD_TWEEN);
+}
+
 // painters classes
-C.PNT_SYSTEM = 1;
-C.PNT_USER = 2;
-C.PNT_DEBUG = 3;
+C.PNT_SYSTEM = 'system';
+C.PNT_USER = 'user';
+C.PNT_DEBUG = 'debug';
 
 // FIXME: order should not be important, system should add painters in proper order
 //        by itself.
@@ -3537,14 +3562,10 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 
 // See description above for Modifier constructor for details, same technique
 
-// Painter % (func: Function(ctx, data[, t, dt])[, type: C.PNT_*])
+// Painter % (func: Function(ctx, data[ctx, t, dt])[, type: C.PNT_*])
 function Painter(func, type) {
     func.type = type || C.PNT_USER;
     return func;
-}
-
-function Tween() {
-
 }
 
 // TODO:
@@ -3552,9 +3573,9 @@ function Tween() {
 
 } */
 
-function TweenBuilder() {
-
-}
+/* function TweenBuilder() {
+    this.value = Tween();
+} */
 
 // Import
 // -----------------------------------------------------------------------------
