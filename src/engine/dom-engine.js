@@ -527,6 +527,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                  'height': height,
                  'autoPlay': __boolAttr(cvs.getAttribute('anm-autoplay') || cvs.getAttribute('anm-auto-play')),
                  'bgColor': cvs.getAttribute('anm-bgcolor') || cvs.getAttribute('anm-bg-color'),
+                 'ribbonsColor': cvs.getAttribute('anm-ribbons') || cvs.getAttribute('anm-ribcolor') || cvs.getAttribute('anm-rib-color'),
                  'drawStill': __boolAttr(cvs.getAttribute('anm-draw-still')
                                          || cvs.getAttribute('anm-draw-thumbnail')
                                          || cvs.getAttribute('anm-draw-thumb')),

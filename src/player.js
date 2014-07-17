@@ -433,6 +433,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
+                                 'ribbonsColor': undefined,
                                  'forceSceneSize': false,
                                  'muteErrors': false
                                };
@@ -468,6 +469,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'width': undefined,
 //       'height': undefined,
 //       'bgColor': undefined,
+//       'ribbonsColor': undefined,
 //       'audioEnabled': true,
 //       'inifiniteDuration': false,
 //       'drawStill': false,
@@ -929,6 +931,8 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+    this.ribbonsColor =
+                   opts.ribbonsColor || this.ribbonsColor;
     this.thumbnail = opts.thumbnail || this.thumbnail;
     this.loadingMode = __defined(opts.loadingMode)
                         ? opts.loadingMode : this.loadingMode;
@@ -1079,7 +1083,7 @@ Player.prototype.drawAt = function(time) {
     scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, u_before, u_after);
+    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
 
     if (this.controls) this.controls.render(time);
 
@@ -1255,7 +1259,7 @@ Player.prototype._drawThumbnail = function() {
             rect1      = f_rects[2],
             rect2      = f_rects[3];
         if (rect1 || rect2) {
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = this.ribbonsColor || '#000';
             if (rect1) ctx.fillRect(rect1[0], rect1[1],
                                     rect1[2], rect1[3]);
             if (rect2) ctx.fillRect(rect2[0], rect2[1],
@@ -1760,6 +1764,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
+    opts.ribbonsColor = params.ribbons || params.ribcolor;
     return opts;
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opts) {
@@ -3531,7 +3536,9 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, scene, player.width, player.height, player.zoom, before_render, after_render);
+    __r_at(time, dt, ctx, scene,
+           player.width, player.height, player.zoom, player.ribbonsColor,
+           before_render, after_render);
 
     // show fps
     if (player.debug) {
@@ -3548,7 +3555,7 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
         __r_loop(ctx, player, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
+function __r_at(time, dt, ctx, scene, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
     if (ratio !== 1) ctx.scale(ratio, ratio);
@@ -3568,6 +3575,7 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     } else {
         __r_with_ribbons(ctx, width, height,
                               scene.width, scene.height,
+                              rib_color,
             function(_scale) {
                 try {
                   ctx.clearRect(0, 0, scene.width, scene.height);
@@ -3579,7 +3587,7 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
             });
     }
 }
-function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
+function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
     // pw == player width, ph == player height
     // sw == scene width,  sh == scene height
     var f_rects    = __fit_rects(pw, ph, sw, sh),
@@ -3590,7 +3598,7 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
     ctx.save();
     if (rect1 || rect2) { // scene_rect is null if no
         ctx.save(); // second open
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = color || '#000';
         if (rect1) ctx.fillRect(rect1[0], rect1[1],
                                 rect1[2], rect1[3]);
         if (rect2) ctx.fillRect(rect2[0], rect2[1],
