@@ -71,6 +71,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // ajax(url, callback?, errback?, method?, headers?) -> none
     // getCookie(name) -> String
 
+    // ensureGlobalStylesInjected() -> none
+    // injectElementStyles(elm, general_class, instance_class) -> [ general_rule, instance_rule ];
+
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
     // createTransform() -> Transform
@@ -79,12 +82,14 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // findElementPosition(elm) -> [ x, y ]
     // findScrollAwarePos(elm) -> [ x, y ]
     // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
-    // moveElementTo(elm, pos) -> none
+    // moveElementTo(elm, x, y) -> none
     // disposeElement(elm) -> none
     // detachElement(parent | null, child) -> none
+    // showElement(elm) -> none
+    // hideElement(elm) -> none
 
     // createCanvas(width, height, bg?, ratio?) -> canvas
-    // assignPlayerToCanvas(id, player) -> canvas
+    // assignPlayerToCanvas(canvas, player, id) -> canvas
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
     // detachPlayer(canvas, player) -> none
@@ -100,8 +105,11 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // setCanvasPos(canvas, x, y) -> none
     // setCanvasBackground(canvas, value) -> none
     // updateCanvasMetrics(canvas) -> none
-    // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], style: object) -> canvas
+    // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
     // updateCanvasOverlays(canvas) -> none
+
+    // registerAsControlsElement(elm, player) -> none
+    // registerAsInfoElement(elm, player) -> none
 
     // getEventPos(event, elm?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
@@ -219,6 +227,79 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
     }
 
+    $DE.__stylesTag = null;
+    // FIXME: move these constants to anm.js
+    $DE.PLAYER_CLASS = 'anm-player';
+    $DE.PLAYER_INSTANCE_CLASS_PREFIX = 'anm-player-';
+    $DE.CONTROLS_CLASS = 'anm-controls';
+    $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+    $DE.INFO_CLASS = 'anm-controls';
+    $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+
+    $DE.styling = {
+        // FIXME: assigning `vertical-align: top` is a hack, because canvas
+        //        is `display: inline` by default and has `vertical-align: middle`
+        //        with virtual bottom margin because of this, so it causes controls
+        //        positioning to break
+        playerGeneral: function(rule) {
+            rule.style.verticalAlign = 'top';
+        },
+        playerInstance: function(rule, desc) { },
+        controlsGeneral: function(rule) {
+            rule.style.position = 'relative';
+            rule.style.verticalAlign = 'top';
+            rule.style.zIndex = 100;
+            rule.style.cursor = 'pointer';
+            rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        },
+        controlsInstance: function(rule, desc) { },
+        infoGeneral: function(rule) {
+            rule.style.position = 'relative';
+            rule.style.verticalAlign = 'top';
+            rule.style.zIndex = 110;
+            rule.style.cursor = 'pointer';
+            rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            rule.style.opacity = 1;
+        },
+        infoInstance: function(rule, desc) { },
+    }
+
+    $DE.ensureGlobalStylesInjected = function() {
+        if ($DE.__stylesTag) return;
+        if ($doc.readyState === "complete") {
+            var stylesTag = $doc.createElement('style');
+            stylesTag.type = 'text/css';
+
+            $doc.getElementsByTagName("head")[0].appendChild(stylesTag);
+
+            $DE.__stylesTag = stylesTag;
+        } else {
+            $wnd.addEventListener("load", $DE.ensureStylesInjected, false);
+            //$wnd.addEventListener("DOMContentLoaded", $DE.ensureStylesInjected, false);
+        }
+    }
+    $DE.injectElementStyles = function(elm, general_class, instance_class) {
+        var styles = $DE.__stylesTag.sheet,
+            rules = styles.cssRules || styles.rules;
+        if (elm.classList) {
+            elm.classList.add(general_class);
+            elm.classList.add(instance_class);
+        } else if (elm.className){
+            elm.className += general_class + ' ' + instance_class;
+        } else {
+            elm.className = general_class + ' ' + instance_class;
+        }
+        elm.__anm_genClass  = general_class;
+        elm.__anm_instClass = instance_class;
+        var general_rule_idx = styles.insertRule('.'+general_class + '{}',0),
+            instance_rule_idx = styles.insertRule('.'+instance_class + '{}',0);
+        var elm_rules = [ styles.rules[general_rule_idx],
+                          styles.rules[instance_rule_idx] ];
+        elm.__anm_genRule  = elm_rules[0];
+        elm.__anm_instRule = elm_rules[1];
+        return elm_rules;
+    }
+
     $DE.__textBuf = null;
     $DE.createTextMeasurer = function() {
         var buff = $DE.__textBuf;
@@ -310,10 +391,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var rect = elm.getBoundingClientRect();
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
-    $DE.moveElementTo = function(elm, pos) {
-        //console.log(elm, pos);
-        elm.style.left = pos[0] + 'px';
-        elm.style.top  = pos[1] + 'px';
+    $DE.moveElementTo = function(elm, x, y) {
+        (elm.__anm_instRule || elm).style.left = (x === 0) ? '0' : (x + 'px');
+        (elm.__anm_instRule || elm).style.top  = (y === 0) ? '0' : (y + 'px');
     }
 
     $DE.__trashBin;
@@ -332,33 +412,69 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.detachElement = function(parent, child) {
         (parent || child.parentNode).removeChild(child);
     }
+    $DE.showElement = function(elm) {
+        elm.style.visibility = 'visible';
+    }
+    $DE.hideElement = function(elm) {
+        elm.style.visibility = 'hidden';
+    }
 
     // Creating & Modifying Canvas
 
     $DE.createCanvas = function(width, height, bg, ratio) {
         var cvs = $doc.createElement('canvas');
-        cvs.style.verticalAlign = 'top'; // FIXME: a hack, because canvas is `display: inline` by default
-                                         //        and has `vertical-align: middle` with virtual bottom margin
-                                         //        because of this, so it causes controls positioning to break
         $DE.setCanvasSize(cvs, width, height, ratio);
         if (bg) $DE.setCanvasBackground(cvs, bg);
         return cvs;
     }
-    $DE.assignPlayerToCanvas = function(cvs, player) {
+    $DE.assignPlayerToCanvas = function(cvs, player, id) {
         //if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
         if (!cvs) return null;
-        if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + id + '\'.');
+        if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + (cvs.id || id) + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
-        cvs.style.verticalAlign = 'top'; // FIXME: a hack, because canvas is `display: inline` by default
-                                         //        and has `vertical-align: middle` with virtual bottom margin
-                                         //        because of this, so it causes controls positioning to break
+        var rules = $DE.injectElementStyles(cvs,
+                                            $DE.PLAYER_CLASS,
+                                            $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+        $DE.styling.playerGeneral(rules[0]);
+        $DE.styling.playerInstance(rules[1]);
         return cvs;
     }
     $DE.playerAttachedTo = function(cvs, player) {
         return cvs.hasAttribute(MARKER_ATTR);
     }
+    $DE.clearCanvasProps = function(cvs) {
+        if (!cvs) return;
+        cvs.__anm_overlays = null;
+        cvs.__anm_subscribed = null;
+        cvs.__anm_genRule = null; cvs.__anm_instRule = null;
+        cvs.__anm_ref_canvas = null;
+        cvs.__anm_ref_conf = null; cvs.__anm_ref_pconf = null;
+        delete cvs.__anm_overlays;
+        delete cvs.__anm_subscribed;
+        delete cvs.__anm_ratio;
+        delete cvs.__anm_genRule; delete cvs.__anm_instRule;
+        delete cvs.__anm_x; delete cvs.__anm_y;
+        delete cvs.__anm_width; delete cvs.__anm_height;
+        delete cvs.__anm_usr_x; delete cvs.__anm_usr_y;
+        delete cvs.__anm_ref_canvas;
+        delete cvs.__anm_ref_conf; delete cvs.__anm_ref_pconf;
+        if (cvs.__anm_genClass  && cvs.classList) cvs.classList.remove(cvs.__anm_genClass);
+        if (cvs.__anm_instClass && cvs.classList) cvs.classList.remove(cvs.__anm_instClass);
+        delete cvs.__anm_genClass; delete cvs.__anm_instClass;
+        // delete cvs.__anm_subscribed
+    }
     $DE.detachPlayer = function(cvs, player) {
         cvs.removeAttribute(MARKER_ATTR);
+        //FIXME: remove css styles from canvas
+        if (cvs.classList) cvs.classList.remove()
+        $DE.clearCanvasProps(cvs);
+        if (player.controls) {
+            $DE.clearCanvasProps(player.controls.canvas);
+            if (player.controls.info) $DE.clearCanvasProps(player.controls.info.canvas);
+        }
+        //FIXME: should remove stylesTag when last player was deleted from page
+        //$DE.detachElement(null, $DE.__stylesTag);
+        //$DE.__stylesTag = null;
     }
     $DE.getContext = function(cvs, type) {
         return cvs.getContext(type);
@@ -463,8 +579,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__anm_ratio = ratio;
         cvs.__anm_width = _w;
         cvs.__anm_height = _h;
-        if (!cvs.style.width)  cvs.style.width  = _w + 'px';
-        if (!cvs.style.height) cvs.style.height = _h + 'px';
+        if (!cvs.style.width)  { (cvs.__anm_instRule || cvs).style.width  = _w + 'px'; }
+        if (!cvs.style.height) { (cvs.__anm_instRule || cvs).style.height = _h + 'px'; }
         cvs.setAttribute('width', _w * (ratio || 1));
         cvs.setAttribute('height', _h * (ratio || 1));
         $DE._saveCanvasPos(cvs);
@@ -477,7 +593,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE._saveCanvasPos(cvs);
     }
     $DE.setCanvasBackground = function(cvs, bg) {
-        cvs.style.backgroundColor = bg;
+        (cvs.__anm_instRule || cvs).style.backgroundColor = bg;
     }
     $DE.updateCanvasMetrics = function(cvs) { // FIXME: not used
         var pos = $DE.getCanvasPos(cvs),
@@ -531,7 +647,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
         cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
     }
-    $DE.addCanvasOverlay = function(id, parent, conf, style) {
+    $DE.addCanvasOverlay = function(id, parent, conf, callback) {
         // conf should be: [ x, y, w, h ], all in percentage relative to parent
         // style may contain _class attr
         // if (!parent) throw new Error();
@@ -551,24 +667,17 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                     (parseFloat(p_style.getPropertyValue('border-top-width')) || 0);
         var new_w = (w * pw) - width_diff,
             new_h = (h * ph) - height_diff;
-        var cvs = $DE.createCanvas(new_w, new_h);
+        var cvs = $doc.createElement('canvas');
         cvs.id = parent.id ? ('__' + parent.id + '_' + id) : ('__anm_' + id);
-        if (style._class) cvs.className = style._class;
-        for (var prop in style) {
-            cvs.style[prop] = style[prop];
-        }
-        cvs.style.position = 'relative';
-        cvs.style.verticalAlign = 'top'; // FIXME: a hack, because canvas is `display: inline` by default
-                                         //        and has `vertical-align: middle` with virtual bottom margin
-                                         //        because of this, so it causes controls positioning to break
-        // offset calculation is also only required because of `position: relative`
+        if (callback) callback(cvs, parent);
+        $DE.setCanvasSize(cvs, new_w, new_h);
+        // offset calculation is also only required because of `position: relative` (see `$DE.styling.controlsGeneral`)
         var new_x = off_x + (x * new_w),
             new_y = -(off_y + new_h) + (y * new_h);
-        cvs.style.left = (new_x === 0) ? '0' : (new_x + 'px');
-        cvs.style.top  = (new_y === 0) ? '0' : (new_y + 'px');
+        $DE.moveElementTo(cvs, new_x, new_y);
         // FIXME: it's a hack to serve user with not having any wrapping `div`-s around
         // his canvas (if we're ok with wrapper, `position: absolute` would work for overlay)
-        cvs.style.marginBottom = (new_y === 0) ? '0' : (new_y + 'px');
+        (cvs.__anm_instRule || cvs).style.marginBottom = (new_y === 0) ? '0' : (new_y + 'px');
         // .insertBefore() in combination with .nextSibling works as .insertAfter() simulation
         (parent.parentNode || $doc.body).insertBefore(cvs, parent.nextSibling);
         cvs.__anm_ref_canvas = parent;
@@ -597,11 +706,27 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                     new_y = -ph + (y * ph),
                     new_w = w * pw,
                     new_h = h * ph;
-                cvs.style.left = (new_x === 0) ? '0' : (new_x + 'px');
-                cvs.style.top  = (new_y === 0) ? '0' : (new_y + 'px');
+                $DE.moveElementTo(overlay, new_x, new_y);
                 $DE.setCanvasSize(overlay, new_w, new_h);
             }
         }
+    }
+
+    // Controls & Info
+
+    $DE.registerAsControlsElement = function(elm, player) {
+        var rules = $DE.injectElementStyles(elm,
+                                    $DE.CONTROLS_CLASS,
+                                    $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
+        $DE.styling.controlsGeneral(rules[0]);
+        $DE.styling.controlsInstance(rules[1]);
+    }
+    $DE.registerAsInfoElement = function(elm, player) {
+        var rules = $DE.injectElementStyles(elm,
+                                    $DE.INFO_CLASS,
+                                    $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
+        $DE.styling.infoGeneral(rules[0]);
+        $DE.styling.infoInstance(rules[1]);
     }
 
     // Events

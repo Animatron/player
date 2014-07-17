@@ -895,6 +895,7 @@ provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
+    $engine.ensureGlobalStylesInjected();
     var canvas_id, canvas;
     if (__str(cvs)) {
         canvas_id = cvs;
@@ -905,7 +906,7 @@ Player.prototype._prepare = function(cvs) {
         canvas_id = cvs.id;
         canvas = cvs;
     }
-    $engine.assignPlayerToCanvas(canvas, this);
+    $engine.assignPlayerToCanvas(canvas, this, canvas_id);
     if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
     this.id = canvas_id;
     this.canvas = canvas;
@@ -979,7 +980,7 @@ Player.prototype._checkOpts = function() {
 
     this._resize(this.width, this.height);
 
-    if (this.bgColor) this.canvas.style.backgroundColor = this.bgColor;
+    if (this.bgColor) $DE.setCanvasBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
@@ -5289,11 +5290,9 @@ Controls.prototype.update = function(parent) {
     if (!cvs) {
         cvs = $engine.addCanvasOverlay('ctrls-' + Controls.LAST_ID, parent,
                  [ 0, 0, 1, 1 ],
-                 { _class: 'anm-controls',
-                   //opacity: Controls.OPACITY,
-                   zIndex: 100,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' });
+                 function(cvs) {
+                    $engine.registerAsControlsElement(cvs, parent);
+                 });
         Controls.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -5359,6 +5358,14 @@ Controls.prototype.render = function(time) {
         (time === this._time) &&
         (_s === this._lhappens)) return;
 
+    // these states do not change controls visually between frames
+    if (__defined(this._lastDrawn) &&
+        (this._lastDrawn === _s) &&
+        ((_s === C.STOPPED) ||
+         (_s === C.NOTHING) ||
+         (_s === C.ERROR))
+       ) return;
+
     this.rendering = true;
 
     if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
@@ -5414,6 +5421,7 @@ Controls.prototype.render = function(time) {
     } else if (_s === C.ERROR) {
         Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
     }
+    this._lastDrawn = _s;
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -5514,13 +5522,13 @@ Controls.prototype.forceRefresh = function() {
 }
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
+    $engine.hideElement(this.canvas);
     this.hidden = true;
-    this.canvas.style.visibility = 'hidden';
     if (this.info) this.info.hide();
 }
 Controls.prototype.show = function() {
+    $engine.showElement(this.canvas);
     this.hidden = false;
-    this.canvas.style.visibility = 'visible';
     if (this.info && this._infoShown) this.info.show();
 }
 Controls.prototype.reset = function() {
@@ -5957,11 +5965,9 @@ InfoBlock.prototype.update = function(parent) {
         cvs = $engine.addCanvasOverlay('info-' + InfoBlock.LAST_ID, parent,
                  [ InfoBlock.OFFSET_X, InfoBlock.OFFSET_Y,
                    InfoBlock.DEFAULT_WIDTH, InfoBlock.DEFAULT_HEIGHT ],
-                 { _class: 'anm-info ',
-                   opacity: InfoBlock.OPACITY,
-                   zIndex: 110,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' });
+                 function(cvs) {
+                    $engine.registerAsInfoElement(cvs, parent);
+                 });
         InfoBlock.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -6021,12 +6027,12 @@ InfoBlock.prototype.reset = function() {
 
 }
 InfoBlock.prototype.hide = function() {
+    $engine.hideElement(this.canvas);
     this.hidden = true;
-    this.canvas.style.visibility = 'hidden';
 }
 InfoBlock.prototype.show = function() {
+    $engine.showElement(this.canvas);
     this.hidden = false;
-    this.canvas.style.visibility = 'visible';
 }
 InfoBlock.prototype.setDuration = function(value) {
     if (this.__data) this.inject(this.__data[0], value);
@@ -6064,7 +6070,7 @@ var _anmGuySpec = [
 var anmGuyCanvas,
     anmGuyCtx;
 function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
-    var spec = _anmGuySpec,
+    /* var spec = _anmGuySpec,
         origin = spec[0],
         dimensions = spec[1],
         scale = size ? (size / Math.max(dimensions[0], dimensions[1])) : 1,
@@ -6131,7 +6137,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     ctx.save();
     if (opacity) ctx.globalAlpha = opacity;
     ctx.drawImage(maskCanvas, x - (w / 2), y - (h / 2));
-    ctx.restore();
+    ctx.restore(); */
 }
 
 // Exports
