@@ -599,7 +599,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                     new_h = h * ph;
                 cvs.style.left = (new_x === 0) ? '0' : (new_x + 'px');
                 cvs.style.top  = (new_y === 0) ? '0' : (new_y + 'px');
-                $DE.setCanvasSize(new_w, new_h);
+                $DE.setCanvasSize(overlay, new_w, new_h);
             }
         }
     }

@@ -596,16 +596,19 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             if (player.controls) player.controls.inject(scene);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
-            //$log.debug('no remotes, calling callback');
             if (callback) callback.call(player, result);
-            if (player.autoPlay) player.play();
+            // player may appear already playing something if autoPlay or a similar time-jump
+            // flag was set from some different source of options (async, for example),
+            // then the rule (for the moment) is: last one wins
+            if (player.autoPlay) {
+                if (player.state.happens === C.PLAYING) player.stop();
+                player.play();
+            }
         } else {
             state.happens = C.RES_LOADING;
             player.fire(C.S_RES_LOAD, remotes);
-            //$log.debug('load with remotes, subscribing ', remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
-                    //$log.debug(res_results, err_count);
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
                                                   // to load different scenes and first one finished loading
@@ -617,7 +620,13 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback.call(player, result);
-                        if (player.autoPlay) player.play();
+                        // player may appear already playing something if autoPlay or a similar time-jump
+                        // flag was set from some different source of options (async, for example),
+                        // then the rule (for the moment) is: last one wins
+                        if (player.autoPlay) {
+                            if (player.state.happens === C.PLAYING) player.stop();
+                            player.play();
+                        }
                     }
                 }
             ) ]);
@@ -1780,13 +1789,21 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     // these values (t, from, p, still) may be 0 and it's a proper value,
     // so they require a check for undefined separately
 
+    // player may appear already playing something if autoPlay or a similar time-jump
+    // flag was set from some different source of options (async, for example),
+    // then the rule (for the moment) is: last one wins
+
     if (__defined(params.t)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.t / 100);
     } else if (__defined(params.from)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.from / 100);
     } else if (__defined(params.p)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
     } else if (__defined(params.still)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.still / 100).pause();
     }
 }
