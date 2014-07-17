@@ -291,10 +291,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         }
         elm.__anm_genClass  = general_class;
         elm.__anm_instClass = instance_class;
-        var general_rule_idx = styles.insertRule('.'+general_class + '{}',0),
-            instance_rule_idx = styles.insertRule('.'+instance_class + '{}',0);
-        var elm_rules = [ styles.rules[general_rule_idx],
-                          styles.rules[instance_rule_idx] ];
+        var general_rule_idx  = (styles.insertRule || styles.addRule).call(styles, '.' +general_class + '{}', rules.length),
+            instance_rule_idx = (styles.insertRule || styles.addRule).call(styles, '.' +instance_class + '{}', rules.length);
+        var elm_rules = [ rules[general_rule_idx],
+                          rules[instance_rule_idx] ];
         elm.__anm_genRule  = elm_rules[0];
         elm.__anm_instRule = elm_rules[1];
         return elm_rules;
@@ -458,6 +458,20 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         delete cvs.__anm_usr_x; delete cvs.__anm_usr_y;
         delete cvs.__anm_ref_canvas;
         delete cvs.__anm_ref_conf; delete cvs.__anm_ref_pconf;
+        if (cvs.__anm_genClass && cvs.__anm_instClass) {
+            var styles = $DE.__stylesTag.sheet,
+                rules = styles.cssRules || styles.rules;
+            var to_remove = [];
+            for (var i = 0, il = rules.length; i < il; i++) {
+                if ((rules[i].selectorText == '.' + cvs.__anm_genClass) ||
+                    (rules[i].selectorText == '.' + cvs.__anm_instClass)) {
+                    to_remove.push(i); // not to conflict while iterating
+                }
+            }
+            while (to_remove.length) { // remove from the end for safety
+                (styles.deleteRule || styles.removeRule).call(styles, to_remove.pop());
+            }
+        }
         if (cvs.__anm_genClass  && cvs.classList) cvs.classList.remove(cvs.__anm_genClass);
         if (cvs.__anm_instClass && cvs.classList) cvs.classList.remove(cvs.__anm_instClass);
         delete cvs.__anm_genClass; delete cvs.__anm_instClass;
@@ -465,8 +479,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.detachPlayer = function(cvs, player) {
         cvs.removeAttribute(MARKER_ATTR);
-        //FIXME: remove css styles from canvas
-        if (cvs.classList) cvs.classList.remove()
         $DE.clearCanvasProps(cvs);
         if (player.controls) {
             $DE.clearCanvasProps(player.controls.canvas);
