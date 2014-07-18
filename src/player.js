@@ -1780,9 +1780,9 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opt
       player._checkOpts();
     }
 
-    player.load(snapshotUrl, importer, function() {
+    player.load(snapshotUrl, importer, function(anim) {
         player._applyUrlParamsToAnimation(params);
-        if (callback) callback.call(player);
+        if (callback) callback.call(player, anim);
     });
 
     return player;
@@ -2079,6 +2079,15 @@ Scene.prototype.__removeMaskCanvases = function() {
 }
 Scene.prototype.findById = function(id) {
     return this.hash[id];
+}
+Scene.prototype.findByName = function(name, where) {
+    var where = where || this;
+    var found = [];
+    if (where.name == name) found.push(name);
+    where.travelChildren(function(elm)  {
+        if (elm.name == name) found.push(elm);
+    });
+    return found;
 }
 Scene.prototype.invokeAllLaters = function() {
     for (var i = 0; i < this._laters.length; i++) {
@@ -2869,6 +2878,9 @@ Element.prototype.toString = function() {
     }*/
     buf.push(']');
     return buf.join("");
+}
+Element.prototype.findByName = function(name) {
+    this.scene.findByName(name, this);
 }
 Element.prototype.clone = function() {
     var clone = new Element();
@@ -6170,12 +6182,7 @@ return (function($trg) {
         return found;
     }
     $trg.findByName = function(where, name) {
-        var found = [];
-        if (where.name == name) found.push(name);
-        where.travelChildren(function(elm)  {
-            if (elm.name == name) found.push(elm);
-        });
-        return found;
+        where.findByName(name);
     }
 
     $trg._$ = __createPlayer;
