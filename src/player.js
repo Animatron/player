@@ -897,7 +897,12 @@ provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-    $engine.ensureGlobalStylesInjected();
+    try {
+        $engine.ensureGlobalStylesInjected();
+    } catch(e) {
+        throw new Error('Can\'t create player before document finished rendering, ' +
+                        'please move initialization to onload event.');
+    }
     var canvas_id, canvas;
     if (__str(cvs)) {
         canvas_id = cvs;
@@ -984,7 +989,7 @@ Player.prototype._checkOpts = function() {
 
     this._resize(this.width, this.height);
 
-    if (this.bgColor) $DE.setCanvasBackground(this.canvas, this.bgColor);
+    if (this.bgColor) $engine.setCanvasBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
@@ -2291,7 +2296,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime, dt)
-                 && this.prepare()
+                 && this.prepare() // FIXME: rename to .reset(), move before transform
+                                   //        or even inside it, move out of condition
                  && this.visible;
     }
     if (drawMe) {
@@ -3792,7 +3798,7 @@ Bands.wrap = function(outer, inner) {
               : outer[1]
             ];
 }
-// makes band maximum wide to fith both bands
+// makes band maximum wide to fit both bands
 Bands.expand = function(from, to) {
     if (!from) return to;
     return [ ((to[0] < from[0])

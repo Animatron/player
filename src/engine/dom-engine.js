@@ -274,8 +274,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
             $DE.__stylesTag = stylesTag;
         } else {
-            $wnd.addEventListener("load", $DE.ensureStylesInjected, false);
-            //$wnd.addEventListener("DOMContentLoaded", $DE.ensureStylesInjected, false);
+            throw new Error('Document is not ready yet to assign styles.');
         }
     }
     $DE.injectElementStyles = function(elm, general_class, instance_class) {

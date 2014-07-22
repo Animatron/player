@@ -577,7 +577,7 @@
         var Strings = {};
         $publ.Strings = Strings;
 
-        Strings.COPYRIGHT = '© Animatron Player';
+        Strings.COPYRIGHT = 'Animatron Player';
         Strings.LOADING = 'Loading...';
         Strings.LOADING_ANIMATION = 'Loading {0}...';
 
