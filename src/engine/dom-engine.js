@@ -215,7 +215,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.getCookie = function(name) {
         // from http://www.codelib.net/javascript/cookies.html
-        var s = document.cookie, i;
+        var s = $doc.cookie, i;
         if (s)
         for (i=0, s=s.split('; '); i<s.length; i++) {
         s[i] = s[i].split('=', 2);
@@ -223,7 +223,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return unescape(s[i][1]);
         }
         return null;
-        /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec(document.cookie);
+        /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec($doc.cookie);
         return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
     }
 
@@ -266,16 +266,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     $DE.ensureGlobalStylesInjected = function() {
         if ($DE.__stylesTag) return;
-        if ($doc.readyState === "complete") {
-            var stylesTag = $doc.createElement('style');
-            stylesTag.type = 'text/css';
+        //if (!($doc.readyState === "complete")) return;
+        var stylesTag = $doc.createElement('style');
+        stylesTag.type = 'text/css';
 
-            $doc.getElementsByTagName("head")[0].appendChild(stylesTag);
+        $doc.getElementsByTagName("head")[0].appendChild(stylesTag);
 
-            $DE.__stylesTag = stylesTag;
-        } else {
-            throw new Error('Document is not ready yet to assign styles.');
-        }
+        $DE.__stylesTag = stylesTag;
     }
     $DE.injectElementStyles = function(elm, general_class, instance_class) {
         var styles = $DE.__stylesTag.sheet,
@@ -363,12 +360,12 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                 curtop = 0;
             var rect = elm.getBoundingClientRect();
             do {
-                curleft += ((elm !== document.body)
+                curleft += ((elm !== $doc.body)
                             ? elm.scrollLeft
-                            : document.documentElement.scrollLeft);
-                curtop += ((elm !== document.body)
+                            : $doc.documentElement.scrollLeft);
+                curtop += ((elm !== $doc.body)
                             ? elm.scrollTop
-                            : document.documentElement.scrollTop);
+                            : $doc.documentElement.scrollTop);
             } while (elm = elm.offsetParent);
             return [ rect.left - curleft, rect.top - curtop ];
         }
@@ -377,12 +374,12 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var curleft = 0,
             curtop = 0;
         do {
-            curleft += elm.offsetLeft - ((elm !== document.body)
+            curleft += elm.offsetLeft - ((elm !== $doc.body)
                                          ? elm.scrollLeft
-                                         : document.documentElement.scrollLeft);
-            curtop += elm.offsetTop - ((elm !== document.body)
+                                         : $doc.documentElement.scrollLeft);
+            curtop += elm.offsetTop - ((elm !== $doc.body)
                                          ? elm.scrollTop
-                                         : document.documentElement.scrollTop);
+                                         : $doc.documentElement.scrollTop);
         } while (elm = elm.offsetParent);
         return [ curleft, curtop ];
     }

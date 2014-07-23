@@ -897,12 +897,7 @@ provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-    try {
-        $engine.ensureGlobalStylesInjected();
-    } catch(e) {
-        throw new Error('Can\'t create player before document finished rendering, ' +
-                        'please move initialization to onload event.');
-    }
+    $engine.ensureGlobalStylesInjected();
     var canvas_id, canvas;
     if (__str(cvs)) {
         canvas_id = cvs;
