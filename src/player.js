@@ -3612,10 +3612,18 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
     if (rect1 || rect2) { // scene_rect is null if no
         ctx.save(); // second open
         ctx.fillStyle = color || '#000';
-        if (rect1) ctx.fillRect(rect1[0], rect1[1],
-                                rect1[2], rect1[3]);
-        if (rect2) ctx.fillRect(rect2[0], rect2[1],
-                                rect2[2], rect2[3]);
+        if (rect1) {
+            ctx.clearRect(rect1[0], rect1[1],
+                          rect1[2], rect1[3]);
+            ctx.fillRect(rect1[0], rect1[1],
+                         rect1[2], rect1[3]);
+        }
+        if (rect2) {
+            ctx.clearRect(rect2[0], rect2[1],
+                          rect2[2], rect2[3]);
+            ctx.fillRect(rect2[0], rect2[1],
+                         rect2[2], rect2[3]);
+        }
         ctx.restore();
     }
     if (scene_rect && (factor != 1)) {
