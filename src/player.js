@@ -433,6 +433,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
+                                 'ribbonsColor': undefined,
                                  'forceSceneSize': false,
                                  'muteErrors': false
                                };
@@ -468,6 +469,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'width': undefined,
 //       'height': undefined,
 //       'bgColor': undefined,
+//       'ribbonsColor': undefined,
 //       'audioEnabled': true,
 //       'inifiniteDuration': false,
 //       'drawStill': false,
@@ -895,6 +897,7 @@ provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
+    $engine.ensureGlobalStylesInjected();
     var canvas_id, canvas;
     if (__str(cvs)) {
         canvas_id = cvs;
@@ -905,7 +908,7 @@ Player.prototype._prepare = function(cvs) {
         canvas_id = cvs.id;
         canvas = cvs;
     }
-    $engine.assignPlayerToCanvas(canvas, this);
+    $engine.assignPlayerToCanvas(canvas, this, canvas_id);
     if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
     this.id = canvas_id;
     this.canvas = canvas;
@@ -928,6 +931,8 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+    this.ribbonsColor =
+                   opts.ribbonsColor || this.ribbonsColor;
     this.thumbnail = opts.thumbnail || this.thumbnail;
     this.loadingMode = __defined(opts.loadingMode)
                         ? opts.loadingMode : this.loadingMode;
@@ -979,7 +984,7 @@ Player.prototype._checkOpts = function() {
 
     this._resize(this.width, this.height);
 
-    if (this.bgColor) this.canvas.style.backgroundColor = this.bgColor;
+    if (this.bgColor) $engine.setCanvasBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
@@ -1078,7 +1083,7 @@ Player.prototype.drawAt = function(time) {
     scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, u_before, u_after);
+    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
 
     if (this.controls) this.controls.render(time);
 
@@ -1254,7 +1259,7 @@ Player.prototype._drawThumbnail = function() {
             rect1      = f_rects[2],
             rect2      = f_rects[3];
         if (rect1 || rect2) {
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = this.ribbonsColor || '#000';
             if (rect1) ctx.fillRect(rect1[0], rect1[1],
                                     rect1[2], rect1[3]);
             if (rect2) ctx.fillRect(rect2[0], rect2[1],
@@ -1759,6 +1764,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
+    opts.ribbonsColor = params.ribbons || params.ribcolor;
     return opts;
 }
 Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opts) {
@@ -1774,9 +1780,9 @@ Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opt
       player._checkOpts();
     }
 
-    player.load(snapshotUrl, importer, function() {
+    player.load(snapshotUrl, importer, function(anim) {
         player._applyUrlParamsToAnimation(params);
-        if (callback) callback.call(player);
+        if (callback) callback.call(player, anim);
     });
 
     return player;
@@ -2074,6 +2080,15 @@ Scene.prototype.__removeMaskCanvases = function() {
 Scene.prototype.findById = function(id) {
     return this.hash[id];
 }
+Scene.prototype.findByName = function(name, where) {
+    var where = where || this;
+    var found = [];
+    if (where.name == name) found.push(name);
+    where.travelChildren(function(elm)  {
+        if (elm.name == name) found.push(elm);
+    });
+    return found;
+}
 Scene.prototype.invokeAllLaters = function() {
     for (var i = 0; i < this._laters.length; i++) {
         this._laters[i].call(this);
@@ -2276,7 +2291,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.onframe(ltime, dt)
-                 && this.prepare()
+                 && this.prepare() // FIXME: rename to .reset(), move before transform
+                                   //        or even inside it, move out of condition
                  && this.visible;
     }
     if (drawMe) {
@@ -2863,6 +2879,9 @@ Element.prototype.toString = function() {
     }*/
     buf.push(']');
     return buf.join("");
+}
+Element.prototype.findByName = function(name) {
+    this.scene.findByName(name, this);
 }
 Element.prototype.clone = function() {
     var clone = new Element();
@@ -3530,7 +3549,9 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, scene, player.width, player.height, player.zoom, before_render, after_render);
+    __r_at(time, dt, ctx, scene,
+           player.width, player.height, player.zoom, player.ribbonsColor,
+           before_render, after_render);
 
     // show fps
     if (player.debug) {
@@ -3547,7 +3568,7 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
         __r_loop(ctx, player, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
+function __r_at(time, dt, ctx, scene, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
     if (ratio !== 1) ctx.scale(ratio, ratio);
@@ -3567,6 +3588,7 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     } else {
         __r_with_ribbons(ctx, width, height,
                               scene.width, scene.height,
+                              rib_color,
             function(_scale) {
                 try {
                   ctx.clearRect(0, 0, scene.width, scene.height);
@@ -3578,7 +3600,7 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
             });
     }
 }
-function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
+function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
     // pw == player width, ph == player height
     // sw == scene width,  sh == scene height
     var f_rects    = __fit_rects(pw, ph, sw, sh),
@@ -3589,7 +3611,7 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
     ctx.save();
     if (rect1 || rect2) { // scene_rect is null if no
         ctx.save(); // second open
-        ctx.fillStyle = '#000';
+        ctx.fillStyle = color || '#000';
         if (rect1) ctx.fillRect(rect1[0], rect1[1],
                                 rect1[2], rect1[3]);
         if (rect2) ctx.fillRect(rect2[0], rect2[1],
@@ -3771,7 +3793,7 @@ Bands.wrap = function(outer, inner) {
               : outer[1]
             ];
 }
-// makes band maximum wide to fith both bands
+// makes band maximum wide to fit both bands
 Bands.expand = function(from, to) {
     if (!from) return to;
     return [ ((to[0] < from[0])
@@ -5289,11 +5311,9 @@ Controls.prototype.update = function(parent) {
     if (!cvs) {
         cvs = $engine.addCanvasOverlay('ctrls-' + Controls.LAST_ID, parent,
                  [ 0, 0, 1, 1 ],
-                 { _class: 'anm-controls',
-                   //opacity: Controls.OPACITY,
-                   zIndex: 100,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' });
+                 function(cvs) {
+                    $engine.registerAsControlsElement(cvs, parent);
+                 });
         Controls.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -5359,6 +5379,14 @@ Controls.prototype.render = function(time) {
         (time === this._time) &&
         (_s === this._lhappens)) return;
 
+    // these states do not change controls visually between frames
+    if (__defined(this._lastDrawn) &&
+        (this._lastDrawn === _s) &&
+        ((_s === C.STOPPED) ||
+         (_s === C.NOTHING) ||
+         (_s === C.ERROR))
+       ) return;
+
     this.rendering = true;
 
     if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
@@ -5414,6 +5442,7 @@ Controls.prototype.render = function(time) {
     } else if (_s === C.ERROR) {
         Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
     }
+    this._lastDrawn = _s;
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -5514,13 +5543,13 @@ Controls.prototype.forceRefresh = function() {
 }
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
+    $engine.hideElement(this.canvas);
     this.hidden = true;
-    this.canvas.style.visibility = 'hidden';
     if (this.info) this.info.hide();
 }
 Controls.prototype.show = function() {
+    $engine.showElement(this.canvas);
     this.hidden = false;
-    this.canvas.style.visibility = 'visible';
     if (this.info && this._infoShown) this.info.show();
 }
 Controls.prototype.reset = function() {
@@ -5957,11 +5986,9 @@ InfoBlock.prototype.update = function(parent) {
         cvs = $engine.addCanvasOverlay('info-' + InfoBlock.LAST_ID, parent,
                  [ InfoBlock.OFFSET_X, InfoBlock.OFFSET_Y,
                    InfoBlock.DEFAULT_WIDTH, InfoBlock.DEFAULT_HEIGHT ],
-                 { _class: 'anm-info ',
-                   opacity: InfoBlock.OPACITY,
-                   zIndex: 110,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' });
+                 function(cvs) {
+                    $engine.registerAsInfoElement(cvs, parent);
+                 });
         InfoBlock.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -6021,12 +6048,12 @@ InfoBlock.prototype.reset = function() {
 
 }
 InfoBlock.prototype.hide = function() {
+    $engine.hideElement(this.canvas);
     this.hidden = true;
-    this.canvas.style.visibility = 'hidden';
 }
 InfoBlock.prototype.show = function() {
+    $engine.showElement(this.canvas);
     this.hidden = false;
-    this.canvas.style.visibility = 'visible';
 }
 InfoBlock.prototype.setDuration = function(value) {
     if (this.__data) this.inject(this.__data[0], value);
@@ -6064,7 +6091,7 @@ var _anmGuySpec = [
 var anmGuyCanvas,
     anmGuyCtx;
 function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
-    var spec = _anmGuySpec,
+    /* var spec = _anmGuySpec,
         origin = spec[0],
         dimensions = spec[1],
         scale = size ? (size / Math.max(dimensions[0], dimensions[1])) : 1,
@@ -6131,7 +6158,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     ctx.save();
     if (opacity) ctx.globalAlpha = opacity;
     ctx.drawImage(maskCanvas, x - (w / 2), y - (h / 2));
-    ctx.restore();
+    ctx.restore(); */
 }
 
 // Exports
@@ -6156,12 +6183,7 @@ return (function($trg) {
         return found;
     }
     $trg.findByName = function(where, name) {
-        var found = [];
-        if (where.name == name) found.push(name);
-        where.travelChildren(function(elm)  {
-            if (elm.name == name) found.push(elm);
-        });
-        return found;
+        where.findByName(name);
     }
 
     $trg._$ = __createPlayer;
