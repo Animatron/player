@@ -2139,10 +2139,6 @@ C.AC_NAMES[C.C_XOR]      = 'xor';
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
-Element.TYPE_MAX_BIT = 16;
-Element.PRRT_MAX_BIT = 8; // used to calculate modifiers/painters id's:
-    // they are: (type << TYPE_MAX_BIT) | (priot << PRRT_MAX_BIT) | i
-
 // > Element % (name: String,
 //              draw: Function(ctx: Context),
 //              onframe: Function(time: Float))
@@ -2429,102 +2425,73 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
 }
-// > Element.addModifier % (( configuration: Object,
-//                            modifier: Function(time: Float,
-//                                               data: Any) => Boolean)
-//                        | ( modifier: Function(time: Float,
-//                                             data: Any) => Boolean,
-//                            [easing: Function()],
-//                            [data: Any],
-//                            [priority: Int]
-//                         ) => Integer
-Element.prototype.addModifier = function(modifier, easing, data, priority) {
-    if (__obj(modifier)) {
-      // modifier is configuration here and easing is modifier factually
-      modifier.type = Element.USER_MOD; // here, type should always be user-modifier
-      return this.__modify(modifier, easing);
-    } else {
-      return this.__modify({ type: Element.USER_MOD,
-                             priority: priority,
-                             easing: easing,
-                             data: data }, modifier);
+// FIXME: do not pass time, dt and duration neither to modifiers
+//        nor painters, they should be accessible through this.t / this.dt
+// > Element.modify % (modifier: Function(t: Float,
+//                                        dt: Float,
+//                                        duration: Float,
+//                                        data: Any
+//                                       ) => Boolean
+//                               | Modifier) => Modifier
+
+modifier.call(elm, lbtime[0], dt, lbtime[1], conf.data);
+Element.prototype.modify = function(modifier) {
+    if (!(modifier instanceof Modifier) && __fun(modifier)) {
+        modifier = new Modifier(modifier, C.MOD_USER);
+    } else if (!(modifier instanceof Modifier)) {
+        throw new AnimError('Modifier should be either a function or a Modifier instance');
     }
-}
-// > Element.addTModifier % (restriction: Array[Float, 2] | Float,
-//                           modifier: Function(time: Float,
-//                                              data: Any) => Boolean,
-//                           [easing: Function()],
-//                           [data: Any],
-//                           [priority: Int]
-//                          ) => Integer
-Element.prototype.addTModifier = function(time, modifier, easing, data, priority) {
-    return this.__modify({ type: Element.USER_MOD,
-                           priority: priority,
-                           time: time,
-                           easing: easing,
-                           data: data }, modifier);
-}
-// > Element.addRModifier % (modifier: Function(time: Float,
-//                                             data: Any) => Boolean,
-//                           [easing: Function()],
-//                           [data: Any],
-//                           [priority: Int]
-//                          ) => Integer
-Element.prototype.addRModifier = function(modifier, easing, data, priority) {
-    return this.__modify({ type: Element.USER_MOD,
-                           priority: priority,
-                           easing: easing,
-                           relative: true,
-                           data: data }, modifier);
-}
-// > Element.addRTModifier % (restriction: Array[Float, 2] | Float,
-//                            modifier: Function(time: Float,
-//                                               data: Any) => Boolean,
-//                            [easing: Function()],
-//                            [data: Any],
-//                            [priority: Int]
-//                           ) => Integer
-Element.prototype.addRTModifier = function(time, modifier, easing, data, priority) {
-    return this.__modify({ type: Element.USER_MOD,
-                           priority: priority,
-                           time: time,
-                           easing: easing,
-                           relative: true,
-                           data: data }, modifier);
+    if (!modifier.type) throw new AnimError('Modifier should have a type defined');
+    if (modifier.__applied_to &&
+        modifier.__applied_to[this.id]) throw new AnimError('This modifier is already applied to this Element');
+    if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
+    this.$modifiers[modifier.type].push(modifier);
+    this.__modifiers_hash[modifier.id] = modifier;
+    if (!modifier.__applied_to) modifier.__applied_to = {};
+    modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type
+    return modifier;
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
-    if (!modifier.__m_ids) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
+    if (!modifier instanceof Modifier) throw new AnimError('Please pass Modifier instance to removeModifier');
+    if (!this.__modifiers_hash[modifier.id]) throw new AnimErr('Modifier wasn\'t applied to this element');
+    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
-    var id = modifier.__m_ids[this.id];
-    delete modifier.__m_ids[this.id];
-    if (!id) throw new AnimErr('Modifier wasn\'t applied to this element');
-    var TB = Element.TYPE_MAX_BIT,
-        PB = Element.PRRT_MAX_BIT;
-    var type = id >> TB,
-        priority = (id - (type << TB)) >> PB,
-        i = id - (type << TB) - (priority << PB);
-    this._modifiers[type][priority][i] = null;
+    delete this.__modifiers_hash[modifier.id];
+    delete this.$modifiers[modifier.type].splice(modifier.__applied_to[this.id], 1); // delete by index
+    delete modifier.__applied_to[this.id];
 }
-// > Element.addPainter % (painter: Function(ctx: Context))
+// > Element.addPainter % (painter: Function(ctx: Context,
+//                                           data: Any,
+//                                           t: Float,
+//                                           dt: Float)
+//                                  | Painter)
 //                         => Integer
-Element.prototype.addPainter = function(painter, data, priority) {
-    return this.__paint({ type: Element.USER_PNT,
-                          priority: priority,
-                          data: data }, painter);
+Element.prototype.paint = function(painter) {
+    if (!(painter instanceof Painter) && __fun(painter)) {
+        painter = new Painter(painter, C.MOD_USER);
+    } else if (!(painter instanceof Painter)) {
+        throw new AnimError('Painter should be either a function or a Painter instance');
+    }
+    if (!painter.type) throw new AnimError('Painter should have a type defined');
+    if (painter.__applied_to &&
+        painter.__applied_to[this.id]) throw new AnimError('This painter is already applied to this Element');
+    if (!this.$painters[painter.type]) this.$painters[painter.type] = [];
+    this.$painters[painter.type].push(painter);
+    this.__painters_hash[painter.id] = painter;
+    if (!painter.__applied_to) painter.__applied_to = {};
+    painter.__applied_to[this.id] = this.$painters[painter.type].length; // the index in the array by type
+    return painter;
 }
-// > Element.removePainter % (painter: Function)
+// > Element.removePainter % (painter: Function | Painter)
 Element.prototype.removePainter = function(painter) {
-    if (!painter.__p_ids) throw new AnimErr('Painter wasn\'t applied to anything');
-    //if (this.__painting) throw new AnimErr("Can't remove painters while painting");
-    var id = painter.__p_ids[this.id];
-    delete painter.__p_ids[this.id];
-    var TB = Element.TYPE_MAX_BIT,
-        PB = Element.PRRT_MAX_BIT;
-    var type = id >> TB,
-        priority = (id - (type << TB)) >> PB,
-        i = id - (type << TB) - (priority << PB);
-    this._painters[type][priority][i] = null;
+    if (!painter instanceof Painter) throw new AnimError('Please pass Painter instance to removePainter');
+    if (!this.__painters_hash[painter.id]) throw new AnimErr('Painter wasn\'t applied to this element');
+    if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
+    //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
+    delete this.__painters_hash[painter.id];
+    delete this.$painters[painter.type].splice(painter.__applied_to[this.id], 1); // delete by index
+    delete painter.__applied_to[this.id];
 }
 // > Element.addTween % (tween: Tween)
 Element.prototype.addTween = function(tween) {
@@ -3529,11 +3496,12 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
 
 // Modifier % (func: Function(t, dt, elm_duration, data)[, type: C.MOD_*])
 function Modifier(func, type) {
+    func.id = guid();
     func.type = type || C.MOD_USER;
-    func.band = null; // either band or time is specified
-    func.time = null; // either band or time is specified
-    func.relative = false;
-    func.easing = null;
+    func.band = func.band || null; // either band or time is specified
+    func.time = __definded(func.time) ? func.time : null; // either band or time is specified
+    func.relative = __definded(func.relative) ? func.relative : false;
+    func.easing = func.easing || null;
     return func;
 }
 
@@ -3564,6 +3532,7 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 
 // Painter % (func: Function(ctx, data[ctx, t, dt])[, type: C.PNT_*])
 function Painter(func, type) {
+    func.id = guid();
     func.type = type || C.PNT_USER;
     return func;
 }
