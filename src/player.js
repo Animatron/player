@@ -590,6 +590,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(scene);
         }
+        scene.loadFonts();
         var remotes = scene._collectRemoteResources(player);
         if (!remotes.length) {
             player._stopLoadingAnimation();
@@ -2086,6 +2087,32 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
+
+
+Scene.prototype.loadFonts = function() {
+    var fonts = this.fonts,
+        style = document.createElement('style'),
+        css = '',
+        detector = new Detector();
+    if(!this.fonts || !this.fonts.length) {
+        return;
+    }
+    style.type = 'text/css';
+    for(var i=0; i<fonts.length; i++) {
+        if(detector.detect(fonts[i].face)) {
+            //font already available
+            continue;
+        }
+        css += '@font-face {' +
+            'font-family: "' + fonts[i].face + '"; ' +
+            'src: url(' + fonts[i].url + ')' +
+            '}\n';
+    }
+
+    style.innerText = css;
+    document.body.appendChild(style);
+
+};
 // Element
 // -----------------------------------------------------------------------------
 
