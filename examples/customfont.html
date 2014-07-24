@@ -1,0 +1,89 @@
+
+<!--
+ ~ Copyright (c) 2011-2014 by Animatron.
+ ~ All rights are reserved.
+ ~
+ ~ Animatron player is licensed under the MIT License, see LICENSE.
+ -->
+
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>The Animatron HTML5 Player Demo</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
+    <link rel="stylesheet" href="./demo.css" type="text/css" />
+
+    <script src="../src/vendor/matrix.js" type="text/javascript"></script>
+    <script src="../src/engine/dom-engine.js" type="text/javascript"></script>
+    <script src="../src/anm.js" type="text/javascript"></script>
+    <script src="../src/player.js" type="text/javascript"></script>
+    <script src="../src/builder.js" type="text/javascript"></script>
+    <script src="../src/module/audio.js" type="text/javascript"></script>
+    <script src="../src/module/collisions.js" type="text/javascript"></script>
+    <script src="../src/module/scripting.js" type="text/javascript"></script>
+    <script src="../src/import/animatron-importer.js" type="text/javascript"></script>
+
+    <!-- here's the custom font, it now works -->
+    <style type="text/css">
+    	/*@font-face {
+	      font-family: "UbuntuCondensed-Regular";
+	      src: url("https://googlefontdirectory.googlecode.com/hg/ufl/ubuntucondensed/UbuntuCondensed-Regular.ttf");
+	    }*/
+    </style>
+
+    <!-- <script src="../dist/full/bundle/animatron.js" type="text/javascript"></script> -->
+
+    <script type="text/javascript">
+
+      var scene = '{"meta":{"id":"f57b74530e614d48d2245d47","created":1400142837240,"modified":1406049421208,"author":"Yuriy Opryshko","description":"","name":"Copy 1","copyright":"Copyright (c) by Anonymous","duration":3.0,"numberOfScenes":2,"projectAccess":{"visibility":"UNLISTED","writeAccess":[],"readAccess":["PUBLIC"]}},"anim":{"dimension":[550.0,450.0],"framerate":24.0,"loop":false,"background":"#ffffff","paths":["IgAAWN5QAACd14JunYNsGABAACgwAIAAQTdNPk4AAAxFNAAAGIphZFqfJQn/8AAKE//gABCyLbBugAAE7r4=","KIZHBt3QhMA=","JtXeHXrjND3wdDYw","JKEiLDCMyDP73EjA","KEkYinuYzfWQY81M","KOxUBKOAzqwoE8aM","KJdeBxxQhMA=","JraeGozjJPGhwyzA","KILcCimQhMA="],"fonts":[{"face":"UbuntuCondensed-Regular","url":"http://s3.amazonaws.com/animatron-uploads-dev/796db153570f06a7b4f7591a.ttf","style":"normal"},{"face":"UbuntuCondensed-Regular","url":"http://s3.amazonaws.com/animatron-uploads-dev/796db153570f06a7b4f7591a.ttf","style":"bold"}],"elements":[[2,"$$$LIBRARY$$$",10.0,[],{}],[2,"Scene1",2.0,[[2,"omg custom font",[0.0,2.0],"",[169.0,32.0],"",4,[[4,[0.0,2.0],24,2]],{}],[3,"Shape 1",[0.0,2.0],"",[44.5,45.5],"",4,[[9,[0.0,1.2],"",[[[44.5,0.0,44.5,90.999],["#757532","#000000"],[0.0,1.0]],[[44.5,0.0,44.5,90.999],["#3e3e34","#000000"],[0.0,1.0]]]],[9,[1.2,2.0],"",[[[44.5,0.0,44.5,90.999],["#3e3e34","#000000"],[0.0,1.0]],[[44.5,0.0,44.5,90.999],["#f5f505","#000000"],[0.0,1.0]]]],[10,[0.0,1.2],"",[[0.0,"#000000","","",-1.0],[5.0,"#d21010","","",-1.0]]],[10,[1.2,2.0],"",[[5.0,"#d21010","","",-1.0],[5.0,"#ffff00","","",-1.0]]],[4,[0.0,1.2],16,3],[4,[1.2,2.0],17,4]],{}],[4,"Layer 2","","",[400.0,250.0],"",4,[[2,[0.0,2.0],"",[0.688,0.688,0.954,0.954]],[2,[2.0],"",[0.954]],[4,[0.0,2.0],"",5],[4,[2.0],"",6]],{}]],{}],[4,"#000000","","","54px UbuntuCondensed-Regular","","omg custom font",2],[6,"#ffff00","","",0],[8,"http://s3.amazonaws.com/animatron-uploads-dev/f8f5cf532491e125b369ed01.jpg",[800.0,500.0]],[2,"Scene2",1.0,[[6,"some more of the custom font","","",[148.5,13.0],"",4,[[4,[0.0,1.0],"",7],[4,[1.0],"",8]],{}]],{}],[4,"#000000","","","bold 24px UbuntuCondensed-Regular","","some more of the custom font",2]],"scenes":[1,5]}}';
+
+      var player = null;
+
+      function createPlayer() {
+          return anm.createPlayer('canvas', { audioEnabled: false, /*controlsEnabled: false, autoPlay: true*/ });
+      }
+
+      function load(json) {
+          if (!player) return;
+
+          var /*b = Builder._$, */C = anm.C;
+          var AnimatronImporter = anm.getImporter('animatron');
+
+          var project = JSON.parse(json);
+
+          // canvas0
+          var importer = new AnimatronImporter();
+          player.detach();
+          //var importer = new AnimatronImporter();
+          player = createPlayer();
+          //player.debug = true;
+          player.load(project, importer);
+          //var b = Builder._$;
+          //player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
+          //player.play();
+      }
+
+      function start() {
+          if (!window.__anm_conf) window.__anm_conf = {};
+          window.__anm_conf.logImport = true;
+          window.__anm_conf.logResMan = true;
+
+          player = createPlayer();
+          load(scene);
+      }
+    </script>
+  </head>
+
+  <body onload="start();">
+    <h1 style="margin-bottom: 20px">custom font demo</h1>
+
+    <canvas id="canvas" width="600" height="600"></canvas>
+
+    
+
+    <div id="copyright" style="clear: both"><span>© O_o</span></div>
+
+  </body>
+
+</html>
