@@ -2167,7 +2167,7 @@ function Element(name, draw, onframe) {
     this.__painting = null; // current painters class, if painting
     this.__detachQueue = [];
     this.__frameProcessors = [];
-    this.__u_data = null; // user data
+    this.data = {}; // user data
     this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
     // TODO: call '.reset() here?'
     var _me = this,
@@ -2205,6 +2205,7 @@ Element.prototype.initState = function() {
     this.angle = 0;           // rotation angle
     this.alpha = 1;           // opacity
     // these values are for user to set
+    this.dt = null;
     this.t = null; this.rt = null; this.key = null;
                                // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
@@ -2213,6 +2214,11 @@ Element.prototype.initState = function() {
 
     // previous state
     // FIXME: get rid of previous state completely?
+    //        of course current state should contain previous values before executing
+    //        modifiers on current frame, but they may happen to be overwritten by them,
+    //        so sometimes it'd be nice to know what was there at previous time for sure;
+    //        though user may modify time value also through this.t and it should contain
+    //        current time (probably), not the last one.
     //        cons: it is useful for collisions, and user can't store it himself
     //        because modifiers modify the state in their order and there will be
     //        no exact moment when it is 'previous', since there always will be
@@ -2225,6 +2231,7 @@ Element.prototype.initState = function() {
     this._alpha = 1;            // opacity
     // these values are set by engine to provide user with information
     // when previous state was rendered
+    this._dt = null;
     this._t = null; this._rt = null; this._key = null;
                                 // cur local time (t) and 0..1 time (rt) and,
                                 // if it was ever applied, the last applied key
@@ -2425,23 +2432,24 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
 }
-// FIXME: do not pass time, dt and duration neither to modifiers
-//        nor painters, they should be accessible through this.t / this.dt
+// FIXME!!!: do not pass time, dt and duration neither to modifiers
+//           nor painters, they should be accessible through this.t / this.dt
 // > Element.modify % (modifier: Function(t: Float,
 //                                        dt: Float,
 //                                        duration: Float,
 //                                        data: Any
 //                                       ) => Boolean
 //                               | Modifier) => Modifier
-
-modifier.call(elm, lbtime[0], dt, lbtime[1], conf.data);
-Element.prototype.modify = function(modifier) {
+Element.prototype.modify = function(band, modifier) {
+    if (!__arr(band)) { modifier = band;
+                        band = null; }
     if (!(modifier instanceof Modifier) && __fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
     } else if (!(modifier instanceof Modifier)) {
         throw new AnimError('Modifier should be either a function or a Modifier instance');
     }
     if (!modifier.type) throw new AnimError('Modifier should have a type defined');
+    if (band) modifier.band = band;
     if (modifier.__applied_to &&
         modifier.__applied_to[this.id]) throw new AnimError('This modifier is already applied to this Element');
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
@@ -2461,7 +2469,7 @@ Element.prototype.removeModifier = function(modifier) {
     delete this.$modifiers[modifier.type].splice(modifier.__applied_to[this.id], 1); // delete by index
     delete modifier.__applied_to[this.id];
 }
-// > Element.addPainter % (painter: Function(ctx: Context,
+// > Element.paint % (painter: Function(ctx: Context,
 //                                           data: Any,
 //                                           t: Float,
 //                                           dt: Float)
@@ -2493,26 +2501,18 @@ Element.prototype.removePainter = function(painter) {
     delete this.$painters[painter.type].splice(painter.__applied_to[this.id], 1); // delete by index
     delete painter.__applied_to[this.id];
 }
-// > Element.addTween % (tween: Tween)
-Element.prototype.addTween = function(tween) {
-    return Element.__addTweenModifier(this, tween);
-}
-// > Element.changeTransform % (transform: Function(ctx: Context,
-//                                                   prev: Function(Context)))
-Element.prototype.changeTransform = function(transform) {
-    this.transform = (function(elm, new_, prev) {
-        return function(ctx) {
-           new_.call(elm, ctx, prev);
-        }
-    } )(this, transform, this.transform);
+// > Element.tween % (tween: Tween)
+Element.prototype.tween = function(tween) {
+    if (!(tween instanceof Tween)) throw new AnimError('Please pass Tween instance to .tween() method');
+    return this.modify(tween);
 }
 // > Element.add % (elem: Element | Clip)
 // > Element.add % (elems: Array[Element])
 // > Element.add % (draw: Function(ctx: Context),
-//                   onframe: Function(time: Float),
-//                   [ transform: Function(ctx: Context,
-//                                         prev: Function(Context)) ])
-//                   => Element
+//                  onframe: Function(time: Float),
+//                  [ transform: Function(ctx: Context,
+//                                        prev: Function(Context)) ])
+//                  => Element
 Element.prototype.add = function(arg1, arg2, arg3) {
     if (arg2) { // element by functions mode
         var _elm = new Element(arg1, arg2);
@@ -2932,8 +2932,8 @@ Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
     clone.children = [].concat(this.children);
-    clone._modifiers = [].concat(this._modifiers);
-    clone._painters = [].concat(this._painters);
+    clone.$modifiers = [].concat(this.$modifiers);
+    clone.$painters = [].concat(this.$painters);
     clone.level = this.level;
     //clone.visible = this.visible;
     //clone.disabled = this.disabled;
@@ -2959,18 +2959,18 @@ Element.prototype.shallow = function() {
         cclone.parent = clone;
         trg_children.push(cclone);
     }
-    clone._modifiers = [];
+    clone.$modifiers = [];
     /* FIXME: use __forAllModifiers & __forAllPainters */
     // loop through type
-    for (var mti = 0, mtl = this._modifiers.length; mti < mtl; mti++) {
-        var type_group = this._modifiers[mti];
+    for (var mti = 0, mtl = this.$modifiers.length; mti < mtl; mti++) {
+        var type_group = this.$modifiers[mti];
         if (!type_group) continue;
-        clone._modifiers[mti] = [];
+        clone.$modifiers[mti] = [];
         // loop through priority
         for (var mpi = 0, mpl = type_group.length; mpi < mpl; mpi++) {
             var priority_group = type_group[mpi];
             if (!priority_group) continue;
-            clone._modifiers[mti][mpi] = [].concat(priority_group);
+            clone.$modifiers[mti][mpi] = [].concat(priority_group);
             for (var mi = 0, ml = priority_group.length; mi < ml; mi++) {
                 var modifier = priority_group[mi];
                 if (modifier && modifier.__m_ids) {
@@ -2979,17 +2979,17 @@ Element.prototype.shallow = function() {
             }
         }
     }
-    clone._painters = [];
+    clone.$painters = [];
     // loop through type
-    for (var pti = 0, ptl = this._painters.length; pti < ptl; pti++) {
-        var type_group = this._painters[pti];
+    for (var pti = 0, ptl = this.$painters.length; pti < ptl; pti++) {
+        var type_group = this.$painters[pti];
         if (!type_group) continue;
-        clone._painters[pti] = [];
+        clone.$painters[pti] = [];
         // loop through priority
         for (var ppi = 0, ppl = type_group.length; ppi < ppl; ppi++) {
             var priority_group = type_group[ppi];
             if (!priority_group) continue;
-            clone._painters[pti][ppi] = [].concat(priority_group);
+            clone.$painters[pti][ppi] = [].concat(priority_group);
             for (var pi = 0, pl = priority_group.length; pi < pl; pi++) {
                 var painter = priority_group[pi];
                 if (painter && painter.__p_ids) {
@@ -3147,27 +3147,6 @@ Element.prototype.__callPainters = function(order, ctx, t, dt) {
             });
         elm.__painting = null;
     })(this);
-}
-//Element.prototype.__addTypedModifier = function(type, priority, band, modifier, easing, data) {
-Element.prototype.__addTypedModifier = function(conf, modifier) {
-    if (!modifier) throw new AnimErr(Errors.A.NO_MODIFIER_PASSED);
-    var modifiers = this._modifiers;
-    var elm_id = this.id;
-    if (!modifier.__m_ids) modifier.__m_ids = {};
-    else if (modifier.__m_ids[elm_id]) throw new AnimErr(Errors.A.MODIFIER_REGISTERED);
-    var priority = conf.priority || 0,
-        type = conf.type;
-    if (!modifiers[type]) modifiers[type] = [];
-    if (!modifiers[type][priority]) modifiers[type][priority] = [];
-    modifiers[type][priority].push([ modifier, { type: type, // configuration is cloned for safety
-                                                 priority: priority,
-                                                 time: conf.time,
-                                                 relative: conf.relative,
-                                                 easing: Element.__convertEasing(conf.easing, null, conf.relative),
-                                                 data: conf.data } ]);
-    modifier.__m_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-                               (modifiers[type][priority].length - 1);
-    return modifier;
 }
 Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
 Element.prototype.__forAllModifiers = function(order, f, before_type, after_type) {
@@ -3541,10 +3520,14 @@ function Painter(func, type) {
 /* function ModBuilder() {
 
 } */
+// new Modifier().band(0, 2).normalBand(0, 0.5).
+//   easing(..).priority(..).data(..);
 
 /* function TweenBuilder() {
     this.value = Tween();
 } */
+// new TweenBuilder().band(...).type("scale").from(10, 20).to(30, 40).scale(band, 10).build()
+
 
 // Import
 // -----------------------------------------------------------------------------
