@@ -590,49 +590,51 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(scene);
         }
-        scene.loadFonts();
-        var remotes = scene._collectRemoteResources(player);
-        if (!remotes.length) {
-            player._stopLoadingAnimation();
-            if (player.controls) player.controls.inject(scene);
-            player.fire(C.S_LOAD, result);
-            if (!player.handleEvents) player.stop();
-            if (callback) callback.call(player, result);
-            // player may appear already playing something if autoPlay or a similar time-jump
-            // flag was set from some different source of options (async, for example),
-            // then the rule (for the moment) is: last one wins
-            if (player.autoPlay) {
-                if (player.state.happens === C.PLAYING) player.stop();
-                player.play();
-            }
-        } else {
-            state.happens = C.RES_LOADING;
-            player.fire(C.S_RES_LOAD, remotes);
-            _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
-                function(res_results, err_count) {
-                    //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
-                    if (player.anim === result) { // avoid race condition when there were two requests
-                                                  // to load different scenes and first one finished loading
-                                                  // after the second one
-                        player._stopLoadingAnimation();
-                        if (player.controls) player.controls.inject(result);
-                        player.state.happens = C.LOADING;
-                        player.fire(C.S_LOAD, result);
-                        if (!player.handleEvents) player.stop();
-                        player._callPostpones();
-                        if (callback) callback.call(player, result);
-                        // player may appear already playing something if autoPlay or a similar time-jump
-                        // flag was set from some different source of options (async, for example),
-                        // then the rule (for the moment) is: last one wins
-                        if (player.autoPlay) {
-                            if (player.state.happens === C.PLAYING) player.stop();
-                            player.play();
+        scene.loadFonts(function() {
+            var remotes = scene._collectRemoteResources(player);
+            if (!remotes.length) {
+                player._stopLoadingAnimation();
+                if (player.controls) player.controls.inject(scene);
+                player.fire(C.S_LOAD, result);
+                if (!player.handleEvents) player.stop();
+                if (callback) callback.call(player, result);
+                // player may appear already playing something if autoPlay or a similar time-jump
+                // flag was set from some different source of options (async, for example),
+                // then the rule (for the moment) is: last one wins
+                if (player.autoPlay) {
+                    if (player.state.happens === C.PLAYING) player.stop();
+                    player.play();
+                }
+            } else {
+                state.happens = C.RES_LOADING;
+                player.fire(C.S_RES_LOAD, remotes);
+                _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
+                    function(res_results, err_count) {
+                        //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                        if (player.anim === result) { // avoid race condition when there were two requests
+                            // to load different scenes and first one finished loading
+                            // after the second one
+                            player._stopLoadingAnimation();
+                            if (player.controls) player.controls.inject(result);
+                            player.state.happens = C.LOADING;
+                            player.fire(C.S_LOAD, result);
+                            if (!player.handleEvents) player.stop();
+                            player._callPostpones();
+                            if (callback) callback.call(player, result);
+                            // player may appear already playing something if autoPlay or a similar time-jump
+                            // flag was set from some different source of options (async, for example),
+                            // then the rule (for the moment) is: last one wins
+                            if (player.autoPlay) {
+                                if (player.state.happens === C.PLAYING) player.stop();
+                                player.play();
+                            }
                         }
                     }
-                }
-            ) ]);
-            scene._loadRemoteResources(player);
-        }
+                ) ]);
+                scene._loadRemoteResources(player);
+            }
+        });
+
     };
     whenDone = player.__defAsyncSafe(whenDone);
 
@@ -2089,10 +2091,11 @@ Scene.prototype.invokeLater = function(f) {
 }
 
 
-Scene.prototype.loadFonts = function() {
+Scene.prototype.loadFonts = function(cb) {
     var fonts = this.fonts,
         style = document.createElement('style'),
         css = '',
+        fontsToLoad =[],
         detector = new Detector();
     if(!this.fonts || !this.fonts.length) {
         return;
@@ -2103,6 +2106,7 @@ Scene.prototype.loadFonts = function() {
             //font already available
             continue;
         }
+        fontsToLoad.push(fonts[i].face);
         css += '@font-face {' +
             'font-family: "' + fonts[i].face + '"; ' +
             'src: url(' + fonts[i].url + ')' +
@@ -2110,8 +2114,21 @@ Scene.prototype.loadFonts = function() {
     }
 
     style.innerText = css;
-    document.body.appendChild(style);
+    document.head.appendChild(style);
 
+    var checkInterval,
+        checkLoaded = function() {
+            var loaded = true;
+            for(var i=0; i<fontsToLoad.length;i++) {
+                loaded &= detector.detect(fontsToLoad[i]);
+            }
+            if(loaded) {
+                clearInterval(checkInterval);
+                if(cb) cb();
+            }
+        };
+
+    checkInterval = setInterval(checkLoaded, 100);
 };
 // Element
 // -----------------------------------------------------------------------------

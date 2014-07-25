@@ -39,6 +39,9 @@ var Detector = function() {
     // create a SPAN in the document to get the width of the text we use to test
     var s = document.createElement("span");
     s.style.fontSize = testSize;
+    s.style.position = 'absolute';
+    s.style.top = '-9999px';
+    s.style.left = '-9999px';
     s.innerHTML = testString;
     var defaultWidth = {};
     var defaultHeight = {};
