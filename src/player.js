@@ -2215,15 +2215,16 @@ Element.prototype.initState = function() {
     // previous state
     // FIXME: get rid of previous state completely?
     //        of course current state should contain previous values before executing
-    //        modifiers on current frame, but they may happen to be overwritten by them,
+    //        modifiers on current frame, but they may happen to be overwritten by other modifiers,
     //        so sometimes it'd be nice to know what was there at previous time for sure;
-    //        though user may modify time value also through this.t and it should contain
-    //        current time (probably), not the last one.
-    //        cons: it is useful for collisions, and user can't store it himself
+    //        though user may modify time value also through this.t, and it should contain
+    //        current time (probably), but not the last one.
+    //        pros: it is useful for collisions, and user can't store it himself
     //        because modifiers modify the state in their order and there will be
     //        no exact moment when it is 'previous', since there always will be
     //        some system modifiers which will work before the user's ones
     //        (or it's ok?)
+    //        cons: it's unreadable and may confuse users (with what?)
     this._x = 0; this._y = 0;   // dynamic position
     this._sx = 1; this._sy = 1; // scale by x / by y
     this._hx = 1; this._hy = 1; // shear by x / by y
@@ -2571,6 +2572,7 @@ Element.prototype.makeBandFit = function() {
 }
 // > Element.setBand % (band: Array[2, Float])
 Element.prototype.setBand = function(band) {
+    // TODO: change to .band([start, end]) -> Element
     this.lband = band;
     Bands.recalc(this);
 }
@@ -3077,6 +3079,9 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
       elm._t   = elm.__appliedAt;
       elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
     }
+    // FIXME: elm.t and elm.dt both should store real time for this moment
+    //        modifier may have its own time, though, but not painter, so painters probably
+    //        don't need any additional time/dt and data
 
     // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
 
