@@ -409,10 +409,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         (parent || child.parentNode).removeChild(child);
     }
     $DE.showElement = function(elm) {
-        elm.style.visibility = 'visible';
+        (elm.__anm_instRule || elm).style.visibility = 'visible';
     }
     $DE.hideElement = function(elm) {
-        elm.style.visibility = 'hidden';
+        (elm.__anm_instRule || elm).style.visibility = 'hidden';
     }
 
     // Creating & Modifying Canvas
