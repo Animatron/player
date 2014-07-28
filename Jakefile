@@ -211,6 +211,8 @@ var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
 var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
 
+var MOCK_MINIFICATION = false; // it's for debugging purposes, when we need full version in minified files
+
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
 function _build_time() { var now = new Date();
@@ -1052,6 +1054,11 @@ task('_minify', { async: true }, function() {
     // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
     function minify(src, cb) {
         var dst = _minified(src);
+        if (MOCK_MINIFICATION) {
+          jake.cpR(src, dst);
+          cb(dst);
+          return;
+        }
         jake.exec([
           [ Binaries.UGLIFYJS,
             '--ascii',
