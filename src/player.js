@@ -584,6 +584,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     player._reset();
 
     state.happens = C.LOADING;
+    player.fire(C.S_CHANGE_STATE, C.LOADING);
     player._runLoadingAnimation();
 
     var whenDone = function(result) {
@@ -608,6 +609,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             }
         } else {
             state.happens = C.RES_LOADING;
+            player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
             _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
@@ -618,6 +620,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player._stopLoadingAnimation();
                         if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
+                        player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
@@ -777,6 +780,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                 player.__userBeforeRender,
                                 player.__userAfterRender);
 
+    player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
 
     return player;
@@ -825,9 +829,11 @@ Player.prototype.stop = function() {
             player.controls.forceNextRedraw();
             player.controls.render(state.time);
         }
+        player.fire(C.S_CHANGE_STATE, C.STOPPED);
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
         if (!player.controls) player._drawSplash();
+        player.fire(C.S_CHANGE_STATE, C.NOTHING);
     }
 
     player.fire(C.S_STOP);
@@ -874,6 +880,7 @@ Player.prototype.pause = function() {
 
     player.drawAt(state.time);
 
+    player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
 
     return player;
@@ -892,12 +899,11 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
+provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(cvs) {
     if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-    $engine.ensureGlobalStylesInjected();
     var canvas_id, canvas;
     if (__str(cvs)) {
         canvas_id = cvs;
@@ -1196,6 +1202,10 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this)
     });
+    // TODO/FIXME: add CSS class when state was changed (remove for previous state)
+    /* this.on(C.S_CHANGE_STATE, function(new_state) {
+        $engine.
+    }); */
 }
 Player.prototype._drawEmpty = function() {
     var ctx = this.ctx,
@@ -1417,6 +1427,7 @@ Player.prototype._reset = function() {
     state.from = 0;
     state.time = Player.NO_TIME;
     state.duration = undefined;
+    this.fire(C.S_CHANGE_STATE, C.NOTHING);
     if (this.controls) this.controls.reset();
     this.ctx.clearRect(0, 0, this.width * $engine.PX_RATIO,
                              this.height * $engine.PX_RATIO);
@@ -1579,6 +1590,7 @@ Player.prototype.__onerror = function(err) {
   try {
       if (player.state) player.state.happens = C.ERROR;
       player.__lastError = err;
+      player.fire(C.S_CHANGE_STATE, C.ERROR);
       player.fire(C.S_ERROR, err);
 
       player.anim = null;
@@ -1846,6 +1858,7 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW,
                        // player events
+                       C.S_CHANGE_STATE,
                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                        C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 /* TODO: add chaining to all external Scene methods? */
@@ -2225,6 +2238,7 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_DRAW, C.X_START, C.X_STOP,
                          // player events
+                         C.S_CHANGE_STATE,
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 // > Element.prepare % () => Boolean
@@ -3950,10 +3964,10 @@ function __colorTween(data) {
 
 Tweens[C.T_FILL] =
     function(data) {
-  	  var colorTween = __colorTween(data);
-  	  return function(t) {
-  	  	this.$.xdata.path.fill = colorTween(t);
-  	  }
+        var colorTween = __colorTween(data);
+        return function(t) {
+            this.$.xdata.path.fill = colorTween(t);
+        }
     };
 
 Tweens[C.T_STROKE] =
@@ -5029,10 +5043,10 @@ Brush._hasVal = function(fsval) {
 var Color = {};
 
 Color.fromStr = function(str) {
-	return Color.fromHex(str)
-		|| Color.fromRgb(str)
-		|| Color.fromRgba(str)
-		|| { r:0, g:0, b:0, a:0};
+    return Color.fromHex(str)
+        || Color.fromRgb(str)
+        || Color.fromRgba(str)
+        || { r:0, g:0, b:0, a:0};
 }
 
 Color.fromHex = function(hex) {
@@ -5066,7 +5080,7 @@ Color.fromRgba = function(rgba) {
 };
 
 Color.toRgbaStr = function(color) {
-	return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
+    return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
 };
 
 Color.interpolate = function(c1, c2, t) {

@@ -428,6 +428,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (!cvs) return null;
         if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + (cvs.id || id) + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
+        $DE.ensureGlobalStylesInjected();
         var rules = $DE.injectElementStyles(cvs,
                                             $DE.PLAYER_CLASS,
                                             $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
