@@ -340,6 +340,7 @@
                    { $log.debug('> not cached, requesting'); }
                 me._waiting[url] = loader;
                 loader(function(result) {
+                    result = result || true; //so that the loader isn't obliged to return something
                     if ($conf.logResMan)
                        { $log.debug('file at ' + url + ' succeeded to load, triggering success'); }
                     me.trigger(url, result);
