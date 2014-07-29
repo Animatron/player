@@ -87,7 +87,7 @@ var Files = {
     Main: { INIT: 'anm.js',
             PLAYER: 'player.js',
             BUILDER: 'builder.js' },
-    Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
+    Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/, 'font-detector.js' ],
            ENGINES: { _ALL_: [ 'dom-engine.js',
                                'node-engine.js' ],
                       DOM: 'dom-engine.js',
