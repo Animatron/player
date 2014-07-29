@@ -5563,8 +5563,8 @@ Controls.prototype.handleMouseMove = function(evt) {
     this._last_mevt = evt;
     //var pos = $engine.getEventPosition(evt, this.canvas);
     //if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
-        this.show();
-        this.refreshByMousePos(pos);
+        if (this.hidden) this.show();
+        this.refreshByMousePos($engine.getEventPosition(evt, this.canvas));
     //} else {
     //    this.handleMouseOut();
     //}

@@ -388,6 +388,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
     $DE.moveElementTo = function(elm, x, y) {
+        console.log('move',elm,'to',x,y);
         (elm.__anm_instRule || elm).style.left = (x === 0) ? '0' : (x + 'px');
         (elm.__anm_instRule || elm).style.top  = (y === 0) ? '0' : (y + 'px');
     }
@@ -671,9 +672,11 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                           (parseFloat(p_style.getPropertyValue('border-right-width')) || 0),
             height_diff = (parseFloat(p_style.getPropertyValue('border-top-width')) || 0) +
                           (parseFloat(p_style.getPropertyValue('border-bottom-width')) || 0);
-        var off_x = (parseFloat(p_style.getPropertyValue('margin-left')) || 0) +
+        var off_x = (parseFloat(p_style.getPropertyValue('left')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('margin-left')) || 0) +
                     (parseFloat(p_style.getPropertyValue('border-left-width')) || 0),
-            off_y = (parseFloat(p_style.getPropertyValue('margin-top')) || 0) +
+            off_y = (parseFloat(p_style.getPropertyValue('top')) || 0) +
+                    (parseFloat(p_style.getPropertyValue('margin-top')) || 0) +
                     (parseFloat(p_style.getPropertyValue('border-top-width')) || 0);
         var new_w = (w * pw) - width_diff,
             new_h = (h * ph) - height_diff;
@@ -683,7 +686,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE.setCanvasSize(cvs, new_w, new_h);
         // offset calculation is also only required because of `position: relative` (see `$DE.styling.controlsGeneral`)
         var new_x = off_x + (x * new_w),
-            new_y = -(off_y + new_h) + (y * new_h);
+            new_y = off_y + (y * new_h);
         $DE.moveElementTo(cvs, new_x, new_y);
         // FIXME: it's a hack to serve user with not having any wrapping `div`-s around
         // his canvas (if we're ok with wrapper, `position: absolute` would work for overlay)
