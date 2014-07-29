@@ -615,8 +615,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 function(res_results, err_count) {
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
-                                                  // to load different scenes and first one finished loading
-                                                  // after the second one
+                        // to load different scenes and first one finished loading
+                        // after the second one
                         player._stopLoadingAnimation();
                         if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
@@ -636,7 +636,9 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 }
             ) ]);
             scene._loadRemoteResources(player);
+            scene.loadFonts();
         }
+
     };
     whenDone = player.__defAsyncSafe(whenDone);
 
@@ -2047,6 +2049,9 @@ Scene.prototype._collectRemoteResources = function(player) {
            remotes = remotes.concat(elm._collectRemoteResources(scene, player)/* || []*/);
         }
     });
+    if(this.fonts && this.fonts.length) {
+        remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
+    }
     return remotes;
 }
 Scene.prototype._loadRemoteResources = function(player) {
@@ -2118,6 +2123,51 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
+
+
+Scene.prototype.loadFonts = function() {
+    if(!this.fonts || !this.fonts.length) {
+        return;
+    }
+
+    var fonts = this.fonts,
+        style = document.createElement('style'),
+        css = '',
+        fontsToLoad =[],
+        detector = new Detector();
+    style.type = 'text/css';
+    for(var i=0; i<fonts.length; i++) {
+        if(detector.detect(fonts[i].face)) {
+            //font already available
+            continue;
+        }
+        fontsToLoad.push(fonts[i]);
+        css += '@font-face {' +
+            'font-family: "' + fonts[i].face + '"; ' +
+            'src: url(' + fonts[i].url + ')' +
+            '}\n';
+    }
+
+    style.innerText = css;
+    document.head.appendChild(style);
+
+    for(var i=0; i<fontsToLoad.length;i++) {
+        _ResMan.loadOrGet(fontsToLoad[i].url, function(success){
+            var face = fontsToLoad[i].face,
+                interval = 100,
+                intervalId,
+                checkLoaded = function(){
+                    var loaded = detector.detect(face);
+                    if(loaded) {
+                        clearInterval(intervalId);
+                        success();
+                    }
+                };
+            intervalId = setInterval(checkLoaded, interval)
+        });
+    }
+
+};
 // Element
 // -----------------------------------------------------------------------------
 

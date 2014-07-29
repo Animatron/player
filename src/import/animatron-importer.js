@@ -73,6 +73,7 @@ Import.project = function(prj) {
     root.__import_id = cur_import_id;
 
     root.meta = Import.meta(prj);
+    root.fonts = Import.fonts(prj);
     Import.anim(prj, root); // will inject all required properties directly in scene object
     if (prj.meta.duration) root.duration = prj.meta.duration;
 
@@ -131,6 +132,10 @@ Import.meta = function(prj) {
         'modified': _m.modified,
         '_anm_id': _m.id
     };
+}
+
+Import.fonts = function(prj) {
+    return prj.anim.fonts;
 }
 /** anim **/
 /*
