@@ -1170,13 +1170,17 @@ Player.prototype.isAttached = function() {
 Player.attachedTo = function(canvas, player) {
     return $engine.playerAttachedTo(canvas, player);
 }
-Player.__getPosAndRedraw = function(player) {
+Player.prototype.invalidate = function() {
+    // TODO: probably, there's more to invalidate
+    if (this.controls) this.controls.update(this.canvas);
+}
+Player.__invalidate = function(player) {
     return function(evt) {
-        if (player.controls) player.controls.update(player.canvas);
+        player.invalidate();
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    var doRedraw = Player.__getPosAndRedraw(this);
+    var doRedraw = Player.__invalidate(this);
     $engine.subscribeWindowEvents({
         load: doRedraw
     });
