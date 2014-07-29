@@ -5354,32 +5354,26 @@ Controls.prototype.update = function(parent) {
     if (this.info) this.info.update(parent);
 }
 Controls.prototype.subscribeEvents = function(canvas, parent) {
-    $engine.subscribeWindowEvents({
-        mousemove: (function(controls) {
-                return function(evt) {
-                    controls.handleMouseMove(evt);
-                };
+    $engine.subscribeCanvasEvents(parent, {
+        mouseenter: (function(controls) {
+                return function(evt) { controls.handleMouseEnter(); };
+            })(this),
+        mouseleave: (function(controls) {
+                return function(evt) { controls.handleMouseLeave(); };
+            })(this),
+        click: (function(controls) {
+                return function(evt) { controls.handlePlayerClick(); };
             })(this)
     });
-    $engine.subscribeCanvasEvents(parent, {
-        mouseover: (function(controls) {
-            return function(evt) { controls.handleMouseOver(); };
-        })(this),
-        click: (function(controls) {
-            return function(evt) { controls.handlePlayerClick(); };
-        })(this)
-    });
     $engine.subscribeCanvasEvents(canvas, {
+        mouseenter: (function(controls) {
+                return function(evt) { controls.handleMouseEnter(); };
+            })(this),
+        mouseleave: (function(controls) {
+                return function(evt) { controls.handleMouseLeave(); };
+            })(this),
         mousemove: (function(controls) {
-                return function(evt) {
-                    controls.handleMouseMove(evt);
-                };
-            })(this),
-        mouseover: (function(controls) {
-                return function(evt) { controls.handleMouseOver(); };
-            })(this),
-        mouseout: (function(controls) {
-                return function(evt) { controls.handleMouseOut(); };
+                return function(evt) { controls.handleMouseMove(evt); };
             })(this),
         mousedown: (function(controls) {
                 return function(evt) { controls.handleClick(); };
@@ -5517,13 +5511,13 @@ Controls.prototype.handleAreaChange = function() {
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
     this._last_mevt = evt;
-    var pos = $engine.getEventPosition(evt, this.canvas);
-    if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
+    //var pos = $engine.getEventPosition(evt, this.canvas);
+    //if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
         this.show();
         this.refreshByMousePos(pos);
-    } else {
-        this.handleMouseOut();
-    }
+    //} else {
+    //    this.handleMouseOut();
+    //}
 }
 Controls.prototype.handleClick = function() {
     var state = this.player.state;
@@ -5542,7 +5536,7 @@ Controls.prototype.handlePlayerClick = function() {
         this.render(state.time);
     }
 }
-Controls.prototype.handleMouseOver = function() {
+Controls.prototype.handleMouseEnter = function() {
     var state = this.player.state;
     if (state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
@@ -5550,7 +5544,7 @@ Controls.prototype.handleMouseOver = function() {
         this.render(state.time);
     }
 }
-Controls.prototype.handleMouseOut = function() {
+Controls.prototype.handleMouseLeave = function() {
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
