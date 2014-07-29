@@ -80,7 +80,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // getElementById(id) -> Element
     // findElementPosition(elm) -> [ x, y ]
-    // findScrollAwarePos(elm) -> [ x, y ]
+    // findScrollAwarePosition(elm) -> [ x, y ]
     // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
     // moveElementTo(elm, x, y) -> none
     // disposeElement(elm) -> none
@@ -98,11 +98,11 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
     // getCanvasSize(canvas) -> [ width, height ]
-    // getCanvasPos(canvas) -> [ x, y ]
-    // getCanvasParams(canvas) -> [ width, height, ratio ]
+    // getCanvasPosition(canvas) -> [ x, y ]
+    // getCanvasParameters(canvas) -> [ width, height, ratio ]
     // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
     // setCanvasSize(canvas, width, height, ratio?) -> none
-    // setCanvasPos(canvas, x, y) -> none
+    // setCanvasPosisition(canvas, x, y) -> none
     // setCanvasBackground(canvas, value) -> none
     // updateCanvasMetrics(canvas) -> none
     // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
@@ -111,7 +111,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // registerAsControlsElement(elm, player) -> none
     // registerAsInfoElement(elm, player) -> none
 
-    // getEventPos(event, elm?) -> [ x, y ]
+    // getEventPosition(event, elm?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
     // subscribeCanvasEvents(canvas, handlers: object) -> none
     // unsubscribeCanvasEvents(canvas, handlers: object) -> none
@@ -551,7 +551,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.setTabIndex = function(cvs, idx) {
         cvs.setAttribute('tabindex', idx);
     }
-    $DE.getCanvasParams = function(cvs) {
+    $DE.getCanvasParameters = function(cvs) {
         // if canvas size was not initialized by player, will return null
         if (!cvs.__anm_width || !cvs.__anm_height) return null;
         return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
@@ -566,14 +566,14 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                  /* cvs.getAttribute('offsetHeight') || cvs.offsetHeight || */
                  cvs.getAttribute('clientHeight') || cvs.clientHeight ];
     }
-    $DE.getCanvasPos = function(cvs) {
+    $DE.getCanvasPosition = function(cvs) {
         return $DE.findScrollAwarePosition(cvs);
     }
     $DE.getCanvasBounds = function(cvs/*, parent*/) {
         //var parent = parent || cvs.parentNode;
-        var params = $DE.getCanvasParams(cvs);
+        var params = $DE.getCanvasParameters(cvs);
         if (!params) return null;
-        var pos = $DE.getCanvasPos(cvs);
+        var pos = $DE.getCanvasPosition(cvs);
         // bounds are: left, top, width, height, ratio.
         // I am not sure if I am correct in providing width/height instead of
         // left+width/top+height, but I think it's better to return values
@@ -596,7 +596,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE._saveCanvasPos(cvs);
         return [ _w, _h ];
     }
-    $DE.setCanvasPos = function(cvs, x, y) {
+    $DE.setCanvasPosition = function(cvs, x, y) {
         cvs.__anm_usr_x = x;
         cvs.__anm_usr_y = y;
         // TODO: actually move canvas
@@ -606,7 +606,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         (cvs.__anm_instRule || cvs).style.backgroundColor = bg;
     }
     $DE.updateCanvasMetrics = function(cvs) { // FIXME: not used
-        var pos = $DE.getCanvasPos(cvs),
+        var pos = $DE.getCanvasPosition(cvs),
             size = $DE.getCanvasSize(cvs);
         cvs.__anm_ratio = $DE.PX_RATIO;
         cvs.__anm_x = pos[0];
@@ -741,13 +741,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // Events
 
-    $DE.getEventPos = function(evt, elm) {
+    $DE.getEventPosition = function(evt, elm) {
         /*if (elm && (elm.__rOffsetLeft || elm.__rOffsetTop)) return [ evt.pageX - elm.__rOffsetLeft,
                                                                      evt.pageY - elm.__rOffsetTop ];
         else */ if (elm) {
-            var shift = $DE.findElementPosition(elm);
-            return [ evt.pageX - shift[0], evt.pageY - shift[1] ];
-        } else return [ evt.pageX, evt.pageY ];
+            var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
+            return [ evt.x - shift[0], evt.y - shift[1] ];
+        } else return [ evt.x, evt.y ];
     }
     $DE.subscribeWindowEvents = function(handlers) {
         for (var type in handlers) {
@@ -769,7 +769,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                  ch: e.charCode };
     }
     $DE.mouseEvent = function(e, cvs) {
-        return { pos: $DE.getEventPos(e, cvs) };
+        return { pos: $DE.getEventPosition(e, cvs) };
     }
     var _kevt = $DE.keyEvent,
         _mevt = $DE.mouseEvent;

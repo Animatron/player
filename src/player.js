@@ -1443,12 +1443,12 @@ Player.prototype._stopAndContinue = function() {
 }
 // FIXME: moveTo is not moving anything for the moment
 Player.prototype._moveTo = function(x, y) {
-    $engine.setCanvasPos(this.canvas, x, y);
+    $engine.setCanvasPosition(this.canvas, x, y);
 }
 Player.prototype._resize = function(width, height) {
     var cvs = this.canvas,
         new_size = this.__userSize || [ width, height ],
-        cur_size = $engine.getCanvasParams(cvs);
+        cur_size = $engine.getCanvasParameters(cvs);
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
         new_size = $engine.getCanvasSize(cvs);
@@ -5513,7 +5513,7 @@ Controls.prototype.handleAreaChange = function() {
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
     this._last_mevt = evt;
-    var pos = $engine.getEventPos(evt, this.canvas);
+    var pos = $engine.getEventPosition(evt, this.canvas);
     if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
         this.show();
         this.refreshByMousePos(pos);
@@ -5639,6 +5639,7 @@ Controls.prototype.enable = function() {
 }
 Controls.prototype.disable = function() {
     this.hide();
+    // FIXME: unsubscribe events!
     this.detach(this.player.canvas.parentNode);
 }
 Controls.prototype.enableInfo = function() {
@@ -6021,7 +6022,7 @@ InfoBlock.prototype.update = function(parent) {
     } else {
         $engine.updateCanvasOverlays(parent);
     }
-    //var cconf = $engine.getCanvasParams(cvs);
+    //var cconf = $engine.getCanvasParameters(cvs);
     // _canvas.style.left = _cp[0] + 'px';
     // _canvas.style.top = _cp[1] + 'px';
     //this._ratio = cconf[2];
