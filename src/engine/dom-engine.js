@@ -272,7 +272,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var stylesTag = $doc.createElement('style');
         stylesTag.type = 'text/css';
 
-        $doc.getElementsByTagName("head")[0].appendChild(stylesTag);
+        // TODO: inject as first element?
+        var head = $doc.getElementsByTagName("head")[0];
+        if (!head) throw new Error('anm.Player requires <head> tag to exist in the document to inject CSS there');
+        head.appendChild(stylesTag);
+        // TODO: inject as first element?
+        // var head = $doc.getElementsByTagName("head")[0];
+        // head.insertBefore(stylesTag, head.firstChild);
 
         $DE.__stylesTag = stylesTag;
     }
