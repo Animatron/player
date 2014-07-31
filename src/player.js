@@ -916,7 +916,7 @@ Player.prototype._prepare = function(cvs) {
         canvas_id = cvs.id;
         canvas = cvs;
     }
-    $engine.assignPlayerToCanvas(canvas, this, canvas_id);
+    this.holder = $engine.assignPlayerToCanvas(canvas, this, canvas_id);
     if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
     this.id = canvas_id;
     this.canvas = canvas;
