@@ -89,7 +89,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // hideElement(elm) -> none
 
     // createCanvas(width, height, bg?, ratio?) -> canvas
-    // assignPlayerToCanvas(canvas, player, id) -> canvas
+    // assignPlayerToCanvas(canvas, player, id) -> wrapper
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
     // detachPlayer(canvas, player) -> none
@@ -229,6 +229,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     $DE.__stylesTag = null;
     // FIXME: move these constants to anm.js
+    $DE.WRAPPER_CLASS = 'anm-wrapper';
+    $DE.WRAPPER_INSTANCE_CLASS_PREFIX = 'anm-wrapper-';
     $DE.PLAYER_CLASS = 'anm-player';
     $DE.PLAYER_INSTANCE_CLASS_PREFIX = 'anm-player-';
     $DE.CONTROLS_CLASS = 'anm-controls';
@@ -237,16 +239,16 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 
     $DE.styling = {
-        // FIXME: assigning `vertical-align: top` is a hack, because canvas
-        //        is `display: inline` by default and has `vertical-align: middle`
-        //        with virtual bottom margin because of this, so it causes controls
-        //        positioning to break
-        playerGeneral: function(rule) {
-            rule.style.verticalAlign = 'top';
+        wrapperGeneral: function(rule) {
+            rule.style.position = 'relative';
         },
+        wrapperInstance: function(rule) { },
+        playerGeneral: function(rule) { },
         playerInstance: function(rule, desc) { },
         controlsGeneral: function(rule) {
-            rule.style.position = 'relative';
+            rule.style.position = 'absolute';
+            rule.style.left = 0;
+            rule.style.top = 0;
             rule.style.verticalAlign = 'top';
             rule.style.zIndex = 100;
             rule.style.cursor = 'pointer';
@@ -388,7 +390,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
     $DE.moveElementTo = function(elm, x, y) {
-        console.log('move',elm,'to',x,y);
         (elm.__anm_instRule || elm).style.left = (x === 0) ? '0' : (x + 'px');
         (elm.__anm_instRule || elm).style.top  = (y === 0) ? '0' : (y + 'px');
     }
@@ -430,23 +431,35 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + (cvs.id || id) + '\'.');
         cvs.setAttribute(MARKER_ATTR, true);
         $DE.ensureGlobalStylesInjected();
-        var rules = $DE.injectElementStyles(cvs,
-                                            $DE.PLAYER_CLASS,
-                                            $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
-        $DE.styling.playerGeneral(rules[0]);
-        $DE.styling.playerInstance(rules[1]);
-        return cvs;
+        var cvs_rules = $DE.injectElementStyles(cvs,
+                                                $DE.PLAYER_CLASS,
+                                                $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+        $DE.styling.playerGeneral(cvs_rules[0]);
+        $DE.styling.playerInstance(cvs_rules[1]);
+        var wrapper = $doc.createElement('div');
+        if (cvs.parentNode) {
+            wrapper.appendChild(cvs);
+            cvs.parentNode.replaceChild(wrapper, cvs);
+            cvs.__anm_wrapper = wrapper;
+        }
+        var wrapper_rules = $DE.injectElementStyles(cvs,
+                                                    $DE.WRAPPER_CLASS,
+                                                    $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+        $DE.styling.wrapperGeneral(wrapper_rules[0]);
+        $DE.styling.wrapperInstance(wrapper_rules[1]);
+        return wrapper;
     }
     $DE.playerAttachedTo = function(cvs, player) {
         return cvs.hasAttribute(MARKER_ATTR);
     }
     $DE.clearCanvasProps = function(cvs) {
         if (!cvs) return;
+        cvs.__anm_wrapper = null;
         cvs.__anm_overlays = null;
         cvs.__anm_subscribed = null;
         cvs.__anm_genRule = null; cvs.__anm_instRule = null;
         cvs.__anm_ref_canvas = null;
-        cvs.__anm_ref_conf = null; cvs.__anm_ref_pconf = null;
+        delete cvs.__anm_wrapper;
         delete cvs.__anm_overlays;
         delete cvs.__anm_subscribed;
         delete cvs.__anm_ratio;
@@ -455,7 +468,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         delete cvs.__anm_width; delete cvs.__anm_height;
         delete cvs.__anm_usr_x; delete cvs.__anm_usr_y;
         delete cvs.__anm_ref_canvas;
-        delete cvs.__anm_ref_conf; delete cvs.__anm_ref_pconf;
         if (cvs.__anm_genClass && cvs.__anm_instClass) {
             var styles = $DE.__stylesTag.sheet,
                 rules = styles.cssRules || styles.rules;
@@ -658,72 +670,36 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
         cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
     }
-    $DE.addCanvasOverlay = function(id, parent, conf, callback) {
+    $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
         // conf should be: [ x, y, w, h ], all in percentage relative to parent
         // style may contain _class attr
         // if (!parent) throw new Error();
+        var holder = player_cvs.__anm_wrapper || player_cvs.parentNode;
         var x = conf[0], y = conf[1],
             w = conf[2], h = conf[3];
         var pconf = $DE.getCanvasSize(parent),
             pw = pconf[0], ph = pconf[1];
         var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(parent) : parent.currentStyle;
-        // TODO: include padding in offsets and diffs?
-        var width_diff  = (parseFloat(p_style.getPropertyValue('border-left-width')) || 0) +
-                          (parseFloat(p_style.getPropertyValue('border-right-width')) || 0),
-            height_diff = (parseFloat(p_style.getPropertyValue('border-top-width')) || 0) +
-                          (parseFloat(p_style.getPropertyValue('border-bottom-width')) || 0);
-        var off_x = (parseFloat(p_style.getPropertyValue('left')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('margin-left')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('border-left-width')) || 0),
-            off_y = (parseFloat(p_style.getPropertyValue('top')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('margin-top')) || 0) +
-                    (parseFloat(p_style.getPropertyValue('border-top-width')) || 0);
-        var new_w = (w * pw) - width_diff,
-            new_h = (h * ph) - height_diff;
+        var x_shift = parseFloat(p_style.getPropertyValue('border-left-width')),
+            y_shift = parseFloat(p_style.getPropertyValue('border-top-width'));
+        var new_w = (w * pw),
+            new_h = (h * ph);
         var cvs = $doc.createElement('canvas');
-        cvs.id = parent.id ? ('__' + parent.id + '_' + id) : ('__anm_' + id);
-        if (callback) callback(cvs, parent);
+        cvs.id = player_cvs.id ? ('__' + player_cvs.id + '_' + id) : ('__anm_' + id);
+        if (callback) callback(cvs, player_cvs);
         $DE.setCanvasSize(cvs, new_w, new_h);
         // offset calculation is also only required because of `position: relative` (see `$DE.styling.controlsGeneral`)
-        var new_x = off_x + (x * new_w),
-            new_y = off_y + (y * new_h);
+        var new_x = x_shift + (x * new_w),
+            new_y = y_shift + (y * new_h);
         $DE.moveElementTo(cvs, new_x, new_y);
-        // FIXME: it's a hack to serve user with not having any wrapping `div`-s around
-        // his canvas (if we're ok with wrapper, `position: absolute` would work for overlay)
-        (cvs.__anm_instRule || cvs).style.marginBottom = (new_y === 0) ? '0' : (new_y + 'px');
         // .insertBefore() in combination with .nextSibling works as .insertAfter() simulation
-        (parent.parentNode || $doc.body).insertBefore(cvs, parent.nextSibling);
-        cvs.__anm_ref_canvas = parent;
-        cvs.__anm_ref_conf = conf;
-        cvs.__anm_ref_pconf = pconf;
-        if (!parent.__anm_overlays) parent.__anm_overlays = [];
-        parent.__anm_overlays.push(cvs);
+        (holder || $doc.body).insertBefore(cvs, player_cvs.nextSibling);
+        cvs.__anm_ref_canvas = player_cvs;
+        if (!player_cvs.__anm_overlays) player_cvs.__anm_overlays = [];
+        player_cvs.__anm_overlays.push(cvs);
         return cvs;
     }
-    $DE.updateCanvasOverlays = function(cvs) {
-        if (!cvs.__anm_overlays) return;
-        var ratio = $DE.PX_RATIO || 1,
-            pconf = $DE.getCanvasSize(cvs),
-            pw = pconf[0], ph = pconf[1];
-        var overlays = overlays = cvs.__anm_overlays;
-        var overlay, ref_conf,
-            x, y, w, h,
-            new_x, new_y, new_w, new_h;
-        for (var i = 0, il = overlays.length; i < il; i++) {
-            overlay = overlays[i];
-            if (overlay.__anm_ref_conf) {
-                ref_conf = overlay.__anm_ref_conf;
-                x = ref_conf[0]; y = ref_conf[1];
-                w = ref_conf[2]; h = ref_conf[3];
-                var new_x = x * pw,
-                    new_y = -ph + (y * ph),
-                    new_w = w * pw,
-                    new_h = h * ph;
-                $DE.moveElementTo(overlay, new_x, new_y);
-                $DE.setCanvasSize(overlay, new_w, new_h);
-            }
-        }
-    }
+    $DE.updateCanvasOverlays = function() { }
 
     // Controls & Info
 
