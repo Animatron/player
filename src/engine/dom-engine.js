@@ -437,12 +437,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE.styling.playerGeneral(cvs_rules[0]);
         $DE.styling.playerInstance(cvs_rules[1]);
         var wrapper = $doc.createElement('div');
+        var parent = cvs.parentNode || $doc.body;
         if (cvs.parentNode) {
+            parent.replaceChild(wrapper, cvs);
             wrapper.appendChild(cvs);
-            cvs.parentNode.replaceChild(wrapper, cvs);
             cvs.__anm_wrapper = wrapper;
         }
-        var wrapper_rules = $DE.injectElementStyles(cvs,
+        var wrapper_rules = $DE.injectElementStyles(wrapper,
                                                     $DE.WRAPPER_CLASS,
                                                     $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
         $DE.styling.wrapperGeneral(wrapper_rules[0]);
@@ -674,12 +675,12 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         // conf should be: [ x, y, w, h ], all in percentage relative to parent
         // style may contain _class attr
         // if (!parent) throw new Error();
-        var holder = player_cvs.__anm_wrapper || player_cvs.parentNode;
+        var holder = player_cvs.__anm_wrapper || player_cvs.parentNode || $doc.body;
         var x = conf[0], y = conf[1],
             w = conf[2], h = conf[3];
-        var pconf = $DE.getCanvasSize(parent),
+        var pconf = $DE.getCanvasSize(player_cvs),
             pw = pconf[0], ph = pconf[1];
-        var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(parent) : parent.currentStyle;
+        var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(player_cvs) : player_cvs.currentStyle;
         var x_shift = parseFloat(p_style.getPropertyValue('border-left-width')),
             y_shift = parseFloat(p_style.getPropertyValue('border-top-width'));
         var new_w = (w * pw),
