@@ -160,19 +160,38 @@ var start = (function () {
             var noIFrameRule = rules[(styles.insertRule || styles.addRule).call(styles,
                                      'body.no-iframe .anm-wrapper {}', rules.length)],
                 noRectRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-rect .anm-wrapper {}', rules.length)];
+                                     'body.no-rect .anm-wrapper {}', rules.length)],
+                noPlayerRule = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
+                loadingRule  = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     '.anm-state-loading {}', rules.length)];
 
-            noIFrameRule.style.borderWidth = '1px';
-            noIFrameRule.style.borderStyle = 'solid';
-            noIFrameRule.style.borderColor = '#ccc';
-            noIFrameRule.style.top  = '50%';
-            noIFrameRule.style.left = '50%';
-            noIFrameRule.style.display = 'block';
-            noIFrameRule.style.position = 'absolute';
-            noIFrameRule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+            function ruleForCenteredCanvas(rule) {
+                rule.style.borderWidth = '1px';
+                rule.style.borderStyle = 'solid';
+                rule.style.borderColor = '#ccc';
+                rule.style.top  = '50%';
+                rule.style.left = '50%';
+                rule.style.display = 'block';
+                rule.style.position = 'absolute';
+                rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+            }
 
-            noRectRule.style.top  = '50%';
-            noRectRule.style.left = '50%';
+            ruleForCenteredCanvas(noIFrameRule);
+            ruleForCenteredCanvas(noPlayerRule);
+            //ruleForCenteredCanvas(loadingRule);
+
+            if (rect) {
+                noPlayerRule.style.width = rect[0] + 'px';
+                noPlayerRule.style.height = rect[1] + 'px';
+                if (!inIFrame) {
+                    noPlayerRule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
+                    noPlayerRule.style.marginTop = -Math.floor(rect[1] / 2) + 'px';
+                }
+            }
+
+            noRectRule.style.top  = '10%';
+            noRectRule.style.left = '10%';
 
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
