@@ -157,14 +157,16 @@ var start = (function () {
             var styles = stylesTag.sheet,
                 rules = styles.cssRules || styles.rules;
 
-            var noIFrameRule = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-iframe .anm-wrapper {}', rules.length)],
-                noRectRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-rect .anm-wrapper {}', rules.length)],
-                noPlayerRule = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
-                loadingRule  = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     '.anm-state-loading {}', rules.length)];
+            var noIFrameRule   = rules[(styles.insertRule || styles.addRule).call(styles,
+                                       'body.no-iframe .anm-wrapper {}', rules.length)],
+                noRectRule  = rules[(styles.insertRule || styles.addRule).call(styles,
+                                       'body.no-rect .anm-wrapper {}', rules.length)],
+                noPlayerRule   = rules[(styles.insertRule || styles.addRule).call(styles,
+                                       'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
+                loadingRule    = rules[(styles.insertRule || styles.addRule).call(styles,
+                                       '.anm-loading, .anm-state-loading {}', rules.length)];
+                loadingCvsRule  = rules[(styles.insertRule || styles.addRule).call(styles,
+                                       '.anm-loading canvas#target, .anm-state-loading canvas#target {}', rules.length)];
 
             function ruleForCenteredCanvas(rule) {
                 rule.style.borderWidth = '1px';
@@ -179,19 +181,29 @@ var start = (function () {
 
             ruleForCenteredCanvas(noIFrameRule);
             ruleForCenteredCanvas(noPlayerRule);
-            //ruleForCenteredCanvas(loadingRule);
+            ruleForCenteredCanvas(loadingRule);
 
             if (rect) {
                 noPlayerRule.style.width = rect[0] + 'px';
                 noPlayerRule.style.height = rect[1] + 'px';
+                loadingCvsRule.style.width = rect[0] + 'px';
+                loadingCvsRule.style.height = rect[1] + 'px';
                 if (!inIFrame) {
                     noPlayerRule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                    noPlayerRule.style.marginTop = -Math.floor(rect[1] / 2) + 'px';
+                    noPlayerRule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
+                    loadingCvsRule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
+                    loadingCvsRule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
                 }
             }
 
             noRectRule.style.top  = '10%';
             noRectRule.style.left = '10%';
+
+            if (rect) {
+                var canvas = document.getElementById(CANVAS_ID);
+                canvas.style.width  = rect[0] + 'px';
+                canvas.style.height = rect[1] + 'px';
+            }
 
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
@@ -205,6 +217,9 @@ var start = (function () {
                                 wrapper.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
                                 wrapper.style.marginTop = -Math.floor(rect[1] / 2) + 'px';
                             }
+                            var canvas = document.getElementById(CANVAS_ID);
+                            canvas.style.width  = rect[0] + 'px';
+                            canvas.style.height = rect[1] + 'px';
                           })
                         : null);
                 }

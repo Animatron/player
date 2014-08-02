@@ -463,9 +463,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                     case C.STOPPED: css_class = 'anm-state-stopped'; break;
                     case C.PLAYING: css_class = 'anm-state-playing'; break;
                     case C.PAUSED:  css_class = 'anm-state-paused'; break;
-                    case C.LOADING: css_class = 'anm-loading'; break;
-                    case C.RES_LOADING: css_class = 'anm-loading anm-resources-loading'; break;
-                    case C.ERROR:   css_class = 'anm-error'; break;
+                    case C.LOADING: css_class = 'anm-state-loading'; break;
+                    case C.RES_LOADING: css_class = 'anm-state-loading anm-state-resources-loading'; break;
+                    case C.ERROR:   css_class = 'anm-state-error'; break;
                 }
                 if (css_class) {
                     wrapper.classList.remove(player.__prev_state || 'anm-state-nothing');
