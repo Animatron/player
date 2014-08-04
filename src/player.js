@@ -498,6 +498,7 @@ Player.prototype.init = function(cvs, opts) {
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
+
     var player = this,
         state = player.state;
 

@@ -157,43 +157,55 @@ var start = (function () {
             var styles = stylesTag.sheet,
                 rules = styles.cssRules || styles.rules;
 
-            var noIFrameRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                       'body.no-iframe .anm-wrapper {}', rules.length)],
-                noRectRule  = rules[(styles.insertRule || styles.addRule).call(styles,
-                                       'body.no-rect .anm-wrapper {}', rules.length)],
-                noPlayerRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                       'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
-                loadingRule    = rules[(styles.insertRule || styles.addRule).call(styles,
-                                       '.anm-loading, .anm-state-loading {}', rules.length)];
-                loadingCvsRule  = rules[(styles.insertRule || styles.addRule).call(styles,
-                                       '.anm-loading canvas#target, .anm-state-loading canvas#target {}', rules.length)];
+            var noIFrameRule = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe .anm-wrapper {}', rules.length)],
+                noRectRule   = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-rect .anm-wrapper {}', rules.length)],
+                noPlayerRule = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
+                // there is a version of player where `anm-state-loading` and `anm-state-resources-loading` classes
+                // were incorrectly named `anm-loading`, `anm-resources-loading`, this case is temporary (!) hacked out here
+                wrapperRule  = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'div.anm-state-nothing, div.anm-state-error, '+
+                                     'div.anm-loading, div.anm-state-loading, ' +
+                                     'div.anm-resources-loading, div.anm-state-resources-loading' +
+                                     '{}', rules.length)],
+                canvasRule   = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     '.anm-state-nothing canvas#target, .anm-state-error canvas#target, ' +
+                                     '.anm-state-nothing canvas.anm-controls, .anm-state-error canvas.anm-controls ' +
+                                     '.anm-loading canvas#target, .anm-state-loading canvas#target, ' +
+                                     '.anm-loading canvas.anm-controls, .anm-state-loading canvas.anm-controls ' +
+                                     '.anm-resources-loading canvas#target, .anm-state-resources-loading canvas#target, ' +
+                                     '.anm-resources-loading canvas.anm-controls, .anm-state-resources-loading canvas.anm-controls ' +
+                                     '{}', rules.length)];
 
-            function ruleForCenteredCanvas(rule) {
+            function ruleForWrapperStyle(rule) {
                 rule.style.borderWidth = '1px';
                 rule.style.borderStyle = 'solid';
                 rule.style.borderColor = '#ccc';
-                rule.style.top  = '50%';
-                rule.style.left = '50%';
                 rule.style.display = 'block';
                 rule.style.position = 'absolute';
                 rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
             }
 
-            ruleForCenteredCanvas(noIFrameRule);
-            ruleForCenteredCanvas(noPlayerRule);
-            ruleForCenteredCanvas(loadingRule);
+            ruleForWrapperStyle(noIFrameRule);
+            ruleForWrapperStyle(noPlayerRule);
+            ruleForWrapperStyle(wrapperRule);
 
             if (rect) {
-                noPlayerRule.style.width = rect[0] + 'px';
-                noPlayerRule.style.height = rect[1] + 'px';
-                loadingCvsRule.style.width = rect[0] + 'px';
-                loadingCvsRule.style.height = rect[1] + 'px';
-                if (!inIFrame) {
-                    noPlayerRule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                    noPlayerRule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
-                    loadingCvsRule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                    loadingCvsRule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
+                function ruleForCanvasPosition(rule) {
+                    rule.style.width = rect[0] + 'px';
+                    rule.style.height = rect[1] + 'px';
+                    if (!inIFrame) {
+                        rule.style.top  = '50%';
+                        rule.style.left = '50%';
+                        rule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
+                        rule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
+                    }
                 }
+
+                ruleForCanvasPosition(noIFrameRule);
+                ruleForCanvasPosition(noPlayerRule);
             }
 
             noRectRule.style.top  = '10%';
@@ -207,21 +219,7 @@ var start = (function () {
 
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'),
-                        rect
-                        ? (function() {
-                            var wrapper = document.getElementsByClassName(WRAPPER_CLASS)[0];
-                            wrapper.style.width = rect[0] + 'px';
-                            wrapper.style.height = rect[1] + 'px';
-                            if (!inIFrame) {
-                                wrapper.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                                wrapper.style.marginTop = -Math.floor(rect[1] / 2) + 'px';
-                            }
-                            var canvas = document.getElementById(CANVAS_ID);
-                            canvas.style.width  = rect[0] + 'px';
-                            canvas.style.height = rect[1] + 'px';
-                          })
-                        : null);
+                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }
             );
         } catch (e) {
