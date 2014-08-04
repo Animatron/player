@@ -166,9 +166,9 @@ var start = (function () {
                 // there is a version of player where `anm-state-loading` and `anm-state-resources-loading` classes
                 // were incorrectly named `anm-loading`, `anm-resources-loading`, this case is temporary (!) hacked out here
                 wrapperRule  = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'div.anm-state-nothing, div.anm-state-error, '+
-                                     'div.anm-loading, div.anm-state-loading, ' +
-                                     'div.anm-resources-loading, div.anm-state-resources-loading' +
+                                     'body.no-iframe div.anm-state-nothing, body.no-iframe div.anm-state-error, '+
+                                     'body.no-iframe div.anm-loading, body.no-iframe div.anm-state-loading, ' +
+                                     'body.no-iframe div.anm-resources-loading, body.no-iframe div.anm-state-resources-loading ' +
                                      '{}', rules.length)];
 
             function ruleForWrapperStyle(rule) {
@@ -178,6 +178,7 @@ var start = (function () {
                 rule.style.display = 'block';
                 rule.style.position = 'absolute';
                 rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+                rule.style.overflow = 'hidden';
             }
 
             ruleForWrapperStyle(noIFrameRule);

@@ -457,20 +457,32 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (wrapper.classList) {
             var C = anm.C;
             player.on(C.S_CHANGE_STATE, function(new_state) {
-                var css_class = '';
+                var css_classes = [];
                 switch (new_state) {
-                    case C.NOTHING: css_class = 'anm-state-nothing'; break;
-                    case C.STOPPED: css_class = 'anm-state-stopped'; break;
-                    case C.PLAYING: css_class = 'anm-state-playing'; break;
-                    case C.PAUSED:  css_class = 'anm-state-paused'; break;
-                    case C.LOADING: css_class = 'anm-state-loading'; break;
-                    case C.RES_LOADING: css_class = 'anm-state-loading anm-state-resources-loading'; break;
-                    case C.ERROR:   css_class = 'anm-state-error'; break;
+                    case C.NOTHING: css_classes = ['anm-state-nothing']; break;
+                    case C.STOPPED: css_classes = ['anm-state-stopped']; break;
+                    case C.PLAYING: css_classes = ['anm-state-playing']; break;
+                    case C.PAUSED:  css_classes = ['anm-state-paused']; break;
+                    case C.LOADING: css_classes = ['anm-state-loading']; break;
+                    case C.RES_LOADING: css_classes = ['anm-state-loading', 'anm-state-resources-loading']; break;
+                    case C.ERROR:   css_classes = ['anm-state-error']; break;
                 }
-                if (css_class) {
-                    wrapper.classList.remove(player.__prev_state || 'anm-state-nothing');
-                    wrapper.classList.add(css_class);
-                    player.__prev_state = css_class;
+                if (css_classes.length) {
+                    var classList = wrapper.classList;
+                    if (player.__prev_classes && player.__prev_classes.length) {
+                        var prev_classes = player.__prev_classes;
+                        for (var i = 0, il = prev_classes.length; i < il; i++) {
+                            classList.remove(prev_classes[i]);
+                        }
+                    } else {
+                        if (classList.contains('anm-state-nothing')) {
+                            classList.remove('anm-state-nothing');
+                        }
+                    }
+                    for (var i = 0, il = css_classes.length; i < il; i++) {
+                        classList.add(css_classes[i]);
+                    }
+                    player.__prev_classes = css_classes;
                 }
             });
         }
