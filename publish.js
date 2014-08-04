@@ -169,14 +169,6 @@ var start = (function () {
                                      'div.anm-state-nothing, div.anm-state-error, '+
                                      'div.anm-loading, div.anm-state-loading, ' +
                                      'div.anm-resources-loading, div.anm-state-resources-loading' +
-                                     '{}', rules.length)],
-                canvasRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     '.anm-state-nothing canvas#target, .anm-state-error canvas#target, ' +
-                                     '.anm-state-nothing canvas.anm-controls, .anm-state-error canvas.anm-controls ' +
-                                     '.anm-loading canvas#target, .anm-state-loading canvas#target, ' +
-                                     '.anm-loading canvas.anm-controls, .anm-state-loading canvas.anm-controls ' +
-                                     '.anm-resources-loading canvas#target, .anm-state-resources-loading canvas#target, ' +
-                                     '.anm-resources-loading canvas.anm-controls, .anm-state-resources-loading canvas.anm-controls ' +
                                      '{}', rules.length)];
 
             function ruleForWrapperStyle(rule) {
