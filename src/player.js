@@ -498,6 +498,7 @@ Player.prototype.init = function(cvs, opts) {
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
+
     var player = this,
         state = player.state;
 
@@ -922,6 +923,7 @@ Player.prototype._prepare = function(cvs) {
     this.canvas = canvas;
     this.ctx = $engine.getContext(canvas, '2d');
     this.state = Player.createState(this);
+    this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
     this.subscribeEvents(canvas);
 
@@ -1208,10 +1210,6 @@ Player.prototype.subscribeEvents = function(canvas) {
                         };
                     })(this)
     });
-    // TODO/FIXME: add CSS class when state was changed (remove for previous state)
-    /* this.on(C.S_CHANGE_STATE, function(new_state) {
-        $engine.
-    }); */
 }
 Player.prototype._drawEmpty = function() {
     var ctx = this.ctx,
@@ -1740,7 +1738,8 @@ Player.createState = function(player) {
 
 Player._isPlayerEvent = function(type) {
     // FIXME: make some marker to group types of events
-    return ((type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
+    return ((type == C.S_CHANGE_STATE) ||
+            (type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
             (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
             (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
             (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
