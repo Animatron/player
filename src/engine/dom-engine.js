@@ -454,6 +454,38 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                                                     $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
         $DE.styling.wrapperGeneral(wrapper_rules[0]);
         $DE.styling.wrapperInstance(wrapper_rules[1]);
+        if (wrapper.classList) {
+            var C = anm.C;
+            player.on(C.S_CHANGE_STATE, function(new_state) {
+                var css_classes = [];
+                switch (new_state) {
+                    case C.NOTHING: css_classes = ['anm-state-nothing']; break;
+                    case C.STOPPED: css_classes = ['anm-state-stopped']; break;
+                    case C.PLAYING: css_classes = ['anm-state-playing']; break;
+                    case C.PAUSED:  css_classes = ['anm-state-paused']; break;
+                    case C.LOADING: css_classes = ['anm-state-loading']; break;
+                    case C.RES_LOADING: css_classes = ['anm-state-loading', 'anm-state-resources-loading']; break;
+                    case C.ERROR:   css_classes = ['anm-state-error']; break;
+                }
+                if (css_classes.length) {
+                    var classList = wrapper.classList;
+                    if (player.__prev_classes && player.__prev_classes.length) {
+                        var prev_classes = player.__prev_classes;
+                        for (var i = 0, il = prev_classes.length; i < il; i++) {
+                            classList.remove(prev_classes[i]);
+                        }
+                    } else {
+                        if (classList.contains('anm-state-nothing')) {
+                            classList.remove('anm-state-nothing');
+                        }
+                    }
+                    for (var i = 0, il = css_classes.length; i < il; i++) {
+                        classList.add(css_classes[i]);
+                    }
+                    player.__prev_classes = css_classes;
+                }
+            });
+        }
         return wrapper;
     }
     $DE.playerAttachedTo = function(cvs, player) {
@@ -695,9 +727,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         cvs.id = player_cvs.id ? ('__' + player_cvs.id + '_' + id) : ('__anm_' + id);
         if (callback) callback(cvs, player_cvs);
         $DE.setCanvasSize(cvs, new_w, new_h);
-        // offset calculation is also only required because of `position: relative` (see `$DE.styling.controlsGeneral`)
-        var new_x = x_shift + (x * new_w),
-            new_y = y_shift + (y * new_h);
+        var new_x = (x * new_w) + x_shift,
+            new_y = (y * new_h) - y_shift;
         $DE.moveElementTo(cvs, new_x, new_y);
         // .insertBefore() in combination with .nextSibling works as .insertAfter() simulation
         (holder || $doc.body).insertBefore(cvs, player_cvs.nextSibling);

@@ -160,34 +160,59 @@ var start = (function () {
             var noIFrameRule = rules[(styles.insertRule || styles.addRule).call(styles,
                                      'body.no-iframe .anm-wrapper {}', rules.length)],
                 noRectRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-rect .anm-wrapper {}', rules.length)];
+                                     'body.no-rect .anm-wrapper {}', rules.length)],
+                noPlayerRule = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
+                // there is a version of player where `anm-state-loading` and `anm-state-resources-loading` classes
+                // were incorrectly named `anm-loading`, `anm-resources-loading`, this case is temporary (!) hacked out here
+                wrapperRule  = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe div.anm-state-nothing, body.no-iframe div.anm-state-error, '+
+                                     'body.no-iframe div.anm-loading, body.no-iframe div.anm-state-loading, ' +
+                                     'body.no-iframe div.anm-resources-loading, body.no-iframe div.anm-state-resources-loading ' +
+                                     '{}', rules.length)];
 
-            noIFrameRule.style.borderWidth = '1px';
-            noIFrameRule.style.borderStyle = 'solid';
-            noIFrameRule.style.borderColor = '#ccc';
-            noIFrameRule.style.top  = '50%';
-            noIFrameRule.style.left = '50%';
-            noIFrameRule.style.display = 'block';
-            noIFrameRule.style.position = 'absolute';
-            noIFrameRule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+            function ruleForWrapperStyle(rule) {
+                rule.style.borderWidth = '1px';
+                rule.style.borderStyle = 'solid';
+                rule.style.borderColor = '#ccc';
+                rule.style.display = 'block';
+                rule.style.position = 'absolute';
+                rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+                rule.style.overflow = 'hidden';
+            }
 
-            noRectRule.style.top  = '50%';
-            noRectRule.style.left = '50%';
+            ruleForWrapperStyle(noIFrameRule);
+            ruleForWrapperStyle(noPlayerRule);
+            ruleForWrapperStyle(wrapperRule);
+
+            if (rect) {
+                function ruleForCanvasPosition(rule) {
+                    rule.style.width = rect[0] + 'px';
+                    rule.style.height = rect[1] + 'px';
+                    if (!inIFrame) {
+                        rule.style.top  = '50%';
+                        rule.style.left = '50%';
+                        rule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
+                        rule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
+                    }
+                }
+
+                ruleForCanvasPosition(noIFrameRule);
+                ruleForCanvasPosition(noPlayerRule);
+            }
+
+            noRectRule.style.top  = '10%';
+            noRectRule.style.left = '10%';
+
+            if (rect) {
+                var canvas = document.getElementById(CANVAS_ID);
+                canvas.style.width  = rect[0] + 'px';
+                canvas.style.height = rect[1] + 'px';
+            }
 
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'),
-                        rect
-                        ? (function() {
-                            var wrapper = document.getElementsByClassName(WRAPPER_CLASS)[0];
-                            wrapper.style.width = rect[0] + 'px';
-                            wrapper.style.height = rect[1] + 'px';
-                            if (!inIFrame) {
-                                wrapper.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                                wrapper.style.marginTop = -Math.floor(rect[1] / 2) + 'px';
-                            }
-                          })
-                        : null);
+                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }
             );
         } catch (e) {
