@@ -637,7 +637,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 }
             ) ]);
             scene._loadRemoteResources(player);
-            scene.loadFonts();
         }
 
     };
@@ -2061,6 +2060,7 @@ Scene.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(scene, player);
         }
     });
+    scene.loadFonts();
 }
 Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
@@ -2123,8 +2123,6 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
-
-
 Scene.prototype.loadFonts = function() {
     if(!this.fonts || !this.fonts.length) {
         return;
