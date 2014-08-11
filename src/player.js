@@ -1015,8 +1015,8 @@ Player.prototype._checkOpts = function() {
     }
 
     if (this.ctx) {
-        if (!this.ctx.__anm) = this.ctx.__anm = {};
-        this.ctx.__anm.skip_shadows = !this.shadowsEnabled;
+        var props = $engine.getAnmProps(this.ctx);
+        props.skip_shadows = !this.shadowsEnabled;
     }
 
     this.__appliedMode = this.mode;
@@ -1169,9 +1169,8 @@ Player.prototype.detach = function() {
     if (!$engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
     if (this.controls) this.controls.detach(this.wrapper);
     $engine.detachPlayer(this);
-    if (this.ctx && this.ctx.__anm) {
-        delete this.ctx.__anm.skipShadows;
-        this.ctx.__anm = {};
+    if (this.ctx) {
+        $engine.clearAnmProps(this.ctx);
     }
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
@@ -5090,7 +5089,8 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows || (ctx.__anm && ctx.__anm.skip_shadows)) return;
+    var props = $engine.getAnmProps(ctx);
+    if (!shadow || $conf.doNotRenderShadows || (props.skip_shadows)) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -5189,12 +5189,13 @@ Sheet.prototype.load = function(callback, errback) {
               notify_error('Loading images is turned off');
               return; }
             var _img = new Image();
+            var props = $engine.getAnmProps(_img);
             _img.onload = _img.onreadystatechange = function() {
-                if (_img.__anm_ready) return;
+                if (props.ready) return;
                 if (this.readyState && (this.readyState !== 'complete')) {
                     notify_error(this.readyState);
                 }
-                _img.__anm_ready = true; // this flag is to check later if request succeeded
+                props.ready = true; // this flag is to check later if request succeeded
                 // this flag is browser internal
                 _img.isReady = true; /* FIXME: use 'image.complete' and
                                       '...' (network exist) combination,
@@ -5642,8 +5643,7 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     $engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
-    if (this.ctx && this.ctx.__anm && this.canvas.__anm.loading_req) delete this.ctx.__anm.loading_req;
-    if (this.ctx && this.ctx.__anm) delete this.ctx.__anm.supress_loading;
+    if (this.ctx) $engine.crearAnmProps(this.ctx);
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
@@ -6006,13 +6006,13 @@ Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
 Controls._runLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
     //        and Contols._scheduleLoading() should be used to start all the drawing process
-    if (ctx.__anm && ctx.__anm.loading_req) return;
+    var props = $engine.getAnmProps(ctx);
+    if (props.loading_req) return;
     var ratio = $engine.PX_RATIO;
     // var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
-    if (!ctx.__anm) ctx.__anm = {};
-    ctx.__anm.supress_loading = false;
+    props.supress_loading = false;
     function loading_loop() {
-        if (ctx.__anm.supress_loading) return;
+        if (props.supress_loading) return;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (ratio != 1) ctx.scale(ratio, ratio);
@@ -6021,15 +6021,16 @@ Controls._runLoadingAnimation = function(ctx, paint) {
         ctx.restore();
         return __nextFrame(loading_loop);
     }
-    ctx.__anm.loading_req = __nextFrame(loading_loop);
+    props.loading_req = __nextFrame(loading_loop);
 }
 Controls._stopLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
     //        and Contols._stopLoading() should be used to stop the drawing process
-    if (!ctx.__anm || !ctx.__anm.loading_req) return;
-    ctx.__anm.supress_loading = true;
-    __stopAnim(ctx.__anm.loading_req);
-    ctx.__anm.loading_req = null;
+    var props = $engine.getAnmProps(ctx);
+    if (!props.loading_req) return;
+    props.supress_loading = true;
+    __stopAnim(props.loading_req);
+    props.loading_req = null;
 }
 
 // Info Block
