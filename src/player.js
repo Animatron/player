@@ -489,6 +489,7 @@ Player.prototype.init = function(cvs, opts) {
     this._prepare(cvs);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts($engine.extractUserOptions(this.canvas));
+    this._addOpts($engine.extractUserOptions(this.wrapper));
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
@@ -904,27 +905,28 @@ Player.prototype.onerror = function(callback) {
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                         C.S_ERROR ]);
-Player.prototype._prepare = function(cvs) {
-    if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-    var canvas_id, canvas;
-    if (__str(cvs)) {
-        canvas_id = cvs;
-        canvas = $engine.getElementById(canvas_id);
-        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [canvas_id]));
+Player.prototype._prepare = function(elm) {
+    if (!elm) throw new PlayerErr(Errors.P.NO_WRAPPER_PASSED);
+    var wrapper_id, wrapper;
+    if (__str(elm)) {
+        wrapper_id = elm;
+        wrapper = $engine.getElementById(wrapper_id);
+        if (!wrapper_id) throw new PlayerErr(_strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
     } else {
-        if (!cvs.id) cvs.id = ('anm-player-' + Player.__instances);
-        canvas_id = cvs.id;
-        canvas = cvs;
+        if (!wrapper.id) wrapper.id = ('anm-player-' + Player.__instances);
+        wrapper_id = wrapper.id;
+        wrapper = elm;
     }
-    this.holder = $engine.assignPlayerToCanvas(canvas, this, canvas_id);
-    if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this.id = canvas_id;
-    this.canvas = canvas;
-    this.ctx = $engine.getContext(canvas, '2d');
+    var assign_data = $engine.assignPlayerToWrapper(wrapper, this, 'anm-player-' + Player.__instances);
+    this.id = assign_data.id;
+    this.wrapper = assign_data.wrapper;
+    this.canvas = assign_data.canvas;
+    if (!$engine.checkPlayerCanvas(this.canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    this.ctx = $engine.getContext(this.canvas, '2d');
     this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
-    this.subscribeEvents(canvas);
+    this.subscribeEvents(this.canvas);
 
     this.__canvasPrepared = true;
 }
@@ -1036,9 +1038,11 @@ Player.prototype._postInit = function() {
     this.stop();
     Text.__measuring_f = $engine.createTextMeasurer();
     /* TODO: load some default information into player */
-    var mayBeUrl = $engine.hasUrlToLoad(this.canvas);
-    if (mayBeUrl) this.load(mayBeUrl/*,
-                            this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
+    var to_load = $engine.hasUrlToLoad(this.wrapper);
+    if (!to_load.url) to_load = $engine.hasUrlToLoad(this.canvas);
+    if (to_load.url) this.load(to_load.url,
+                            to_load.importer_id
+                            ? anm.createImporter(to_load.importer_id) : null);
 }
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
@@ -1784,20 +1788,23 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.ribbonsColor = params.ribbons || params.ribcolor;
     return opts;
 }
-Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opts) {
-    var urlWithParams = snapshotUrl.split('?'),
-        snapshotUrl = urlWithParams[0],
-        urlParams = urlWithParams[1], // TODO: validate them?
-        params = (urlParams && urlParams.length > 0) ? __paramsToObj(urlParams) : {},
+Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
+    var url_with_params = snapshot_url.split('?'),
+        snapshot_url = urlWithParams[0],
+        url_params = url_with_params[1], // TODO: validate them?
+        params = (url_params && url_params.length > 0) ? __paramsToObj(url_params) : {},
         options = Player._optsFromUrlParams(params),
         player = new Player();
-    player.init(canvasId, options);
+    // TODO: allow to assign some callback to call when player was created
+    // TODO: allow to use a prepared player to load a snapshot
+    // TODO: allow to take snapshot URL from wrapper attribute
+    player.init(elm_id, options);
     if (alt_opts) {
       player._addOpts(alt_opts);
       player._checkOpts();
     }
 
-    player.load(snapshotUrl, importer, function(anim) {
+    player.load(snapshot_url, importer, function(anim) {
         player._applyUrlParamsToAnimation(params);
         if (callback) callback.call(player, anim);
     });

@@ -53,7 +53,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // DomEngine constants
 
     var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
-        URL_ATTR = 'data-url';
+        URL_ATTR = 'anm-url',
+        IMPORTER_ATTR = 'anm-importer';
 
     var $DE = {};
 
@@ -88,14 +89,17 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // showElement(elm) -> none
     // hideElement(elm) -> none
 
+    // assignPlayerToWrapper(wrapper, player, backup_id) -> { wrapper, canvas, id }
+    // hasUrlToLoad(elm) -> { url, importer_id }
+    // extractUserOptions(element) -> options: object | {}
+    // registerAsControlsElement(elm, player) -> none
+    // registerAsInfoElement(elm, player) -> none
+
     // createCanvas(width, height, bg?, ratio?) -> canvas
-    // assignPlayerToCanvas(canvas, player, id) -> wrapper
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
     // detachPlayer(canvas, player) -> none
-    // extractUserOptions(canvas) -> options: object | {}
     // checkPlayerCanvas(canvas) -> true | false
-    // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
     // getCanvasSize(canvas) -> [ width, height ]
     // getCanvasPosition(canvas) -> [ x, y ]
@@ -108,15 +112,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
     // updateCanvasOverlays(canvas) -> none
 
-    // registerAsControlsElement(elm, player) -> none
-    // registerAsInfoElement(elm, player) -> none
-
     // getEventPosition(event, elm?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
     // subscribeCanvasEvents(canvas, handlers: object) -> none
     // unsubscribeCanvasEvents(canvas, handlers: object) -> none
     // subscribeSceneToEvents(canvas, scene, map) -> none
     // unsubscribeSceneFromEvents(canvas, scene) -> none
+    // subscribeWrapperToStateChanges(wrapper, player) -> none
 
     // keyEvent(evt) -> Event
     // mouseEvent(evt, canvas) -> Event
@@ -431,65 +433,68 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (bg) $DE.setCanvasBackground(cvs, bg);
         return cvs;
     }
-    $DE.assignPlayerToCanvas = function(cvs, player, id) {
-        //if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-        if (!cvs) return null;
-        if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + (cvs.id || id) + '\'.');
-        cvs.setAttribute(MARKER_ATTR, true);
-        $DE.ensureGlobalStylesInjected();
-        var cvs_rules = $DE.injectElementStyles(cvs,
-                                                $DE.PLAYER_CLASS,
-                                                $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
-        $DE.styling.playerGeneral(cvs_rules[0]);
-        $DE.styling.playerInstance(cvs_rules[1]);
-        var wrapper = $doc.createElement('div');
-        var parent = cvs.parentNode || $doc.body;
-        if (cvs.parentNode) {
-            parent.replaceChild(wrapper, cvs);
-            wrapper.appendChild(cvs);
-            cvs.__anm_wrapper = wrapper;
+    $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
+        if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
+
+        if (anm.is.str(wrapper)) {
+            wrapper = $doc.getElementById(wrapper);
         }
+
+        var canvasWasPassed = (wrapper.tagName == 'canvas');
+        if (canvasWasPassed && console) {
+            (console.warn || console.log).call(console,
+                         'A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
+                         'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
+                         'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
+                         'Please pass any container such as <div> to a Player instead of <canvas> to fix it.');
+        }
+
+        var canvas = canvasWasPassed ? wrapper : $doc.createElement('canvas');
+        wrapper = canvasWasPassed ? $doc.createElement('div') : wrapper;
+
+        if (wrapper.getAttribute(MARKER_ATTR) ||
+            canvas.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to element \'' + (wrapper.id || canvas.id) + '\'.');
+        wrapper.setAttribute(MARKER_ATTR, true);
+        canvas.setAttribute(MARKER_ATTR, true);
+
+        var prev_cvs_id = canvas.id;
+        canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
+        if (!wrapper.id) wrapper.id = prev_cvs_id || back_id;
+        canvas.id = wrapper.id + '-cvs';
+        cvs.__anm_wrapper = wrapper;
+
+        if (canvasWasPassed) {
+            var parent = canvas.parentNode || $doc.body;
+            if (parent) {
+                parent.replaceChild(wrapper, canvas);
+                wrapper.appendChild(canvas);
+            } else throw new Error('Provided canvas tag has no parent');
+        } else {
+            wrapper.appendChild(canvas);
+        }
+
+        $DE.ensureGlobalStylesInjected();
+
         var wrapper_rules = $DE.injectElementStyles(wrapper,
                                                     $DE.WRAPPER_CLASS,
                                                     $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+        var cvs_rules = $DE.injectElementStyles(canvas,
+                                                $DE.PLAYER_CLASS,
+                                                $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+
+        $DE.styling.playerGeneral(cvs_rules[0]);
+        $DE.styling.playerInstance(cvs_rules[1]);
         $DE.styling.wrapperGeneral(wrapper_rules[0]);
         $DE.styling.wrapperInstance(wrapper_rules[1]);
-        if (wrapper.classList) {
-            var C = anm.C;
-            player.on(C.S_CHANGE_STATE, function(new_state) {
-                var css_classes = [];
-                switch (new_state) {
-                    case C.NOTHING: css_classes = ['anm-state-nothing']; break;
-                    case C.STOPPED: css_classes = ['anm-state-stopped']; break;
-                    case C.PLAYING: css_classes = ['anm-state-playing']; break;
-                    case C.PAUSED:  css_classes = ['anm-state-paused']; break;
-                    case C.LOADING: css_classes = ['anm-state-loading']; break;
-                    case C.RES_LOADING: css_classes = ['anm-state-loading', 'anm-state-resources-loading']; break;
-                    case C.ERROR:   css_classes = ['anm-state-error']; break;
-                }
-                if (css_classes.length) {
-                    var classList = wrapper.classList;
-                    if (player.__prev_classes && player.__prev_classes.length) {
-                        var prev_classes = player.__prev_classes;
-                        for (var i = 0, il = prev_classes.length; i < il; i++) {
-                            classList.remove(prev_classes[i]);
-                        }
-                    } else {
-                        if (classList.contains('anm-state-nothing')) {
-                            classList.remove('anm-state-nothing');
-                        }
-                    }
-                    for (var i = 0, il = css_classes.length; i < il; i++) {
-                        classList.add(css_classes[i]);
-                    }
-                    player.__prev_classes = css_classes;
-                }
-            });
-        }
-        return wrapper;
+
+        $DE.subscribeWrapperToStateChanges(wrapper, player);
+
+        return { wrapper: wrapper,
+                 canvas: canvas,
+                 id: wrapper.id };
     }
-    $DE.playerAttachedTo = function(cvs, player) {
-        return cvs.hasAttribute(MARKER_ATTR);
+    $DE.playerAttachedTo = function(elm, player) {
+        return elm.hasAttribute(MARKER_ATTR);
     }
     $DE.clearCanvasProps = function(cvs) {
         if (!cvs) return;
@@ -540,7 +545,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.getContext = function(cvs, type) {
         return cvs.getContext(type);
     }
-    $DE.extractUserOptions = function(cvs) {
+    $DE.extractUserOptions = function(elm) {
 
         function __boolAttr(val) {
             //if (val === undefined) return undefined;
@@ -557,48 +562,51 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         }
 
         var ratio = $DE.PX_RATIO;
-        var width = cvs.getAttribute('anm-width');
+        var width = elm.getAttribute('anm-width');
         if (!width) {
-            width = cvs.hasAttribute('width') ? (cvs.getAttribute('width') / ratio)
+            width = elm.hasAttribute('width') ? (elm.getAttribute('width') / ratio)
                                               : undefined;
         }
-        var height = cvs.getAttribute('anm-height');
+        var height = elm.getAttribute('anm-height');
         if (!height) {
-            height = cvs.hasAttribute('height') ? (cvs.getAttribute('height') / ratio)
+            height = elm.hasAttribute('height') ? (elm.getAttribute('height') / ratio)
                                                 : undefined;
         }
-        return { 'debug': __boolAttr(cvs.getAttribute('anm-debug')),
-                 'mode': cvs.getAttribute('anm-mode'),
-                 'repeat': __boolAttr(cvs.getAttribute('anm-repeat')),
-                 'zoom': cvs.getAttribute('anm-zoom'),
-                 'speed': cvs.getAttribute('anm-speed'),
+        return { 'debug': __boolAttr(elm.getAttribute('anm-debug')),
+                 'mode': elm.getAttribute('anm-mode'),
+                 'repeat': __boolAttr(elm.getAttribute('anm-repeat')),
+                 'zoom': elm.getAttribute('anm-zoom'),
+                 'speed': elm.getAttribute('anm-speed'),
                  'width': width,
                  'height': height,
-                 'autoPlay': __boolAttr(cvs.getAttribute('anm-autoplay') || cvs.getAttribute('anm-auto-play')),
-                 'bgColor': cvs.getAttribute('anm-bgcolor') || cvs.getAttribute('anm-bg-color'),
-                 'ribbonsColor': cvs.getAttribute('anm-ribbons') || cvs.getAttribute('anm-ribcolor') || cvs.getAttribute('anm-rib-color'),
-                 'drawStill': __boolAttr(cvs.getAttribute('anm-draw-still')
-                                         || cvs.getAttribute('anm-draw-thumbnail')
-                                         || cvs.getAttribute('anm-draw-thumb')),
-                 'imagesEnabled': __boolAttr(cvs.getAttribute('anm-images') || cvs.getAttribute('anm-images-enabled')),
-                 'shadowsEnabled': __boolAttr(cvs.getAttribute('anm-shadows') || cvs.getAttribute('anm-shadows-enabled')),
-                 'audioEnabled': __boolAttr(cvs.getAttribute('anm-audio') || cvs.getAttribute('anm-audio-enabled')),
-                 'controlsEnabled': __boolAttr(cvs.getAttribute('anm-controls') || cvs.getAttribute('anm-controls-enabled')),
-                 'infoEnabled': __boolAttr(cvs.getAttribute('anm-info') || cvs.getAttribute('anm-info-enabled')),
-                 'handleEvents': __boolAttr(cvs.getAttribute('anm-events') || cvs.getAttribute('anm-handle-events')),
-                 'infiniteDuration': __boolAttr(cvs.getAttribute('anm-infinite') || cvs.getAttribute('anm-infinite-duration')),
-                 'forceSceneSize': __boolAttr(cvs.getAttribute('anm-scene-size') || cvs.getAttribute('anm-force-scene-size')),
+                 'autoPlay': __boolAttr(elm.getAttribute('anm-autoplay') || elm.getAttribute('anm-auto-play')),
+                 'bgColor': elm.getAttribute('anm-bgcolor') || elm.getAttribute('anm-bg-color'),
+                 'ribbonsColor': elm.getAttribute('anm-ribbons') || elm.getAttribute('anm-ribcolor') || elm.getAttribute('anm-rib-color'),
+                 'drawStill': __boolAttr(elm.getAttribute('anm-draw-still')
+                                         || elm.getAttribute('anm-draw-thumbnail')
+                                         || elm.getAttribute('anm-draw-thumb')),
+                 'imagesEnabled': __boolAttr(elm.getAttribute('anm-images') || elm.getAttribute('anm-images-enabled')),
+                 'shadowsEnabled': __boolAttr(elm.getAttribute('anm-shadows') || elm.getAttribute('anm-shadows-enabled')),
+                 'audioEnabled': __boolAttr(elm.getAttribute('anm-audio') || elm.getAttribute('anm-audio-enabled')),
+                 'controlsEnabled': __boolAttr(elm.getAttribute('anm-controls') || elm.getAttribute('anm-controls-enabled')),
+                 'infoEnabled': __boolAttr(elm.getAttribute('anm-info') || elm.getAttribute('anm-info-enabled')),
+                 'handleEvents': __boolAttr(elm.getAttribute('anm-events') || elm.getAttribute('anm-handle-events')),
+                 'infiniteDuration': __boolAttr(elm.getAttribute('anm-infinite') || elm.getAttribute('anm-infinite-duration')),
+                 'forceSceneSize': __boolAttr(elm.getAttribute('anm-scene-size') || elm.getAttribute('anm-force-scene-size')),
                  'inParent': undefined, // TODO: check if we're in tag?
-                 'muteErrors': __boolAttr(cvs.getAttribute('anm-mute-errors')),
-                 'loadingMode': cvs.getAttribute('anm-loading-mode'),
-                 'thumbnail': cvs.getAttribute('anm-thumbnail')
+                 'muteErrors': __boolAttr(elm.getAttribute('anm-mute-errors')),
+                 'loadingMode': elm.getAttribute('anm-loading-mode'),
+                 'thumbnail': elm.getAttribute('anm-thumbnail')
                };
     }
     $DE.checkPlayerCanvas = function(cvs) {
         return true;
     }
-    $DE.hasUrlToLoad = function(cvs) {
-        return cvs.getAttribute(URL_ATTR);
+    $DE.hasUrlToLoad = function(elm) {
+        return {
+            url: elm.getAttribute(URL_ATTR),
+            importer_id: elm.getAttribute(IMPORTER_ATTR)
+        }
     }
     $DE.setTabIndex = function(cvs, idx) {
         cvs.setAttribute('tabindex', idx);
@@ -821,6 +829,39 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var handlers = cvs.__anm_handlers[scene.id];
         if (!handlers) return;
         $DE.unsubscribeCanvasEvents(cvs, handlers);
+    }
+    $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
+        if (!wrapper.classList) return;
+        var C = anm.C;
+        player.on(C.S_CHANGE_STATE, function(new_state) {
+            var css_classes = [];
+            switch (new_state) {
+                case C.NOTHING: css_classes = ['anm-state-nothing']; break;
+                case C.STOPPED: css_classes = ['anm-state-stopped']; break;
+                case C.PLAYING: css_classes = ['anm-state-playing']; break;
+                case C.PAUSED:  css_classes = ['anm-state-paused']; break;
+                case C.LOADING: css_classes = ['anm-state-loading']; break;
+                case C.RES_LOADING: css_classes = ['anm-state-loading', 'anm-state-resources-loading']; break;
+                case C.ERROR:   css_classes = ['anm-state-error']; break;
+            }
+            if (css_classes.length) {
+                var classList = wrapper.classList;
+                if (player.__prev_classes && player.__prev_classes.length) {
+                    var prev_classes = player.__prev_classes;
+                    for (var i = 0, il = prev_classes.length; i < il; i++) {
+                        classList.remove(prev_classes[i]);
+                    }
+                } else {
+                    if (classList.contains('anm-state-nothing')) {
+                        classList.remove('anm-state-nothing');
+                    }
+                }
+                for (var i = 0, il = css_classes.length; i < il; i++) {
+                    classList.add(css_classes[i]);
+                }
+                player.__prev_classes = css_classes;
+            }
+        });
     }
 
     return $DE;
