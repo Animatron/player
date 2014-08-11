@@ -94,11 +94,11 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // extractUserOptions(element) -> options: object | {}
     // registerAsControlsElement(elm, player) -> none
     // registerAsInfoElement(elm, player) -> none
+    // detachPlayer(player) -> none
 
     // createCanvas(width, height, bg?, ratio?) -> canvas
     // getContext(canvas, type) -> context
     // playerAttachedTo(canvas, player) -> true | false
-    // detachPlayer(canvas, player) -> none
     // checkPlayerCanvas(canvas) -> true | false
     // setTabIndex(canvas) -> none
     // getCanvasSize(canvas) -> [ width, height ]
@@ -295,14 +295,14 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         } else {
             elm.className = general_class + ' ' + instance_class;
         }
-        elm.__anm_genClass  = general_class;
-        elm.__anm_instClass = instance_class;
+        elm.__anm.gen_class  = general_class;
+        elm.__anm.inst_class = instance_class;
         var general_rule_idx  = (styles.insertRule || styles.addRule).call(styles, '.' +general_class + '{}', rules.length),
             instance_rule_idx = (styles.insertRule || styles.addRule).call(styles, '.' +instance_class + '{}', rules.length);
         var elm_rules = [ rules[general_rule_idx],
                           rules[instance_rule_idx] ];
-        elm.__anm_genRule  = elm_rules[0];
-        elm.__anm_instRule = elm_rules[1];
+        elm.__anm.gen_rule  = elm_rules[0];
+        elm.__anm.inst_rule = elm_rules[1];
         return elm_rules;
     }
 
@@ -398,8 +398,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
     $DE.moveElementTo = function(elm, x, y) {
-        (elm.__anm_instRule || elm).style.left = (x === 0) ? '0' : (x + 'px');
-        (elm.__anm_instRule || elm).style.top  = (y === 0) ? '0' : (y + 'px');
+        ((elm.__anm && elm.__anm.inst_rule) || elm).style.left = (x === 0) ? '0' : (x + 'px');
+        ((elm.__anm && elm.__anm.inst_rule) || elm).style.top  = (y === 0) ? '0' : (y + 'px');
     }
 
     $DE.__trashBin;
@@ -419,10 +419,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         (parent || child.parentNode).removeChild(child);
     }
     $DE.showElement = function(elm) {
-        (elm.__anm_instRule || elm).style.visibility = 'visible';
+        ((elm.__anm && elm.__anm.inst_rule) || elm).style.visibility = 'visible';
     }
     $DE.hideElement = function(elm) {
-        (elm.__anm_instRule || elm).style.visibility = 'hidden';
+        ((elm.__anm && elm.__anm.inst_rule) || elm).style.visibility = 'hidden';
     }
 
     // Creating & Modifying Canvas
@@ -440,10 +440,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             wrapper = $doc.getElementById(wrapper);
         }
 
-        var canvasWasPassed = (wrapper.tagName == 'canvas');
+        var canvasWasPassed = (wrapper.tagName == 'canvas') || (wrapper.tagName == 'CANVAS');
         if (canvasWasPassed && console) {
             (console.warn || console.log).call(console,
-                         'A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
+                         'NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
                          'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
                          'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
                          'Please pass any container such as <div> to a Player instead of <canvas> to fix it.');
@@ -452,16 +452,19 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var canvas = canvasWasPassed ? wrapper : $doc.createElement('canvas');
         wrapper = canvasWasPassed ? $doc.createElement('div') : wrapper;
 
-        if (wrapper.getAttribute(MARKER_ATTR) ||
-            canvas.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to element \'' + (wrapper.id || canvas.id) + '\'.');
+        if (wrapper.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to element \'' + (wrapper.id || canvas.id) + '\'.');
         wrapper.setAttribute(MARKER_ATTR, true);
-        canvas.setAttribute(MARKER_ATTR, true);
 
         var prev_cvs_id = canvas.id;
         canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
         if (!wrapper.id) wrapper.id = prev_cvs_id || back_id;
         canvas.id = wrapper.id + '-cvs';
-        cvs.__anm_wrapper = wrapper;
+        if (!canvas.__anm) canvas.__anm = {};
+        canvas.__anm.wrapper = wrapper;
+
+        var id = wrapper.id; // the "main" id
+
+        canvas.__anm.id = id;
 
         if (canvasWasPassed) {
             var parent = canvas.parentNode || $doc.body;
@@ -491,34 +494,27 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
         return { wrapper: wrapper,
                  canvas: canvas,
-                 id: wrapper.id };
+                 id: id };
     }
     $DE.playerAttachedTo = function(elm, player) {
+        if (elm.__anm && elm.__anm.wrapper) return elm.__anm.wrapper.hasAttribute(MARKER_ATTR);
         return elm.hasAttribute(MARKER_ATTR);
     }
     $DE.clearCanvasProps = function(cvs) {
-        if (!cvs) return;
-        cvs.__anm_wrapper = null;
-        cvs.__anm_overlays = null;
-        cvs.__anm_subscribed = null;
-        cvs.__anm_genRule = null; cvs.__anm_instRule = null;
-        cvs.__anm_ref_canvas = null;
-        delete cvs.__anm_wrapper;
-        delete cvs.__anm_overlays;
-        delete cvs.__anm_subscribed;
-        delete cvs.__anm_ratio;
-        delete cvs.__anm_genRule; delete cvs.__anm_instRule;
-        delete cvs.__anm_x; delete cvs.__anm_y;
-        delete cvs.__anm_width; delete cvs.__anm_height;
-        delete cvs.__anm_usr_x; delete cvs.__anm_usr_y;
-        delete cvs.__anm_ref_canvas;
-        if (cvs.__anm_genClass && cvs.__anm_instClass) {
+        if (!cvs || !cvs.__anm) return;
+        var __anm = cvs.__anm;
+        delete __anm.wrapper;
+        delete __anm.overlays;
+        delete __anm.subscribed;
+        delete __anm.gen_rule; delete __anm.inst_rule;
+        delete __anm.ref_canvas;
+        if (__anm.gen_class && __anm.inst_class) {
             var styles = $DE.__stylesTag.sheet,
                 rules = styles.cssRules || styles.rules;
             var to_remove = [];
             for (var i = 0, il = rules.length; i < il; i++) {
-                if ((rules[i].selectorText == '.' + cvs.__anm_genClass) ||
-                    (rules[i].selectorText == '.' + cvs.__anm_instClass)) {
+                if ((rules[i].selectorText == '.' + __anm.gen_class) ||
+                    (rules[i].selectorText == '.' + __anm.inst_class)) {
                     to_remove.push(i); // not to conflict while iterating
                 }
             }
@@ -526,14 +522,16 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                 (styles.deleteRule || styles.removeRule).call(styles, to_remove.pop());
             }
         }
-        if (cvs.__anm_genClass  && cvs.classList) cvs.classList.remove(cvs.__anm_genClass);
-        if (cvs.__anm_instClass && cvs.classList) cvs.classList.remove(cvs.__anm_instClass);
-        delete cvs.__anm_genClass; delete cvs.__anm_instClass;
-        // delete cvs.__anm_subscribed
+        if (__anm.gen_class  && cvs.classList) cvs.classList.remove(__anm.gen_class);
+        if (__anm.inst_class && cvs.classList) cvs.classList.remove(__anm.inst_class);
+        delete __anm.gen_class; delete __anm.inst_class;
+        cvs.__anm = {};
     }
-    $DE.detachPlayer = function(cvs, player) {
-        cvs.removeAttribute(MARKER_ATTR);
-        $DE.clearCanvasProps(cvs);
+    $DE.detachPlayer = function(player) {
+        var canvas = player.canvas,
+            wrapper = player.wrapper;
+        if (wrapper) wrapper.removeAttribute(MARKER_ATTR);
+        $DE.clearCanvasProps(canvas);
         if (player.controls) {
             $DE.clearCanvasProps(player.controls.canvas);
             if (player.controls.info) $DE.clearCanvasProps(player.controls.info.canvas);
@@ -613,8 +611,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.getCanvasParameters = function(cvs) {
         // if canvas size was not initialized by player, will return null
-        if (!cvs.__anm_width || !cvs.__anm_height) return null;
-        return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
+        if (!cvs.__anm || !cvs.__anm.width || !cvs.__anm.height) return null;
+        return [ cvs.__anm.width, cvs.__anm.height, $DE.PX_RATIO ];
     }
     $DE.getCanvasSize = function(cvs) {
         if (cvs.getBoundingClientRect) {
@@ -646,33 +644,33 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var _w = width | 0,
             _h = height | 0;
         //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
-        cvs.__anm_ratio = ratio;
-        cvs.__anm_width = _w;
-        cvs.__anm_height = _h;
-        if (!cvs.style.width)  { (cvs.__anm_instRule || cvs).style.width  = _w + 'px'; }
-        if (!cvs.style.height) { (cvs.__anm_instRule || cvs).style.height = _h + 'px'; }
+        cvs.__anm.ratio = ratio;
+        cvs.__anm.width = _w;
+        cvs.__anm.height = _h;
+        if (!cvs.style.width)  { (cvs.__anm.inst_rule || cvs).style.width  = _w + 'px'; }
+        if (!cvs.style.height) { (cvs.__anm.inst_rule || cvs).style.height = _h + 'px'; }
         cvs.setAttribute('width', _w * (ratio || 1));
         cvs.setAttribute('height', _h * (ratio || 1));
         $DE._saveCanvasPos(cvs);
         return [ _w, _h ];
     }
     $DE.setCanvasPosition = function(cvs, x, y) {
-        cvs.__anm_usr_x = x;
-        cvs.__anm_usr_y = y;
+        cvs.__anm.usr_x = x;
+        cvs.__anm.usr_y = y;
         // TODO: actually move canvas
         $DE._saveCanvasPos(cvs);
     }
     $DE.setCanvasBackground = function(cvs, bg) {
-        (cvs.__anm_instRule || cvs).style.backgroundColor = bg;
+        ((cvs.__anm && cvs.__anm.inst_rule) || cvs).style.backgroundColor = bg;
     }
     $DE.updateCanvasMetrics = function(cvs) { // FIXME: not used
         var pos = $DE.getCanvasPosition(cvs),
             size = $DE.getCanvasSize(cvs);
-        cvs.__anm_ratio = $DE.PX_RATIO;
-        cvs.__anm_x = pos[0];
-        cvs.__anm_y = pos[1];
-        cvs.__anm_width = size[0];
-        cvs.__anm_height = size[1];
+        cvs.__anm.ratio = $DE.PX_RATIO;
+        cvs.__anm.x = pos[0];
+        cvs.__anm.y = pos[1];
+        cvs.__anm.width = size[0];
+        cvs.__anm.height = size[1];
         $DE._saveCanvasPos(cvs);
     }
     $DE._saveCanvasPos = function(cvs) {
@@ -714,8 +712,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         /* FIXME: find a method with no injection of custom properties
                   (data-xxx attributes are stored as strings and may work
                    a bit slower for events) */
-        cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
-        cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
+        cvs.__rOffsetLeft = ol || cvs.__anm.usr_x;
+        cvs.__rOffsetTop = ot || cvs.__anm.usr_y;
     }
     $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
         // conf should be: [ x, y, w, h ], all in percentage relative to parent
@@ -732,7 +730,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var new_w = (w * pw),
             new_h = (h * ph);
         var cvs = $doc.createElement('canvas');
-        cvs.id = player_cvs.id ? ('__' + player_cvs.id + '_' + id) : ('__anm_' + id);
+        cvs.id = (player_cvs.__anm && player_cvs.__anm.id) ? ('__' + player_cvs.__anm.id + '_' + id) : ('__anm_' + id);
         if (callback) callback(cvs, player_cvs);
         $DE.setCanvasSize(cvs, new_w, new_h);
         var new_x = (x * new_w) + x_shift,
@@ -740,9 +738,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         $DE.moveElementTo(cvs, new_x, new_y);
         // .insertBefore() in combination with .nextSibling works as .insertAfter() simulation
         (holder || $doc.body).insertBefore(cvs, player_cvs.nextSibling);
-        cvs.__anm_ref_canvas = player_cvs;
-        if (!player_cvs.__anm_overlays) player_cvs.__anm_overlays = [];
-        player_cvs.__anm_overlays.push(cvs);
+        cvs.__anm.ref_canvas = player_cvs;
+        if (!player_cvs.__anm.overlays) player_cvs.__anm.overlays = [];
+        player_cvs.__anm.overlays.push(cvs);
         return cvs;
     }
     $DE.updateCanvasOverlays = function() { }
@@ -799,14 +797,14 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     var _kevt = $DE.keyEvent,
         _mevt = $DE.mouseEvent;
     $DE.subscribeSceneToEvents = function(cvs, scene, map) {
-        if (cvs.__anm_subscribed &&
-            cvs.__anm_subscribed[scene.id]) {
+        if (cvs.__anm.subscribed &&
+            cvs.__anm.subscribed[scene.id]) {
             return;
         }
         //cvs.__anm_subscription_id = guid();
-        if (!cvs.__anm_handlers)   cvs.__anm_handlers = {};
-        if (!cvs.__anm_subscribed) cvs.__anm_subscribed = {};
-        var handlers = cvs.__anm_subscribed[scene.id] || {
+        if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
+        if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
+        var handlers = cvs.__anm.subscribed[scene.id] || {
           mouseup:   function(evt) { scene.fire(map.mouseup,   _mevt(evt, cvs)); },
           mousedown: function(evt) { scene.fire(map.mousedown, _mevt(evt, cvs)); },
           mousemove: function(evt) { scene.fire(map.mousemove, _mevt(evt, cvs)); },
@@ -818,15 +816,15 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
           keydown:   function(evt) { scene.fire(map.keydown,   _kevt(evt)); },
           keypress:  function(evt) { scene.fire(map.keypress,  _kevt(evt)); }
         };
-        cvs.__anm_handlers[scene.id] = handlers;
-        cvs.__anm_subscribed[scene.id] = true;
+        cvs.__anm.handlers[scene.id] = handlers;
+        cvs.__anm.subscribed[scene.id] = true;
         $DE.subscribeCanvasEvents(cvs, handlers);
     }
     $DE.unsubscribeSceneFromEvents = function(cvs, scene) {
-        if (!cvs.__anm_handlers   ||
-            !cvs.__anm_subscribed ||
-            !cvs.__anm_subscribed[scene.id]) return;
-        var handlers = cvs.__anm_handlers[scene.id];
+        if (!cvs.__anm.handlers   ||
+            !cvs.__anm.subscribed ||
+            !cvs.__anm.subscribed[scene.id]) return;
+        var handlers = cvs.__anm.handlers[scene.id];
         if (!handlers) return;
         $DE.unsubscribeCanvasEvents(cvs, handlers);
     }

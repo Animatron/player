@@ -1014,7 +1014,10 @@ Player.prototype._checkOpts = function() {
         this._disableControls();
     }
 
-    if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
+    if (this.ctx) {
+        if (!this.ctx.__anm) = this.ctx.__anm = {};
+        this.ctx.__anm.skip_shadows = !this.shadowsEnabled;
+    }
 
     this.__appliedMode = this.mode;
 
@@ -1163,21 +1166,24 @@ Player.prototype.afterRender = function(callback) {
     this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
-    if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
-    if (this.controls) this.controls.detach(this.canvas.parentNode);
-    $engine.detachPlayer(this.canvas, this);
-    if (this.ctx) delete this.ctx.__anm_skipShadows;
+    if (!$engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    if (this.controls) this.controls.detach(this.wrapper);
+    $engine.detachPlayer(this);
+    if (this.ctx && this.ctx.__anm) {
+        delete this.ctx.__anm.skipShadows;
+        this.ctx.__anm = {};
+    }
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
-Player.prototype.attachedTo = function(canvas) {
-    return $engine.playerAttachedTo(canvas, this);
+Player.prototype.attachedTo = function(canvas_or_wrapper) {
+    return $engine.playerAttachedTo(canvas_or_wrapper, this);
 }
 Player.prototype.isAttached = function() {
-    return $engine.playerAttachedTo(this.canvas, this);
+    return $engine.playerAttachedTo(this.wrapper, this);
 }
-Player.attachedTo = function(canvas, player) {
-    return $engine.playerAttachedTo(canvas, player);
+Player.attachedTo = function(canvas_or_wrapper, player) {
+    return $engine.playerAttachedTo(canvas_or_wrapper, player);
 }
 Player.prototype.invalidate = function() {
     // TODO: probably, there's more to invalidate
@@ -5084,7 +5090,7 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows || ctx.__anm_skipShadows) return;
+    if (!shadow || $conf.doNotRenderShadows || (ctx.__anm && ctx.__anm.skip_shadows)) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -5636,8 +5642,8 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     $engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
-    if (this.ctx && this.ctx.__anm_loadingReq) delete this.ctx.__anm_loadingReq;
-    if (this.ctx) delete this.ctx.__anm_supressLoading;
+    if (this.ctx && this.ctx.__anm && this.canvas.__anm.loading_req) delete this.ctx.__anm.loading_req;
+    if (this.ctx && this.ctx.__anm) delete this.ctx.__anm.supress_loading;
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
@@ -5694,14 +5700,14 @@ Controls.prototype.enable = function() {
 Controls.prototype.disable = function() {
     this.hide();
     // FIXME: unsubscribe events!
-    this.detach(this.player.canvas.parentNode);
+    this.detach(this.player.wrapper);
 }
 Controls.prototype.enableInfo = function() {
     if (!this.info) this.info = new InfoBlock(this.player);
     this.info.update(this.player.canvas);
 }
 Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.canvas.parentNode);
+    if (this.info) this.info.detach(this.player.wrapper);
     /*if (this.info) */this.info = null;
 }
 Controls.prototype.setDuration = function(value) {
@@ -6000,12 +6006,13 @@ Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
 Controls._runLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
     //        and Contols._scheduleLoading() should be used to start all the drawing process
-    if (ctx.__anm_loadingReq) return;
+    if (ctx.__anm && ctx.__anm.loading_req) return;
     var ratio = $engine.PX_RATIO;
     // var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
-    ctx.__anm_supressLoading = false;
+    if (!ctx.__anm) ctx.__anm = {};
+    ctx.__anm.supress_loading = false;
     function loading_loop() {
-        if (ctx.__anm_supressLoading) return;
+        if (ctx.__anm.supress_loading) return;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (ratio != 1) ctx.scale(ratio, ratio);
@@ -6014,15 +6021,15 @@ Controls._runLoadingAnimation = function(ctx, paint) {
         ctx.restore();
         return __nextFrame(loading_loop);
     }
-    ctx.__anm_loadingReq = __nextFrame(loading_loop);
+    ctx.__anm.loading_req = __nextFrame(loading_loop);
 }
 Controls._stopLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
     //        and Contols._stopLoading() should be used to stop the drawing process
-    if (!ctx.__anm_loadingReq) return;
-    ctx.__anm_supressLoading = true;
-    __stopAnim(ctx.__anm_loadingReq);
-    ctx.__anm_loadingReq = null;
+    if (!ctx.__anm || !ctx.__anm.loading_req) return;
+    ctx.__anm.supress_loading = true;
+    __stopAnim(ctx.__anm.loading_req);
+    ctx.__anm.loading_req = null;
 }
 
 // Info Block
