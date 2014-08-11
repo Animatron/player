@@ -1040,9 +1040,11 @@ Player.prototype._postInit = function() {
     /* TODO: load some default information into player */
     var to_load = $engine.hasUrlToLoad(this.wrapper);
     if (!to_load.url) to_load = $engine.hasUrlToLoad(this.canvas);
-    if (to_load.url) this.load(to_load.url,
-                            to_load.importer_id
-                            ? anm.createImporter(to_load.importer_id) : null);
+    if (to_load.url) {
+        this.load(to_load.url,
+                  (to_load.importer_id) && anm.isImporterAccessible(to_load.importer_id)
+                  ? anm.createImporter(to_load.importer_id) : null);
+    }
 }
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
@@ -1789,26 +1791,9 @@ Player._optsFromUrlParams = function(params/* as object */) {
     return opts;
 }
 Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
-    var url_with_params = snapshot_url.split('?'),
-        snapshot_url = urlWithParams[0],
-        url_params = url_with_params[1], // TODO: validate them?
-        params = (url_params && url_params.length > 0) ? __paramsToObj(url_params) : {},
-        options = Player._optsFromUrlParams(params),
-        player = new Player();
-    // TODO: allow to assign some callback to call when player was created
-    // TODO: allow to use a prepared player to load a snapshot
-    // TODO: allow to take snapshot URL from wrapper attribute
-    player.init(elm_id, options);
-    if (alt_opts) {
-      player._addOpts(alt_opts);
-      player._checkOpts();
-    }
-
-    player.load(snapshot_url, importer, function(anim) {
-        player._applyUrlParamsToAnimation(params);
-        if (callback) callback.call(player, anim);
-    });
-
+    var player = new Player();
+    player.init(elm_id, alt_opts);
+    player.load(snapshot_url, importer, callback);
     return player;
 }
 Player.prototype._applyUrlParamsToAnimation = function(params) {
@@ -3535,6 +3520,19 @@ var L = {}; // means "Loading/Loader"
 L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
+    var importer = importer || anm.createImporter('animatron');
+
+    var url_with_params = url.split('?'),
+        url = url_with_params[0],
+        url_params = url_with_params[1], // TODO: validate them?
+        params = (url_params && url_params.length > 0) ? __paramsToObj(url_params) : {},
+        options = Player._optsFromUrlParams(params);
+
+    if (options) {
+        player._addOpts(options);
+        player._checkOpts();
+    }
+
     var failure = player.__defAsyncSafe(function(err) {
         throw new SysErr(_strf(Errors.P.SNAPSHOT_LOADING_FAILED,
                                [ (err ? (err.message || err) : '¿Por qué?') ]));
@@ -3542,7 +3540,10 @@ L.loadFromUrl = function(player, url, importer, callback) {
 
     var success = function(req) {
         try {
-            L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
+            L.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
+                player._applyUrlParamsToAnimation(params);
+                if (callback) callback.call(player, anim);
+            });
         } catch(e) { failure(e); }
     };
 
