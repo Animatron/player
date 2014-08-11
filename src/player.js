@@ -637,7 +637,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 }
             ) ]);
             scene._loadRemoteResources(player);
-            scene.loadFonts();
         }
 
     };
@@ -1236,6 +1235,7 @@ Player.prototype._drawStill = function() {
     // drawStill is a flag, while _drawStill is a method
     // since we have no hungarian notation is't treated as ok (for now)
     var player = this,
+        state = player.state,
         scene = player.anim;
     if (player.drawStill) { // it's a flag!
         if (player.__thumb) {
@@ -2060,6 +2060,7 @@ Scene.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(scene, player);
         }
     });
+    scene.loadFonts();
 }
 Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
@@ -2122,8 +2123,6 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
-
-
 Scene.prototype.loadFonts = function() {
     if(!this.fonts || !this.fonts.length) {
         return;
