@@ -1236,6 +1236,7 @@ Player.prototype._drawStill = function() {
     // drawStill is a flag, while _drawStill is a method
     // since we have no hungarian notation is't treated as ok (for now)
     var player = this,
+        state = player.state,
         scene = player.anim;
     if (player.drawStill) { // it's a flag!
         if (player.__thumb) {
