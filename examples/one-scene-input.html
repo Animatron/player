@@ -34,10 +34,10 @@
       var /*b = Builder._$, */C = anm.C;
 
       function createPlayer() {
-          return anm.createPlayer('canvas', { audioEnabled: false,
-                                              loadingMode: anm.C.LM_ONPLAY,
-                                              ribbonsColor: 'rgba(255,0,0,0.01)'
-                                              /*controlsEnabled: false, autoPlay: true*/ });
+          return anm.createPlayer('anm-player', { audioEnabled: false,
+                                                  loadingMode: anm.C.LM_ONPLAY,
+                                                  ribbonsColor: 'rgba(255,0,0,0.01)'
+                                                  /*controlsEnabled: false, autoPlay: true*/ });
       }
 
       function load() {
@@ -79,7 +79,7 @@
     <h1 style="margin-bottom: 20px">The place to test one scene</h1>
 
     <!-- <canvas id="canvas" width="1080" height="1080"></canvas> -->
-    <canvas id="canvas" width="1080" height="1080"></canvas>
+    <div id="anm-player" anm-width="540" anm-height="540"></div>
 
     <p style="float: right"><label for="scene-input">Scene JSON:</label><button onclick="load(this)">Load</button><textarea id="scene-input"></textarea></p>
 

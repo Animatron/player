@@ -71,6 +71,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // ajax(url, callback?, errback?, method?, headers?) -> none
     // getCookie(name) -> String
+    // onDocReady(callback) -> none
 
     // ensureGlobalStylesInjected() -> none
     // injectElementStyles(elm, general_class, instance_class) -> [ general_rule, instance_rule ];
@@ -97,6 +98,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // registerAsInfoElement(element, player) -> none
     // detachPlayer(player) -> none
     // playerAttachedTo(element, player) -> true | false
+    // findPotentialPlayers() -> [ element ]
 
     // hasAnmProps(element) -> object | null
     // getAnmProps(element) -> object
@@ -232,6 +234,22 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return null;
         /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec($doc.cookie);
         return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
+    }
+    $DE.onDocReady = function(callback) {
+        var listener;
+        if ($doc.addEventListener) {
+            listener = $doc.addEventListener('DOMContentLoaded', function() {
+                $doc.removeEventListener('DOMContentLoaded', listener, false);
+                callback();
+            }, false);
+        } else if ($doc.attachEvent) {
+            listener = $doc.attachEvent('onreadystatechange', function() {
+                if ($doc.readyState === 'complete') {
+                    $doc.detachEvent('onreadystatechange', listener);
+                    callback();
+                }
+            });
+        }
     }
 
     $DE.__stylesTag = null;
@@ -516,6 +534,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if ($DE.hasAnmProps(elm)) { var props = $DE.getAnmProps(elm);
                                     if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR); };
         return elm.hasAttribute(MARKER_ATTR);
+    }
+    $DE.findPotentialPlayers = function() {
+        return $doc.querySelectorAll('[' + MARKER_ATTR + ']');
     }
 
     $DE.hasAnmProps = function(elm) {

@@ -6251,8 +6251,14 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
 
 return (function($trg) {
 
-    function __createPlayer(cvs, opts) { var p = new Player();
-                                         p.init(cvs, opts); return p; }
+    function __createPlayer(elm, opts) { var p = new Player();
+                                         p.init(elm, opts); return p; }
+    function __findAndInitPotentialPlayers() {
+        var matches = $engine.findPotentialPlayers();
+        for (var i = 0, il = matches.length; i < il; i++) {
+            __createPlayer(matches[i]);
+        }
+    }
 
     //registerGlobally('createPlayer', __createPlayer);
 
@@ -6288,6 +6294,8 @@ return (function($trg) {
                    't_cmp': __t_cmp,
                    'TIME_PRECISION': TIME_PRECISION/*,
                    'Controls': Controls, 'Info': InfoBlock*/ };
+
+    $engine.onDocReady(__findAndInitPotentialPlayers);
 
     return Player;
 

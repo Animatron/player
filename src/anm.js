@@ -423,6 +423,7 @@
                 }
             }
         }
+        // TODO: ResourceManager.prototype.cancel(url)
         ResourceManager.prototype.clear = function() {
             this._cache = {};
             this._errors = {};
@@ -553,7 +554,7 @@
             });
         }
 
-        // Errors
+        // Errors & Strings
         // -----------------------------------------------------------------------------
 
         function __errorAs(name) {
