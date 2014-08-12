@@ -1,3 +1,10 @@
+v1.2 / Tue Aug 12 2014 18:04:40 +0200 / f1773845d89a8cc783c915af8a8bd0eca7078a7c
+================================================================================
+
+* Player is initialised from a container now (a warning appears, if it was initialized from canvas)
+* Player stores it's private data in `__anm` property of elements
+* Player is able to auto-initialize from a tag like `<div anm-player-target anm-snapshot-url="http://clips.animatron.com/0d8887993614c3b6d57535eca50fa014.json?width=200&height=200" anm-auto-play="true"></div>` w/o any additional JavaScript
+
 v1.1.0 / Thu Aug 07 2014 16:44:38 +0200 / da42b59d8f6b203382a05b40ee47bff895f65b0c
 ==================================================================================
 
