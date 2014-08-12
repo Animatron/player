@@ -55,7 +55,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
         AUTO_MARKER_ATTR = 'anm-player-target', // marks that this element is a target for a player
         URL_ATTR = 'anm-url',
-        SNAPSHOT_URL_ATTR = 'anm-snapshot-url',
+        SNAPSHOT_URL_ATTR = 'anm-src',
         IMPORTER_ATTR = 'anm-importer';
 
     var $DE = {};
