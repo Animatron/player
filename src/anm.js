@@ -599,8 +599,8 @@
         Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
         Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player';
         Errors.P.NO_IMPORTER_TO_LOAD_WITH = 'Cannot load this project without importer. Please define it';
-        Errors.P.NO_CANVAS_WITH_ID = 'No canvas found with given id: {0}';
-        Errors.P.NO_CANVAS_WAS_PASSED = 'No canvas was passed';
+        Errors.P.NO_WRAPPER_WITH_ID = 'No element found with given id: {0}';
+        Errors.P.NO_WRAPPER_WAS_PASSED = 'No element was passed to player initializer';
         Errors.P.CANVAS_NOT_VERIFIED = 'Canvas is not verified by the provider';
         Errors.P.CANVAS_NOT_PREPARED = 'Canvas is not prepared, don\'t forget to call \'init\' method';
         Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +

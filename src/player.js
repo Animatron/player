@@ -489,6 +489,7 @@ Player.prototype.init = function(cvs, opts) {
     this._prepare(cvs);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts($engine.extractUserOptions(this.canvas));
+    this._addOpts($engine.extractUserOptions(this.wrapper));
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
@@ -904,27 +905,28 @@ Player.prototype.onerror = function(callback) {
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                         C.S_ERROR ]);
-Player.prototype._prepare = function(cvs) {
-    if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-    var canvas_id, canvas;
-    if (__str(cvs)) {
-        canvas_id = cvs;
-        canvas = $engine.getElementById(canvas_id);
-        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [canvas_id]));
+Player.prototype._prepare = function(elm) {
+    if (!elm) throw new PlayerErr(Errors.P.NO_WRAPPER_PASSED);
+    var wrapper_id, wrapper;
+    if (__str(elm)) {
+        wrapper_id = elm;
+        wrapper = $engine.getElementById(wrapper_id);
+        if (!wrapper_id) throw new PlayerErr(_strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
     } else {
-        if (!cvs.id) cvs.id = ('anm-player-' + Player.__instances);
-        canvas_id = cvs.id;
-        canvas = cvs;
+        if (!wrapper.id) wrapper.id = ('anm-player-' + Player.__instances);
+        wrapper_id = wrapper.id;
+        wrapper = elm;
     }
-    this.holder = $engine.assignPlayerToCanvas(canvas, this, canvas_id);
-    if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this.id = canvas_id;
-    this.canvas = canvas;
-    this.ctx = $engine.getContext(canvas, '2d');
+    var assign_data = $engine.assignPlayerToWrapper(wrapper, this, 'anm-player-' + Player.__instances);
+    this.id = assign_data.id;
+    this.wrapper = assign_data.wrapper;
+    this.canvas = assign_data.canvas;
+    if (!$engine.checkPlayerCanvas(this.canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    this.ctx = $engine.getContext(this.canvas, '2d');
     this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
-    this.subscribeEvents(canvas);
+    this.subscribeEvents(this.canvas);
 
     this.__canvasPrepared = true;
 }
@@ -1012,7 +1014,10 @@ Player.prototype._checkOpts = function() {
         this._disableControls();
     }
 
-    if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
+    if (this.ctx) {
+        var props = $engine.getAnmProps(this.ctx);
+        props.skip_shadows = !this.shadowsEnabled;
+    }
 
     this.__appliedMode = this.mode;
 
@@ -1036,9 +1041,13 @@ Player.prototype._postInit = function() {
     this.stop();
     Text.__measuring_f = $engine.createTextMeasurer();
     /* TODO: load some default information into player */
-    var mayBeUrl = $engine.hasUrlToLoad(this.canvas);
-    if (mayBeUrl) this.load(mayBeUrl/*,
-                            this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
+    var to_load = $engine.hasUrlToLoad(this.wrapper);
+    if (!to_load.url) to_load = $engine.hasUrlToLoad(this.canvas);
+    if (to_load.url) {
+        this.load(to_load.url,
+                  (to_load.importer_id) && anm.isImporterAccessible(to_load.importer_id)
+                  ? anm.createImporter(to_load.importer_id) : null);
+    }
 }
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
@@ -1157,21 +1166,23 @@ Player.prototype.afterRender = function(callback) {
     this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
-    if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
-    if (this.controls) this.controls.detach(this.canvas.parentNode);
-    $engine.detachPlayer(this.canvas, this);
-    if (this.ctx) delete this.ctx.__anm_skipShadows;
+    if (!$engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    if (this.controls) this.controls.detach(this.wrapper);
+    $engine.detachPlayer(this);
+    if (this.ctx) {
+        $engine.clearAnmProps(this.ctx);
+    }
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
-Player.prototype.attachedTo = function(canvas) {
-    return $engine.playerAttachedTo(canvas, this);
+Player.prototype.attachedTo = function(canvas_or_wrapper) {
+    return $engine.playerAttachedTo(canvas_or_wrapper, this);
 }
 Player.prototype.isAttached = function() {
-    return $engine.playerAttachedTo(this.canvas, this);
+    return $engine.playerAttachedTo(this.wrapper, this);
 }
-Player.attachedTo = function(canvas, player) {
-    return $engine.playerAttachedTo(canvas, player);
+Player.attachedTo = function(canvas_or_wrapper, player) {
+    return $engine.playerAttachedTo(canvas_or_wrapper, player);
 }
 Player.prototype.invalidate = function() {
     // TODO: probably, there's more to invalidate
@@ -1784,24 +1795,10 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.ribbonsColor = params.ribbons || params.ribcolor;
     return opts;
 }
-Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opts) {
-    var urlWithParams = snapshotUrl.split('?'),
-        snapshotUrl = urlWithParams[0],
-        urlParams = urlWithParams[1], // TODO: validate them?
-        params = (urlParams && urlParams.length > 0) ? __paramsToObj(urlParams) : {},
-        options = Player._optsFromUrlParams(params),
-        player = new Player();
-    player.init(canvasId, options);
-    if (alt_opts) {
-      player._addOpts(alt_opts);
-      player._checkOpts();
-    }
-
-    player.load(snapshotUrl, importer, function(anim) {
-        player._applyUrlParamsToAnimation(params);
-        if (callback) callback.call(player, anim);
-    });
-
+Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
+    var player = new Player();
+    player.init(elm_id, alt_opts);
+    player.load(snapshot_url, importer, callback);
     return player;
 }
 Player.prototype._applyUrlParamsToAnimation = function(params) {
@@ -3528,6 +3525,19 @@ var L = {}; // means "Loading/Loader"
 L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
+    var importer = importer || anm.createImporter('animatron');
+
+    var url_with_params = url.split('?'),
+        url = url_with_params[0],
+        url_params = url_with_params[1], // TODO: validate them?
+        params = (url_params && url_params.length > 0) ? __paramsToObj(url_params) : {},
+        options = Player._optsFromUrlParams(params);
+
+    if (options) {
+        player._addOpts(options);
+        player._checkOpts();
+    }
+
     var failure = player.__defAsyncSafe(function(err) {
         throw new SysErr(_strf(Errors.P.SNAPSHOT_LOADING_FAILED,
                                [ (err ? (err.message || err) : '¿Por qué?') ]));
@@ -3535,7 +3545,10 @@ L.loadFromUrl = function(player, url, importer, callback) {
 
     var success = function(req) {
         try {
-            L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
+            L.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
+                player._applyUrlParamsToAnimation(params);
+                if (callback) callback.call(player, anim);
+            });
         } catch(e) { failure(e); }
     };
 
@@ -5076,7 +5089,8 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows || ctx.__anm_skipShadows) return;
+    var props = $engine.getAnmProps(ctx);
+    if (!shadow || $conf.doNotRenderShadows || (props.skip_shadows)) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -5175,12 +5189,13 @@ Sheet.prototype.load = function(callback, errback) {
               notify_error('Loading images is turned off');
               return; }
             var _img = new Image();
+            var props = $engine.getAnmProps(_img);
             _img.onload = _img.onreadystatechange = function() {
-                if (_img.__anm_ready) return;
+                if (props.ready) return;
                 if (this.readyState && (this.readyState !== 'complete')) {
                     notify_error(this.readyState);
                 }
-                _img.__anm_ready = true; // this flag is to check later if request succeeded
+                props.ready = true; // this flag is to check later if request succeeded
                 // this flag is browser internal
                 _img.isReady = true; /* FIXME: use 'image.complete' and
                                       '...' (network exist) combination,
@@ -5628,8 +5643,7 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     $engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
-    if (this.ctx && this.ctx.__anm_loadingReq) delete this.ctx.__anm_loadingReq;
-    if (this.ctx) delete this.ctx.__anm_supressLoading;
+    if (this.ctx) $engine.clearAnmProps(this.ctx);
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
@@ -5686,14 +5700,14 @@ Controls.prototype.enable = function() {
 Controls.prototype.disable = function() {
     this.hide();
     // FIXME: unsubscribe events!
-    this.detach(this.player.canvas.parentNode);
+    this.detach(this.player.wrapper);
 }
 Controls.prototype.enableInfo = function() {
     if (!this.info) this.info = new InfoBlock(this.player);
     this.info.update(this.player.canvas);
 }
 Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.canvas.parentNode);
+    if (this.info) this.info.detach(this.player.wrapper);
     /*if (this.info) */this.info = null;
 }
 Controls.prototype.setDuration = function(value) {
@@ -5992,12 +6006,13 @@ Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
 Controls._runLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
     //        and Contols._scheduleLoading() should be used to start all the drawing process
-    if (ctx.__anm_loadingReq) return;
+    var props = $engine.getAnmProps(ctx);
+    if (props.loading_req) return;
     var ratio = $engine.PX_RATIO;
     // var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
-    ctx.__anm_supressLoading = false;
+    props.supress_loading = false;
     function loading_loop() {
-        if (ctx.__anm_supressLoading) return;
+        if (props.supress_loading) return;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (ratio != 1) ctx.scale(ratio, ratio);
@@ -6006,15 +6021,16 @@ Controls._runLoadingAnimation = function(ctx, paint) {
         ctx.restore();
         return __nextFrame(loading_loop);
     }
-    ctx.__anm_loadingReq = __nextFrame(loading_loop);
+    props.loading_req = __nextFrame(loading_loop);
 }
 Controls._stopLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
     //        and Contols._stopLoading() should be used to stop the drawing process
-    if (!ctx.__anm_loadingReq) return;
-    ctx.__anm_supressLoading = true;
-    __stopAnim(ctx.__anm_loadingReq);
-    ctx.__anm_loadingReq = null;
+    var props = $engine.getAnmProps(ctx);
+    if (!props.loading_req) return;
+    props.supress_loading = true;
+    __stopAnim(props.loading_req);
+    props.loading_req = null;
 }
 
 // Info Block
