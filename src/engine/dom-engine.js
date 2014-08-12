@@ -53,7 +53,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // DomEngine constants
 
     var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
+        AUTO_MARKER_ATTR = 'anm-player-target', // marks that this element is a target for a player
         URL_ATTR = 'anm-url',
+        SNAPSHOT_URL_ATTR = 'anm-snapshot-url',
         IMPORTER_ATTR = 'anm-importer';
 
     var $DE = {};
@@ -487,6 +489,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
         if (wrapper.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to element \'' + (wrapper.id || canvas.id) + '\'.');
         wrapper.setAttribute(MARKER_ATTR, true);
+        if (wrapper.hasAttribute(AUTO_MARKER_ATTR)) wrapper.removeAttribute(AUTO_MARKER_ATTR);
+        if (canvas.hasAttribute(AUTO_MARKER_ATTR))  canvas.removeAttribute(AUTO_MARKER_ATTR);
 
         var prev_cvs_id = canvas.id;
         canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
@@ -536,7 +540,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return elm.hasAttribute(MARKER_ATTR);
     }
     $DE.findPotentialPlayers = function() {
-        return $doc.querySelectorAll('[' + MARKER_ATTR + ']');
+        return $doc.querySelectorAll('[' + AUTO_MARKER_ATTR + ']');
     }
 
     $DE.hasAnmProps = function(elm) {
@@ -652,7 +656,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.hasUrlToLoad = function(elm) {
         return {
-            url: elm.getAttribute(URL_ATTR),
+            url: elm.getAttribute(URL_ATTR) || elm.getAttribute(SNAPSHOT_URL_ATTR),
             importer_id: elm.getAttribute(IMPORTER_ATTR)
         }
     }

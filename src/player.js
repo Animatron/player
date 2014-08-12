@@ -482,11 +482,11 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'muteErrors': false
 //     }
 
-Player.prototype.init = function(cvs, opts) {
-    if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
+Player.prototype.init = function(elm, opts) {
+    if (this.canvas || this.wrapper) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
-    this._prepare(cvs);
+    this._prepare(elm);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts($engine.extractUserOptions(this.canvas));
     this._addOpts($engine.extractUserOptions(this.wrapper));
@@ -913,8 +913,8 @@ Player.prototype._prepare = function(elm) {
         wrapper = $engine.getElementById(wrapper_id);
         if (!wrapper_id) throw new PlayerErr(_strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
     } else {
-        if (!wrapper.id) wrapper.id = ('anm-player-' + Player.__instances);
-        wrapper_id = wrapper.id;
+        if (!elm.id) elm.id = ('anm-player-' + Player.__instances);
+        wrapper_id = elm.id;
         wrapper = elm;
     }
     var assign_data = $engine.assignPlayerToWrapper(wrapper, this, 'anm-player-' + Player.__instances);
