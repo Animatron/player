@@ -80,22 +80,26 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // createTransform() -> Transform
 
     // getElementById(id) -> Element
-    // findElementPosition(elm) -> [ x, y ]
-    // findScrollAwarePosition(elm) -> [ x, y ]
-    // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
-    // moveElementTo(elm, x, y) -> none
-    // disposeElement(elm) -> none
+    // findElementPosition(element) -> [ x, y ]
+    // findScrollAwarePosition(eelementlm) -> [ x, y ]
+    // // getElementBounds(element) -> [ x, y, width, height, ratio ]
+    // moveElementTo(element, x, y) -> none
+    // disposeElement(element) -> none
     // detachElement(parent | null, child) -> none
-    // showElement(elm) -> none
-    // hideElement(elm) -> none
+    // showElement(element) -> none
+    // hideElement(element) -> none
+    // clearChildren(element) -> none
 
     // assignPlayerToWrapper(wrapper, player, backup_id) -> { wrapper, canvas, id }
-    // hasUrlToLoad(elm) -> { url, importer_id }
+    // hasUrlToLoad(element) -> { url, importer_id }
     // extractUserOptions(element) -> options: object | {}
-    // registerAsControlsElement(elm, player) -> none
-    // registerAsInfoElement(elm, player) -> none
+    // registerAsControlsElement(element, player) -> none
+    // registerAsInfoElement(element, player) -> none
     // detachPlayer(player) -> none
     // playerAttachedTo(element, player) -> true | false
+
+    // hasAnmProps(element) -> object | null
+    // getAnmProps(element) -> object
     // clearAnmProps(element) -> none
 
     // createCanvas(width, height, bg?, ratio?) -> canvas
@@ -113,7 +117,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
     // updateCanvasOverlays(canvas) -> none
 
-    // getEventPosition(event, elm?) -> [ x, y ]
+    // getEventPosition(event, element?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
     // subscribeCanvasEvents(canvas, handlers: object) -> none
     // unsubscribeCanvasEvents(canvas, handlers: object) -> none
@@ -426,7 +430,12 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         ((props && props.inst_rule) || elm).style.visibility = 'visible';
     }
     $DE.hideElement = function(elm) {
+        var props = $DE.hasAnmProps(elm);
         ((props && props.inst_rule) || elm).style.visibility = 'hidden';
+    }
+    $DE.clearChildren = function(elm) {
+        // much faster than innerHTML = '';
+        while (elm.firstChild) { elm.removeChild(elm.firstChild); }
     }
 
     // Creating & Modifying Canvas
@@ -453,6 +462,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                          'Please pass any container such as <div> to a Player instead of <canvas> to fix it.');
         }
 
+        var state_before = wrapper.cloneNode(false);
+
         var canvas = canvasWasPassed ? wrapper : $doc.createElement('canvas');
         wrapper = canvasWasPassed ? $doc.createElement('div') : wrapper;
 
@@ -465,6 +476,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         canvas.id = wrapper.id + '-cvs';
         var props = $DE.getAnmProps(canvas);
         props.wrapper = wrapper;
+        props.was_before = state_before;
 
         var id = wrapper.id; // the "main" id
 
@@ -505,15 +517,13 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                                     if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR); };
         return elm.hasAttribute(MARKER_ATTR);
     }
+
     $DE.hasAnmProps = function(elm) {
         return elm.__anm;
     }
     $DE.getAnmProps = function(elm) {
-        $DE.ensureHasAnmProps(elm);
+        if (!elm.__anm) elm.__anm = {};
         return elm.__anm;
-    }
-    $DE.ensureHasAnmProps = function(elm) {
-        if (!elm) elm.__anm = {};
     }
     $DE.clearAnmProps = function(elm) {
         if (!elm || !elm.__anm) return;
@@ -536,10 +546,19 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (__anm.inst_class && elm.classList) elm.classList.remove(__anm.inst_class);
         delete elm.__anm;
     }
+
     $DE.detachPlayer = function(player) {
         var canvas = player.canvas,
             wrapper = player.wrapper;
         if (wrapper) wrapper.removeAttribute(MARKER_ATTR);
+        var parent_node = wrapper.parentNode || $doc.body,
+            next_node = wrapper.nextSibling;
+        var props = $DE.getAnmProps(canvas);
+        $DE.clearChildren(wrapper);
+        if (props.was_before) {
+            parent_node.removeChild(wrapper);
+            parent_node.insertBefore(props.was_before, next_node);
+        }
         $DE.clearAnmProps(wrapper);
         $DE.clearAnmProps(canvas);
         if (player.controls) {

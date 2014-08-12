@@ -5643,7 +5643,7 @@ Controls.prototype.reset = function() {
 Controls.prototype.detach = function(parent) {
     $engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
-    if (this.ctx) $engine.crearAnmProps(this.ctx);
+    if (this.ctx) $engine.clearAnmProps(this.ctx);
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
