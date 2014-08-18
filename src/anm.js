@@ -324,6 +324,7 @@
         }
         ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
             var me = this;
+            if (!url) throw new Error('Given URL is empty');
             if ($conf.logResMan) { $log.debug('request to load ' + url); }
             if (me._cache[url]) {
                 if ($conf.logResMan)

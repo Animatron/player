@@ -5183,6 +5183,12 @@ Sheet.prototype.load = function(callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
+    if (!me.src) {
+        $log.error('Empty source URL for image');
+        me.ready = true; me.wasError = true;
+        if (errback) errback.call(me, 'Empty source');
+        return;
+    }
     _ResMan.loadOrGet(me.src,
         function(notify_success, notify_error) { // loader
             if (!this._thumbnail && $conf.doNotLoadImages) {
