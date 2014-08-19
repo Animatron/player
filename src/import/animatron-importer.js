@@ -86,6 +86,11 @@ Import.project = function(prj) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         var node_res = Import.node(node_src, elems, null, root);
+        //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
+        if (node_res.xdata.gband[0] == node_res.xdata.gband[1]) {
+            continue;
+        };
+
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
             // correct the band of the next scene to follow the previous scene
