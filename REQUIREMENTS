@@ -25,7 +25,9 @@ jake test
   npm install phantomjs
   npm install jasmine-node
 jake push-go
-jake push-go[rls]
+jake push-go[latest]
+jake push-go[,rls]
+jake push-go[latest,rls]
   .s3 file
   npm install aws2js
 jake push-version
