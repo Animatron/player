@@ -2132,16 +2132,23 @@ Scene.prototype.loadFonts = function() {
         detector = new Detector();
     style.type = 'text/css';
     for(var i=0; i<fonts.length; i++) {
-        if(detector.detect(fonts[i].face)) {
-            //font already available
+        var font = fonts[i];
+        if(!font.url || !font.face || detector.detect(font.face)) {
+            //no font name or url || font already available
             continue;
         }
-        fontsToLoad.push(fonts[i]);
+        fontsToLoad.push(font);
         css += '@font-face {' +
-            'font-family: "' + fonts[i].face + '"; ' +
-            'src: url(' + fonts[i].url + ')' +
+            'font-family: "' + font.face + '"; ' +
+            'src: url(' + font.url + '); ' +
+            (font.style ? 'style: ' + font.style +'; ' : '') +
+            (font.weight ? 'weight: ' + font.weight + '; ' : '') +
             '}\n';
     }
+
+    if (fontsToLoad.length == 0) {
+        return;
+    };
 
     style.innerText = css;
     document.head.appendChild(style);
