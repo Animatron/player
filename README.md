@@ -239,9 +239,10 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                                #     modules.
 
     jake push-go               # Pushes `go` page and `publish.js` script to the S3.
-                               # Usage: {jake push-go} to push to `dev` bucket. To p
-                               #     ush to another bucket, pass it as a param: {jak
-                               #     e push-go[rls]}
+                               # Usage: {jake push-go} to push to `dev` bucket under
+                               #     current version. To push to another bucket or
+                               #     version, pass it as a param: {jake push-go[,rls
+                               #     ]}, {jake push-go[latest,rls]}
                                # Affects: Only changes S3.
                                # Requires: `.s3` file with crendetials in form {user
                                #     access-id secret}. `aws2js` node.js module.
