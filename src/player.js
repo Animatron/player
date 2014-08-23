@@ -571,7 +571,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     if ((player.loadingMode === C.LM_ONREQUEST) &&
         (state.happens === C.RES_LOADING)) {
         player._clearPostpones();
-        // TODO: cancel resource requests?
+        _ResMan.cancel(player._last_remotes_request);
     }
 
     if (!object) {
@@ -613,7 +613,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             state.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
-            _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
+            player._last_remotes_request = _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests

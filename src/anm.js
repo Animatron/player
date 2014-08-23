@@ -308,19 +308,20 @@
             this._cache = {};
             this._errors = {};
             this._waiting = {};
-            this._subscriptions = [];
+            this._subscriptions = {};
         }
-        ResourceManager.prototype.subscribe = function(/*subject, */urls, callbacks) {
+        ResourceManager.prototype.subscribe = function(urls, callbacks) {
             var filteredUrls = [];
             if ($conf.logResMan) { $log.debug('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
             for (var i = 0; i < urls.length; i++){
-                // there should not be empty urls
+                // there should be no empty urls
                 if (urls[i]) filteredUrls.push(urls[i]);
             }
-
-            this._subscriptions.push([ /*subject, */filteredUrls,
-                                       __is.arr(callbacks) ? callbacks : [ callbacks ] ]);
-            this.check();
+            var group_id = alph_id();
+            this._subscriptions[group_id] = [ filteredUrls,
+                                              __is.arr(callbacks) ? callbacks : [ callbacks ] ];
+            this.check(); // may take time currently, has sense to call it with setTimeout(,1); ?
+            return group_id;
         }
         ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
             var me = this;
@@ -385,12 +386,10 @@
                 cache = this._cache,
                 errors = this._errors,
                 to_remove = null;
-            if ($conf.logResMan)
-               { $log.debug('number of subscriptions: ' + subscriptions.length); }
-            for (var i = 0, il = subscriptions.length; i < il; i++) {
-                //var subscriber = subscriptions[i][0],
-                var urls = subscriptions[i][0],
-                    callbacks = subscriptions[i][1],
+            for (var group_id in subscriptions) {
+                if ($conf.logResMan) { $log.debug('subscription group \'' + group_id + '\''); }
+                var urls = subscriptions[group_id][0],
+                    callbacks = subscriptions[group_id][1],
                     error_count = 0,
                     success_count = 0;
                 for (var u = 0, ul = urls.length; u < ul; u++) {
@@ -413,23 +412,29 @@
                         callbacks[k](ready, error_count);
                     }
                     if (!to_remove) to_remove = [];
-                    to_remove.push(subscriptions[i]);
+                    to_remove.push(group_id);
                 }
             }
             if (to_remove) {
                 for (var i = 0, il = to_remove.length; i < il; i++) {
                     if ($conf.logResMan)
-                       { $log.debug('removing notified subscribers for ' + to_remove[i][0] + ' from queue'); }
-                    subscriptions.splice(subscriptions.indexOf(to_remove[i]), 1);
+                       { $log.debug('removing notified subscribers group \'' + to_remove[i] + '\' from queue'); }
+                    delete subscriptions[to_remove[i]];
                 }
             }
         }
-        // TODO: ResourceManager.prototype.cancel(url)
+        ResourceManager.prototype.cancel = function(group_id) {
+            /*var urls = this._subscriptions[group_id][0];
+            for (var u = 0, ul = urls.length; u < ul; u++) {
+                delete this._waiting[ul];
+            }*/
+            delete this._subscriptions[group_id];
+        }
         ResourceManager.prototype.clear = function() {
             this._cache = {};
             this._errors = {};
             this._waiting = {};
-            this._subscriptions = [];
+            this._subscriptions = {};
         }
 
         // Player manager
@@ -459,12 +464,29 @@
 
         $publ.player_manager = new PlayerManager();
 
-        // GUID
+        // GUID / AID
         // -----------------------------------------------------------------------------
 
         function guid() {
            return Math.random().toString(36).substring(2, 10) +
                   Math.random().toString(36).substring(2, 10);
+        }
+
+        var last_id = 0;
+        // generates sequential unique alphabet-driven id, like tinyurl or youtube
+        var alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
+        function alph_id(number) {
+            var ret = '';
+
+            var number = number || last_id++;
+            if (number === 0) return alphabet[0];
+            for(var al = alphabet.length,
+                    i = Math.floor( Math.log(number) / Math.log(al) );
+                i >= 0; i--) {
+                ret += alphabet.substr( Math.floor(number / Math.floor(Math.pow(al, i))) % al,1);
+            }
+
+            return ret.split('').reverse().join('');
         }
 
         // Value/Typecheck
