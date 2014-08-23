@@ -889,9 +889,6 @@ Player.prototype.pause = function() {
     return player;
 }
 
-/*Player.prototype.reset = function() {
-
-}*/
 
 Player.prototype.onerror = function(callback) {
     this.__err_handler = callback;
@@ -1438,6 +1435,10 @@ Player.prototype.toString = function() {
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
     var state = this.state;
+    if (state.happens == C.RES_LOADING) {
+        this._clearPostpones();
+        _ResMan.cancel(this._last_remotes_request);
+    }
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
