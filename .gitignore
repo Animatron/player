@@ -1,7 +1,6 @@
 *.bak
 .idea
 .s3
-.DS_Store
 BUILD
 VERSION_LOG
 node_modules

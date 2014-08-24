@@ -566,13 +566,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         return;
     }
 
-    // clear postponed tasks if player started to load remote resources,
-    // they are not required since new scene is loading in the player now
-    if ((player.loadingMode === C.LM_ONREQUEST) &&
-        (state.happens === C.RES_LOADING)) {
-        player._clearPostpones();
-        // TODO: cancel resource requests?
-    }
+    // if player was loading resources already when .load() was called, inside the ._reset() method
+    // postpones will be cleared and loaders cancelled
 
     if (!object) {
         player.anim = null;
@@ -613,7 +608,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             state.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
-            _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
+            // subscribe to wait until remote resources will be ready or failed
+            _ResMan.subscribe(player.id, remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
@@ -637,6 +633,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     }
                 }
             ) ]);
+            // actually start loading remote resources
             scene._loadRemoteResources(player);
         }
 
@@ -889,9 +886,6 @@ Player.prototype.pause = function() {
     return player;
 }
 
-/*Player.prototype.reset = function() {
-
-}*/
 
 Player.prototype.onerror = function(callback) {
     this.__err_handler = callback;
@@ -1136,7 +1130,7 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(function() {
+    thumb.load(player.id, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
@@ -1438,6 +1432,14 @@ Player.prototype.toString = function() {
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
     var state = this.state;
+    // clear postponed tasks if player started to load remote resources,
+    // they are not required since new scene is loading in the player now
+    // or it is being detached
+    if ((this.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) {
+        this._clearPostpones();
+        _ResMan.cancel(this.id);
+    }
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
@@ -2057,7 +2059,7 @@ Scene.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(scene, player);
         }
     });
-    scene.loadFonts();
+    scene.loadFonts(player);
 }
 Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
@@ -2120,20 +2122,21 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
-Scene.prototype.loadFonts = function() {
-    if(!this.fonts || !this.fonts.length) {
+Scene.prototype.loadFonts = function(player) {
+    if (!this.fonts || !this.fonts.length) {
         return;
     }
 
     var fonts = this.fonts,
         style = document.createElement('style'),
         css = '',
-        fontsToLoad =[],
+        fontsToLoad = [],
         detector = new Detector();
     style.type = 'text/css';
-    for(var i=0; i<fonts.length; i++) {
+
+    for (var i = 0; i < fonts.length; i++) {
         var font = fonts[i];
-        if(!font.url || !font.face || detector.detect(font.face)) {
+        if (!font.url || !font.face || detector.detect(font.face)) {
             //no font name or url || font already available
             continue;
         }
@@ -2153,14 +2156,14 @@ Scene.prototype.loadFonts = function() {
     style.innerText = css;
     document.head.appendChild(style);
 
-    for(var i=0; i<fontsToLoad.length;i++) {
-        _ResMan.loadOrGet(fontsToLoad[i].url, function(success){
+    for (var i = 0; i < fontsToLoad.length; i++) {
+        _ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
             var face = fontsToLoad[i].face,
                 interval = 100,
                 intervalId,
-                checkLoaded = function(){
+                checkLoaded = function() {
                     var loaded = detector.detect(face);
-                    if(loaded) {
+                    if (loaded) {
                         clearInterval(intervalId);
                         success();
                     }
@@ -3389,7 +3392,7 @@ Element.prototype._collectRemoteResources = function(scene, player) {
 Element.prototype._loadRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return;
     if (!this.xdata.sheet) return;
-    this.xdata.sheet.load();
+    this.xdata.sheet.load(player.id);
 }
 
 // base (initial) state of the element
@@ -5186,7 +5189,7 @@ function Sheet(src, callback, start_region) {
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
-Sheet.prototype.load = function(callback, errback) {
+Sheet.prototype.load = function(player_id, callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
@@ -5196,7 +5199,7 @@ Sheet.prototype.load = function(callback, errback) {
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    _ResMan.loadOrGet(me.src,
+    _ResMan.loadOrGet(player_id, me.src,
         function(notify_success, notify_error) { // loader
             if (!this._thumbnail && $conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
