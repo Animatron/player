@@ -304,26 +304,58 @@
         // Resource manager
         // -----------------------------------------------------------------------------
 
+        // .subscribe() allows to subscribe to any number of urls and to execute a callback (or few) when
+        //              there is a known status for each one of them (received or failed);
+        //              callback receives an array of results of length equal to the given urls array
+        //              and with null in place of urls which were failed to receive, and it receives total
+        //              failure count;
+        //
+        // .loadOrGet() should be called for every remote resource Resource Manager should be aware of;
+        //              it receives a loader function that actually should request for that resource in any way
+        //              it wants to (async or not), but should call provided success handler in case of success
+        //              or error handler in case of failure; `subject_id` should be the same as for corresponding
+        //              subscribe group (it's the only way we currently found to ensure to unsubscribe loaders
+        //              from single subject, instead of all, in case of cancel);
+        //
+        // .check() is the internal function that iterates through all subscriptions, checks the status
+        //          of the urls and calls the subscribed callbacks in case if their resources are ready;
+        //          it is called by Resource Manager itself in cases when there was a chance that some resource
+        //          changed status;
+        //
+        // .trigger() notifies Resource Manager about the fact that resource located at given URL was successfully
+        //            received and provides it the received value; may be called from outside; forces .check() call;
+        //
+        // .error() notifies Resource Manager about the fact that resource expected to be located at some URL
+        //          was failed to be received and provides it the error object as a cause of the failure;
+        //          may be called from outside; forces .check() call;
+        //
+        // .has() checks if the resource with given URL is stored in Resource Manager's cache (was received before);
+        //
+        // .clear() clears all the subscriptions from this subject;
+
+        // FIXME: loader in .loadOrGet() should call trigger() and error() instead of notifiers
+        // TODO: try to get rid of subject_id (in favor of subscriptions groups and generating ID automatically inside)
+
         function ResourceManager() {
             this._cache = {};
             this._errors = {};
             this._waiting = {};
             this._subscriptions = {};
         }
-        ResourceManager.prototype.subscribe = function(urls, callbacks) {
+        ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
+            if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
+                                                                 'a bunch of resources, please group them in one.');
             var filteredUrls = [];
             if ($conf.logResMan) { $log.debug('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
             for (var i = 0; i < urls.length; i++){
                 // there should be no empty urls
                 if (urls[i]) filteredUrls.push(urls[i]);
             }
-            var group_id = alph_id();
-            this._subscriptions[group_id] = [ filteredUrls,
-                                              __is.arr(callbacks) ? callbacks : [ callbacks ] ];
+            this._subscriptions[subject_id] = [ filteredUrls,
+                                                __is.arr(callbacks) ? callbacks : [ callbacks ] ];
             this.check(); // may take time currently, has sense to call it with setTimeout(,1); ?
-            return group_id;
         }
-        ResourceManager.prototype.loadOrGet = function(url, loader, onComplete, onError) {
+        ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
             var me = this;
             if (!url) throw new Error('Given URL is empty');
             if ($conf.logResMan) { $log.debug('request to load ' + url); }
@@ -337,10 +369,12 @@
                 if ($conf.logResMan)
                    { $log.debug('> failed to load before, notifying with error'); }
                 if (onError) onError(me._errors[url]);
-            } else if (!me._waiting[url]) {
+            } else if (!me._waiting[subject_id] ||
+                       !(me._waiting[subject_id] && me._waiting[subject_id][url])) {
                 if ($conf.logResMan)
                    { $log.debug('> not cached, requesting'); }
-                me._waiting[url] = loader;
+                if (!me._waiting[subject_id]) me._waiting[subject_id] = {};
+                me._waiting[subject_id][url] = loader;
                 loader(function(result) {
                     result = result || true; //so that the loader isn't obliged to return something
                     if ($conf.logResMan)
@@ -355,10 +389,15 @@
                     if (onError) onError(err);
                     me.check();
                 });
-            } else /*if (me._waiting[url])*/ { // already waiting
+            } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
                 if ($conf.logResMan)
                    { $log.debug('> someone is already waiting for it, subscribing'); }
-                if (me._waiting[url] !== loader) me.subscribe([ url ], function(res) { onComplete(res[0]); });
+                if (me._waiting[subject_id][url] !== loader) {
+                    me.subscribe(subject_id, [ url ], function(res) {
+                        if (res[0]) { onComplete(res[0]); };
+                        else { onError(res[0]); };
+                    });
+                }
             }
         }
         ResourceManager.prototype.trigger = function(url, value) {
@@ -366,12 +405,14 @@
             if ($conf.logResMan) { $log.debug('triggering success for url ' + url); }
             delete this._waiting[url];
             this._cache[url] = value;
+            //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
         }
         ResourceManager.prototype.error = function(url, err) {
             if (this._cache[url] || this._errors[url]) { this.check(); return; }
             if ($conf.logResMan) { $log.debug('triggering error for url ' + url); }
             delete this._waiting[url];
             this._errors[url] = err;
+            //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
         }
         ResourceManager.prototype.has = function(url) {
             return (typeof this._cache[url] !== 'undefined');
@@ -386,10 +427,10 @@
                 cache = this._cache,
                 errors = this._errors,
                 to_remove = null;
-            for (var group_id in subscriptions) {
-                if ($conf.logResMan) { $log.debug('subscription group \'' + group_id + '\''); }
-                var urls = subscriptions[group_id][0],
-                    callbacks = subscriptions[group_id][1],
+            for (var subject_id in subscriptions) {
+                if ($conf.logResMan) { $log.debug('subscription group \'' + subject_id + '\''); }
+                var urls = subscriptions[subject_id][0],
+                    callbacks = subscriptions[subject_id][1],
                     error_count = 0,
                     success_count = 0;
                 for (var u = 0, ul = urls.length; u < ul; u++) {
@@ -412,28 +453,31 @@
                         callbacks[k](ready, error_count);
                     }
                     if (!to_remove) to_remove = [];
-                    to_remove.push(group_id);
+                    to_remove.push(subject_id);
                 }
             }
             if (to_remove) {
                 for (var i = 0, il = to_remove.length; i < il; i++) {
                     if ($conf.logResMan)
-                       { $log.debug('removing notified subscribers group \'' + to_remove[i] + '\' from queue'); }
+                       { $log.debug('removing notified subscribers for subject \'' + to_remove[i] + '\' from queue'); }
                     delete subscriptions[to_remove[i]];
                 }
             }
         }
-        ResourceManager.prototype.cancel = function(group_id) {
-            /*var urls = this._subscriptions[group_id][0];
-            for (var u = 0, ul = urls.length; u < ul; u++) {
-                delete this._waiting[ul];
-            }*/
-            delete this._subscriptions[group_id];
+        ResourceManager.prototype.cancel = function(subject_id) {
+            if (this._waiting[subject_id]) {
+                var urls = this._subscriptions[subject_id][0];
+                for (var u = 0, ul = urls.length; u < ul; u++) {
+                    delete this._waiting[subject_id][urls[u]];
+                }
+            }
+            delete this._subscriptions[subject_id];
         }
         ResourceManager.prototype.clear = function() {
             this._cache = {};
             this._errors = {};
             this._waiting = {};
+            this._loaders = {};
             this._subscriptions = {};
         }
 
@@ -464,29 +508,12 @@
 
         $publ.player_manager = new PlayerManager();
 
-        // GUID / AID
+        // GUID
         // -----------------------------------------------------------------------------
 
         function guid() {
            return Math.random().toString(36).substring(2, 10) +
                   Math.random().toString(36).substring(2, 10);
-        }
-
-        var last_id = 0;
-        // generates sequential unique alphabet-driven id, like tinyurl or youtube
-        var alphabet = 'abcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZ';
-        function alph_id(number) {
-            var ret = '';
-
-            var number = number || last_id++;
-            if (number === 0) return alphabet[0];
-            for(var al = alphabet.length,
-                    i = Math.floor( Math.log(number) / Math.log(al) );
-                i >= 0; i--) {
-                ret += alphabet.substr( Math.floor(number / Math.floor(Math.pow(al, i))) % al,1);
-            }
-
-            return ret.split('').reverse().join('');
         }
 
         // Value/Typecheck

@@ -613,7 +613,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             state.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
-            player._last_remotes_request = _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
+            // subscribe to wait until remote resources will be ready or failed
+            _ResMan.subscribe(player.id, remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
@@ -637,6 +638,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     }
                 }
             ) ]);
+            // actually start loading remote resources
             scene._loadRemoteResources(player);
         }
 
@@ -2122,7 +2124,7 @@ Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
 Scene.prototype.loadFonts = function() {
-    if(!this.fonts || !this.fonts.length) {
+    if (!this.fonts || !this.fonts.length) {
         return;
     }
 
@@ -2132,8 +2134,8 @@ Scene.prototype.loadFonts = function() {
         fontsToLoad =[],
         detector = new Detector();
     style.type = 'text/css';
-    for(var i=0; i<fonts.length; i++) {
-        if(detector.detect(fonts[i].face)) {
+    for (var i=0; i<fonts.length; i++) {
+        if (detector.detect(fonts[i].face)) {
             //font already available
             continue;
         }
@@ -2147,14 +2149,14 @@ Scene.prototype.loadFonts = function() {
     style.innerText = css;
     document.head.appendChild(style);
 
-    for(var i=0; i<fontsToLoad.length;i++) {
-        _ResMan.loadOrGet(fontsToLoad[i].url, function(success){
+    for (var i=0; i<fontsToLoad.length; i++) {
+        _ResMan.loadOrGet(fontsToLoad[i].url, function(success) {
             var face = fontsToLoad[i].face,
                 interval = 100,
                 intervalId,
-                checkLoaded = function(){
+                checkLoaded = function() {
                     var loaded = detector.detect(face);
-                    if(loaded) {
+                    if (loaded) {
                         clearInterval(intervalId);
                         success();
                     }
