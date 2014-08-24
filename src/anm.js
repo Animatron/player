@@ -491,12 +491,14 @@
             } }
         }
         ResourceManager.prototype.cancel = function(subject_id) {
+            if (!subject_id) throw new Error('Subject ID is empty');
             if (this._waiting[subject_id]) {
                 var urls = this._subscriptions[subject_id][0];
                 if (urls) { for (var u = 0, ul = urls.length; u < ul; u++) {
                     delete this._waiting[subject_id][urls[u]];
                 } }
             }
+            // clear _url_to_subjects ?
             delete this._subscriptions[subject_id];
         }
         ResourceManager.prototype.clear = function() {

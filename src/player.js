@@ -566,13 +566,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         return;
     }
 
-    // clear postponed tasks if player started to load remote resources,
-    // they are not required since new scene is loading in the player now
-    if ((player.loadingMode === C.LM_ONREQUEST) &&
-        (state.happens === C.RES_LOADING)) {
-        player._clearPostpones();
-        _ResMan.cancel(player._last_remotes_request);
-    }
+    // if player was loading resources already when .load() was called, inside the ._reset() method
+    // postpones will be cleared and loaders cancelled
 
     if (!object) {
         player.anim = null;
@@ -1437,9 +1432,13 @@ Player.prototype.toString = function() {
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
     var state = this.state;
-    if (state.happens == C.RES_LOADING) {
+    // clear postponed tasks if player started to load remote resources,
+    // they are not required since new scene is loading in the player now
+    // or it is being detached
+    if ((this.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) {
         this._clearPostpones();
-        _ResMan.cancel(this._last_remotes_request);
+        _ResMan.cancel(this.id);
     }
     state.happens = C.NOTHING;
     state.from = 0;
