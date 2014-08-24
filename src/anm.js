@@ -339,6 +339,8 @@
         // If player needs to stop loading remote resources (i.e. if scene was accidentally changed when it
         // already started but nor finished loading them, or if it was required to be detached at some point in-between),
         // it should call .cancel() with its ID.
+        // NB: Notice, that no check is performed just after subscription! Because if new player instance will request resource
+        //     which is in cache thanks to previous instance, its own loader (.loadOrGet()) will not be called!
 
         // FIXME: loader in .loadOrGet() should call trigger() and error() instead of notifiers
         // FIXME: get rid of subject_id in .loadOrGet(), it requires to pass player or scene everywhere inside
@@ -370,7 +372,6 @@
             }
             this._subscriptions[subject_id] = [ filteredUrls,
                                                 __is.arr(callbacks) ? callbacks : [ callbacks ] ];
-            this.check(); // may take time currently, has sense to call it with setTimeout(,1); ?
         }
         ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
             var me = this;
