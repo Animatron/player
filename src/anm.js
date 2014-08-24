@@ -334,7 +334,8 @@
         // .clear() clears all the subscriptions from this subject;
 
         // FIXME: loader in .loadOrGet() should call trigger() and error() instead of notifiers
-        // TODO: try to get rid of subject_id (in favor of subscriptions groups and generating ID automatically inside)
+        // FIXME: get rid of subject_id in .loadOrGet(), it requires to pass player or scene everywhere inside
+        //        (may be in favor of subscriptions groups and generating ID automatically inside)
 
         function ResourceManager() {
             this._cache = {};
@@ -394,7 +395,7 @@
                    { $log.debug('> someone is already waiting for it, subscribing'); }
                 if (me._waiting[subject_id][url] !== loader) {
                     me.subscribe(subject_id, [ url ], function(res) {
-                        if (res[0]) { onComplete(res[0]); };
+                        if (res[0]) { onComplete(res[0]); }
                         else { onError(res[0]); };
                     });
                 }

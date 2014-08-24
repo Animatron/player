@@ -2060,7 +2060,7 @@ Scene.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(scene, player);
         }
     });
-    scene.loadFonts();
+    scene.loadFonts(player);
 }
 Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
@@ -2123,7 +2123,7 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
-Scene.prototype.loadFonts = function() {
+Scene.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
     }
@@ -2131,10 +2131,10 @@ Scene.prototype.loadFonts = function() {
     var fonts = this.fonts,
         style = document.createElement('style'),
         css = '',
-        fontsToLoad =[],
+        fontsToLoad = [],
         detector = new Detector();
     style.type = 'text/css';
-    for (var i=0; i<fonts.length; i++) {
+    for (var i = 0; i < fonts.length; i++) {
         if (detector.detect(fonts[i].face)) {
             //font already available
             continue;
@@ -2149,8 +2149,8 @@ Scene.prototype.loadFonts = function() {
     style.innerText = css;
     document.head.appendChild(style);
 
-    for (var i=0; i<fontsToLoad.length; i++) {
-        _ResMan.loadOrGet(fontsToLoad[i].url, function(success) {
+    for (var i = 0; i < fontsToLoad.length; i++) {
+        _ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
             var face = fontsToLoad[i].face,
                 interval = 100,
                 intervalId,
@@ -3385,7 +3385,7 @@ Element.prototype._collectRemoteResources = function(scene, player) {
 Element.prototype._loadRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return;
     if (!this.xdata.sheet) return;
-    this.xdata.sheet.load();
+    this.xdata.sheet.load(player.id);
 }
 
 // base (initial) state of the element
@@ -5182,7 +5182,7 @@ function Sheet(src, callback, start_region) {
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
-Sheet.prototype.load = function(callback, errback) {
+Sheet.prototype.load = function(player, callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
@@ -5192,7 +5192,7 @@ Sheet.prototype.load = function(callback, errback) {
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    _ResMan.loadOrGet(me.src,
+    _ResMan.loadOrGet(player.id, me.src,
         function(notify_success, notify_error) { // loader
             if (!this._thumbnail && $conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
