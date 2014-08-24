@@ -333,24 +333,40 @@
         //
         // .clear() clears all the subscriptions from this subject;
 
+        // The system designed with intention (but not restricted to it) that any player will first subscribe (using its ID)
+        // to all remote resources from current scene, then trigger them to load with multiple .loadOrGet() calls (with passing
+        // the same ID). In .loadOrGet() it should call .trigger() or .error() for a resource in appropriate case.
+        // If player needs to stop loading remote resources (i.e. if scene was accidentally changed when it
+        // already started but nor finished loading them, or if it was required to be detached at some point in-between),
+        // it should call .cancel() with its ID.
+
         // FIXME: loader in .loadOrGet() should call trigger() and error() instead of notifiers
         // FIXME: get rid of subject_id in .loadOrGet(), it requires to pass player or scene everywhere inside
         //        (may be in favor of subscriptions groups and generating ID automatically inside)
+        //        the main pitfall here is that sheet.load or audio.load requires player as an argument
 
         function ResourceManager() {
             this._cache = {};
             this._errors = {};
             this._waiting = {};
             this._subscriptions = {};
+            this._url_to_subjects = {};
         }
         ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
+            if (!subject_id) throw new Error('Subject ID is empty');
             if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
                                                                  'a bunch of resources, please group them in one.');
             var filteredUrls = [];
             if ($conf.logResMan) { $log.debug('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls); }
             for (var i = 0; i < urls.length; i++){
                 // there should be no empty urls
-                if (urls[i]) filteredUrls.push(urls[i]);
+                if (urls[i]) {
+                    filteredUrls.push(urls[i]);
+                    if (!this._url_to_subjects[urls[i]]) {
+                        this._url_to_subjects[urls[i]] = [];
+                    }
+                    this._url_to_subjects[urls[i]].push(subject_id);
+                }
             }
             this._subscriptions[subject_id] = [ filteredUrls,
                                                 __is.arr(callbacks) ? callbacks : [ callbacks ] ];
@@ -358,13 +374,14 @@
         }
         ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
             var me = this;
+            if (!subject_id) throw new Error('Subject ID is empty');
             if (!url) throw new Error('Given URL is empty');
             if ($conf.logResMan) { $log.debug('request to load ' + url); }
             if (me._cache[url]) {
                 if ($conf.logResMan)
                    { $log.debug('> already received, trigerring success'); }
                 var result = me._cache[url];
-                me.trigger(url, result);
+                me.trigger(url, result); // TODO: is it needed?
                 if (onComplete) onComplete(result);
             } else if (me._errors[url]) {
                 if ($conf.logResMan)
@@ -404,14 +421,24 @@
         ResourceManager.prototype.trigger = function(url, value) {
             if (this._cache[url] || this._errors[url]) { this.check(); return; }
             if ($conf.logResMan) { $log.debug('triggering success for url ' + url); }
-            delete this._waiting[url];
+            var subjects = this._url_to_subjects[url];
+            if (subjects) { for (var i = 0, il = subjects.length; i < il; i++) {
+                if (this._waiting[subjects[i]]) {
+                    delete this._waiting[subjects[i]][url];
+                }
+            } }
             this._cache[url] = value;
             //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
         }
         ResourceManager.prototype.error = function(url, err) {
             if (this._cache[url] || this._errors[url]) { this.check(); return; }
             if ($conf.logResMan) { $log.debug('triggering error for url ' + url); }
-            delete this._waiting[url];
+            var subjects = this._url_to_subjects[url];
+            if (subjects) { for (var i = 0, il = subjects.length; i < il; i++) {
+                if (this._waiting[subjects[i]]) {
+                    delete this._waiting[subjects[i]][url];
+                }
+            } }
             this._errors[url] = err;
             //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
         }
@@ -420,7 +447,7 @@
         }
         // call this only if you are sure you want to force this check —
         // this method is called automatically when every new incoming url is triggered
-        // as complete
+        // as complete or failed
         ResourceManager.prototype.check = function() {
             if ($conf.logResMan)
                 { $log.debug('checking subscriptions'); }
@@ -457,20 +484,18 @@
                     to_remove.push(subject_id);
                 }
             }
-            if (to_remove) {
-                for (var i = 0, il = to_remove.length; i < il; i++) {
-                    if ($conf.logResMan)
-                       { $log.debug('removing notified subscribers for subject \'' + to_remove[i] + '\' from queue'); }
-                    delete subscriptions[to_remove[i]];
-                }
-            }
+            if (to_remove) { for (var i = 0, il = to_remove.length; i < il; i++) {
+                if ($conf.logResMan)
+                   { $log.debug('removing notified subscribers for subject \'' + to_remove[i] + '\' from queue'); }
+                delete subscriptions[to_remove[i]];
+            } }
         }
         ResourceManager.prototype.cancel = function(subject_id) {
             if (this._waiting[subject_id]) {
                 var urls = this._subscriptions[subject_id][0];
-                for (var u = 0, ul = urls.length; u < ul; u++) {
+                if (urls) { for (var u = 0, ul = urls.length; u < ul; u++) {
                     delete this._waiting[subject_id][urls[u]];
-                }
+                } }
             }
             delete this._subscriptions[subject_id];
         }

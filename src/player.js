@@ -1135,7 +1135,7 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(function() {
+    thumb.load(player.id, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
@@ -5182,7 +5182,7 @@ function Sheet(src, callback, start_region) {
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
-Sheet.prototype.load = function(player, callback, errback) {
+Sheet.prototype.load = function(player_id, callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
@@ -5192,7 +5192,7 @@ Sheet.prototype.load = function(player, callback, errback) {
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    _ResMan.loadOrGet(player.id, me.src,
+    _ResMan.loadOrGet(player_id, me.src,
         function(notify_success, notify_error) { // loader
             if (!this._thumbnail && $conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
