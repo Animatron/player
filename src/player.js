@@ -2156,7 +2156,7 @@ Scene.prototype.loadFonts = function(player) {
         return;
     };
 
-    style.innerText = css;
+    style.innerHTML = css;
     document.head.appendChild(style);
 
     for (var i = 0; i < fontsToLoad.length; i++) {
