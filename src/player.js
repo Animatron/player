@@ -1466,10 +1466,13 @@ Player.prototype._resize = function(width, height) {
         cur_size = $engine.getCanvasParameters(cvs);
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
-        new_size = $engine.getCanvasSize(cvs);
+        new_size = cur_size;
     };
     $engine.setCanvasSize(cvs, new_size[0], new_size[1]);
-    if (this.controls) this.controls.update(cvs);
+    this.width = new_size[0];
+    this.height = new_size[1];
+    $engine.updateCanvasOverlays(cvs);
+    if (this.controls) this.controls.handleAreaChange();
     this.forceRedraw();
     return new_size;
 };
@@ -3576,8 +3579,10 @@ L.loadScene = function(player, scene, callback) {
         && !global_opts.liveDebug)
         scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
     if (!scene.width || !scene.height) {
-      scene.width = player.width;
-      scene.height = player.height;
+        scene.width = player.width;
+        scene.height = player.height;
+    } else if (player.forceSceneSize) {
+        player._resize(scene.width, scene.height);
     }
     // assign
     player.anim = scene;
@@ -5424,7 +5429,7 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
-        $engine.updateCanvasOverlays(parent);
+        $engine.updateOverlay(parent, cvs);
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
@@ -6095,7 +6100,7 @@ InfoBlock.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
-        $engine.updateCanvasOverlays(parent);
+        $engine.updateOverlay(parent, cvs);
     }
     //var cconf = $engine.getCanvasParameters(cvs);
     // _canvas.style.left = _cp[0] + 'px';

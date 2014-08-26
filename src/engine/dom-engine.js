@@ -117,9 +117,9 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // setCanvasSize(canvas, width, height, ratio?) -> none
     // setCanvasPosisition(canvas, x, y) -> none
     // setCanvasBackground(canvas, value) -> none
-    // updateCanvasMetrics(canvas) -> none
     // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
     // updateCanvasOverlays(canvas) -> none
+    // updateOverlay(parent, overlay, props?) -> none
 
     // getEventPosition(event, element?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
@@ -697,8 +697,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.setCanvasSize = function(cvs, width, height, ratio) {
         //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
         var ratio = ratio || $DE.PX_RATIO;
-        var _w = width | 0,
-            _h = height | 0;
+        var _w = width | 0, // to int
+            _h = height | 0; // to int
         //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
         var props = $DE.getAnmProps(cvs);
         props.ratio = ratio;
@@ -720,17 +720,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.setCanvasBackground = function(cvs, bg) {
         ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
-    }
-    $DE.updateCanvasMetrics = function(cvs) { // FIXME: not used
-        var pos = $DE.getCanvasPosition(cvs),
-            size = $DE.getCanvasSize(cvs),
-            props = $DE.getAnmProps(cvs);
-        props.ratio = $DE.PX_RATIO;
-        props.x = pos[0];
-        props.y = pos[1];
-        props.width = size[0];
-        props.height = size[1];
-        $DE._saveCanvasPos(cvs);
     }
     $DE._saveCanvasPos = function(cvs) {
         // FIXME: use getBoundingClientRect?
@@ -806,7 +795,17 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         p_props.overlays.push(cvs);
         return cvs;
     }
-    $DE.updateCanvasOverlays = function() { }
+    $DE.updateCanvasOverlays = function(player_cvs) {
+        var p_props = $DE.getAnmProps(player_cvs);
+        var overlays = p_props.overlays;
+        if (overlays) { for (var i = 0, il = overlays.length; i < il; i++) {
+            $DE.updateOverlay(player_cvs, overlays[i], p_props);
+        } }
+    }
+    $DE.updateOverlay = function(player_cvs, overlay, p_props) {
+        var p_props = p_props || $DE.getAnmProps(player_cvs);
+        $DE.setCanvasSize(overlay, p_props.width, p_props.height);
+    }
 
     // Controls & Info
 
