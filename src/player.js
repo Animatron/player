@@ -5186,8 +5186,6 @@ Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
 }
 Brush.interpolate = function(from, to, t, trg) {
-    // FIXME: do not create new objects every time, but find a way to interpolate
-    // directly inside the some brush instance
     if (!from._converted) { Brush.convertColorsToRgba(from); from._converted = true; }
     if   (!to._converted) { Brush.convertColorsToRgba(to);     to._converted = true; }
     var result = trg || {};
@@ -5325,7 +5323,7 @@ Color.fromRgba = function(rgba) {
     } : null;
 };
 Color.toRgbaStr = function(color) {
-    return 'rgba('+color.r+','+color.g+','+color.b+','+(color.a?color.a.toFixed(2):0)+')';
+    return 'rgba('+color.r+','+color.g+','+color.b+','+(color.a?color.a.toFixed(2):1.0)+')';
 };
 Color.interpolate = function(c1, c2, t) {
     return {
