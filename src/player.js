@@ -1709,25 +1709,27 @@ Player.prototype._notifyAPI = function() {
     // currently, notifies only about playing start
     if (this._loadTarget !== C.LT_URL) return;
     if (!this._loadSrc || !this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
-    var _loadSrc = this._loadSrc,
-        _anm_id = this.anim.meta._anm_id,
-        _nop = function() {};
-    var locatedAtTest = false,
+    if (!this.statImg) {
+      this.statImg = $engine.createStatImg();
+    };
+    var loadSrc = this._loadSrc,
+        id = this.anim.meta._anm_id,
+        locatedAtTest = false,
         locatedAtProd = false;
-    locatedAtTest = (_loadSrc.indexOf('/animatron-snapshots-dev') > 0) ||
-                    (_loadSrc.indexOf('.animatron-test.com') > 0); // it's not so ok to be 0 in these cases
-    locatedAtTest = locatedAtTest || (((_loadSrc.indexOf('./') == 0) ||
-                                       (_loadSrc.indexOf('/') == 0)) &&
+    locatedAtTest = (loadSrc.indexOf('/animatron-snapshots-dev') > 0) ||
+                    (loadSrc.indexOf('.animatron-test.com') > 0); // it's not so ok to be 0 in these cases
+    locatedAtTest = locatedAtTest || (((loadSrc.indexOf('./') == 0) ||
+                                       (loadSrc.indexOf('/') == 0)) &&
                                       (window.location && (window.location.hostname == 'animatron-test.com')));
-    locatedAtProd = (_loadSrc.indexOf('/animatron-snapshots') > 0) ||
-                    (_loadSrc.indexOf('.animatron.com') > 0); // it's not so ok to be 0 in these cases
-    locatedAtProd = locatedAtProd || (((_loadSrc.indexOf('./') == 0) ||
-                                       (_loadSrc.indexOf('/') == 0)) &&
+    locatedAtProd = (loadSrc.indexOf('/animatron-snapshots') > 0) ||
+                    (loadSrc.indexOf('.animatron.com') > 0); // it's not so ok to be 0 in these cases
+    locatedAtProd = locatedAtProd || (((loadSrc.indexOf('./') == 0) ||
+                                       (loadSrc.indexOf('/') == 0)) &&
                                       (window.location && (window.location.hostname == 'animatron.com')));
     if (locatedAtTest) {
-        $engine.ajax('http://api.animatron-test.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
+        this.statImg.src = 'http://api.animatron-test.com/stats/report/' + id + '?' + Math.random();
     } else if (locatedAtProd) {
-        $engine.ajax('http://api.animatron.com/stats/report/' + _anm_id, _nop, _nop, 'PUT');
+        this.statImg.src = 'http://api.animatron.com/stats/report/' + id + '?' + Math.random();
     }
 };
 

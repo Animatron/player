@@ -132,6 +132,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // keyEvent(evt) -> Event
     // mouseEvent(evt, canvas) -> Event
 
+    // createStatImg() -> Image
+
     // define / require
 
     $DE.require = __require;
@@ -922,6 +924,18 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                 player.__prev_classes = css_classes;
             }
         });
+    };
+
+    $DE.createStatImg = function() {
+        var img = $doc.createElement('img');
+        img.style.position = 'absolute';
+        img.style.top = '-9999px';
+        img.style.left = '-9999px';
+        img.style.visibility = 'hidden';
+
+        $doc.body.appendChild(img);
+
+        return img;
     }
 
     return $DE;
