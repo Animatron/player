@@ -2337,6 +2337,7 @@ Element.prototype.initVisuals = function() {
 
     this.$fill = null;   // Fill instance
     this.$stroke = null; // Stroke instance
+    this.$shadow = null; // Shadow instance
 
     this.$path = null;  // Path instanse, if it is a shape
     this.$text = null;  // Text data, if it is a text
@@ -3442,8 +3443,9 @@ Element.transferState = function(src, trg) {
 }
 Element.transferVisuals = function(src, trg) {
     trg.reg = [].concat(src.reg); trg.pvt = [].concat(src.pvt);
-    trg.$fill = src.$fill ? src.$fill.clone() : null;
-    trg.$stroke = src.$stroke ? src.$stroke.clone() : null;
+    trg.$fill = Brush.clone(src.$fill);
+    trg.$stroke = Brush.clone(src.$stroke);
+    trg.$shadow = Brush.clone(src.$shadow);
     trg.$path = src.$path ? src.$path.clone() : null;
     trg.$text = src.$text ? src.$text.clone() : null;
     trg.$image = src.$image ? src.$image.clone() : null;
@@ -5235,6 +5237,33 @@ Brush.convertColorsToRgba = function(src) {
         }
     }
     src._converted = true;
+}
+Brush.clone = function(src) {
+    if (!src) return null;
+    var trg = {};
+    if (src.color && is_str(src.color)) { trg.color = src.color }
+    else if (src.color) {
+        trg.color = { r: src.color.r, g: src.color.g, b: src.color.b, a: src.color.a || 1 };
+    };
+    if (src.grad) {
+        var src_grad = src.grad,
+            trg_grad = {};
+        trg_grad.stops = [];
+        for (i = 0; i < src_grad.stops.length; i++) {
+            trg_grad.stops[i] = [].concat(src_grad.stops[i]);
+        }
+        trg_grad.dir = [].concat(src_grad.dir);
+        if (src_grad.r) trg_grad.r = [].concat(src_grad.r);
+        trg.grad = trg_grad;
+    }
+    // stroke
+    if (src.hasOwnProperty('width')) trg.width = src.width;
+    if (src.hasOwnProperty('cap')) trg.cap = src.cap;
+    if (src.hasOwnProperty('join')) trg.join = src.join;
+    // shadow
+    if (src.hasOwnProperty('blurRadius')) trg.blurRadius = src.blurRadius;
+    if (src.hasOwnProperty('offsetX')) trg.offsetX = src.offsetX;
+    if (src.hasOwnProperty('offsetY')) trg.offsetY = src.offsetY;
 }
 Brush.invalidate = function(brush) {
     brush._converted = false;
