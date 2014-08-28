@@ -1,21 +1,30 @@
-v1.1 / Mon Feb 17 2014 14:06:29 +0100 / b6514e824e524cfe758a7927d046acde28d9a0be
+v1.2 / Tue Aug 12 2014 18:04:40 +0200 / f1773845d89a8cc783c915af8a8bd0eca7078a7c
 ================================================================================
 
-(a.k.a. v1.1.0)
+* Player is initialised from a container now (a warning appears, if it was initialized from canvas)
+* Player stores it's private data in `__anm` property of elements
+* Player is able to auto-initialize from a tag like `<div anm-player-target anm-src="http://clips.animatron.com/0d8887993614c3b6d57535eca50fa014.json?width=200&height=200" anm-auto-play="true"></div>` w/o any additional JavaScript
+* Ability to cancel remote requests
+
+v1.1.0 / Thu Aug 07 2014 16:44:38 +0200 / da42b59d8f6b203382a05b40ee47bff895f65b0c
+==================================================================================
+
+(a.k.a. v1.1)
 
 * Use Engines! i.e. at client, DOM-engine is used as a proxy for all canvas & DOM related functionality
+* Fix `contains` test to include scale in applying of pivot/registration point
+* Fix image mockup in tests
+* ...Though tests are disabled now :(
 * There's a root `anm` namespace now, the parent for all classes and utils
 * The `require`-driven modules structure, though not perfect for the moment
 * Implement importing binary-encoded paths from Animatron
 * Implement paths caching when importing from Animatron
-* Fixes in masks
+* Fixes in masks, not complete
 * Give the ability for external scripts to disable loading audio or images or both, it was required for preview generation.
 * Pass time in scripting module handlers
 * Make projects always infinite in scripting module
 * Jumps in scripting module
 * Support master audio
-* Fix `contains` test to include scale in applying of pivot/registration point
-* Fix image mockup in tests
 * Change `VISIBLE` flag to `HIDDEN` when importing
 * Support scripting for groups
 * Fixes for controls (when resizing and detaching player)
@@ -24,6 +33,24 @@ v1.1 / Mon Feb 17 2014 14:06:29 +0100 / b6514e824e524cfe758a7927d046acde28d9a0be
 * Fixes in audio & scripting modules
 * Loading screen for player w/o controls
 * Build system improvements
+* Controls restyling & refactoring, several times + support for controls "themes"
+* Support for thumbnail (an image shown on background instead of first frame)
+* Ability to pass thumbnail URL with snapshot URL
+* Pass a lot of useful information to modifiers, like `dt`, and `duration`
+* Fixed and improved canvas resizing
+* Refactor the way player applies options and stores them (truly awesome!)
+* Fix passing parameters through the snapshot URL
+* Publishing page and script tuning (they are now separated, `publish.js` is in Player's repo though)
+* GZIP support, smarter minifying
+* Notify Animatron API about plays
+* `S_COMPLETE` event (player surely finished playing the scene, not just stopped by accident)
+* `S_CHANGE_STATE` event to be fired on every player state change
+* Ability for user to overrride player styles, player creates it's own and custom CSS classes instead of writing directly into elements' style
+* Color tween, both fill and stroke
+* Custom fonts support
+* Text baseline fixes
+* Controls are not attached to body anymore, but placed next to player's canvas...
+* ...and both are now placed in a wrapper div, which puts original canvas inside of itself, which breaks some things for users, but we weren't able to solve this another way in this version (CSS positioning was impossible in a lot of cases with previous model + recalculating controls position taken a lot CPU before)
 
 
 

@@ -202,7 +202,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   var prev__loadRemoteResources = E.prototype._loadRemoteResources;
   E.prototype._loadRemoteResources = function(scene, player) {
     var prev = prev__loadRemoteResources.apply(this, arguments);
-    if (this.is(C.ET_AUDIO) && player.audioEnabled) this._audioLoad();
+    if (this.is(C.ET_AUDIO) && player.audioEnabled) this._audioLoad(player);
   }
 
   function audioErrProxy(src, pass_to) {
@@ -237,10 +237,10 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     return false;
   }
 
-  E.prototype._audioLoad = function() {
+  E.prototype._audioLoad = function(player) {
     var me = this;
 
-    _ResMan.loadOrGet(me._audio_url,
+    _ResMan.loadOrGet(player.id, me._audio_url,
       function(notify_success, notify_error) { // loader
           if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');

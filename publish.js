@@ -3,6 +3,18 @@
  * All rights are reserved.
  */
 
+/* Variables we get from template:
+   playerDomain - a URL to player domain host, e.g. player.animatron.com
+   amazonDomain — a URL to snapshot storage host, e.g. http://snapshots.animatron.com/<snapshot-id>
+   width — width of the animation
+   height - height of the animation
+   playerVersion = player version, default 'latest'
+   filename = filename of snapshot, used as amazonDomain + filename
+   autostart = (boolean) autostart of movie on player load
+   loop = (boolean) loop animation instead of stoping at the end
+   animation = JSON object of animatron movie (currently not used)
+*/
+
 var inIFrame = false;
 
 var _u = (function () { /* utils */
@@ -88,6 +100,7 @@ var start = (function () {
     var VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
 
     var CANVAS_ID = 'target',
+        WRAPPER_CLASS = 'anm-wrapper',
         PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
         PLAYER_VERSION_ID = playerVersion;
 
@@ -115,7 +128,7 @@ var start = (function () {
         _params_ = _u.injectIfNotPresent(_params_, "r", 1);
     }
 
-    var _snapshotUrl_ = './' + filename + (_params_ || '');
+    var _snapshotUrl_ = amazonDomain + '/' + filename + (_params_ || '');
 
     var temp_v = null;
     if (temp_v = _u.extractVal(_params_, 'v')) {
@@ -129,22 +142,75 @@ var start = (function () {
 
     return function () {
         try {
-            var cvs = document.getElementById(CANVAS_ID);
-            if (!inIFrame) {
-                document.body.className = 'no-iframe';
-                cvs.className = 'no-iframe';
-            }
-            if (rect) {
-                cvs.style.width = rect[0] + 'px';
-                cvs.style.height = rect[1] + 'px';
-                if (!inIFrame) {
-                    cvs.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                    cvs.style.marginTop = -Math.floor(rect[1] / 2) + 'px';
-                }
+            if (!inIFrame && !rect) {
+                document.body.className = 'no-iframe no-rect';
             } else if (!inIFrame) {
-                cvs.className += ' no-rect';
+                document.body.className = 'no-iframe';
             }
-            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.js',
+            var stylesTag = document.createElement('style');
+            stylesTag.type = 'text/css';
+
+            var head = document.getElementsByTagName("head")[0];
+            if (!head) throw new Error('No head element in document');
+            head.appendChild(stylesTag);
+
+            var styles = stylesTag.sheet,
+                rules = styles.cssRules || styles.rules;
+
+            var noIFrameRule = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe .anm-wrapper {}', rules.length)],
+                noRectRule   = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-rect .anm-wrapper {}', rules.length)],
+                noPlayerRule = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
+                // there is a version of player where `anm-state-loading` and `anm-state-resources-loading` classes
+                // were incorrectly named `anm-loading`, `anm-resources-loading`, this case is temporary (!) hacked out here
+                wrapperRule  = rules[(styles.insertRule || styles.addRule).call(styles,
+                                     'body.no-iframe div.anm-state-nothing, body.no-iframe div.anm-state-error, '+
+                                     'body.no-iframe div.anm-loading, body.no-iframe div.anm-state-loading, ' +
+                                     'body.no-iframe div.anm-resources-loading, body.no-iframe div.anm-state-resources-loading ' +
+                                     '{}', rules.length)];
+
+            function ruleForWrapperStyle(rule) {
+                rule.style.borderWidth = '1px';
+                rule.style.borderStyle = 'solid';
+                rule.style.borderColor = '#ccc';
+                rule.style.display = 'block';
+                rule.style.position = 'absolute';
+                rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
+                rule.style.overflow = 'hidden';
+            }
+
+            ruleForWrapperStyle(noIFrameRule);
+            ruleForWrapperStyle(noPlayerRule);
+            ruleForWrapperStyle(wrapperRule);
+
+            if (rect) {
+                function ruleForCanvasPosition(rule) {
+                    rule.style.width = rect[0] + 'px';
+                    rule.style.height = rect[1] + 'px';
+                    if (!inIFrame) {
+                        rule.style.top  = '50%';
+                        rule.style.left = '50%';
+                        rule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
+                        rule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
+                    }
+                }
+
+                ruleForCanvasPosition(noIFrameRule);
+                ruleForCanvasPosition(noPlayerRule);
+            }
+
+            noRectRule.style.top  = '10%';
+            noRectRule.style.left = '10%';
+
+            if (rect) {
+                var canvas = document.getElementById(CANVAS_ID);
+                canvas.style.width  = rect[0] + 'px';
+                canvas.style.height = rect[1] + 'px';
+            }
+
+            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
                       anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }

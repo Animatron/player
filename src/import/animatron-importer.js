@@ -73,6 +73,7 @@ Import.project = function(prj) {
     root.__import_id = cur_import_id;
 
     root.meta = Import.meta(prj);
+    root.fonts = Import.fonts(prj);
     Import.anim(prj, root); // will inject all required properties directly in scene object
     if (prj.meta.duration) root.duration = prj.meta.duration;
 
@@ -85,6 +86,11 @@ Import.project = function(prj) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         var node_res = Import.node(node_src, elems, null, root);
+        //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
+        if (node_res.xdata.gband[0] == node_res.xdata.gband[1]) {
+            continue;
+        };
+
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
             // correct the band of the next scene to follow the previous scene
@@ -131,6 +137,10 @@ Import.meta = function(prj) {
         'modified': _m.modified,
         '_anm_id': _m.id
     };
+}
+
+Import.fonts = function(prj) {
+    return prj.anim.fonts;
 }
 /** anim **/
 /*
@@ -609,7 +619,8 @@ Import.tweentype = function(src) {
     if (src === 3) return C.T_SHEAR;
     if (src === 4) return C.T_TRANSLATE;
     //if (src === 5) return C.T_ROT_TO_PATH;
-    if (src === 9) return C.T_COLOR;
+    if (src === 9) return C.T_FILL;
+    if (src === 10) return C.T_STROKE;
 }
 /** tweendata **/
 // -> Any
@@ -630,8 +641,11 @@ Import.tweendata = function(type, src) {
         if (src.length == 1) return [ [ src[0], src[0] ],
                                       [ src[0], src[0] ] ];
     }
-    if(type === C.T_COLOR) {
+    if(type === C.T_FILL) {
         return [Import.brush(src[0]), Import.brush(src[1])];
+    }
+    if (type === C.T_STROKE) {
+        return [Import.stroke(src[0]), Import.stroke(src[1])];
     }
 }
 /** easing **/

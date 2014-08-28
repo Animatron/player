@@ -53,7 +53,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     // DomEngine constants
 
     var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
-        URL_ATTR = 'data-url';
+        AUTO_MARKER_ATTR = 'anm-player-target', // marks that this element is a target for a player
+        URL_ATTR = 'anm-url',
+        SNAPSHOT_URL_ATTR = 'anm-src',
+        IMPORTER_ATTR = 'anm-importer';
 
     var $DE = {};
 
@@ -70,43 +73,61 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // ajax(url, callback?, errback?, method?, headers?) -> none
     // getCookie(name) -> String
+    // onDocReady(callback) -> none
+
+    // ensureGlobalStylesInjected() -> none
+    // injectElementStyles(elm, general_class, instance_class) -> [ general_rule, instance_rule ];
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
     // createTransform() -> Transform
 
     // getElementById(id) -> Element
-    // findElementPosition(elm) -> [ x, y ]
-    // findScrollAwarePos(elm) -> [ x, y ]
-    // // getElementBounds(elm) -> [ x, y, width, height, ratio ]
-    // moveElementTo(elm, pos) -> none
-    // disposeElement(elm) -> none
+    // findElementPosition(element) -> [ x, y ]
+    // findScrollAwarePosition(eelementlm) -> [ x, y ]
+    // // getElementBounds(element) -> [ x, y, width, height, ratio ]
+    // moveElementTo(element, x, y) -> none
+    // disposeElement(element) -> none
     // detachElement(parent | null, child) -> none
+    // showElement(element) -> none
+    // hideElement(element) -> none
+    // clearChildren(element) -> none
+
+    // assignPlayerToWrapper(wrapper, player, backup_id) -> { wrapper, canvas, id }
+    // hasUrlToLoad(element) -> { url, importer_id }
+    // extractUserOptions(element) -> options: object | {}
+    // registerAsControlsElement(element, player) -> none
+    // registerAsInfoElement(element, player) -> none
+    // detachPlayer(player) -> none
+    // playerAttachedTo(element, player) -> true | false
+    // findPotentialPlayers() -> [ element ]
+
+    // hasAnmProps(element) -> object | null
+    // getAnmProps(element) -> object
+    // clearAnmProps(element) -> none
 
     // createCanvas(width, height, bg?, ratio?) -> canvas
-    // assignPlayerToCanvas(id, player) -> canvas
     // getContext(canvas, type) -> context
-    // playerAttachedTo(canvas, player) -> true | false
-    // detachPlayer(canvas, player) -> none
-    // extractUserOptions(canvas) -> options: object | {}
     // checkPlayerCanvas(canvas) -> true | false
-    // hasUrlToLoad(canvas) -> string | null
     // setTabIndex(canvas) -> none
     // getCanvasSize(canvas) -> [ width, height ]
-    // getCanvasPos(canvas) -> [ x, y ]
-    // getCanvasParams(canvas) -> [ width, height, ratio ]
+    // getCanvasPosition(canvas) -> [ x, y ]
+    // getCanvasParameters(canvas) -> [ width, height, ratio ]
     // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
     // setCanvasSize(canvas, width, height, ratio?) -> none
-    // setCanvasPos(canvas, x, y) -> none
+    // setCanvasPosisition(canvas, x, y) -> none
     // setCanvasBackground(canvas, value) -> none
-    // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
+    // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
+    // updateCanvasOverlays(canvas) -> none
+    // updateOverlay(parent, overlay, props?) -> none
 
-    // getEventPos(event, elm?) -> [ x, y ]
+    // getEventPosition(event, element?) -> [ x, y ]
     // subscribeWindowEvents(handlers: object) -> none
     // subscribeCanvasEvents(canvas, handlers: object) -> none
     // unsubscribeCanvasEvents(canvas, handlers: object) -> none
     // subscribeSceneToEvents(canvas, scene, map) -> none
     // unsubscribeSceneFromEvents(canvas, scene) -> none
+    // subscribeWrapperToStateChanges(wrapper, player) -> none
 
     // keyEvent(evt) -> Event
     // mouseEvent(evt, canvas) -> Event
@@ -205,7 +226,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.getCookie = function(name) {
         // from http://www.codelib.net/javascript/cookies.html
-        var s = document.cookie, i;
+        var s = $doc.cookie, i;
         if (s)
         for (i=0, s=s.split('; '); i<s.length; i++) {
         s[i] = s[i].split('=', 2);
@@ -213,8 +234,102 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return unescape(s[i][1]);
         }
         return null;
-        /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec(document.cookie);
+        /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec($doc.cookie);
         return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
+    }
+    $DE.onDocReady = function(callback) {
+        var listener;
+        if ($doc.addEventListener) {
+            listener = $doc.addEventListener('DOMContentLoaded', function() {
+                $doc.removeEventListener('DOMContentLoaded', listener, false);
+                callback();
+            }, false);
+        } else if ($doc.attachEvent) {
+            listener = $doc.attachEvent('onreadystatechange', function() {
+                if ($doc.readyState === 'complete') {
+                    $doc.detachEvent('onreadystatechange', listener);
+                    callback();
+                }
+            });
+        }
+    }
+
+    $DE.__stylesTag = null;
+    // FIXME: move these constants to anm.js
+    $DE.WRAPPER_CLASS = 'anm-wrapper';
+    $DE.WRAPPER_INSTANCE_CLASS_PREFIX = 'anm-wrapper-';
+    $DE.PLAYER_CLASS = 'anm-player';
+    $DE.PLAYER_INSTANCE_CLASS_PREFIX = 'anm-player-';
+    $DE.CONTROLS_CLASS = 'anm-controls';
+    $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+    $DE.INFO_CLASS = 'anm-controls';
+    $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+
+    $DE.styling = {
+        wrapperGeneral: function(rule) {
+            rule.style.position = 'relative';
+        },
+        wrapperInstance: function(rule) { },
+        playerGeneral: function(rule) { },
+        playerInstance: function(rule, desc) { },
+        controlsGeneral: function(rule) {
+            rule.style.position = 'absolute';
+            rule.style.left = 0;
+            rule.style.top = 0;
+            rule.style.verticalAlign = 'top';
+            rule.style.zIndex = 100;
+            rule.style.cursor = 'pointer';
+            rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+        },
+        controlsInstance: function(rule, desc) { },
+        infoGeneral: function(rule) {
+            rule.style.position = 'relative';
+            rule.style.verticalAlign = 'top';
+            rule.style.zIndex = 110;
+            rule.style.cursor = 'pointer';
+            rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
+            rule.style.opacity = 1;
+        },
+        infoInstance: function(rule, desc) { },
+    }
+
+    $DE.ensureGlobalStylesInjected = function() {
+        if ($DE.__stylesTag) return;
+        //if (!($doc.readyState === "complete")) return;
+        var stylesTag = $doc.createElement('style');
+        stylesTag.type = 'text/css';
+
+        // TODO: inject as first element?
+        var head = $doc.getElementsByTagName("head")[0];
+        if (!head) throw new Error('anm.Player requires <head> tag to exist in the document to inject CSS there');
+        head.appendChild(stylesTag);
+        // TODO: inject as first element?
+        // var head = $doc.getElementsByTagName("head")[0];
+        // head.insertBefore(stylesTag, head.firstChild);
+
+        $DE.__stylesTag = stylesTag;
+    }
+    $DE.injectElementStyles = function(elm, general_class, instance_class) {
+        var styles = $DE.__stylesTag.sheet,
+            rules = styles.cssRules || styles.rules;
+        if (elm.classList) {
+            elm.classList.add(general_class);
+            elm.classList.add(instance_class);
+        } else if (elm.className){
+            elm.className += general_class + ' ' + instance_class;
+        } else {
+            elm.className = general_class + ' ' + instance_class;
+        }
+        var props = $DE.getAnmProps(elm);
+        props.gen_class  = general_class;
+        props.inst_class = instance_class;
+        var general_rule_idx  = (styles.insertRule || styles.addRule).call(styles, '.' +general_class + '{}', rules.length),
+            instance_rule_idx = (styles.insertRule || styles.addRule).call(styles, '.' +instance_class + '{}', rules.length);
+        var elm_rules = [ rules[general_rule_idx],
+                          rules[instance_rule_idx] ];
+        props.gen_rule  = elm_rules[0];
+        props.inst_rule = elm_rules[1];
+        return elm_rules;
     }
 
     $DE.__textBuf = null;
@@ -263,6 +378,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
        see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
     // returns position on a screen, _including_ scroll
     $DE.findElementPosition = function(elm) {
+        if (elm.getBoundingClientRect) {
+           var rect = elm.getBoundingClientRect();
+           return [ rect.left, rect.top ];
+        }
         var curleft = 0,
             curtop = 0;
         do {
@@ -272,17 +391,31 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return [ curleft, curtop ];
     }
     $DE.findScrollAwarePosition = function(elm) {
+        if (elm.getBoundingClientRect) {
+            var curleft = 0,
+                curtop = 0;
+            var rect = elm.getBoundingClientRect();
+            do {
+                curleft += ((elm !== $doc.body)
+                            ? elm.scrollLeft
+                            : $doc.documentElement.scrollLeft);
+                curtop += ((elm !== $doc.body)
+                            ? elm.scrollTop
+                            : $doc.documentElement.scrollTop);
+            } while (elm = elm.offsetParent);
+            return [ rect.left - curleft, rect.top - curtop ];
+        }
         //var bound = elm.getBoundingClientRect();
         //return [ bound.left, bound.top ];
         var curleft = 0,
             curtop = 0;
         do {
-            curleft += elm.offsetLeft - ((elm !== document.body)
-                                                    ? elm.scrollLeft
-                                                    : document.documentElement.scrollLeft);
-            curtop += elm.offsetTop - ((elm !== document.body)
-                                                    ? elm.scrollTop
-                                                    : document.documentElement.scrollTop);
+            curleft += elm.offsetLeft - ((elm !== $doc.body)
+                                         ? elm.scrollLeft
+                                         : $doc.documentElement.scrollLeft);
+            curtop += elm.offsetTop - ((elm !== $doc.body)
+                                         ? elm.scrollTop
+                                         : $doc.documentElement.scrollTop);
         } while (elm = elm.offsetParent);
         return [ curleft, curtop ];
     }
@@ -290,9 +423,10 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         var rect = elm.getBoundingClientRect();
         return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
     }*/
-    $DE.moveElementTo = function(elm, pos) {
-        elm.style.left = pos[0] + 'px';
-        elm.style.top  = pos[1] + 'px';
+    $DE.moveElementTo = function(elm, x, y) {
+        var props = $DE.hasAnmProps(elm);
+        ((props && props.inst_rule) || elm).style.left = (x === 0) ? '0' : (x + 'px');
+        ((props && props.inst_rule) || elm).style.top  = (y === 0) ? '0' : (y + 'px');
     }
 
     $DE.__trashBin;
@@ -311,6 +445,18 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.detachElement = function(parent, child) {
         (parent || child.parentNode).removeChild(child);
     }
+    $DE.showElement = function(elm) {
+        var props = $DE.hasAnmProps(elm);
+        ((props && props.inst_rule) || elm).style.visibility = 'visible';
+    }
+    $DE.hideElement = function(elm) {
+        var props = $DE.hasAnmProps(elm);
+        ((props && props.inst_rule) || elm).style.visibility = 'hidden';
+    }
+    $DE.clearChildren = function(elm) {
+        // much faster than innerHTML = '';
+        while (elm.firstChild) { elm.removeChild(elm.firstChild); }
+    }
 
     // Creating & Modifying Canvas
 
@@ -320,84 +466,228 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         if (bg) $DE.setCanvasBackground(cvs, bg);
         return cvs;
     }
-    $DE.assignPlayerToCanvas = function(cvs, player) {
-        //if (cvs.getAttribute(MARKER_ATTR)) throw new PlayerErr(Errors.P.ALREADY_ATTACHED);
-        if (!cvs) return null;
-        if (cvs.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to canvas \'' + id + '\'.');
-        cvs.setAttribute(MARKER_ATTR, true);
-        return cvs;
+    $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
+        if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
+
+        if (anm.is.str(wrapper)) {
+            wrapper = $doc.getElementById(wrapper);
+        }
+
+        var canvasWasPassed = (wrapper.tagName == 'canvas') || (wrapper.tagName == 'CANVAS');
+        if (canvasWasPassed && console) {
+            (console.warn || console.log).call(console,
+                         'NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
+                         'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
+                         'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
+                         'Please pass any container such as <div> to a Player instead of <canvas> to fix it.');
+        }
+
+        var state_before = wrapper.cloneNode(false);
+
+        var canvas = canvasWasPassed ? wrapper : $doc.createElement('canvas');
+        wrapper = canvasWasPassed ? $doc.createElement('div') : wrapper;
+
+        if (wrapper.getAttribute(MARKER_ATTR)) throw new Error('Player is already attached to element \'' + (wrapper.id || canvas.id) + '\'.');
+        wrapper.setAttribute(MARKER_ATTR, true);
+        if (wrapper.hasAttribute(AUTO_MARKER_ATTR)) wrapper.removeAttribute(AUTO_MARKER_ATTR);
+        if (canvas.hasAttribute(AUTO_MARKER_ATTR))  canvas.removeAttribute(AUTO_MARKER_ATTR);
+
+        var prev_cvs_id = canvas.id;
+        canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
+        if (!wrapper.id) wrapper.id = prev_cvs_id || back_id;
+        canvas.id = wrapper.id + '-cvs';
+        var props = $DE.getAnmProps(canvas);
+        props.wrapper = wrapper;
+        props.was_before = state_before;
+
+        var id = wrapper.id; // the "main" id
+
+        props.id = id;
+
+        if (canvasWasPassed) {
+            var parent = canvas.parentNode || $doc.body;
+            if (parent) {
+                parent.replaceChild(wrapper, canvas);
+                wrapper.appendChild(canvas);
+            } else throw new Error('Provided canvas tag has no parent');
+        } else {
+            wrapper.appendChild(canvas);
+        }
+
+        $DE.ensureGlobalStylesInjected();
+
+        var wrapper_rules = $DE.injectElementStyles(wrapper,
+                                                    $DE.WRAPPER_CLASS,
+                                                    $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+        var cvs_rules = $DE.injectElementStyles(canvas,
+                                                $DE.PLAYER_CLASS,
+                                                $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+
+        $DE.styling.playerGeneral(cvs_rules[0]);
+        $DE.styling.playerInstance(cvs_rules[1]);
+        $DE.styling.wrapperGeneral(wrapper_rules[0]);
+        $DE.styling.wrapperInstance(wrapper_rules[1]);
+
+        $DE.subscribeWrapperToStateChanges(wrapper, player);
+
+        return { wrapper: wrapper,
+                 canvas: canvas,
+                 id: id };
     }
-    $DE.playerAttachedTo = function(cvs, player) {
-        return cvs.hasAttribute(MARKER_ATTR);
+    $DE.playerAttachedTo = function(elm, player) {
+        if ($DE.hasAnmProps(elm)) { var props = $DE.getAnmProps(elm);
+                                    if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR); };
+        return elm.hasAttribute(MARKER_ATTR);
     }
-    $DE.detachPlayer = function(cvs, player) {
-        cvs.removeAttribute(MARKER_ATTR);
+    $DE.findPotentialPlayers = function() {
+        return $doc.querySelectorAll('[' + AUTO_MARKER_ATTR + ']');
+    }
+
+    $DE.hasAnmProps = function(elm) {
+        return elm.__anm;
+    }
+    $DE.getAnmProps = function(elm) {
+        if (!elm.__anm) elm.__anm = {};
+        return elm.__anm;
+    }
+    $DE.clearAnmProps = function(elm) {
+        if (!elm || !elm.__anm) return;
+        var __anm = elm.__anm;
+        if (__anm.gen_class && __anm.inst_class) {
+            var styles = $DE.__stylesTag.sheet,
+                rules = styles.cssRules || styles.rules;
+            var to_remove = [];
+            for (var i = 0, il = rules.length; i < il; i++) {
+                if ((rules[i].selectorText == '.' + __anm.gen_class) ||
+                    (rules[i].selectorText == '.' + __anm.inst_class)) {
+                    to_remove.push(i); // not to conflict while iterating
+                }
+            }
+            while (to_remove.length) { // remove from the end for safety
+                (styles.deleteRule || styles.removeRule).call(styles, to_remove.pop());
+            }
+        }
+        if (__anm.gen_class  && elm.classList) elm.classList.remove(__anm.gen_class);
+        if (__anm.inst_class && elm.classList) elm.classList.remove(__anm.inst_class);
+        delete elm.__anm;
+    }
+
+    $DE.detachPlayer = function(player) {
+        var canvas = player.canvas,
+            wrapper = player.wrapper;
+        if (wrapper) wrapper.removeAttribute(MARKER_ATTR);
+        var parent_node = wrapper.parentNode || $doc.body,
+            next_node = wrapper.nextSibling;
+        var props = $DE.getAnmProps(canvas);
+        $DE.clearChildren(wrapper);
+        if (props.was_before) {
+            parent_node.removeChild(wrapper);
+            parent_node.insertBefore(props.was_before, next_node);
+        }
+        $DE.clearAnmProps(wrapper);
+        $DE.clearAnmProps(canvas);
+        if (player.controls) {
+            $DE.clearAnmProps(player.controls.canvas);
+            if (player.controls.info) $DE.clearAnmProps(player.controls.info.canvas);
+        }
+        //FIXME: should remove stylesTag when last player was deleted from page
+        //$DE.detachElement(null, $DE.__stylesTag);
+        //$DE.__stylesTag = null;
     }
     $DE.getContext = function(cvs, type) {
         return cvs.getContext(type);
     }
-    $DE.extractUserOptions = function(cvs) {
-      var ratio = $DE.PX_RATIO;
-      var width = cvs.getAttribute('anm-width');
-      if (!width) {
-          width = cvs.hasAttribute('width') ? (cvs.getAttribute('width') / ratio)
-                                            : undefined;
-      }
-      var height = cvs.getAttribute('anm-height');
-      if (!height) {
-          height = cvs.hasAttribute('height') ? (cvs.getAttribute('height') / ratio)
+    $DE.extractUserOptions = function(elm) {
+
+        function __boolAttr(val) {
+            //if (val === undefined) return undefined;
+            if (typeof val === 'undefined') return undefined;
+            if (val === null) return null;
+            if (val == '0') return false;
+            if (val == '1') return true;
+            if (val == 'false') return false;
+            if (val == 'true') return true;
+            if (val == 'off') return false;
+            if (val == 'on') return true;
+            if (val == 'no') return false;
+            if (val == 'yes') return true;
+        }
+
+        var ratio = $DE.PX_RATIO;
+        var width = elm.getAttribute('anm-width');
+        if (!width) {
+            width = elm.hasAttribute('width') ? (elm.getAttribute('width') / ratio)
                                               : undefined;
-      }
-      return { 'debug': cvs.getAttribute('anm-debug'),
-               'mode': cvs.getAttribute('anm-mode'),
-               'repeat': cvs.getAttribute('anm-repeat'),
-               'zoom': cvs.getAttribute('anm-zoom'),
-               'speed': cvs.getAttribute('anm-speed'),
-               'width': width,
-               'height': height,
-               'autoPlay': cvs.getAttribute('anm-auto-play'),
-               'bgColor': cvs.getAttribute('anm-bgcolor'),
-               'drawStill': cvs.getAttribute('anm-draw-still'),
-               'imagesEnabled': cvs.getAttribute('anm-images-enabled'),
-               'shadowsEnabled': cvs.getAttribute('anm-shadows-enabled'),
-               'audioEnabled': cvs.getAttribute('anm-audio-enabled'),
-               'controlsEnabled': cvs.getAttribute('anm-controls-enabled'),
-               'infoEnabled': cvs.getAttribute('anm-info-enabled'),
-               'handleEvents': cvs.getAttribute('anm-handle-events'),
-               'infiniteDuration': cvs.getAttribute('anm-infinite-duration'),
-               'forceSceneSize': cvs.getAttribute('anm-force-scene-size'),
-               'inParent': undefined, // TODO: check if we're in tag?
-               'muteErrors': cvs.getAttribute('anm-mute-errors'),
-               'loadingMode': cvs.getAttribute('anm-loading-mode'),
-               'thumbnail': cvs.getAttribute('anm-thumbnail')
-             };
+        }
+        var height = elm.getAttribute('anm-height');
+        if (!height) {
+            height = elm.hasAttribute('height') ? (elm.getAttribute('height') / ratio)
+                                                : undefined;
+        }
+        return { 'debug': __boolAttr(elm.getAttribute('anm-debug')),
+                 'mode': elm.getAttribute('anm-mode'),
+                 'repeat': __boolAttr(elm.getAttribute('anm-repeat')),
+                 'zoom': elm.getAttribute('anm-zoom'),
+                 'speed': elm.getAttribute('anm-speed'),
+                 'width': width,
+                 'height': height,
+                 'autoPlay': __boolAttr(elm.getAttribute('anm-autoplay') || elm.getAttribute('anm-auto-play')),
+                 'bgColor': elm.getAttribute('anm-bgcolor') || elm.getAttribute('anm-bg-color'),
+                 'ribbonsColor': elm.getAttribute('anm-ribbons') || elm.getAttribute('anm-ribcolor') || elm.getAttribute('anm-rib-color'),
+                 'drawStill': __boolAttr(elm.getAttribute('anm-draw-still')
+                                         || elm.getAttribute('anm-draw-thumbnail')
+                                         || elm.getAttribute('anm-draw-thumb')),
+                 'imagesEnabled': __boolAttr(elm.getAttribute('anm-images') || elm.getAttribute('anm-images-enabled')),
+                 'shadowsEnabled': __boolAttr(elm.getAttribute('anm-shadows') || elm.getAttribute('anm-shadows-enabled')),
+                 'audioEnabled': __boolAttr(elm.getAttribute('anm-audio') || elm.getAttribute('anm-audio-enabled')),
+                 'controlsEnabled': __boolAttr(elm.getAttribute('anm-controls') || elm.getAttribute('anm-controls-enabled')),
+                 'infoEnabled': __boolAttr(elm.getAttribute('anm-info') || elm.getAttribute('anm-info-enabled')),
+                 'handleEvents': __boolAttr(elm.getAttribute('anm-events') || elm.getAttribute('anm-handle-events')),
+                 'infiniteDuration': __boolAttr(elm.getAttribute('anm-infinite') || elm.getAttribute('anm-infinite-duration')),
+                 'forceSceneSize': __boolAttr(elm.getAttribute('anm-scene-size') || elm.getAttribute('anm-force-scene-size')),
+                 'inParent': undefined, // TODO: check if we're in tag?
+                 'muteErrors': __boolAttr(elm.getAttribute('anm-mute-errors')),
+                 'loadingMode': elm.getAttribute('anm-loading-mode'),
+                 'thumbnail': elm.getAttribute('anm-thumbnail')
+               };
     }
     $DE.checkPlayerCanvas = function(cvs) {
         return true;
     }
-    $DE.hasUrlToLoad = function(cvs) {
-        return cvs.getAttribute(URL_ATTR);
+    $DE.hasUrlToLoad = function(elm) {
+        return {
+            url: elm.getAttribute(URL_ATTR) || elm.getAttribute(SNAPSHOT_URL_ATTR),
+            importer_id: elm.getAttribute(IMPORTER_ATTR)
+        }
     }
     $DE.setTabIndex = function(cvs, idx) {
         cvs.setAttribute('tabindex', idx);
     }
-    $DE.getCanvasParams = function(cvs) {
+    $DE.getCanvasParameters = function(cvs) {
         // if canvas size was not initialized by player, will return null
-        if (!cvs.__anm_width || !cvs.__anm_height) return null;
-        return [ cvs.__anm_width, cvs.__anm_height, $DE.PX_RATIO ];
+        if (!$DE.hasAnmProps(cvs)) return null;
+        var props = $DE.getAnmProps(cvs);
+        if (!props.width || !props.height) return null;
+        return [ props.width, props.height, $DE.PX_RATIO ];
     }
     $DE.getCanvasSize = function(cvs) {
-        return [ cvs.getAttribute('clientWidth') || cvs.clientWidth,
+        if (cvs.getBoundingClientRect) {
+           var rect = cvs.getBoundingClientRect();
+           return [ rect.width, rect.height ];
+        }
+        return [ /* cvs.getAttribute('offsetWidth') || cvs.offsetWidth || */
+                 cvs.getAttribute('clientWidth') || cvs.clientWidth,
+                 /* cvs.getAttribute('offsetHeight') || cvs.offsetHeight || */
                  cvs.getAttribute('clientHeight') || cvs.clientHeight ];
     }
-    $DE.getCanvasPos = function(cvs) {
+    $DE.getCanvasPosition = function(cvs) {
         return $DE.findScrollAwarePosition(cvs);
     }
     $DE.getCanvasBounds = function(cvs/*, parent*/) {
         //var parent = parent || cvs.parentNode;
-        var params = $DE.getCanvasParams(cvs);
+        var params = $DE.getCanvasParameters(cvs);
         if (!params) return null;
-        var pos = $DE.getCanvasPos(cvs);
+        var pos = $DE.getCanvasPosition(cvs);
         // bounds are: left, top, width, height, ratio.
         // I am not sure if I am correct in providing width/height instead of
         // left+width/top+height, but I think it's better to return values
@@ -407,37 +697,29 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.setCanvasSize = function(cvs, width, height, ratio) {
         //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
         var ratio = ratio || $DE.PX_RATIO;
-        var _w = width | 0,
-            _h = height | 0;
+        var _w = width | 0, // to int
+            _h = height | 0; // to int
         //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
-        cvs.__anm_ratio = ratio;
-        cvs.__anm_width = _w;
-        cvs.__anm_height = _h;
-        if (!cvs.style.width)  cvs.style.width = _w + 'px';
-        if (!cvs.style.height) cvs.style.height = _h + 'px';
+        var props = $DE.getAnmProps(cvs);
+        props.ratio = ratio;
+        props.width = _w;
+        props.height = _h;
+        if (!cvs.style.width)  { (props.inst_rule || cvs).style.width  = _w + 'px'; }
+        if (!cvs.style.height) { (props.inst_rule || cvs).style.height = _h + 'px'; }
         cvs.setAttribute('width', _w * (ratio || 1));
         cvs.setAttribute('height', _h * (ratio || 1));
         $DE._saveCanvasPos(cvs);
         return [ _w, _h ];
     }
-    $DE.setCanvasPos = function(cvs, x, y) {
-        cvs.__anm_usr_x = x;
-        cvs.__anm_usr_y = y;
+    $DE.setCanvasPosition = function(cvs, x, y) {
+        var props = $DE.getAnmProps(cvs);
+        props.usr_x = x;
+        props.usr_y = y;
         // TODO: actually move canvas
-        $engine._saveCanvasPos(cvs);
+        $DE._saveCanvasPos(cvs);
     }
     $DE.setCanvasBackground = function(cvs, bg) {
-        cvs.style.backgroundColor = bg;
-    }
-    $DE.updateCanvasMetrics = function(cvs) {
-        var pos = $DE.getCanvasPos(cvs),
-            size = $DE.getCanvasSize(cvs);
-        cvs.__anm_ratio = $DE.PX_RATIO;
-        cvs.__anm_x = pos[0];
-        cvs.__anm_y = pos[1];
-        cvs.__anm_width = size[0];
-        cvs.__anm_height = size[1];
-        $DE._saveCanvasPos(cvs);
+        ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
     }
     $DE._saveCanvasPos = function(cvs) {
         // FIXME: use getBoundingClientRect?
@@ -478,46 +760,79 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         /* FIXME: find a method with no injection of custom properties
                   (data-xxx attributes are stored as strings and may work
                    a bit slower for events) */
-        cvs.__rOffsetLeft = ol || cvs.__anm_usr_x;
-        cvs.__rOffsetTop = ot || cvs.__anm_usr_y;
+        // FIXME: NOT USED ANYMORE
+        var props = $DE.getAnmProps(cvs);
+        props.offset_left = ol || props.usr_x;
+        props.offset_top  = ot || props.usr_y;
     }
-    $DE.addChildCanvas = function(id, parent, pos, style, inside) {
-        // pos should be: [ x, y, w, h ]
+    $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
+        // conf should be: [ x, y, w, h ], all in percentage relative to parent
         // style may contain _class attr
-        var _ratio = $DE.PX_RATIO,
-            _x = pos[0], _y = pos[1],
-            _w = pos[2], _h = pos[3], // width & height
-            // FIXME: the variables below are not used
-            _pp = $DE.findElementPosition(parent), // parent position
-            _bp = [ _pp[0] + parent.clientLeft + _x, _pp[1] + parent.clientTop + _y ], // bounds position
-            _cp = inside ? [ parent.parentNode.offsetLeft + parent.clientLeft + _x,
-                             parent.parentNode.offsetTop  + parent.clientTop + _y ]
-                           : _bp; // position to set in styles
-        var cvs = $DE.createCanvas(_w, _h, null, _ratio);
-        cvs.id = parent.id ? ('__' + parent.id + '_' + id) : ('__anm_' + id) ;
-        if (style._class) cvs.className = style._class;
-        for (var prop in style) {
-            cvs.style[prop] = style[prop];
-        }
-        cvs.style.left = _cp[0] + 'px';
-        cvs.style.top = _cp[1] + 'px';
-        var appendTo = inside ? parent.parentNode
-                              : $doc.body;
-        // FIXME: a dirty hack?
-        if (inside) { appendTo.style.position = 'relative'; }
-        appendTo.appendChild(cvs);
+        // if (!parent) throw new Error();
+        var p_props = $DE.getAnmProps(player_cvs);
+        var holder = p_props.wrapper || player_cvs.parentNode || $doc.body;
+        var x = conf[0], y = conf[1],
+            w = conf[2], h = conf[3];
+        var pconf = $DE.getCanvasSize(player_cvs),
+            pw = pconf[0], ph = pconf[1];
+        var p_style = $wnd.getComputedStyle ? $wnd.getComputedStyle(player_cvs) : player_cvs.currentStyle;
+        var x_shift = parseFloat(p_style.getPropertyValue('border-left-width')),
+            y_shift = parseFloat(p_style.getPropertyValue('border-top-width'));
+        var new_w = (w * pw),
+            new_h = (h * ph);
+        var cvs = $doc.createElement('canvas');
+        cvs.id = (p_props.id) ? ('__' + p_props.id + '_' + id) : ('__anm_' + id);
+        var props = $DE.getAnmProps(cvs);
+        if (callback) callback(cvs, player_cvs);
+        $DE.setCanvasSize(cvs, new_w, new_h);
+        var new_x = (x * new_w) + x_shift,
+            new_y = (y * new_h) - y_shift;
+        $DE.moveElementTo(cvs, new_x, new_y);
+        // .insertBefore() in combination with .nextSibling works as .insertAfter() simulation
+        (holder || $doc.body).insertBefore(cvs, player_cvs.nextSibling);
+        props.ref_canvas = player_cvs;
+        if (!p_props.overlays) p_props.overlays = [];
+        p_props.overlays.push(cvs);
         return cvs;
+    }
+    $DE.updateCanvasOverlays = function(player_cvs) {
+        var p_props = $DE.getAnmProps(player_cvs);
+        var overlays = p_props.overlays;
+        if (overlays) { for (var i = 0, il = overlays.length; i < il; i++) {
+            $DE.updateOverlay(player_cvs, overlays[i], p_props);
+        } }
+    }
+    $DE.updateOverlay = function(player_cvs, overlay, p_props) {
+        var p_props = p_props || $DE.getAnmProps(player_cvs);
+        $DE.setCanvasSize(overlay, p_props.width, p_props.height);
+    }
+
+    // Controls & Info
+
+    $DE.registerAsControlsElement = function(elm, player) {
+        var rules = $DE.injectElementStyles(elm,
+                                    $DE.CONTROLS_CLASS,
+                                    $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
+        $DE.styling.controlsGeneral(rules[0]);
+        $DE.styling.controlsInstance(rules[1]);
+    }
+    $DE.registerAsInfoElement = function(elm, player) {
+        var rules = $DE.injectElementStyles(elm,
+                                    $DE.INFO_CLASS,
+                                    $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
+        $DE.styling.infoGeneral(rules[0]);
+        $DE.styling.infoInstance(rules[1]);
     }
 
     // Events
 
-    $DE.getEventPos = function(evt, elm) {
+    $DE.getEventPosition = function(evt, elm) {
         /*if (elm && (elm.__rOffsetLeft || elm.__rOffsetTop)) return [ evt.pageX - elm.__rOffsetLeft,
                                                                      evt.pageY - elm.__rOffsetTop ];
         else */ if (elm) {
-            var shift = $DE.findElementPosition(elm);
-            return [ evt.pageX - shift[0], evt.pageY - shift[1] ];
-        } else return [ evt.pageX, evt.pageY ];
+            var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
+            return [ evt.x - shift[0], evt.y - shift[1] ];
+        } else return [ evt.x, evt.y ];
     }
     $DE.subscribeWindowEvents = function(handlers) {
         for (var type in handlers) {
@@ -539,19 +854,19 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
                  ch: e.charCode };
     }
     $DE.mouseEvent = function(e, cvs) {
-        return { pos: $DE.getEventPos(e, cvs) };
+        return { pos: $DE.getEventPosition(e, cvs) };
     }
     var _kevt = $DE.keyEvent,
         _mevt = $DE.mouseEvent;
     $DE.subscribeSceneToEvents = function(cvs, scene, map) {
-        if (cvs.__anm_subscribed &&
-            cvs.__anm_subscribed[scene.id]) {
+        if (cvs.__anm.subscribed &&
+            cvs.__anm.subscribed[scene.id]) {
             return;
         }
         //cvs.__anm_subscription_id = guid();
-        if (!cvs.__anm_handlers)   cvs.__anm_handlers = {};
-        if (!cvs.__anm_subscribed) cvs.__anm_subscribed = {};
-        var handlers = cvs.__anm_subscribed[scene.id] || {
+        if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
+        if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
+        var handlers = cvs.__anm.subscribed[scene.id] || {
           mouseup:   function(evt) { scene.fire(map.mouseup,   _mevt(evt, cvs)); },
           mousedown: function(evt) { scene.fire(map.mousedown, _mevt(evt, cvs)); },
           mousemove: function(evt) { scene.fire(map.mousemove, _mevt(evt, cvs)); },
@@ -563,17 +878,50 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
           keydown:   function(evt) { scene.fire(map.keydown,   _kevt(evt)); },
           keypress:  function(evt) { scene.fire(map.keypress,  _kevt(evt)); }
         };
-        cvs.__anm_handlers[scene.id] = handlers;
-        cvs.__anm_subscribed[scene.id] = true;
+        cvs.__anm.handlers[scene.id] = handlers;
+        cvs.__anm.subscribed[scene.id] = true;
         $DE.subscribeCanvasEvents(cvs, handlers);
     }
     $DE.unsubscribeSceneFromEvents = function(cvs, scene) {
-        if (!cvs.__anm_handlers   ||
-            !cvs.__anm_subscribed ||
-            !cvs.__anm_subscribed[scene.id]) return;
-        var handlers = cvs.__anm_handlers[scene.id];
+        if (!cvs.__anm.handlers   ||
+            !cvs.__anm.subscribed ||
+            !cvs.__anm.subscribed[scene.id]) return;
+        var handlers = cvs.__anm.handlers[scene.id];
         if (!handlers) return;
         $DE.unsubscribeCanvasEvents(cvs, handlers);
+    }
+    $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
+        if (!wrapper.classList) return;
+        var C = anm.C;
+        player.on(C.S_CHANGE_STATE, function(new_state) {
+            var css_classes = [];
+            switch (new_state) {
+                case C.NOTHING: css_classes = ['anm-state-nothing']; break;
+                case C.STOPPED: css_classes = ['anm-state-stopped']; break;
+                case C.PLAYING: css_classes = ['anm-state-playing']; break;
+                case C.PAUSED:  css_classes = ['anm-state-paused']; break;
+                case C.LOADING: css_classes = ['anm-state-loading']; break;
+                case C.RES_LOADING: css_classes = ['anm-state-loading', 'anm-state-resources-loading']; break;
+                case C.ERROR:   css_classes = ['anm-state-error']; break;
+            }
+            if (css_classes.length) {
+                var classList = wrapper.classList;
+                if (player.__prev_classes && player.__prev_classes.length) {
+                    var prev_classes = player.__prev_classes;
+                    for (var i = 0, il = prev_classes.length; i < il; i++) {
+                        classList.remove(prev_classes[i]);
+                    }
+                } else {
+                    if (classList.contains('anm-state-nothing')) {
+                        classList.remove('anm-state-nothing');
+                    }
+                }
+                for (var i = 0, il = css_classes.length; i < il; i++) {
+                    classList.add(css_classes[i]);
+                }
+                player.__prev_classes = css_classes;
+            }
+        });
     }
 
     return $DE;

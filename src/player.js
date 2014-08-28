@@ -6,7 +6,6 @@
  *
  * @VERSION
  */
-
 // Player Core
 // =============================================================================
 
@@ -132,39 +131,17 @@ function __collect_to(str, start, ch) {
 
 // TODO: move to Color class
 
-function get_rgb(hex) {
-    if (!hex || !hex.length) return [0, 0, 0];
-    var _hex = hex.substring(1);
-    if (_hex.length === 3) {
-        _hex = _hex[0] + _hex[0] +
-               _hex[1] + _hex[1] +
-               _hex[2] + _hex[2];
-    }
-    var bigint = parseInt(_hex, 16);
-    return [ (bigint >> 16) & 255,
-             (bigint >> 8) & 255,
-             bigint & 255 ];
-}
-
-function to_rgba(r, g, b, a) {
-    return "rgba(" + Math.floor(r) + "," +
-                     Math.floor(g) + "," +
-                     Math.floor(b) + "," +
-                     ((typeof a !== 'undefined')
-                            ? a : 1) + ")";
-}
-
 function fmt_time(time) {
-    if (!__finite(time)) return '∞';
-    var _time = Math.abs(time),
-           _h = Math.floor(_time / 3600),
-           _m = Math.floor((_time - (_h * 3600)) / 60),
-           _s = Math.floor(_time - (_h * 3600) - (_m * 60));
+  if (!__finite(time)) return '∞';
+  var _time = Math.abs(time),
+        _h = Math.floor(_time / 3600),
+        _m = Math.floor((_time - (_h * 3600)) / 60),
+        _s = Math.floor(_time - (_h * 3600) - (_m * 60));
 
-    return ((time < 0) ? '-' : '') +
-           ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
-           ((_m < 10) ? ('0' + _m) : _m) + ':' +
-           ((_s < 10) ? ('0' + _s) : _s);
+  return ((time < 0) ? '-' : '') +
+          ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
+          ((_m < 10) ? ('0' + _m) : _m) + ':' +
+          ((_s < 10) ? ('0' + _s) : _s)
 }
 
 function ell_text(text, max_len) {
@@ -197,6 +174,10 @@ function __roundTo(n, precision) {
     //return n.toPrecision(precision);
     var multiplier = Math.pow(10, precision);
     return Math.round(n * multiplier) / multiplier;
+}
+
+function __interpolateFloat(a, b, t) {
+    return a*(1-t)+b*t;
 }
 
 // #### other
@@ -452,8 +433,8 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'loadingMode': C.LM_DEFAULT, // undefined means 'auto'
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
+                                 'ribbonsColor': undefined,
                                  'forceSceneSize': false,
-                                 'inParent': false,
                                  'muteErrors': false
                                };
 
@@ -488,6 +469,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'width': undefined,
 //       'height': undefined,
 //       'bgColor': undefined,
+//       'ribbonsColor': undefined,
 //       'audioEnabled': true,
 //       'inifiniteDuration': false,
 //       'drawStill': false,
@@ -497,17 +479,17 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'loadingMode': undefined, // undefined means 'auto'
 //       'thumbnail': undefined,
 //       'forceSceneSize': false,
-//       'inParent': false,
 //       'muteErrors': false
 //     }
 
-Player.prototype.init = function(cvs, opts) {
-    if (this.canvas) throw new PlayerErr(Errors.P.INIT_TWICE);
+Player.prototype.init = function(elm, opts) {
+    if (this.canvas || this.wrapper) throw new PlayerErr(Errors.P.INIT_TWICE);
     if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
-    this._prepare(cvs);
+    this._prepare(elm);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts($engine.extractUserOptions(this.canvas));
+    this._addOpts($engine.extractUserOptions(this.wrapper));
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
@@ -517,6 +499,7 @@ Player.prototype.init = function(cvs, opts) {
     return this;
 }
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
+
     var player = this,
         state = player.state;
 
@@ -542,6 +525,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     var durationPassed = false;
+
+    // FIXME: it is possible that importer constructor function will be passed
+    //        as importer (it will have IMPORTER_ID property as a marker),
+    //        since `anm.getImporter` name is not obvious;
+    //        we can't let ourselves create an importer instance manually here,
+    //        so it's considered a problem of naming.
+    if ((arg2 && arg2.IMPORTER_ID) || (arg3 && arg3.IMPORTER_ID)) {
+        throw new Error(Errors.P.IMPORTER_CONSTRUCTOR_PASSED);
+    }
 
     if (__fun(arg2)) { callback = arg2 } /* object, callback */
     else if (__num(arg2) || !arg2) { /* object, duration[, ...] */
@@ -574,13 +566,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         return;
     }
 
-    // clear postponed tasks if player started to load remote resources,
-    // they are not required since new scene is loading in the player now
-    if ((player.loadingMode === C.LM_ONREQUEST) &&
-        (state.happens === C.RES_LOADING)) {
-        player._clearPostpones();
-        // TODO: cancel resource requests?
-    }
+    // if player was loading resources already when .load() was called, inside the ._reset() method
+    // postpones will be cleared and loaders cancelled
 
     if (!object) {
         player.anim = null;
@@ -594,6 +581,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     player._reset();
 
     state.happens = C.LOADING;
+    player.fire(C.S_CHANGE_STATE, C.LOADING);
     player._runLoadingAnimation();
 
     var whenDone = function(result) {
@@ -608,33 +596,47 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             if (player.controls) player.controls.inject(scene);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
-            //$log.debug('no remotes, calling callback');
-            if (callback) callback(result);
-            if (player.autoPlay) player.play();
+            if (callback) callback.call(player, result);
+            // player may appear already playing something if autoPlay or a similar time-jump
+            // flag was set from some different source of options (async, for example),
+            // then the rule (for the moment) is: last one wins
+            if (player.autoPlay) {
+                if (player.state.happens === C.PLAYING) player.stop();
+                player.play();
+            }
         } else {
             state.happens = C.RES_LOADING;
+            player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
-            //$log.debug('load with remotes, subscribing ', remotes);
-            _ResMan.subscribe(remotes, [ player.__defAsyncSafe(
+            // subscribe to wait until remote resources will be ready or failed
+            _ResMan.subscribe(player.id, remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
-                    //$log.debug(res_results, err_count);
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
-                                                  // to load different scenes and first one finished loading
-                                                  // after the second one
+                        // to load different scenes and first one finished loading
+                        // after the second one
                         player._stopLoadingAnimation();
                         if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
+                        player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
-                        if (callback) callback(result);
-                        if (player.autoPlay) player.play();
+                        if (callback) callback.call(player, result);
+                        // player may appear already playing something if autoPlay or a similar time-jump
+                        // flag was set from some different source of options (async, for example),
+                        // then the rule (for the moment) is: last one wins
+                        if (player.autoPlay) {
+                            if (player.state.happens === C.PLAYING) player.stop();
+                            player.play();
+                        }
                     }
                 }
             ) ]);
+            // actually start loading remote resources
             scene._loadRemoteResources(player);
         }
+
     };
     whenDone = player.__defAsyncSafe(whenDone);
 
@@ -778,6 +780,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                 player.__userBeforeRender,
                                 player.__userAfterRender);
 
+    player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
 
     return player;
@@ -826,9 +829,11 @@ Player.prototype.stop = function() {
             player.controls.forceNextRedraw();
             player.controls.render(state.time);
         }
+        player.fire(C.S_CHANGE_STATE, C.STOPPED);
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
         if (!player.controls) player._drawSplash();
+        player.fire(C.S_CHANGE_STATE, C.NOTHING);
     }
 
     player.fire(C.S_STOP);
@@ -875,14 +880,12 @@ Player.prototype.pause = function() {
 
     player.drawAt(state.time);
 
+    player.fire(C.S_CHANGE_STATE, C.PAUSED);
     player.fire(C.S_PAUSE, state.time);
 
     return player;
 }
 
-/*Player.prototype.reset = function() {
-
-}*/
 
 Player.prototype.onerror = function(callback) {
     this.__err_handler = callback;
@@ -893,29 +896,31 @@ Player.prototype.onerror = function(callback) {
 // ### Inititalization
 /* ------------------- */
 
-provideEvents(Player, [ C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD,
+provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                         C.S_ERROR ]);
-Player.prototype._prepare = function(cvs) {
-    if (!cvs) throw new PlayerErr(Errors.P.NO_CANVAS_PASSED);
-    var canvas_id, canvas;
-    if (__str(cvs)) {
-        canvas_id = cvs;
-        canvas = $engine.getElementById(canvas_id);
-        if (!canvas) throw new PlayerErr(_strf(Errors.P.NO_CANVAS_WITH_ID, [id]));
+Player.prototype._prepare = function(elm) {
+    if (!elm) throw new PlayerErr(Errors.P.NO_WRAPPER_PASSED);
+    var wrapper_id, wrapper;
+    if (__str(elm)) {
+        wrapper_id = elm;
+        wrapper = $engine.getElementById(wrapper_id);
+        if (!wrapper_id) throw new PlayerErr(_strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
     } else {
-        if (!cvs.id) cvs.id = ('anm-player-' + Player.__instances);
-        canvas_id = cvs.id;
-        canvas = cvs;
+        if (!elm.id) elm.id = ('anm-player-' + Player.__instances);
+        wrapper_id = elm.id;
+        wrapper = elm;
     }
-    $engine.assignPlayerToCanvas(canvas, this);
-    if (!$engine.checkPlayerCanvas(canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this.id = canvas_id;
-    this.canvas = canvas;
-    this.ctx = $engine.getContext(canvas, '2d');
+    var assign_data = $engine.assignPlayerToWrapper(wrapper, this, 'anm-player-' + Player.__instances);
+    this.id = assign_data.id;
+    this.wrapper = assign_data.wrapper;
+    this.canvas = assign_data.canvas;
+    if (!$engine.checkPlayerCanvas(this.canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
+    this.ctx = $engine.getContext(this.canvas, '2d');
     this.state = Player.createState(this);
+    this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
-    this.subscribeEvents(canvas);
+    this.subscribeEvents(this.canvas);
 
     this.__canvasPrepared = true;
 }
@@ -931,6 +936,8 @@ Player.prototype._addOpts = function(opts) {
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+    this.ribbonsColor =
+                   opts.ribbonsColor || this.ribbonsColor;
     this.thumbnail = opts.thumbnail || this.thumbnail;
     this.loadingMode = __defined(opts.loadingMode)
                         ? opts.loadingMode : this.loadingMode;
@@ -952,8 +959,6 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.infiniteDuration : this.infiniteDuration;
     this.forceSceneSize = __defined(opts.forceSceneSize)
                         ? opts.forceSceneSize : this.forceSceneSize;
-    this.inParent = __defined(opts.inParent)
-                        ? opts.inParent : this.inParent;
     this.muteErrors = __defined(opts.muteErrors)
                         ? opts.muteErrors : this.muteErrors;
 }
@@ -984,6 +989,8 @@ Player.prototype._checkOpts = function() {
 
     this._resize(this.width, this.height);
 
+    if (this.bgColor) $engine.setCanvasBackground(this.canvas, this.bgColor);
+
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
         this.__subscribeDynamicEvents(this.anim);
@@ -1001,7 +1008,10 @@ Player.prototype._checkOpts = function() {
         this._disableControls();
     }
 
-    if (this.ctx) this.ctx.__anm_skipShadows = !this.shadowsEnabled;
+    if (this.ctx) {
+        var props = $engine.getAnmProps(this.ctx);
+        props.skip_shadows = !this.shadowsEnabled;
+    }
 
     this.__appliedMode = this.mode;
 
@@ -1025,9 +1035,13 @@ Player.prototype._postInit = function() {
     this.stop();
     Text.__measuring_f = $engine.createTextMeasurer();
     /* TODO: load some default information into player */
-    var mayBeUrl = $engine.hasUrlToLoad(this.canvas);
-    if (mayBeUrl) this.load(mayBeUrl/*,
-                            this.canvas.getAttribute(Player.IMPORTER_ATTR)*/);
+    var to_load = $engine.hasUrlToLoad(this.wrapper);
+    if (!to_load.url) to_load = $engine.hasUrlToLoad(this.canvas);
+    if (to_load.url) {
+        this.load(to_load.url,
+                  (to_load.importer_id) && anm.isImporterAccessible(to_load.importer_id)
+                  ? anm.createImporter(to_load.importer_id) : null);
+    }
 }
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
@@ -1081,7 +1095,7 @@ Player.prototype.drawAt = function(time) {
     scene.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
-    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, u_before, u_after);
+    __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
 
     if (this.controls) this.controls.render(time);
 
@@ -1116,7 +1130,7 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
     }
     var thumb = new Sheet(url);
     player.__thumbLoading = true;
-    thumb.load(function() {
+    thumb.load(player.id, function() {
         player.__thumbLoading = false;
         player.__thumb = thumb;
         if (target_width || target_height) {
@@ -1146,46 +1160,37 @@ Player.prototype.afterRender = function(callback) {
     this.__userAfterRender = callback;
 }
 Player.prototype.detach = function() {
-    if (!$engine.playerAttachedTo(this.canvas, this)) return; // throw error?
-    if (this.controls) this.controls.detach(this.canvas.parentNode);
-    $engine.detachPlayer(this.canvas, this);
-    if (this.ctx) delete this.ctx.__anm_skipShadows;
+    if (!$engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    if (this.controls) this.controls.detach(this.wrapper);
+    $engine.detachPlayer(this);
+    if (this.ctx) {
+        $engine.clearAnmProps(this.ctx);
+    }
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
-Player.prototype.attachedTo = function(canvas) {
-    return $engine.playerAttachedTo(canvas, this);
+Player.prototype.attachedTo = function(canvas_or_wrapper) {
+    return $engine.playerAttachedTo(canvas_or_wrapper, this);
 }
 Player.prototype.isAttached = function() {
-    return $engine.playerAttachedTo(this.canvas, this);
+    return $engine.playerAttachedTo(this.wrapper, this);
 }
-Player.attachedTo = function(canvas, player) {
-    return $engine.playerAttachedTo(canvas, player);
+Player.attachedTo = function(canvas_or_wrapper, player) {
+    return $engine.playerAttachedTo(canvas_or_wrapper, player);
 }
-Player.__getPosAndRedraw = function(player) {
+Player.prototype.invalidate = function() {
+    // TODO: probably, there's more to invalidate
+    if (this.controls) this.controls.update(this.canvas);
+}
+Player.__invalidate = function(player) {
     return function(evt) {
-        /*var canvas = player.canvas;
-        var pos = find_pos(canvas),
-            rect = {
-                'width': canvas.clientWidth,
-                'height': canvas.clientHeight,
-                'x': pos[0],
-                'y': pos[1]
-            };
-        if (player._rectChanged(rect)) player.changeRect(rect);*/
-        if (player.controls) {
-            player.controls.update(player.canvas);
-            //player.controls.handleAreaChange();
-            //player._renderControls();
-        }
+        player.invalidate();
     };
 }
 Player.prototype.subscribeEvents = function(canvas) {
-    var doRedraw = Player.__getPosAndRedraw(this);
+    var doRedraw = Player.__invalidate(this);
     $engine.subscribeWindowEvents({
-        load: doRedraw,
-        scroll: doRedraw,
-        resize: doRedraw
+        load: doRedraw
     });
     $engine.subscribeCanvasEvents(canvas, {
         mouseover: (function(player) {
@@ -1235,6 +1240,7 @@ Player.prototype._drawStill = function() {
     // drawStill is a flag, while _drawStill is a method
     // since we have no hungarian notation is't treated as ok (for now)
     var player = this,
+        state = player.state,
         scene = player.anim;
     if (player.drawStill) { // it's a flag!
         if (player.__thumb) {
@@ -1272,7 +1278,7 @@ Player.prototype._drawThumbnail = function() {
             rect1      = f_rects[2],
             rect2      = f_rects[3];
         if (rect1 || rect2) {
-            ctx.fillStyle = '#000';
+            ctx.fillStyle = this.ribbonsColor || '#000';
             if (rect1) ctx.fillRect(rect1[0], rect1[1],
                                     rect1[2], rect1[3]);
             if (rect2) ctx.fillRect(rect2[0], rect2[1],
@@ -1314,7 +1320,7 @@ Player.prototype._drawSplash = function() {
     var ratio = $engine.PX_RATIO;
 
     // background
-    ctx.fillStyle = Player.EMPTY_BG;
+    ctx.fillStyle = this.bgColor || Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
     ctx.strokeStyle = Player.EMPTY_STROKE;
     ctx.strokeWidth = Player.EMPTY_STROKE_WIDTH;
@@ -1327,10 +1333,10 @@ Player.prototype._drawSplash = function() {
 
     // text
     ctx.fillStyle = '#999966';
-    ctx.font = '18px sans-serif';
+    ctx.font = '10px sans-serif';
     ctx.fillText(Strings.COPYRIGHT, 20 * ratio, (h - 20) * ratio);
 
-    ctx.globalAlpha = .6;
+    /* ctx.globalAlpha = .6;
 
     ctx.beginPath();
     ctx.arc(w / 2 * ratio, h / 2 * ratio,
@@ -1347,7 +1353,7 @@ Player.prototype._drawSplash = function() {
     ctx.restore();
 
     Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, [ '#fff', '#900' ],
-                              [ 0.5, 0.5 ], .2);
+                              [ 0.5, 0.5 ], .2); */
 
     /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
                      [ '#fff', '#aa0' ]); */
@@ -1364,8 +1370,11 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.fillText(text || Strings.LOADING, 20, 25);
     ctx.restore();
 }
-Player.prototype._drawLoadingCircles = function() {
-    if (this.controls) return;
+Player.prototype._drawLoadingProgress = function() {
+    // Temporarily, do nothing.
+    // Later we will show a line at the top, may be
+
+    /* if (this.controls) return;
     var theme = Controls.THEME;
     Controls._runLoadingAnimation(this.ctx, function(ctx) {
         var w = ctx.canvas.clientWidth,
@@ -1373,11 +1382,11 @@ Player.prototype._drawLoadingCircles = function() {
         // FIXME: render only changed circles
         ctx.clearRect(0, 0, w, h);
         //Controls._drawBack(ctx, theme, w, h);
-        Controls._drawLoadingCircles(ctx, w, h,
-                                     (((Date.now() / 100) % 60) / 60),
-                                     theme.radius.loader,
-                                     theme.colors.progress.left, theme.colors.progress.passed);
-    });
+        Controls._drawLoadingProgress(ctx, w, h,
+                                      (((Date.now() / 100) % 60) / 60),
+                                      theme.radius.loader,
+                                      theme.colors.progress.left, theme.colors.progress.passed);
+    }); */
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     if (this.controls) return;
@@ -1407,7 +1416,7 @@ Player.prototype._runLoadingAnimation = function(what) {
         this._drawLoadingSplash(what);
         this.controls._scheduleLoading();
     } else {
-        this._drawLoadingCircles();
+        this._drawLoadingProgress();
     }
 }
 Player.prototype._stopLoadingAnimation = function() {
@@ -1423,10 +1432,19 @@ Player.prototype.toString = function() {
 // reset player to initial state, called before loading any scene
 Player.prototype._reset = function() {
     var state = this.state;
+    // clear postponed tasks if player started to load remote resources,
+    // they are not required since new scene is loading in the player now
+    // or it is being detached
+    if ((this.loadingMode === C.LM_ONREQUEST) &&
+        (state.happens === C.RES_LOADING)) {
+        this._clearPostpones();
+        _ResMan.cancel(this.id);
+    }
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
     state.duration = undefined;
+    this.fire(C.S_CHANGE_STATE, C.NOTHING);
     if (this.controls) this.controls.reset();
     this.ctx.clearRect(0, 0, this.width * $engine.PX_RATIO,
                              this.height * $engine.PX_RATIO);
@@ -1442,18 +1460,21 @@ Player.prototype._stopAndContinue = function() {
 }
 // FIXME: moveTo is not moving anything for the moment
 Player.prototype._moveTo = function(x, y) {
-    $engine.setCanvasPos(this.canvas, x, y);
+    $engine.setCanvasPosition(this.canvas, x, y);
 }
 Player.prototype._resize = function(width, height) {
     var cvs = this.canvas,
         new_size = this.__userSize || [ width, height ],
-        cur_size = $engine.getCanvasParams(cvs);
+        cur_size = $engine.getCanvasParameters(cvs);
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
-        new_size = $engine.getCanvasSize(cvs);
+        new_size = cur_size;
     };
     $engine.setCanvasSize(cvs, new_size[0], new_size[1]);
-    if (this.controls) this.controls.update(cvs);
+    this.width = new_size[0];
+    this.height = new_size[1];
+    $engine.updateCanvasOverlays(cvs);
+    if (this.controls) this.controls.handleAreaChange();
     this.forceRedraw();
     return new_size;
 };
@@ -1589,6 +1610,7 @@ Player.prototype.__onerror = function(err) {
   try {
       if (player.state) player.state.happens = C.ERROR;
       player.__lastError = err;
+      player.fire(C.S_CHANGE_STATE, C.ERROR);
       player.fire(C.S_ERROR, err);
 
       player.anim = null;
@@ -1732,7 +1754,8 @@ Player.createState = function(player) {
 
 Player._isPlayerEvent = function(type) {
     // FIXME: make some marker to group types of events
-    return ((type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
+    return ((type == C.S_CHANGE_STATE) ||
+            (type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
             (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
             (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
             (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
@@ -1774,26 +1797,13 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
+    opts.ribbonsColor = params.ribbons || params.ribcolor;
     return opts;
 }
-Player.forSnapshot = function(canvasId, snapshotUrl, importer, callback, alt_opts) {
-    var urlWithParams = snapshotUrl.split('?'),
-        snapshotUrl = urlWithParams[0],
-        urlParams = urlWithParams[1], // TODO: validate them?
-        params = (urlParams && urlParams.length > 0) ? __paramsToObj(urlParams) : {},
-        options = Player._optsFromUrlParams(params),
-        player = new Player();
-    player.init(canvasId, options);
-    if (alt_opts) {
-      player._addOpts(alt_opts);
-      player._checkOpts();
-    }
-
-    player.load(snapshotUrl, importer, function() {
-        player._applyUrlParamsToAnimation(params);
-        if (callback) callback(player);
-    });
-
+Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
+    var player = new Player();
+    player.init(elm_id, alt_opts);
+    player.load(snapshot_url, importer, callback);
     return player;
 }
 Player.prototype._applyUrlParamsToAnimation = function(params) {
@@ -1804,13 +1814,21 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     // these values (t, from, p, still) may be 0 and it's a proper value,
     // so they require a check for undefined separately
 
+    // player may appear already playing something if autoPlay or a similar time-jump
+    // flag was set from some different source of options (async, for example),
+    // then the rule (for the moment) is: last one wins
+
     if (__defined(params.t)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.t / 100);
     } else if (__defined(params.from)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.from / 100);
     } else if (__defined(params.p)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
     } else if (__defined(params.still)) {
+        if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.still / 100).pause();
     }
 }
@@ -1847,6 +1865,7 @@ provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                        C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                        C.X_DRAW,
                        // player events
+                       C.S_CHANGE_STATE,
                        C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                        C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 /* TODO: add chaining to all external Scene methods? */
@@ -2031,6 +2050,9 @@ Scene.prototype._collectRemoteResources = function(player) {
            remotes = remotes.concat(elm._collectRemoteResources(scene, player)/* || []*/);
         }
     });
+    if(this.fonts && this.fonts.length) {
+        remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
+    }
     return remotes;
 }
 Scene.prototype._loadRemoteResources = function(player) {
@@ -2040,6 +2062,7 @@ Scene.prototype._loadRemoteResources = function(player) {
            elm._loadRemoteResources(scene, player);
         }
     });
+    scene.loadFonts(player);
 }
 Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
@@ -2081,6 +2104,15 @@ Scene.prototype.__removeMaskCanvases = function() {
 Scene.prototype.findById = function(id) {
     return this.hash[id];
 }
+Scene.prototype.findByName = function(name, where) {
+    var where = where || this;
+    var found = [];
+    if (where.name == name) found.push(name);
+    where.travelChildren(function(elm)  {
+        if (elm.name == name) found.push(elm);
+    });
+    return found;
+}
 Scene.prototype.invokeAllLaters = function() {
     for (var i = 0; i < this._laters.length; i++) {
         this._laters[i].call(this);
@@ -2093,6 +2125,57 @@ Scene.prototype.clearAllLaters = function() {
 Scene.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
+Scene.prototype.loadFonts = function(player) {
+    if (!this.fonts || !this.fonts.length) {
+        return;
+    }
+
+    var fonts = this.fonts,
+        style = document.createElement('style'),
+        css = '',
+        fontsToLoad = [],
+        detector = new Detector();
+    style.type = 'text/css';
+
+    for (var i = 0; i < fonts.length; i++) {
+        var font = fonts[i];
+        if (!font.url || !font.face || detector.detect(font.face)) {
+            //no font name or url || font already available
+            continue;
+        }
+        fontsToLoad.push(font);
+        css += '@font-face {' +
+            'font-family: "' + font.face + '"; ' +
+            'src: url(' + font.url + '); ' +
+            (font.style ? 'style: ' + font.style +'; ' : '') +
+            (font.weight ? 'weight: ' + font.weight + '; ' : '') +
+            '}\n';
+    }
+
+    if (fontsToLoad.length == 0) {
+        return;
+    };
+
+    style.innerHTML = css;
+    document.head.appendChild(style);
+
+    for (var i = 0; i < fontsToLoad.length; i++) {
+        _ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
+            var face = fontsToLoad[i].face,
+                interval = 100,
+                intervalId,
+                checkLoaded = function() {
+                    var loaded = detector.detect(face);
+                    if (loaded) {
+                        clearInterval(intervalId);
+                        success();
+                    }
+                };
+            intervalId = setInterval(checkLoaded, interval)
+        });
+    }
+
+};
 // Element
 // -----------------------------------------------------------------------------
 
@@ -2191,6 +2274,7 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_DRAW, C.X_START, C.X_STOP,
                          // player events
+                         C.S_CHANGE_STATE,
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
 Element.prototype.is = function(type) {
@@ -2349,7 +2433,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.modifiers(ltime, dt)
-                 && this.prepare()
+                 && this.prepare() // FIXME: rename to .reset(), move before transform
+                                   //        or even inside it, move out of condition
                  && this.visible;
     }
     if (drawMe) {
@@ -2930,6 +3015,9 @@ Element.prototype.toString = function() {
     buf.push(']');
     return buf.join("");
 }
+Element.prototype.findByName = function(name) {
+    this.scene.findByName(name, this);
+}
 Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
@@ -3336,7 +3424,7 @@ Element.prototype._collectRemoteResources = function(scene, player) {
 Element.prototype._loadRemoteResources = function(scene, player) {
     if (!player.imagesEnabled) return;
     if (!this.$image) return;
-    this.$image.load();
+    this.$image.load(player.id);
 }
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
@@ -3412,7 +3500,7 @@ Element.__addDebugRender = function(elm) {
 }
 Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
-    var tween_f = Tweens[conf.type](),
+    var tween_f = Tweens[conf.type](conf.data),
         m_tween;
     // all tweens functions actually work with 0..1 parameter, but modifiers
     // differ by 'relative' option
@@ -3542,13 +3630,30 @@ var L = {}; // means "Loading/Loader"
 L.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SysErr(Errors.S.NO_JSON_PARSER);
 
+    var importer = importer || anm.createImporter('animatron');
+
+    var url_with_params = url.split('?'),
+        url = url_with_params[0],
+        url_params = url_with_params[1], // TODO: validate them?
+        params = (url_params && url_params.length > 0) ? __paramsToObj(url_params) : {},
+        options = Player._optsFromUrlParams(params);
+
+    if (options) {
+        player._addOpts(options);
+        player._checkOpts();
+    }
+
     var failure = player.__defAsyncSafe(function(err) {
-        throw new SysErr('Snapshot failed to load');
+        throw new SysErr(_strf(Errors.P.SNAPSHOT_LOADING_FAILED,
+                               [ (err ? (err.message || err) : '¿Por qué?') ]));
     });
 
     var success = function(req) {
         try {
-            L.loadFromObj(player, JSON.parse(req.responseText), importer, callback);
+            L.loadFromObj(player, JSON.parse(req.responseText), importer, function(anim) {
+                player._applyUrlParamsToAnimation(params);
+                if (callback) callback.call(player, anim);
+            });
         } catch(e) { failure(e); }
     };
 
@@ -3569,8 +3674,10 @@ L.loadScene = function(player, scene, callback) {
         && !global_opts.liveDebug)
         scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
     if (!scene.width || !scene.height) {
-      scene.width = player.width;
-      scene.height = player.height;
+        scene.width = player.width;
+        scene.height = player.height;
+    } else if (player.forceSceneSize) {
+        player._resize(scene.width, scene.height);
     }
     // assign
     player.anim = scene;
@@ -3628,7 +3735,9 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, scene, player.width, player.height, player.zoom, before_render, after_render);
+    __r_at(time, dt, ctx, scene,
+           player.width, player.height, player.zoom, player.ribbonsColor,
+           before_render, after_render);
 
     // show fps
     if (player.debug) {
@@ -3645,7 +3754,7 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
         __r_loop(ctx, player, scene, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
+function __r_at(time, dt, ctx, scene, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
     if (ratio !== 1) ctx.scale(ratio, ratio);
@@ -3665,6 +3774,7 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
     } else {
         __r_with_ribbons(ctx, width, height,
                               scene.width, scene.height,
+                              rib_color,
             function(_scale) {
                 try {
                   ctx.clearRect(0, 0, scene.width, scene.height);
@@ -3676,7 +3786,7 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, before, after) {
             });
     }
 }
-function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
+function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
     // pw == player width, ph == player height
     // sw == scene width,  sh == scene height
     var f_rects    = __fit_rects(pw, ph, sw, sh),
@@ -3687,11 +3797,19 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, draw_f) {
     ctx.save();
     if (rect1 || rect2) { // scene_rect is null if no
         ctx.save(); // second open
-        ctx.fillStyle = '#000';
-        if (rect1) ctx.fillRect(rect1[0], rect1[1],
-                                rect1[2], rect1[3]);
-        if (rect2) ctx.fillRect(rect2[0], rect2[1],
-                                rect2[2], rect2[3]);
+        ctx.fillStyle = color || '#000';
+        if (rect1) {
+            ctx.clearRect(rect1[0], rect1[1],
+                          rect1[2], rect1[3]);
+            ctx.fillRect(rect1[0], rect1[1],
+                         rect1[2], rect1[3]);
+        }
+        if (rect2) {
+            ctx.clearRect(rect2[0], rect2[1],
+                          rect2[2], rect2[3]);
+            ctx.fillRect(rect2[0], rect2[1],
+                         rect2[2], rect2[3]);
+        }
         ctx.restore();
     }
     if (scene_rect && (factor != 1)) {
@@ -3866,7 +3984,7 @@ Bands.wrap = function(outer, inner) {
               : outer[1]
             ];
 }
-// makes band maximum wide to fith both bands
+// makes band maximum wide to fit both bands
 Bands.expand = function(from, to) {
     if (!from) return to;
     return [ ((to[0] < from[0])
@@ -3896,7 +4014,8 @@ C.T_ROTATE      = 'ROTATE';
 C.T_ROT_TO_PATH = 'ROT_TO_PATH';
 C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
-C.T_COLOR       = 'COLOR';
+C.T_FILL        = 'FILL';
+C.T_STROKE      = 'STROKE';
 
 var Tween = {}; // FIXME: make tween a class
 var Easing = {};
@@ -3910,9 +4029,10 @@ Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
 Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
 Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
 Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
-Tween.TWEENS_PRIORITY[C.T_COLOR]       = 6;
+Tween.TWEENS_PRIORITY[C.T_FILL]        = 6;
+Tween.TWEENS_PRIORITY[C.T_STROKE]      = 7;
 
-Tween.TWEENS_COUNT = 7;
+Tween.TWEENS_COUNT = 8;
 
 var Tweens = {};
 Tweens[C.T_ROTATE] =
@@ -3959,20 +4079,82 @@ Tweens[C.T_SHEAR] =
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
-Tweens[C.T_COLOR] =
-    function() {
-      return function(t, dt, duration, data) {
-        // we assume the types of start and end brush are the same.
-        // let's hope there will not be a dire need to convert a linear gradient to a radial one
-
-        if (data[0].color) {
-          //solid fill - use a shortcut and just animate the color
-          this.$path.fill = Brush.interpolateColor(data[0].color, data[1].color, t);
-        } else if (data[0].lgrad || data[0].rgrad) {
-          this.$path.fill = Brush.interpolate(data[0], data[1], t);
+Tweens[C.T_FILL] =
+    function(data) {
+        // TODO: pass data the same way to other tweens (using first call)
+        var colorTween = __colorTween(data);
+        return function(t) {
+            this.$path.fill = colorTween(t);
         }
-      }
     };
+Tweens[C.T_STROKE] =
+    function(data) {
+        // TODO: pass data the same way to other tweens (using first call)
+        var from = data[0], to = data[1];
+        var colorTween = __colorTween(data);
+        return function (t, dt, duration, data) {
+            var result = colorTween(t);
+            //add the stroke-specific properties
+            result.width = __interpolateFloat(from.width, to.width, t);
+            result.mitter = from.mitter;
+            //should we do this?
+            result.cap = from.cap;
+            result.join = from.join;
+
+            this.$path.stroke = result;
+        }
+    };
+
+function __colorTween(data) {
+    //returns a func which interpolates colors/gradients. used in T_FILL and T_STROKE
+
+    var from, to;
+    if (data[0].color) {
+        from = { rgba: Color.fromStr(data[0].color) };
+        to = { rgba: Color.fromStr(data[1].color) };
+    } else if (data[0].lgrad || data[0].rgrad) {
+        from = { grad: data[0].lgrad || data[0].rgrad };
+        to = { grad: data[1].lgrad || data[1].rgrad };
+        //parse the color stop values
+        for (var i = 0; i < from.grad.stops.length; i++) {
+            from.grad.stops[i][1] = Color.fromStr(from.grad.stops[i][1]);
+            to.grad.stops[i][1] = Color.fromStr(to.grad.stops[i][1]);
+        }
+        ;
+    }
+
+    return function (t) {
+        if (from.rgba) {
+            return { color: Color.toRgbaStr(Color.interpolate(from.rgba, to.rgba, t)) };
+        } else if (from.grad) {
+            var grad = { dir: [], stops: []}, fromg = from.grad, tog = to.grad, i;
+            for (i = 0; i < fromg.dir.length; i++) {
+                grad.dir.push([
+                    __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
+                    __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
+                ]);
+            }
+            ;
+            for (i = 0; i < fromg.stops.length; i++) {
+                grad.stops.push([
+                    __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
+                    Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t))
+                ]);
+            }
+            ;
+            if (fromg.r) {
+                grad.r = [
+                    __interpolateFloat(fromg.r[0], tog.r[0], t),
+                    __interpolateFloat(fromg.r[1], tog.r[1], t)
+                ];
+                return {rgrad: grad};
+            } else {
+                return {lgrad: grad};
+            }
+        }
+    }
+}
+
 // Easings
 // -----------------------------------------------------------------------------
 
@@ -5010,7 +5192,8 @@ Brush.fill = function(ctx, fill) {
     ctx.fillStyle = Brush.create(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows || ctx.__anm_skipShadows) return;
+    var props = $engine.getAnmProps(ctx);
+    if (!shadow || $conf.doNotRenderShadows || (props.skip_shadows)) return;
     ctx.shadowColor = shadow.color;
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
@@ -5025,62 +5208,54 @@ Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
 }
 
-//utility functions
-Brush.hexToRgb = function(hex) {
+//a set of functions for parsing and intepolating color values
+var Color = {};
+
+Color.fromStr = function(str) {
+    return Color.fromHex(str)
+        || Color.fromRgb(str)
+        || Color.fromRgba(str)
+        || { r:0, g:0, b:0, a:0};
+}
+Color.fromHex = function(hex) {
     var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
     return result ? {
         r: parseInt(result[1], 16),
         g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16)
+        b: parseInt(result[3], 16),
+        a: 1
     } : null;
 };
-
-Brush.rgbToHex = function(rgb) {
-    return "#" + ((1 << 24) + (rgb.r << 16) + (rgb.g << 8) + rgb.b).toString(16).slice(1);
+Color.fromRgb = function(rgb) {
+    var result = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i.exec(rgb);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: 1
+    } : null;
+};
+Color.fromRgba = function(rgba) {
+    var result = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i.exec(rgba);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: parseFloat(result[4])
+    } : null;
+};
+Color.toRgbaStr = function(color) {
+    return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
+};
+Color.interpolate = function(c1, c2, t) {
+    return {
+        r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
+        g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
+        b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
+        a: __interpolateFloat(c1.a, c2.a, t)
+    };
 };
 
-
-Brush.interpolateFloat = function(a, b, t) {
-    return a*(1-t)+b*t;
-}
-
-Brush.interpolateColor = function(c1, c2, t) {
-  var from = Brush.hexToRgb(c1),
-      to = Brush.hexToRgb(c2),
-      color = {
-        r: Math.round(Brush.interpolateFloat(from.r, to.r, t)),
-        g: Math.round(Brush.interpolateFloat(from.g, to.g, t)),
-        b: Math.round(Brush.interpolateFloat(from.b, to.b, t))
-      };
-  return Brush.rgbToHex(color);
-}
-
-Brush.interpolate = function(a, b, t){
-    var result;
-    if (anm.is.num(a)) {
-        return Brush.interpolateFloat(a, b, t);
-    } else if (anm.is.str(a) && (/^#[a-f\d]{6}$/i).test(a)) {
-        //that's an HTML color!
-        return Brush.interpolateColor(a, b, t);
-    } else if (anm.is.arr(a)) {
-        result = [];
-        for (var i = 0; i < a.length; i++) {
-          result.push(Brush.interpolate(a[i], b[i], t));
-        };
-    } else if (anm.is.obj(a)) {
-        result = {};
-        for(var prop in a) {
-          if (!a.hasOwnProperty(prop)) continue;
-          result[prop] = Brush.interpolate(a[prop], b[prop], t);
-        }
-    } else {
-        //we don't know how to interpolate other things
-        result = t > 0.5 ? p2 : p1;
-    }
-    return result;
-};
-// Sheet
-// -----------------------------------------------------------------------------
 
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;
@@ -5102,22 +5277,29 @@ function Sheet(src, callback, start_region) {
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 }
-Sheet.prototype.load = function(callback, errback) {
+Sheet.prototype.load = function(player_id, callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
-    _ResMan.loadOrGet(me.src,
+    if (!me.src) {
+        $log.error('Empty source URL for image');
+        me.ready = true; me.wasError = true;
+        if (errback) errback.call(me, 'Empty source');
+        return;
+    }
+    _ResMan.loadOrGet(player_id, me.src,
         function(notify_success, notify_error) { // loader
             if (!me._thumbnail && $conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
               return; }
             var _img = new Image();
+            var props = $engine.getAnmProps(_img);
             _img.onload = _img.onreadystatechange = function() {
-                if (_img.__anm_ready) return;
+                if (props.ready) return;
                 if (this.readyState && (this.readyState !== 'complete')) {
                     notify_error(this.readyState);
                 }
-                _img.__anm_ready = true; // this flag is to check later if request succeeded
+                props.ready = true; // this flag is to check later if request succeeded
                 // this flag is browser internal
                 _img.isReady = true; /* FIXME: use 'image.complete' and
                                       '...' (network exist) combination,
@@ -5233,7 +5415,6 @@ function Controls(player) {
     this._time = -1000;
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
-    this._inParent = player.inParent;
 }
 Controls.DEFAULT_THEME = {
   'font': {
@@ -5319,19 +5500,13 @@ Controls.THEME = Controls.DEFAULT_THEME;
 Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
-    var cvs = this.canvas,
-        pconf = $engine.getCanvasSize(parent);
-    var _w = pconf[0],
-        _h = pconf[1];
+    var cvs = this.canvas;
     if (!cvs) {
-        cvs = $engine.addChildCanvas('ctrls-' + Controls.LAST_ID, parent,
-                 [ 0, 0, _w, _h ],
-                 { _class: 'anm-controls',
-                   position: 'absolute',
-                   //opacity: Controls.OPACITY,
-                   zIndex: 100,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        cvs = $engine.addCanvasOverlay('ctrls-' + Controls.LAST_ID, parent,
+                 [ 0, 0, 1, 1 ],
+                 function(cvs) {
+                    $engine.registerAsControlsElement(cvs, parent);
+                 });
         Controls.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -5340,46 +5515,32 @@ Controls.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(Controls.THEME);
     } else {
-        $engine.setCanvasSize(cvs, _w, _h);
-        $engine.moveElementTo(cvs, $engine.findElementPosition(parent));
+        $engine.updateOverlay(parent, cvs);
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
 }
 Controls.prototype.subscribeEvents = function(canvas, parent) {
-    $engine.subscribeWindowEvents({
-        scroll: (function(controls) {
-                return function(evt) {
-                    controls.handleAreaChange();
-                    controls.forceNextRedraw();
-                    controls.handleMouseMove(controls._last_mevt);
-                };
+    $engine.subscribeCanvasEvents(parent, {
+        mouseenter: (function(controls) {
+                return function(evt) { controls.handleMouseEnter(); };
             })(this),
-        mousemove: (function(controls) {
-                return function(evt) {
-                    controls.handleMouseMove(evt);
-                };
+        mouseleave: (function(controls) {
+                return function(evt) { controls.handleMouseLeave(); };
+            })(this),
+        click: (function(controls) {
+                return function(evt) { controls.handlePlayerClick(); };
             })(this)
     });
-    $engine.subscribeCanvasEvents(parent, {
-        mouseover: (function(controls) {
-            return function(evt) { controls.handleMouseOver(); };
-        })(this),
-        click: (function(controls) {
-            return function(evt) { controls.handlePlayerClick(); };
-        })(this)
-    });
     $engine.subscribeCanvasEvents(canvas, {
+        mouseenter: (function(controls) {
+                return function(evt) { controls.handleMouseEnter(); };
+            })(this),
+        mouseleave: (function(controls) {
+                return function(evt) { controls.handleMouseLeave(); };
+            })(this),
         mousemove: (function(controls) {
-                return function(evt) {
-                    controls.handleMouseMove(evt);
-                };
-            })(this),
-        mouseover: (function(controls) {
-                return function(evt) { controls.handleMouseOver(); };
-            })(this),
-        mouseout: (function(controls) {
-                return function(evt) { controls.handleMouseOut(); };
+                return function(evt) { controls.handleMouseMove(evt); };
             })(this),
         mousedown: (function(controls) {
                 return function(evt) { controls.handleClick(); };
@@ -5388,6 +5549,8 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
 }
 Controls.prototype.render = function(time) {
     if (this.hidden && !this.__force) return;
+
+    if (!this.bounds) return;
 
     // TODO: may be this function should check player mode by itself and create canvas
     //       only in case it is required, but player should create Controls instance
@@ -5402,6 +5565,14 @@ Controls.prototype.render = function(time) {
     if (!this.__force &&
         (time === this._time) &&
         (_s === this._lhappens)) return;
+
+    // these states do not change controls visually between frames
+    if (__defined(this._lastDrawn) &&
+        (this._lastDrawn === _s) &&
+        ((_s === C.STOPPED) ||
+         (_s === C.NOTHING) ||
+         (_s === C.ERROR))
+       ) return;
 
     this.rendering = true;
 
@@ -5458,6 +5629,7 @@ Controls.prototype.render = function(time) {
     } else if (_s === C.ERROR) {
         Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
     }
+    this._lastDrawn = _s;
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -5482,6 +5654,7 @@ Controls.prototype.react = function(time) {
     if (_s === C.PLAYING) { /*$log.debug('pause at' + time);*/ this._time = time; _p.pause(); return; }
 }
 Controls.prototype.refreshByMousePos = function(pos) {
+    if (!this.bounds) return;
     var state = this.player.state,
         _lx = pos[0],
         _ly = pos[1],
@@ -5499,18 +5672,19 @@ Controls.prototype.refreshByMousePos = function(pos) {
     this.render(state.time);
 }
 Controls.prototype.handleAreaChange = function() {
+    if (!this.player || !this.player.canvas) return;
     this.bounds = $engine.getCanvasBounds(this.canvas);
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
     this._last_mevt = evt;
-    var pos = $engine.getEventPos(evt, this.canvas);
-    if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
-        this.show();
-        this.refreshByMousePos(pos);
-    } else {
-        this.handleMouseOut();
-    }
+    //var pos = $engine.getEventPosition(evt, this.canvas);
+    //if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
+        if (this.hidden) this.show();
+        this.refreshByMousePos($engine.getEventPosition(evt, this.canvas));
+    //} else {
+    //    this.handleMouseOut();
+    //}
 }
 Controls.prototype.handleClick = function() {
     var state = this.player.state;
@@ -5529,7 +5703,7 @@ Controls.prototype.handlePlayerClick = function() {
         this.render(state.time);
     }
 }
-Controls.prototype.handleMouseOver = function() {
+Controls.prototype.handleMouseEnter = function() {
     var state = this.player.state;
     if (state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
@@ -5537,7 +5711,7 @@ Controls.prototype.handleMouseOver = function() {
         this.render(state.time);
     }
 }
-Controls.prototype.handleMouseOut = function() {
+Controls.prototype.handleMouseLeave = function() {
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
         (state.happens === C.LOADING) ||
@@ -5556,13 +5730,13 @@ Controls.prototype.forceRefresh = function() {
 }
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
+    $engine.hideElement(this.canvas);
     this.hidden = true;
-    this.canvas.style.visibility = 'hidden';
     if (this.info) this.info.hide();
 }
 Controls.prototype.show = function() {
+    $engine.showElement(this.canvas);
     this.hidden = false;
-    this.canvas.style.visibility = 'visible';
     if (this.info && this._infoShown) this.info.show();
 }
 Controls.prototype.reset = function() {
@@ -5571,10 +5745,9 @@ Controls.prototype.reset = function() {
     if (this.info) this.info.reset();
 }
 Controls.prototype.detach = function(parent) {
-    $engine.detachElement(this._inParent ? parent : null, this.canvas);
+    $engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
-    if (this.ctx && this.ctx.__anm_loadingReq) delete this.ctx.__anm_loadingReq;
-    if (this.ctx) delete this.ctx.__anm_supressLoading;
+    if (this.ctx) $engine.clearAnmProps(this.ctx);
 }
 Controls.prototype.inBounds = function(pos) {
     //if (this.hidden) return false;
@@ -5630,14 +5803,15 @@ Controls.prototype.enable = function() {
 }
 Controls.prototype.disable = function() {
     this.hide();
-    this.detach(this.player.canvas.parentNode);
+    // FIXME: unsubscribe events!
+    this.detach(this.player.wrapper);
 }
 Controls.prototype.enableInfo = function() {
     if (!this.info) this.info = new InfoBlock(this.player);
     this.info.update(this.player.canvas);
 }
 Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.canvas.parentNode);
+    if (this.info) this.info.detach(this.player.wrapper);
     /*if (this.info) */this.info = null;
 }
 Controls.prototype.setDuration = function(value) {
@@ -5774,8 +5948,8 @@ Controls._drawPlay = function(ctx, theme, w, h, focused) {
     Controls._drawGuyInCorner(ctx, theme, w, h);
 }
 Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
-    Controls._drawLoadingCircles(ctx, w, h, hilite_pos, theme.radius.loader,
-                                            theme.colors.progress.left, theme.colors.progress.passed);
+    Controls._drawLoadingProgress(ctx, w, h, hilite_pos, theme.radius.loader,
+                                             theme.colors.progress.left, theme.colors.progress.passed);
 
     if (src) {
         Controls._drawText(ctx, theme,
@@ -5796,7 +5970,7 @@ Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
 
     Controls._drawGuyInCenter(ctx, theme, w, h);
 }
-Controls._drawLoadingCircles = function(ctx, w, h, hilite_pos, radius, normal_color, hilite_color) {
+Controls._drawLoadingProgress = function(ctx, w, h, hilite_pos, radius, normal_color, hilite_color) {
     ctx.save();
 
     var cx = w / 2,
@@ -5936,12 +6110,13 @@ Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
 Controls._runLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
     //        and Contols._scheduleLoading() should be used to start all the drawing process
-    if (ctx.__anm_loadingReq) return;
+    var props = $engine.getAnmProps(ctx);
+    if (props.loading_req) return;
     var ratio = $engine.PX_RATIO;
     // var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
-    ctx.__anm_supressLoading = false;
+    props.supress_loading = false;
     function loading_loop() {
-        if (ctx.__anm_supressLoading) return;
+        if (props.supress_loading) return;
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (ratio != 1) ctx.scale(ratio, ratio);
@@ -5950,15 +6125,16 @@ Controls._runLoadingAnimation = function(ctx, paint) {
         ctx.restore();
         return __nextFrame(loading_loop);
     }
-    ctx.__anm_loadingReq = __nextFrame(loading_loop);
+    props.loading_req = __nextFrame(loading_loop);
 }
 Controls._stopLoadingAnimation = function(ctx, paint) {
     // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
     //        and Contols._stopLoading() should be used to stop the drawing process
-    if (!ctx.__anm_loadingReq) return;
-    ctx.__anm_supressLoading = true;
-    __stopAnim(ctx.__anm_loadingReq);
-    ctx.__anm_loadingReq = null;
+    var props = $engine.getAnmProps(ctx);
+    if (!props.loading_req) return;
+    props.supress_loading = true;
+    __stopAnim(props.loading_req);
+    props.loading_req = null;
 }
 
 // Info Block
@@ -5969,7 +6145,6 @@ function InfoBlock(player) {
     this.ctx = null;
     this.ready = false;
     this.hidden = false;
-    this._inParent = player.inParent;
     this.attached = false;
 }
 /* FIXME: merge Info Block and Controls? */
@@ -5977,16 +6152,17 @@ InfoBlock.BASE_BGCOLOR = Controls.THEME.colors.infobg;
 InfoBlock.BASE_FGCOLOR = Controls.THEME.colors.text;
 InfoBlock.OPACITY = 1;
 InfoBlock.PADDING = 6;
-InfoBlock.MARGIN = 5;
+InfoBlock.OFFSET_X = 0.03; // percents of canvas height
+InfoBlock.OFFSET_Y = 0.02; // percents of canvas width
 InfoBlock.FONT = Controls.THEME.font.face;
 InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
 InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
-InfoBlock.DEFAULT_WIDTH = 100; // FIXME: use found text width
-InfoBlock.DEFAULT_HEIGHT = 60;
+InfoBlock.DEFAULT_WIDTH = 0.3; // percents of canvas height
+InfoBlock.DEFAULT_HEIGHT = 0.1; // percents of canvas height
 InfoBlock.LAST_ID = 0;
 InfoBlock.prototype.detach = function(parent) {
     if (!this.attached) return;
-    $engine.detachElement(this._inParent ? parent : null, this.canvas);
+    $engine.detachElement(parent, this.canvas);
     this.attached = false;
 }
 // TODO: move to engine
@@ -5996,14 +6172,12 @@ InfoBlock.prototype.update = function(parent) {
         _m = InfoBlock.MARGIN,
         _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
     if (!cvs) {
-        cvs = $engine.addChildCanvas('info-' + InfoBlock.LAST_ID, parent,
-                 [ _m, _m, _w, _h ],
-                 { _class: 'anm-info ',
-                   position: 'absolute',
-                   opacity: InfoBlock.OPACITY,
-                   zIndex: 110,
-                   cursor: 'pointer',
-                   backgroundColor: 'rgba(0, 0, 0, 0)' }, this._inParent);
+        cvs = $engine.addCanvasOverlay('info-' + InfoBlock.LAST_ID, parent,
+                 [ InfoBlock.OFFSET_X, InfoBlock.OFFSET_Y,
+                   InfoBlock.DEFAULT_WIDTH, InfoBlock.DEFAULT_HEIGHT ],
+                 function(cvs) {
+                    $engine.registerAsInfoElement(cvs, parent);
+                 });
         InfoBlock.LAST_ID++;
         this.id = cvs.id;
         this.canvas = cvs;
@@ -6012,12 +6186,9 @@ InfoBlock.prototype.update = function(parent) {
         this.hide();
         this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
     } else {
-        var parent_pos = $engine.findElementPosition(parent);
-        $engine.setCanvasSize(cvs, _w, _h);
-        $engine.moveElementTo(cvs, [ parent_pos[0] + _m,
-                                     parent_pos[1] + _m ]);
+        $engine.updateOverlay(parent, cvs);
     }
-    //var cconf = $engine.getCanvasParams(cvs);
+    //var cconf = $engine.getCanvasParameters(cvs);
     // _canvas.style.left = _cp[0] + 'px';
     // _canvas.style.top = _cp[1] + 'px';
     //this._ratio = cconf[2];
@@ -6066,12 +6237,12 @@ InfoBlock.prototype.reset = function() {
 
 }
 InfoBlock.prototype.hide = function() {
+    $engine.hideElement(this.canvas);
     this.hidden = true;
-    this.canvas.style.visibility = 'hidden';
 }
 InfoBlock.prototype.show = function() {
+    $engine.showElement(this.canvas);
     this.hidden = false;
-    this.canvas.style.visibility = 'visible';
 }
 InfoBlock.prototype.setDuration = function(value) {
     if (this.__data) this.inject(this.__data[0], value);
@@ -6109,7 +6280,7 @@ var _anmGuySpec = [
 var anmGuyCanvas,
     anmGuyCtx;
 function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
-    var spec = _anmGuySpec,
+    /* var spec = _anmGuySpec,
         origin = spec[0],
         dimensions = spec[1],
         scale = size ? (size / Math.max(dimensions[0], dimensions[1])) : 1,
@@ -6176,7 +6347,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
     ctx.save();
     if (opacity) ctx.globalAlpha = opacity;
     ctx.drawImage(maskCanvas, x - (w / 2), y - (h / 2));
-    ctx.restore();
+    ctx.restore(); */
 }
 
 // Exports
@@ -6184,8 +6355,14 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
 
 return (function($trg) {
 
-    function __createPlayer(cvs, opts) { var p = new Player();
-                                         p.init(cvs, opts); return p; }
+    function __createPlayer(elm, opts) { var p = new Player();
+                                         p.init(elm, opts); return p; }
+    function __findAndInitPotentialPlayers() {
+        var matches = $engine.findPotentialPlayers();
+        for (var i = 0, il = matches.length; i < il; i++) {
+            __createPlayer(matches[i]);
+        }
+    }
 
     //registerGlobally('createPlayer', __createPlayer);
 
@@ -6201,12 +6378,7 @@ return (function($trg) {
         return found;
     }
     $trg.findByName = function(where, name) {
-        var found = [];
-        if (where.name == name) found.push(name);
-        where.travelChildren(function(elm)  {
-            if (elm.name == name) found.push(elm);
-        });
-        return found;
+        where.findByName(name);
     }
 
     $trg._$ = __createPlayer;
@@ -6217,6 +6389,7 @@ return (function($trg) {
     $trg.Modifier = Modifier; $trg.Painter = Painter;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing; $trg.TweenBuilder;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
+    $trg.Color = Color;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
 
     $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
@@ -6226,6 +6399,8 @@ return (function($trg) {
                    't_cmp': __t_cmp,
                    'TIME_PRECISION': TIME_PRECISION/*,
                    'Controls': Controls, 'Info': InfoBlock*/ };
+
+    $engine.onDocReady(__findAndInitPotentialPlayers);
 
     return Player;
 

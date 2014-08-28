@@ -86,7 +86,7 @@ var SubDirs = {
 var Files = {
     Main: { INIT: 'anm.js',
             PLAYER: 'player.js' },
-    Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/ ],
+    Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/, 'font-detector.js' ],
            ENGINES: { _ALL_: [ 'dom-engine.js',
                                'node-engine.js' ],
                       DOM: 'dom-engine.js',
@@ -205,6 +205,8 @@ var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
 
 var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
+
+var MOCK_MINIFICATION = false; // it's for debugging purposes, when we need full version in minified files
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
@@ -616,7 +618,7 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
 
     _print('Selected bucket: ' + trg_bucket);
 
-    var trg_dir = (_version|| VERSION);
+    var trg_dir = (_version || VERSION);
 
     _print('Collecting file paths to upload');
 
@@ -722,13 +724,13 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
 // push-go =====================================================================
 
 desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
-               'Usage: {jake push-go} to push to `dev` bucket. '+
-                   'To push to another bucket, pass it as a param: '+
-                   '{jake push-go[rls]}',
+               'Usage: {jake push-go} to push to `dev` bucket under current version. '+
+                   'To push to another bucket or version, pass it as a param: '+
+                   '{jake push-go[,rls]}, {jake push-go[latest,rls]}',
                'Affects: Only changes S3.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` node.js module.']));
-task('push-go', [], { async: true }, function(_bucket) {
+task('push-go', [], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -736,6 +738,10 @@ task('push-go', [], { async: true }, function(_bucket) {
     if (_bucket == Bucket.Old.ALIAS) trg_bucket = Bucket.Old.NAME;
 
     _print('Selected bucket: ' + trg_bucket);
+
+    var trg_version = (_version || VERSION);
+
+    _print('Version: ' + trg_version);
 
     _print('Ready to get credentials.');
 
@@ -757,9 +763,9 @@ task('push-go', [], { async: true }, function(_bucket) {
     s3.setBucket(trg_bucket);
 
     var GO_LOCAL_PATH = _loc('go'),
-        GO_REMOTE_PATH = '/go';
+        GO_REMOTE_PATH = '/' + trg_version + '/go';
     var PUBLISHJS_LOCAL_PATH = _loc('publish.js'),
-        PUBLISHJS_REMOTE_PATH = '/publish.js';
+        PUBLISHJS_REMOTE_PATH = '/' + trg_version + '/publish.js';
     var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
         FAVICON_REMOTE_PATH = '/favicon.ico';
 
@@ -798,7 +804,8 @@ task('trig-prod', [], { async: true }, function() {
     // jake test
     // jake _push-version[,rls]
     // jake _push-version[latest,rls]
-    // jake _push-go[rls]
+    // jake _push-go[,rls]
+    // jake _push-go[latest,rls]
 
     jake.exec([
           [ Binaries.GIT,
@@ -836,6 +843,7 @@ task('trig-dev', [], { async: true }, function() {
     // jake _push-version
     // jake _push-version[latest]
     // jake _push-go
+    // jake _push-go[latest]
 
     jake.exec([
           [ Binaries.GIT,
@@ -1044,6 +1052,11 @@ task('_minify', { async: true }, function() {
     // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
     function minify(src, cb) {
         var dst = _minified(src);
+        if (MOCK_MINIFICATION) {
+          jake.cpR(src, dst);
+          cb(dst);
+          return;
+        }
         jake.exec([
           [ Binaries.UGLIFYJS,
             '--ascii',

@@ -1,14 +1,17 @@
-### JS Player for Animatron project (v1.1, unstable)
+### JS Player for Animatron project (v1.2, though anyway very unstable)
 
 [Currently all tests are disabled and not time-bombed in refactoring purposes (some will be turned back on after refactoring iterations, some not), so the badge below just provides nice ecologically green color for us to feel safe]
 
+[API, embedding and this documentation in general are a subject to change drastically. Be aware!]
+
 [![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player)
+<!-- [![Code Climate](https://codeclimate.com/github/Animatron/player.png)](https://codeclimate.com/github/Animatron/player) -->
 
 Licensed under MIT License, see `LICENSE` file.
 
-See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) for description on current API state (be aware, it may appear not updated to the _real_ current state).
+**NB:** **Development is in progress. Some links below may not work at all, some documentation is outdated, API is radically changing just in this very minute, so we will update docs when it comes to a more stable state, sorry!**
 
-**NB:** Development is in process.
+See [API.md](https://github.com/Animatron/player/blob/master/doc/API.md#files) for description on current API state (be aware, it may appear not updated to the _real_ current state).
 
 #### See in action
 
@@ -236,9 +239,10 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                                #     modules.
 
     jake push-go               # Pushes `go` page and `publish.js` script to the S3.
-                               # Usage: {jake push-go} to push to `dev` bucket. To p
-                               #     ush to another bucket, pass it as a param: {jak
-                               #     e push-go[rls]}
+                               # Usage: {jake push-go} to push to `dev` bucket under
+                               #     current version. To push to another bucket or
+                               #     version, pass it as a param: {jake push-go[,rls
+                               #     ]}, {jake push-go[latest,rls]}
                                # Affects: Only changes S3.
                                # Requires: `.s3` file with crendetials in form {user
                                #     access-id secret}. `aws2js` node.js module.
