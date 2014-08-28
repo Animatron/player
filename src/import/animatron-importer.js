@@ -641,7 +641,7 @@ Import.tweendata = function(type, src) {
         if (src.length == 1) return [ [ src[0], src[0] ],
                                       [ src[0], src[0] ] ];
     }
-    if(type === C.T_FILL) {
+    if (type === C.T_FILL) {
         return [Import.brush(src[0]), Import.brush(src[1])];
     }
     if (type === C.T_STROKE) {
@@ -779,18 +779,18 @@ Import.grad = function(src) {
         stops.push([ offsets[i], colors[i] ]);
     }
     if (pts.length == 4) {
-        return { lgrad: {
+        return { grad: {
             dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
             stops: stops
         } };
     } else if (pts.length == 6) {
-        return { rgrad: {
+        return { grad: {
             r: [ pts[2], pts[5] ],
             dir: [ [ pts[0], pts[1] ], [ pts[3], pts[4] ] ],
             stops: stops
         } };
     } else {
-        _reportError('Unknown type of graient with ' + pts.length + ' points');
+        _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
 }
 /** pathval **/

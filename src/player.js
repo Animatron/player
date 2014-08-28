@@ -1945,7 +1945,7 @@ Scene.prototype.render = function(ctx, time, dt) {
             ctx.scale(zoom, zoom);
         }
         if (this.bgfill) {
-            ctx.fillStyle = Brush.create(ctx, this.bgfill);
+            ctx.fillStyle = Brush.adapt(ctx, this.bgfill);
             ctx.fillRect(0, 0, this.width, this.height);
         }
         this.visitRoots(function(elm) {
@@ -4035,6 +4035,7 @@ Tween.TWEENS_PRIORITY[C.T_STROKE]      = 7;
 Tween.TWEENS_COUNT = 8;
 
 var Tweens = {};
+// FIXME: always pass data at first call as in C.T_FILL, C.T_STROKE
 Tweens[C.T_ROTATE] =
     function() {
       return function(t, dt, duration, data) {
@@ -4081,79 +4082,24 @@ Tweens[C.T_SHEAR] =
     };
 Tweens[C.T_FILL] =
     function(data) {
-        // TODO: pass data the same way to other tweens (using first call)
-        var colorTween = __colorTween(data);
-        return function(t) {
-            this.$path.fill = colorTween(t);
+        var from = data[0], to = data[1];
+        return function(t, dt, duration) {
+            // will write changes directly inside this.$path.fill
+            Brush.interpolate(from, to, t, this.$path.fill);
+            Brush.invalidate(this.$path.fill);
         }
     };
 Tweens[C.T_STROKE] =
     function(data) {
         // TODO: pass data the same way to other tweens (using first call)
         var from = data[0], to = data[1];
-        var colorTween = __colorTween(data);
-        return function (t, dt, duration, data) {
-            var result = colorTween(t);
-            //add the stroke-specific properties
-            result.width = __interpolateFloat(from.width, to.width, t);
-            result.mitter = from.mitter;
-            //should we do this?
-            result.cap = from.cap;
-            result.join = from.join;
-
-            this.$path.stroke = result;
+        return function (t, dt, duration) {
+            Brush.interpolate(from, to, t, this.$path.stroke);
+            Brush.invalidate(this.$path.stroke);
         }
     };
 
-function __colorTween(data) {
-    //returns a func which interpolates colors/gradients. used in T_FILL and T_STROKE
 
-    var from, to;
-    if (data[0].color) {
-        from = { rgba: Color.fromStr(data[0].color) };
-        to = { rgba: Color.fromStr(data[1].color) };
-    } else if (data[0].lgrad || data[0].rgrad) {
-        from = { grad: data[0].lgrad || data[0].rgrad };
-        to = { grad: data[1].lgrad || data[1].rgrad };
-        //parse the color stop values
-        for (var i = 0; i < from.grad.stops.length; i++) {
-            from.grad.stops[i][1] = Color.fromStr(from.grad.stops[i][1]);
-            to.grad.stops[i][1] = Color.fromStr(to.grad.stops[i][1]);
-        }
-        ;
-    }
-
-    return function (t) {
-        if (from.rgba) {
-            return { color: Color.toRgbaStr(Color.interpolate(from.rgba, to.rgba, t)) };
-        } else if (from.grad) {
-            var grad = { dir: [], stops: []}, fromg = from.grad, tog = to.grad, i;
-            for (i = 0; i < fromg.dir.length; i++) {
-                grad.dir.push([
-                    __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t),
-                    __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t),
-                ]);
-            }
-            ;
-            for (i = 0; i < fromg.stops.length; i++) {
-                grad.stops.push([
-                    __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t),
-                    Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t))
-                ]);
-            }
-            ;
-            if (fromg.r) {
-                grad.r = [
-                    __interpolateFloat(fromg.r[0], tog.r[0], t),
-                    __interpolateFloat(fromg.r[1], tog.r[1], t)
-                ];
-                return {rgrad: grad};
-            } else {
-                return {lgrad: grad};
-            }
-        }
-    }
-}
 
 // Easings
 // -----------------------------------------------------------------------------
@@ -4654,7 +4600,7 @@ Path.applyF = function(ctx, fill, stroke, shadow, func) {
     Brush.shadow(ctx, shadow);
     func(ctx);
 
-    // FIXME: we may use return value of Brush.create to test if Brush has value
+    // FIXME: we may use return value of Brush.adapt to test if Brush has value
     if (Brush._hasVal(fill)) ctx.fill();
 
     Brush.clearShadow(ctx);
@@ -5122,18 +5068,48 @@ Text.prototype.dispose = function() { }
 // Brush
 // -----------------------------------------------------------------------------
 
+// Brush format, general properties:
+//
+// { color: '#ffaa0b' }
+// { color: 'rgb(255,170,11)' }
+// { color: 'rgba(255,170,11,0.8)' }
+// { color: { r: 255, g: 170, b: 11 } }
+// { color: { r: 255, g: 170, b: 11, a: 0.8 } }
+// { grad: { stops: [ [ t, color ], ... ],
+//           dir: [ [ x0, y0 ], [ x1, y1] ]
+//           bounds: [ x, y, width, height ] } }
+// { grad: { stops: [ [ t, color ], ... ],
+//           dir: [ [ x0, y0 ], [ x1, y1] ]
+//           bounds: [ x, y, width, height ],
+//           r: [ r0, r1 ] } }
+
+// Fill Brush format == Brush
+
+// Stroke Brush format
+// { (color: ... || grad: ...),
+//   width: 2,
+//   cap: 'round',
+//   join: 'round' }
+
+// Shadow Brush format:
+// { color: ...,
+//   blurRadius: 0.1,
+//   offsetX: 5,
+//   offsetY: 15 }
+
 var Brush = {};
 // cached creation, returns previous result
 // if it was already created before
-Brush.create = function(ctx, src) {
+Brush.adapt = function(ctx, src) {
   // FIXME: check if brush is valid color for string
   if (__str(src)) return src; // FIXME: brush should always be an object
-  if (!src._style) { src._style = Brush._create(ctx, src); }
+  if (!src._style) { src._style = Brush._adapt(ctx, src); }
   return src._style;
 }
 // create canvas-compatible style from brush
-Brush._create = function(ctx, brush) {
-    if (brush.color) return brush.color;
+Brush._adapt = function(ctx, brush) {
+    if (brush.color && __str(brush.color)) return brush.color;
+    if (brush.color) return Color.toRgbaStr(brush.color);
     if (brush.lgrad) {
         var src = brush.lgrad,
             stops = src.stops,
@@ -5173,7 +5149,7 @@ Brush._create = function(ctx, brush) {
                            dir[1][0], dir[1][1], r[1]); // x1, y1, r1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
-            grad.addColorStop(stop[0], stop[1]);
+            grad.addColorStop(stop[0], Color.from(stop[1]));
         }
         return grad;
     }
@@ -5183,18 +5159,18 @@ Brush._create = function(ctx, brush) {
 Brush.stroke = function(ctx, stroke) {
     if (!stroke) return;
     ctx.lineWidth = stroke.width;
-    ctx.strokeStyle = Brush.create(ctx, stroke);
+    ctx.strokeStyle = Brush.adapt(ctx, stroke);
     ctx.lineCap = stroke.cap;
     ctx.lineJoin = stroke.join;
 }
 Brush.fill = function(ctx, fill) {
     if (!fill) return;
-    ctx.fillStyle = Brush.create(ctx, fill);
+    ctx.fillStyle = Brush.adapt(ctx, fill);
 }
 Brush.shadow = function(ctx, shadow) {
     var props = $engine.getAnmProps(ctx);
     if (!shadow || $conf.doNotRenderShadows || (props.skip_shadows)) return;
-    ctx.shadowColor = shadow.color;
+    ctx.shadowColor = Brush.adapt(shadow);
     ctx.shadowBlur = shadow.blurRadius;
     ctx.shadowOffsetX = shadow.offsetX;
     ctx.shadowOffsetY = shadow.offsetY;
@@ -5207,27 +5183,101 @@ Brush.clearShadow = function(ctx) {
 Brush._hasVal = function(fsval) {
     return (fsval && (__str(fsval) || fsval.color || fsval.lgrad || fsval.rgrad));
 }
+Brush.interpolate = function(from, to, t, trg) {
+    // FIXME: do not create new objects every time, but find a way to interpolate
+    // directly inside the some brush instance
+    if (!from._converted) { Brush.convertColorsToRgba(from); from._converted = true; }
+    if   (!to._converted) { Brush.convertColorsToRgba(to);     to._converted = true; }
+    var result = trg || {};
+    if (__defined(from.width) && __defined(to.width)) {
+        result.width = __interpolateFloat(from.width, to.width, t);
+    }
+    if (from.color) {
+        result.grad = null;
+        result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
+    } else if (from.grad) {
+        result.color = null;
+        if (!result.grad) result.grad = {};
+        var trgg = result.grad, fromg = from.grad, tog = to.grad, i;
+        // direction
+        for (i = 0; i < fromg.dir.length; i++) {
+            if (!trgg.dir[i]) trgg.dir[i] = [];
+            trgg.dir[0] = __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
+            trgg.dir[1] = __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
+        };
+        // stops
+        if (!trgg.stops ||
+            (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
+        for (i = 0; i < fromg.stops.length; i++) {
+            if (!trgg.stops[i]) trgg.stops[i] = [];
+            trgg.stops[i][0] = __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
+            trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
+        };
+        // radius
+        if (fromg.r) {
+            if (!trgg.r) trgg.r = [];
+            trgg.r[0] = __interpolateFloat(fromg.r[0], tog.r[0], t);
+            trgg.r[1] = __interpolateFloat(fromg.r[1], tog.r[1], t);
+        } else { trgg.r = null; }
+    }
+    return result;
+}
+Brush.convertColorsToRgba = function(src) {
+    if (src._converted) return;
+    if (src.color && __str(src.color)) {
+        src.color = Color.fromStr(data[0].color);
+    } else if (src.grad) {
+        var stops = src.grad.stops;
+        for (var i = 0, il = stops.length; i < il; i++) {
+            if (__str(stops[i][1])) {
+                stops[i][1] = Color.from(stops[i][1]);
+            }
+        }
+    }
+    src._converted = true;
+}
+Brush.invalidate = function(brush) {
+    brush._converted = false;
+    brush._style = null;
+}
 
 //a set of functions for parsing and intepolating color values
 var Color = {};
-
+Color.HEX_RE       = /^#?([a-fA-F\d]{2})([a-fA-F\d]{2})([a-fA-F\d]{2})$/i;
+Color.HEX_SHORT_RE = /^#?[a-fA-F\d][a-fA-F\d][a-fA-F\d])$/i;
+Color.RGB_RE       = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
+Color.RGBA_RE      = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i;
+Color.from = function(test) {
+    return __str(test) ? Color.fromStr(test) : (test.r && test);
+}
 Color.fromStr = function(str) {
     return Color.fromHex(str)
         || Color.fromRgb(str)
         || Color.fromRgba(str)
-        || { r:0, g:0, b:0, a:0};
+        || { r: 0, g: 0, b: 0, a: 0};
 }
 Color.fromHex = function(hex) {
-    var result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    if (hex[0] !== '#') return null;
+    var result = Color.HEX_RE.exec(hex);
+    if (result) {
+        return {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+            a: 1
+        };
+    }
+    result = Color.HEX_SHORT_RE.exec(hex);
     return result ? {
-        r: parseInt(result[1], 16),
-        g: parseInt(result[2], 16),
-        b: parseInt(result[3], 16),
+        r: parseInt(result[1] + result[1], 16),
+        g: parseInt(result[2] + result[2], 16),
+        b: parseInt(result[3] + result[3], 16),
         a: 1
     } : null;
 };
 Color.fromRgb = function(rgb) {
-    var result = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i.exec(rgb);
+    if (rgb.indexOf('rgb(') !== 0) return null;
+    var result = Color.RGB_RE.exec(rgb);
     return result ? {
         r: parseInt(result[1]),
         g: parseInt(result[2]),
@@ -5236,7 +5286,8 @@ Color.fromRgb = function(rgb) {
     } : null;
 };
 Color.fromRgba = function(rgba) {
-    var result = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i.exec(rgba);
+    if (rgba.indexOf('rgba(') !== 0) return null;
+    var result = Color.RGBA_RE.exec(rgba);
     return result ? {
         r: parseInt(result[1]),
         g: parseInt(result[2]),
@@ -5245,7 +5296,7 @@ Color.fromRgba = function(rgba) {
     } : null;
 };
 Color.toRgbaStr = function(color) {
-    return 'rgba('+color.r+','+color.g+','+color.b+','+color.a.toFixed(2)+')';
+    return 'rgba('+color.r+','+color.g+','+color.b+','+(color.a?color.a.toFixed(2):0)+')';
 };
 Color.interpolate = function(c1, c2, t) {
     return {
