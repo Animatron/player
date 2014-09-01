@@ -411,7 +411,7 @@
             } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
                 if ($conf.logResMan)
                    { $log.debug('> someone is already waiting for it, subscribing'); }
-                if (me._waiting[subject_id][url] !== loader) {
+                if (!me._waiting[subject_id][url]) {
                     me.subscribe(subject_id, [ url ], function(res) {
                         if (res[0]) { onComplete(res[0]); }
                         else { onError(res[0]); };
