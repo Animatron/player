@@ -3168,7 +3168,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
       elm._t   = elm.__appliedAt;
       elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
     }
-    // FIXME: elm.t and elm.dt both should store real time for this moment
+    // FIXME: elm.t and elm.dt both should store real time for this moment.
     //        modifier may have its own time, though, but not painter, so painters probably
     //        don't need any additional time/dt and data
 
@@ -3178,55 +3178,43 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
 
     elm.__loadEvents();
 
+    var modifiers = this.$modifiers;
+    var type, typed_modifiers, modifier, lbtime;
+    for (var i = 0, il = order.length; i < il; i++) { // for each type
+        type = order[i];
 
-    // TODO:!!!!
+        elm.__modifying = type;
+        elm.__mbefore(type);
 
+        typed_modifiers = modifiers[type];
 
-    return (function(elm) {
-
-
-
-
-
-
-
-
-        if (!elm.__forAllModifiers(order,
-            function(modifier, conf) { /* each modifier */
-                // lbtime is band-apadted time, if modifier has its own band
-                var lbtime = elm.__adaptModTime(ltime, conf, modifier);
-                // `false` will be returned from `__adaptModTime`
-                // for trigger-like modifier if it is required to skip current one,
-                // on the other hand `true` in `forAllModifiers` means
-                // "skip this one, but not finish the whole process",
-                // FIXME: this unobvious line
-                if (lbtime === false) return true;
-                // modifier will return false if it is required to skip all next modifiers,
-                // returning false from our function means the same
-                return modifier.call(elm, lbtime[0], dt, lbtime[1], conf.data);
-            }, function(type) { /* before each new type */
-                elm.__modifying = type;
-                elm.__mbefore(type);
-            }, function(type) { /* after each new type */
-                elm.__mafter(ltime, type, true);
-            })) { // one of modifiers returned false
-                // forget things...
+        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+            modifier = typed_modifiers[j];
+            // lbtime is band-apadted time, if modifier has its own band
+            lbtime = elm.__adaptModTime(ltime, conf, modifier);
+            // `false` will be returned from `__adaptModTime`
+            // for trigger-like modifier if it is required to skip current one,
+            // on the other hand `true` means
+            // "skip this one, but not finish the whole process",
+            if (lbtime === false) continue;
+            // modifier will return false if it is required to skip all next modifiers,
+            // returning false from our function means the same
+            // FIXME: remove data property, user should pass it through closure
+            if (modifier.call(elm, lbtime[0], dt, lbtime[1], conf.data) === false) {
                 elm.__mafter(ltime, elm.__modifying, false);
                 elm.__modifying = null;
-                // elm.__clearEvts(); // why do it second time after all modifiers then?
-                // NB: nothing happens to the state or element here,
-                //     the modified things are not applied
-                return false; // ...and get out of the function
-            };
+                return false; // exit the method
+            }
+        }
 
-        elm.__modifying = null;
+        elm.__mafter(ltime, type, true);
+    } // for each type
 
-        elm.__appliedAt = ltime;
+    elm.__modifying = null;
 
-        elm.resetEvents();
+    elm.__appliedAt = ltime;
 
-        return true;
-    })(this);
+    elm.resetEvents();
 }
 Element.prototype.__callPainters = function(order, ctx, t, dt) {
     (function(elm) {
