@@ -32,7 +32,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   C.T_VOLUME = 'VOLUME';
   Tween.TWEENS_PRIORITY[C.T_VOLUME] = Tween.TWEENS_COUNT++;
   Tweens[C.T_VOLUME] = function() {
-    return function(t, duration, data) {
+    return function(t, dt, duration, data) {
       if (!this.$._audio_is_loaded) return;
       this.$._audio.volume = data[0] * (1.0 - t) + data[1] * t;
     };
