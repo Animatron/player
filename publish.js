@@ -21,6 +21,22 @@ var _u = (function () { /* utils */
 
     return {
 
+        parseQueryString: function( queryString ) {
+            var params = {}, queries, temp, i, l;
+
+            // Split into key/value pairs
+            queries = queryString.split("&");
+
+            // Convert the array of strings into an object
+            for ( i = 0, l = queries.length; i < l; i++ ) {
+                temp = queries[i].split('=');
+                params[temp[0]] = temp[1];
+            }
+
+            return params;
+        },
+
+
         extractVal: function (params, name) {
             if (!params) return null;
             var res;
@@ -111,7 +127,7 @@ var start = (function () {
 
     inIFrame = (window.self !== window.top);
 
-    var _params_ = location.search;
+    var _params_ = location.search, parsedParams = _u.parseQueryString(_params_.substring(1));
     var rect = _u.getRequiredRect();
     if (rect) {
         if (_params_) {
@@ -120,6 +136,13 @@ var start = (function () {
         } else {
             _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
         }
+
+        if (parsedParams.w) {
+            rect[0] = parsedParams.w;
+        }
+        if (parsedParams.h) {
+            rect[1] = parsedParams.h;
+        };
     }
     if (autostart) {
         _params_ = _u.injectIfNotPresent(_params_, "t", 0);
