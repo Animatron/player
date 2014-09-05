@@ -909,6 +909,7 @@ task('_bundles', function() {
     Bundles.forEach(function(bundle) {
         _print('Package bundle \'' + bundle.name + '\'');
         var targetFile = targetDir + '/' + bundle.file + '.js';
+        jake.rmRf(_loc(targetFile));
         _print('.. (c) > ' + targetFile);
         jake.echo(COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
                                    .concat('\n\n\n'),
