@@ -3988,15 +3988,15 @@ Tween.TWEENS_COUNT = 8;
 var Tweens = {};
 // FIXME: always pass data at first call as in C.T_FILL, C.T_STROKE
 Tweens[C.T_ROTATE] =
-    function() {
-      return function(t, dt, duration, data) {
+    function(data) {
+      return function(t, dt, duration) {
         this.angle = data[0] * (1.0 - t) + data[1] * t;
         //state.angle = (Math.PI / 180) * 45;
       };
     };
 Tweens[C.T_TRANSLATE] =
-    function() {
-      return function(t, dt, duration, data) {
+    function(data) {
+      return function(t, dt, duration) {
           var p = data.pointAt(t);
           if (!p) return;
           this.$mpath = data;
@@ -4005,28 +4005,28 @@ Tweens[C.T_TRANSLATE] =
       };
     };
 Tweens[C.T_ALPHA] =
-    function() {
-      return function(t, dt, duration, data) {
+    function(data) {
+      return function(t, dt, duration) {
         this.alpha = data[0] * (1.0 - t) + data[1] * t;
       };
     };
 Tweens[C.T_SCALE] =
-    function() {
-      return function(t, dt, duration, data) {
+    function(data) {
+      return function(t, dt, duration) {
         this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
     };
 Tweens[C.T_ROT_TO_PATH] =
     function() {
-      return function(t, dt, duration, data) {
+      return function(t, dt, duration) {
         var path = this.$mpath;
         if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
       };
     };
 Tweens[C.T_SHEAR] =
-    function() {
-      return function(t, dt, duration, data) {
+    function(data) {
+      return function(t, dt, duration) {
         this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
         this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
       };
