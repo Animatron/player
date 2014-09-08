@@ -3202,7 +3202,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
             // modifier will return false if it is required to skip all next modifiers,
             // returning false from our function means the same
             // FIXME: remove data property, user should pass it through closure
-            if (modifier.call(elm, lbtime[0], dt, lbtime[1], conf.data) === false) {
+            if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
                 elm.__mafter(ltime, elm.__modifying, false);
                 elm.__modifying = null;
                 return false; // exit the method
@@ -3219,48 +3219,29 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
     elm.resetEvents();
 }
 Element.prototype.__callPainters = function(order, ctx, t, dt) {
-    (function(elm) {
-        elm.__forAllPainters(order,
-            function(painter, conf) { /* each painter */
-                painter.call(elm, ctx, conf.data, t, dt);
-            }, function(type) { /* before each new type */
-                elm.__painting = type;
-                elm.__pbefore(ctx, type);
-            }, function(type) { /* after each new type */
-                elm.__pafter(ctx, type);
-            });
-        elm.__painting = null;
-    })(this);
+    var elm = this;
+
+    var painters = this.$painters;
+    var type, typed_painters, painter;
+    for (var i = 0, il = order.length; i < il; i++) { // for each type
+        type = order[i];
+
+        elm.__painting = type;
+        elm.__pbefore(ctx, type);
+
+        typed_painters = painters[type];
+
+        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+            painter = typed_painters[j];
+            painter.call(elm, ctx, t, dt);
+        }
+
+        elm.__pafter(ctx, type);
+    } // for each type
+
+    elm.__painting = null;
 }
-Element.prototype.__modify = Element.prototype.__addTypedModifier; // quick alias
-Element.prototype.__forAllModifiers = function(order, f, before_type, after_type) {
-
-
-
-    var modifiers = this._modifiers;
-    var type, seq, cur;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = modifiers[type];
-        if (before_type) before_type(type);
-        if (seq) {
-          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
-            if (cur = seq[pi]) {
-              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                var modifier;
-                if (modifier = cur[ci]) {
-                  if (f(modifier[0], modifier[1]) === false) return false;
-                } /* if cur[ci] */
-              } /* for var ci */
-            } /* if cur = seq[pi] */
-          } /* for var pi */
-        } /* if seq */
-        if (after_type) after_type(type);
-    }
-    return true;
-}
-Element.prototype.__addTypedPainter = function(conf, painter) {
+Element.prototype.__addPainter = function(conf, painter) {
     if (!painter) throw new AnimErr(Errors.A.NO_PAINTER_PASSED);
     var painters = this._painters;
     var elm_id = this.id;
@@ -3276,28 +3257,6 @@ Element.prototype.__addTypedPainter = function(conf, painter) {
     painter.__p_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
                               (painters[type][priority].length - 1);
     return painter;
-}
-Element.prototype.__paint = Element.prototype.__addTypedPainter; // quick alias
-Element.prototype.__forAllPainters = function(order, f, before_type, after_type) {
-    var painters = this._painters;
-    var type, seq, cur;
-    for (var typenum = 0, last = order.length;
-         typenum < last; typenum++) {
-        type = order[typenum];
-        seq = painters[type];
-        if (before_type) before_type(type);
-        if (seq) {
-          for (var pi = 0, pl = seq.length; pi < pl; pi++) { // by priority
-            if (cur = seq[pi]) {
-              for (var ci = 0, cl = cur.length; ci < cl; ci++) {
-                if (cur[ci]) f(cur[ci][0], cur[ci][1]);
-              }
-            }
-          }
-        }
-        if (after_type) after_type(type);
-    }
-    return true;
 }
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === Element.EVENT_MOD) {
