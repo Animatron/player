@@ -4035,18 +4035,18 @@ Tweens[C.T_FILL] =
     function(data) {
         var from = data[0], to = data[1];
         return function(t, dt, duration) {
-            // will write changes directly inside this.$path.fill
-            Brush.interpolate(from, to, t, this.$path.fill);
-            Brush.invalidate(this.$path.fill);
+            // will write changes directly inside this.$fill
+            Brush.interpolate(from, to, t, this.$fill);
+            Brush.invalidate(this.$fill);
         }
     };
 Tweens[C.T_STROKE] =
     function(data) {
-        // TODO: pass data the same way to other tweens (using first call)
         var from = data[0], to = data[1];
         return function (t, dt, duration) {
-            Brush.interpolate(from, to, t, this.$path.stroke);
-            Brush.invalidate(this.$path.stroke);
+            // will write changes directly inside this.$stroke
+            Brush.interpolate(from, to, t, this.$stroke);
+            Brush.invalidate(this.$stroke);
         }
     };
 
@@ -4265,11 +4265,8 @@ C.PC_MITER = 'miter';
 C.PC_SQUARE = 'square';
 C.PC_BEVEL = 'bevel';
 
-// > Path % (str: String)
-function Path(val, fill, stroke, shadow) {
-    this.fill = fill;
-    this.stroke = stroke;
-    this.shadow = shadow;
+// > Path % (val: String | Array)
+function Path(val) {
     this.segs = [];
 
     if (__str(val)) {
@@ -4889,28 +4886,20 @@ C.BL_ALPHABETIC = 'alphabetic';
 C.BL_HANGING = 'hanging';
 C.BL_IDEOGRAPHIC = 'ideographic';
 
-function Text(lines, font,
-              fill, stroke, shadow, align, baseline, underlined) {
+function Text(lines, font, align, baseline, underlined) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
-    this.fill = fill || Text.DEFAULT_FILL;
-    this.stroke = stroke || Text.DEFAULT_STROKE;
-    this.shadow = shadow;
     this.align = align || Text.DEFAULT_ALIGN;
     this.baseline = baseline || Text.DEFAULT_BASELINE;
     this.underlined = __defined(underlined) ? underlined : Text.DEFAULT_UNDERLINE;
     this._bnds = null;
 }
 
-Text.DEFAULT_CAP = C.PC_ROUND;
-Text.DEFAULT_JOIN = C.PC_ROUND;
 Text.DEFAULT_FFACE = 'sans-serif';
 Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
-Text.DEFAULT_FILL = { 'color': '#000' };
 Text.DEFAULT_ALIGN = C.TA_LEFT;
 Text.DEFAULT_BASELINE = C.BL_BOTTOM; // FIXME: also change to middle?
-Text.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 Text.DEFAULT_UNDERLINE = false;
 
 Text.prototype.apply = function(ctx, pos, baseline) {
@@ -4975,6 +4964,7 @@ Text.prototype.bounds = function() {
 Text.prototype.ascent = function(height, baseline) {
     return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
 }
+/* FIXME: move to element
 Text.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
         'width': (width != null) ? width : 0,
@@ -4987,7 +4977,7 @@ Text.prototype.cfill = function(color) {
     this.fill = {
         'color': color
     };
-}
+} */
 Text.prototype.lineCount = function() {
     var lines = this.lines;
     return __arr(lines) ? lines.length : 1;
@@ -5005,13 +4995,10 @@ Text.prototype.visitLines = function(func, data) {
     }
 }
 Text.prototype.clone = function() {
-    var c = new Text(this.lines, this.font,
-                     this.fill, this.stroke, this.shadow);
+    var c = new Text(this.lines, this.font);
     if (this.lines && Array.isArray(this.lines)) {
         c.lines = [].concat(this.lines);
     }
-    if (this.stroke) c.stroke = obj_clone(this.stroke);
-    if (this.fill) c.fill = obj_clone(this.fill);
     return c;
 }
 Text.prototype.dispose = function() { }
@@ -5049,6 +5036,11 @@ Text.prototype.dispose = function() { }
 //   offsetY: 15 }
 
 var Brush = {};
+// Constants
+Brush.DEFAULT_CAP = C.PC_ROUND;
+Brush.DEFAULT_JOIN = C.PC_ROUND;
+Brush.DEFAULT_FILL = { 'color': '#000' };
+Brush.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
 // cached creation, returns previous result
 // if it was already created before
 Brush.adapt = function(ctx, src) {
