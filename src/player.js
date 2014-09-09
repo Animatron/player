@@ -3856,7 +3856,16 @@ Render.p_drawReg = function(ctx, reg) {
 Render.p_drawVisuals = function(ctx) {
     var subj = this.$path || this.$text || this.$image;
     if (!subj) return;
-    subj.apply(ctx); // apply does ctx.save/ctx.restore by itself
+
+    ctx.save();
+    if (this.$fill) Brush.fill(ctx, this.$fill);
+    if (this.$shadow) Brush.shadow(ctx, this.$shadow);
+    if (this.$stroke) Brush.stroke(ctx, this.$stroke);
+    subj.apply(ctx);
+    if (this.$fill) ctx.fill();
+    if (this.$shadow) Brush.clearShadow(ctx);
+    if (this.$stroke) ctx.stroke();
+    ctx.restore();
 }
 
 Render.p_drawName = function(ctx, name) {
@@ -4320,22 +4329,10 @@ Path.prototype.add = function(seg) {
 Path.prototype.apply = function(ctx) {
     var p = this;
     // TODO: every segment should apply itself
-    // FIXME: simplify this to call seg.apply for every segment
-    Path.applyF(ctx, p.fill || Path.DEFAULT_FILL,
-                     p.stroke || Path.DEFAULT_STROKE,
-                     p.shadow,
-             function() { p.visit(Path._applyVisitor, ctx); });
-
-    /* ctx.save();
+    //       simplify this to call seg.apply for every segment
     ctx.beginPath();
-    Brush.fill(ctx, fill);
-    Brush.stroke(ctx, stroke);
     this.visit(Path._applyVisitor, ctx);
     ctx.closePath();
-
-    if (Brush._hasVal(fill)) ctx.fill();
-    if (Brush._hasVal(stroke)) ctx.stroke();
-    ctx.restore(); */
 }
 Path.prototype.cstroke = function(color, width, cap, join) {
     this.stroke = {
@@ -4516,46 +4513,15 @@ Path.prototype.getPoints = function() {
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
 }
-// not a clone, but only segments-copy
-Path.prototype.duplicate = function() {
-    var seg_copy = new Path();
-    this.visit(function(seg) {
-        seg_copy.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
-    });
-    return seg_copy;
-}
-// load only stroke/fill/shadow
-Path.prototype.load = function(src) {
-    if (src.stroke) this.stroke = obj_clone(src.stroke);
-    if (src.fill) this.fill = obj_clone(src.fill);
-    if (src.shadow) this.shadow = obj_clone(src.shadow);
-}
 Path.prototype.clone = function() {
-    var clone = this.duplicate();
-    if (this.stroke) clone.stroke = obj_clone(this.stroke);
-    if (this.fill) clone.fill = obj_clone(this.fill);
-    if (this.shadow) clone.shadow = obj_clone(this.shadow);;
-    return clone;
+    var _clone = new Path();
+    this.visit(function(seg) {
+        _clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
+    });
+    return _clone;
 }
 Path.prototype.dispose = function() { }
 
-
-Path.applyF = function(ctx, fill, stroke, shadow, func) {
-    //ctx.save(); // FIXME: remove it when xdata will contain one paintable object
-    ctx.beginPath();
-    Brush.fill(ctx, fill);
-    Brush.stroke(ctx, stroke);
-    Brush.shadow(ctx, shadow);
-    func(ctx);
-
-    // FIXME: we may use return value of Brush.adapt to test if Brush has value
-    if (Brush._hasVal(fill)) ctx.fill();
-
-    Brush.clearShadow(ctx);
-
-    if (Brush._hasVal(stroke)) ctx.stroke();
-    //ctx.restore(); // FIXME: remove it when xdata will contain one paintable object
-}
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets
 // chunk marker and positions sequentially
