@@ -115,7 +115,7 @@ var start = (function () {
 
     var VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
 
-    var CANVAS_ID = 'target',
+    var TARGET_ID = 'target',
         WRAPPER_CLASS = 'anm-wrapper',
         PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
         PLAYER_VERSION_ID = playerVersion;
@@ -228,14 +228,14 @@ var start = (function () {
             noRectRule.style.left = '10%';
 
             if (rect) {
-                var canvas = document.getElementById(CANVAS_ID);
-                canvas.style.width  = rect[0] + 'px';
-                canvas.style.height = rect[1] + 'px';
+                var target = document.getElementById(TARGET_ID);
+                target.style.width  = rect[0] + 'px';
+                target.style.height = rect[1] + 'px';
             }
 
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
+                      anm.Player.forSnapshot(TARGET_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }
             );
         } catch (e) {
