@@ -4868,19 +4868,17 @@ Text.DEFAULT_ALIGN = C.TA_LEFT;
 Text.DEFAULT_BASELINE = C.BL_BOTTOM; // FIXME: also change to middle?
 Text.DEFAULT_UNDERLINE = false;
 
-Text.prototype.apply = function(ctx, pos, baseline) {
+Text.prototype.apply = function(ctx) {
     ctx.save();
-    var pos = pos || [0, 0],
-        dimen = this.dimen(),
+    var dimen = this.dimen(),
         height = (dimen[1] / this.lineCount()),
         underlined = this.underlined;
     ctx.font = this.font;
-    ctx.textBaseline = baseline || this.baseline || Text.DEFAULT_BASELINE;
+    ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
 
     var ascent = this.ascent(height, ctx.textBaseline);
 
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
-    ctx.translate(pos[0], pos[1]);
     var y = 0;
     if (Brush._hasVal(this.fill)) {
         Brush.shadow(ctx, this.shadow);
