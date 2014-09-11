@@ -186,12 +186,12 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   }
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
-  E.prototype._hasRemoteResources = function(scene, player) {
+  E.prototype._hasRemoteResources = function(anim, player) {
     return prev__hasRemoteResources.apply(this, arguments) || (this.is(C.ET_AUDIO) && player.audioEnabled);
   }
 
   var prev__collectRemoteResources = E.prototype._collectRemoteResources;
-  E.prototype._collectRemoteResources = function(scene, player) {
+  E.prototype._collectRemoteResources = function(anim, player) {
     var prev = prev__collectRemoteResources.apply(this, arguments);
     if (!player.audioEnabled) return prev;
     if (!this.is(C.ET_AUDIO)) return prev;
@@ -200,7 +200,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   }
 
   var prev__loadRemoteResources = E.prototype._loadRemoteResources;
-  E.prototype._loadRemoteResources = function(scene, player) {
+  E.prototype._loadRemoteResources = function(anim, player) {
     var prev = prev__loadRemoteResources.apply(this, arguments);
     if (this.is(C.ET_AUDIO) && player.audioEnabled) this._audioLoad(player);
   }

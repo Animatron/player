@@ -23,7 +23,7 @@
 // - **Modules** —
 // - **Player** —
 //     - _Player Control API_ —
-// - **Scene** —
+// - **Animation** —
 // - **Element** —
 // - **Import** —
 // - **Rendering** —
@@ -434,7 +434,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'thumbnail': undefined,
                                  'bgColor': undefined,
                                  'ribbonsColor': undefined,
-                                 'forceSceneSize': false,
+                                 'forceAnimationSize': false,
                                  'muteErrors': false
                                };
 
@@ -478,7 +478,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 //       'handleEvents': undefined, // undefined means 'auto'
 //       'loadingMode': undefined, // undefined means 'auto'
 //       'thumbnail': undefined,
-//       'forceSceneSize': false,
+//       'forceAnimationSize': false,
 //       'muteErrors': false
 //     }
 
@@ -520,7 +520,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         duration, importer, callback;
 
     if (object && object.id && player.anim && (player.anim.id == object.id)) {
-        $log.info('Scene with ID=' + object.id + ' is already loaded in player, skipping the call');
+        $log.info('Animation with ID=' + object.id + ' is already loaded in player, skipping the call');
         return;
     }
 
@@ -552,12 +552,12 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     if ((player.loadingMode == C.LM_ONPLAY) &&
-        !player._playLock) { // if play lock is set, we should just load a scene normally, since
+        !player._playLock) { // if play lock is set, we should just load an animation normally, since
                              // it was requested after the call to 'play', or else it was called by user
                              // FIXME: may be playLock was set by player and user calls this method
-                             //        while some scene is already loading
+                             //        while some animation is already loading
         if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
-        player._lastReceivedSceneId = null;
+        player._lastReceivedAnimationId = null;
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
         // were called during the process of loading (and were required to be called when it was finished).
@@ -585,15 +585,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     player._runLoadingAnimation();
 
     var whenDone = function(result) {
-        var scene = player.anim;
+        var anim = player.anim;
         if (player.handleEvents) {
             // checks inside if was already subscribed before, skips if so
-            player.__subscribeDynamicEvents(scene);
+            player.__subscribeDynamicEvents(anim);
         }
-        var remotes = scene._collectRemoteResources(player);
+        var remotes = anim._collectRemoteResources(player);
         if (!remotes.length) {
             player._stopLoadingAnimation();
-            if (player.controls) player.controls.inject(scene);
+            if (player.controls) player.controls.inject(anim);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
             if (callback) callback.call(player, result);
@@ -613,7 +613,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 function(res_results, err_count) {
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
-                        // to load different scenes and first one finished loading
+                        // to load different animations and first one finished loading
                         // after the second one
                         player._stopLoadingAnimation();
                         if (player.controls) player.controls.inject(result);
@@ -634,7 +634,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                 }
             ) ]);
             // actually start loading remote resources
-            scene._loadRemoteResources(player);
+            anim._loadRemoteResources(player);
         }
 
     };
@@ -652,9 +652,9 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (__builder(object)) {  // Builder instance
             player._loadTarget = C.LT_BUILDER;
             L.loadBuilder(player, object, whenDone);
-        } else if (object instanceof Scene) { // Scene instance
+        } else if (object instanceof Animation) { // Animation instance
             player._loadTarget = C.LT_SCENE;
-            L.loadScene(player, object, whenDone);
+            L.loadAnimation(player, object, whenDone);
         } else if (__arr(object)) { // array of clips
             player._loadTarget = C.LT_CLIPS;
             L.loadClips(player, object, whenDone);
@@ -670,7 +670,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     } else {
         player._loadTarget = C.LT_SCENE;
-        player.anim = new Scene();
+        player.anim = new Animation();
         whenDone(player.anim);
     }
 
@@ -693,11 +693,11 @@ Player.prototype.play = function(from, speed, stopAfter) {
     var state = player.state;
 
     if (state.happens === C.PLAYING) {
-        if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic scene (FIXME?)
+        if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
         else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
     }
 
-    if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedSceneId) {
+    if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
         if (player._playLock) return; // we already loading something
         // use _postponedLoad with _playLock flag set
         // call play when loading was finished
@@ -710,7 +710,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
             if (loadCallback) loadCallback.call(player, arguments);
             player._postponedLoad = null;
             player._playLock = false;
-            player._lastReceivedSceneId = player.anim.id;
+            player._lastReceivedAnimationId = player.anim.id;
             Player.prototype.play.apply(player, playArgs);
         };
         loadArgs[3] = afterLoad; // substitute callback with our variant which calls the previous one
@@ -731,19 +731,19 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     player._ensureHasAnim();
 
-    var scene = player.anim;
-    scene.reset();
+    var anim = player.anim;
+    anim.reset();
 
     // used to resume playing in some special cases
     state.__lastPlayConf = [ from, speed, stopAfter ];
 
     state.from = from || 0;
     state.time = Player.NO_TIME;
-    state.speed = (speed || 1) * (player.speed || 1) * (scene.speed || 1);
+    state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
     state.duration = player.inifiniteDuration ? Infinity
-                     : (scene.duration || (scene.isEmpty() ? 0
-                                                           : Scene.DEFAULT_DURATION));
+                     : (anim.duration || (anim.isEmpty() ? 0
+                                                           : Animation.DEFAULT_DURATION));
 
     if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
 
@@ -774,9 +774,9 @@ Player.prototype.play = function(from, speed, stopAfter) {
     //        __stopAnim is called "to ensure", may be it's not a good way to ensure,
     //       though...
     state.__firstReq = __r_loop(player.ctx,
-                                player, scene,
-                                player.__beforeFrame(scene),
-                                player.__afterFrame(scene),
+                                player, anim,
+                                player.__beforeFrame(anim),
+                                player.__afterFrame(anim),
                                 player.__userBeforeRender,
                                 player.__userAfterRender);
 
@@ -817,9 +817,9 @@ Player.prototype.stop = function() {
     state.from = 0;
     state.stop = Player.NO_TIME;
 
-    var scene = player.anim;
+    var anim = player.anim;
 
-    if (scene || ((player.loadingMode == C.LM_ONPLAY) &&
+    if (anim || ((player.loadingMode == C.LM_ONPLAY) &&
                    player._postponedLoad)) {
         state.happens = C.STOPPED;
         player._drawStill();
@@ -838,7 +838,7 @@ Player.prototype.stop = function() {
 
     player.fire(C.S_STOP);
 
-    if (scene) scene.reset();
+    if (anim) anim.reset();
 
     return player;
 }
@@ -957,8 +957,8 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.drawStill : this.drawStill;
     this.infiniteDuration = __defined(opts.infiniteDuration)
                         ? opts.infiniteDuration : this.infiniteDuration;
-    this.forceSceneSize = __defined(opts.forceSceneSize)
-                        ? opts.forceSceneSize : this.forceSceneSize;
+    this.forceAnimationSize = __defined(opts.forceAnimationSize)
+                        ? opts.forceAnimationSize : this.forceAnimationSize;
     this.muteErrors = __defined(opts.muteErrors)
                         ? opts.muteErrors : this.muteErrors;
 }
@@ -1070,7 +1070,7 @@ Player.prototype.forceRedraw = function() {
 Player.prototype.changeZoom = function(zoom) {
     this.zoom = zoom;
 }
-// draw current scene at specified time
+// draw current animation at specified time
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
     if ((this.state.happens === C.RES_LOADING) &&
@@ -1082,17 +1082,17 @@ Player.prototype.drawAt = function(time) {
     if ((time < 0) || (time > this.anim.duration)) {
         throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
-    var scene = this.anim,
+    var anim = this.anim,
         u_before = this.__userBeforeRender,
         u_after = this.__userAfterRender/*,
         after = function(gtime, ctx) {  // not used
-            scene.reset();
-            scene.__informEnabled = true;
+            anim.reset();
+            anim.__informEnabled = true;
             u_after(gtime, ctx);
         }*/;
 
-    scene.reset();
-    scene.__informEnabled = false;
+    anim.reset();
+    anim.__informEnabled = false;
     // __r_at is the alias for Render.at, but a bit more quickly-accessible,
     // because it is a single function
     __r_at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
@@ -1106,15 +1106,15 @@ Player.prototype.setSize = function(width, height) {
     this._resize();
 }
 // it's optional to specify target_width/target_height, especially if aspect ratio
-// of scene(s) that will be loaded into player matches to aspect ratio of player itself.
+// of animation(s) that will be loaded into player matches to aspect ratio of player itself.
 // if not, target_width and target_height, if specified, are recommended to be equal
-// to a size of a scene(s) that will be loaded into player with this thumbnail;
-// so, since scene will be received later, and if aspect ratios of scene and player
+// to a size of an animation(s) that will be loaded into player with this thumbnail;
+// so, since animation will be received later, and if aspect ratios of animation and player
 // does not match, both thumbnail and the animation will be drawn at a same position
 // with same black ribbons applied;
 // if size will not be specified, player will try to match aspect ratio of an image to
-// show it without stretches, so if thumbnail image size matches to scene size has
-// the same aspect ratio as a scene, it is also ok to omit the size data here
+// show it without stretches, so if thumbnail image size matches to animation size has
+// the same aspect ratio as an animation, it is also ok to omit the size data here
 Player.prototype.setThumbnail = function(url, target_width, target_height) {
     if (!url) return;
     var player = this;
@@ -1241,13 +1241,13 @@ Player.prototype._drawStill = function() {
     // since we have no hungarian notation is't treated as ok (for now)
     var player = this,
         state = player.state,
-        scene = player.anim;
+        anim = player.anim;
     if (player.drawStill) { // it's a flag!
         if (player.__thumb) {
             player._drawThumbnail();
-        } else if (scene) {
-            if (!player.infiniteDuration && __finite(scene.duration)) {
-                player.drawAt(scene.duration * Player.PREVIEW_POS);
+        } else if (anim) {
+            if (!player.infiniteDuration && __finite(anim.duration)) {
+                player.drawAt(anim.duration * Player.PREVIEW_POS);
             } else {
                 player.drawAt(state.from);
             }
@@ -1296,8 +1296,8 @@ Player.prototype._drawThumbnail = function() {
     }
     ctx.restore();
 }
-// _drawSplash draws splash screen if there is no scene loaded in the player
-// or the scene is inaccessible; if there is a preloaded thumbnail accessible,
+// _drawSplash draws splash screen if there is no animation loaded in the player
+// or the animation is inaccessible; if there is a preloaded thumbnail accessible,
 // it applies the thumbnail instead
 Player.prototype._drawSplash = function() {
     if (this.controls) return;
@@ -1429,11 +1429,11 @@ Player.prototype._stopLoadingAnimation = function() {
 Player.prototype.toString = function() {
     return "[ Player '" + this.id + "' m-" + this.mode + " ]";
 }
-// reset player to initial state, called before loading any scene
+// reset player to initial state, called before loading any animation
 Player.prototype._reset = function() {
     var state = this.state;
     // clear postponed tasks if player started to load remote resources,
-    // they are not required since new scene is loading in the player now
+    // they are not required since new animation is loading in the player now
     // or it is being detached
     if ((this.loadingMode === C.LM_ONREQUEST) &&
         (state.happens === C.RES_LOADING)) {
@@ -1506,39 +1506,39 @@ Player.prototype._disableInfo = function() {
 Player.prototype._renderControlsAt = function(time) {
     this.controls.render(time);
 }
-Player.prototype.__subscribeDynamicEvents = function(scene) {
+Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         $engine.setTabIndex(this.canvas, this.__instanceNum);
     }
-    if (scene) {
+    if (anim) {
         var subscribed = false;
         if (!this.__boundTo) {
             this.__boundTo = [];
         } else {
             for (var i = 0, ix = this.__boundTo, il = ix.length; i < il; i++) {
-                if ((scene.id === ix[i][0]) &&
+                if ((anim.id === ix[i][0]) &&
                     (this.canvas === ix[i][1])) {
                     subscribed = true;
                 }
             }
         }
         if (!subscribed) {
-            this.__boundTo.push([ scene.id, this.canvas ]);
-            scene.subscribeEvents(this.canvas);
+            this.__boundTo.push([ anim.id, this.canvas ]);
+            anim.subscribeEvents(this.canvas);
         }
     }
 }
-Player.prototype.__unsubscribeDynamicEvents = function(scene) {
+Player.prototype.__unsubscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         $engine.setTabIndex(this.canvas, undefined);
     }
-    if (scene) {
+    if (anim) {
         if (!this.__boundTo) return;
         var toRemove = -1;
         for (var i = 0, ix = this.__boundTo, il = ix.length; i < il; i++) {
-            if (scene.id === ix[i][0]) {
+            if (anim.id === ix[i][0]) {
                 toRemove = i;
-                scene.unsubscribeEvents(ix[i][1]);
+                anim.unsubscribeEvents(ix[i][1]);
             }
         }
         if (toRemove >= 0) {
@@ -1552,10 +1552,10 @@ Player.prototype._ensureHasState = function() {
 Player.prototype._ensureHasAnim = function() {
     if (!this.anim) throw new PlayerErr(Errors.P.NO_SCENE);
 }
-Player.prototype.__beforeFrame = function(scene) {
-    return (function(player, state, scene, callback) {
+Player.prototype.__beforeFrame = function(anim) {
+    return (function(player, state, anim, callback) {
         return function(time) {
-            scene.clearAllLaters();
+            anim.clearAllLaters();
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
@@ -1563,9 +1563,9 @@ Player.prototype.__beforeFrame = function(scene) {
                     (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
-                scene.reset();
+                anim.reset();
                 player.stop();
-                if (player.repeat || scene.repeat) {
+                if (player.repeat || anim.repeat) {
                    player.play();
                    player.fire(C.S_REPEAT);
                 } else if (!player.infiniteDuration
@@ -1577,20 +1577,20 @@ Player.prototype.__beforeFrame = function(scene) {
             if (callback) callback(time, player.ctx);
             return true;
         }
-    })(this, this.state, scene, this.__userBeforeFrame);
+    })(this, this.state, anim, this.__userBeforeFrame);
 }
-Player.prototype.__afterFrame = function(scene) {
-    return (function(player, state, scene, callback) {
+Player.prototype.__afterFrame = function(anim) {
+    return (function(player, state, anim, callback) {
         return function(time) {
             if (player.controls && !player.controls.hidden) {
                 player.controls.render(time);
             }
             if (callback) callback(time);
 
-            scene.invokeAllLaters();
+            anim.invokeAllLaters();
             return true;
         }
-    })(this, this.state, scene, this.__userAfterFrame);
+    })(this, this.state, anim, this.__userAfterFrame);
 }
 
 // Called when any error happens during player initialization or animation
@@ -1740,7 +1740,7 @@ Player.prototype._notifyAPI = function() {
 } */
 
 Player.createState = function(player) {
-    // Player state contains only things that actually change while playing a scene,
+    // Player state contains only things that actually change while playing an animation,
     // it's current time, time when player started to play or was stopped at,
     // happens reflects what player does now, `afps` is actual FPS.
     return {
@@ -1835,11 +1835,11 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     }
 }
 
-// Scene
+// Animation
 // -----------------------------------------------------------------------------
 
-// > Scene % ()
-function Scene() {
+// > Animation % ()
+function Animation() {
     this.id = guid();
     this.tree = [];
     this.hash = {};
@@ -1858,28 +1858,28 @@ function Scene() {
     this._initHandlers(); // TODO: make automatic
 }
 
-Scene.DEFAULT_DURATION = 10;
+Animation.DEFAULT_DURATION = 10;
 
-// mouse/keyboard events are assigned in L.loadScene
-/* TODO: move them into scene */
-provideEvents(Scene, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
-                       C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                       C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                       C.X_DRAW,
-                       // player events
-                       C.S_CHANGE_STATE,
-                       C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                       C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
-/* TODO: add chaining to all external Scene methods? */
-// > Scene.add % (elem: Element | Clip)
-// > Scene.add % (elems: Array[Element]) => Clip
-// > Scene.add % (draw: Function(ctx: Context),
+// mouse/keyboard events are assigned in L.loadAnimation
+/* TODO: move them into animation */
+provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+                           C.X_MMOVE, C.X_MOVER, C.X_MOUT,
+                           C.X_KPRESS, C.X_KUP, C.X_KDOWN,
+                           C.X_DRAW,
+                           // player events
+                           C.S_CHANGE_STATE,
+                           C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
+                           C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+/* TODO: add chaining to all external Animation methods? */
+// > Animation.add % (elem: Element | Clip)
+// > Animation.add % (elems: Array[Element]) => Clip
+// > Animation.add % (draw: Function(ctx: Context),
 //                onframe: Function(time: Float),
 //                [ transform: Function(ctx: Context,
 //                                      prev: Function(Context)) ])
 //                => Element
-// > Scene.add % (builder: Builder)
-Scene.prototype.add = function(arg1, arg2, arg3) {
+// > Animation.add % (builder: Builder)
+Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
     // FIXME: allow to add elements deeper or rename this
     //        method to avoid confusion?
@@ -1900,8 +1900,8 @@ Scene.prototype.add = function(arg1, arg2, arg3) {
     }
 }
 /* addS allowed to add static element before, such as image, may be return it in some form? */
-// > Scene.remove % (elm: Element)
-Scene.prototype.remove = function(elm) {
+// > Animation.remove % (elm: Element)
+Animation.prototype.remove = function(elm) {
     // error will be thrown in _unregister method
     //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     if (elm.parent) {
@@ -1911,8 +1911,8 @@ Scene.prototype.remove = function(elm) {
         this._unregister(elm);
     }
 }
-// > Scene.prototype.clear % ()
-/* Scene.prototype.clear = function() {
+// > Animation.prototype.clear % ()
+/* Animation.prototype.clear = function() {
     this.hash = {};
     this.tree = [];
     this.duration = 0;
@@ -1922,24 +1922,24 @@ Scene.prototype.remove = function(elm) {
         hash[elm.id]._unbind(); // unsafe, because calls unregistering
     }
 } */
-// > Scene.visitElems % (visitor: Function(elm: Element))
-Scene.prototype.visitElems = function(visitor, data) {
+// > Animation.visitElems % (visitor: Function(elm: Element))
+Animation.prototype.visitElems = function(visitor, data) {
     for (var elmId in this.hash) {
         visitor(this.hash[elmId], data);
     }
 }
-Scene.prototype.travelChildren = Scene.prototype.visitElems;
-// > Scene.visitRoots % (visitor: Function(elm: Element))
-Scene.prototype.visitRoots = function(visitor, data) {
+Animation.prototype.travelChildren = Animation.prototype.visitElems;
+// > Animation.visitRoots % (visitor: Function(elm: Element))
+Animation.prototype.visitRoots = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
         visitor(this.tree[i], data);
     }
 }
-Scene.prototype.visitChildren = Scene.prototype.visitRoots;
-Scene.prototype.iterateRoots = function(func, rfunc) {
+Animation.prototype.visitChildren = Animation.prototype.visitRoots;
+Animation.prototype.iterateRoots = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
 }
-Scene.prototype.render = function(ctx, time, dt) {
+Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
     var zoom = this.zoom;
     try {
@@ -1956,14 +1956,14 @@ Scene.prototype.render = function(ctx, time, dt) {
     } finally { ctx.restore(); }
     this.fire(C.X_DRAW,ctx);
 }
-Scene.prototype.handle__x = function(type, evt) {
+Animation.prototype.handle__x = function(type, evt) {
     this.visitElems(function(elm) {
         elm.fire(type, evt);
     });
     return true;
 }
 // TODO: test
-Scene.prototype.getFittingDuration = function() {
+Animation.prototype.getFittingDuration = function() {
     var max_pos = -Infinity;
     var me = this;
     this.visitRoots(function(elm) {
@@ -1972,13 +1972,13 @@ Scene.prototype.getFittingDuration = function() {
     });
     return max_pos;
 }
-Scene.prototype.reset = function() {
+Animation.prototype.reset = function() {
     this.__informEnabled = true;
     this.visitRoots(function(elm) {
         elm.reset();
     });
 }
-Scene.prototype.dispose = function() {
+Animation.prototype.dispose = function() {
     this.disposeHandlers();
     var me = this;
     /* FIXME: unregistering removes from tree, ensure it is safe */
@@ -1988,19 +1988,19 @@ Scene.prototype.dispose = function() {
         return false;
     });
 }
-Scene.prototype.isEmpty = function() {
+Animation.prototype.isEmpty = function() {
     return this.tree.length == 0;
 }
-Scene.prototype.toString = function() {
-    return "[ Scene "+(this.name ? "'"+this.name+"'" : "")+"]";
+Animation.prototype.toString = function() {
+    return "[ Animation "+(this.name ? "'"+this.name+"'" : "")+"]";
 }
-Scene.prototype.subscribeEvents = function(canvas) {
-    $engine.subscribeSceneToEvents(canvas, this, DOM_TO_EVT_MAP);
+Animation.prototype.subscribeEvents = function(canvas) {
+    $engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
 }
-Scene.prototype.unsubscribeEvents = function(canvas) {
-    $engine.unsubscribeSceneFromEvents(canvas, this);
+Animation.prototype.unsubscribeEvents = function(canvas) {
+    $engine.unsubscribeAnimationFromEvents(canvas, this);
 }
-Scene.prototype._addToTree = function(elm) {
+Animation.prototype._addToTree = function(elm) {
     if (!elm.children) {
         throw new AnimErr('It appears that it is not a clip object or element that you pass');
     }
@@ -2008,26 +2008,26 @@ Scene.prototype._addToTree = function(elm) {
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
 }
-/*Scene.prototype._addElems = function(elems) {
+/*Animation.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
         var _elm = elems[ei];
         this._register(_elm);
     }
 }*/
-Scene.prototype._register = function(elm) {
+Animation.prototype._register = function(elm) {
     if (this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
-    elm.scene = this;
+    elm.anim = this;
     this.hash[elm.id] = elm;
     var me = this;
     elm.visitChildren(function(elm) {
         me._register(elm);
     });
 }
-Scene.prototype._unregister_no_rm = function(elm) {
+Animation.prototype._unregister_no_rm = function(elm) {
     this._unregister(elm, true);
 }
-Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
+Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
     if (!elm.registered) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.visitChildren(function(elm) {
@@ -2041,15 +2041,15 @@ Scene.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is o
     }
     delete this.hash[elm.id];
     elm.registered = false;
-    elm.scene = null;
+    elm.anim = null;
     //elm.parent = null;
 }
-Scene.prototype._collectRemoteResources = function(player) {
+Animation.prototype._collectRemoteResources = function(player) {
     var remotes = [],
-        scene = this;
+        anim = this;
     this.visitElems(function(elm) {
-        if (elm._hasRemoteResources(scene, player)) {
-           remotes = remotes.concat(elm._collectRemoteResources(scene, player)/* || []*/);
+        if (elm._hasRemoteResources(anim, player)) {
+           remotes = remotes.concat(elm._collectRemoteResources(anim, player)/* || []*/);
         }
     });
     if(this.fonts && this.fonts.length) {
@@ -2057,16 +2057,16 @@ Scene.prototype._collectRemoteResources = function(player) {
     }
     return remotes;
 }
-Scene.prototype._loadRemoteResources = function(player) {
-    var scene = this;
+Animation.prototype._loadRemoteResources = function(player) {
+    var anim = this;
     this.visitElems(function(elm) {
-        if (elm._hasRemoteResources(scene, player)) {
-           elm._loadRemoteResources(scene, player);
+        if (elm._hasRemoteResources(anim, player)) {
+           elm._loadRemoteResources(anim, player);
         }
     });
-    scene.loadFonts(player);
+    anim.loadFonts(player);
 }
-Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
+Animation.prototype.__ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs &&
         this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
     if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
@@ -2078,7 +2078,7 @@ Scene.prototype.__ensureHasMaskCanvas = function(lvl) {
     //document.body.appendChild(this.__maskCvs[lvl]);
     //document.body.appendChild(this.__backCvs[lvl]);
 }
-Scene.prototype.__removeMaskCanvases = function() {
+Animation.prototype.__removeMaskCanvases = function() {
     if (!this.__maskCvs && !this.__backCvs) return;
     if (this.__maskCvs) {
         for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
@@ -2103,10 +2103,10 @@ Scene.prototype.__removeMaskCanvases = function() {
         this.__backCtx = null;
     }
 }
-Scene.prototype.findById = function(id) {
+Animation.prototype.findById = function(id) {
     return this.hash[id];
 }
-Scene.prototype.findByName = function(name, where) {
+Animation.prototype.findByName = function(name, where) {
     var where = where || this;
     var found = [];
     if (where.name == name) found.push(name);
@@ -2115,19 +2115,19 @@ Scene.prototype.findByName = function(name, where) {
     });
     return found;
 }
-Scene.prototype.invokeAllLaters = function() {
+Animation.prototype.invokeAllLaters = function() {
     for (var i = 0; i < this._laters.length; i++) {
         this._laters[i].call(this);
     };
 }
-Scene.prototype.clearAllLaters = function() {
+Animation.prototype.clearAllLaters = function() {
     this._laters = [];
 }
-// > Scene.invokeLater % (f: Function())
-Scene.prototype.invokeLater = function(f) {
+// > Animation.invokeLater % (f: Function())
+Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
-Scene.prototype.loadFonts = function(player) {
+Animation.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
     }
@@ -2234,10 +2234,10 @@ function Element(name, draw, onframe) {
     this.children = [];
     this.parent = null;
     this.level = 0;
-    this.scene = null;
+    this.anim = null; // the animation it belongs to / registered in
     this.visible = true; // user flag, set by user
     this.shown = false; // system flag, set by engine
-    this.registered = false; // registered in scene or not
+    this.registered = false; // is registered in animation or not
     this.disabled = false;
     this.rendering = false; // in process of rendering or not
     this.initState(); // initializes matrix, values for transformations
@@ -2432,7 +2432,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
     // FIXME: masks have no scene set to something, but should to (see masks tests)
-    if (this.scene && this.scene.__informEnabled) this.inform(ltime);
+    if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.modifiers(ltime, dt)
@@ -2455,19 +2455,19 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     elm.render(ctx, gtime, dt);
                 });
             } else {
-                var scene = this.scene;
-                if (!scene) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
+                var anim = this.anim;
+                if (!anim) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
                 var level = this.level;
-                scene.__ensureHasMaskCanvas(level);
-                var mcvs = scene.__maskCvs[level],
-                    mctx = scene.__maskCtx[level],
-                    bcvs = scene.__backCvs[level],
-                    bctx = scene.__backCtx[level];
+                anim.__ensureHasMaskCanvas(level);
+                var mcvs = anim.__maskCvs[level],
+                    mctx = anim.__maskCtx[level],
+                    bcvs = anim.__backCvs[level],
+                    bctx = anim.__backCtx[level];
 
-                var scene_width = scene.width,
-                    scene_height = scene.height,
-                    dbl_scene_width = scene.width * 2,
-                    dbl_scene_height = scene.height * 2,
+                var anim_width = anim.width,
+                    anim_height = anim.height,
+                    dbl_anim_width = anim.width * 2,
+                    dbl_anim_height = anim.height * 2,
                     ratio = $engine.PX_RATIO;
 
                 /* FIXME: configure mask canvas using clips bounds (incl. children) */
@@ -2477,12 +2477,12 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, dbl_scene_width,
-                                     dbl_scene_height);
+                bctx.clearRect(0, 0, dbl_anim_width,
+                                     dbl_anim_height);
 
                 bctx.save(); // bctx second open
 
-                bctx.translate(scene_width, scene_height);
+                bctx.translate(anim_width, anim_height);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
@@ -2494,21 +2494,21 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.save(); // mctx first open
                 if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, dbl_scene_width,
-                                     dbl_scene_height);
+                mctx.clearRect(0, 0, dbl_anim_width,
+                                     dbl_anim_height);
 
-                mctx.translate(scene_width, scene_height);
+                mctx.translate(anim_width, anim_height);
                 this.__mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0,
-                                     dbl_scene_width, dbl_scene_height);
+                                     dbl_anim_width, dbl_anim_height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, -scene_width, -scene_height,
-                                    dbl_scene_width, dbl_scene_height);
+                ctx.drawImage(bcvs, -anim_width, -anim_height,
+                                    dbl_anim_width, dbl_anim_height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
@@ -2644,8 +2644,8 @@ Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
         this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
     this.parent = null;
-    if (this.scene) this.scene._unregister(this);
-    // this.scene should be null after unregistering
+    if (this.anim) this.anim._unregister(this);
+    // this.anim should be null after unregistering
 }
 // > Element.detach % ()
 Element.prototype.detach = function() {
@@ -2992,7 +2992,7 @@ Element.prototype.rect = function() {
 }
 Element.prototype.setMask = function(elm) {
     if (!elm) throw new AnimErr('No valid masking element was passed');
-    if (this.scene) this.scene.__ensureHasMaskCanvas(this.level);
+    if (this.anim) this.anim.__ensureHasMaskCanvas(this.level);
     this.__mask = elm;
 }
 Element.prototype.clearMask = function() {
@@ -3019,7 +3019,7 @@ Element.prototype.toString = function() {
     return buf.join("");
 }
 Element.prototype.findByName = function(name) {
-    this.scene.findByName(name, this);
+    this.anim.findByName(name, this);
 }
 Element.prototype.clone = function() {
     var clone = new Element();
@@ -3030,9 +3030,9 @@ Element.prototype.clone = function() {
     clone.level = this.level;
     //clone.visible = this.visible;
     //clone.disabled = this.disabled;
-    // .scene pointer, .parent pointer & .registered flag
+    // .anim pointer, .parent pointer & .registered flag
     // are not transferred because the clone is another
-    // element that should be separately added to some scene
+    // element that should be separately added to some animation
     // in its own time to start working properly
     Element.transferState(this, clone);
     Element.transferVisuals(this, clone);
@@ -3098,7 +3098,7 @@ Element.prototype._addChild = function(elm) {
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
-    if (this.scene) this.scene._register(elm); /* TODO: rollback parent and child? */
+    if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
 }
 Element.prototype._addChildren = function(elms) {
@@ -3363,15 +3363,15 @@ Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
 }
-Element.prototype._hasRemoteResources = function(scene, player) {
+Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) return true;
 }
-Element.prototype._collectRemoteResources = function(scene, player) {
+Element.prototype._collectRemoteResources = function(anim, player) {
     if (!player.imagesEnabled) return null;
     if (!this.$image) return null;
     return [ this.$image.src ];
 }
-Element.prototype._loadRemoteResources = function(scene, player) {
+Element.prototype._loadRemoteResources = function(anim, player) {
     if (!player.imagesEnabled) return;
     if (!this.$image) return;
     this.$image.load(player.id);
@@ -3614,36 +3614,30 @@ L.loadFromUrl = function(player, url, importer, callback) {
 }
 L.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new PlayerErr(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
-    var scene = importer.load(object);
-    player.fire(C.S_IMPORT, importer, scene, object);
-    L.loadScene(player, scene, callback);
+    var anim = importer.load(object);
+    player.fire(C.S_IMPORT, importer, anim, object);
+    L.loadAnimation(player, anim, callback);
 }
-L.loadScene = function(player, scene, callback) {
+L.loadAnimation = function(player, anim, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
     if (player.debug
         && !global_opts.liveDebug)
-        scene.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
-    if (!scene.width || !scene.height) {
-        scene.width = player.width;
-        scene.height = player.height;
-    } else if (player.forceSceneSize) {
-        player._resize(scene.width, scene.height);
+        anim.visitElems(Element.__addDebugRender); /* FIXME: ensure not to add twice */
+    if (!anim.width || !anim.height) {
+        anim.width = player.width;
+        anim.height = player.height;
+    } else if (player.forceAnimationSize) {
+        player._resize(anim.width, anim.height);
     }
     // assign
-    player.anim = scene;
-    if (callback) callback.call(player, scene);
+    player.anim = anim;
+    if (callback) callback.call(player, anim);
 }
 L.loadClips = function(player, clips, callback) {
-    var _anim = new Scene();
+    var _anim = new Animation();
     _anim.add(clips);
-    L.loadScene(player, _anim, callback);
-}
-L.loadBuilder = function(player, builder, callback) {
-    var _anim = new Scene();
-    _anim.add(builder.v);
-    if (builder.d != undefined) _anim.duration = builder.d;
-    L.loadScene(player, _anim, callback);
+    L.loadAnimation(player, _anim, callback);
 }
 
 // Rendering
@@ -3659,7 +3653,7 @@ var Render = {}; // means "Render", render loop + system modifiers & painters
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
-function __r_loop(ctx, player, scene, before, after, before_render, after_render) {
+function __r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     var pl_state = player.state;
 
@@ -3686,7 +3680,7 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
     }
     pl_state.__redraws++;
 
-    __r_at(time, dt, ctx, scene,
+    __r_at(time, dt, ctx, anim,
            player.width, player.height, player.zoom, player.ribbonsColor,
            before_render, after_render);
 
@@ -3702,36 +3696,36 @@ function __r_loop(ctx, player, scene, before, after, before_render, after_render
     if (pl_state.__supressFrames) return;
 
     return __nextFrame(function() {
-        __r_loop(ctx, player, scene, before, after, before_render, after_render);
+        __r_loop(ctx, player, anim, before, after, before_render, after_render);
     })
 }
-function __r_at(time, dt, ctx, scene, width, height, zoom, rib_color, before, after) {
+function __r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = $engine.PX_RATIO;
     if (ratio !== 1) ctx.scale(ratio, ratio);
     var width = width | 0,
         height = height | 0;
-    var size_differs = (width  != scene.width) ||
-                       (height != scene.height);
+    var size_differs = (width  != anim.width) ||
+                       (height != anim.height);
     if (!size_differs) {
         try {
-            ctx.clearRect(0, 0, scene.width,
-                                scene.height);
+            ctx.clearRect(0, 0, anim.width,
+                                anim.height);
             if (before) before(time, ctx);
             if (zoom != 1) ctx.scale(zoom, zoom);
-            scene.render(ctx, time, dt);
+            anim.render(ctx, time, dt);
             if (after) after(time, ctx);
         } finally { ctx.restore(); }
     } else {
         __r_with_ribbons(ctx, width, height,
-                              scene.width, scene.height,
+                              anim.width, anim.height,
                               rib_color,
             function(_scale) {
                 try {
-                  ctx.clearRect(0, 0, scene.width, scene.height);
+                  ctx.clearRect(0, 0, anim.width, anim.height);
                   if (before) before(time, ctx);
                   if (zoom != 1) ctx.scale(zoom, zoom);
-                  scene.render(ctx, time, dt);
+                  anim.render(ctx, time, dt);
                   if (after) after(time, ctx);
                 } finally { ctx.restore(); }
             });
@@ -3739,14 +3733,14 @@ function __r_at(time, dt, ctx, scene, width, height, zoom, rib_color, before, af
 }
 function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
     // pw == player width, ph == player height
-    // sw == scene width,  sh == scene height
+    // sw == anim width,  sh == anim height
     var f_rects    = __fit_rects(pw, ph, sw, sh),
         factor     = f_rects[0],
-        scene_rect = f_rects[1],
+        anim_rect = f_rects[1],
         rect1      = f_rects[2],
         rect2      = f_rects[3];
     ctx.save();
-    if (rect1 || rect2) { // scene_rect is null if no
+    if (rect1 || rect2) { // anim_rect is null if no
         ctx.save(); // second open
         ctx.fillStyle = color || '#000';
         if (rect1) {
@@ -3763,12 +3757,12 @@ function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
         }
         ctx.restore();
     }
-    if (scene_rect && (factor != 1)) {
+    if (anim_rect && (factor != 1)) {
         ctx.beginPath();
-        ctx.rect(scene_rect[0], scene_rect[1],
-                 scene_rect[2], scene_rect[3]);
+        ctx.rect(anim_rect[0], anim_rect[1],
+                 anim_rect[2], anim_rect[3]);
         ctx.clip();
-        ctx.translate(scene_rect[0], scene_rect[1]);
+        ctx.translate(anim_rect[0], anim_rect[1]);
     }
     if (factor != 1) ctx.scale(factor, factor);
     draw_f(factor);
@@ -3783,26 +3777,26 @@ function __r_fps(ctx, fps, time) {
 }
 function __fit_rects(pw, ph, sw, sh) {
     // pw == player width, ph == player height
-    // sw == scene width,  sh == scene height
-    var xw = pw / sw,
-        xh = ph / sh;
+    // aw == anim width,   ah == anim height
+    var xw = pw / aw,
+        xh = ph / ah;
     var factor = Math.min(xw, xh);
-    var hcoord = (pw - sw * factor) / 2,
-        vcoord = (ph - sh * factor) / 2;
+    var hcoord = (pw - aw * factor) / 2,
+        vcoord = (ph - ah * factor) / 2;
     if ((xw != 1) || (xh != 1)) {
-        var scene_rect = [ hcoord, vcoord, sw * factor, sh * factor ];
+        var anim_rect = [ hcoord, vcoord, aw * factor, ah * factor ];
         if (hcoord != 0) {
             return [ factor,
-                     scene_rect,
+                     anim_rect,
                      [ 0, 0, hcoord, ph ],
-                     [ hcoord + (sw * factor), 0, hcoord, ph ] ];
+                     [ hcoord + (aw * factor), 0, hcoord, ph ] ];
         } else if (vcoord != 0) {
             return [ factor,
-                     scene_rect,
-                     [ 0, 0, pw, vcoord ],
-                     [ 0, vcoord + (sh * factor), pw, vcoord ] ];
-        } else return [ factor, scene_rect ];
-    } else return [ 1, [ 0, 0, sw, sh ] ];
+                     anim_rect,
+                     [ 0, 0, aw, vcoord ],
+                     [ 0, vcoord + (ah * factor), aw, vcoord ] ];
+        } else return [ factor, anim_rect ];
+    } else return [ 1, [ 0, 0, aw, ah ] ];
 }
 Render.loop = __r_loop;
 Render.at = __r_at;
@@ -5575,7 +5569,7 @@ Controls.prototype.render = function(time) {
         }
     } else if (_s === C.NOTHING) {
         Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawNoScene(ctx, theme, _w, _h, this.focused);
+        Controls._drawNoAnimation(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         Controls._runLoadingAnimation(ctx, function(ctx) {
             ctx.clearRect(0, 0, _w, _h);
@@ -5949,7 +5943,7 @@ Controls._drawLoadingProgress = function(ctx, w, h, hilite_pos, radius, normal_c
     }
     ctx.restore();
 }
-Controls._drawNoScene = function(ctx, theme, w, h, focused) {
+Controls._drawNoAnimation = function(ctx, theme, w, h, focused) {
     ctx.save();
 
     var cx = w / 2,
@@ -6342,7 +6336,7 @@ return (function($trg) {
     $trg._$ = __createPlayer;
 
     $trg.Player = Player;
-    $trg.Scene = Scene; $trg.Element = Element; $trg.Clip = Clip;
+    $trg.Animation = Animation; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Modifier = Modifier; $trg.Painter = Painter;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing; $trg.TweenBuilder;

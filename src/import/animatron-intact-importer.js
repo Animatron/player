@@ -19,7 +19,7 @@ var IMPORTER_ID = 'ANM_INTACT';
 function __MYSELF() { }
 
 var C = anm.C,
-    Scene = anm.Scene,
+    Animation = anm.Animation,
     Element = anm.Element,
     Path = anm.Path,
     Text = anm.Text,
@@ -63,22 +63,22 @@ __MYSELF.prototype.load = function(prj) {
     if (console && (typeof __anm_conf !== 'undefined') && __anm_conf.logImport) console.log(prj);
     if (typeof __anm !== 'undefined') __anm.lastImportedProject = prj;
     // FIXME: allow importing several scenes
-    var scene =  this.importScene(prj.anim.scenes[0],
-                                  prj.anim.elements);
-    if (prj.meta.duration != undefined) scene.setDuration(prj.meta.duration);
-    if (prj.anim.background) scene.bgfill = Convert.fill(prj.anim.background);
-    return scene;
+    var anim =  this.importAnimation(prj.anim.scenes[0],
+                                     prj.anim.elements);
+    if (prj.meta.duration != undefined) anim.setDuration(prj.meta.duration);
+    if (prj.anim.background) anim.bgfill = Convert.fill(prj.anim.background);
+    return anim;
 };
 
 // ** ELEMENTS **
 
-__MYSELF.prototype.importScene = function(scene_id, source) {
-    var scene = new Scene();
+__MYSELF.prototype.importAnimation = function(scene_id, source) {
+    var anim = new Animation();
     var node = this.findNode(scene_id, source);
     if (!node) throw new Error("Scene was not found by ID");
     if (extract_type(node.id) != TYPE_SCENE) throw new Error("Given Scene ID points to something else");
-    scene.add(this.convertNode(node, source));
-    return scene;
+    anim.add(this.convertNode(node, source));
+    return anim;
 }
 
 var TYPE_UNKNOWN = "00",

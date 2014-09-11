@@ -22,7 +22,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
 
   var __findByName = function(elm) {
     return function(name, context) {
-      return anm.findByName(context || elm.scene, name);
+      return anm.findByName(context || elm.anim, name);
     };
   };
 

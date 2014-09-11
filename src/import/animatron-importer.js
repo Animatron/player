@@ -9,7 +9,7 @@
 
 // see ./animatron-project-@VERSION.orderly for a readable scheme of accepted project
 
-// This importer imports only the compact format of scenes (where all elements are arrays
+// This importer imports only the compact format of animations (where all elements are arrays
 // of arrays)
 
 if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
@@ -21,7 +21,7 @@ var AnimatronImporter = (function() {
 var IMPORTER_ID = 'ANM';
 
 var C = anm.C,
-    Scene = anm.Scene,
+    Animation = anm.Animation,
     Element = anm.Element,
     Path = anm.Path,
     Text = anm.Text,
@@ -58,7 +58,7 @@ Import._type = function(src) {
  *     object *anim*;     // animation info
  * } *project*;
  */
-// -> Scene
+// -> Animation
 Import.project = function(prj) {
     //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
@@ -67,7 +67,7 @@ Import.project = function(prj) {
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
-    var root = new Scene(),
+    var root = new Animation(),
         elems = prj.anim.elements,
         last_scene_band = [ 0, 0 ];
     root.__import_id = cur_import_id;
@@ -192,15 +192,15 @@ var TYPE_UNKNOWN =  0,
  * } *element*;
  */
 // -> Element
-Import.node = function(src, all, parent, scene) {
+Import.node = function(src, all, parent, anim) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
         (type == TYPE_GROUP)) {
-        trg = Import.branch(type, src, all, scene);
+        trg = Import.branch(type, src, all, anim);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, parent, scene);
+        trg = Import.leaf(type, src, parent, anim);
     }
     if (trg) { Import.callCustom(trg, src, type); };
     return trg;
@@ -224,7 +224,7 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, all, scene) {
+Import.branch = function(type, src, all, anim) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
@@ -258,7 +258,7 @@ Import.branch = function(type, src, all, scene) {
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(nsrc, all, trg, scene);
+        var ltrg = Import.node(nsrc, all, trg, anim);
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -350,14 +350,14 @@ Import.branch = function(type, src, all, scene) {
             ltrg.lband = [ltrg.lband[0], Infinity];
             ltrg.gband = [ltrg.gband[0], Infinity];
             trg.remove(ltrg);
-            scene.add(ltrg);
+            anim.add(ltrg);
         }
     }
     return trg;
 }
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent, scene) {
+Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.text  = Import.text(src);  }
