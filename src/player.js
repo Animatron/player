@@ -290,11 +290,10 @@ C.M_SANDBOX = C.M_CONTROLS_DISABLED
 // ### Load targets
 /* ---------------- */
 
-C.LT_BUILDER = 1;
-C.LT_SCENE = 2;
-C.LT_CLIPS = 3;
-C.LT_IMPORT = 4;
-C.LT_URL = 5;
+C.LT_ANIMATION = 1;
+C.LT_CLIPS = 2;
+C.LT_IMPORT = 3;
+C.LT_URL = 4;
 
 // ### Loading modes
 /* ---------------- */
@@ -573,7 +572,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new PlayerErr(Errors.P.NO_SCENE_PASSED);
+        throw new PlayerErr(Errors.P.NO_ANIMATION_PASSED);
     }
 
     if (!player.__canvasPrepared) throw new PlayerErr(Errors.P.CANVAS_NOT_PREPARED);
@@ -649,11 +648,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if (object) {
 
-        if (__builder(object)) {  // Builder instance
-            player._loadTarget = C.LT_BUILDER;
-            L.loadBuilder(player, object, whenDone);
-        } else if (object instanceof Animation) { // Animation instance
-            player._loadTarget = C.LT_SCENE;
+        if (object instanceof Animation) { // Animation instance
+            player._loadTarget = C.LT_ANIMATION;
             L.loadAnimation(player, object, whenDone);
         } else if (__arr(object)) { // array of clips
             player._loadTarget = C.LT_CLIPS;
@@ -669,7 +665,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
 
     } else {
-        player._loadTarget = C.LT_SCENE;
+        player._loadTarget = C.LT_ANIMATION;
         player.anim = new Animation();
         whenDone(player.anim);
     }
@@ -1550,7 +1546,7 @@ Player.prototype._ensureHasState = function() {
     if (!this.state) throw new PlayerErr(Errors.P.NO_STATE);
 }
 Player.prototype._ensureHasAnim = function() {
-    if (!this.anim) throw new PlayerErr(Errors.P.NO_SCENE);
+    if (!this.anim) throw new PlayerErr(Errors.P.NO_ANIMATION);
 }
 Player.prototype.__beforeFrame = function(anim) {
     return (function(player, state, anim, callback) {
@@ -2457,7 +2453,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 });
             } else {
                 var anim = this.anim;
-                if (!anim) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE);
+                if (!anim) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
                 var level = this.level;
                 anim.__ensureHasMaskCanvas(level);
                 var mcvs = anim.__maskCvs[level],
@@ -2614,8 +2610,6 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         return _elm;
     } else if (__arr(arg1)) { // elements array mode
         this._addChildren(arg1);
-    } else if (__builder(arg1)) { // builder instance
-        this._addChild(arg1.v);
     } else { // element object mode
         this._addChild(arg1);
     }

@@ -686,11 +686,11 @@
         Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
                                    '\'stop\' or \'pause\' before playing again';
         Errors.P.PAUSING_WHEN_STOPPED = 'Player is stopped, so it is not allowed to pause';
-        Errors.P.NO_SCENE_PASSED = 'No animation passed to load method';
+        Errors.P.NO_ANIMATION_PASSED = 'No animation passed to load method';
         Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
                             'please load something in player before ' +
                             'calling its playing-related methods';
-        Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
+        Errors.P.NO_ANIMATION = 'There\'s nothing at all to manage with, ' +
                             'please load something in player before ' +
                             'calling its playing-related methods';
         Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any animation while playing or paused, ' +
@@ -722,7 +722,7 @@
         Errors.A.MODIFIER_REGISTERED = 'Modifier was already added to this element';
         Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
         Errors.A.RESOURCES_FAILED_TO_LOAD = 'Some of resources required to play this animation were failed to load';
-        Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE = 'Element to be masked should be attached to animation when rendering';
+        Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION = 'Element to be masked should be attached to animation when rendering';
 
         // Export
         // -----------------------------------------------------------------------------
