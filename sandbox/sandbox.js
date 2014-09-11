@@ -18,7 +18,7 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
 
-    window.e = anm.Element._$;
+    window.elm = anm.Element._$;
     window.E = anm.Element;
     window.C = anm.C;
 
