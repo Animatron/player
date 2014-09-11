@@ -3858,13 +3858,10 @@ Render.p_drawVisuals = function(ctx) {
     if (!subj) return;
 
     ctx.save();
-    if (this.$fill) Brush.fill(ctx, this.$fill);
-    if (this.$shadow) Brush.shadow(ctx, this.$shadow);
-    if (this.$stroke) Brush.stroke(ctx, this.$stroke);
+    Brush.fill(ctx, this.$fill);
+    Brush.shadow(ctx, this.$shadow);
+    Brush.stroke(ctx, this.$stroke);
     subj.apply(ctx);
-    if (this.$fill) ctx.fill();
-    if (this.$shadow) Brush.clearShadow(ctx);
-    if (this.$stroke) ctx.stroke();
     ctx.restore();
 }
 
@@ -4284,19 +4281,6 @@ function Path(val) {
         this.segs = val;
     }
 }
-
-Path.DEFAULT_CAP = C.PC_ROUND;
-Path.DEFAULT_JOIN = C.PC_ROUND;
-Path.EMPTY_FILL = { 'color': 'transparent' };
-Path.DEFAULT_FILL = Path.EMPTY_FILL;
-Path.BASE_FILL = { 'color': '#fff666' };
-Path.EMPTY_STROKE = { 'width': 0, color: 'transparent' };
-Path.DEFAULT_STROKE = Path.EMPTY_STROKE;
-Path.BASE_STROKE = { 'width': 1.0,
-                     'color': '#000',
-                     'cap': Path.DEFAULT_CAP,
-                     'join': Path.DEFAULT_JOIN
-                   };
 
 
 // visits every chunk of path in array-form and calls
@@ -4880,24 +4864,17 @@ Text.prototype.apply = function(ctx) {
 
     ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
     var y = 0;
-    if (Brush._hasVal(this.fill)) {
-        Brush.shadow(ctx, this.shadow);
-        Brush.fill(ctx, this.fill);
-        this.visitLines(function(line) {
-            ctx.fillText(line, 0, y+ascent);
-            y += height;
-        });
-        Brush.clearShadow(ctx);
-    }
-    if (Brush._hasVal(this.stroke)) {
-        Brush.stroke(ctx, this.stroke);
-        y = 0;
-        this.visitLines(function(line) {
-            ctx.strokeText(line, 0, y+ascent);
-            y += height;
-        });
-    }
-    if (underlined) {
+    this.visitLines(function(line) {
+        ctx.fillText(line, 0, y+ascent);
+        y += height;
+    });
+    Brush.clearShadow(ctx);
+    y = 0;
+    this.visitLines(function(line) {
+        ctx.strokeText(line, 0, y+ascent);
+        y += height;
+    });
+    if (underlined) { // FIXME: no this.fill anymore
         var stroke = this.fill,
             me = this; //obj_clone(this.fill);
         y = 0;
@@ -5003,8 +4980,8 @@ var Brush = {};
 // Constants
 Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
-Brush.DEFAULT_FILL = { 'color': '#000' };
-Brush.DEFAULT_STROKE = null/*Path.EMPTY_STROKE*/;
+Brush.DEFAULT_FILL = '#000';
+Brush.DEFAULT_STROKE = null;
 // cached creation, returns previous result
 // if it was already created before
 Brush.adapt = function(ctx, src) {
@@ -5063,24 +5040,22 @@ Brush._adapt = function(ctx, brush) {
     return null;
 }
 // TODO: move to instance methods
-Brush.stroke = function(ctx, stroke) {
-    if (!stroke) return;
-    ctx.lineWidth = stroke.width;
-    ctx.strokeStyle = Brush.adapt(ctx, stroke);
-    ctx.lineCap = stroke.cap;
-    ctx.lineJoin = stroke.join;
-}
 Brush.fill = function(ctx, fill) {
-    if (!fill) return;
-    ctx.fillStyle = Brush.adapt(ctx, fill);
+    ctx.fillStyle = fill ? Brush.adapt(ctx, fill) : Brush.DEFAULT_FILL;
+}
+Brush.stroke = function(ctx, stroke) {
+    ctx.lineWidth = stroke ? stroke.width : 0;
+    ctx.strokeStyle = stroke ? Brush.adapt(ctx, stroke) : Brush.DEFAULT_STROKE;
+    ctx.lineCap = stroke ? stroke.cap : Brush.DEFAULT_CAP;
+    ctx.lineJoin = stroke ? stroke.join : Brush.DEFAULT_JOIN;
 }
 Brush.shadow = function(ctx, shadow) {
     var props = $engine.getAnmProps(ctx);
     if (!shadow || $conf.doNotRenderShadows || (props.skip_shadows)) return;
-    ctx.shadowColor = Brush.adapt(shadow);
-    ctx.shadowBlur = shadow.blurRadius;
-    ctx.shadowOffsetX = shadow.offsetX;
-    ctx.shadowOffsetY = shadow.offsetY;
+    ctx.shadowColor = shadow ? Brush.adapt(shadow) : null;
+    ctx.shadowBlur = shadow ? shadow.blurRadius : 0;
+    ctx.shadowOffsetX = shadow ? shadow.offsetX : 0;
+    ctx.shadowOffsetY = shadow ? shadow.offsetY : 0;
 }
 Brush.clearShadow = function(ctx) {
     ctx.shadowBlur = 0;
