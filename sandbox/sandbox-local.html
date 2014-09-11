@@ -47,9 +47,7 @@
 
       <pre class="locked">#my-canvas</pre>
 
-      <div id="player-wrapper">
-        <canvas id="my-canvas"></canvas> <!-- canvas -->
-      </div>
+      <div id="player"></div>
 
       <div><p id="refresh-calc">Current refresh period: <span data-var="secPeriod" class="TKAdjustableNumber" data-max="60"> seconds</span>.<br/>Animation will be reloaded <span data-var="perMinute"> times</span> per minute</p>
       <p id="debug-options"><span>Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></span> /
@@ -82,7 +80,7 @@ var scene = (function() {</pre>
 
       <pre class="locked">})();
 
-createPlayer("my-canvas").load(scene).play();</pre>
+createPlayer("player").load(scene).play();</pre>
 
       <p>
         <a id="csheet-link" href="#"

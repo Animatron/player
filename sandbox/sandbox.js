@@ -22,7 +22,7 @@ function sandbox() {
     window.E = anm.Element;
     window.C = anm.C;
 
-    this.player = anm.createPlayer('my-canvas', {
+    this.player = anm.createPlayer('player', {
         mode: anm.C.M_SANDBOX,
         muteErrors: true,
         width: 400,

@@ -5151,7 +5151,7 @@ Brush.invalidate = function(brush) {
 //a set of functions for parsing and intepolating color values
 var Color = {};
 Color.HEX_RE       = /^#?([a-fA-F\d]{2})([a-fA-F\d]{2})([a-fA-F\d]{2})$/i;
-Color.HEX_SHORT_RE = /^#?[a-fA-F\d][a-fA-F\d][a-fA-F\d])$/i;
+Color.HEX_SHORT_RE = /^#?([a-fA-F\d][a-fA-F\d][a-fA-F\d])$/i;
 Color.RGB_RE       = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
 Color.RGBA_RE      = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i;
 Color.from = function(test) {
