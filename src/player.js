@@ -2246,8 +2246,8 @@ function Element(name, draw, onframe) {
     this.initEvents(); // initialize events storage and mechanics
     this.$modifiers = {};
     this.$painters = {};
-    if (onframe) this.__modify({ type: Element.USER_MOD }, onframe);
-    if (draw) this.__paint({ type: Element.USER_PNT }, draw);
+    if (onframe) this.modify(onframe);
+    if (draw) this.paint(draw);
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if painting
     this.__detachQueue = [];
@@ -2355,7 +2355,8 @@ Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
     this.mode = C.R_ONCE; // playing mode
     this.nrep = Infinity; // number of repetions for the mode
-    this.lband = [0, Element.DEFAULT_LEN]; // local band // FIXME: rename to "band"!
+    // FIXME: rename to "$band"?
+    this.lband = [0, Element.DEFAULT_LEN]; // local band
     this.gband = [0, Element.DEFAULT_LEN]; // global band
 
     this.keys = {}; // aliases for time jumps
@@ -2593,6 +2594,9 @@ Element.prototype.removePainter = function(painter) {
 // > Element.tween % (tween: Tween)
 Element.prototype.tween = function(tween) {
     if (!(tween instanceof Tween)) throw new AnimError('Please pass Tween instance to .tween() method');
+    tween.relative_t = true;
+    // tweens are always receiving time as relative time
+    // __finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
 }
 // > Element.add % (elem: Element | Clip)
@@ -2776,15 +2780,15 @@ Element.prototype._max_tpos = function() {
             : 0;
 } */
 Element.prototype.m_on = function(type, handler) {
-    return this.__modify({ type: Element.EVENT_MOD },
-      function(t) { /* FIXME: handlers must have priority? */
-        if (this.__evt_st & type) {
-          var evts = this.evts[type];
-          for (var i = 0, el = evts.length; i < el; i++) {
-              if (handler.call(this, evts[i], t) === false) return false;
-          }
-        }
-    });
+    this.modify(new Modifier(
+        function(t) { /* FIXME: handlers must have priority? */
+            if (this.__evt_st & type) {
+                var evts = this.evts[type];
+                for (var i = 0, el = evts.length; i < el; i++) {
+                    if (handler.call(this, evts[i], t) === false) return false;
+                }
+            }
+        }, C.MOD_EVENT));
 }
 /*Element.prototype.posAtStart = function(ctx) {
     var s = this.state;
@@ -3030,7 +3034,7 @@ Element.prototype.clone = function() {
     clone.level = this.level;
     //clone.visible = this.visible;
     //clone.disabled = this.disabled;
-    // .anim pointer, .parent pointer & .registered flag
+    // .anim pointer, .parent pointer & PNT_SYSTEMistered flag
     // are not transferred because the clone is another
     // element that should be separately added to some animation
     // in its own time to start working properly
@@ -3112,11 +3116,14 @@ Element.prototype._stateStr = function() {
            "angle: " + this.angle + " alpha: " + this.alpha + '\n' +
            "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
 }
-Element.prototype.__adaptModTime = function(ltime, conf, modifier) {
+// FIXME: move to Modifier class
+Element.prototype.__adaptModTime = function(ltime, modifier) {
   var elm_duration = this.lband[1] - this.lband[0], // duration of the element's local band
+      conf = modifier, // all configuration is stored inside the modifier
       mod_easing = conf.easing, // modifier easing
       mod_time = conf.band || conf.time, // time (or band) of the modifier, if set
-      mod_relative = conf.relative; // is modifier time relative to elm duration or not
+      mod_relative = conf.relative, // is modifier time relative to elm duration or not
+      mod_relative_t = conf.relative_t;
   var _tpair = null; // tpair
   if (mod_time == null) {
       _tpair = [ mod_relative
@@ -3129,7 +3136,8 @@ Element.prototype.__adaptModTime = function(ltime, conf, modifier) {
           var mod_duration = mod_band[1] - mod_band[0];
           if (__t_cmp(ltime, mod_band[0]) < 0) return false;
           if (__t_cmp(ltime, mod_band[1]) > 0) return false;
-          _tpair = [ __adjust(ltime - mod_band[0]),
+          _tpair = [ mod_relative_t ? (__adjust(ltime - mod_band[0]) / __adjust(mod_duration))
+                                    :  __adjust(ltime - mod_band[0]),
                      __adjust(mod_duration) ];
       } else {
           mod_band = [ mod_band[0] * elm_duration,
@@ -3149,11 +3157,11 @@ Element.prototype.__adaptModTime = function(ltime, conf, modifier) {
           modifier.__wasCalled[this.id] = true;
           modifier.__wasCalledAt[this.id] = ltime;
       } else return false;
-      _tpair = [ mod_relative
+      _tpair = [ (mod_relative || mod_relative_t)
                      ? __adjust(ltime) / __adjust(elm_duration)
                      : __adjust(ltime),
                  __adjust(elm_duration) ];
-  } else _tpair = [ mod_relative
+  } else _tpair = [ (mod_relative || mod_relative_t)
                         ? __adjust(ltime) / __adjust(elm_duration)
                         : __adjust(ltime),
                     __adjust(elm_duration) ];
@@ -3193,7 +3201,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
         for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
             modifier = typed_modifiers[j];
             // lbtime is band-apadted time, if modifier has its own band
-            lbtime = elm.__adaptModTime(ltime, conf, modifier);
+            lbtime = elm.__adaptModTime(ltime, modifier);
             // `false` will be returned from `__adaptModTime`
             // for trigger-like modifier if it is required to skip current one,
             // on the other hand `true` means
@@ -3201,7 +3209,7 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
             if (lbtime === false) continue;
             // modifier will return false if it is required to skip all next modifiers,
             // returning false from our function means the same
-            // FIXME: remove data property, user should pass it through closure
+            //                  // time,      dt, duration
             if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
                 elm.__mafter(ltime, elm.__modifying, false);
                 elm.__modifying = null;
@@ -3259,15 +3267,15 @@ Element.prototype.__addPainter = function(conf, painter) {
     return painter;
 }
 Element.prototype.__mbefore = function(t, type) {
-    /*if (type === Element.EVENT_MOD) {
+    /*if (type === C.MOD_EVENT) {
         this.__loadEvtsFromCache();
     }*/
 }
 Element.prototype.__mafter = function(t, type, result) {
-    /*if (!result || (type === Element.USER_MOD)) {
+    /*if (!result || (type === C.MOD_USER)) {
         this.__lmatrix = Element._getIMatrixOf(this.bstate, this.state);
     }*/
-    /*if (!result || (type === Element.EVENT_MOD)) {
+    /*if (!result || (type === C.MOD_EVENT)) {
         this.__clearEvtState();
     }*/
 }
@@ -3431,23 +3439,21 @@ Element.getIMatrixOf = function(elm, m) {
 
 Element.__addSysModifiers = function(elm) {
     // band check performed in checkJump
-    /* if (this.gband) this.__modify(Element.SYS_MOD, 0, null, Render.m_checkBand, this.gband); */
-    // elm.__modify({ type: Element.SYS_MOD }, Render.m_saveReg);
-    // elm.__modify({ type: Element.SYS_MOD }, Render.m_applyPos);
+    // Render.m_checkBand
+    // Render.m_saveReg
+    // Render.m_applyPos
 }
 Element.__addSysPainters = function(elm) {
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_usePivot);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_useReg);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_applyAComp);
-    elm.__paint({ type: Element.SYS_PNT }, Render.p_drawVisuals);
+    elm.paint(Render.p_usePivot);
+    elm.paint(Render.p_useReg);
+    elm.paint(Render.p_applyAComp);
+    elm.paint(Render.p_drawVisuals);
 }
 Element.__addDebugRender = function(elm) {
-    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawPivot);
-    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawReg);
-    elm.__paint({ type: Element.DEBUG_PNT }, Render.p_drawName);
-    elm.__paint({ type: Element.DEBUG_PNT,
-                     priority: 1 },
-                   Render.p_drawMPath);
+    elm.paint(Render.p_drawPivot);
+    elm.paint(Render.p_drawReg);
+    elm.paint(Render.p_drawName);
+    elm.paint(Render.p_drawMPath);
 }
 Element.__addTweenModifier = function(elm, conf) {
     //if (!conf.type) throw new AnimErr('Tween type is not defined');
@@ -3460,7 +3466,7 @@ Element.__addTweenModifier = function(elm, conf) {
     } else {
       m_tween = function(t, dt, duration, data) {
         return tween_f.call(this, __finite(duration) && duration ? (t / duration) : 0,
-                            dt, duration, data);
+                            dt, duration);
       };
     }
     return elm.__modify({ type: Element.TWEEN_MOD,
@@ -3517,21 +3523,30 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
 // FIXME: `t` should be a property of an element, even `dt` also may appear like so,
 //        duration is accessible through this.duration() inside the modifier
 
-// Modifier % (func: Function(t, dt, elm_duration, data)[, type: C.MOD_*])
+// Modifier % (func: Function(t, dt, elm_duration)[, type: C.MOD_*])
 function Modifier(func, type) {
     func.id = guid();
     func.type = type || C.MOD_USER;
     func.band = func.band || null; // either band or time is specified
     func.time = __definded(func.time) ? func.time : null; // either band or time is specified
-    func.relative = __definded(func.relative) ? func.relative : false;
+    func.relative = __definded(func.relative) ? func.relative : false; // is time or band are specified relatively to element
+    func.relative_t = func.relative ? true // should modifier receive relative time or not (like tweens)
+                                    : (__definded(func.relative_t) ? func.relative_t
+                                                                   : false);
     func.easing = func.easing || null;
+    // TODO: add chainable methods to set band, easing, etc... ?
     return func;
 }
 
-function Tween(tween_type) {
-    if (!tween_type) throw new Error('Tween type is required to be specified');
-    var func = Tweens[tween_type]();
-    func.tween = tween_type;
+function Tween(tween_type, data) {
+    if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
+    var func;
+    if (__fun(tween_type)) {
+        func = tween_type;
+    } else {
+        func = Tweens[tween_type](data);
+        func.tween = tween_type;
+    }
     return Modifier(func, C.MOD_TWEEN);
 }
 
@@ -3802,7 +3817,42 @@ Render.loop = __r_loop;
 Render.at = __r_at;
 Render._drawFPS = __r_fps;
 
-Render.p_drawPivot = function(ctx, pvt) {
+// SYSTEM PAINTERS
+
+Render.p_useReg = new Painter(function(ctx) {
+    var reg = this.reg;
+    if ((reg[0] === 0) && (reg[1] === 0)) return;
+    ctx.translate(-reg[0], -reg[1]);
+}, C.PNT_SYSTEM);
+
+Render.p_usePivot = new Painter(function(ctx) {
+    var dimen = this.dimen(),
+        pvt = this.pvt;
+    if (!dimen) return;
+    if ((pvt[0] === 0) && (pvt[1] === 0)) return;
+    ctx.translate(-(pvt[0] * dimen[0]),
+                  -(pvt[1] * dimen[1]));
+}, C.PNT_SYSTEM);
+
+Render.p_drawVisuals = new Painter(function(ctx) {
+    var subj = this.$path || this.$text || this.$image;
+    if (!subj) return;
+
+    ctx.save();
+    Brush.fill(ctx, this.$fill);
+    Brush.shadow(ctx, this.$shadow);
+    Brush.stroke(ctx, this.$stroke);
+    subj.apply(ctx);
+    ctx.restore();
+}, C.PNT_SYSTEM);
+
+Render.p_applyAComp = new Painter(function(ctx) {
+    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
+}, C.PNT_SYSTEM);
+
+// DEBUG PAINTERS
+
+Render.p_drawPivot = new Painter(function(ctx, pvt) {
     if (!(pvt = pvt || this.pvt)) return;
     var dimen = this.dimen() || [ 0, 0 ];
     var stokeStyle = dimen ? '#600' : '#f00';
@@ -3820,9 +3870,9 @@ Render.p_drawPivot = function(ctx, pvt) {
     ctx.closePath();
     ctx.stroke();
     ctx.restore();
-}
+}, C.PNT_DEBUG);
 
-Render.p_drawReg = function(ctx, reg) {
+Render.p_drawReg = new Painter(function(ctx, reg) {
     if (!(reg = reg || this.reg)) return;
     ctx.save();
     ctx.lineWidth = 1.0;
@@ -3844,50 +3894,18 @@ Render.p_drawReg = function(ctx, reg) {
     ctx.closePath();
     ctx.stroke();
     ctx.restore();
-}
-// TODO: p_drawReg
+}, C.PNT_DEBUG);
 
-Render.p_drawVisuals = function(ctx) {
-    var subj = this.$path || this.$text || this.$image;
-    if (!subj) return;
-
-    ctx.save();
-    Brush.fill(ctx, this.$fill);
-    Brush.shadow(ctx, this.$shadow);
-    Brush.stroke(ctx, this.$stroke);
-    subj.apply(ctx);
-    ctx.restore();
-}
-
-Render.p_drawName = function(ctx, name) {
+Render.p_drawName = new Painter(function(ctx, name) {
     if (!(name = name || this.name)) return;
     ctx.save();
     ctx.fillStyle = '#666';
     ctx.font = '12px sans-serif';
     ctx.fillText(name, 0, 10);
     ctx.restore();
-}
+}, C.PNT_DEBUG);
 
-Render.p_applyAComp = function(ctx) {
-    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
-}
-
-Render.p_useReg = function(ctx) {
-    var reg = this.reg;
-    if ((reg[0] === 0) && (reg[1] === 0)) return;
-    ctx.translate(-reg[0], -reg[1]);
-}
-
-Render.p_usePivot = function(ctx) {
-    var dimen = this.dimen(),
-        pvt = this.pvt;
-    if (!dimen) return;
-    if ((pvt[0] === 0) && (pvt[1] === 0)) return;
-    ctx.translate(-(pvt[0] * dimen[0]),
-                  -(pvt[1] * dimen[1]));
-}
-
-Render.p_drawMPath = function(ctx, mPath) {
+Render.p_drawMPath = new Painter(function(ctx, mPath) {
     if (!(mPath = mPath || this.$mpath)) return;
     ctx.save();
     //var s = this.$.astate;
@@ -3900,12 +3918,12 @@ Render.p_drawMPath = function(ctx, mPath) {
     ctx.closePath();
     ctx.stroke();
     ctx.restore();
-}
+}, C.PNT_DEBUG);
 
-Render.m_checkBand = function(time, duration, band) {
+Render.m_checkBand = new Modifier(function(time, duration, band) {
     if (band[0] > (duration * time)) return false; // exit
     if (band[1] < (duration * time)) return false; // exit
-}
+}, C.MOD_SYSTEM);
 
 // Bands
 // -----------------------------------------------------------------------------
