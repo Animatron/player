@@ -17,93 +17,69 @@
 
 var inIFrame = false;
 
-var _u = (function () { /* utils */
+var utils = (function () {
 
     return {
 
-        parseQueryString: function( queryString ) {
-            var params = {}, queries, temp, i, l;
+        serializeToQueryString: function(obj) {
+          var str = [];
+          for(var p in obj)
+            if (obj.hasOwnProperty(p)) {
+              str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+            }
+          return str.join("&");
+        },
 
-            // Split into key/value pairs
-            queries = queryString.split("&");
-
-            // Convert the array of strings into an object
+        parseQueryString: function() {
+            var queryString = location.search.substring(1),
+                queries = queryString.split("&"),
+                params = {}, queries, temp, i, l;
             for ( i = 0, l = queries.length; i < l; i++ ) {
                 temp = queries[i].split('=');
                 params[temp[0]] = temp[1];
             }
-
             return params;
         },
 
 
-        extractVal: function (params, name) {
-            if (!params) return null;
-            var res;
-            if (res = params.match(
-                new RegExp('[\\?&]' + name + '=([\\w\\.\\-]+)')
-            )) return (res.length && res[1]) ? res[1] : null;
-        },
-
-        injectVal: function (params, name, value) {
-            if (!params) return name + '=' + value;
-            var res = params.match(
-                new RegExp('[\\?&]' + name + '=[\\w-]+'));
-            if (!res || !res.length) return params + '&' + name + '=' + value;
-            return params.replace(
-                new RegExp('([\\?&])' + name + '=[\\w-]+'),
-                    '$1' + name + '=' + value
-            );
-        },
-        injectIfNotPresent: function (params, name, value) {
-            if (!this.extractVal(params, name)) {
-                return this.injectVal(params, name, value);
-            } else {
-                return params;
-            }
-        },
-
         getRequiredRect: function () {
             if (inIFrame) {
-                return _u.getIframeSize();
+                return utils.getIframeSize();
             } else {
-                return [ width, height ];
+                return {w: width, h: height};
             }
         },
 
         getIframeSize: function () {
-            var size = [0, 0];
+            var size = {w:0, h:0};
             if (typeof window.innerWidth == 'number') {
-                size = [window.innerWidth, window.innerHeight];
+                size.w = window.innerWidth;
+                size.h = window.innerHeight;
             } else {
-                size = [document.documentElement.clientWidth, document.documentElement.clientHeight];
+                size.w = document.documentElement.clientWidth;
+                size.h = document.documentElement.clientHeight;
             }
 
             return size;
         },
 
-        reportError: function (_e) {
-            if (console) console.error(_e.message || _e);
-            else alert(_e.message || _e);
-        },
-
-        forcedJS: function (_path, _then) {
+        forcedJS: function (path, then) {
             var scriptElm = document.createElement('script');
             scriptElm.type = 'text/javascript';
             scriptElm.async = 'async';
-            scriptElm.src = _path + '?' + (new Date()).getTime();
+            scriptElm.src = path + '?' + (new Date()).getTime();
             scriptElm.onload = scriptElm.onreadystatechange = (function () {
-                var _success = false;
+                var success = false;
                 return function () {
-                    if (!_success && (!this.readyState || (this.readyState == 'complete'))) {
-                        _success = true;
-                        _then();
-                    } else if (!_success) {
-                        _u.reportError(new Error('Request failed: ' + this.readyState));
+                    if (!success && (!this.readyState || (this.readyState == 'complete'))) {
+                        success = true;
+                        then();
+                    } else if (!success) {
+                        console.error('Request failed: ' + this.readyState);
                     }
                 }
             })();
-            scriptElm.onerror = _u.reportError;
+            scriptElm.onerror = console.error;
             var headElm = document.head || document.getElementsByTagName('head')[0];
             headElm.appendChild(scriptElm);
         }
@@ -113,68 +89,41 @@ var _u = (function () { /* utils */
 
 var start = (function () {
 
-    var VERSION_MASK = '^(v[0-9]+(\\.[0-9]+){0,2})$|^latest$';
 
-    var CANVAS_ID = 'target',
+    var TARGET_ID = 'target',
         WRAPPER_CLASS = 'anm-wrapper',
-        PROTOCOL = ('https:' === document.location.protocol) ? 'https://' : 'http://',
-        PLAYER_VERSION_ID = playerVersion;
-
-    if (!playerVersion || !playerVersion.match(VERSION_MASK)) {
-        _u.reportError(new Error('Snapshot Version ID \'' + playerVersion + '\' is incorrect'));
-        return;
-    }
+        PLAYER_VERSION_ID = playerVersion || 'latest';
 
     inIFrame = (window.self !== window.top);
 
-    var _params_ = location.search, parsedParams = _u.parseQueryString(_params_.substring(1));
-    var rect = _u.getRequiredRect();
-    if (rect) {
-        if (_params_) {
-            _params_ = _u.injectIfNotPresent(_params_, "w", rect[0]);
-            _params_ = _u.injectIfNotPresent(_params_, "h", rect[1]);
-        } else {
-            _params_ = '?w=' + rect[0] + '&' + 'h=' + rect[1];
-        }
+    var params = utils.parseQueryString();
+    var rect = utils.getRequiredRect();
 
-        if (parsedParams.w) {
-            rect[0] = parsedParams.w;
-        }
-        if (parsedParams.h) {
-            rect[1] = parsedParams.h;
-        };
-    }
+    params.w = params.w || rect.w;
+    params.h = params.h || rect.h;
+
     if (autostart) {
-        _params_ = _u.injectIfNotPresent(_params_, "t", 0);
+        params.t = 0;
     }
     if (loop) {
-        _params_ = _u.injectIfNotPresent(_params_, "r", 1);
+        params.r = 1;
     }
 
-    var _snapshotUrl_ = amazonDomain + '/' + filename + (_params_ || '');
+    var snapshotUrl = amazonDomain + '/' + filename + (_params_ || '');
 
-    var temp_v = null;
-    if (temp_v = _u.extractVal(_params_, 'v')) {
-        if (!temp_v.match(VERSION_MASK)) {
-            _u.reportError(new Error('Player Version ID \'' + temp_v + '\' is incorrect'));
-            return;
-        }
-
-        PLAYER_VERSION_ID = temp_v;
+    if (params.v) {
+      PLAYER_VERSION_ID = params.v;
     }
 
     return function () {
         try {
-            if (!inIFrame && !rect) {
-                document.body.className = 'no-iframe no-rect';
-            } else if (!inIFrame) {
+            if (!inIFrame) {
                 document.body.className = 'no-iframe';
             }
             var stylesTag = document.createElement('style');
             stylesTag.type = 'text/css';
 
             var head = document.getElementsByTagName("head")[0];
-            if (!head) throw new Error('No head element in document');
             head.appendChild(stylesTag);
 
             var styles = stylesTag.sheet,
@@ -228,18 +177,18 @@ var start = (function () {
             noRectRule.style.left = '10%';
 
             if (rect) {
-                var canvas = document.getElementById(CANVAS_ID);
-                canvas.style.width  = rect[0] + 'px';
-                canvas.style.height = rect[1] + 'px';
+                var target = document.getElementById(TARGET_ID);
+                target.style.width  = rect[0] + 'px';
+                target.style.height = rect[1] + 'px';
             }
 
-            _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
+            utils.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
+                      anm.Player.forSnapshot(TARGET_ID, _snapshotUrl_, anm.createImporter('animatron'));
                 }
             );
         } catch (e) {
-            _u.reportError(e);
+            console.error(e);
         }
     }
 
