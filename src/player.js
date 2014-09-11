@@ -3449,27 +3449,6 @@ Element.__addDebugRender = function(elm) {
     elm.paint(Render.p_drawName);
     elm.paint(Render.p_drawMPath);
 }
-Element.__addTweenModifier = function(elm, conf) {
-    //if (!conf.type) throw new AnimErr('Tween type is not defined');
-    var tween_f = Tweens[conf.type](conf.data),
-        m_tween;
-    // all tweens functions actually work with 0..1 parameter, but modifiers
-    // differ by 'relative' option
-    if (conf.relative) {
-      m_tween = tween_f;
-    } else {
-      m_tween = function(t, dt, duration, data) {
-        return tween_f.call(this, __finite(duration) && duration ? (t / duration) : 0,
-                            dt, duration);
-      };
-    }
-    return elm.__modify({ type: Element.TWEEN_MOD,
-                          priority: Tween.TWEENS_PRIORITY[conf.type],
-                          time: conf.band || conf.time,
-                          relative: conf.relative,
-                          easing: conf.easing,
-                          data: conf.data }, m_tween);
-}
 Element.__convertEasing = function(easing, data, relative) {
     if (!easing) return null;
     if (__str(easing)) {
