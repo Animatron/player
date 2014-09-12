@@ -3537,11 +3537,11 @@ function Modifier(func, type) {
     func.id = guid();
     func.type = type || C.MOD_USER;
     func.band = func.band || null; // either band or time is specified
-    func.time = __definded(func.time) ? func.time : null; // either band or time is specified
-    func.relative = __definded(func.relative) ? func.relative : false; // is time or band are specified relatively to element
+    func.time = __defined(func.time) ? func.time : null; // either band or time is specified
+    func.relative = __defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
     func.as_tween = func.relative ? true // should modifier receive relative time or not (like tweens)
-                                  : (__definded(func.as_tween) ? func.as_tween
-                                                               : false);
+                                  : (__defined(func.as_tween) ? func.as_tween
+                                                              : false);
     func.easing = func.easing || null;
     // TODO: add chainable methods to set band, easing, etc... ?
     return func;
