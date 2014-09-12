@@ -3144,8 +3144,8 @@ Element.prototype.__callModifiers = function(order, ltime, dt) {
         for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
             modifier = typed_modifiers[j];
             // lbtime is band-apadted time, if modifier has its own band
-            lbtime = Modifier.adaptTime(modifier, ltime, elm);
-            // `false` will be returned from `adaptTime`
+            lbtime = elm.__adaptModTime(modifier, ltime);
+            // `false` will be returned from `__adaptModTime`
             // for trigger-like modifier if it is required to skip current one,
             // on the other hand `true` means
             // "skip this one, but not finish the whole process",
@@ -3221,6 +3221,94 @@ Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === C.MOD_EVENT)) {
         this.__clearEvtState();
     }*/
+}
+Element.prototype.__adaptModTime = function(modifier, ltime) {
+
+    // TODO: move to modifier class?
+    // FIXME: simplify this method, it has too much branches and JS has no pattern-matching
+    //        or may be storing time_pair as an object would help
+
+    var elm = this,
+        elm_duration = elm.lband[1] - elm.lband[0], // duration of the element's local band
+        mod_easing = modifier.easing, // modifier easing
+        mod_time = modifier.band || modifier.time, // time (or band) of the modifier, if set
+        mod_relative = modifier.relative, // is modifier time relative to elm duration or not
+        mod_as_tween = modifier.as_tween;
+
+    var time_pair = null; // should be either [ local_modifier_time, elm_or_modifier_duration ]
+                          // or false, if modifier band doesn't fit this time
+
+    // modifier takes the whole element time
+    if (mod_time == null) {
+
+        if (__finite(elm_duration)) {
+            time_pair = [ (mod_relative || mod_as_tween)
+                             ? __adjust(ltime) / __adjust(elm_duration)
+                             : __adjust(ltime),
+                          __adjust(elm_duration) ];
+        } else { time_pair = [ 0, Infinity ]; }
+
+    // modifier is band-restricted
+    } else if (__arr(mod_time)) {
+
+        var mod_band = mod_time;
+
+        // its band is specified relatively to local band in absolute time values
+        // (like if )
+        if (!mod_relative) {
+            var mod_duration = mod_band[1] - mod_band[0];
+            if (__t_cmp(ltime, mod_band[0]) < 0) return false;
+            if (__t_cmp(ltime, mod_band[1]) > 0) return false;
+            if (__finite(mod_duration)) {
+                time_pair = [ mod_as_tween ? (__adjust(ltime - mod_band[0]) / __adjust(mod_duration))
+                                            : __adjust(ltime - mod_band[0]),
+                              __adjust(mod_duration) ];
+            } else { time_pair = [ 0, Infinity ]; }
+
+        } else {
+            mod_band = [ mod_band[0] * elm_duration,
+                         mod_band[1] * elm_duration ];
+            var mod_duration = mod_band[1] - mod_band[0];
+            if (__t_cmp(ltime, mod_band[0]) < 0) return false;
+            if (__t_cmp(ltime, mod_band[1]) > 0) return false;
+            if (__finite(mod_duration)) {
+                time_pair = [ __adjust(ltime - mod_band[0]) / __adjust(mod_duration),
+                              __adjust(mod_duration) ];
+            } else { time_pair = [ 0, Infinity ]; }
+        }
+
+    // modifier is assigned to trigger at some specific time moment
+    } else if (__num(mod_time)) {
+
+        if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return false;
+        var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
+        if (__t_cmp(ltime, tpos) >= 0) {
+            if (!modifier.__wasCalled) modifier.__wasCalled = {};
+            if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
+            modifier.__wasCalled[elm.id] = true;
+            modifier.__wasCalledAt[elm.id] = ltime;
+        } else return false;
+        if (__finite(elm_duration)) {
+            time_pair = [ (mod_relative || mod_as_tween)
+                            ? __adjust(ltime) / __adjust(elm_duration)
+                            : __adjust(ltime),
+                          __adjust(elm_duration) ];
+        } else { time_pair = [ 0, Infinity ]; }
+
+    // if it's something else, do the same as in mod_time == null
+    } else {
+
+        if (__finite(elm_duration)) {
+            time_pair = [ (mod_relative || mod_as_tween)
+                            ? __adjust(ltime) / __adjust(elm_duration)
+                            : __adjust(ltime),
+                          __adjust(elm_duration) ];
+        } else { time_pair = [ 0, Infinity ]; }
+
+    }
+
+    // apply easing, if it's there
+    return !mod_easing ? _tpair : [ mod_easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 Element.prototype.__pbefore = function(ctx, type) { }
 Element.prototype.__pafter = function(ctx, type) { }
@@ -3470,58 +3558,6 @@ function Tween(tween_type, data) {
         func.tween = tween_type;
     }
     return Modifier(func, C.MOD_TWEEN);
-}
-
-Modifier.adaptTime = function(modifier, ltime, elm) {
-    // FIXME!!: check if durations are finite when dividing
-    var elm_duration = elm.lband[1] - elm.lband[0], // duration of the element's local band
-        conf = modifier, // all configuration is stored inside the modifier
-        mod_easing = conf.easing, // modifier easing
-        mod_time = conf.band || conf.time, // time (or band) of the modifier, if set
-        mod_relative = conf.relative, // is modifier time relative to elm duration or not
-        mod_as_tween = conf.as_tween;
-    var _tpair = null; // tpair
-    if (mod_time == null) {
-        _tpair = [ mod_relative
-                       ? __adjust(ltime) / __adjust(elm_duration)
-                       : __adjust(ltime),
-                   __adjust(elm_duration) ];
-    } else if (__arr(mod_time)) { // modifier is band-restricted
-        var mod_band = mod_time;
-        if (!mod_relative) {
-            var mod_duration = mod_band[1] - mod_band[0];
-            if (__t_cmp(ltime, mod_band[0]) < 0) return false;
-            if (__t_cmp(ltime, mod_band[1]) > 0) return false;
-            _tpair = [ mod_as_tween ? (__adjust(ltime - mod_band[0]) / __adjust(mod_duration))
-                                    : __adjust(ltime - mod_band[0]),
-                       __adjust(mod_duration) ];
-        } else {
-            mod_band = [ mod_band[0] * elm_duration,
-                         mod_band[1] * elm_duration ];
-            var mod_duration = mod_band[1] - mod_band[0];
-            if (__t_cmp(ltime, mod_band[0]) < 0) return false;
-            if (__t_cmp(ltime, mod_band[1]) > 0) return false;
-            _tpair = [ __adjust(ltime - mod_band[0]) / __adjust(mod_duration),
-                       __adjust(mod_duration) ];
-        }
-    } else if (__num(mod_time)) {
-        if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return false;
-        var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
-        if (__t_cmp(ltime, tpos) >= 0) {
-            if (!modifier.__wasCalled) modifier.__wasCalled = {};
-            if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
-            modifier.__wasCalled[elm.id] = true;
-            modifier.__wasCalledAt[elm.id] = ltime;
-        } else return false;
-        _tpair = [ (mod_relative || mod_as_tween)
-                       ? __adjust(ltime) / __adjust(elm_duration)
-                       : __adjust(ltime),
-                   __adjust(elm_duration) ];
-    } else _tpair = [ (mod_relative || mod_as_tween)
-                          ? __adjust(ltime) / __adjust(elm_duration)
-                          : __adjust(ltime),
-                      __adjust(elm_duration) ];
-    return !mod_easing ? _tpair : [ mod_easing(_tpair[0], _tpair[1]), _tpair[1] ];
 }
 
 // painters classes
