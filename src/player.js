@@ -293,7 +293,7 @@ C.M_SANDBOX = C.M_CONTROLS_DISABLED
 /* ---------------- */
 
 C.LT_ANIMATION = 1;
-C.LT_CLIPS = 2;
+C.LT_ELEMENTS = 2;
 C.LT_IMPORT = 3;
 C.LT_URL = 4;
 
@@ -653,9 +653,9 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (object instanceof Animation) { // Animation instance
             player._loadTarget = C.LT_ANIMATION;
             L.loadAnimation(player, object, whenDone);
-        } else if (__arr(object)) { // array of clips
-            player._loadTarget = C.LT_CLIPS;
-            L.loadClips(player, object, whenDone);
+        } else if (__arr(object) || (object instanceof Element)) { // array of elements
+            player._loadTarget = C.LT_ELEMENTS;
+            L.loadElements(player, object, whenDone);
         } else if (__str(object)) { // URL
             var controls = player.controls;
             player._loadTarget = C.LT_URL;
@@ -3663,10 +3663,10 @@ L.loadAnimation = function(player, anim, callback) {
     player.anim = anim;
     if (callback) callback.call(player, anim);
 }
-L.loadClips = function(player, clips, callback) {
-    var _anim = new Animation();
-    _anim.add(clips);
-    L.loadAnimation(player, _anim, callback);
+L.loadElements = function(player, elms, callback) {
+    var anim = new Animation();
+    anim.add(elms);
+    L.loadAnimation(player, anim, callback);
 }
 
 // Rendering
