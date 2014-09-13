@@ -2385,11 +2385,115 @@ Element.prototype.prepare = function() {
 }
 // > Element.modifiers % (ltime: Float, dt: Float[, types: Array]) => Boolean
 Element.prototype.modifiers = function(ltime, dt, types) {
-    return this.__callModifiers(types || Modifier.ALL_MODIFIERS, ltime, dt);
+    var elm = this;
+    var order = types || Modifier.ALL_MODIFIERS;
+
+    // copy current state as previous one
+    elm.applyPrevState(elm);
+
+    // FIXME: checkJump is performed before, may be it should store its values inside here?
+    if (__num(elm.__appliedAt)) {
+      elm._t   = elm.__appliedAt;
+      elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+    }
+    // FIXME: elm.t and elm.dt both should store real time for this moment.
+    //        modifier may have its own time, though, but not painter, so painters probably
+    //        don't need any additional time/dt and data
+
+    // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
+
+    // TODO: think on sorting tweens/band-restricted-modifiers by time
+
+    elm.__loadEvents();
+
+    var modifiers = this.$modifiers;
+    var type, typed_modifiers, modifier, lbtime;
+    for (var i = 0, il = order.length; i < il; i++) { // for each type
+        type = order[i];
+
+        elm.__modifying = type;
+        elm.__mbefore(type);
+
+        typed_modifiers = modifiers[type];
+
+        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+            modifier = typed_modifiers[j];
+            // lbtime is band-apadted time, if modifier has its own band
+            lbtime = elm.__adaptModTime(modifier, ltime);
+            // `false` will be returned from `__adaptModTime`
+            // for trigger-like modifier if it is required to skip current one,
+            // on the other hand `true` means
+            // "skip this one, but not finish the whole process",
+            if (lbtime === false) continue;
+            // modifier will return false if it is required to skip all next modifiers,
+            // returning false from our function means the same
+            //                  // time,      dt, duration
+            if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
+                elm.__mafter(ltime, elm.__modifying, false);
+                elm.__modifying = null;
+                return false; // exit the method
+            }
+        }
+
+        elm.__mafter(ltime, type, true);
+    } // for each type
+
+    elm.__modifying = null;
+
+    elm.__appliedAt = ltime;
+
+    elm.resetEvents();
 }
-// > Element.painters % (ctx: Context, t: Float, dt: Float[, types: Array]) => Boolean
-Element.prototype.painters = function(ctx, t, dt, types) {
-    return this.__callPainters(types || Painter.ALL_PAINTERS, ctx, t, dt);
+// > Element.painters % (ctx: Context[, types: Array]) => Boolean
+Element.prototype.painters = function(ctx, types) {
+    var elm = this;
+    var order = types || Painter.ALL_PAINTERS;
+
+    var painters = this.$painters;
+    var type, typed_painters, painter;
+    for (var i = 0, il = order.length; i < il; i++) { // for each type
+        type = order[i];
+
+        elm.__painting = type;
+        elm.__pbefore(ctx, type);
+
+        typed_painters = painters[type];
+
+        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+            painter = typed_painters[j];
+            painter.call(elm, ctx);
+        }
+
+        elm.__pafter(ctx, type);
+    } // for each type
+
+    elm.__painting = null;
+}
+// > Element.forAllModifiers % (fn: Function(Modifier, type))
+Element.prototype.forAllModifiers = function(f) {
+    var order = Modifier.ALL_MODIFIERS;
+    var modifiers = this.$modifiers;
+    var type, typed_modifiers, modifier;
+    for (var i = 0, il = order.length; i < il; i++) { // for each type
+        type = order[i];
+        typed_modifiers = modifiers[type];
+        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+            f(typed_modifiers[j], type);
+        }
+    }
+}
+// > Element.forAllPainters % (fn: Function(Painter, type))
+Element.prototype.forAllPainters = function(f) {
+    var order = Modifier.ALL_PAINTERS;
+    var painters = this.$painters;
+    var type, typed_painters, painter;
+    for (var i = 0, il = order.length; i < il; i++) { // for each type
+        type = order[i];
+        typed_painters = painters[type];
+        for (var j = 0, jl = typed_painters.length; j < jl; j++) {
+            f(typed_painters[j], type);
+        }
+    }
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
@@ -2449,7 +2553,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             if (!this.__mask) {
                 // draw directly to context, if has no mask
                 this.transform(ctx);
-                this.painters(ctx, ltime, dt);
+                this.painters(ctx);
                 this.visitChildren(function(elm) {
                     elm.render(ctx, gtime, dt);
                 });
@@ -2611,28 +2715,11 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         this._addChild(_elm);
         return _elm;
     } else if (__arr(arg1)) { // elements array mode
-        this._addChildren(arg1);
+        for (var ei = 0, el = elms.length; ei < el; ei++) {
+            this._addChild(elms[ei]);
+        }
     } else { // element object mode
         this._addChild(arg1);
-    }
-}
-Element.prototype.__safeDetach = function(what, _cnt) {
-    var pos = -1, found = _cnt || 0;
-    var children = this.children;
-    if ((pos = children.indexOf(what)) >= 0) {
-        if (this.rendering || what.rendering) {
-            this.__detachQueue.push(what/*pos*/);
-        } else {
-            if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
-            what._unbind();
-            children.splice(pos, 1);
-        }
-        return 1;
-    } else {
-        this.visitChildren(function(ielm) {
-            found += ielm.__safeDetach(what, found);
-        });
-        return found;
     }
 }
 // > Element.remove % (elm: Element)
@@ -2823,12 +2910,11 @@ Element.prototype.reset = function() {
     this.resetEvents();
     this.__resetTimeFlags();
     /*this.__clearEvtState();*/
-    (function(elm) {
-        elm.__forAllModifiers(function(modifier) {
-            if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
-            if (modifier.__wasCalledAt) modifier.__wasCalledAt[elm.id] = -1;
-        });
-    })(this);
+    var elm = this;
+    this.forAllModifiers(function(modifier) {
+        if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
+        if (__defined(modifier.__wasCalledAt)) modifier.__wasCalledAt[elm.id] = -1;
+    });
     this.visitChildren(function(elm) {
         elm.reset();
     });
@@ -2946,7 +3032,7 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
     // and returns resulting state if modifiers succeeded
     // (unlock should be performed independently of success)
     return this.unlock(/* success => return previous state */
-              this.__callModifiers(Element.NOEVT_MODIFIERS, t, 0) // returns true if succeeded
+              this.modifiers(t, 0, Element.NOEVT_MODIFIERS) // returns true if succeeded
            );
 }
 Element.prototype.getPosition = function() {
@@ -3052,45 +3138,16 @@ Element.prototype.shallow = function() {
         cclone.parent = clone;
         trg_children.push(cclone);
     }
-    clone.$modifiers = [];
+    clone.$modifiers = {};
     /* FIXME: use __forAllModifiers & __forAllPainters */
     // loop through type
-    for (var mti = 0, mtl = this.$modifiers.length; mti < mtl; mti++) {
-        var type_group = this.$modifiers[mti];
-        if (!type_group) continue;
-        clone.$modifiers[mti] = [];
-        // loop through priority
-        for (var mpi = 0, mpl = type_group.length; mpi < mpl; mpi++) {
-            var priority_group = type_group[mpi];
-            if (!priority_group) continue;
-            clone.$modifiers[mti][mpi] = [].concat(priority_group);
-            for (var mi = 0, ml = priority_group.length; mi < ml; mi++) {
-                var modifier = priority_group[mi];
-                if (modifier && modifier.__m_ids) {
-                    modifier.__m_ids[clone.id] = modifier.__m_ids[this.id];
-                }
-            }
-        }
-    }
-    clone.$painters = [];
-    // loop through type
-    for (var pti = 0, ptl = this.$painters.length; pti < ptl; pti++) {
-        var type_group = this.$painters[pti];
-        if (!type_group) continue;
-        clone.$painters[pti] = [];
-        // loop through priority
-        for (var ppi = 0, ppl = type_group.length; ppi < ppl; ppi++) {
-            var priority_group = type_group[ppi];
-            if (!priority_group) continue;
-            clone.$painters[pti][ppi] = [].concat(priority_group);
-            for (var pi = 0, pl = priority_group.length; pi < pl; pi++) {
-                var painter = priority_group[pi];
-                if (painter && painter.__p_ids) {
-                    painter.__p_ids[clone.id] = painter.__p_ids[this.id];
-                }
-            }
-        }
-    }
+    this.forAllModifiers(function(modifier, type) {
+        clone.modify(modifier);
+    });
+    clone.$painters = {};
+    this.forAllPainters(function(painter, type) {
+        clone.paint(painter);
+    });
     clone.__u_data = obj_clone(this.__u_data);
     return clone;
 }
@@ -3101,115 +3158,11 @@ Element.prototype._addChild = function(elm) {
     if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
 }
-Element.prototype._addChildren = function(elms) {
-    for (var ei = 0, el = elms.length; ei < el; ei++) {
-        this._addChild(elms[ei]);
-    }
-}
 Element.prototype._stateStr = function() {
     return "x: " + this.x + " y: " + this.y + '\n' +
            "sx: " + this.sx + " sy: " + this.sy + '\n' +
            "angle: " + this.angle + " alpha: " + this.alpha + '\n' +
            "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
-}
-Element.prototype.__callModifiers = function(order, ltime, dt) {
-    var elm = this;
-
-    // copy current state as previous one
-    elm.applyPrevState(elm);
-
-    // FIXME: checkJump is performed before, may be it should store its values inside here?
-    if (__num(elm.__appliedAt)) {
-      elm._t   = elm.__appliedAt;
-      elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
-    }
-    // FIXME: elm.t and elm.dt both should store real time for this moment.
-    //        modifier may have its own time, though, but not painter, so painters probably
-    //        don't need any additional time/dt and data
-
-    // `elm.key` will be copied to `elm._key` inside `applyPrevState` call
-
-    // TODO: think on sorting tweens/band-restricted-modifiers by time
-
-    elm.__loadEvents();
-
-    var modifiers = this.$modifiers;
-    var type, typed_modifiers, modifier, lbtime;
-    for (var i = 0, il = order.length; i < il; i++) { // for each type
-        type = order[i];
-
-        elm.__modifying = type;
-        elm.__mbefore(type);
-
-        typed_modifiers = modifiers[type];
-
-        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
-            modifier = typed_modifiers[j];
-            // lbtime is band-apadted time, if modifier has its own band
-            lbtime = elm.__adaptModTime(modifier, ltime);
-            // `false` will be returned from `__adaptModTime`
-            // for trigger-like modifier if it is required to skip current one,
-            // on the other hand `true` means
-            // "skip this one, but not finish the whole process",
-            if (lbtime === false) continue;
-            // modifier will return false if it is required to skip all next modifiers,
-            // returning false from our function means the same
-            //                  // time,      dt, duration
-            if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
-                elm.__mafter(ltime, elm.__modifying, false);
-                elm.__modifying = null;
-                return false; // exit the method
-            }
-        }
-
-        elm.__mafter(ltime, type, true);
-    } // for each type
-
-    elm.__modifying = null;
-
-    elm.__appliedAt = ltime;
-
-    elm.resetEvents();
-}
-Element.prototype.__callPainters = function(order, ctx, t, dt) {
-    var elm = this;
-
-    var painters = this.$painters;
-    var type, typed_painters, painter;
-    for (var i = 0, il = order.length; i < il; i++) { // for each type
-        type = order[i];
-
-        elm.__painting = type;
-        elm.__pbefore(ctx, type);
-
-        typed_painters = painters[type];
-
-        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
-            painter = typed_painters[j];
-            painter.call(elm, ctx, t, dt);
-        }
-
-        elm.__pafter(ctx, type);
-    } // for each type
-
-    elm.__painting = null;
-}
-Element.prototype.__addPainter = function(conf, painter) {
-    if (!painter) throw new AnimErr(Errors.A.NO_PAINTER_PASSED);
-    var painters = this._painters;
-    var elm_id = this.id;
-    if (!painter.__p_ids) painter.__p_ids = {};
-    else if (painter.__p_ids[elm_id]) throw new AnimErr(Errors.A.PAINTER_REGISTERED);
-    var priority = conf.priority || 0,
-        type = conf.type;
-    if (!painters[type]) painters[type] = [];
-    if (!painters[type][priority]) painters[type][priority] = [];
-    painters[type][priority].push([ painter, { type: type, // configuration is cloned for safety
-                                               priority: priority,
-                                               data: conf.data } ]);
-    painter.__p_ids[elm_id] = (type << Element.TYPE_MAX_BIT) | (priority << Element.PRRT_MAX_BIT) |
-                              (painters[type][priority].length - 1);
-    return painter;
 }
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === C.MOD_EVENT) {
@@ -3225,6 +3178,9 @@ Element.prototype.__mafter = function(t, type, result) {
     }*/
 }
 Element.prototype.__adaptModTime = function(modifier, ltime) {
+
+    // gets element local time (relative to its local band) and
+    // returns modifier local time (relative to its local band)
 
     // TODO: move to modifier class?
 
@@ -3398,6 +3354,25 @@ Element.prototype.__preRender = function(gtime, ltime, ctx) {
         if (cr[i].call(this, gtime, ltime, ctx) === false) return false;
     }
     return true;
+}
+Element.prototype.__safeDetach = function(what, _cnt) {
+    var pos = -1, found = _cnt || 0;
+    var children = this.children;
+    if ((pos = children.indexOf(what)) >= 0) {
+        if (this.rendering || what.rendering) {
+            this.__detachQueue.push(what/*pos*/);
+        } else {
+            if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
+            what._unbind();
+            children.splice(pos, 1);
+        }
+        return 1;
+    } else {
+        this.visitChildren(function(ielm) {
+            found += ielm.__safeDetach(what, found);
+        });
+        return found;
+    }
 }
 Element.prototype.__postRender = function() {
     // clear detach-queue
