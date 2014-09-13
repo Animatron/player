@@ -9,7 +9,7 @@
 // Player Core
 // =============================================================================
 
-// This file contains only the Animatron Player core source code, without _Builder_ or any _modules_
+// This file contains only the Animatron Player core source code, without any _modules_
 // included. The player is written with as minimum publicily-visible classes as possible, but
 // its internal structure hides more things, of course. Code in the file goes in
 // natural order, mostly from general things to internal ones. However, to make
@@ -82,12 +82,14 @@ var is = anm.is;
 var __defined = is.defined,
     __finite  = is.finite,
     __nan     = is.nan,
-    __builder = is.builder,
     __arr     = is.arr,
     __num     = is.num,
     __fun     = is.fun,
     __obj     = is.obj,
-    __str     = is.str;
+    __str     = is.str,
+
+    __modifier = is.modifier;
+    __painter  = is.painter;
 
 // ### Strings & Errors
 /* ---------- */
@@ -1874,7 +1876,7 @@ provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
 //                [ transform: Function(ctx: Context,
 //                                      prev: Function(Context)) ])
 //                => Element
-// > Animation.add % (builder: Builder)
+// > Animation.add % (element: Element)
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
     // FIXME: allow to add elements deeper or rename this
@@ -1889,8 +1891,6 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
         _clip.add(arg1);
         this._addToTree(_clip);
         return _clip;
-    } else if (__builder(arg1)) { // builder instance
-        this._addToTree(arg1.v);
     } else { // element object mode
         this._addToTree(arg1);
     }
@@ -2246,6 +2246,8 @@ function Element(name, draw, onframe) {
     if (draw) this.paint(draw);
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if painting
+    this.__modifiers_hash = {}; // applied modifiers, by id
+    this.__painters_hash = {}; // applied painters, by id
     this.__detachQueue = [];
     this.__frameProcessors = [];
     this.data = {}; // user data
@@ -2529,15 +2531,15 @@ Element.prototype.render = function(ctx, gtime, dt) {
 Element.prototype.modify = function(band, modifier) {
     if (!__arr(band)) { modifier = band;
                         band = null; }
-    if (!(modifier instanceof Modifier) && __fun(modifier)) {
+    if (!__modifier(modifier) && __fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
-    } else if (!(modifier instanceof Modifier)) {
-        throw new AnimError('Modifier should be either a function or a Modifier instance');
+    } else if (!__modifier(modifier)) {
+        throw new AnimErr('Modifier should be either a function or a Modifier instance');
     }
-    if (!modifier.type) throw new AnimError('Modifier should have a type defined');
+    if (!modifier.type) throw new AnimErr('Modifier should have a type defined');
     if (band) modifier.band = band;
     if (modifier.__applied_to &&
-        modifier.__applied_to[this.id]) throw new AnimError('This modifier is already applied to this Element');
+        modifier.__applied_to[this.id]) throw new AnimErr('This modifier is already applied to this Element');
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
     this.__modifiers_hash[modifier.id] = modifier;
@@ -2547,7 +2549,7 @@ Element.prototype.modify = function(band, modifier) {
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
-    if (!modifier instanceof Modifier) throw new AnimError('Please pass Modifier instance to removeModifier');
+    if (!__modifier(modifier)) throw new AnimErr('Please pass Modifier instance to removeModifier');
     if (!this.__modifiers_hash[modifier.id]) throw new AnimErr('Modifier wasn\'t applied to this element');
     if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
@@ -2562,14 +2564,14 @@ Element.prototype.removeModifier = function(modifier) {
 //                                  | Painter)
 //                         => Integer
 Element.prototype.paint = function(painter) {
-    if (!(painter instanceof Painter) && __fun(painter)) {
+    if (!__painter(painter) && __fun(painter)) {
         painter = new Painter(painter, C.MOD_USER);
-    } else if (!(painter instanceof Painter)) {
-        throw new AnimError('Painter should be either a function or a Painter instance');
+    } else if (!__painter(painter)) {
+        throw new AnimErr('Painter should be either a function or a Painter instance');
     }
-    if (!painter.type) throw new AnimError('Painter should have a type defined');
+    if (!painter.type) throw new AnimErr('Painter should have a type defined');
     if (painter.__applied_to &&
-        painter.__applied_to[this.id]) throw new AnimError('This painter is already applied to this Element');
+        painter.__applied_to[this.id]) throw new AnimErr('This painter is already applied to this Element');
     if (!this.$painters[painter.type]) this.$painters[painter.type] = [];
     this.$painters[painter.type].push(painter);
     this.__painters_hash[painter.id] = painter;
@@ -2579,7 +2581,7 @@ Element.prototype.paint = function(painter) {
 }
 // > Element.removePainter % (painter: Function | Painter)
 Element.prototype.removePainter = function(painter) {
-    if (!painter instanceof Painter) throw new AnimError('Please pass Painter instance to removePainter');
+    if (!__painter(painter)) throw new AnimErr('Please pass Painter instance to removePainter');
     if (!this.__painters_hash[painter.id]) throw new AnimErr('Painter wasn\'t applied to this element');
     if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
@@ -2589,7 +2591,7 @@ Element.prototype.removePainter = function(painter) {
 }
 // > Element.tween % (tween: Tween)
 Element.prototype.tween = function(tween) {
-    if (!(tween instanceof Tween)) throw new AnimError('Please pass Tween instance to .tween() method');
+    if (!(tween instanceof Tween)) throw new AnimErr('Please pass Tween instance to .tween() method');
     tween.as_tween = true;
     // tweens are always receiving time as relative time
     // __finite(duration) && duration ? (t / duration) : 0
@@ -3543,7 +3545,9 @@ function Modifier(func, type) {
                                   : (__defined(func.as_tween) ? func.as_tween
                                                               : false);
     func.easing = func.easing || null;
+    // TODO: may these properties interfere with something? they are assigned to function instances
     // TODO: add chainable methods to set band, easing, etc... ?
+    anm.registerModifier(func);
     return func;
 }
 
@@ -3581,6 +3585,7 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 function Painter(func, type) {
     func.id = guid();
     func.type = type || C.PNT_USER;
+    anm.registerPainter(func);
     return func;
 }
 
@@ -6366,7 +6371,7 @@ return (function($trg) {
     $trg.Animation = Animation; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Modifier = Modifier; $trg.Painter = Painter;
-    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing; $trg.TweenBuilder;
+    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
     $trg.Color = Color;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?

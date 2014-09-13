@@ -545,8 +545,19 @@
                   Math.random().toString(36).substring(2, 10);
         }
 
-        // Value/Typecheck
+        // Value/Typecheck/Convert
         // -----------------------------------------------------------------------------
+
+        var MODIFIER_MARKER = '__modifier';
+        var PAINTER_MARKER  = '__painter';
+
+        $publ.registerModifier = function(f) {
+            f[MODIFIER_MARKER] = true;
+        }
+
+        $publ.registerPainter = function(f) {
+            f[PAINTER_MARKER] = true;
+        }
 
         var __is = (function() {
 
@@ -560,11 +571,6 @@
             var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
 
             // #### typecheck
-
-            function __builder(obj) {
-                return (typeof anm.Builder !== 'undefined') &&
-                       (obj instanceof anm.Builder);
-            }
 
             var __arr = Array.isArray;
 
@@ -584,16 +590,21 @@
                 return obj != null && typeof obj === 'string';
             }
 
+            function __modifier(f) { return f.hasOwnProperty(MODIFIER_MARKER); }
+            function __painter(f)  { return f.hasOwnProperty(PAINTER_MARKER);  }
+
             var __is = {};
             __is.defined = __defined;
             __is.finite  = __finite;
             __is.nan     = __nan;
-            __is.builder = __builder;
             __is.arr     = __arr;
             __is.num     = __num;
             __is.fun     = __fun;
             __is.obj     = __obj;
             __is.str     = __str;
+
+            __is.modifier = __modifier;
+            __is.painter  = __painter;
 
             return __is;
 
