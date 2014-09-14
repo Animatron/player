@@ -2471,6 +2471,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     elm.__appliedAt = ltime;
 
     elm.resetEvents();
+
+    return true;
 }
 // > Element.painters % (ctx: Context[, types: Array]) => Boolean
 Element.prototype.painters = function(ctx, types) {
@@ -3091,15 +3093,23 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
+Element.prototype.invalidate = function() {
+    //this._dimen = null;
+    var subj = this.$path || this.$text || this.$image;
+    if (subj) subj.invalidate();
+}
 Element.prototype.dimen = function() {
-    // TODO: allow to set _dimen?
+    // _dimen value is not cached, it's just a user object allowing
+    // to set custom dimensions (though may be we also need to cache
+    // dimensions not relative to type)
     if (this._dimen) return this._dimen;
     var subj = this.$path || this.$text || this.$image;
     if (subj) return subj.dimen();
 }
 Element.prototype.bounds = function() {
+    if (this._bounds) return this._bounds;
     var subj = this.$path || this.$text || this.$image;
-    if (subj) return subj.bounds();
+    if (subj) return (this._bounds = subj.bounds());
 }
 Element.prototype.boundsRect = function() {
     var b = this.bounds();
@@ -3861,7 +3871,7 @@ Render.p_drawVisuals = new Painter(function(ctx) {
     if (!subj) return;
 
     ctx.save();
-    // TODO: split into p_applyFill, p_applyStroke, p_applyShadow?
+    // FIXME: split into p_applyBrush and p_drawVisuals
     Brush.fill(ctx, this.$fill);
     Brush.stroke(ctx, this.$stroke);
     Brush.shadow(ctx, this.$shadow);
@@ -4524,6 +4534,7 @@ Path.prototype.clone = function() {
     });
     return _clone;
 }
+Path.prototype.invalidate = function() { }
 Path.prototype.reset = function() {
     this.segs = [];
 }
@@ -4951,6 +4962,8 @@ Text.prototype.clone = function() {
     }
     return c;
 }
+Text.prototype.invalidate = function() { }
+Text.prototype.reset = function() { }
 Text.prototype.dispose = function() { }
 
 // Brush
@@ -5366,6 +5379,10 @@ Sheet.prototype.boundsRect = function() {
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);
 }
+Sheet.prototype.invalidate = function() {
+    this._cvs_cache = null;
+}
+Sheet.prototype.reset = function() { }
 Sheet.prototype.dispose = function() {
     this._cvs_cache = null;
 }

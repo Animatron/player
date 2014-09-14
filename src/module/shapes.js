@@ -27,12 +27,13 @@ __anm_engine.define('anm/modules/shapes', ['anm', 'anm/Player'], function(anm/*,
         // FIXME: or use painter instead, but specify Element.type
         //if (this.$path) { this.$path.reset(); }
         //var path = this.$path || (new Path());
+        this.invalidate();
         var path = new Path();
-        path.add(anm.MSeg([ x, y ]));
-        path.add(anm.LSeg([ x + width, y ]));
-        path.add(anm.LSeg([ x + width, y + height]));
-        path.add(anm.LSeg([ x, y + height]));
-        path.add(anm.LSeg([ x, y ]));
+        path.add(new MSeg([ x, y ]));
+        path.add(new LSeg([ x + width, y ]));
+        path.add(new LSeg([ x + width, y + height]));
+        path.add(new LSeg([ x, y + height]));
+        path.add(new LSeg([ x, y ]));
         return this.path(path);
     }
 
