@@ -2378,6 +2378,31 @@ Element.prototype.initEvents = function() {
     return this;
 }
 Element.prototype.resetEvents = Element.prototype.initEvents;
+// > Element.path % ([value: Path]) => Path | Element
+Element.prototype.path = function(value) {
+    if (value) {
+        this.type = C.ET_PATH;
+        this.$path = value;
+        return this;
+    } else return this.$path;
+}
+// > Element.text % ([value: Text]) => Text | Element
+Element.prototype.text = function(value) {
+    if (value) {
+        this.type = C.ET_TEXT;
+        this.$text = value;
+        return this;
+    } else return this.$text;
+}
+// > Element.image % ([value: Image]) => Image | Element
+Element.prototype.image = function(value) {
+    if (value) {
+        this.type = C.ET_SHEET;
+        this.$image = value;
+        return this;
+    } else return this.$image;
+}
+Element.prototype.sheet = Element.prototype.image;
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.matrix.reset();
@@ -3076,7 +3101,7 @@ Element.prototype.bounds = function() {
     var subj = this.$path || this.$text || this.$image;
     if (subj) return subj.bounds();
 }
-Element.prototype.rect = function() {
+Element.prototype.boundsRect = function() {
     var b = this.bounds();
     if (!b) return null;
     // returns clockwise coordinates of the points
@@ -3746,11 +3771,11 @@ function __r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, aft
 function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
     // pw == player width, ph == player height
     // sw == anim width,  sh == anim height
-    var f_rects    = __fit_rects(pw, ph, sw, sh),
-        factor     = f_rects[0],
+    var f_rects   = __fit_rects(pw, ph, sw, sh),
+        factor    = f_rects[0],
         anim_rect = f_rects[1],
-        rect1      = f_rects[2],
-        rect2      = f_rects[3];
+        rect1     = f_rects[2],
+        rect2     = f_rects[3];
     ctx.save();
     if (rect1 || rect2) { // anim_rect is null if no
         ctx.save(); // second open
@@ -3836,9 +3861,10 @@ Render.p_drawVisuals = new Painter(function(ctx) {
     if (!subj) return;
 
     ctx.save();
+    // TODO: split into p_applyFill, p_applyStroke, p_applyShadow?
     Brush.fill(ctx, this.$fill);
-    Brush.shadow(ctx, this.$shadow);
     Brush.stroke(ctx, this.$stroke);
+    Brush.shadow(ctx, this.$shadow);
     subj.apply(ctx);
     ctx.restore();
 }, C.PNT_SYSTEM);
@@ -3907,7 +3933,7 @@ Render.p_drawMPath = new Painter(function(ctx, mPath) {
     ctx.save();
     //var s = this.$.astate;
     //Render.p_usePivot.call(this.xdata, ctx);
-    mPath.cstroke('#600', 2.0);
+    Brush.qstroke(ctx, '#600', 2.0);
     //ctx.translate(-s.x, -s.y);
     //ctx.rotate(-s.angle);
     ctx.beginPath();
@@ -4291,7 +4317,6 @@ function Path(val) {
     }
 }
 
-
 // visits every chunk of path in array-form and calls
 // visitor function, so visitor function gets
 // chunk marker and positions sequentially
@@ -4326,20 +4351,6 @@ Path.prototype.apply = function(ctx) {
     ctx.beginPath();
     this.visit(Path._applyVisitor, ctx);
     ctx.closePath();
-}
-Path.prototype.cstroke = function(color, width, cap, join) {
-    this.stroke = {
-        'width': (width != null) ? width
-                 : Path.DEFAULT_STROKE.width,
-        'color': color,
-        'cap': cap || Path.DEFAULT_CAP,
-        'join': join || Path.DEFAULT_JOIN
-    };
-}
-Path.prototype.cfill = function(color) {
-    this.fill = {
-        'color': color
-    };
 }
 // > Path.parse % (str: String) => Path
 Path.prototype.parse = function(str) {
@@ -4444,7 +4455,7 @@ Path.prototype.dimen = function() {
     var bounds = this.bounds();
     return [ bounds[2], bounds[3] ];
 }
-Path.prototype.rect = function() {
+Path.prototype.boundsRect = function() {
     var b = this.bounds();
     // returns clockwise coordinates of the points
     // for easier drawing
@@ -4512,6 +4523,9 @@ Path.prototype.clone = function() {
         _clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
     });
     return _clone;
+}
+Path.prototype.reset = function() {
+    this.segs = [];
 }
 Path.prototype.dispose = function() { }
 
@@ -4914,20 +4928,6 @@ Text.prototype.bounds = function() {
 Text.prototype.ascent = function(height, baseline) {
     return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
 }
-/* FIXME: move to element
-Text.prototype.cstroke = function(color, width, cap, join) {
-    this.stroke = {
-        'width': (width != null) ? width : 0,
-        'color': color,
-        'cap': cap || Text.DEFAULT_CAP,
-        'join': join || Text.DEFAULT_JOIN
-    };
-}
-Text.prototype.cfill = function(color) {
-    this.fill = {
-        'color': color
-    };
-} */
 Text.prototype.lineCount = function() {
     var lines = this.lines;
     return __arr(lines) ? lines.length : 1;
@@ -4991,11 +4991,11 @@ Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
 Brush.DEFAULT_FILL = '#000';
 Brush.DEFAULT_STROKE = null;
-// cached creation, returns previous result
-// if it was already created before
+// below is a variant of cached creation, Brush.adapt saves and returns last
+// context-compatible object, if it was already prepared before
 Brush.adapt = function(ctx, src) {
   // FIXME: check if brush is valid color for string
-  if (__str(src)) return src; // FIXME: brush should always be an object
+  if (__str(src)) return src; // FIXME: brush should always be an object?
   if (!src._style) { src._style = Brush._adapt(ctx, src); }
   return src._style;
 }
@@ -5065,6 +5065,15 @@ Brush.shadow = function(ctx, shadow) {
     ctx.shadowBlur = shadow ? shadow.blurRadius : 0;
     ctx.shadowOffsetX = shadow ? shadow.offsetX : 0;
     ctx.shadowOffsetY = shadow ? shadow.offsetY : 0;
+}
+Brush.qfill = function(ctx, color) {
+    ctx.fillStyle = color;
+}
+Brush.qstroke = function(ctx, color, width) {
+    ctx.lineWidth = width || 1;
+    ctx.strokeStyle = color;
+    ctx.lineCap = Brush.DEFAULT_CAP;
+    ctx.lineJoin = Brush.DEFAULT_JOIN;
 }
 Brush.clearShadow = function(ctx) {
     ctx.shadowBlur = 0;
@@ -5350,7 +5359,7 @@ Sheet.prototype.bounds = function() {
     var r = this._active_region;
     return [ 0, 0, r[2], r[3] ];
 }
-Sheet.prototype.rect = function() {
+Sheet.prototype.boundsRect = function() {
     // TODO: when using current_region, bounds will depend on that region
     throw new Error('Not Implemented. Why?');
 }
