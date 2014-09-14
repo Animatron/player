@@ -2394,7 +2394,7 @@ Element.prototype.text = function(value) {
         return this;
     } else return this.$text;
 }
-// > Element.image % ([value: Image]) => Image | Element
+// > Element.image % ([value: Sheet]) => Sheet | Element
 Element.prototype.image = function(value) {
     if (value) {
         this.type = C.ET_SHEET;
@@ -2402,7 +2402,22 @@ Element.prototype.image = function(value) {
         return this;
     } else return this.$image;
 }
+// > Element.sheet % ([value: Sheet]) => Sheet | Element
 Element.prototype.sheet = Element.prototype.image;
+// > Element.fill % ([value: Brush | String]) => Brush | Element
+Element.prototype.fill = function(value) {
+    if (value) {
+        this.$fill = value;
+        return this;
+    } else return this.$fill;
+}
+// > Element.stroke % ([value: Brush | String] | [color: String, width: int]) => Brush | Element
+Element.prototype.stroke = function(value) {
+    if (value) {
+        this.$stroke = value;
+        return this;
+    } else return this.$stroke;
+}
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
     this.matrix.reset();
@@ -5038,7 +5053,7 @@ Brush._adapt = function(ctx, brush) {
                             dir[1][0], dir[1][1]); // x1, y1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
-            grad.addColorStop(stop[0], stop[1]);
+            grad.addColorStop(stop[0], Color.from(stop[1]));
         }
         return grad;
     }
