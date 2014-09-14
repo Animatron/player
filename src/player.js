@@ -4469,7 +4469,7 @@ Path.prototype.bounds = function() {
 Path.prototype.dimen = function() {
     // FIXME: cache bounds and dimen, reset on invalidate
     var bounds = this.bounds();
-    return [ bounds[2], bounds[3] ];
+    return [ bounds[2] - bounds[0], bounds[3] - bounds[1] ];
 }
 Path.prototype.boundsRect = function() {
     var b = this.bounds();

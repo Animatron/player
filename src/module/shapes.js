@@ -27,7 +27,9 @@ __anm_engine.define('anm/modules/shapes', ['anm', 'anm/Player'], function(anm/*,
         // FIXME: or use painter instead, but specify Element.type
         //if (this.$path) { this.$path.reset(); }
         //var path = this.$path || (new Path());
-        this.invalidate();
+        //this.invalidate();
+        if (!this.$stroke) this.$stroke = { color: '#000',
+                                            width: 1 };
         var path = new Path();
         path.add(new MSeg([ x, y ]));
         path.add(new LSeg([ x + width, y ]));
