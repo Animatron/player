@@ -2285,7 +2285,7 @@ Element.prototype.initState = function() {
     // current state
     this.x = 0; this.y = 0;   // dynamic position
     this.sx = 1; this.sy = 1; // scale by x / by y
-    this.hx = 1; this.hy = 1; // shear by x / by y
+    this.hx = 0; this.hy = 0; // shear by x / by y
     this.angle = 0;           // rotation angle
     this.alpha = 1;           // opacity
     // these values are for user to set
