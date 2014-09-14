@@ -2329,7 +2329,7 @@ Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
 
     this.reg = Element.DEFAULT_REG;   // registration point (static values)
-    this.pvt = Element.DEFAULT_PVT; // pivot (relative to dimensions)
+    this.pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
     // since properties below will conflict with getters/setters having same names,
     // they're renamed with dollar-sign. this way also allows methods to be replaced
@@ -3095,6 +3095,7 @@ Element.prototype.global = function(pt) {
 } */
 Element.prototype.invalidate = function() {
     //this._dimen = null;
+    //TODO: replace with this['$' + this.type].invalidate() ?
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
 }
@@ -3449,7 +3450,7 @@ Element.transferState = function(src, trg) {
     trg.alpha = src.alpha;
 }
 Element.transferVisuals = function(src, trg) {
-    trg.reg = [].concat(src.reg); trg.pvt = [].concat(src.pvt);
+    trg.reg = [].concat(src.reg); trg.pivot = [].concat(src.pivot);
     trg.$fill = Brush.clone(src.$fill);
     trg.$stroke = Brush.clone(src.$stroke);
     trg.$shadow = Brush.clone(src.$shadow);
@@ -3858,12 +3859,12 @@ Render.p_useReg = new Painter(function(ctx) {
 }, C.PNT_SYSTEM);
 
 Render.p_usePivot = new Painter(function(ctx) {
-    var dimen = this.dimen(),
-        pvt = this.pvt;
+    var pivot = this.pivot;
+    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
+    var dimen = this.dimen();
     if (!dimen) return;
-    if ((pvt[0] === 0) && (pvt[1] === 0)) return;
-    ctx.translate(-(pvt[0] * dimen[0]),
-                  -(pvt[1] * dimen[1]));
+    ctx.translate(-(pivot[0] * dimen[0]),
+                  -(pivot[1] * dimen[1]));
 }, C.PNT_SYSTEM);
 
 Render.p_drawVisuals = new Painter(function(ctx) {
@@ -3871,7 +3872,9 @@ Render.p_drawVisuals = new Painter(function(ctx) {
     if (!subj) return;
 
     ctx.save();
-    // FIXME: split into p_applyBrush and p_drawVisuals
+    // FIXME: split into p_applyBrush and p_drawVisuals,
+    //        so user will be able to use brushes with
+    //        his own painters
     Brush.fill(ctx, this.$fill);
     Brush.stroke(ctx, this.$stroke);
     Brush.shadow(ctx, this.$shadow);
@@ -3885,13 +3888,13 @@ Render.p_applyAComp = new Painter(function(ctx) {
 
 // DEBUG PAINTERS
 
-Render.p_drawPivot = new Painter(function(ctx, pvt) {
-    if (!(pvt = pvt || this.pvt)) return;
+Render.p_drawPivot = new Painter(function(ctx, pivot) {
+    if (!(pivot = pivot || this.pivot)) return;
     var dimen = this.dimen() || [ 0, 0 ];
     var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
-    ctx.translate(pvt[0] * dimen[0],
-                  pvt[1] * dimen[1]);
+    ctx.translate(pivot[0] * dimen[0],
+                  pivot[1] * dimen[1]);
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = stokeStyle;
@@ -4361,6 +4364,8 @@ Path.prototype.apply = function(ctx) {
     ctx.beginPath();
     this.visit(Path._applyVisitor, ctx);
     ctx.closePath();
+    ctx.fill();
+    ctx.stroke();
 }
 // > Path.parse % (str: String) => Path
 Path.prototype.parse = function(str) {
@@ -4462,6 +4467,7 @@ Path.prototype.bounds = function() {
     return [ minX, minY, maxX, maxY ];
 }
 Path.prototype.dimen = function() {
+    // FIXME: cache bounds and dimen, reset on invalidate
     var bounds = this.bounds();
     return [ bounds[2], bounds[3] ];
 }
