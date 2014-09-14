@@ -2415,24 +2415,27 @@ Element.prototype.modifiers = function(ltime, dt, types) {
         elm.__mbefore(type);
 
         typed_modifiers = modifiers[type];
+        if (typed_modifiers) {
 
-        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
-            modifier = typed_modifiers[j];
-            // lbtime is band-apadted time, if modifier has its own band
-            lbtime = elm.__adaptModTime(modifier, ltime);
-            // `false` will be returned from `__adaptModTime`
-            // for trigger-like modifier if it is required to skip current one,
-            // on the other hand `true` means
-            // "skip this one, but not finish the whole process",
-            if (lbtime === false) continue;
-            // modifier will return false if it is required to skip all next modifiers,
-            // returning false from our function means the same
-            //                  // time,      dt, duration
-            if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
-                elm.__mafter(ltime, elm.__modifying, false);
-                elm.__modifying = null;
-                return false; // exit the method
+            for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+                modifier = typed_modifiers[j];
+                // lbtime is band-apadted time, if modifier has its own band
+                lbtime = elm.__adaptModTime(modifier, ltime);
+                // `false` will be returned from `__adaptModTime`
+                // for trigger-like modifier if it is required to skip current one,
+                // on the other hand `true` means
+                // "skip this one, but not finish the whole process",
+                if (lbtime === false) continue;
+                // modifier will return false if it is required to skip all next modifiers,
+                // returning false from our function means the same
+                //                  // time,      dt, duration
+                if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
+                    elm.__mafter(ltime, elm.__modifying, false);
+                    elm.__modifying = null;
+                    return false; // exit the method
+                }
             }
+
         }
 
         elm.__mafter(ltime, type, true);
@@ -2458,10 +2461,11 @@ Element.prototype.painters = function(ctx, types) {
         elm.__pbefore(ctx, type);
 
         typed_painters = painters[type];
-
-        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
-            painter = typed_painters[j];
-            painter.call(elm, ctx);
+        if (typed_painters) {
+            for (var j = 0, jl = typed_painters.length; j < jl; j++) {
+                painter = typed_painters[j];
+                painter.call(elm, ctx);
+            }
         }
 
         elm.__pafter(ctx, type);
@@ -2476,22 +2480,28 @@ Element.prototype.forAllModifiers = function(f) {
     var type, typed_modifiers, modifier;
     for (var i = 0, il = order.length; i < il; i++) { // for each type
         type = order[i];
+
         typed_modifiers = modifiers[type];
-        for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
-            f(typed_modifiers[j], type);
+        if (typed_modifiers) {
+            for (var j = 0, jl = typed_modifiers.length; j < jl; j++) {
+                f(typed_modifiers[j], type);
+            }
         }
+
     }
 }
 // > Element.forAllPainters % (fn: Function(Painter, type))
 Element.prototype.forAllPainters = function(f) {
-    var order = Modifier.ALL_PAINTERS;
+    var order = Painter.ALL_PAINTERS;
     var painters = this.$painters;
     var type, typed_painters, painter;
     for (var i = 0, il = order.length; i < il; i++) { // for each type
         type = order[i];
         typed_painters = painters[type];
-        for (var j = 0, jl = typed_painters.length; j < jl; j++) {
-            f(typed_painters[j], type);
+        if (typed_painters) {
+            for (var j = 0, jl = typed_painters.length; j < jl; j++) {
+                f(typed_painters[j], type);
+            }
         }
     }
 }
@@ -3139,8 +3149,6 @@ Element.prototype.shallow = function() {
         trg_children.push(cclone);
     }
     clone.$modifiers = {};
-    /* FIXME: use __forAllModifiers & __forAllPainters */
-    // loop through type
     this.forAllModifiers(function(modifier, type) {
         clone.modify(modifier);
     });
