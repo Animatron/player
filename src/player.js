@@ -2407,14 +2407,14 @@ Element.prototype.sheet = Element.prototype.image;
 // > Element.fill % ([value: Brush | String]) => Brush | Element
 Element.prototype.fill = function(value) {
     if (value) {
-        this.$fill = value;
+        this.$fill = (value instanceof Brush) ? value : new Brush(value);
         return this;
     } else return this.$fill;
 }
 // > Element.stroke % ([value: Brush | String] | [color: String, width: int]) => Brush | Element
 Element.prototype.stroke = function(value) {
     if (value) {
-        this.$stroke = value;
+        this.$stroke = (value instanceof Brush) ? value : new Brush(value);
         return this;
     } else return this.$stroke;
 }
@@ -3890,9 +3890,9 @@ Render.p_drawVisuals = new Painter(function(ctx) {
     // FIXME: split into p_applyBrush and p_drawVisuals,
     //        so user will be able to use brushes with
     //        his own painters
-    Brush.fill(ctx, this.$fill);
-    Brush.stroke(ctx, this.$stroke);
-    Brush.shadow(ctx, this.$shadow);
+    if (this.$fill)   { this.$fill.apply(ctx);   } else { Brush.clearFill(ctx);   };
+    if (this.$stroke) { this.$stroke.apply(ctx); } else { Brush.clearStroke(ctx); };
+    if (this.$shadow) { this.$shadow.apply(ctx); } else { Brush.clearShadow(ctx); };
     subj.apply(ctx);
     ctx.restore();
 }, C.PNT_SYSTEM);
@@ -4102,24 +4102,16 @@ Tweens[C.T_SHEAR] =
     };
 Tweens[C.T_FILL] =
     function(data) {
-        var from = (data[0] instanceof Brush) ? data[0] : new Brush(data[0]),
-            to =   (data[1] instanceof Brush) ? data[1] : new Brush(data[1]),
-            start = from.clone();
+        var interp = new BrushInterpolation(data[0], data[1]);
         return function(t, dt, duration) {
-            if (!this.$fill) this.$fill = start;
-            this.$fill.interpolate(from, to, t);
-            this.$fill.invalidate();
+            this.$fill = interp.valueAt(t);
         }
     };
 Tweens[C.T_STROKE] =
     function(data) {
-        var from = (data[0] instanceof Brush) ? data[0] : new Brush(data[0]),
-            to   = (data[1] instanceof Brush) ? data[1] : new Brush(data[1]),
-            start = from.clone();
+        var interp = new BrushInterpolation(data[0], data[1]);
         return function (t, dt, duration) {
-            if (!this.$stroke) this.$stroke = start;
-            this.$stroke.interpolate(from, to, t);
-            this.$stroke.invalidate();
+            this.$stroke = interp.valueAt(t);
         }
     };
 
@@ -5046,6 +5038,7 @@ Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
 Brush.DEFAULT_FILL = '#000';
 Brush.DEFAULT_STROKE = null;
+Brush.DEFAULT_SHADOW = null;
 C.BT_NONE = 'none';
 C.BT_FILL = 'fill';
 C.BT_STROKE = 'stroke';
@@ -5131,43 +5124,6 @@ Brush.prototype.adapt = function(ctx) {
     }
     return null;
 }
-Brush.prototype.interpolate = function(from, to, t) {
-    if (!from._converted) { from.convertColorsToRgba(); }
-    if (!to._converted)   { to.convertColorsToRgba(); }
-    var result = this;
-    if (__defined(from.width) && __defined(to.width)) { // from.type && to.type == C.BT_STROKE
-        result.width = __interpolateFloat(from.width, to.width, t);
-    }
-    if (from.color) {
-        result.grad = null;
-        result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
-    } else if (from.grad) {
-        result.color = null;
-        if (!result.grad) result.grad = {};
-        var trgg = result.grad, fromg = from.grad, tog = to.grad, i;
-        // direction
-        for (i = 0; i < fromg.dir.length; i++) {
-            if (!trgg.dir[i]) trgg.dir[i] = [];
-            trgg.dir[0] = __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
-            trgg.dir[1] = __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
-        };
-        // stops
-        if (!trgg.stops ||
-            (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
-        for (i = 0; i < fromg.stops.length; i++) {
-            if (!trgg.stops[i]) trgg.stops[i] = [];
-            trgg.stops[i][0] = __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
-            trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
-        };
-        // radius
-        if (fromg.r) {
-            if (!trgg.r) trgg.r = [];
-            trgg.r[0] = __interpolateFloat(fromg.r[0], tog.r[0], t);
-            trgg.r[1] = __interpolateFloat(fromg.r[1], tog.r[1], t);
-        } else { trgg.r = null; }
-    }
-    return result;
-}
 Brush.prototype.clone = function()  {
     var src = this,
         trg = new Brush();
@@ -5232,10 +5188,65 @@ Brush.qstroke = function(ctx, color, width) {
     ctx.lineCap = Brush.DEFAULT_CAP;
     ctx.lineJoin = Brush.DEFAULT_JOIN;
 }
+Brush.clearFill = function(ctx) {
+    ctx.fillStyle = Brush.DEFAULT_FILL;
+}
+Brush.clearStroke = function(ctx) {
+    ctx.strokeStyle = Brush.DEFAULT_STROKE;
+    ctx.lineWidth = 0;
+    ctx.lineCap = 0;
+    ctx.lineJoin = 0;
+}
 Brush.clearShadow = function(ctx) {
+    ctx.shadowColor = Brush.DEFAULT_SHADOW;
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
+}
+
+function BrushInterpolation(from, to) {
+    this.from = (from instanceof Brush) ? from : new Brush(from);
+    this.to   = (to   instanceof Brush) ? to   : new Brush(to);
+    if (!this.from._converted) { this.from.convertColorsToRgba(); }
+    if (!this.to._converted)   { this.to.convertColorsToRgba();   }
+}
+BrushInterpolation.prototype.valueAt = function(t) {
+    var result = this.value,
+        from   = this.from,
+        to     = this.to;
+    if (__defined(from.width) && __defined(to.width)) { // from.type && to.type == C.BT_STROKE
+        result.width = __interpolateFloat(from.width, to.width, t);
+    }
+    if (from.color) {
+        result.grad = null;
+        result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
+    } else if (from.grad) {
+        result.color = null;
+        if (!result.grad) result.grad = {};
+        var trgg = result.grad, fromg = from.grad, tog = to.grad, i;
+        // direction
+        for (i = 0; i < fromg.dir.length; i++) {
+            if (!trgg.dir[i]) trgg.dir[i] = [];
+            trgg.dir[0] = __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
+            trgg.dir[1] = __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
+        };
+        // stops
+        if (!trgg.stops ||
+            (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
+        for (i = 0; i < fromg.stops.length; i++) {
+            if (!trgg.stops[i]) trgg.stops[i] = [];
+            trgg.stops[i][0] = __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
+            trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
+        };
+        // radius
+        if (fromg.r) {
+            if (!trgg.r) trgg.r = [];
+            trgg.r[0] = __interpolateFloat(fromg.r[0], tog.r[0], t);
+            trgg.r[1] = __interpolateFloat(fromg.r[1], tog.r[1], t);
+        } else { trgg.r = null; }
+    }
+    result.invalidate();
+    return result;
 }
 
 
@@ -6440,6 +6451,7 @@ return (function($trg) {
     $trg.Animation = Animation; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Modifier = Modifier; $trg.Painter = Painter;
+    $trg.Brush = Brush; $trg.BrushInterpolation = BrushInterpolation;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
     $trg.Color = Color;
