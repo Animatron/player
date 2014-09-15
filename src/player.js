@@ -4102,20 +4102,24 @@ Tweens[C.T_SHEAR] =
     };
 Tweens[C.T_FILL] =
     function(data) {
-        var from = data[0], to = data[1];
+        var from = (data[0] instanceof Brush) ? data[0] : new Brush(data[0]),
+            to =   (data[1] instanceof Brush) ? data[1] : new Brush(data[1]),
+            start = from.clone();
         return function(t, dt, duration) {
-            // will write changes directly inside this.$fill
-            Brush.interpolate(from, to, t, this.$fill);
-            Brush.invalidate(this.$fill);
+            if (!this.$fill) this.$fill = start;
+            this.$fill.interpolate(from, to, t);
+            this.$fill.invalidate();
         }
     };
 Tweens[C.T_STROKE] =
     function(data) {
-        var from = data[0], to = data[1];
+        var from = (data[0] instanceof Brush) ? data[0] : new Brush(data[0]),
+            to   = (data[1] instanceof Brush) ? data[1] : new Brush(data[1]),
+            start = from.clone();
         return function (t, dt, duration) {
-            // will write changes directly inside this.$stroke
-            Brush.interpolate(from, to, t, this.$stroke);
-            Brush.invalidate(this.$stroke);
+            if (!this.$stroke) this.$stroke = start;
+            this.$stroke.interpolate(from, to, t);
+            this.$stroke.invalidate();
         }
     };
 
@@ -5019,54 +5023,64 @@ Text.prototype.dispose = function() { }
 //   offsetX: 5,
 //   offsetY: 15 }
 
-function Brush(value, value2) {
-    if (__obj(value)) {
-        // fill / stroke / gradient
-        this.value = value;
-    } else if (__str(value) && __defined(value2)) {
-        // stroke
-        this.value = {
-            color: value,
-            width: value2
+function Brush(value) {
+    if (!value) {
+        this.type = C.BT_NONE;
+    } else if (__obj(value)) {
+        if ((value.color || value.grad) && __defined(value.width)) {
+            this.type = C.BT_STROKE;
+        } else if (__defined(value.blurRadius) ||
+                   __defined(value.offsetX)) {
+            this.type = C.BT_SHADOW;
+        } else if (value.color || value.grad) {
+            this.type = C.BT_FILL;
+        } else throw new AnimErr('Unknown type of brush');
+        for (var key in value) {
+            if (value.hasOwnProperty(key)) {
+                this[key] = value[key];
+            }
         }
-    } else if (__str(value)) {
-        // fill
-        this.value = { color: value };
-    } else {
-        this.value = null;
-    };
+    } else throw new AnimErr('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
 }
 Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
 Brush.DEFAULT_FILL = '#000';
 Brush.DEFAULT_STROKE = null;
-//C.BT_FILL =
+C.BT_NONE = 'none';
+C.BT_FILL = 'fill';
+C.BT_STROKE = 'stroke';
+C.BT_SHADOW = 'shadow';
 Brush.prototype.apply = function(ctx) {
-    if (this._style) return this._style;
-    this._style = Brush.adapt(ctx, this);
-    if (!this._style) return;
-    var value = this.value,
-        style = this._style;
-    if (__defined(value.width)) {
-        ctx.lineWidth = stroke ? stroke.width : 0;
-        ctx.strokeStyle = stroke ? Brush.adapt(ctx, stroke) : Brush.DEFAULT_STROKE;
-        ctx.lineCap = stroke ? stroke.cap : Brush.DEFAULT_CAP;
-        ctx.lineJoin = stroke ? stroke.join : Brush.DEFAULT_JOIN;
+    if (this.type == C.BT_NONE) return;
+    var style = this._style || (this._style = this.adapt(ctx));
+    if (this.type == C.BT_FILL) {
         ctx.fillStyle = style;
-    } else {}
-    // TODO:
+    } else if (this.type == C.BT_STROKE) {
+        ctx.lineWidth = this.width || 0;
+        ctx.strokeStyle = style || Brush.DEFAULT_STROKE;
+        ctx.lineCap = this.cap || Brush.DEFAULT_CAP;
+        ctx.lineJoin = this.join || Brush.DEFAULT_JOIN;
+    } else if (this.type == C.BT_SHADOW) {
+        if (!shadow || $conf.doNotRenderShadows) return;
+        var props = $engine.getAnmProps(ctx);
+        if (props.skip_shadows) return;
+        ctx.shadowColor = style;
+        ctx.shadowBlur = this.blurRadius || 0;
+        ctx.shadowOffsetX = this.offsetX || 0;
+        ctx.shadowOffsetY = this.offsetY || 0;
+    }
 }
 Brush.prototype.invalidate = function() {
-    delete this._converted;
-    delete this._style;
+    //this.type = C.BT_NONE;
+    this._converted = false;
+    this._style = null;
 }
 Brush.prototype.convertColorsToRgba = function() {
     if (this._converted) return;
-    var value = this.value;
-    if (value.color && __str(value.color)) {
-        value.color = Color.fromStr(value.color);
-    } else if (value.grad) {
-        var stops = value.grad.stops;
+    if (this.color && __str(this.color)) {
+        this.color = Color.fromStr(this.color);
+    } else if (this.grad) {
+        var stops = this.grad.stops;
         for (var i = 0, il = stops.length; i < il; i++) {
             if (__str(stops[i][1])) {
                 stops[i][1] = Color.from(stops[i][1]);
@@ -5077,47 +5091,38 @@ Brush.prototype.convertColorsToRgba = function() {
 }
 // create canvas-compatible style from brush
 Brush.prototype.adapt = function(ctx) {
-    var value = this.value;
-    if (!value) return null;
-    if (value.color && __str(value.color)) return value.color;
-    if (value.color) return Color.toRgbaStr(value.color);
-    if (value.lgrad) {
-        var src = value.lgrad,
+    if (this.color && __str(this.color)) return this.color;
+    if (this.color) return Color.toRgbaStr(this.color);
+    if (this.grad) {
+        var src = this.grad,
             stops = src.stops,
             dir = src.dir,
+            r = src.r;
             bounds = src.bounds;
-        var grad = bounds
-            ? ctx.createLinearGradient(
-                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
-                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
-                            bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
-            : ctx.createLinearGradient(
-                            dir[0][0], dir[0][1],  // x0, y0
-                            dir[1][0], dir[1][1]); // x1, y1
-        for (var i = 0, slen = stops.length; i < slen; i++) {
-            var stop = stops[i];
-            grad.addColorStop(stop[0], Color.from(stop[1]));
+        var grad;
+        if (__defined(src.r)) {
+            grad = bounds
+                ? ctx.createRadialGradient(
+                                bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
+                                bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
+                                Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
+                                bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
+                                bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
+                                Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
+                : ctx.createRadialGradient(
+                               dir[0][0], dir[0][1], r[0],  // x0, y0, r0
+                               dir[1][0], dir[1][1], r[1]); // x1, y1, r1
+        } else {
+            grad = bounds
+                ? ctx.createLinearGradient(
+                                bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
+                                bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
+                                bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
+                                bounds[1] + dir[1][1] * bounds[3]) // b.y + y1 * b.height
+                : ctx.createLinearGradient(
+                                dir[0][0], dir[0][1],  // x0, y0
+                                dir[1][0], dir[1][1]); // x1, y1
         }
-        return grad;
-    }
-    if (brush.rgrad) {
-        var src = value.rgrad,
-            stops = src.stops,
-            dir = src.dir,
-            r = src.r,
-            bounds = src.bounds;
-        var grad = bounds
-            ? ctx.createRadialGradient(
-                            bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
-                            bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                            Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
-                            bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
-                            bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
-                            Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
-            : ctx.createRadialGradient(
-                           dir[0][0], dir[0][1], r[0],  // x0, y0, r0
-                           dir[1][0], dir[1][1], r[1]); // x1, y1, r1
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
             grad.addColorStop(stop[0], Color.from(stop[1]));
@@ -5126,72 +5131,11 @@ Brush.prototype.adapt = function(ctx) {
     }
     return null;
 }
-Brush.prototype.clone = function()  {
-    var src = this.value;
-    var trg = {};
-    if (src.color && is_str(src.color)) { trg.color = src.color }
-    else if (src.color) {
-        trg.color = { r: src.color.r, g: src.color.g, b: src.color.b, a: src.color.a || 1 };
-    };
-    if (src.grad) {
-        var src_grad = src.grad,
-            trg_grad = {};
-        trg_grad.stops = [];
-        for (i = 0; i < src_grad.stops.length; i++) {
-            trg_grad.stops[i] = [].concat(src_grad.stops[i]);
-        }
-        trg_grad.dir = [].concat(src_grad.dir);
-        if (src_grad.r) trg_grad.r = [].concat(src_grad.r);
-        trg.grad = trg_grad;
-    }
-    // stroke
-    if (src.hasOwnProperty('width')) trg.width = src.width;
-    if (src.hasOwnProperty('cap')) trg.cap = src.cap;
-    if (src.hasOwnProperty('join')) trg.join = src.join;
-    // shadow
-    if (src.hasOwnProperty('blurRadius')) trg.blurRadius = src.blurRadius;
-    if (src.hasOwnProperty('offsetX')) trg.offsetX = src.offsetX;
-    if (src.hasOwnProperty('offsetY')) trg.offsetY = src.offsetY;
-    return new Brush(trg);
-}
-// TODO: move to instance methods
-Brush.fill = function(ctx, fill) {
-    ctx.fillStyle = fill ? fill.adapt : Brush.DEFAULT_FILL;
-}
-Brush.stroke = function(ctx, stroke) {
-    ctx.lineWidth = stroke ? stroke.width : 0;
-    ctx.strokeStyle = stroke ? Brush.adapt(ctx, stroke) : Brush.DEFAULT_STROKE;
-    ctx.lineCap = stroke ? stroke.cap : Brush.DEFAULT_CAP;
-    ctx.lineJoin = stroke ? stroke.join : Brush.DEFAULT_JOIN;
-}
-Brush.shadow = function(ctx, shadow) {
-    if (!shadow || $conf.doNotRenderShadows) return;
-    var props = $engine.getAnmProps(ctx);
-    if (props.skip_shadows) return;
-    ctx.shadowColor = shadow ? Brush.adapt(shadow) : null;
-    ctx.shadowBlur = shadow ? shadow.blurRadius : 0;
-    ctx.shadowOffsetX = shadow ? shadow.offsetX : 0;
-    ctx.shadowOffsetY = shadow ? shadow.offsetY : 0;
-}
-Brush.qfill = function(ctx, color) {
-    ctx.fillStyle = color;
-}
-Brush.qstroke = function(ctx, color, width) {
-    ctx.lineWidth = width || 1;
-    ctx.strokeStyle = color;
-    ctx.lineCap = Brush.DEFAULT_CAP;
-    ctx.lineJoin = Brush.DEFAULT_JOIN;
-}
-Brush.clearShadow = function(ctx) {
-    ctx.shadowBlur = 0;
-    ctx.shadowOffsetX = 0;
-    ctx.shadowOffsetY = 0;
-}
-Brush.interpolate = function(from, to, t, trg) {
-    if (!from._converted) { Brush.convertColorsToRgba(from); from._converted = true; }
-    if   (!to._converted) { Brush.convertColorsToRgba(to);     to._converted = true; }
-    var result = trg || {};
-    if (__defined(from.width) && __defined(to.width)) {
+Brush.prototype.interpolate = function(from, to, t) {
+    if (!from._converted) { from.convertColorsToRgba(); }
+    if (!to._converted)   { to.convertColorsToRgba(); }
+    var result = this;
+    if (__defined(from.width) && __defined(to.width)) { // from.type && to.type == C.BT_STROKE
         result.width = __interpolateFloat(from.width, to.width, t);
     }
     if (from.color) {
@@ -5224,6 +5168,76 @@ Brush.interpolate = function(from, to, t, trg) {
     }
     return result;
 }
+Brush.prototype.clone = function()  {
+    var src = this,
+        trg = new Brush();
+    trg.type = src.type;
+    if (src.color && is_str(src.color)) { trg.color = src.color; }
+    else if (src.color) {
+        trg.color = { r: src.color.r, g: src.color.g, b: src.color.b, a: src.color.a || 1 };
+    };
+    if (src.grad) {
+        var src_grad = src.grad,
+            trg_grad = {};
+        trg_grad.stops = [];
+        for (i = 0; i < src_grad.stops.length; i++) {
+            trg_grad.stops[i] = [].concat(src_grad.stops[i]);
+        }
+        trg_grad.dir = [].concat(src_grad.dir);
+        if (src_grad.r) trg_grad.r = [].concat(src_grad.r);
+        trg.grad = trg_grad;
+    }
+    // stroke
+    if (src.hasOwnProperty('width')) trg.width = src.width;
+    if (src.hasOwnProperty('cap')) trg.cap = src.cap;
+    if (src.hasOwnProperty('join')) trg.join = src.join;
+    // shadow
+    if (src.hasOwnProperty('blurRadius')) trg.blurRadius = src.blurRadius;
+    if (src.hasOwnProperty('offsetX')) trg.offsetX = src.offsetX;
+    if (src.hasOwnProperty('offsetY')) trg.offsetY = src.offsetY;
+    return trg;
+}
+Brush.fill = function(value) {
+    var brush = new Brush();
+    brush.type = B.CT_FILL;
+    if (__str(value) || (__obj(value) && !value.stops)) {
+        brush.color = value;
+    } else if (__obj(value) && value.stops) {
+        brush.grad = value;
+    }
+    return brush;
+}
+Brush.stroke = function(color, width, cap, join) {
+    var brush = Brush.fill(color);
+    brush.type = B.CT_STROKE;
+    brush.width = width || 0;
+    brush.cap = cap || Brush.DEFAULT_CAP;
+    brush.join = join || Brush.DEFAULT_JOIN;
+    return brush;
+}
+Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
+    var brush = Brush.fill(color);
+    brush.type = B.CT_SHADOW;
+    brush.blurRadius = blurRadius || 1;
+    brush.offsetX = offsetX || 0;
+    brush.offsetY = offsetY || 0;
+    return brush;
+}
+Brush.qfill = function(ctx, color) {
+    ctx.fillStyle = color;
+}
+Brush.qstroke = function(ctx, color, width) {
+    ctx.lineWidth = width || 1;
+    ctx.strokeStyle = color;
+    ctx.lineCap = Brush.DEFAULT_CAP;
+    ctx.lineJoin = Brush.DEFAULT_JOIN;
+}
+Brush.clearShadow = function(ctx) {
+    ctx.shadowBlur = 0;
+    ctx.shadowOffsetX = 0;
+    ctx.shadowOffsetY = 0;
+}
+
 
 //a set of functions for parsing and intepolating color values
 var Color = {};
