@@ -2676,6 +2676,28 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
 }
+Element.prototype.move = function(x, y) {
+    this.x = x;
+    this.y = y;
+    return this;
+}
+Element.prototype.rotate = function(angle) {
+    this.angle = angle;
+    return this;
+}
+Element.prototype.rotateInGrad = function(angle) {
+    return this.rotate(angle / Math.PI);
+}
+Element.prototype.scale = function(sx, sy) {
+    this.sx = sx;
+    this.sy = sy;
+    return this;
+}
+Element.prototype.skew = function(hx, hy) {
+    this.hx = hx;
+    this.hy = hy;
+    return this;
+}
 // FIXME!!!: do not pass time, dt and duration neither to modifiers
 //           nor painters, they should be accessible through this.t / this.dt
 // > Element.modify % (modifier: Function(t: Float,
@@ -2753,6 +2775,7 @@ Element.prototype.tween = function(tween) {
     // __finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
 }
+
 // > Element.add % (elem: Element | Clip)
 // > Element.add % (elems: Array[Element])
 // > Element.add % (draw: Function(ctx: Context),
