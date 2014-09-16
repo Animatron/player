@@ -2706,8 +2706,8 @@ Element.prototype.rotate = function(angle) {
     this.angle = angle;
     return this;
 }
-Element.prototype.rotateInGrad = function(angle) {
-    return this.rotate(angle / Math.PI);
+Element.prototype.rotateInDeg = function(angle) {
+    return this.rotate(angle / 180 * Math.PI);
 }
 Element.prototype.scale = function(sx, sy) {
     this.sx = sx;
@@ -5043,18 +5043,18 @@ Color.HEX_RE       = /^#?([a-fA-F\d]{2})([a-fA-F\d]{2})([a-fA-F\d]{2})$/i;
 Color.HEX_SHORT_RE = /^#?([a-fA-F\d])([a-fA-F\d])([a-fA-F\d])$/i;
 Color.RGB_RE       = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
 Color.RGBA_RE      = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i;
-Color.HSL_RE       = /^hsl\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
-Color.HSLA_RE       = /^hsla\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
+Color.HSL_RE       = /^hsl\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*%\s*,\s*([0-9]{1,3})\s*%\s*\)$/i;
+Color.HSLA_RE      = /^hsla\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*%\s*,\s*([0-9]{1,3})\s*%\s*,\s*(\d*[.]?\d+)\s*\)$/i;
 Color.from = function(test) {
     return __str(test) ? Color.fromStr(test) : (test.r && test);
-}
+};
 Color.fromStr = function(str) {
     return Color.fromHex(str)
         || Color.fromRgb(str)
         || Color.fromRgba(str)
         || Color.fromHsl(str)
         || { r: 0, g: 0, b: 0, a: 0};
-}
+};
 Color.fromHex = function(hex) {
     if (hex[0] !== '#') return null;
     var result = Color.HEX_RE.exec(hex);
@@ -5094,27 +5094,50 @@ Color.fromRgba = function(rgba) {
         a: parseFloat(result[4])
     } : null;
 };
+Color.fromHslVal = function(hue, sat, light) {
+    var hueToRgb = Color.hueToRgb;
+    var t2;
+    if (light <= 0.5) {
+        t2 = light * (sat + 1);
+    } else {
+        t2 = light + sat - (light * sat);
+    }
+    var t1 = light * 2 - t2;
+    return { r: hueToRgb(t1, t2, hue + 2),
+             g: hueToRgb(t1, t2, hue),
+             b: hueToRgb(t1, t2, hue - 2),
+             a: 1 };
+
+};
 Color.fromHsl = function(hsl) {
     return null;
-    /* if (rgba.indexOf('hsl(') !== 0) return null;
+    if (hsl.indexOf('hsl(') !== 0) return null;
     var result = Color.HSL_RE.exec(hsl);
-    return result ? {
-        r: parseInt(result[1]),
-        g: parseInt(result[2]),
-        b: parseInt(result[3]),
-        a: 1
-    } : null; */
+    return result ? Color.fromHslVal(
+        parseInt(result[1]) / 180 * Math.PI,
+        parseInt(result[2]) / 100,
+        parseInt(result[3]) / 100
+    ) : null;
 };
 Color.fromHsla = function(hsla) {
-    return null;
-    /* if (hsla.indexOf('hsla(') !== 0) return null;
+    if (hsla.indexOf('hsla(') !== 0) return null;
     var result = Color.HSLA_RE.exec(hsl);
-    return result ? {
-        r: parseInt(result[1]),
-        g: parseInt(result[2]),
-        b: parseInt(result[3]),
-        a: parseFloat(result[4])
-    } : null; */
+    if (!result) return null;
+    result = Color.fromHslVal(
+        parseInt(result[1]) / 180 * Math.PI,
+        parseInt(result[2]) / 100,
+        parseInt(result[3]) / 100
+    );
+    result.a = parseFloat(result[4]);
+    return result;
+};
+Color.hueToRgb = function(t1, t2, hue) {
+    if (hue < 0) hue += 6;
+    if (hue >= 6) hue -= 6;
+    if (hue < 1) return (t2 - t1) * hue + t1;
+    else if (hue < 3) return t2;
+    else if (hue < 4) return (t2 - t1) * (4 - hue) + t1;
+    else return t1;
 };
 Color.rgb = function(r, g, b) {
     return 'rgb(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ')';
@@ -5123,20 +5146,29 @@ Color.rgba = function(r, g, b, a) {
     return 'rgba(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ','
                                + (__defined(a) ? a.toFixed(2) : 1.0) + ')';
 };
-/* Color.hsl = function(h, s, l) {
-    return 'hsl(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ')';
+Color.hsl = function(h, s, l) {
+    return Color.dhsl(h / Math.PI * 180, s, l);
+};
+Color.dhsl = function(dh, s, l) {
+    return 'hsl(' + Math.floor(dh) + ',' +
+                    Math.floor(s * 100) + '%,' +
+                    Math.floor(l * 100) + '%)';
 };
 Color.hsla = function(h, s, l, a) {
-    return 'hsla(' + (Math.floor() * 255) + ',' + (g * 255) + ',' + (b * 255) + ','
-                               + (__defined(a) ? a.toFixed(2) : 1.0) + ')';
-}; */
+    return Color.dhsla(h / Math.PI * 180, s, l, a);
+};
+Color.dhsla = function(dh, s, l, a) {
+    return 'hsla('+ Math.floor(dh) + ',' +
+                    Math.floor(s * 100) + '%,' +
+                    Math.floor(l * 100) + '%,' +
+                    (__defined(a) ? a.toFixed(2) : 1.0) + ')';
+};
 Color.toRgbaStr = function(color) {
     return Color.rgba(color.r,
                       color.g,
                       color.b,
                       color.a);
 };
-
 Color.interpolate = function(c1, c2, t) {
     return {
         r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
