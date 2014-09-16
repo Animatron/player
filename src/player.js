@@ -2360,6 +2360,9 @@ Element.prototype.initTime = function() {
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
 
+    this.key = null;
+    this.t = null;
+
     this.__resetTimeFlags();
 
     return this;
@@ -2981,7 +2984,8 @@ Element.prototype.disposeVisuals = function() {
     if (this.$mpath) this.$mpath.dispose();
 }
 Element.prototype.reset = function() {
-    this.resetState();
+    // if positions were set before loading a scene, we don't need to reset them
+    //this.resetState();
     this.resetEvents();
     this.__resetTimeFlags();
     /*this.__clearEvtState();*/
@@ -3359,11 +3363,11 @@ Element.prototype.__checkJump = function(at) {
     // if jump-time was set either
     // directly or relatively or with key,
     // get its absolute local value
-    t = (this.p !== null) ? this.p : null;
-    t = ((t === null) && (this.t !== null))
+    t = (__defined(this.p)) ? this.p : null;
+    t = ((t === null) && (this.t !== null) && __finite(duration))
         ? this.t * duration
         : t;
-    t = ((t === null) && (this.key !== null))
+    t = ((t === null) && (__defined(this.key)))
         ? this.keys[this.key]
         : t;
     if (t !== null) {
@@ -3385,9 +3389,10 @@ Element.prototype.__checkJump = function(at) {
     // was passed or it requires to be ignored,
     // just set it to actual local time
     t = (t !== null) ? t : at;
-    if (this.__lastJump !== null) {
+    if (__defined(this.__lastJump)) {
        /* return (jump_pos + (t - jumped_at)) */
-       return this.__lastJump[1] + (t - this.__lastJump[0]);
+       return (__finite(this.__lastJump[1])
+                      ? this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
        // overflow will be checked in fits() method,
        // or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
