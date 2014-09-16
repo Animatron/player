@@ -177,25 +177,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     $DE.PX_RATIO = $wnd.devicePixelRatio || 1;
 
     $DE.ajax = function(url, callback, errback, method, headers) {
-        var req = false;
-
-        if (!$wnd.ActiveXObject) {
-            req = new $wnd.XMLHttpRequest();
-        } else {
-            try {
-                req = new $wnd.ActiveXObject("Msxml2.XMLHTTP");
-            } catch (e1) {
-                try {
-                    req = $wnd.ActiveXObject("Microsoft.XMLHTTP");
-                } catch (e2) {
-                    throw new Error('No AJAX/XMLHttp support'); // SysErr
-                }
-            }
-        }
-
-        /*if (req.overrideMimeType) {
-            req.overrideMimeType('text/xml');
-          } */
+        var req = new $wnd.XMLHttpRequest();
 
         if (!req) {
           throw new Error('Failed to create XMLHttp instance'); // SysErr
