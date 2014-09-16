@@ -2720,6 +2720,7 @@ Element.prototype.skew = function(hx, hy) {
 Element.prototype.modify = function(band, modifier) {
     if (!__arr(band)) { modifier = band;
                         band = null; }
+    if (!modifier) throw new AnimErr('No modifier was passed to .modify() method');
     if (!__modifier(modifier) && __fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
     } else if (!__modifier(modifier)) {
@@ -2733,8 +2734,8 @@ Element.prototype.modify = function(band, modifier) {
     this.$modifiers[modifier.type].push(modifier);
     this.__modifiers_hash[modifier.id] = modifier;
     if (!modifier.__applied_to) modifier.__applied_to = {};
-    modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type
-    return modifier;
+    modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type + 1 (so 0 means not applied)
+    return this;
 }
 // > Element.removeModifier % (modifier: Function)
 Element.prototype.removeModifier = function(modifier) {
@@ -2743,8 +2744,9 @@ Element.prototype.removeModifier = function(modifier) {
     if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimErr(Errors.A.MODIFIER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
     delete this.__modifiers_hash[modifier.id];
-    delete this.$modifiers[modifier.type].splice(modifier.__applied_to[this.id], 1); // delete by index
+    delete this.$modifiers[modifier.type].splice(modifier.__applied_to[this.id] - 1, 1); // delete by index
     delete modifier.__applied_to[this.id];
+    return this;
 }
 // > Element.paint % (painter: Function(ctx: Context,
 //                                           data: Any,
@@ -2753,6 +2755,7 @@ Element.prototype.removeModifier = function(modifier) {
 //                                  | Painter)
 //                         => Integer
 Element.prototype.paint = function(painter) {
+    if (!painter) throw new AnimErr('No painter was passed to .paint() method');
     if (!__painter(painter) && __fun(painter)) {
         painter = new Painter(painter, C.MOD_USER);
     } else if (!__painter(painter)) {
@@ -2765,8 +2768,8 @@ Element.prototype.paint = function(painter) {
     this.$painters[painter.type].push(painter);
     this.__painters_hash[painter.id] = painter;
     if (!painter.__applied_to) painter.__applied_to = {};
-    painter.__applied_to[this.id] = this.$painters[painter.type].length; // the index in the array by type
-    return painter;
+    painter.__applied_to[this.id] = this.$painters[painter.type].length; // the index in the array by type + 1 (so 0 means not applied)
+    return this;
 }
 // > Element.removePainter % (painter: Function | Painter)
 Element.prototype.removePainter = function(painter) {
@@ -2775,8 +2778,9 @@ Element.prototype.removePainter = function(painter) {
     if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
     delete this.__painters_hash[painter.id];
-    delete this.$painters[painter.type].splice(painter.__applied_to[this.id], 1); // delete by index
+    delete this.$painters[painter.type].splice(painter.__applied_to[this.id] - 1, 1); // delete by index
     delete painter.__applied_to[this.id];
+    return this;
 }
 // > Element.tween % (tween: Tween)
 Element.prototype.tween = function(tween) {
@@ -3611,13 +3615,11 @@ function Modifier(func, type) {
     func.band = func.band || null; // either band or time is specified
     func.time = __defined(func.time) ? func.time : null; // either band or time is specified
     func.relative = __defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
-    func.as_tween = func.relative ? true // should modifier receive relative time or not (like tweens)
-                                  : (__defined(func.as_tween) ? func.as_tween
-                                                              : false);
+    func.as_tween = (func.relative || (func.type == C.MOD_TWEEN) || func.as_tween || false); // should modifier receive relative time or not (like tweens)
     func.easing = func.easing || null;
     // TODO: may these properties interfere with something? they are assigned to function instances
     // TODO: add chainable methods to set band, easing, etc... ?
-    anm.registerModifier(func);
+    anm.registerAsModifier(func);
     return func;
 }
 
@@ -3630,6 +3632,7 @@ function Tween(tween_type, data) {
         func = Tweens[tween_type](data);
         func.tween = tween_type;
     }
+    func.as_tween = true;
     return Modifier(func, C.MOD_TWEEN);
 }
 
@@ -3655,7 +3658,7 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 function Painter(func, type) {
     func.id = guid();
     func.type = type || C.PNT_USER;
-    anm.registerPainter(func);
+    anm.registerAsPainter(func);
     return func;
 }
 

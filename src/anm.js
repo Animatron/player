@@ -551,11 +551,11 @@
         var MODIFIER_MARKER = '__modifier';
         var PAINTER_MARKER  = '__painter';
 
-        $publ.registerModifier = function(f) {
+        $publ.registerAsModifier = function(f) {
             f[MODIFIER_MARKER] = true;
         }
 
-        $publ.registerPainter = function(f) {
+        $publ.registerAsPainter = function(f) {
             f[PAINTER_MARKER] = true;
         }
 
