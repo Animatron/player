@@ -5232,10 +5232,8 @@ Sheet.prototype.load = function(player_id, callback, errback) {
         },
         function(image) {  // oncomplete
             me._image = image;
-            // if (me.regions.length == 1) me._drawToCache();
             me._dimen = [ image.width, image.height ];
             me.ready = true; // this flag is for users of the Sheet class
-            me._drawToCache();
             if (callback) callback.call(me, image);
         },
         function(err) { $log.error(err.message || err);
@@ -5243,18 +5241,7 @@ Sheet.prototype.load = function(player_id, callback, errback) {
                         me.wasError = true;
                         if (errback) errback.call(me, err); });
 }
-Sheet.prototype._drawToCache = function() {
-    if (!this.ready || this.wasError) return;
-    if (this._image.__cvs) {
-        this._cvs_cache = this._image.__cvs;
-        return;
-    }
-    var _canvas = $engine.createCanvas(this._dimen[0], this._dimen[1], null, 1 /* FIXME: use real ratio */);
-    var _ctx = $engine.getContext(_canvas, '2d');
-    _ctx.drawImage(this._image, 0, 0, this._dimen[0], this._dimen[1]);
-    this._image.__cvs = _canvas;
-    this._cvs_cache = _canvas;
-}
+
 Sheet.prototype.apply = function(ctx) {
     if (!this.ready) return;
     if (this.wasError) { this.applyMissed(ctx); return; }
@@ -5268,7 +5255,7 @@ Sheet.prototype.apply = function(ctx) {
                    r[2] * d[0], r[3] * d[1] ];
     }
     this._active_region = region;
-    ctx.drawImage(this._cvs_cache, region[0], region[1],
+    ctx.drawImage(this._image, region[0], region[1],
                                    region[2], region[3], 0, 0, region[2], region[3]);
 }
 Sheet.prototype.applyMissed = function(ctx) {
