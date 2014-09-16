@@ -2328,8 +2328,8 @@ Element.prototype.initState = function() {
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
 
-    this.reg = Element.DEFAULT_REG;   // registration point (static values)
-    this.pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
+    this.$reg = Element.DEFAULT_REG;   // registration point (static values)
+    this.$pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
     // since properties below will conflict with getters/setters having same names,
     // they're renamed with dollar-sign. this way also allows methods to be replaced
@@ -2677,6 +2677,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
     this.__postRender();
     this.rendering = false;
     if (drawMe) this.fire(C.X_DRAW,ctx);
+    return this;
+}
+Element.prototype.pivot = function(x, y) {
+    this.$pivot = [ x, y ];
+    return this;
+}
+Element.prototype.reg = function(x, y) {
+    this.$reg = [ x, y ];
     return this;
 }
 Element.prototype.move = function(x, y) {
@@ -3493,7 +3501,7 @@ Element.transferState = function(src, trg) {
     trg.alpha = src.alpha;
 }
 Element.transferVisuals = function(src, trg) {
-    trg.reg = [].concat(src.reg); trg.pivot = [].concat(src.pivot);
+    trg.$reg = [].concat(src.$reg); trg.$pivot = [].concat(src.$pivot);
     trg.$fill = Brush.clone(src.$fill);
     trg.$stroke = Brush.clone(src.$stroke);
     trg.$shadow = Brush.clone(src.$shadow);
@@ -3896,13 +3904,13 @@ Render._drawFPS = __r_fps;
 // SYSTEM PAINTERS
 
 Render.p_useReg = new Painter(function(ctx) {
-    var reg = this.reg;
+    var reg = this.$reg;
     if ((reg[0] === 0) && (reg[1] === 0)) return;
     ctx.translate(-reg[0], -reg[1]);
 }, C.PNT_SYSTEM);
 
 Render.p_usePivot = new Painter(function(ctx) {
-    var pivot = this.pivot;
+    var pivot = this.$pivot;
     if ((pivot[0] === 0) && (pivot[1] === 0)) return;
     var dimen = this.dimen();
     if (!dimen) return;
@@ -3932,7 +3940,7 @@ Render.p_applyAComp = new Painter(function(ctx) {
 // DEBUG PAINTERS
 
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
-    if (!(pivot = pivot || this.pivot)) return;
+    if (!(pivot = pivot || this.$pivot)) return;
     var dimen = this.dimen() || [ 0, 0 ];
     var stokeStyle = dimen ? '#600' : '#f00';
     ctx.save();
@@ -3952,7 +3960,7 @@ Render.p_drawPivot = new Painter(function(ctx, pivot) {
 }, C.PNT_DEBUG);
 
 Render.p_drawReg = new Painter(function(ctx, reg) {
-    if (!(reg = reg || this.reg)) return;
+    if (!(reg = reg || this.$reg)) return;
     ctx.save();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = '#00f';
