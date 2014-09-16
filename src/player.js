@@ -2407,14 +2407,14 @@ Element.prototype.sheet = Element.prototype.image;
 // > Element.fill % ([value: Brush | String]) => Brush | Element
 Element.prototype.fill = function(value) {
     if (value) {
-        this.$fill = (value instanceof Brush) ? value : new Brush(value);
+        this.$fill = (value instanceof Brush) ? value : Brush.fill(value);
         return this;
     } else return this.$fill;
 }
 // > Element.stroke % ([value: Brush | String] | [color: String, width: int]) => Brush | Element
-Element.prototype.stroke = function(value) {
+Element.prototype.stroke = function(value, width) {
     if (value) {
-        this.$stroke = (value instanceof Brush) ? value : new Brush(value);
+        this.$stroke = (value instanceof Brush) ? value : Brush.stroke(value, width);
         return this;
     } else return this.$stroke;
 }
@@ -4102,16 +4102,16 @@ Tweens[C.T_SHEAR] =
     };
 Tweens[C.T_FILL] =
     function(data) {
-        var interp = new BrushInterpolation(data[0], data[1]);
+        var interp_func = interpolateBrushes(data[0], data[1]);
         return function(t, dt, duration) {
-            this.$fill = interp.valueAt(t);
+            this.$fill = interp_func(t);
         }
     };
 Tweens[C.T_STROKE] =
     function(data) {
-        var interp = new BrushInterpolation(data[0], data[1]);
+        var interp_func = interpolateBrushes(data[0], data[1]);
         return function (t, dt, duration) {
-            this.$stroke = interp.valueAt(t);
+            this.$stroke = interp_func(t);
         }
     };
 
@@ -5155,7 +5155,7 @@ Brush.prototype.clone = function()  {
 }
 Brush.fill = function(value) {
     var brush = new Brush();
-    brush.type = B.CT_FILL;
+    brush.type = C.BT_FILL;
     if (__str(value) || (__obj(value) && !value.stops)) {
         brush.color = value;
     } else if (__obj(value) && value.stops) {
@@ -5165,7 +5165,7 @@ Brush.fill = function(value) {
 }
 Brush.stroke = function(color, width, cap, join) {
     var brush = Brush.fill(color);
-    brush.type = B.CT_STROKE;
+    brush.type = C.BT_STROKE;
     brush.width = width || 0;
     brush.cap = cap || Brush.DEFAULT_CAP;
     brush.join = join || Brush.DEFAULT_JOIN;
@@ -5173,7 +5173,7 @@ Brush.stroke = function(color, width, cap, join) {
 }
 Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
     var brush = Brush.fill(color);
-    brush.type = B.CT_SHADOW;
+    brush.type = C.BT_SHADOW;
     brush.blurRadius = blurRadius || 1;
     brush.offsetX = offsetX || 0;
     brush.offsetY = offsetY || 0;
@@ -5204,49 +5204,47 @@ Brush.clearShadow = function(ctx) {
     ctx.shadowOffsetY = 0;
 }
 
-function BrushInterpolation(from, to) {
-    this.from = (from instanceof Brush) ? from : new Brush(from);
-    this.to   = (to   instanceof Brush) ? to   : new Brush(to);
-    if (!this.from._converted) { this.from.convertColorsToRgba(); }
-    if (!this.to._converted)   { this.to.convertColorsToRgba();   }
-}
-BrushInterpolation.prototype.valueAt = function(t) {
-    var result = this.value,
-        from   = this.from,
-        to     = this.to;
-    if (__defined(from.width) && __defined(to.width)) { // from.type && to.type == C.BT_STROKE
-        result.width = __interpolateFloat(from.width, to.width, t);
+function interpolateBrushes(from, to) {
+    var from = (from instanceof Brush) ? from : new Brush(from),
+        to   = (to   instanceof Brush) ? to   : new Brush(to);
+    if (!from._converted) { from.convertColorsToRgba(); }
+    if (!to._converted)   { to.convertColorsToRgba();   }
+    var result = from.clone();
+    return function(t) {
+        if (__defined(from.width) && __defined(to.width)) { // from.type && to.type == C.BT_STROKE
+            result.width = __interpolateFloat(from.width, to.width, t);
+        }
+        if (from.color) {
+            result.grad = null;
+            result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
+        } else if (from.grad) {
+            result.color = null;
+            if (!result.grad) result.grad = {};
+            var trgg = result.grad, fromg = from.grad, tog = to.grad, i;
+            // direction
+            for (i = 0; i < fromg.dir.length; i++) {
+                if (!trgg.dir[i]) trgg.dir[i] = [];
+                trgg.dir[0] = __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
+                trgg.dir[1] = __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
+            };
+            // stops
+            if (!trgg.stops ||
+                (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
+            for (i = 0; i < fromg.stops.length; i++) {
+                if (!trgg.stops[i]) trgg.stops[i] = [];
+                trgg.stops[i][0] = __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
+                trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
+            };
+            // radius
+            if (fromg.r) {
+                if (!trgg.r) trgg.r = [];
+                trgg.r[0] = __interpolateFloat(fromg.r[0], tog.r[0], t);
+                trgg.r[1] = __interpolateFloat(fromg.r[1], tog.r[1], t);
+            } else { trgg.r = null; }
+        }
+        result.invalidate();
+        return result;
     }
-    if (from.color) {
-        result.grad = null;
-        result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
-    } else if (from.grad) {
-        result.color = null;
-        if (!result.grad) result.grad = {};
-        var trgg = result.grad, fromg = from.grad, tog = to.grad, i;
-        // direction
-        for (i = 0; i < fromg.dir.length; i++) {
-            if (!trgg.dir[i]) trgg.dir[i] = [];
-            trgg.dir[0] = __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
-            trgg.dir[1] = __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
-        };
-        // stops
-        if (!trgg.stops ||
-            (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
-        for (i = 0; i < fromg.stops.length; i++) {
-            if (!trgg.stops[i]) trgg.stops[i] = [];
-            trgg.stops[i][0] = __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
-            trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
-        };
-        // radius
-        if (fromg.r) {
-            if (!trgg.r) trgg.r = [];
-            trgg.r[0] = __interpolateFloat(fromg.r[0], tog.r[0], t);
-            trgg.r[1] = __interpolateFloat(fromg.r[1], tog.r[1], t);
-        } else { trgg.r = null; }
-    }
-    result.invalidate();
-    return result;
 }
 
 
@@ -6451,7 +6449,7 @@ return (function($trg) {
     $trg.Animation = Animation; $trg.Element = Element; $trg.Clip = Clip;
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Modifier = Modifier; $trg.Painter = Painter;
-    $trg.Brush = Brush; $trg.BrushInterpolation = BrushInterpolation;
+    $trg.Brush = Brush; $trg.interpolateBrushes = interpolateBrushes;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
     $trg.Color = Color;
