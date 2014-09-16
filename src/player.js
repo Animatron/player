@@ -1227,7 +1227,7 @@ Player.prototype._drawEmpty = function() {
     ctx.fillStyle = Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
     ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.strokeWidth = Player.EMPTY_STROKE_WIDTH;
+    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
     ctx.strokeRect(0, 0, w * ratio, h * ratio);
 
     ctx.restore();
@@ -1321,7 +1321,7 @@ Player.prototype._drawSplash = function() {
     ctx.fillStyle = this.bgColor || Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
     ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.strokeWidth = Player.EMPTY_STROKE_WIDTH;
+    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
     ctx.strokeRect(0, 0, w * ratio, h * ratio);
 
     if (this.controls) {
@@ -2414,12 +2414,22 @@ Element.prototype.fill = function(value) {
         return this;
     } else return this.$fill;
 }
+// > Element.noFill % () => Element
+Element.prototype.noFill = function() {
+    this.$fill = Color.TRANSPARENT;
+    return this;
+}
 // > Element.stroke % ([value: Brush | String] | [color: String, width: int]) => Brush | Element
 Element.prototype.stroke = function(value, width) {
     if (value) {
         this.$stroke = (value instanceof Brush) ? value : Brush.stroke(value, width);
         return this;
     } else return this.$stroke;
+}
+// > Element.noStroke % () => Element
+Element.prototype.noStroke = function() {
+    this.$stroke = null;
+    return this;
 }
 // > Element.prepare % () => Boolean
 Element.prototype.prepare = function() {
@@ -5025,6 +5035,121 @@ Text.prototype.dispose = function() { }
 // Brush
 // -----------------------------------------------------------------------------
 
+//a set of functions for parsing, converting and intepolating color values
+var Color = {};
+Color.TRANSPARENT  = 'transparent';
+// TODO: Color.RED, Color.BLUE, ....
+Color.HEX_RE       = /^#?([a-fA-F\d]{2})([a-fA-F\d]{2})([a-fA-F\d]{2})$/i;
+Color.HEX_SHORT_RE = /^#?([a-fA-F\d])([a-fA-F\d])([a-fA-F\d])$/i;
+Color.RGB_RE       = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
+Color.RGBA_RE      = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i;
+Color.HSL_RE       = /^hsl\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
+Color.HSLA_RE       = /^hsla\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
+Color.from = function(test) {
+    return __str(test) ? Color.fromStr(test) : (test.r && test);
+}
+Color.fromStr = function(str) {
+    return Color.fromHex(str)
+        || Color.fromRgb(str)
+        || Color.fromRgba(str)
+        || Color.fromHsl(str)
+        || { r: 0, g: 0, b: 0, a: 0};
+}
+Color.fromHex = function(hex) {
+    if (hex[0] !== '#') return null;
+    var result = Color.HEX_RE.exec(hex);
+    if (result) {
+        return {
+            r: parseInt(result[1], 16),
+            g: parseInt(result[2], 16),
+            b: parseInt(result[3], 16),
+            a: 1
+        };
+    }
+    result = Color.HEX_SHORT_RE.exec(hex);
+    return result ? {
+        r: parseInt(result[1] + result[1], 16),
+        g: parseInt(result[2] + result[2], 16),
+        b: parseInt(result[3] + result[3], 16),
+        a: 1
+    } : null;
+};
+Color.fromRgb = function(rgb) {
+    if (rgb.indexOf('rgb(') !== 0) return null;
+    var result = Color.RGB_RE.exec(rgb);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: 1
+    } : null;
+};
+Color.fromRgba = function(rgba) {
+    if (rgba.indexOf('rgba(') !== 0) return null;
+    var result = Color.RGBA_RE.exec(rgba);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: parseFloat(result[4])
+    } : null;
+};
+Color.fromHsl = function(hsl) {
+    return null;
+    /* if (rgba.indexOf('hsl(') !== 0) return null;
+    var result = Color.HSL_RE.exec(hsl);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: 1
+    } : null; */
+};
+Color.fromHsla = function(hsla) {
+    return null;
+    /* if (hsla.indexOf('hsla(') !== 0) return null;
+    var result = Color.HSLA_RE.exec(hsl);
+    return result ? {
+        r: parseInt(result[1]),
+        g: parseInt(result[2]),
+        b: parseInt(result[3]),
+        a: parseFloat(result[4])
+    } : null; */
+};
+Color.rgb = function(r, g, b) {
+    return 'rgb(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ')';
+};
+Color.rgba = function(r, g, b, a) {
+    return 'rgba(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ','
+                               + (__defined(a) ? a.toFixed(2) : 1.0) + ')';
+};
+/* Color.hsl = function(h, s, l) {
+    return 'hsl(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ')';
+};
+Color.hsla = function(h, s, l, a) {
+    return 'hsla(' + (Math.floor() * 255) + ',' + (g * 255) + ',' + (b * 255) + ','
+                               + (__defined(a) ? a.toFixed(2) : 1.0) + ')';
+}; */
+Color.toRgbaStr = function(color) {
+    return Color.rgba(color.r,
+                      color.g,
+                      color.b,
+                      color.a);
+};
+
+Color.interpolate = function(c1, c2, t) {
+    return {
+        r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
+        g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
+        b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
+        a: __interpolateFloat(c1.a, c2.a, t)
+    };
+};
+
+
+// Brush
+// -----------------------------------------------------------------------------
+
 // Brush format, general properties:
 //
 // { color: '#ffaa0b' }
@@ -5076,8 +5201,8 @@ function Brush(value) {
 Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
 Brush.DEFAULT_FILL = '#000';
-Brush.DEFAULT_STROKE = null;
-Brush.DEFAULT_SHADOW = null;
+Brush.DEFAULT_STROKE = Color.TRANSPARENT;
+Brush.DEFAULT_SHADOW = Color.TRANSPARENT;
 C.BT_NONE = 'none';
 C.BT_FILL = 'fill';
 C.BT_STROKE = 'stroke';
@@ -5233,8 +5358,8 @@ Brush.clearFill = function(ctx) {
 Brush.clearStroke = function(ctx) {
     ctx.strokeStyle = Brush.DEFAULT_STROKE;
     ctx.lineWidth = 0;
-    ctx.lineCap = 0;
-    ctx.lineJoin = 0;
+    ctx.lineCap = Brush.DEFAULT_CAP;
+    ctx.lineJoin = Brush.DEFAULT_JOIN;
 }
 Brush.clearShadow = function(ctx) {
     ctx.shadowColor = Brush.DEFAULT_SHADOW;
@@ -5285,73 +5410,6 @@ function interpolateBrushes(from, to) {
         return result;
     }
 }
-
-
-//a set of functions for parsing and intepolating color values
-var Color = {};
-Color.HEX_RE       = /^#?([a-fA-F\d]{2})([a-fA-F\d]{2})([a-fA-F\d]{2})$/i;
-Color.HEX_SHORT_RE = /^#?([a-fA-F\d][a-fA-F\d][a-fA-F\d])$/i;
-Color.RGB_RE       = /^rgb\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*\)$/i;
-Color.RGBA_RE      = /^rgba\s*\(\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*([0-9]{1,3})\s*,\s*(\d*[.]?\d+)\s*\)$/i;
-Color.from = function(test) {
-    return __str(test) ? Color.fromStr(test) : (test.r && test);
-}
-Color.fromStr = function(str) {
-    return Color.fromHex(str)
-        || Color.fromRgb(str)
-        || Color.fromRgba(str)
-        || { r: 0, g: 0, b: 0, a: 0};
-}
-Color.fromHex = function(hex) {
-    if (hex[0] !== '#') return null;
-    var result = Color.HEX_RE.exec(hex);
-    if (result) {
-        return {
-            r: parseInt(result[1], 16),
-            g: parseInt(result[2], 16),
-            b: parseInt(result[3], 16),
-            a: 1
-        };
-    }
-    result = Color.HEX_SHORT_RE.exec(hex);
-    return result ? {
-        r: parseInt(result[1] + result[1], 16),
-        g: parseInt(result[2] + result[2], 16),
-        b: parseInt(result[3] + result[3], 16),
-        a: 1
-    } : null;
-};
-Color.fromRgb = function(rgb) {
-    if (rgb.indexOf('rgb(') !== 0) return null;
-    var result = Color.RGB_RE.exec(rgb);
-    return result ? {
-        r: parseInt(result[1]),
-        g: parseInt(result[2]),
-        b: parseInt(result[3]),
-        a: 1
-    } : null;
-};
-Color.fromRgba = function(rgba) {
-    if (rgba.indexOf('rgba(') !== 0) return null;
-    var result = Color.RGBA_RE.exec(rgba);
-    return result ? {
-        r: parseInt(result[1]),
-        g: parseInt(result[2]),
-        b: parseInt(result[3]),
-        a: parseFloat(result[4])
-    } : null;
-};
-Color.toRgbaStr = function(color) {
-    return 'rgba('+color.r+','+color.g+','+color.b+','+(color.a?color.a.toFixed(2):1.0)+')';
-};
-Color.interpolate = function(c1, c2, t) {
-    return {
-        r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
-        g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
-        b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
-        a: __interpolateFloat(c1.a, c2.a, t)
-    };
-};
 
 
 Sheet.instances = 0;
@@ -6489,9 +6547,9 @@ return (function($trg) {
     $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
     $trg.Modifier = Modifier; $trg.Painter = Painter;
     $trg.Brush = Brush; $trg.interpolateBrushes = interpolateBrushes;
+    $trg.Color = Color;
     $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
     $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
-    $trg.Color = Color;
     $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
 
     $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
