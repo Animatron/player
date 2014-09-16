@@ -2250,7 +2250,7 @@ function Element(name, draw, onframe) {
     this.__painters_hash = {}; // applied painters, by id
     this.__detachQueue = [];
     this.__frameProcessors = [];
-    this.data = {}; // user data
+    this.$data = null; // user data
     this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
     // TODO: call '.reset() here?'
     var _me = this,
@@ -2737,7 +2737,7 @@ Element.prototype.modify = function(band, modifier) {
         throw new AnimErr('Modifier should be either a function or a Modifier instance');
     }
     if (!modifier.type) throw new AnimErr('Modifier should have a type defined');
-    if (band) modifier.band = band;
+    if (band) modifier.$band = band;
     if (modifier.__applied_to &&
         modifier.__applied_to[this.id]) throw new AnimErr('This modifier is already applied to this Element');
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
@@ -3195,8 +3195,9 @@ Element.prototype.clearMask = function() {
     this.__mask = null;
 }
 Element.prototype.data = function(val) {
-  if (typeof val !== 'undefined') return (this.__u_data = val);
-  return this.__u_data;
+  if (!__defined(val)) return this.$data;
+  this.$data = val;
+  return this;
 }
 Element.prototype.toString = function() {
     var buf = [ '[ Element ' ];
@@ -3294,8 +3295,8 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
     var elm = this,
         elm_duration = elm.lband[1] - elm.lband[0], // duration of the element's local band
-        mod_easing = modifier.easing, // modifier easing
-        mod_time = modifier.band || modifier.time, // time (or band) of the modifier, if set
+        mod_easing = modifier.$easing, // modifier easing
+        mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
         mod_relative = modifier.relative, // is modifier time or band relative to elm duration or not
         mod_as_tween = modifier.as_tween; // should time be passed in relative time or not
 
@@ -3622,14 +3623,24 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
 function Modifier(func, type) {
     func.id = guid();
     func.type = type || C.MOD_USER;
-    func.band = func.band || null; // either band or time is specified
-    func.time = __defined(func.time) ? func.time : null; // either band or time is specified
+    func.$data = null;
+    func.$band = func.$band || null; // either band or time is specified
+    func.$time = __defined(func.$time) ? func.$time : null; // either band or time is specified
+    func.$easing = func.$easing || null;
     func.relative = __defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
     func.as_tween = (func.relative || (func.type == C.MOD_TWEEN) || func.as_tween || false); // should modifier receive relative time or not (like tweens)
-    func.easing = func.easing || null;
     // TODO: may these properties interfere with something? they are assigned to function instances
-    // TODO: add chainable methods to set band, easing, etc... ?
     anm.registerAsModifier(func);
+    func.band = function(start, stop) { if (!__defined(start)) return func.$band;
+                                        if (!__defined(stop)) { stop = Infinity; }
+                                        func.$band = [ start, stop ];
+                                        return func; }
+    func.time = function(value) { if (!__defined(value)) return func.$time;
+                                  func.$time = value;
+                                  return func; }
+    func.easing = function(f) { if (!f) return func.$easing;
+                                func.$easing = f;
+                                return func; }
     return func;
 }
 
@@ -3638,9 +3649,11 @@ function Tween(tween_type, data) {
     var func;
     if (__fun(tween_type)) {
         func = tween_type;
+        func.$data = data;
     } else {
         func = Tweens[tween_type](data);
         func.tween = tween_type;
+        func.$data = data;
     }
     func.as_tween = true;
     return Modifier(func, C.MOD_TWEEN);
