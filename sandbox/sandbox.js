@@ -85,6 +85,9 @@ function sandbox() {
             if (localStorage) save_current_code(userCode);
             var safeCode = makeSafe(userCode);
             var anim = eval(safeCode);
+            if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
+                throw new Error('No animation was returned from code');
+            }
             _player.load(anim, rate / 1000);
             _player.play(from / 1000);
             lastPlay = Date.now() - from;
