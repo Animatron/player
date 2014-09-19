@@ -182,6 +182,18 @@ var TYPE_UNKNOWN =  0,
     TYPE_LINE    = 15,
     TYPE_LAYER   = 255; // is it good?
 
+function isPath(type) {
+    return (type == TYPE_PATH) ||
+           (type == TYPE_RECT) ||
+           (type == TYPE_OVAL) ||
+           (type == TYPE_PENCIL) ||
+           (type == TYPE_BRUSH) ||
+           (type == TYPE_STAR) ||
+           (type == TYPE_POLYGON) ||
+           (type == TYPE_CURVE) ||
+           (type == TYPE_LINE);
+}
+
 /** node **/
 /*
  * union {
@@ -362,6 +374,11 @@ Import.leaf = function(type, src, parent/*, anim*/) {
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type != TYPE_AUDIO) { trg.$path  = Import.path(src); }
+    if ((type == TYPE_TEXT) || isPath(type)) {
+        trg.$fill = Import.fill(src[1]);
+        trg.$stroke = Import.stroke(src[2]);
+        trg.$shadow = Import.shadow(src[3]);
+    }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
 }
@@ -399,10 +416,7 @@ Import.band = function(src) {
 Import.path = function(src) {
     var path = Import._pathDecode(src[4]);
     if (!path) return;
-    return new Path(path, // Import.pathval
-                    Import.fill(src[1]),
-                    Import.stroke(src[2]),
-                    Import.shadow(src[3]));
+    return new Path(path);
 }
 
 /*
@@ -519,9 +533,6 @@ Import.text = function(src) {
     var lines = is.arr(src[6]) ? src : src[6].split('\n');
     return new Text((lines.length > 1) ? lines : lines[0],
                     src[4],
-                    Import.fill(src[1]),
-                    Import.stroke(src[2]),
-                    Import.shadow(src[3]),
                     src[5], // align
                     (src[7] & TEXT_MID_BASELINE) ? 'middle' : 'bottom',
                     (src[7] & TEXT_UNDERLINE) ? true : false);
