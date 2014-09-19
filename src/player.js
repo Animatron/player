@@ -1943,7 +1943,8 @@ Animation.prototype.render = function(ctx, time, dt) {
             ctx.scale(zoom, zoom);
         }
         if (this.bgfill) {
-            ctx.fillStyle = Brush.adapt(ctx, this.bgfill);
+            if (!this.bgfill instanceof Brush) this.bgfill = Brush.fill(this.bgfill);
+            ctx.fillStyle = this.bgfill.apply(ctx);
             ctx.fillRect(0, 0, this.width, this.height);
         }
         this.visitRoots(function(elm) {
@@ -5197,6 +5198,15 @@ Color.interpolate = function(c1, c2, t) {
 
 // Brush format, general properties:
 //
+// everything below is parsed by Brush.value():
+//
+// '#ffaa0b'
+// 'rgb(255,170,11)'
+// 'rgba(255,170,11,0.8)'
+// 'hsl(120, 50%, 100%)'
+// 'hsla(120, 50%, 100%,0.8)'
+// { r: 255, g: 170, b: 11 }
+// { r: 255, g: 170, b: 11, a: 0.8 }
 // { color: '#ffaa0b' }
 // { color: 'rgb(255,170,11)' }
 // { color: 'rgba(255,170,11,0.8)' }
@@ -5224,24 +5234,8 @@ Color.interpolate = function(c1, c2, t) {
 //   offsetX: 5,
 //   offsetY: 15 }
 
-function Brush(value) {
-    if (!value) {
-        this.type = C.BT_NONE;
-    } else if (__obj(value)) {
-        if ((value.color || value.grad) && __defined(value.width)) {
-            this.type = C.BT_STROKE;
-        } else if (__defined(value.blurRadius) ||
-                   __defined(value.offsetX)) {
-            this.type = C.BT_SHADOW;
-        } else if (value.color || value.grad) {
-            this.type = C.BT_FILL;
-        } else throw new AnimErr('Unknown type of brush');
-        for (var key in value) {
-            if (value.hasOwnProperty(key)) {
-                this[key] = value[key];
-            }
-        }
-    } else throw new AnimErr('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
+function Brush() {
+    this.type = C.BT_NONE;
 }
 Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
@@ -5262,6 +5256,7 @@ Brush.prototype.apply = function(ctx) {
         ctx.strokeStyle = style || Brush.DEFAULT_STROKE;
         ctx.lineCap = this.cap || Brush.DEFAULT_CAP;
         ctx.lineJoin = this.join || Brush.DEFAULT_JOIN;
+        // TODO: mitter
     } else if (this.type == C.BT_SHADOW) {
         if (!shadow || $conf.doNotRenderShadows) return;
         var props = $engine.getAnmProps(ctx);
@@ -5365,19 +5360,20 @@ Brush.prototype.clone = function()  {
 Brush.fill = function(value) {
     var brush = new Brush();
     brush.type = C.BT_FILL;
-    if (__str(value) || (__obj(value) && !value.stops)) {
-        brush.color = value;
-    } else if (__obj(value) && value.stops) {
+    if (__obj(value) && value.stops) {
         brush.grad = value;
+    } else {
+        brush.color = value;
     }
     return brush;
 }
-Brush.stroke = function(color, width, cap, join) {
+Brush.stroke = function(color, width, cap, join, mitter) {
     var brush = Brush.fill(color);
     brush.type = C.BT_STROKE;
     brush.width = width || 0;
     brush.cap = cap || Brush.DEFAULT_CAP;
     brush.join = join || Brush.DEFAULT_JOIN;
+    brush.mitter = mitter;
     return brush;
 }
 Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
@@ -5387,6 +5383,34 @@ Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
     brush.offsetX = offsetX || 0;
     brush.offsetY = offsetY || 0;
     return brush;
+}
+Brush.value = function(value) {
+    var brush = new Brush();
+    if (!value) {
+        brush.type = C.BT_NONE;
+    } else if (__str(value)) {
+        brush.type = C.BT_FILL;
+        brush.color = value;
+    } else if (__obj(value)) {
+        if (__defined(value.r) && __defined(value.g) && __defined(value.b)) {
+            brush.type = C.BT_FILL;
+            brush.color = value;
+        } else if (value.color || value.grad) {
+            if (__defined(value.width)) {
+                brush.type = C.BT_STROKE;
+            } else if (__defined(value.blurRadius) ||
+                       __defined(value.offsetX)) {
+                brush.type = C.BT_SHADOW;
+            } else {
+                brush.type = C.BT_FILL;
+            }
+            for (var key in value) {
+                if (value.hasOwnProperty(key)) {
+                    brush[key] = value[key];
+                }
+            }
+        } else throw new AnimErr('Unknown type of brush');
+    } else throw new AnimErr('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
 }
 Brush.qfill = function(ctx, color) {
     ctx.fillStyle = color;
@@ -5414,8 +5438,8 @@ Brush.clearShadow = function(ctx) {
 }
 
 function interpolateBrushes(from, to) {
-    var from = (from instanceof Brush) ? from : new Brush(from),
-        to   = (to   instanceof Brush) ? to   : new Brush(to);
+    var from = (from instanceof Brush) ? from : Brush.value(from),
+        to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!from._converted) { from.convertColorsToRgba(); }
     if (!to._converted)   { to.convertColorsToRgba();   }
     var result = from.clone();

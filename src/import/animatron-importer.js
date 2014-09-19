@@ -26,6 +26,7 @@ var C = anm.C,
     Path = anm.Path,
     Text = anm.Text,
     Bands = anm.Bands,
+    Tween = anm.Tween,
     is = anm.is,
     $log = anm.log;
     //test = anm._valcheck
@@ -158,8 +159,8 @@ Import.anim = function(prj, trg) {
     trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
     trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
     trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
-    trg.zoom = _a.zoom ? Import.fill(_a.zoom) : undefined;
-    trg.speed = _a.speed ? Import.fill(_a.speed) : undefined;
+    trg.zoom = _a.zoom || undefined;
+    trg.speed = _a.speed || undefined;
     if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
 }
 
@@ -290,14 +291,13 @@ Import.branch = function(type, src, all, anim) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
-                ltrg.addTween(t);
+                ltrg.tween(t);
             }
             if (translates && (flags & L_ROT_TO_PATH)) {
                 for (var ti = 0, til = translates.length; ti < til; ti++) {
-                    ltrg.addTween({
-                        type: C.T_ROT_TO_PATH,
-                        band: translates[ti].band
-                    });
+                    ltrg.tween(
+                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].band)
+                    );
                 }
             }
             translates = [];
@@ -359,9 +359,9 @@ Import.branch = function(type, src, all, anim) {
 // -> Element
 Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
-         if (type == TYPE_IMAGE) { trg.image = Import.sheet(src); }
-    else if (type == TYPE_TEXT)  { trg.text  = Import.text(src);  }
-    else if (type != TYPE_AUDIO) { trg.path  = Import.path(src); }
+         if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
+    else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
+    else if (type != TYPE_AUDIO) { trg.$path  = Import.path(src); }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
 }
@@ -603,12 +603,9 @@ Import.sheet = function(src) {
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
     if (type == null) return null;
-    return {
-        'type': type,
-        'band': Import.band(src[1]),
-        'easing': Import.easing(src[2]),
-        'data': Import.tweendata(type, src[3])
-    };
+    return new Tween(type).band(Import.band(src[1]))
+                          .easing(Import.easing(src[2]))
+                          .data(Import.tweendata(type, src[3]));
 }
 /** tweentype **/
 // -> Type
@@ -642,7 +639,7 @@ Import.tweendata = function(type, src) {
                                       [ src[0], src[0] ] ];
     }
     if (type === C.T_FILL) {
-        return [Import.brush(src[0]), Import.brush(src[1])];
+        return [Import.fill(src[0]), Import.fill(src[1])];
     }
     if (type === C.T_STROKE) {
         return [Import.stroke(src[0]), Import.stroke(src[1])];
@@ -686,16 +683,15 @@ Import.mode = function(src) {
  *     *rgrad*;         // radial gradient
  * } *paint*;
  */
-Import.brush = function(src) {
+ /** fill **/
+Import.fill = function(src) {
     if (!src) return null;
     if (is.str(src)) {
-        return { color: src };
+        return Brush.fill(src);
     } else if (is.arr(src)) {
-        return Import.grad(src);
+        return Brush.fill(Import.grad(src));
     } else _reportError('Unknown type of brush');
 }
-/** fill **/
-Import.fill = Import.brush;
 /** stroke **/
 /*
  * union {
@@ -714,12 +710,11 @@ Import.fill = Import.brush;
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    var stroke = Import.brush(src[1]);
-    stroke.width = src[0];
-    stroke.cap = src[2] || C.PC_ROUND;
-    stroke.join = src[3] || C.PC_ROUND;
-    stroke.mitter = src[4];
-    return stroke;
+    return Brush.stroke(src[1], // paint
+                        src[0], // width
+                        src[2] || C.PC_ROUND, // cap
+                        src[3] || C.PC_ROUND, // join
+                        src[4]); // mitter
 }
 /** shadow **/
 /*
@@ -732,12 +727,10 @@ Import.stroke = function(src) {
  */
 Import.shadow = function(src) {
     if (!src) return null;
-    var shadow = {};
-    shadow.offsetX = src[0];
-    shadow.offsetY = src[1];
-    shadow.blurRadius = src[2];
-    shadow.color = src[3];
-    return shadow;
+    return Brush.shadow(src[3],  // paint
+                        src[2],  // blur-radius
+                        src[0],  // offsetX
+                        src[1]); // offsetY
 }
 /** lgrad **/
 /*
