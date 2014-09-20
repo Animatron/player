@@ -3645,21 +3645,6 @@ function Modifier(func, type) {
     return func;
 }
 
-function Tween(tween_type, data) {
-    if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
-    var func;
-    if (__fun(tween_type)) {
-        func = tween_type;
-        func.$data = data;
-    } else {
-        func = Tweens[tween_type](data);
-        func.tween = tween_type;
-        func.$data = data;
-    }
-    func.as_tween = true;
-    return Modifier(func, C.MOD_TWEEN);
-}
-
 // painters classes
 C.PNT_SYSTEM = 'system';
 C.PNT_USER = 'user';
@@ -3857,10 +3842,10 @@ function __r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, aft
             });
     }
 }
-function __r_with_ribbons(ctx, pw, ph, sw, sh, color, draw_f) {
+function __r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
     // pw == player width, ph == player height
-    // sw == anim width,  sh == anim height
-    var f_rects   = __fit_rects(pw, ph, sw, sh),
+    // aw == anim width,   ah == anim height
+    var f_rects   = __fit_rects(pw, ph, aw, ah),
         factor    = f_rects[0],
         anim_rect = f_rects[1],
         rect1     = f_rects[2],
@@ -3901,7 +3886,7 @@ function __r_fps(ctx, fps, time) {
     ctx.font = '10px sans-serif';
     ctx.fillText(Math.floor(time * 1000) / 1000, 8, 35);
 }
-function __fit_rects(pw, ph, sw, sh) {
+function __fit_rects(pw, ph, aw, ah) {
     // pw == player width, ph == player height
     // aw == anim width,   ah == anim height
     var xw = pw / aw,
@@ -4100,7 +4085,21 @@ C.T_SHEAR       = 'SHEAR';
 C.T_FILL        = 'FILL';
 C.T_STROKE      = 'STROKE';
 
-var Tween = {}; // FIXME: make tween a class
+function Tween(tween_type, data) {
+    if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
+    var func;
+    if (__fun(tween_type)) {
+        func = tween_type;
+        func.$data = data;
+    } else {
+        func = Tweens[tween_type](data);
+        func.tween = tween_type;
+        func.$data = data;
+    }
+    func.as_tween = true;
+    return Modifier(func, C.MOD_TWEEN);
+}
+
 var Easing = {};
 
 // tween order
