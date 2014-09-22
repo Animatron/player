@@ -25,8 +25,16 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   // ----------------------------------------------------------------------------------------------------------------
 
   m_ctx._audio_ctx = function() {
-    var context = window.webkitAudioContext || window.audioContext || window.AudioContext;
-    return context ? new context() : null;
+    var AudioContext = window.webkitAudioContext || window.AudioContext;
+    if (!AudioContext) {
+      return null;
+    }
+    try {
+      var ctx = new AudioContext();
+      return ctx;
+    } catch (e) {
+      return null;
+    }
   }();
 
   C.T_VOLUME = 'VOLUME';
