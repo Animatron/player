@@ -592,6 +592,7 @@
 
             function __modifier(f) { return f.hasOwnProperty(MODIFIER_MARKER); }
             function __painter(f)  { return f.hasOwnProperty(PAINTER_MARKER);  }
+            function __tween(f) { return f.hasOwnProperty(MODIFIER_MARKER) && f.is_tween; }
 
             var __is = {};
             __is.defined = __defined;
@@ -605,6 +606,7 @@
 
             __is.modifier = __modifier;
             __is.painter  = __painter;
+            __is.tween    = __tween;
 
             return __is;
 

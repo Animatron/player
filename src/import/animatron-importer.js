@@ -89,7 +89,7 @@ Import.project = function(prj) {
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         var node_res = Import.node(node_src, elems, null, root);
         //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
-        if (node_res.xdata.gband[0] == node_res.xdata.gband[1]) {
+        if (node_res.gband[0] == node_res.gband[1]) {
             continue;
         };
 
@@ -300,7 +300,7 @@ Import.branch = function(type, src, all, anim) {
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.type == C.T_TRANSLATE) {
+                if (t.tween == C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
@@ -615,9 +615,12 @@ Import.sheet = function(src) {
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
     if (type == null) return null;
-    return new Tween(type).band(Import.band(src[1]))
-                          .easing(Import.easing(src[2]))
-                          .data(Import.tweendata(type, src[3]));
+    var tween = new Tween(type).band(Import.band(src[1]));
+    var easing = Import.easing(src[2]),
+        data = Import.tweendata(type, src[3]);
+    if (easing) tween.easing(easing);
+    if (data) tween.data(data);
+    return tween;
 }
 /** tweentype **/
 // -> Type

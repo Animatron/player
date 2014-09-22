@@ -90,6 +90,7 @@ var __defined = is.defined,
 
     __modifier = is.modifier;
     __painter  = is.painter;
+    __tween    = is.tween;
 
 // ### Strings & Errors
 /* ---------- */
@@ -2795,8 +2796,8 @@ Element.prototype.removePainter = function(painter) {
 }
 // > Element.tween % (tween: Tween)
 Element.prototype.tween = function(tween) {
-    if (!(tween instanceof Tween)) throw new AnimErr('Please pass Tween instance to .tween() method');
-    tween.as_tween = true;
+    if (!__tween(tween)) throw new AnimErr('Please pass Tween instance to .tween() method');
+    tween.is_tween = true;
     // tweens are always receiving time as relative time
     // __finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
@@ -3299,7 +3300,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
         mod_relative = modifier.relative, // is modifier time or band relative to elm duration or not
-        mod_as_tween = modifier.as_tween; // should time be passed in relative time or not
+        mod_is_tween = modifier.is_tween; // should time be passed in relative time or not
 
     var res_time,
         res_duration;
@@ -3359,7 +3360,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     }
 
     // correct time/duration if required
-    if (mod_relative || mod_as_tween) {
+    if (mod_relative || mod_is_tween) {
         // tweens and relative modifiers should receive relative time inside
         if (__finite(res_duration)) {
             res_time = __adjust(res_time) / __adjust(elm_duration);
@@ -3629,7 +3630,7 @@ function Modifier(func, type) {
     func.$time = __defined(func.$time) ? func.$time : null; // either band or time is specified
     func.$easing = func.$easing || null;
     func.relative = __defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
-    func.as_tween = (func.relative || (func.type == C.MOD_TWEEN) || func.as_tween || false); // should modifier receive relative time or not (like tweens)
+    func.is_tween = (func.relative || (func.type == C.MOD_TWEEN) || func.is_tween || false); // should modifier receive relative time or not (like tweens)
     // TODO: may these properties interfere with something? they are assigned to function instances
     anm.registerAsModifier(func);
     func.band = function(start, stop) { if (!__defined(start)) return func.$band;
@@ -3642,6 +3643,9 @@ function Modifier(func, type) {
     func.easing = function(f) { if (!f) return func.$easing;
                                 func.$easing = f;
                                 return func; }
+    func.data = function(data) { if (!__defined(data)) return func.$data;
+                                 func.$data = data;
+                                 return func; }
     return func;
 }
 
@@ -4096,7 +4100,7 @@ function Tween(tween_type, data) {
         func.tween = tween_type;
         func.$data = data;
     }
-    func.as_tween = true;
+    func.is_tween = true;
     return Modifier(func, C.MOD_TWEEN);
 }
 
