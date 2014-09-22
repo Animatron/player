@@ -3363,7 +3363,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     if (mod_relative || mod_is_tween) {
         // tweens and relative modifiers should receive relative time inside
         if (__finite(res_duration)) {
-            res_time = __adjust(res_time) / __adjust(elm_duration);
+            res_time = __adjust(res_time) / __adjust(res_duration);
             res_duration = __adjust(res_duration);
         } else {
             res_time = 0;
@@ -3634,6 +3634,12 @@ function Modifier(func, type) {
     // TODO: may these properties interfere with something? they are assigned to function instances
     anm.registerAsModifier(func);
     func.band = function(start, stop) { if (!__defined(start)) return func.$band;
+                                        // FIXME: array bands should not pass
+                                        // if (__arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
+                                        if (__arr(start)) {
+                                            stop = start[1];
+                                            start = start[0];
+                                        }
                                         if (!__defined(stop)) { stop = Infinity; }
                                         func.$band = [ start, stop ];
                                         return func; }
@@ -4101,8 +4107,11 @@ function Tween(tween_type, data) {
         func.$data = data;
     }
     func.is_tween = true;
-    return Modifier(func, C.MOD_TWEEN);
+    var mod = Modifier(func, C.MOD_TWEEN)
+    mod.data = Tween.__data_block_fn; // FIXME
+    return mod;
 }
+Tween.__data_block_fn = function() { throw new AnimErr("Data should be passed to tween in a constructor"); };
 
 var Easing = {};
 
