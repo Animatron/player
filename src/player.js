@@ -2948,9 +2948,28 @@ Element.prototype.inform = function(ltime) {
         };
     };
 }
+Element.prototype.band = function(band) {
+    if (!__defined(start)) return this.lband;
+    // FIXME: array bands should not pass
+    // if (__arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
+    if (__arr(start)) {
+        stop = start[1];
+        start = start[0];
+    }
+    if (!__defined(stop)) { stop = Infinity; }
+    this.lband = [ start, stop ];
+    if (this.parent) {
+        var parent = this.parent;
+        this.gband = [ parent.gband[0] + start, parent.gband[0] + stop ];
+    }
+    return this;
+}
 // > Element.duration % () -> Float
-Element.prototype.duration = function() {
-    return this.lband[1] - this.lband[0];
+Element.prototype.duration = function(value) {
+    if (!__defined(value)) return this.lband[1] - this.lband[0];
+    this.gband = [ this.gband[0], this.gband[0] + value ];
+    this.lband = [ this.lband[0], this.lband[0] + value ];
+    return this;
 }
 /* TODO: duration cut with global band */
 /* Element.prototype.rel_duration = function() {
