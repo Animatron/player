@@ -382,8 +382,8 @@
                 if ($conf.logResMan)
                    { $log.debug('> already received, trigerring success'); }
                 var result = me._cache[url];
-                me.trigger(url, result); // TODO: is it needed?
                 if (onComplete) onComplete(result);
+                me.trigger(url, result); // TODO: is it needed?                
             } else if (me._errors[url]) {
                 if ($conf.logResMan)
                    { $log.debug('> failed to load before, notifying with error'); }
