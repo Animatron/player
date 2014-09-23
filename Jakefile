@@ -99,11 +99,13 @@ var Files = {
            MODULES: { _ALL_: [ 'collisions.js',
                                'audio.js',
                                'audio-export.js',
-                               'scripting.js' ],
+                               'scripting.js',
+                               'shapes.js' ],
                       COLLISIONS: 'collisions.js',
                       AUDIO: 'audio.js',
                       AUDIO_EXPORT: 'audio-export.js',
-                      SCRIPTING: 'scripting.js' }, },
+                      SCRIPTING: 'scripting.js',
+                      SHAPES: 'shapes.js' }, },
     Doc: { README: 'README.md',
            API: 'API.md',
            SCRIPTING: 'scripting.md' }
@@ -125,7 +127,8 @@ var Bundles = [
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
                                                               Files.Ext.MODULES.COLLISIONS,
-                                                              Files.Ext.MODULES.SCRIPTING ])) },
+                                                              Files.Ext.MODULES.SCRIPTING,
+                                                              Files.Ext.MODULES.SHAPES ])) },
     /* { name: 'Animatron-Intact',
       file: 'animatron-intact',
       includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )

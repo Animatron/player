@@ -14,10 +14,10 @@ var _files = {
 
     'anm.init': 'http://player.animatron.com/latest/anm.js',
     'anm.player': 'http://player.animatron.com/latest/player.js',
-    'anm.builder': 'http://player.animatron.com/latest/builder.js',
     'anm.collisions': 'http://player.animatron.com/latest/module/collisions.js',
     'anm.audio': 'http://player.animatron.com/latest/module/audio.js',
     'anm.audio-export': 'http://player.animatron.com/latest/module/audio-export.js',
+    'anm.shapes': 'http://player.animatron.com/latest/module/shapes.js',
     'anm.import': 'http://player.animatron.com/latest/import/animatron-importer.js',
     'anm.intact-import': 'http://player.animatron.com/latest/import/animatron-intact-importer.js',
 
