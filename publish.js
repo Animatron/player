@@ -145,7 +145,7 @@ var start = (function () {
         };
     }
     if (autostart) {
-        _params_ = _u.injectIfNotPresent(_params_, "t", 0);
+        _params_ = _u.injectIfNotPresent(_params_, "a", 1);
     }
     if (loop) {
         _params_ = _u.injectIfNotPresent(_params_, "r", 1);

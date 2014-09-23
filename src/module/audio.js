@@ -25,8 +25,16 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   // ----------------------------------------------------------------------------------------------------------------
 
   m_ctx._audio_ctx = function() {
-    var context = window.webkitAudioContext || window.audioContext || window.AudioContext;
-    return context ? new context() : null;
+    var AudioContext = window.webkitAudioContext || window.AudioContext;
+    if (!AudioContext) {
+      return null;
+    }
+    try {
+      var ctx = new AudioContext();
+      return ctx;
+    } catch (e) {
+      return null;
+    }
   }();
 
   C.T_VOLUME = 'VOLUME';
@@ -34,7 +42,12 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   Tweens[C.T_VOLUME] = function(/* TODO: data should be passed here */) {
     return function(t, dt, duration, data) {
       if (!this._audio_is_loaded) return;
-      this.audio.volume = data[0] * (1.0 - t) + data[1] * t;
+      var volume = data[0] * (1.0 - t) + data[1] * t;
+      if (this._gain) {
+        this._gain.gain.value = volume;
+      } else {
+        this.audio.volume = volume;
+      }
     };
   };
 
@@ -93,7 +106,9 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     if (m_ctx._audio_ctx) {
       this._source = m_ctx._audio_ctx.createBufferSource();
       this._source.buffer = this.audio;
-      this._source.connect(m_ctx._audio_ctx.destination);
+      this._gain = m_ctx._audio_ctx.createGain();
+      this._source.connect(this._gain);
+      this._gain.connect(m_ctx._audio_ctx.destination);
 
       if (this._source.play) {
         this._source.play(0, current_time);

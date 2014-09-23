@@ -382,8 +382,8 @@
                 if ($conf.logResMan)
                    { $log.debug('> already received, trigerring success'); }
                 var result = me._cache[url];
-                me.trigger(url, result); // TODO: is it needed?
                 if (onComplete) onComplete(result);
+                me.trigger(url, result); // TODO: is it needed?                
             } else if (me._errors[url]) {
                 if ($conf.logResMan)
                    { $log.debug('> failed to load before, notifying with error'); }
@@ -411,12 +411,11 @@
             } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
                 if ($conf.logResMan)
                    { $log.debug('> someone is already waiting for it, subscribing'); }
-                if (!me._waiting[subject_id][url]) {
-                    me.subscribe(subject_id, [ url ], function(res) {
-                        if (res[0]) { onComplete(res[0]); }
-                        else { onError(res[0]); };
-                    });
-                }
+                me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
+                    if (res[0]) { onComplete(res[0]); }
+                    else { onError(res[0]); };
+                });
+
             }
         }
         ResourceManager.prototype.trigger = function(url, value) {
