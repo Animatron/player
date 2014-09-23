@@ -5208,10 +5208,23 @@ Color.dhsla = function(dh, s, l, a) {
                     Math.floor(l * 100) + '%,' +
                     (__defined(a) ? a.toFixed(2) : 1.0) + ')';
 };
+Color.adapt = function(color) {
+    if (!color) return null;
+    if (__str(color)) return color;
+    // "r" is reserved for gradients, so we test for "g" to be sure
+    if (__defined(color.g)) return Color.toRgbaStr(color);
+    if (__defined(color.h)) return Color.toHslaStr(color);
+}
 Color.toRgbaStr = function(color) {
     return Color.rgba(color.r,
                       color.g,
                       color.b,
+                      color.a);
+};
+Color.toHslaStr = function(color) {
+    return Color.hsla(color.h,
+                      color.s,
+                      color.l,
                       color.a);
 };
 Color.interpolate = function(c1, c2, t) {
@@ -5353,7 +5366,7 @@ Brush.prototype.adapt = function(ctx) {
         }
         for (var i = 0, slen = stops.length; i < slen; i++) {
             var stop = stops[i];
-            grad.addColorStop(stop[0], Color.from(stop[1]));
+            grad.addColorStop(stop[0], Color.adapt(stop[1]));
         }
         return grad;
     }
@@ -5778,6 +5791,7 @@ Controls.prototype.update = function(parent) {
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
+    Controls.__BACK_GRAD = null; // invalidate back gradient
 }
 Controls.prototype.subscribeEvents = function(canvas, parent) {
     $engine.subscribeCanvasEvents(parent, {
@@ -6079,6 +6093,7 @@ Controls.prototype.setDuration = function(value) {
 Controls.prototype.inject = function(anim, duration) {
     if (this.info) this.info.inject(anim, duration);
 }
+Controls.__BACK_GRAD = null;
 Controls._drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
     var cx = w / 2,
@@ -6091,14 +6106,20 @@ Controls._drawBack = function(ctx, theme, w, h, bgcolor) {
     //if ((bgcolor == '#000') ||
     //    (bgcolor == '#000000')) rgb = [ 0, 0, 0 ];
 
-    var grd = ctx.createRadialGradient(cx, cy, 0,
+    var grd;
+    if (!Controls.__BACK_GRAD) {
+        grd = ctx.createRadialGradient(cx, cy, 0,
                                        cx, cy, Math.max(cx, cy) * 1.2);
-    var stops = theme.colors.bggrad;
-    for (var i = 0, il = stops.length; i < il; i++) {
-        grd.addColorStop(stops[i][0], 'rgba(' + rgb[0] + ','
-                                              + rgb[1] + ','
-                                              + rgb[2] + ','
-                                              + stops[i][1] + ')');
+        var stops = theme.colors.bggrad;
+        for (var i = 0, il = stops.length; i < il; i++) {
+            grd.addColorStop(stops[i][0], 'rgba(' + rgb[0] + ','
+                                                  + rgb[1] + ','
+                                                  + rgb[2] + ','
+                                                  + stops[i][1] + ')');
+        }
+        Controls.__BACK_GRAD = grd;
+    } else {
+        grd = Controls.__BACK_GRAD;
     }
 
     ctx.fillStyle = grd;

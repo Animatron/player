@@ -786,16 +786,16 @@ Import.grad = function(src) {
         stops.push([ offsets[i], colors[i] ]);
     }
     if (pts.length == 4) {
-        return { grad: {
+        return {
             dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
             stops: stops
-        } };
+        };
     } else if (pts.length == 6) {
-        return { grad: {
+        return {
             r: [ pts[2], pts[5] ],
             dir: [ [ pts[0], pts[1] ], [ pts[3], pts[4] ] ],
             stops: stops
-        } };
+        };
     } else {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
