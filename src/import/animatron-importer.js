@@ -286,8 +286,8 @@ Import.branch = function(type, src, all, anim) {
             ltrg.lband = b;
             ltrg.gband = b; //in_band ? Bands.wrap(in_band, b) : b;
         }
-        ltrg.pvt = [ 0, 0 ];
-        ltrg.reg = lsrc[4] || [ 0, 0 ];
+        ltrg.$pivot = [ 0, 0 ];
+        ltrg.$reg = lsrc[4] || [ 0, 0 ];
         /* if (lsrc[4]) {
             ltrg.x = lsrc[4][0];
             ltrg.y = lsrc[4][1];
@@ -432,7 +432,7 @@ Import._pathDecode = function(src) {
 
     var val = Import._path_cache.get(encoded);
     if (val) {
-        return val.duplicate().segs;
+        return [].concat(val.segs);
     } else {
         val = Import._decodeBinaryPath(encoded);
         if (!val) return null;
@@ -616,8 +616,9 @@ Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
     if (type == null) return null;
     var tween = new Tween(type, Import.tweendata(type, src[3]))
-                          .band(Import.band(src[1]));
-    tween.$easing = Import.easing(src[2]);
+                          .band(Import.band(src[1])),
+        easing = Import.easing(src[2]);
+    if (easing) tween.easing(easing);
     return tween;
 }
 /** tweentype **/

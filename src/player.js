@@ -3665,9 +3665,9 @@ function Modifier(func, type) {
     func.time = function(value) { if (!__defined(value)) return func.$time;
                                   func.$time = value;
                                   return func; }
-    func.easing = function(f) { if (!f) return func.$easing;
-                                func.$easing = f;
-                                return func; }
+    func.easing = function(f, data) { if (!f) return func.$easing;
+                                      func.$easing = Element.__convertEasing(f, data, func.relative);
+                                      return func; }
     func.data = function(data) { if (!__defined(data)) return func.$data;
                                  func.$data = data;
                                  return func; }
