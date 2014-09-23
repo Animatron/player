@@ -3649,7 +3649,7 @@ function Modifier(func, type) {
     func.$time = __defined(func.$time) ? func.$time : null; // either band or time is specified
     func.$easing = func.$easing || null;
     func.relative = __defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
-    func.is_tween = (func.relative || (func.type == C.MOD_TWEEN) || func.is_tween || false); // should modifier receive relative time or not (like tweens)
+    func.is_tween = (func.is_tween || (func.type == C.MOD_TWEEN) || false); // should modifier receive relative time or not (like tweens)
     // TODO: may these properties interfere with something? they are assigned to function instances
     anm.registerAsModifier(func);
     func.band = function(start, stop) { if (!__defined(start)) return func.$band;
@@ -3666,7 +3666,8 @@ function Modifier(func, type) {
                                   func.$time = value;
                                   return func; }
     func.easing = function(f, data) { if (!f) return func.$easing;
-                                      func.$easing = Element.__convertEasing(f, data, func.relative);
+                                      func.$easing = Element.__convertEasing(f, data,
+                                                     func.relative || func.is_tween);
                                       return func; }
     func.data = function(data) { if (!__defined(data)) return func.$data;
                                  func.$data = data;
@@ -4119,14 +4120,13 @@ function Tween(tween_type, data) {
     var func;
     if (__fun(tween_type)) {
         func = tween_type;
-        func.$data = data;
     } else {
         func = Tweens[tween_type](data);
         func.tween = tween_type;
-        func.$data = data;
     }
     func.is_tween = true;
-    var mod = Modifier(func, C.MOD_TWEEN)
+    var mod = Modifier(func, C.MOD_TWEEN);
+    mod.$data = data;
     mod.data = Tween.__data_block_fn; // FIXME
     return mod;
 }
