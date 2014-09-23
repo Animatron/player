@@ -19,11 +19,11 @@ var _files = {
     'anm.dom-engine': '../src/engine/dom-engine.js',
     'anm.init': '../src/anm.js',
     'anm.player': '../src/player.js',
-    'anm.builder': '../src/builder.js',
     'anm.collisions': '../src/module/collisions.js',
     'anm.audio': '../src/module/audio.js',
     'anm.audio-export': '../src/module/audio-export.js',
     'anm.scripting': '../src/module/scripting.js',
+    'anm.shapes': '../src/module/shapes.js',
     'anm.import': '../src/import/animatron-importer.js',
     'anm.intact-import': '../src/import/animatron-intact-importer.js',
 

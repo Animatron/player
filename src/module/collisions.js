@@ -34,7 +34,7 @@ var E = anm.Element;
 var Path = anm.Path, MSeg = anm.MSeg,
                      LSeg = anm.LSeg,
                      CSeg = anm.CSeg;
-var Scene = anm.Scene;
+var Animation = anm.Animation;
 
 E.prototype.bounds = function(t) {
     return this._pradopt(this._cpa_bounds(), t);
@@ -696,10 +696,10 @@ E.prototype._getVects = function(t) {
     throw new Error(E.__vecErrText);
 }
 
-//__anm.overridePrepended(Scene.prototype, 'handle_x',
+//__anm.overridePrepended(Animation.prototype, 'handle_x',
 //                        )
-var prev_handle__x = Scene.prototype.handle__x;
-Scene.prototype.handle__x = function(type, evt) {
+var prev_handle__x = Animation.prototype.handle__x;
+Animation.prototype.handle__x = function(type, evt) {
     if (opts.mouseBound) {
         if (type & C.XT_MOUSE) {
             switch (type) {

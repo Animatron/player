@@ -11,18 +11,18 @@ var _player = null;
 
 function sandbox() {
 
-    this.codeElm = document.getElementById('scene-source');
+    this.codeElm = document.getElementById('animation-source');
     this.errorsElm = document.getElementById('errors');
     this.selectElm = document.getElementById('examples-list');
     this.tangleElm = document.getElementById('refresh-calc');
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
 
-    window.b = anm.Builder._$;
-    window.B = anm.Builder;
+    window.elm = anm.Element._$;
+    window.E = anm.Element;
     window.C = anm.C;
 
-    this.player = anm.createPlayer('my-canvas', {
+    this.player = anm.createPlayer('player', {
         mode: anm.C.M_SANDBOX,
         muteErrors: true,
         width: 400,
@@ -84,8 +84,11 @@ function sandbox() {
             var userCode = s.cm.getValue();
             if (localStorage) save_current_code(userCode);
             var safeCode = makeSafe(userCode);
-            var scene = eval(safeCode);
-            _player.load(scene, rate / 1000);
+            var anim = eval(safeCode);
+            if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
+                throw new Error('No animation was returned from code');
+            }
+            _player.load(anim, rate / 1000);
             _player.play(from / 1000);
             lastPlay = Date.now() - from;
         } catch(e) {

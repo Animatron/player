@@ -334,16 +334,16 @@
         // .clear() clears all the subscriptions from this subject;
 
         // The system designed with intention (but not restricted to it) that any player will first subscribe (using its ID)
-        // to all remote resources from current scene, then trigger them to load with multiple .loadOrGet() calls (with passing
+        // to all remote resources from current animation, then trigger them to load with multiple .loadOrGet() calls (with passing
         // the same ID). In .loadOrGet() it should call .trigger() or .error() for a resource in appropriate case.
-        // If player needs to stop loading remote resources (i.e. if scene was accidentally changed when it
+        // If player needs to stop loading remote resources (i.e. if animation was accidentally changed when it
         // already started but nor finished loading them, or if it was required to be detached at some point in-between),
         // it should call .cancel() with its ID.
         // NB: Notice, that no check is performed just after subscription! Because if new player instance will request resource
         //     which is in cache thanks to previous instance, its own loader (.loadOrGet()) will not be called!
 
         // FIXME: loader in .loadOrGet() should call trigger() and error() instead of notifiers
-        // FIXME: get rid of subject_id in .loadOrGet(), it requires to pass player or scene everywhere inside
+        // FIXME: get rid of subject_id in .loadOrGet(), it requires to pass player or animation everywhere inside
         //        (may be in favor of subscriptions groups and generating ID automatically inside)
         //        the main pitfall here is that sheet.load or audio.load requires player as an argument
 
@@ -544,8 +544,19 @@
                   Math.random().toString(36).substring(2, 10);
         }
 
-        // Value/Typecheck
+        // Value/Typecheck/Convert
         // -----------------------------------------------------------------------------
+
+        var MODIFIER_MARKER = '__modifier';
+        var PAINTER_MARKER  = '__painter';
+
+        $publ.registerAsModifier = function(f) {
+            f[MODIFIER_MARKER] = true;
+        }
+
+        $publ.registerAsPainter = function(f) {
+            f[PAINTER_MARKER] = true;
+        }
 
         var __is = (function() {
 
@@ -559,11 +570,6 @@
             var __nan = isNaN || Number.isNaN || function(n) { n !== NaN; };
 
             // #### typecheck
-
-            function __builder(obj) {
-                return (typeof anm.Builder !== 'undefined') &&
-                       (obj instanceof anm.Builder);
-            }
 
             var __arr = Array.isArray;
 
@@ -583,16 +589,23 @@
                 return obj != null && typeof obj === 'string';
             }
 
+            function __modifier(f) { return f.hasOwnProperty(MODIFIER_MARKER); }
+            function __painter(f)  { return f.hasOwnProperty(PAINTER_MARKER);  }
+            function __tween(f) { return f.hasOwnProperty(MODIFIER_MARKER) && f.is_tween; }
+
             var __is = {};
             __is.defined = __defined;
             __is.finite  = __finite;
             __is.nan     = __nan;
-            __is.builder = __builder;
             __is.arr     = __arr;
             __is.num     = __num;
             __is.fun     = __fun;
             __is.obj     = __obj;
             __is.str     = __str;
+
+            __is.modifier = __modifier;
+            __is.painter  = __painter;
+            __is.tween    = __tween;
 
             return __is;
 
@@ -685,14 +698,14 @@
         Errors.P.ALREADY_PLAYING = 'Player is already in playing mode, please call ' +
                                    '\'stop\' or \'pause\' before playing again';
         Errors.P.PAUSING_WHEN_STOPPED = 'Player is stopped, so it is not allowed to pause';
-        Errors.P.NO_SCENE_PASSED = 'No scene passed to load method';
+        Errors.P.NO_ANIMATION_PASSED = 'No animation passed to load method';
         Errors.P.NO_STATE = 'There\'s no player state defined, nowhere to draw, ' +
                             'please load something in player before ' +
                             'calling its playing-related methods';
-        Errors.P.NO_SCENE = 'There\'s nothing at all to manage with, ' +
+        Errors.P.NO_ANIMATION = 'There\'s nothing at all to manage with, ' +
                             'please load something in player before ' +
                             'calling its playing-related methods';
-        Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any scene while playing or paused, ' +
+        Errors.P.COULD_NOT_LOAD_WHILE_PLAYING = 'Could not load any animation while playing or paused, ' +
                             'please stop player before loading';
         Errors.P.LOAD_WAS_ALREADY_POSTPONED = 'Load was called while loading process was already in progress';
         Errors.P.NO_LOAD_CALL_BEFORE_PLAY = 'No animation was loaded into player before the request to play';
@@ -701,16 +714,16 @@
         Errors.P.BEFORERENDER_BEFORE_PLAY = 'Please assign beforeRender callback before calling play()';
         Errors.P.AFTERRENDER_BEFORE_PLAY = 'Please assign afterRender callback before calling play()';
         Errors.P.PASSED_TIME_VALUE_IS_NO_TIME = 'Given time is not allowed, it is treated as no-time';
-        Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in scene range';
+        Errors.P.PASSED_TIME_NOT_IN_RANGE = 'Passed time ({0}) is not in animation range';
         Errors.P.DURATION_IS_NOT_KNOWN = 'Duration is not known';
         Errors.P.ALREADY_ATTACHED = 'Player is already attached to this canvas, please use another one';
         Errors.P.INIT_TWICE = 'Initialization was called twice';
-        Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a scene';
+        Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a animation';
         Errors.P.SNAPSHOT_LOADING_FAILED = 'Snapshot failed to load ({0})';
         Errors.P.IMPORTER_CONSTRUCTOR_PASSED = 'You\'ve passed importer constructor to snapshot loader, but not an instance! ' +
                                                'Probably you used anm.getImporter instead of anm.createImporter.';
-        Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in scene';
-        Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in scene';
+        Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in animation';
+        Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in animation';
         Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
         Errors.A.NO_ELEMENT_TO_REMOVE = 'Please pass some element or use detach() method';
         Errors.A.NO_ELEMENT = 'No such element found';
@@ -721,7 +734,7 @@
         Errors.A.MODIFIER_REGISTERED = 'Modifier was already added to this element';
         Errors.A.PAINTER_REGISTERED = 'Painter was already added to this element';
         Errors.A.RESOURCES_FAILED_TO_LOAD = 'Some of resources required to play this animation were failed to load';
-        Errors.A.MASK_SHOULD_BE_ATTACHED_TO_SCENE = 'Element to be masked should be attached to scene when rendering';
+        Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION = 'Element to be masked should be attached to animation when rendering';
 
         // Export
         // -----------------------------------------------------------------------------

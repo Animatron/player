@@ -39,14 +39,14 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
   C.T_VOLUME = 'VOLUME';
   Tween.TWEENS_PRIORITY[C.T_VOLUME] = Tween.TWEENS_COUNT++;
-  Tweens[C.T_VOLUME] = function() {
+  Tweens[C.T_VOLUME] = function(/* TODO: data should be passed here */) {
     return function(t, dt, duration, data) {
-      if (!this.$._audio_is_loaded) return;
-      var result = data[0] * (1.0 - t) + data[1] * t;
-      if (this.$._gain) {
-        this.$._gain.gain.value = result;
+      if (!this._audio_is_loaded) return;
+      var volume = data[0] * (1.0 - t) + data[1] * t;
+      if (this._gain) {
+        this._gain.gain.value = volume;
       } else {
-        this.$._audio.volume = result;
+        this.audio.volume = volume;
       }
     };
   };
@@ -71,6 +71,25 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   // Element functions
   // ----------------------------------------------------------------------------------------------------------------
 
+  C.ET_AUDIO = 'audio';
+
+  // audio is not visual, actually, at least for the moment,
+  // but for the moment element acts that way when audio is
+  // called 'visual', it's just the problem of proper naming
+
+  var prev_initVisuals = E.prototype.initVisuals;
+  E.prototype.initVisuals = function() {
+    prev_initVisuals.apply(this, arguments);
+    this.audio = null;
+  }
+
+  var prev_transferVisuals = E.transferVisuals;
+  E.transferVisuals = function(src, trg) {
+    prev_transferVisuals(src, trg);
+    trg.audio = src.audio ? src.audio.clone() : null;
+    // FIXME: transfer other flags
+  }
+
   var _audio_customRender = function(gtime, ltime, ctx) {
     // TODO: remove
     //return false;
@@ -86,7 +105,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
     if (m_ctx._audio_ctx) {
       this._source = m_ctx._audio_ctx.createBufferSource();
-      this._source.buffer = this._audio;
+      this._source.buffer = this.audio;
       this._gain = m_ctx._audio_ctx.createGain();
       this._source.connect(this._gain);
       this._gain.connect(m_ctx._audio_ctx.destination);
@@ -99,9 +118,9 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
         this._source.noteGrainOn(0, current_time, this._source.buffer.duration - current_time);
       }
     } else {
-      this._audio.currentTime = current_time;
-      this._audio.volume = 1;
-      this._audio.play();
+      this.audio.currentTime = current_time;
+      this.audio.volume = 1;
+      this.audio.play();
     }
   };
 
@@ -122,8 +141,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
 
           this._source = null;
         } else {
-          this._audio.pause();
-          this._audio.volume = 0;
+          this.audio.pause();
+          this.audio.volume = 0;
         }
       } catch (err) {
         // do noting
@@ -133,6 +152,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     }
   };
 
+  // FIXME: create custom anm.Audio wrapper to be stored as element.audio
   E._customImporters.push(function(source, type, importer) {
     if ((14 == type)/*ANM*/ ||
         ("0e" == type)/*ANM_INTACT*/) {
@@ -153,8 +173,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
         this._audio_url = this._audio_format_url(source.url);
       }
 
-      this.isAudio = true;
-      this._audio = null;
+      this.type = C.ET_AUDIO;
+      this.audio = null;
       this._audio_is_loaded = false;
       this._audio_is_playing = false;
       this._audio_canPlay = false;
@@ -181,23 +201,23 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   }
 
   var prev__hasRemoteResources = E.prototype._hasRemoteResources;
-  E.prototype._hasRemoteResources = function(scene, player) {
-    return prev__hasRemoteResources.apply(this, arguments) || (this.isAudio && player.audioEnabled);
+  E.prototype._hasRemoteResources = function(anim, player) {
+    return prev__hasRemoteResources.apply(this, arguments) || (this.is(C.ET_AUDIO) && player.audioEnabled);
   }
 
   var prev__collectRemoteResources = E.prototype._collectRemoteResources;
-  E.prototype._collectRemoteResources = function(scene, player) {
+  E.prototype._collectRemoteResources = function(anim, player) {
     var prev = prev__collectRemoteResources.apply(this, arguments);
     if (!player.audioEnabled) return prev;
-    if (!this.isAudio) return prev;
+    if (!this.is(C.ET_AUDIO)) return prev;
         // return [ this._audio_url ].concat(prev || [])
     return prev ? [ this._audio_url ].concat(prev) : [ this._audio_url ];
   }
 
   var prev__loadRemoteResources = E.prototype._loadRemoteResources;
-  E.prototype._loadRemoteResources = function(scene, player) {
+  E.prototype._loadRemoteResources = function(anim, player) {
     var prev = prev__loadRemoteResources.apply(this, arguments);
-    if (this.isAudio && player.audioEnabled) this._audioLoad(player);
+    if (this.is(C.ET_AUDIO) && player.audioEnabled) this._audioLoad(player);
   }
 
   function audioErrProxy(src, pass_to) {
@@ -332,7 +352,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
           }
       },
       function(audio) { // oncomplete
-          me._audio = audio;
+          me.audio = audio;
           me._audio_is_loaded = true;
       },
       function(err) { anm.log.error(err ? (err.message || err) : 'Unknown error');
