@@ -104,6 +104,11 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     var current_time = this._audio_band_offset + ltime;
 
     if (m_ctx._audio_ctx) {
+      if (current_time > this.audio.duration) {
+        this._audio_is_playing = false;
+        return;
+      }
+
       this._source = m_ctx._audio_ctx.createBufferSource();
       this._source.buffer = this.audio;
       this._gain = m_ctx._audio_ctx.createGain();
