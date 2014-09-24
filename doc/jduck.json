@@ -1,0 +1,7 @@
+{
+    "--title": "Animatron Player API v1.3, 2014",
+    "--output": "./api",
+    "--": [
+        "../src"
+    ]
+}

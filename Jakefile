@@ -59,7 +59,7 @@ var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
     UGLIFYJS: NODE_GLOBAL ? 'uglifyjs' : (LOCAL_NODE_DIR + '/uglify-js/bin/uglifyjs'),
     JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
-    DOCCO: NODE_GLOBAL ? 'docco' : (LOCAL_NODE_DIR + '/docco/bin/docco'),
+    JSDUCK: 'jsduck',
     PHANTOMJS: 'phantomjs',
     CAT: 'cat',
     MV: 'mv',
@@ -107,7 +107,7 @@ var Files = {
                       SCRIPTING: 'scripting.js',
                       SHAPES: 'shapes.js' }, },
     Doc: { README: 'README.md',
-           API: 'API.md',
+           EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
 }
 
@@ -158,15 +158,16 @@ var Tests = {
 };
 
 var Docs = {
+    Config: Dirs.DOCS + '/jduck.json',
     FromSRC: { INCLUDE: [ Dirs.SRC + '/*.js' ] },
     FromMD: {
        Files: {
          README_SRC: Files.Doc.README,
          README_DST: Dirs.DOCS + '/README.html',
-         API_SRC: Dirs.DOCS + '/' + Files.Doc.API,
-         API_DST: Dirs.DOCS + '/API.html',
          SCRIPTING_SRC: Dirs.DOCS + '/' + Files.Doc.SCRIPTING,
-         SCRIPTING_DST: Dirs.DOCS + '/scripting.html'
+         SCRIPTING_DST: Dirs.DOCS + '/scripting.html',
+         EMBEDDING_SRC: Dirs.DOCS + '/' + Files.Doc.EMBEDDING,
+         EMBEDDING_DST: Dirs.DOCS + '/embedding.html'
        },
        Parts: {
          _head: Dirs.DOCS + '/_head.html',
@@ -313,26 +314,22 @@ task('test', { async: true }, function(param) {
 
 desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                   'HTML files inside of the /doc directory.',
-               'Requires: `docco`, Python installed, `markdown` module for Python'+
+               'Requires: `jsduck`, Python installed, `markdown` module for Python'+
                   '(and Python is used only because of this module).',
-               'Produces: /doc/player.html, /doc/API.html, '+
-                  '/doc/README.html, /doc/scripting.html, /doc/docco.css.']));
+               'Produces: /doc/api/*, /doc/player.html, /doc/embedding.html, '+
+                  '/doc/README.html, /doc/scripting.html.']));
 task('docs', { async: true }, function() {
     _print('Generating docs');
-
-    _print('Using ' + (NODE_GLOBAL ? 'global'
-                               : 'local (at '+LOCAL_NODE_DIR+')')
-                + ' node.js binaries');
 
     function _src_docs(next) {
         _print('For sources');
 
-        jake.exec([ Binaries.DOCCO,
-                    '-o',
-                    _loc(Dirs.DOCS)
-                  ].concat(Docs.FromSRC.INCLUDE)
-                   .join(' '), EXEC_OPTS,
-                  function() { _print('Source docs were Generated successfully');
+        _versionize(_loc(Docs.Config));
+
+        jake.exec([ Binaries.JSDUCK,
+                    '--config=' + _loc(Docs.Config)
+                  ].join(' '), EXEC_OPTS,
+                  function() { _print('Source docs were Generated successfully at ' + _loc(Dirs.DOCS + '/api'));
                                _print(DONE_MARKER);
                                if (next) next(); });
     }
@@ -360,8 +357,8 @@ task('docs', { async: true }, function() {
     }
 
     _src_docs(function() {
-      _md_docs(Docs.FromMD.Files.API_SRC, Docs.FromMD.Files.API_DST, function() {
-        _md_docs(Docs.FromMD.Files.README_SRC, Docs.FromMD.Files.README_DST, function() {
+      _md_docs(Docs.FromMD.Files.README_SRC, Docs.FromMD.Files.README_DST, function() {
+        _md_docs(Docs.FromMD.Files.EMBEDDING_SRC, Docs.FromMD.Files.EMBEDDING_DST, function() {
           _md_docs(Docs.FromMD.Files.SCRIPTING_SRC, Docs.FromMD.Files.SCRIPTING_DST, function() {
             complete();
           });
@@ -993,49 +990,41 @@ desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
 task('_versionize', function() {
     _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
 
-    function versionize(src) {
-        var new_content = jake.cat(src).trim()
-                                       .replace(/@VERSION/g, VERSION)
-                                       .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
-        jake.rmRf(src);
-        jake.echo(new_content + '\n', src);
-        _print('v -> ' + src);
-    }
-
     _print('.. Main files');
 
-    versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
+    _versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    _versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
 
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('..Docs');
 
-    versionize(_loc(Files.Doc.README));
-    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
-    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
+    _versionize(_loc(Files.Doc.CONFIG));
+    _versionize(_loc(Files.Doc.README));
+    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
+    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
 
     _print(DONE_MARKER);
 });
@@ -1331,6 +1320,15 @@ var _versions = (function() {
     return { read: _read,
              write: _write };
 })();
+
+function _versionize(src) {
+    var new_content = jake.cat(src).trim()
+                                   .replace(/@VERSION/g, VERSION)
+                                   .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
+    jake.rmRf(src);
+    jake.echo(new_content + '\n', src);
+    _print('v -> ' + src);
+}
 
 // TODO
 /* function _check_npm_packages(list) {

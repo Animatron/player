@@ -48,4 +48,4 @@ __anm_engine.define('anm/modules/video', ['anm', 'anm/Player'], function(anm/*, 
 
   return m_ctx;
 
-}
+});
