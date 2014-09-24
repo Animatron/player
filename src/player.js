@@ -5283,7 +5283,7 @@ function Brush() {
 }
 Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
-Brush.DEFAULT_FILL = '#000';
+Brush.DEFAULT_FILL = '#ffbc05';
 Brush.DEFAULT_STROKE = Color.TRANSPARENT;
 Brush.DEFAULT_SHADOW = Color.TRANSPARENT;
 C.BT_NONE = 'none';
