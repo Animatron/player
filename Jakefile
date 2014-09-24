@@ -210,7 +210,7 @@ var EXEC_OPTS = { printStdout: !jake.program.opts.quiet,
 var PRODUCTION_TAG = 'production',
     DEVELOPMENT_TAG = 'development';
 
-var MOCK_MINIFICATION = false; // it's for debugging purposes, when we need full version in minified files
+var MOCK_MINIFICATION = true; // it's for debugging purposes, when we need full version in minified files
 
 var _print = !jake.program.opts.quiet ? console.log : function() { };
 
@@ -1021,9 +1021,8 @@ task('_versionize', function() {
 
     _print('..Docs');
 
-    _versionize(_loc(Files.Doc.CONFIG));
     _versionize(_loc(Files.Doc.README));
-    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
+    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.EMBEDDING));
     _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
 
     _print(DONE_MARKER);
