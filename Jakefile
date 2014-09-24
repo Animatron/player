@@ -1021,9 +1021,8 @@ task('_versionize', function() {
 
     _print('..Docs');
 
-    _versionize(_loc(Files.Doc.CONFIG));
     _versionize(_loc(Files.Doc.README));
-    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
+    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.EMBEDDING));
     _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
 
     _print(DONE_MARKER);
