@@ -699,7 +699,7 @@ Import.mode = function(src) {
  */
  /** fill **/
 Import.fill = function(src) {
-    if (!src) return null;
+    if (!src) return Brush.fill('transparent');
     if (is.str(src)) {
         return Brush.fill(src);
     } else if (is.arr(src)) {
