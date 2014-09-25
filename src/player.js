@@ -398,6 +398,35 @@ var I = {};
 // Player
 // -----------------------------------------------------------------------------
 
+/**
+ * @class anm.Player
+ *
+ * The Player is the one who rules them all.
+ *
+ * The easiest way to create a Player class instance (among dozens of ways to
+ * init the Player without any JS code) is to call `var player = new Player();
+ * player.init(...)`. If you want to initialize a player in one step, call
+ * `anm.createPlayer(...)` instead.
+ *
+ * If you have an URL to Animatron-compatible JSON snapshot, you may load a Player
+ * without any JS, with:
+ *
+ * `<div id="my-precious-player" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200"/></div>`
+ *
+ * It is recommended to always specify both width and height of a Player, if you know
+ * them before. If the scene is loaded synchronously and it has some size specified in
+ * any way, this doesn't changes a lot, since Player takes its size from these values.
+ * But if the scene is loaded asynhronously, a noticable value of time is spent on request,
+ * so it's better to resize Player before the loading will start, so no creepy resize effect
+ * will appear.
+ *
+ * For details on loading, see {@link anm.Player#load load} method. For the list
+ * of possible attribute options and other ways to initialize, see
+ * {@link anm.Player#init init} method.
+ *
+ * @constructor
+ */
+
 function Player() {
     this.id = '';
     this.state = null;
@@ -447,42 +476,70 @@ Player.EMPTY_STROKE_WIDTH = 3;
 // ### Playing Control API
 /* ----------------------- */
 
-// methods listed below are directly wrapped with try/catch to check
-// which way of handling/suppressing errors is current one for this player
-// and act with catched errors basing on this way
-
+/**
+  * @private @static @property
+  *
+  * Methods listed below are directly wrapped with try/catch to check
+  * which way of handling/suppressing errors is current one for this player
+  * and act with catched errors basing on this way
+  */
 Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
 /* TODO: add load/play/pause/stop events */
 
-// `id` is canvas id
-
-// you may pass null for options, but if you provide them, at least `mode` is required
-// to be set (all other are optional).
-//
-// options format:
-//
-//     { 'debug': false,
-//       'autoPlay': false,
-//       'repeat': false,
-//       'mode': C.M_VIDEO,
-//       'zoom': 1.0,
-//       'speed': 1.0,
-//       'width': undefined,
-//       'height': undefined,
-//       'bgColor': undefined,
-//       'ribbonsColor': undefined,
-//       'audioEnabled': true,
-//       'inifiniteDuration': false,
-//       'drawStill': false,
-//       'controlsEnabled': undefined, // undefined means 'auto'
-//       'infoEnabled': undefined, // undefined means 'auto'
-//       'handleEvents': undefined, // undefined means 'auto'
-//       'loadingMode': undefined, // undefined means 'auto'
-//       'thumbnail': undefined,
-//       'forceAnimationSize': false,
-//       'muteErrors': false
-//     }
+/**
+ * @method init
+ * @chainable
+ *
+ * Initializes player.
+ *
+ * @param {Element/String} elm DOM Element or ID of existing DOM Element to init from.
+ *
+ * This one shouldn't be a `canvas` element, but rather a block element like
+ * `div`, since Player will put its own structure of one or more canvases inside it.
+ *
+ * @param {Object} [opts] Initialization options.
+ *
+ * Options format:
+ *
+ *     { debug: false,
+ *       autoPlay: false,
+ *       repeat: false,
+ *       mode: C.M_VIDEO,
+ *       zoom: 1.0,
+ *       speed: 1.0,
+ *       width: undefined,
+ *       height: undefined,
+ *       bgColor: undefined,
+ *       ribbonsColor: undefined,
+ *       audioEnabled: true,
+ *       inifiniteDuration: false,
+ *       drawStill: false,
+ *       controlsEnabled: undefined, // undefined means 'auto'
+ *       infoEnabled: undefined, // undefined means 'auto'
+ *       handleEvents: undefined, // undefined means 'auto'
+ *       loadingMode: undefined, // undefined means 'auto'
+ *       thumbnail: undefined,
+ *       forceAnimationSize: false,
+ *       muteErrors: false
+ *     }
+ *
+ * First, Player initializes itself with default options. Then it scans the given `elm`
+ * DOM Element for the attributes named with `anm-` prefix and applies them over the
+ * default values. Then, it applies the `opts` you passed here, so they have the highest
+ * priority.
+ *
+ * `anm`-attributes have the same names as in the given example, with camel-casing changed
+ * to dashing, i.e.:
+ *
+ * `<div id="player" anm-width="200" anm-height="100" anm-auto-play="true" anm-ribbons-color="#f00" />`
+ *
+ * @param {Boolean} [opts.debug=false] Enables showing FPS and shapes paths, at least
+ * @param {Boolean} [opts.autoPlay=false] If Player automatically starts playing just after the
+ *                                        {@link anm.Animation Animation} was loaded inside.
+ * @param {Boolean} [opts.repeat=false] If Player automatically starts playing the Animation again
+ *                                      when it's finished the time before. A.K.A. "Infinite Loop".
+ */
 
 Player.prototype.init = function(elm, opts) {
     if (this.canvas || this.wrapper) throw new PlayerErr(Errors.P.INIT_TWICE);
@@ -2134,7 +2191,7 @@ Animation.prototype.loadFonts = function(player) {
         style = document.createElement('style'),
         css = '',
         fontsToLoad = [],
-        detector = new Detector();
+        detector = new FontDetector();
     style.type = 'text/css';
 
     for (var i = 0; i < fonts.length; i++) {
