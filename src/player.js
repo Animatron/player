@@ -420,9 +420,20 @@ var I = {};
  * so it's better to resize Player before the loading will start, so no creepy resize effect
  * will appear.
  *
- * For details on loading, see {@link anm.Player#load load} method. For the list
+ * For details on loading, see {@link anm.Player#load} method. For the list
  * of possible attribute options and other ways to initialize, see
- * {@link anm.Player#init init} method.
+ * {@link anm.Player#init} method.
+ *
+ * To load some remote Animatron snapshot in one step, use {@link anm.Player#forSnapshot}.
+ *
+ * Playing control:
+ *
+ * * {@link anm.Player#play}
+ * * {@link anm.Player#stop}
+ * * {@link anm.Player#pause}
+ * * {@link anm.Player#drawAt}
+ *
+ * To set thumbnail to show while animation loads or wasn't started, use {@link anm.Player#setThumbnail}.
  *
  * @constructor
  */
@@ -493,7 +504,7 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
  *
  * Initializes player.
  *
- * @param {Element/String} elm DOM Element or ID of existing DOM Element to init from.
+ * @param {HTMLElement|String} elm DOM Element or ID of existing DOM Element to init from.
  *
  * This one shouldn't be a `canvas` element, but rather a block element like
  * `div`, since Player will put its own structure of one or more canvases inside it.
@@ -539,6 +550,25 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
  *                                        {@link anm.Animation Animation} was loaded inside.
  * @param {Boolean} [opts.repeat=false] If Player automatically starts playing the Animation again
  *                                      when it's finished the time before. A.K.A. "Infinite Loop".
+ * @param {Mixed} [opts.mode=C.M_VIDEO]
+ *
+ * The Player mode, which actually just specifies a combination of other options:
+ *
+ * * `C.M_PREVIEW` — `controlsEnabled=false` + `infoEnabled=false` + `handleEvents=false`
+ *    + `drawStill=false` + `infiniteDuration=false` — used for Editor Preview by F10;
+ * * `C.M_DYNAMIC` — `controlsEnabled=false` + `infoEnabled=false` + `handleEvents=true`
+ *    + `drawStill=false` + `infiniteDuration=true` — used for games or interactive animations, mostly;
+ * * `C.M_VIDEO` — `controlsEnabled=true` + `infoEnabled=false` (temporarily) + `handleEvents=false`
+ *    + `drawStill=true` + `infiniteDuration=false` — used for non-interactive animations;
+ * * `C.M_SANDBOX` — `controlsEnabled=false` + `infoEnabled=false` `handleEvents=false`
+ *    + `drawStill=false` + `infiniteDuration=false` — used in Sandbox;
+ *
+ * @param {Number} [opts.zoom=1.0] Force scene zoom. Player will not resize itself, though, but will act
+ *                                 as a magnifying/minifying glass for all values except `1.0`.
+ * @param {Number} [opts.speed=1.0] Increase/decrease playing speed.
+ * @param {Number} [opts.bgColor='transparent'] The color to use as a background.
+ *
+ * // TODO
  */
 
 Player.prototype.init = function(elm, opts) {
@@ -557,6 +587,29 @@ Player.prototype.init = function(elm, opts) {
     _PlrMan.fire(C.S_NEW_PLAYER, this);
     return this;
 }
+
+/**
+ * @method load
+ * @chainable
+ *
+ * This method may be called in several ways:
+ *
+ * * `load(animation)`;
+ * * `load(animation, callback)`;
+ * * `load(animation, importer)`;
+ * * `load(animation, duration)`;
+ * * `load(animation, importer, callback)`;
+ * * `load(animation, duration, callback)`;
+ * * `load(animation, duration, importer, callback)`;
+ *
+ * @param {anm.Animation|Object} animation
+ * @param {Number} [duration]
+ * @param {anm.Importer} [importer]
+ * @param {Function} [callback]
+ * @param {anm.Animation} callback.animation The resulting Animation, was it adapted with Importer or not
+ *
+ * TODO
+ */
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     var player = this,
@@ -740,6 +793,15 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
 var __nextFrame = $engine.getRequestFrameFunc(),
     __stopAnim  = $engine.getCancelFrameFunc();
+/**
+ * @method play
+ * @chainable
+ *
+ * @param {Number} [from]
+ * @param {Number} [speed]
+ * @param {Number} [stopAfter]
+ *
+ **/
 Player.prototype.play = function(from, speed, stopAfter) {
 
     var player = this;
@@ -842,6 +904,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
     return player;
 }
 
+/**
+ * @method stop
+ * @chainable
+ */
 Player.prototype.stop = function() {
     /* if (state.happens === C.STOPPED) return; */
 
@@ -899,6 +965,10 @@ Player.prototype.stop = function() {
     return player;
 }
 
+/**
+ * @method pause
+ * @chainable
+ */
 Player.prototype.pause = function() {
     var player = this;
 
@@ -942,7 +1012,12 @@ Player.prototype.pause = function() {
     return player;
 }
 
-
+/**
+ * @method onerror
+ *
+ * @param {Function} callback
+ * @param {Error} callback.error
+ */
 Player.prototype.onerror = function(callback) {
     this.__err_handler = callback;
 
@@ -1099,6 +1174,15 @@ Player.prototype._postInit = function() {
                   ? anm.createImporter(to_load.importer_id) : null);
     }
 }
+/**
+ * @method changeRect
+ *
+ * @param {Object} rect
+ * @param {Number} rect.x
+ * @param {Number} rect.y
+ * @param {Number} rect.width
+ * @param {Number} rect.height
+ */
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
     this.width = rect.width; this.height = rect.height;
@@ -1111,6 +1195,9 @@ Player.prototype.changeRect = function(rect) {
     return (cur_w != rect.width) || (cur_w != rect.height) ||
            (cur.x != rect.x) || (cur.y != rect.y);
 } */
+/**
+ * @method forceRedraw
+ */
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
@@ -1123,10 +1210,20 @@ Player.prototype.forceRedraw = function() {
     }
     if (this.controls) this.controls.render(this.state.time);
 }
+/**
+ * @method changeZoom
+ *
+ * @param {Number} zoom
+ */
 Player.prototype.changeZoom = function(zoom) {
     this.zoom = zoom;
 }
-// draw current animation at specified time
+/**
+ * @method drawAt
+ *
+ * @param {Number} time
+ * draw current {@link anm.Animation animation} at specified time
+ */
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
     if ((this.state.happens === C.RES_LOADING) &&
@@ -1157,20 +1254,36 @@ Player.prototype.drawAt = function(time) {
 
     return this;
 }
+/**
+ * @method setSize
+ *
+ * @param {Number} width
+ * @param {Number} height
+ **/
 Player.prototype.setSize = function(width, height) {
     this.__userSize = [ width, height ];
     this._resize();
 }
-// it's optional to specify target_width/target_height, especially if aspect ratio
-// of animation(s) that will be loaded into player matches to aspect ratio of player itself.
-// if not, target_width and target_height, if specified, are recommended to be equal
-// to a size of an animation(s) that will be loaded into player with this thumbnail;
-// so, since animation will be received later, and if aspect ratios of animation and player
-// does not match, both thumbnail and the animation will be drawn at a same position
-// with same black ribbons applied;
-// if size will not be specified, player will try to match aspect ratio of an image to
-// show it without stretches, so if thumbnail image size matches to animation size has
-// the same aspect ratio as an animation, it is also ok to omit the size data here
+/**
+ * @method setThumbnail
+ *
+ * TODO
+ *
+ * ...It's optional to specify `target_width`/`target_height`, especially if aspect ratio
+ * of animation(s) that will be loaded into player matches to aspect ratio of player itself.
+ * If not, `target_width` and `target_height`, if specified, are recommended to be equal
+ * to a size of an animation(s) that will be loaded into player with this thumbnail;
+ * so, since animation will be received later, and if aspect ratios of animation and player
+ * does not match, both thumbnail and the animation will be drawn at a same position
+ * with same black ribbons applied;
+ * If size will not be specified, player will try to match aspect ratio of an image to
+ * show it without stretches, so if thumbnail image size matches to animation size has
+ * the same aspect ratio as an animation, it is also ok to omit the size data here
+ *
+ * @param {String} url
+ * @param {Number} [target_width]
+ * @param {Number} [target_height]
+ */
 Player.prototype.setThumbnail = function(url, target_width, target_height) {
     if (!url) return;
     var player = this;
@@ -1198,23 +1311,9 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
         }
     });
 }
-// TODO: change to before/after for events?
-Player.prototype.beforeFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFOREFRAME_BEFORE_PLAY);
-    this.__userBeforeFrame = callback;
-}
-Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERFRAME_BEFORE_PLAY);
-    this.__userAfterFrame = callback;
-}
-Player.prototype.beforeRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFORENDER_BEFORE_PLAY);
-    this.__userBeforeRender = callback;
-}
-Player.prototype.afterRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERRENDER_BEFORE_PLAY);
-    this.__userAfterRender = callback;
-}
+/**
+ * @method detach
+ */
 Player.prototype.detach = function() {
     if (!$engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
     if (this.controls) this.controls.detach(this.wrapper);
@@ -1225,15 +1324,34 @@ Player.prototype.detach = function() {
     this._reset();
     _PlrMan.fire(C.S_PLAYER_DETACH, this);
 }
+/**
+ * @method attachedTo
+ *
+ * @param {HTMLElement} canvas_or_wrapper
+ */
 Player.prototype.attachedTo = function(canvas_or_wrapper) {
     return $engine.playerAttachedTo(canvas_or_wrapper, this);
 }
+/**
+ * @method isAttached
+ */
 Player.prototype.isAttached = function() {
     return $engine.playerAttachedTo(this.wrapper, this);
 }
+/**
+ * @static @method attachedTo
+ *
+ * @param {HTMLElement} canvas_or_wrapper
+ * @param {anm.Player} player
+ */
 Player.attachedTo = function(canvas_or_wrapper, player) {
     return $engine.playerAttachedTo(canvas_or_wrapper, player);
 }
+/**
+ * @method invalidate
+ *
+ * Invalidates Player position in document
+ */
 Player.prototype.invalidate = function() {
     // TODO: probably, there's more to invalidate
     if (this.controls) this.controls.update(this.canvas);
@@ -1243,6 +1361,56 @@ Player.__invalidate = function(player) {
         player.invalidate();
     };
 }
+/**
+ * @method beforeFrame
+ *
+ * @param {Function} callback
+ * @param {Number} callback.time
+ * @param {Boolean} callback.return
+ */
+// TODO: change to before/after for events?
+Player.prototype.beforeFrame = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFOREFRAME_BEFORE_PLAY);
+    this.__userBeforeFrame = callback;
+}
+/**
+ * @method afterFrame
+ *
+ * @param {Function} callback
+ * @param {Number} callback.time
+ * @param {Boolean} callback.return
+ */
+Player.prototype.afterFrame = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERFRAME_BEFORE_PLAY);
+    this.__userAfterFrame = callback;
+}
+/**
+ * @method beforeRender
+ *
+ * @param {Function} callback
+ * @param {Number} callback.time
+ * @param {Canvas2DContext} callback.ctx
+ */
+Player.prototype.beforeRender = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFORENDER_BEFORE_PLAY);
+    this.__userBeforeRender = callback;
+}
+/**
+ * @method afterRender
+ *
+ * @param {Function} callback
+ * @param {Number} callback.time
+ * @param {Canvas2DContext} callback.ctx
+ */
+Player.prototype.afterRender = function(callback) {
+    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERRENDER_BEFORE_PLAY);
+    this.__userAfterRender = callback;
+}
+/**
+ * @method subscribeEvents
+ *
+ * @param {Canvas} canvas
+ */
 Player.prototype.subscribeEvents = function(canvas) {
     var doRedraw = Player.__invalidate(this);
     $engine.subscribeWindowEvents({
@@ -1482,6 +1650,11 @@ Player.prototype._stopLoadingAnimation = function() {
         this._stopDrawingLoadingCircles();
     }
 }
+/**
+ * @method toString
+ *
+ * @return a nice string
+ */
 Player.prototype.toString = function() {
     return "[ Player '" + this.id + "' m-" + this.mode + " ]";
 }
@@ -1795,6 +1968,12 @@ Player.prototype._notifyAPI = function() {
     }})(this);
 } */
 
+/**
+ * @deprecated
+ * @static @method createState
+ *
+ * @return {Object} Player state
+ */
 Player.createState = function(player) {
     // Player state contains only things that actually change while playing an animation,
     // it's current time, time when player started to play or was stopped at,
@@ -1858,6 +2037,16 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.ribbonsColor = params.ribbons || params.ribcolor;
     return opts;
 }
+/**
+ * @static @method forSnapshot
+ *
+ * @param {HTMLElement|String} elm DOM Element ID or the DOM Element itself
+ * @param {String} snapshot_url
+ * @param {anm.Importer} importer
+ * @param {Function} [callback]
+ * @param {anm.Animation} callback.animation
+ * @param {Object} [opts] see {@link anm.Player#init} for the description of possible options
+ */
 Player.forSnapshot = function(elm_id, snapshot_url, importer, callback, alt_opts) {
     var player = new Player();
     player.init(elm_id, alt_opts);
@@ -1894,7 +2083,11 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
 // Animation
 // -----------------------------------------------------------------------------
 
-// > Animation % ()
+/**
+ * @class anm.Animation
+ *
+ * @constructor
+ */
 function Animation() {
     this.id = guid();
     this.tree = [];
