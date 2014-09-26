@@ -160,8 +160,8 @@ Import.anim = function(prj, trg) {
     trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
     trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
     trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
-    trg.zoom = _a.zoom || undefined;
-    trg.speed = _a.speed || undefined;
+    trg.zoom = _a.zoom || 1.0;
+    trg.speed = _a.speed || 1.0;
     if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
 }
 

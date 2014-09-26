@@ -5302,7 +5302,7 @@ Brush.prototype.apply = function(ctx) {
         ctx.lineJoin = this.join || Brush.DEFAULT_JOIN;
         // TODO: mitter
     } else if (this.type == C.BT_SHADOW) {
-        if (!shadow || $conf.doNotRenderShadows) return;
+        if ($conf.doNotRenderShadows) return;
         var props = $engine.getAnmProps(ctx);
         if (props.skip_shadows) return;
         ctx.shadowColor = style;
@@ -5423,7 +5423,7 @@ Brush.stroke = function(color, width, cap, join, mitter) {
 Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
     var brush = Brush.fill(color);
     brush.type = C.BT_SHADOW;
-    brush.blurRadius = blurRadius || 1;
+    brush.blurRadius = blurRadius || 0;
     brush.offsetX = offsetX || 0;
     brush.offsetY = offsetY || 0;
     return brush;
