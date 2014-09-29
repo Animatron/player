@@ -160,8 +160,8 @@ Import.anim = function(prj, trg) {
     trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
     trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
     trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
-    trg.zoom = _a.zoom || undefined;
-    trg.speed = _a.speed || undefined;
+    trg.zoom = _a.zoom || 1.0;
+    trg.speed = _a.speed || 1.0;
     if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
 }
 
@@ -724,7 +724,8 @@ Import.fill = function(src) {
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    return Brush.stroke(src[1], // paint
+    return Brush.stroke(is.arr(src[1]) ? Import.grad(src[1])
+                                       : src[1], // paint
                         src[0], // width
                         src[2] || C.PC_ROUND, // cap
                         src[3] || C.PC_ROUND, // join
@@ -741,7 +742,7 @@ Import.stroke = function(src) {
  */
 Import.shadow = function(src) {
     if (!src) return null;
-    return Brush.shadow(src[3],  // paint
+    return Brush.shadow(src[3],  // paint, never a gradient
                         src[2],  // blur-radius
                         src[0],  // offsetX
                         src[1]); // offsetY
