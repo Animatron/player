@@ -724,7 +724,8 @@ Import.fill = function(src) {
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    return Brush.stroke(src[1], // paint
+    return Brush.stroke(is.arr(src[1]) ? Import.grad(src[1])
+                                       : src[1], // paint
                         src[0], // width
                         src[2] || C.PC_ROUND, // cap
                         src[3] || C.PC_ROUND, // join
@@ -741,7 +742,7 @@ Import.stroke = function(src) {
  */
 Import.shadow = function(src) {
     if (!src) return null;
-    return Brush.shadow(src[3],  // paint
+    return Brush.shadow(src[3],  // paint, never a gradient
                         src[2],  // blur-radius
                         src[0],  // offsetX
                         src[1]); // offsetY
