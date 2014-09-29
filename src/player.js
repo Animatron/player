@@ -4468,7 +4468,7 @@ Path.prototype.apply = function(ctx) {
     //       simplify this to call seg.apply for every segment
     ctx.beginPath();
     this.visit(Path._applyVisitor, ctx);
-    ctx.closePath();
+    // ctx.closePath();
     ctx.fill();
     ctx.stroke();
 }
