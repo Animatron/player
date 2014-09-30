@@ -73,3 +73,8 @@ var FontDetector = function() {
 
     this.detect = detect;
 };
+
+
+if (module) {
+  module.exports = FontDetector;
+}

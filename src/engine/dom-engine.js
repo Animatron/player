@@ -28,8 +28,6 @@ var $glob = (typeof window !== 'undefined') ? window : _GLOBAL_;
     $wnd = (typeof window !== 'undefined') ? window : null,
     $doc = (typeof document !== 'undefined') ? document : null;
 
-if (!$glob) throw new Error('Failed to find global object');
-
 $glob.__anm_getGlobal = function(name) {
     return ($glob || $wnd)[name];
 }
@@ -920,6 +918,8 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
         return img;
     }
 
+
+    module.exports = $DE;
     return $DE;
 
 })(this); };
@@ -982,14 +982,18 @@ function __adaptForNativeRequire(what) {
 }
 
 function __require(what, func) {
+    func.apply(null, global[what]);
+    /*
     if (isAmd || isCommonJSModule || isCommonJSExports) {
         require(__prepareForNativeRequire(what), func);
     } else {
         func.apply(null, __getGlob(what));
-    }
+    }*/
 }
 
 function __define(arg1, arg2, arg3) {
+    return;
+    /*
     var id = arg3 ? arg1 : null,
         req = arg3 ? arg2 : arg1,
         value = arg3 ? arg3 : arg2;
@@ -1014,6 +1018,7 @@ function __define(arg1, arg2, arg3) {
             __setGlob(id, result);
         }
     }
+    */
 }
 
 })(this);

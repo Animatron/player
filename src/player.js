@@ -51,9 +51,7 @@
 // Module Definition
 // -----------------------------------------------------------------------------
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/Player', ['anm'], function(anm) {
+var anm = require('./anm.js');
 
 var $engine = anm.engine;
 var $conf = anm.conf;
@@ -70,9 +68,6 @@ var registerEvent = anm.registerEvent;
 
 // ### Other External utilities
 /* ---------- */
-
-var getGlobal = anm.getGlobal;
-var registerGlobally = anm.registerGlobally;
 
 var iter = anm.iter;
 var guid = anm.guid;
@@ -6870,7 +6865,7 @@ function drawAnimatronGuy(ctx, x, y, size, colors, opacity) {
 // Exports
 // -----------------------------------------------------------------------------
 
-return (function($trg) {
+return (function(anm) {
 
     function __createPlayer(elm, opts) { var p = new Player();
                                          p.init(elm, opts); return p; }
@@ -6883,10 +6878,10 @@ return (function($trg) {
 
     //registerGlobally('createPlayer', __createPlayer);
 
-    /*$trg.__js_pl_all = this;*/
+    /*anm.__js_pl_all = this;*/
 
-    $trg.createPlayer = __createPlayer;
-    $trg.findById = function(where, id) {
+    anm.createPlayer = __createPlayer;
+    anm.findById = function(where, id) {
         var found = [];
         if (where.name == name) found.push(name);
         where.travelChildren(function(elm)  {
@@ -6894,34 +6889,31 @@ return (function($trg) {
         });
         return found;
     }
-    $trg.findByName = function(where, name) {
+    anm.findByName = function(where, name) {
         where.findByName(name);
     }
 
-    $trg._$ = __createPlayer;
+    anm._$ = __createPlayer;
 
-    $trg.Player = Player;
-    $trg.Animation = Animation; $trg.Element = Element; $trg.Clip = Clip;
-    $trg.Path = Path; $trg.Text = Text; $trg.Sheet = Sheet; $trg.Image = _Image;
-    $trg.Modifier = Modifier; $trg.Painter = Painter;
-    $trg.Brush = Brush; $trg.interpolateBrushes = interpolateBrushes;
-    $trg.Color = Color;
-    $trg.Tweens = Tweens; $trg.Tween = Tween; $trg.Easing = Easing;
-    $trg.MSeg = MSeg; $trg.LSeg = LSeg; $trg.CSeg = CSeg;
-    $trg.Render = Render; $trg.Bands = Bands;  // why Render and Bands classes are visible to pulic?
+    anm.Player = Player;
+    anm.Animation = Animation; anm.Element = Element; anm.Clip = Clip;
+    anm.Path = Path; anm.Text = Text; anm.Sheet = Sheet; anm.Image = _Image;
+    anm.Modifier = Modifier; anm.Painter = Painter;
+    anm.Brush = Brush; anm.interpolateBrushes = interpolateBrushes;
+    anm.Color = Color;
+    anm.Tweens = Tweens; anm.Tween = Tween; anm.Easing = Easing;
+    anm.MSeg = MSeg; anm.LSeg = LSeg; anm.CSeg = CSeg;
+    anm.Render = Render; anm.Bands = Bands;  // why Render and Bands classes are visible to pulic?
 
-    $trg.obj_clone = obj_clone; /*$trg.ajax = $engine.ajax;*/
+    anm.obj_clone = obj_clone; /*anm.ajax = $engine.ajax;*/
 
-    $trg.__dev = { 'strf': _strf,
+    anm.__dev = { 'strf': _strf,
                    'adjust': __adjust,
                    't_cmp': __t_cmp,
                    'TIME_PRECISION': TIME_PRECISION/*,
                    'Controls': Controls, 'Info': InfoBlock*/ };
 
     $engine.onDocReady(__findAndInitPotentialPlayers);
-
     return Player;
 
 })(anm);
-
-});

@@ -12,9 +12,6 @@
 // This importer imports only the compact format of animations (where all elements are arrays
 // of arrays)
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/importers/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var AnimatronImporter = (function() {
 
@@ -969,6 +966,4 @@ return __MYSELF;
 
 anm.registerImporter('animatron', AnimatronImporter);
 
-return AnimatronImporter;
-
-});
+module.exports = AnimatronImporter;
