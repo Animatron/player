@@ -1042,6 +1042,7 @@ Player.prototype._postInit = function() {
                   ? anm.createImporter(to_load.importer_id) : null);
     }
 }
+// TODO: rename to "rect"
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
     this.width = rect.width; this.height = rect.height;
@@ -2350,6 +2351,8 @@ Element.prototype.initVisuals = function() {
     this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
 
+    this.$bounds = null; // Element bounds, cached
+
     return this;
 }
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
@@ -2387,6 +2390,7 @@ Element.prototype.resetEvents = Element.prototype.initEvents;
 // > Element.path % ([value: Path]) => Path | Element
 Element.prototype.path = function(value) {
     if (value) {
+        this.invalidate();
         this.type = C.ET_PATH;
         this.$path = value;
         return this;
@@ -2395,6 +2399,7 @@ Element.prototype.path = function(value) {
 // > Element.text % ([value: Text]) => Text | Element
 Element.prototype.text = function(value) {
     if (value) {
+        this.invalidate();
         this.type = C.ET_TEXT;
         this.$text = value;
         return this;
@@ -2403,6 +2408,7 @@ Element.prototype.text = function(value) {
 // > Element.image % ([value: Sheet]) => Sheet | Element
 Element.prototype.image = function(value) {
     if (value) {
+        this.invalidate();
         this.type = C.ET_SHEET;
         this.$image = value;
         return this;
@@ -2818,7 +2824,6 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         var _elm = new Element(arg1, arg2);
         if (arg3) _elm.changeTransform(arg3);
         this._addChild(_elm);
-        return _elm;
     } else if (__arr(arg1)) { // elements array mode
         for (var ei = 0, el = elms.length; ei < el; ei++) {
             this._addChild(elms[ei]);
@@ -2826,11 +2831,15 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     } else { // element object mode
         this._addChild(arg1);
     }
+    this.invalidate();
+    return this;
 }
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
     if (!elm) throw new AnimErr(Errors.A.NO_ELEMENT_TO_REMOVE);
     if (this.__safeDetach(elm) == 0) throw new AnimErr(Errors.A.NO_ELEMENT);
+    this.invalidate();
+    return this;
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
@@ -3186,29 +3195,33 @@ Element.prototype.invalidate = function() {
     //TODO: replace with this['$' + this.type].invalidate() ?
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
+    this.$bounds = null;
 }
-Element.prototype.dimen = function() {
-    // _dimen value is not cached, it's just a user object allowing
-    // to set custom dimensions (though may be we also need to cache
-    // dimensions not relative to type)
-    if (this._dimen) return this._dimen;
+Element.prototype.bounds = function(value) {
+    if (value) { /* this.invalidate(); */ this.$bounds = value; return this; }
+    if (this.$bounds) return this.$bounds;
     var subj = this.$path || this.$text || this.$image;
-    if (subj) return subj.dimen();
-}
-Element.prototype.bounds = function() {
-    if (this._bounds) return this._bounds;
-    var subj = this.$path || this.$text || this.$image;
-    if (subj) return (this._bounds = subj.bounds());
-}
-Element.prototype.boundsRect = function() {
-    var b = this.bounds();
-    if (!b) return null;
-    // returns clockwise coordinates of the points
-    // for easier drawing
-          // minX, minY, maxX, minY,
-    return [ b[0], b[1], b[2], b[1],
-          // maxX, maxY, minX, maxY
-             b[2], b[3], b[0], b[3] ];
+    if (subj) { return (this.$bounds = subj.bounds()); }
+    else {
+        var result = { x: Infinity, y: Infinity,
+                       width: 0, height: 0 };
+        if (!this.children.length) {
+            result.x = 0;
+            result.y = 0;
+        } else {
+            var child_bounds = null;
+            this.visitChildren(function(child) {
+                child_bounds = child.bounds();
+                if (child_bounds.x < result.x) result.x = child_bounds.x;
+                if (child_bounds.y < result.y) result.y = child_bounds.y;
+                if (child_bounds.width > result.width) result.width = child_bounds.width;
+                if (child_bounds.height > result.height) result.height = child_bounds.height;
+            });
+            if (result.x == Infinity) result.x = 0;
+            if (result.y == Infinity) result.y = 0;
+        }
+        return (this.$bounds = result);
+    }
 }
 Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
@@ -3549,6 +3562,7 @@ Element.transferVisuals = function(src, trg) {
     trg.$image = src.$image ? src.$image.clone() : null;
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
+    // trg.$bounds = src.$bounds ? src.$bounds.clone : null;
     trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {
@@ -4556,9 +4570,11 @@ Path.prototype.end = function() {
     return [ this.segs[lastidx].pts[s-2],   // last-x
              this.segs[lastidx].pts[s-1] ]; // last-y
 }
+Path.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
 Path.prototype.bounds = function() {
     // FIXME: it is not ok for curve path, possibly
-    if (this.segs.length <= 0) return [0, 0, 0, 0];
+    if (this.$bounds) return this.$bounds;
+    if (this.segs.length <= 0) return Path.NO_BOUNDS;
     var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
@@ -4573,21 +4589,9 @@ Path.prototype.bounds = function() {
             maxY = Math.max(maxY, pts[pi]);
         }
     });
-    return [ minX, minY, maxX, maxY ];
-}
-Path.prototype.dimen = function() {
-    // FIXME: cache bounds and dimen, reset on invalidate
-    var bounds = this.bounds();
-    return [ bounds[2] - bounds[0], bounds[3] - bounds[1] ];
-}
-Path.prototype.boundsRect = function() {
-    var b = this.bounds();
-    // returns clockwise coordinates of the points
-    // for easier drawing
-          // minX, minY, maxX, minY,
-    return [ b[0], b[1], b[2], b[1],
-          // maxX, maxY, minX, maxY
-             b[2], b[3], b[0], b[3] ];
+    return (this.$bounds = { x: minX, y: minY,
+                             width: maxX - minX,
+                             height: maxY - minY });
 }
 /* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {
@@ -4620,12 +4624,12 @@ Path.prototype.zoom = function(vals) {
 // and a center point
 Path.prototype.normalize = function() {
     var bounds = this.bounds();
-    var w = (bounds[2]-bounds[0]),
-        h = (bounds[3]-bounds[1]);
+    var w = bounds.width,
+        h = bounds.height;
     var hw = Math.floor(w/2),
         hh = Math.floor(h/2);
-    var min_x = bounds[0],
-        min_y = bounds[1];
+    var min_x = bounds.x,
+        min_y = bounds.y;
     this.vpoints(function(x, y) {
         return [ x - min_x - hw,
                  y - min_y - hh];
@@ -4649,7 +4653,9 @@ Path.prototype.clone = function() {
     });
     return _clone;
 }
-Path.prototype.invalidate = function() { }
+Path.prototype.invalidate = function() {
+    this.$bounds = 0;
+}
 Path.prototype.reset = function() {
     this.segs = [];
 }
@@ -4991,7 +4997,7 @@ function Text(lines, font, align, baseline, underlined) {
     this.align = align || Text.DEFAULT_ALIGN;
     this.baseline = baseline || Text.DEFAULT_BASELINE;
     this.underlined = __defined(underlined) ? underlined : Text.DEFAULT_UNDERLINE;
-    this._bnds = null;
+    this.$bounds = null;
 }
 
 Text.DEFAULT_FFACE = 'sans-serif';
@@ -5041,14 +5047,13 @@ Text.prototype.apply = function(ctx) {
     }
     ctx.restore();
 }
-Text.prototype.dimen = function(/*optional: */lines) {
-    //if (this._dimen) return this._dimen;
-    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
-    return Text.__measuring_f(this, lines);
-}
 Text.prototype.bounds = function() {
-    var dimen = this.dimen();
-    return [ 0, 0, dimen[0], dimen[1] ];
+    if (this.$bounds) return this.$bounds;
+    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
+    var dimen = Text.__measuring_f(this, lines);
+    return (this.$bounds = {
+        x: 0, y: 0, width: dimen[0], height: dimen[0]
+    });
 }
 // should be static
 Text.prototype.ascent = function(height, baseline) {
@@ -5077,7 +5082,9 @@ Text.prototype.clone = function() {
     }
     return c;
 }
-Text.prototype.invalidate = function() { }
+Text.prototype.invalidate = function() {
+    this.$bounds = null;
+}
 Text.prototype.reset = function() { }
 Text.prototype.dispose = function() { }
 
@@ -5635,16 +5642,14 @@ Sheet.prototype.dimen = function() {
     return [ r[2], r[3] ]; */
     return this._dimen;
 }
+Sheet.MISSED_BOUNDS = { x: 0, y: 0, width: Sheet.MISSED_SIDE, height: Sheet.MISSED_SIDE };
+Sheet.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
 Sheet.prototype.bounds = function() {
-    if (this.wasError) return [ 0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
+    if (this.wasError) return Sheet.MISSED_BOUNDS;
     // TODO: when using current_region, bounds will depend on that region
-    if (!this.ready || !this._active_region) return [0, 0, 0, 0];
+    if (!this.ready || !this._active_region) return Sheet.NO_BOUNDS;
     var r = this._active_region;
-    return [ 0, 0, r[2], r[3] ];
-}
-Sheet.prototype.boundsRect = function() {
-    // TODO: when using current_region, bounds will depend on that region
-    throw new Error('Not Implemented. Why?');
+    return { x: 0, y: 0, width: r[2], height: r[3] };
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);
