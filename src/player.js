@@ -1258,9 +1258,9 @@ Player.prototype._drawStill = function() {
 }
 // _drawThumbnail draws a prepared thumbnail image, which is set by user
 Player.prototype._drawThumbnail = function() {
-    var thumb_dimen   = this.__thumbSize || this.__thumb.dimen(),
-        thumb_width   = thumb_dimen[0],
-        thumb_height  = thumb_dimen[1],
+    var thumb_bounds  = this.__thumbSize || this.__thumb.bounds(),
+        thumb_width   = thumb_bounds.width,
+        thumb_height  = thumb_bounds.height,
         player_width  = this.width,
         player_height = this.height,
         px_ratio      = $engine.PX_RATIO;
@@ -2351,7 +2351,8 @@ Element.prototype.initVisuals = function() {
     this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
 
-    this.$bounds = null; // Element bounds, cached
+    this.$bounds = null; // Element bounds incl. children, cached
+    this.$my_bounds = null; // Element bounds on its own, cached
 
     return this;
 }
@@ -2643,26 +2644,24 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var my_bounds = this.bounds(),
-                    my_width = my_bounds.width,
-                    my_height = my_bounds.height;
+                var bounds = this.bounds(),
+                    width = bounds.width,
+                    height = bounds.height;
 
                 var last_cvs_size = this._maskCvsSize || $engine.getCanvasSize(mcvs);
 
                 if ((last_cvs_size[0] < my_width) ||
                     (last_cvs_size[1] < my_height)) {
                     // mcvs/bcvs both always have the same size, so we save/check only one of them
-                    this._maskCvsSize = $engine.setCanvasSize(mcvs, my_width,
-                                                                    my_height);
-                    $engine.setCanvasSize(bcvs, my_width, my_height);
+                    this._maskCvsSize = $engine.setCanvasSize(mcvs, width, height);
+                    $engine.setCanvasSize(bcvs, width, height);
                 } else {
                     this._maskCvsSize = last_cvs_size;
                 }
 
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, my_width,
-                                     my_height);
+                bctx.clearRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
 
@@ -2677,19 +2676,17 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.save(); // mctx first open
                 if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, my_width,
-                                     my_height);
+                mctx.clearRect(0, 0, width, height);
 
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0,
-                                     my_width, my_height);
+                bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, 0, 0, my_width, my_height);
+                ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
@@ -3192,38 +3189,47 @@ Element.prototype.global = function(pt) {
     var off = this.offset();
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
-Element.prototype.invalidate = function() {
-    //this._dimen = null;
+Element.prototype.invalidateVisuals = function() {
     //TODO: replace with this['$' + this.type].invalidate() ?
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
+}
+Element.prototype.invalidate = function() {
     this.$bounds = null;
+    this.$my_bounds = null;
+    if (this.parent) this.parent.invalidate();
 }
 Element.prototype.bounds = function(value) {
     if (value) { /* this.invalidate(); */ this.$bounds = value; return this; }
     if (this.$bounds) return this.$bounds;
-    var subj = this.$path || this.$text || this.$image;
-    if (subj) { return (this.$bounds = subj.bounds()); }
+    var my_bounds = this.myBounds();
+    if (!this.children.length) return (this.$bounds = my_bounds);
     else {
-        var result = { x: Infinity, y: Infinity,
-                       width: 0, height: 0 };
-        if (!this.children.length) {
-            result.x = 0;
-            result.y = 0;
-        } else {
-            var child_bounds = null;
-            this.visitChildren(function(child) {
-                child_bounds = child.bounds();
-                if (child_bounds.x < result.x) result.x = child_bounds.x;
-                if (child_bounds.y < result.y) result.y = child_bounds.y;
-                if (child_bounds.width > result.width) result.width = child_bounds.width;
-                if (child_bounds.height > result.height) result.height = child_bounds.height;
-            });
-            if (result.x == Infinity) result.x = 0;
-            if (result.y == Infinity) result.y = 0;
-        }
+        // not to corrupt the bounds object, we clone it
+        var result = { x: my_bounds.x, // FIXME: Infinity?
+                       y: my_bounds.y, // FIXME: Infinity?
+                       width: my_bounds.width,
+                       height: my_bounds.height };
+        var child_bounds = null;
+        this.visitChildren(function(child) {
+            child_bounds = child.bounds();
+            if (child_bounds.x < result.x) result.x = child_bounds.x;
+            if (child_bounds.y < result.y) result.y = child_bounds.y;
+            if (child_bounds.width > result.width) result.width = child_bounds.width;
+            if (child_bounds.height > result.height) result.height = child_bounds.height;
+        });
         return (this.$bounds = result);
     }
+}
+Element.prototype.myBounds = function() {
+    if (this.$my_bounds) return this.$my_bounds;
+    var subj = this.$path || this.$text || this.$image;
+    if (subj) { return (this.$my_bounds = subj.bounds()); }
+    else return (this.$my_bounds = { x: 0, y: 0, width: 0, height: 0 });
+}
+Element.prototype.isEmpty = function() {
+    var my_bounds = this.myBounds();
+    return (my_bounds.width == 0) && (my_bounds.height == 0);
 }
 Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
@@ -3565,6 +3571,7 @@ Element.transferVisuals = function(src, trg) {
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     // trg.$bounds = src.$bounds ? src.$bounds.clone : null;
+    // trg.$my_bounds = src.$my_bounds ? src.$my_bounds.clone : null;
     trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {
@@ -3974,10 +3981,10 @@ Render.p_useReg = new Painter(function(ctx) {
 Render.p_usePivot = new Painter(function(ctx) {
     var pivot = this.$pivot;
     if ((pivot[0] === 0) && (pivot[1] === 0)) return;
-    var dimen = this.dimen();
-    if (!dimen) return;
-    ctx.translate(-(pivot[0] * dimen[0]),
-                  -(pivot[1] * dimen[1]));
+    var my_bounds = this.myBounds();
+    if (!my_bounds) return;
+    ctx.translate(-(pivot[0] * my_bounds.width),
+                  -(pivot[1] * my_bounds.height));
 }, C.PNT_SYSTEM);
 
 Render.p_drawVisuals = new Painter(function(ctx) {
@@ -4003,11 +4010,13 @@ Render.p_applyAComp = new Painter(function(ctx) {
 
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
     if (!(pivot = pivot || this.$pivot)) return;
-    var dimen = this.dimen() || [ 0, 0 ];
-    var stokeStyle = dimen ? '#600' : '#f00';
+    var my_bounds = this.myBounds();
+    var stokeStyle = this.isEmpty() ? '#600' : '#f00';
     ctx.save();
-    ctx.translate(pivot[0] * dimen[0],
-                  pivot[1] * dimen[1]);
+    if (bounds) {
+        ctx.translate(pivot[0] * my_bounds.width,
+                      pivot[1] * my_bounds.height);
+    }
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = stokeStyle;
@@ -5011,8 +5020,8 @@ Text.DEFAULT_UNDERLINE = false;
 
 Text.prototype.apply = function(ctx) {
     ctx.save();
-    var dimen = this.dimen(),
-        height = (dimen[1] / this.lineCount()),
+    var bounds = this.bounds(),
+        height = (bounds.height / this.lineCount()),
         underlined = this.underlined;
     ctx.font = this.font;
     ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
@@ -5037,11 +5046,15 @@ Text.prototype.apply = function(ctx) {
         y = 0;
         Brush.stroke(ctx, stroke);
         ctx.lineWidth = 1;
+        var line_bounds = null,
+            line_width = 0,
+            me = this;
         this.visitLines(function(line) {
-            var width = me.dimen(line)[0];
+            line_bounds = Text.bounds(me, line);
+            line_width = line_bounds.width;
             ctx.beginPath();
             ctx.moveTo(0, y + height);      // not entirely correct
-            ctx.lineTo(width, y + height);
+            ctx.lineTo(line_width, y + height);
             ctx.stroke();
 
             y += height;
@@ -5051,8 +5064,7 @@ Text.prototype.apply = function(ctx) {
 }
 Text.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
-    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
-    var dimen = Text.__measuring_f(this, lines);
+    var bounds = Text.bounds(this, lines);
     return (this.$bounds = {
         x: 0, y: 0, width: dimen[0], height: dimen[0]
     });
@@ -5089,6 +5101,13 @@ Text.prototype.invalidate = function() {
 }
 Text.prototype.reset = function() { }
 Text.prototype.dispose = function() { }
+Text.bounds = function(spec, lines) {
+    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
+    var dimen = Text.__measuring_f(spec, lines);
+    return {
+        x: 0, y: 0, width: dimen[0], height: dimen[0]
+    };
+}
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -5618,7 +5637,7 @@ Sheet.prototype.apply = function(ctx) {
     }
     this._active_region = region;
     ctx.drawImage(this._image, region[0], region[1],
-                                   region[2], region[3], 0, 0, region[2], region[3]);
+                               region[2], region[3], 0, 0, region[2], region[3]);
 }
 Sheet.prototype.applyMissed = function(ctx) {
     ctx.save();
@@ -5636,13 +5655,6 @@ Sheet.prototype.applyMissed = function(ctx) {
     ctx.lineTo(side, side);
     ctx.stroke();
     ctx.restore();
-}
-Sheet.prototype.dimen = function() {
-    if (this.wasError) return [ Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
-    /* if (!this.ready || !this._active_region) return [0, 0];
-    var r = this._active_region;
-    return [ r[2], r[3] ]; */
-    return this._dimen;
 }
 Sheet.MISSED_BOUNDS = { x: 0, y: 0, width: Sheet.MISSED_SIDE, height: Sheet.MISSED_SIDE };
 Sheet.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
