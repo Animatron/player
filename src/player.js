@@ -2646,12 +2646,13 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var bounds = this.bounds(),
                     width = bounds.width,
-                    height = bounds.height;
+                    height = bounds.height,
+                    ratio = $engine.PX_RATIO;
 
                 var last_cvs_size = this._maskCvsSize || $engine.getCanvasSize(mcvs);
 
-                if ((last_cvs_size[0] < my_width) ||
-                    (last_cvs_size[1] < my_height)) {
+                if ((last_cvs_size[0] < width) ||
+                    (last_cvs_size[1] < height)) {
                     // mcvs/bcvs both always have the same size, so we save/check only one of them
                     this._maskCvsSize = $engine.setCanvasSize(mcvs, width, height);
                     $engine.setCanvasSize(bcvs, width, height);
