@@ -2645,14 +2645,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bctx = anim.__backCtx[level];
 
                 var bounds = this.bounds(),
-                    width = bounds.width,
-                    height = bounds.height,
-                    ratio = $engine.PX_RATIO;
+                    ratio = $engine.PX_RATIO,
+                    width = Math.ceil(bounds.width * this.sx),
+                    height = Math.ceil(bounds.height * this.sy);
 
                 var last_cvs_size = this._maskCvsSize || $engine.getCanvasSize(mcvs);
 
-                if ((last_cvs_size[0] < width) ||
-                    (last_cvs_size[1] < height)) {
+                if ((last_cvs_size[0] < (width * ratio)) ||
+                    (last_cvs_size[1] < (height * ratio))) {
                     // mcvs/bcvs both always have the same size, so we save/check only one of them
                     this._maskCvsSize = $engine.setCanvasSize(mcvs, width, height);
                     $engine.setCanvasSize(bcvs, width, height);
@@ -2687,6 +2687,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
+                //this.transform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { $log.error(e); }
