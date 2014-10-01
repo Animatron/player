@@ -2070,9 +2070,9 @@ Animation.prototype.__ensureHasMaskCanvas = function(lvl) {
         this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
     if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
     if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = $engine.createCanvas(this.width * 2, this.height * 2);
+    this.__maskCvs[lvl] = $engine.createCanvas(1, 1);
     this.__maskCtx[lvl] = $engine.getContext(this.__maskCvs[lvl], '2d');
-    this.__backCvs[lvl] = $engine.createCanvas(this.width * 2, this.height * 2);
+    this.__backCvs[lvl] = $engine.createCanvas(1, 1);
     this.__backCtx[lvl] = $engine.getContext(this.__backCvs[lvl], '2d');
     //document.body.appendChild(this.__maskCvs[lvl]);
     //document.body.appendChild(this.__backCvs[lvl]);
@@ -2643,25 +2643,29 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var anim_width = anim.width,
-                    anim_height = anim.height,
-                    dbl_anim_width = anim.width * 2,
-                    dbl_anim_height = anim.height * 2,
-                    ratio = $engine.PX_RATIO;
+                var my_bounds = this.bounds(),
+                    my_width = my_bounds.width,
+                    my_height = my_bounds.height;
 
-                /* FIXME: configure mask canvas using clips bounds (incl. children) */
+                var last_cvs_size = this._maskCvsSize || $engine.getCanvasSize(mcvs);
 
-                // double size of the canvases ensures that the
-                // element will fit into canvas if its point was
+                if ((last_cvs_size[0] < my_width) ||
+                    (last_cvs_size[1] < my_height)) {
+                    // mcvs/bcvs both always have the same size, so we save/check only one of them
+                    this._maskCvsSize = $engine.setCanvasSize(mcvs, my_width,
+                                                                    my_height);
+                    $engine.setCanvasSize(bcvs, my_width, my_height);
+                } else {
+                    this._maskCvsSize = last_cvs_size;
+                }
 
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, dbl_anim_width,
-                                     dbl_anim_height);
+                bctx.clearRect(0, 0, my_width,
+                                     my_height);
 
                 bctx.save(); // bctx second open
 
-                bctx.translate(anim_width, anim_height);
                 this.transform(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
@@ -2673,21 +2677,19 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.save(); // mctx first open
                 if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, dbl_anim_width,
-                                     dbl_anim_height);
+                mctx.clearRect(0, 0, my_width,
+                                     my_height);
 
-                mctx.translate(anim_width, anim_height);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0,
-                                     dbl_anim_width, dbl_anim_height);
+                                     my_width, my_height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, -anim_width, -anim_height,
-                                    dbl_anim_width, dbl_anim_height);
+                ctx.drawImage(bcvs, 0, 0, my_width, my_height);
             }
         } catch(e) { $log.error(e); }
           finally { ctx.restore(); }
