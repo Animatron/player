@@ -96,12 +96,12 @@ var Files = {
                                  'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
-           MODULES: { _ALL_: [ 'collisions.js',
+           MODULES: { _ALL_: [ /* 'collisions.js', */
                                'audio.js',
                                'audio-export.js',
                                'scripting.js',
                                'shapes.js' ],
-                      COLLISIONS: 'collisions.js',
+                      // COLLISIONS: 'collisions.js',
                       AUDIO: 'audio.js',
                       AUDIO_EXPORT: 'audio-export.js',
                       SCRIPTING: 'scripting.js',
@@ -126,7 +126,7 @@ var Bundles = [
                                                               Files.Main.PLAYER ]))
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
-                                                              Files.Ext.MODULES.COLLISIONS,
+                                                              // Files.Ext.MODULES.COLLISIONS,
                                                               Files.Ext.MODULES.SCRIPTING,
                                                               Files.Ext.MODULES.SHAPES ])) },
     /* { name: 'Animatron-Intact',
