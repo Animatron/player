@@ -2347,6 +2347,7 @@ Element.prototype.initVisuals = function() {
 
     this.composite_op = null; // composition operation
 
+    this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
 
     return this;
@@ -2609,6 +2610,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                  && this.prepare() // FIXME: rename to .reset(), move before transform
                                    //        or even inside it, move out of condition
                  && this.visible;
+                 // an additional line to pretend being an actual change
+                 // another additional line to pretend being an actual change
     }
     if (drawMe) {
         ctx.save();
@@ -2617,7 +2620,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             // changed if there were jumps or something), so children will
             // get the proper value
             gtime = this.gtime(ltime);
-            if (!this.__mask) {
+            if (!this.$mask) {
                 // draw directly to context, if has no mask
                 this.transform(ctx);
                 this.painters(ctx);
@@ -2668,7 +2671,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                                      dbl_anim_height);
 
                 mctx.translate(anim_width, anim_height);
-                this.__mask.render(mctx, gtime, dt);
+                this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
@@ -3207,13 +3210,13 @@ Element.prototype.boundsRect = function() {
           // maxX, maxY, minX, maxY
              b[2], b[3], b[0], b[3] ];
 }
-Element.prototype.setMask = function(elm) {
-    if (!elm) throw new AnimErr('No valid masking element was passed');
+Element.prototype.mask = function(elm) {
+    if (!elm) return this.$mask;
     if (this.anim) this.anim.__ensureHasMaskCanvas(this.level);
-    this.__mask = elm;
+    this.$mask = elm;
 }
-Element.prototype.clearMask = function() {
-    this.__mask = null;
+Element.prototype.noMask = function() {
+    this.$mask = null;
 }
 Element.prototype.data = function(val) {
   if (!__defined(val)) return this.$data;
@@ -3544,6 +3547,7 @@ Element.transferVisuals = function(src, trg) {
     trg.$path = src.$path ? src.$path.clone() : null;
     trg.$text = src.$text ? src.$text.clone() : null;
     trg.$image = src.$image ? src.$image.clone() : null;
+    trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
 }
