@@ -83,7 +83,7 @@ var _u = (function () { /* utils */
         },
 
         reportError: function (_e) {
-            if (console) console.error(_e.message || _e);
+            if (window.console) console.error(_e.message || _e);
             else alert(_e.message || _e);
         },
 
