@@ -2579,6 +2579,13 @@ Element.prototype.transform = function(ctx) {
     this.matrix.apply(ctx);
     return this.matrix;
 }
+// > Element.inv_transform % (ctx: Context)
+Element.prototype.inv_transform = function(ctx) {
+    this.matrix = Element.getIMatrixOf(this, this.matrix);
+    ctx.globalAlpha *= this.alpha;
+    this.matrix.apply(ctx);
+    return this.matrix;
+}
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
@@ -2663,13 +2670,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
-                //bctx.fillStyle = '#f99';
-                //bctx.fillRect(0, 0, width, height);
+                bctx.fillStyle = '#f99';
+                bctx.fillRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
 
-                //this.transform(bctx);
-                // bctx.translate(-this.$reg[0], -this.$reg[1]);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
@@ -2680,14 +2685,15 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
+
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
+                this.inv_transform(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
-                //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
