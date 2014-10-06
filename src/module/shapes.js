@@ -16,7 +16,7 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
 __anm_engine.define('anm/modules/shapes', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
-    anm.registerModule('shapes', {});
+    anm.M.register('shapes', {});
 
     var E = anm.Element;
 

@@ -184,7 +184,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
 
   var conf = {};
 
-  anm.registerModule('scripting', conf);
+  anm.M.register('scripting', conf);
 
   return conf;
 

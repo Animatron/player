@@ -964,6 +964,6 @@ return __MYSELF;
 
 })();
 
-anm.registerImporter('animatron', AnimatronImporter);
+anm.I.register('animatron', AnimatronImporter);
 
-module.exports = AnimatronImporter;
+//module.exports = AnimatronImporter;

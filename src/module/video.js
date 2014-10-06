@@ -44,7 +44,7 @@ __anm_engine.define('anm/modules/video', ['anm', 'anm/Player'], function(anm/*, 
 
   // TODO: what else?
 
-  anm.registerModule('video', m_ctx);
+  anm.M.register('video', m_ctx);
 
   return m_ctx;
 

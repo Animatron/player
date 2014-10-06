@@ -41,7 +41,7 @@
       function load() {
           if (!player) return;
 
-          var AnimatronImporter = anm.getImporter('animatron');
+          var AnimatronImporter = anm.I.get('animatron');
 
           var project = JSON.parse(document.getElementById('scene-input').value);
 

@@ -51,8 +51,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     };
   };
 
-  if (anm.isImporterAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
-    var Import = anm.getImporter('animatron').Import;
+  if (anm.I.isAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
+    var Import = anm.I.get('animatron').Import;
     var prev_tweentype = Import.tweentype;
     Import.tweentype = function(src) {
       if (src === 7) return C.T_VOLUME;
@@ -364,7 +364,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
                       /* throw err; */ }); // onerror
   };
 
-  anm.registerModule('audio', m_ctx);
+  anm.M.register('audio', m_ctx);
 
   return m_ctx;
 

@@ -22,7 +22,7 @@ var opts = {
     'mouseBound': false
 };
 
-anm.registerModule('collisions', opts);
+anm.M.register('collisions', opts);
 
 function __filled(arr, val) {
     var l = arr.length; result = new Array(l), i = l;
