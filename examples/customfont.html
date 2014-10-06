@@ -39,8 +39,8 @@
       function load(json) {
           if (!player) return;
 
-          var /*b = Builder._$, */C = anm.C;
-          var AnimatronImporter = anm.I.get('animatron');
+          var /*b = Builder._$, */C = anm.constants;
+          var AnimatronImporter = anm.importers.animatron;
 
           var project = JSON.parse(json);
 

@@ -104,7 +104,7 @@ var reload = function() {
 
   var scripting = '{"meta":{"id":"a6415c52aea0877ffed8c197","created":1381777830343,"modified":1382042371862,"author":"Alexey Pegov","description":"","name":"scripting-1","copyright":"Copyright (c) by Alexey Pegov","duration":100.0,"numberOfScenes":1,"projectAccessType":"Public","projectAccessReadOnly":true},"anim":{"dimension":[550.0,450.0],"framerate":24.0,"background":"#ffffff","elements":[[5,"#2291ea","","","M0.0 0.0 L247.251 0.0 L247.251 162.557 L0.0 162.557 L0.0 0.0 M0.0 0.0 Z"],[2,"$$$LIBRARY$$$",10.0,[]],[2,"Scene1",100.0,[[0,"Shape 1","","",[123.626,81.279],"",0,[[4,[],"","M258.179 185.097 L258.179 185.097 Z"]],{"' + type + '":"' + code + '"}]]]],"scenes":[2]}}';
 
-  window.player.stop().load(JSON.parse(scripting), anm.I.create("animatron"));
+  window.player.stop().load(JSON.parse(scripting), anm.importers.create("animatron"));
   window.player.setDuration(Infinity);
   window.player.play();
 };
@@ -142,7 +142,7 @@ var start = function() {
   document.getElementById("type").addEventListener('change', _save);
 
   window.player = anm.createPlayer('canvas', {
-    'mode': anm.C.M_DYNAMIC,
+    'mode': anm.constants.M_DYNAMIC,
     'debug': true,
     'muteErrors': false,
     'anim': {

@@ -18,7 +18,7 @@ var IMPORTER_ID = 'ANM_INTACT';
 
 function __MYSELF() { }
 
-var C = anm.C,
+var C = anm.constants,
     Animation = anm.Animation,
     Element = anm.Element,
     Path = anm.Path,
@@ -26,7 +26,7 @@ var C = anm.C,
     Bands = anm.Bands,
     test = anm._valcheck;
 
-anm.I[IMPORTER_ID] = {};
+anm.importers[IMPORTER_ID] = {};
 
 // ** META / PARAMS **
 

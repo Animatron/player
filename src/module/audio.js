@@ -11,7 +11,7 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 
 __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
-  var C = anm.C,
+  var C = anm.constants,
       Tween = anm.Tween,
       Tweens = anm.Tweens;
 
@@ -51,8 +51,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     };
   };
 
-  if (anm.I.isAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
-    var Import = anm.I.get('animatron').Import;
+  if (anm.importers.isAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
+    var Import = anm.importers.get('animatron').Import;
     var prev_tweentype = Import.tweentype;
     Import.tweentype = function(src) {
       if (src === 7) return C.T_VOLUME;
@@ -364,7 +364,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
                       /* throw err; */ }); // onerror
   };
 
-  anm.M.register('audio', m_ctx);
+  anm.modules.register('audio', m_ctx);
 
   return m_ctx;
 

@@ -27,10 +27,10 @@
     <script type="text/javascript">
       function start() {
           //var b = Builder._$
-          var C = anm.C;
+          var C = anm.constants;
 
           // canvas0
-          var importer = anm.I.create('animatron');
+          var importer = anm.importers.create('animatron');
           var player = anm.createPlayer('canvas');
           //player.debug = true;
           player.load(anm_scenes.animatron_scene, importer);

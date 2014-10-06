@@ -15,7 +15,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
   var Player = anm.Player;
 
   var is = anm.is;
-  var C = anm.C;
+  var C = anm.constants;
   var E = anm.Element;
 
   var $log = anm.log;
@@ -184,7 +184,7 @@ __anm_engine.define('anm/modules/scripting', ['anm', 'anm/Player'], function(anm
 
   var conf = {};
 
-  anm.M.register('scripting', conf);
+  anm.modules.register('scripting', conf);
 
   return conf;
 

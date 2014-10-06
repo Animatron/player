@@ -17,7 +17,7 @@ var AnimatronImporter = (function() {
 
 var IMPORTER_ID = 'ANM';
 
-var C = anm.C,
+var C = anm.constants,
     Animation = anm.Animation,
     Element = anm.Element,
     Path = anm.Path,
@@ -964,6 +964,6 @@ return __MYSELF;
 
 })();
 
-anm.I.register('animatron', AnimatronImporter);
+anm.importers.register('animatron', AnimatronImporter);
 
 //module.exports = AnimatronImporter;

@@ -1,18 +1,18 @@
 // Modules
 // -----------------------------------------------------------------------------
-var M = {};
+var modules = {};
 
-M.register = function(alias, conf) {
-  if (M[alias]) throw new Error('Module ' + alias + ' is already registered!');
-  M[alias] = conf;
+modules.register = function(alias, conf) {
+  if (modules[alias]) throw new Error('Module ' + alias + ' is already registered!');
+  modules[alias] = conf;
 };
 
-M.get = function(alias) {
-  return M[alias];
+modules.get = function(alias) {
+  return modules[alias];
 };
 
-M.isAccessible = function(alias) {
-  return typeof M[alias] !== 'undefined';
+modules.isAccessible = function(alias) {
+  return typeof modules[alias] !== 'undefined';
 };
 
-module.exports = M;
+module.exports = modules;

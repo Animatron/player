@@ -32,7 +32,7 @@ Player.prototype.exportAudio = function() {
 
 var conf = {};
 
-anm.M.register('audio-export', conf);
+anm.modules.register('audio-export', conf);
 
 return conf;
 

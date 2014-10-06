@@ -874,7 +874,7 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
     }
     $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
         if (!wrapper.classList) return;
-        var C = anm.C;
+        var C = anm.constants;
         player.on(C.S_CHANGE_STATE, function(new_state) {
             var css_classes = [];
             switch (new_state) {

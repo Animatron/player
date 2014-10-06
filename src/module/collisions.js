@@ -12,7 +12,7 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 __anm_engine.define('anm/modules/collisions', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var $engine = anm.engine;
-var C = anm.C;
+var C = anm.constants;
 
 var opts = {
     'pathDriven': false,
@@ -22,7 +22,7 @@ var opts = {
     'mouseBound': false
 };
 
-anm.M.register('collisions', opts);
+anm.modules.register('collisions', opts);
 
 function __filled(arr, val) {
     var l = arr.length; result = new Array(l), i = l;

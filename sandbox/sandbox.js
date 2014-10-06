@@ -20,10 +20,10 @@ function sandbox() {
 
     window.elm = anm.Element._$;
     window.E = anm.Element;
-    window.C = anm.C;
+    window.C = anm.constants;
 
     this.player = anm.createPlayer('player', {
-        mode: anm.C.M_SANDBOX,
+        mode: anm.constants.M_SANDBOX,
         muteErrors: true,
         width: 400,
         height: 250,

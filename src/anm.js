@@ -13,7 +13,7 @@ var PUBLIC_NAMESPACE = 'anm';
 
 var ENGINE_VAR = '__anm_engine';
 
-var C = require('./anm/constants.js');
+var constants = require('./anm/constants.js');
 
 
 
@@ -28,17 +28,16 @@ var engine = require('./engine/dom-engine.js');
 // -----------------------------------------------------------------------------
 var anm = {
     global: global,
-    'C': C,
-    'M': require('./anm/modules.js'),
-    'I': require('./anm/importers.js'),
+    constants: constants,
+    modules: require('./anm/modules.js'),
+    importers: require('./anm/importers.js'),
     guid: guid,
     conf: require('./anm/conf.js'),
-    is: require('./anm/is.js'), // typecheck, will be initialized below
+    is: require('./anm/is.js'),
     iter: require('./anm/iter.js'),
     log: require('./anm/log.js'),
     // Engine
     engine: engine,
-    // FIXME: modules and engines should use require/define technique, with optional ? for tests
     // Events
     events: require('./anm/events.js'),
     // Managers
@@ -61,11 +60,11 @@ function guid() {
 
 
 anm.registerAsModifier = function(f) {
-    f[C.MARKERS.MODIFIER_MARKER] = true;
+    f[constants.MARKERS.MODIFIER_MARKER] = true;
 }
 
 anm.registerAsPainter = function(f) {
-    f[C.MARKERS.PAINTER_MARKER] = true;
+    f[constants.MARKERS.PAINTER_MARKER] = true;
 }
 
 // Export

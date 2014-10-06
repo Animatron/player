@@ -1,22 +1,22 @@
 // Importers
 // -----------------------------------------------------------------------------
-var I = {};
+var importers = {};
 
-I.register = function(alias, conf) {
-  if (I[alias]) throw new Error('Importer ' + alias + ' is already registered!');
-  I[alias] = conf;
+importers.register = function(alias, conf) {
+  if (importers[alias]) throw new Error('Importer ' + alias + ' is already registered!');
+  importers[alias] = conf;
 };
 
-I.get = function(alias) {
-  return I[alias];
+importers.get = function(alias) {
+  return importers[alias];
 };
 
-I.create = function(alias) {
-  return new I[alias]();
+importers.create = function(alias) {
+  return new importers[alias]();
 };
 
-I.isAccessible = function(alias) {
-  return typeof I[alias] !== 'undefined';
+importers.isAccessible = function(alias) {
+  return typeof importers[alias] !== 'undefined';
 };
 
-module.exports = I;
+module.exports = importers;

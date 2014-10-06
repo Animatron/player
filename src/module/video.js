@@ -13,7 +13,7 @@ __anm_engine.define('anm/modules/video', ['anm', 'anm/Player'], function(anm/*, 
 
   // This module is just a stub template for the moment
 
-  var C = anm.C,
+  var C = anm.constants,
       E = anm.Element;
 
   C.ET_VIDEO = 'video';
@@ -44,7 +44,7 @@ __anm_engine.define('anm/modules/video', ['anm', 'anm/Player'], function(anm/*, 
 
   // TODO: what else?
 
-  anm.M.register('video', m_ctx);
+  anm.modules.register('video', m_ctx);
 
   return m_ctx;
 
