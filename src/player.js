@@ -2663,16 +2663,20 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
+                //bctx.fillStyle = '#f99';
+                //bctx.fillRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
 
-                this.transform(bctx);
+                //this.transform(bctx);
+                // bctx.translate(-this.$reg[0], -this.$reg[1]);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
-                this.draw(bctx, ltime, dt);
+                this.draw(bctx);
 
                 bctx.restore(); // bctx second closed
+
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
@@ -2687,7 +2691,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                //this.transform(ctx);
+                this.transform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { $log.error(e); }
