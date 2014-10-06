@@ -2579,12 +2579,26 @@ Element.prototype.transform = function(ctx) {
     this.matrix.apply(ctx);
     return this.matrix;
 }
-// > Element.inv_transform % (ctx: Context)
-Element.prototype.inv_transform = function(ctx) {
+// > Element.invTransform % (ctx: Context)
+Element.prototype.invTransform = function(ctx) {
     this.matrix = Element.getIMatrixOf(this, this.matrix);
     ctx.globalAlpha *= this.alpha;
     this.matrix.apply(ctx);
     return this.matrix;
+}
+// > Element.fullTransform % (ctx: Context)
+Element.prototype.fullTransform = function(ctx) {
+    var matrix = this.transform(ctx);
+    this.applyPivot(ctx);
+    this.applyReg(ctx);
+    return matrix;
+}
+// > Element.fullInvTransform % (ctx: Context)
+Element.prototype.fullInvTransform = function(ctx) {
+    var matrix = this.invTransform(ctx);
+    this.applyInvPivot(ctx);
+    this.applyInvReg(ctx);
+    return matrix;
 }
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
@@ -2688,8 +2702,10 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
+                //mctx.fillStyle = '#99f';
+                //mctx.fillRect(0, 0, width, height);
 
-                this.inv_transform(mctx);
+                this.fullInvTransform(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
@@ -2697,7 +2713,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                this.transform(ctx);
+                this.fullTransform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { $log.error(e); }
@@ -3242,6 +3258,49 @@ Element.prototype.myBounds = function() {
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();
     return (my_bounds.width == 0) && (my_bounds.height == 0);
+}
+Element.prototype.applyPivot = function(ctx) {
+    var pivot = this.$pivot;
+    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
+    var my_bounds = this.myBounds();
+    if (!my_bounds) return;
+    ctx.translate(-(pivot[0] * my_bounds.width),
+                  -(pivot[1] * my_bounds.height));
+}
+Element.prototype.applyInvPivot = function(ctx) {
+    var pivot = this.$pivot;
+    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
+    var my_bounds = this.myBounds();
+    if (!my_bounds) return;
+    ctx.translate(pivot[0] * my_bounds.width,
+                  pivot[1] * my_bounds.height);
+}
+Element.prototype.applyReg = function(ctx) {
+    var reg = this.$reg;
+    if ((reg[0] === 0) && (reg[1] === 0)) return;
+    ctx.translate(-reg[0], -reg[1]);
+}
+Element.prototype.applyInvReg = function(ctx) {
+    var reg = this.$reg;
+    if ((reg[0] === 0) && (reg[1] === 0)) return;
+    ctx.translate(reg[0], reg[1]);
+}
+Element.prototype.applyVisuals = function(ctx) {
+    var subj = this.$path || this.$text || this.$image;
+    if (!subj) return;
+
+    ctx.save();
+    // FIXME: split into p_applyBrush and p_drawVisuals,
+    //        so user will be able to use brushes with
+    //        his own painters
+    if (this.$fill)   { this.$fill.apply(ctx);   } else { Brush.clearFill(ctx);   };
+    if (this.$stroke) { this.$stroke.apply(ctx); } else { Brush.clearStroke(ctx); };
+    if (this.$shadow) { this.$shadow.apply(ctx); } else { Brush.clearShadow(ctx); };
+    subj.apply(ctx);
+    ctx.restore();
+}
+Element.prototype.applyAComp = function(ctx) {
+    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
 }
 Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
@@ -3984,41 +4043,17 @@ Render._drawFPS = __r_fps;
 
 // SYSTEM PAINTERS
 
-Render.p_useReg = new Painter(function(ctx) {
-    var reg = this.$reg;
-    if ((reg[0] === 0) && (reg[1] === 0)) return;
-    ctx.translate(-reg[0], -reg[1]);
-}, C.PNT_SYSTEM);
+Render.p_useReg = new Painter(function(ctx) { this.applyReg(ctx); }, C.PNT_SYSTEM);
 
-Render.p_usePivot = new Painter(function(ctx) {
-    var pivot = this.$pivot;
-    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
-    var my_bounds = this.myBounds();
-    if (!my_bounds) return;
-    ctx.translate(-(pivot[0] * my_bounds.width),
-                  -(pivot[1] * my_bounds.height));
-}, C.PNT_SYSTEM);
+Render.p_usePivot = new Painter(function(ctx) { this.applyPivot(ctx); }, C.PNT_SYSTEM);
 
-Render.p_drawVisuals = new Painter(function(ctx) {
-    var subj = this.$path || this.$text || this.$image;
-    if (!subj) return;
+Render.p_drawVisuals = new Painter(function(ctx) { this.applyVisuals(ctx); }, C.PNT_SYSTEM);
 
-    ctx.save();
-    // FIXME: split into p_applyBrush and p_drawVisuals,
-    //        so user will be able to use brushes with
-    //        his own painters
-    if (this.$fill)   { this.$fill.apply(ctx);   } else { Brush.clearFill(ctx);   };
-    if (this.$stroke) { this.$stroke.apply(ctx); } else { Brush.clearStroke(ctx); };
-    if (this.$shadow) { this.$shadow.apply(ctx); } else { Brush.clearShadow(ctx); };
-    subj.apply(ctx);
-    ctx.restore();
-}, C.PNT_SYSTEM);
-
-Render.p_applyAComp = new Painter(function(ctx) {
-    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
-}, C.PNT_SYSTEM);
+Render.p_applyAComp = new Painter(function(ctx) { this.applyAComp(ctx); }, C.PNT_SYSTEM);
 
 // DEBUG PAINTERS
+
+// TODO: also move into Element class
 
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
     if (!(pivot = pivot || this.$pivot)) return;
