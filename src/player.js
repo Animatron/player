@@ -5122,10 +5122,8 @@ Text.prototype.apply = function(ctx) {
 }
 Text.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
-    var bounds = Text.bounds(this, lines);
-    return (this.$bounds = {
-        x: 0, y: 0, width: dimen[0], height: dimen[0]
-    });
+    var bounds = Text.bounds(this, this.lines);
+    return (this.$bounds = bounds);
 }
 // should be static
 Text.prototype.ascent = function(height, baseline) {
