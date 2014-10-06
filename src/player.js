@@ -2656,6 +2656,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     elm.render(ctx, gtime, dt);
                 });
             } else {
+                // FIXME: the complete mask process should be a Painter.
+
                 var anim = this.anim;
                 if (!anim) throw new AnimErr(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
                 var level = this.level;
@@ -2684,11 +2686,17 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
-                bctx.fillStyle = '#f99';
-                bctx.fillRect(0, 0, width, height);
+                //bctx.fillStyle = '#f99';
+                //bctx.fillRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
 
+                // FIXME: disable particular painters instead
+                // draw() moves context to a pivot / registration point location,
+                // since they are treated as "visual" part (may be its not so right),
+                // so in this case we need to rollback them before
+                this.applyInvPivot(bctx);
+                this.applyInvReg(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
@@ -2705,6 +2713,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //mctx.fillStyle = '#99f';
                 //mctx.fillRect(0, 0, width, height);
 
+                // same as above, we need not only to subtract our transformations
+                // (notice that we use NOT the mask matrix, but a matrix of the
+                // masked element (this)), but also to rollback pivot / reg.point
                 this.fullInvTransform(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
