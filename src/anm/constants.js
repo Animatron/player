@@ -122,5 +122,22 @@ C.AC_NAMES[C.C_DARKER]   = 'darker';
 C.AC_NAMES[C.C_COPY]     = 'copy';
 C.AC_NAMES[C.C_XOR]      = 'xor';
 
+C.BT_NONE = 'none';
+C.BT_FILL = 'fill';
+C.BT_STROKE = 'stroke';
+C.BT_SHADOW = 'shadow';
+
+// align
+C.TA_LEFT = 'left';
+C.TA_CENTER = 'center';
+C.TA_RIGHT = 'right';
+
+// baseline
+C.BL_TOP = 'top';
+C.BL_MIDDLE = 'middle';
+C.BL_BOTTOM = 'bottom';
+C.BL_ALPHABETIC = 'alphabetic';
+C.BL_HANGING = 'hanging';
+C.BL_IDEOGRAPHIC = 'ideographic';
 
 module.exports = C;
