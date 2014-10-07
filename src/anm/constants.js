@@ -151,4 +151,11 @@ C.PC_MITER = 'miter';
 C.PC_SQUARE = 'square';
 C.PC_BEVEL = 'bevel';
 
+// Easings constants
+
+C.E_PATH = 'PATH'; // Path
+C.E_FUNC = 'FUNC'; // Function
+C.E_CSEG = 'CSEG'; // Segment
+C.E_STDF = 'STDF'; // Standard function from editor
+
 module.exports = C;

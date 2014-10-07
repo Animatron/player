@@ -77,7 +77,8 @@ var Controls = require('./anm/controls.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
     CSeg = segments.CSeg,
-    Path = require('./anm/path.js');
+    Path = require('./anm/path.js'),
+    EasingImpl = require('./anm/easings.js');
 
 
 // ### Other External utilities
@@ -4121,9 +4122,6 @@ function Tween(tween_type, data) {
     return mod;
 }
 Tween.__data_block_fn = function() { throw new AnimErr("Data should be passed to tween in a constructor"); };
-
-var Easing = {};
-
 // tween order
 Tween.TWEENS_PRIORITY = {};
 
@@ -4201,188 +4199,6 @@ Tweens[C.T_STROKE] =
 
 
 
-// Easings
-// -----------------------------------------------------------------------------
-
-// Easings constants
-
-C.E_PATH = 'PATH'; // Path
-C.E_FUNC = 'FUNC'; // Function
-C.E_CSEG = 'CSEG'; // Segment
-C.E_STDF = 'STDF'; // Standard function from editor
-
-// function-based easings
-
-var EasingImpl = {};
-
-EasingImpl[C.E_PATH] =
-    function(path) {
-        /*var path = Path.parse(str);*/
-        return function(t) {
-            return path.pointAt(t)[1];
-        }
-    };
-EasingImpl[C.E_FUNC] =
-    function(f) {
-        return f;
-    };
-EasingImpl[C.E_CSEG] =
-    function(seg) {
-        return function(t) {
-            return seg.atT([0, 0], t)[1];
-        };
-    };
-EasingImpl[C.E_STDF] =
-    function(num) {
-        return Easing.__STD_EASINGS[num];
-    };
-
-// segment-based easings
-
-Easing.__SEGS = {}; // segments cache for easings
-
-function __registerSegEasing(alias, points) {
-    C['E_'+alias] = alias;
-    var seg = new CSeg(points);
-    Easing.__SEGS[alias] = seg;
-    var func =
-        function(t) {
-            return seg.atT([0, 0], t)[1];
-        };
-    C['EF_'+alias] = func;
-    EasingImpl[alias] = function() {
-        return func;
-    }
-}
-
-__registerSegEasing('DEF',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
-__registerSegEasing('IN',     [0.420, 0.000, 1.000, 1.000, 1.000, 1.000]); // In
-__registerSegEasing('OUT',    [0.000, 0.000, 0.580, 1.000, 1.000, 1.000]); // Out
-__registerSegEasing('INOUT',  [0.420, 0.000, 0.580, 1.000, 1.000, 1.000]); // InOut
-__registerSegEasing('SIN',    [0.470, 0.000, 0.745, 0.715, 1.000, 1.000]); // Sine In
-__registerSegEasing('SOUT',   [0.390, 0.575, 0.565, 1.000, 1.000, 1.000]); // Sine Out
-__registerSegEasing('SINOUT', [0.445, 0.050, 0.550, 0.950, 1.000, 1.000]); // Sine InOut
-__registerSegEasing('QIN',    [0.550, 0.085, 0.680, 0.530, 1.000, 1.000]); // Quad In
-__registerSegEasing('QOUT',   [0.250, 0.460, 0.450, 0.940, 1.000, 1.000]); // Quad Out
-__registerSegEasing('QINOUT', [0.455, 0.030, 0.515, 0.955, 1.000, 1.000]); // Quad InOut
-__registerSegEasing('CIN',    [0.550, 0.055, 0.675, 0.190, 1.000, 1.000]); // Cubic In
-__registerSegEasing('COUT',   [0.215, 0.610, 0.355, 1.000, 1.000, 1.000]); // Cubic Out
-__registerSegEasing('CINOUT', [0.645, 0.045, 0.355, 1.000, 1.000, 1.000]); // Cubic InOut
-__registerSegEasing('QTIN',   [0.895, 0.030, 0.685, 0.220, 1.000, 1.000]); // Quart In
-__registerSegEasing('QTOUT',  [0.165, 0.840, 0.440, 1.000, 1.000, 1.000]); // Quart Out
-__registerSegEasing('QTINOUT',[0.770, 0.000, 0.175, 1.000, 1.000, 1.000]); // Quart InOut
-__registerSegEasing('QIIN',   [0.755, 0.050, 0.855, 0.060, 1.000, 1.000]); // Quint In
-__registerSegEasing('QIOUT',  [0.230, 1.000, 0.320, 1.000, 1.000, 1.000]); // Quart Out
-__registerSegEasing('QIINOUT',[0.860, 0.000, 0.070, 1.000, 1.000, 1.000]); // Quart InOut
-__registerSegEasing('EIN',    [0.950, 0.050, 0.795, 0.035, 1.000, 1.000]); // Expo In
-__registerSegEasing('EOUT',   [0.190, 1.000, 0.220, 1.000, 1.000, 1.000]); // Expo Out
-__registerSegEasing('EINOUT', [1.000, 0.000, 0.000, 1.000, 1.000, 1.000]); // Expo InOut
-__registerSegEasing('CRIN',   [0.600, 0.040, 0.980, 0.335, 1.000, 1.000]); // Circ In
-__registerSegEasing('CROUT',  [0.075, 0.820, 0.165, 1.000, 1.000, 1.000]); // Circ Out
-__registerSegEasing('CRINOUT',[0.785, 0.135, 0.150, 0.860, 1.000, 1.000]); // Circ InOut
-__registerSegEasing('BIN',    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // Back In
-__registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
-__registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
-
-Easing.__STD_EASINGS = [
-    function(t) { return C['EF_DEF'](t); }, // Default
-    function(t) { return C['EF_IN'](t); },  // In
-    function(t) { return C['EF_OUT'](t); }, // Out
-    function(t) { return C['EF_INOUT'](t); }, // InOut
-    function(t) { return t*t; },    // 4    In Quad
-    function(t) { return t*(2-t); },// 5    Out Quad
-    function(t) {                   // 6    In/Out Quad
-        if (t < 0.5) return 2*t*t;
-        else {
-            t = (t-0.5)*2;
-            return -(t*(t-2)-1)/2;
-        }
-    },
-    function(t) {                   // 7    In Cubic
-        return t*t*t;
-    },
-    function(t) {                  // 8     Out Cubic
-        t = t-1;
-        return t*t*t + 1;
-    },
-    function(t) {                  // 9     In/Out Cubic
-        if (t < 0.5) {
-            t = t*2;
-            return t*t*t/2;
-        } else {
-            t = (t-0.5)*2-1;
-            return (t*t*t+2)/2;
-        }
-    },
-    function(t) {                  // 10   In Sine
-        return 1 - Math.cos(t * (Math.PI/2));
-    },
-    function(t) {                 // 11    Out Sine
-        return Math.sin(t * (Math.PI/2));
-    },
-    function(t) {                 // 12    In/Out Sine
-        return -(Math.cos(Math.PI*t) - 1)/2;
-    },
-    function(t) {                 // 13   In Expo
-        return (t<=0) ? 0 : Math.pow(2, 10 * (t - 1));
-    },
-    function(t) {                // 14    Out Expo
-        return t>=1 ? 1 : (-Math.pow(2, -10 * t) + 1);
-    },
-    function(t) {                // 15    In/Out Expo
-        if (t<=0) return 0;
-        if (t>=1) return 1;
-        if (t < 0.5) return Math.pow(2, 10 * (t*2 - 1))/2;
-        else {
-            return (-Math.pow(2, -10 * (t-0.5)*2) + 2)/2;
-        }
-    },
-    function(t) {               // 16    In Circle
-        return 1-Math.sqrt(1 - t*t);
-    },
-    function(t) {              // 17     Out Circle
-        t = t-1;
-        return Math.sqrt(1 - t*t);
-    },
-    function(t) {              // 18     In/Out Cicrle
-        if ((t*=2) < 1) return -(Math.sqrt(1 - t*t) - 1)/2;
-        return (Math.sqrt(1 - (t-=2)*t) + 1)/2;
-    },
-    function(t) {              // 19    In Back
-        var s = 1.70158;
-        return t*t*((s+1)*t - s);
-    },
-    function(t) {             // 20     Out Back
-        var s = 1.70158;
-        return ((t-=1)*t*((s+1)*t + s) + 1);
-    },
-    function(t) {             // 21     In/Out Back
-        var s = 1.70158;
-        if ((t*=2) < 1) return (t*t*(((s*=(1.525))+1)*t - s))/2;
-        return ((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2)/2;
-    },
-    function(t) {             // 22     In Bounce
-        return 1 - Easing.__STD_EASINGS[23](1-t);
-    },
-    function(t) {              // 23    Out Bounce
-        if (t < (1/2.75)) {
-            return (7.5625*t*t);
-        } else if (t < (2/2.75)) {
-            return (7.5625*(t-=(1.5/2.75))*t + .75);
-        } else if (t < (2.5/2.75)) {
-            return (7.5625*(t-=(2.25/2.75))*t + .9375);
-        } else {
-            return (7.5625*(t-=(2.625/2.75))*t + .984375);
-        }
-    },
-    function(t) {             // 24     In/Out Bounce
-        if (t < 0.5) return Easing.__STD_EASINGS[22](t*2) * .5 ;
-        return Easing.__STD_EASINGS[23](t*2-1) * .5 + .5;
-    }
-];
-
-
-
 // Exports
 // -----------------------------------------------------------------------------
 
@@ -4422,7 +4238,7 @@ return (function(anm) {
     anm.Modifier = Modifier; anm.Painter = Painter;
     anm.Brush = Brush;
     anm.Color = Color;
-    anm.Tweens = Tweens; anm.Tween = Tween; anm.Easing = Easing;
+    anm.Tweens = Tweens; anm.Tween = Tween;
     anm.MSeg = MSeg; anm.LSeg = LSeg; anm.CSeg = CSeg;
     anm.Render = Render; anm.Bands = Bands;  // why Render and Bands classes are visible to pulic?
     anm.__dev = { 'strf': utils.strf,
