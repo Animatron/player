@@ -12,8 +12,7 @@ if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
 __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
   var C = anm.constants,
-      Tween = anm.Tween,
-      Tweens = anm.Tweens;
+      Tween = anm.Tween;
 
   var _ResMan = anm.resource_manager;
 
@@ -29,6 +28,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
     if (!AudioContext) {
       return null;
     }
+    //todo: reuse single AudioContext in window or window.top
     try {
       var ctx = new AudioContext();
       return ctx;
@@ -38,8 +38,7 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
   }();
 
   C.T_VOLUME = 'VOLUME';
-  Tween.TWEENS_PRIORITY[C.T_VOLUME] = Tween.TWEENS_COUNT++;
-  Tweens[C.T_VOLUME] = function(data) {
+  Tween.addTween(C.T_VOLUME, function(data){
     return function(t) {
       if (!this._audio_is_loaded) return;
       var volume = data[0] * (1.0 - t) + data[1] * t;
@@ -48,8 +47,8 @@ __anm_engine.define('anm/modules/audio', ['anm', 'anm/Player'], function(anm/*, 
       } else {
         this.audio.volume = volume;
       }
-    };
-  };
+    }
+  });
 
   if (anm.importers.isAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
     var Import = anm.importers.get('animatron').Import;

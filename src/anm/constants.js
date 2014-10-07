@@ -158,4 +158,27 @@ C.E_FUNC = 'FUNC'; // Function
 C.E_CSEG = 'CSEG'; // Segment
 C.E_STDF = 'STDF'; // Standard function from editor
 
+// Tween constants
+
+C.T_TRANSLATE   = 'TRANSLATE';
+C.T_SCALE       = 'SCALE';
+C.T_ROTATE      = 'ROTATE';
+C.T_ROT_TO_PATH = 'ROT_TO_PATH';
+C.T_ALPHA       = 'ALPHA';
+C.T_SHEAR       = 'SHEAR';
+C.T_FILL        = 'FILL';
+C.T_STROKE      = 'STROKE';
+
+
+// modifiers classes
+C.MOD_SYSTEM = 'system';
+C.MOD_TWEEN = 'tween';
+C.MOD_USER = 'user';
+C.MOD_EVENT = 'event';
+
+// painters classes
+C.PNT_SYSTEM = 'system';
+C.PNT_USER = 'user';
+C.PNT_DEBUG = 'debug';
+
 module.exports = C;

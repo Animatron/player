@@ -52,7 +52,7 @@
 // -----------------------------------------------------------------------------
 
 var anm = require('./anm.js'),
-    utils = require('./anm/utils.js');
+    utils = anm.utils;
 
 var $engine = anm.engine;
 var $conf = anm.conf;
@@ -78,14 +78,17 @@ var Controls = require('./anm/controls.js'),
     LSeg = segments.LSeg,
     CSeg = segments.CSeg,
     Path = require('./anm/path.js'),
-    EasingImpl = require('./anm/easings.js');
+    EasingImpl = require('./anm/easings.js'),
+    Modifier = require('./anm/modifier.js'),
+    Painter = require('./anm/painter.js'),
+    Tween = require('./anm/tween.js');
 
 
 // ### Other External utilities
 /* ---------- */
 
 var iter = anm.iter;
-var guid = anm.guid;
+var guid = utils.guid;
 
 // value/typecheck
 var is = anm.is;
@@ -3584,113 +3587,8 @@ Element.__addDebugRender = function(elm) {
     elm.paint(Render.p_drawName);
     elm.paint(Render.p_drawMPath);
 }
-Element.__convertEasing = function(easing, data, relative) {
-    if (!easing) return null;
-    if (__str(easing)) {
-        var f = EasingImpl[easing](data);
-        return relative ? f : function(t, len) { return f(t / len, len) * len; }
-    }
-    if (__fun(easing) && !data) return easing;
-    if (__fun(easing) && data) return easing(data);
-    if (easing.type) {
-        var f = EasingImpl[easing.type](easing.data || data);
-        return relative ? f : function(t, len) { return f(t / len, len) * len; }
-    }
-    if (easing.f) return easing.f(easing.data || data);
-}
 
 var Clip = Element;
-
-// Modifier & Painter
-// -----------------------------------------------------------------------------
-
-// modifiers classes
-C.MOD_SYSTEM = 'system';
-C.MOD_TWEEN = 'tween';
-C.MOD_USER = 'user';
-C.MOD_EVENT = 'event';
-
-// FIXME: order should not be important, system should add modifiers in proper order
-//        by itself.
-
-Modifier.ORDER = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER, C.MOD_EVENT ];
-// these two simplify checking in __mafter/__mbefore
-Modifier.FIRST_MOD = C.MOD_SYSTEM;
-Modifier.LAST_MOD = C.MOD_EVENT;
-// modifiers groups
-Modifier.ALL_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER, C.MOD_EVENT ];
-Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
-
-// It's not a common constructor below, but the function (though still pretending to
-// be a constructor), which adds custom properties to a given Function instance
-// (and it is almost ok, since no `Function.prototype` is harmed this way, but only an instance).
-// For user it looks and acts as a common constructor, the difference is just in internals.
-// This allows us to store modifiers as plain functions and give user ability to add them
-// by just pushing into array.
-
-// FIXME: `t` should be a property of an element, even `dt` also may appear like so,
-//        duration is accessible through this.duration() inside the modifier
-
-// Modifier % (func: Function(t, dt, elm_duration)[, type: C.MOD_*])
-function Modifier(func, type) {
-    func.id = guid();
-    func.type = type || C.MOD_USER;
-    func.$data = null;
-    func.$band = func.$band || null; // either band or time is specified
-    func.$time = __defined(func.$time) ? func.$time : null; // either band or time is specified
-    func.$easing = func.$easing || null;
-    func.relative = __defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
-    func.is_tween = (func.is_tween || (func.type == C.MOD_TWEEN) || false); // should modifier receive relative time or not (like tweens)
-    // TODO: may these properties interfere with something? they are assigned to function instances
-    anm.registerAsModifier(func);
-    func.band = function(start, stop) { if (!__defined(start)) return func.$band;
-                                        // FIXME: array bands should not pass
-                                        // if (__arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
-                                        if (__arr(start)) {
-                                            stop = start[1];
-                                            start = start[0];
-                                        }
-                                        if (!__defined(stop)) { stop = Infinity; }
-                                        func.$band = [ start, stop ];
-                                        return func; }
-    func.time = function(value) { if (!__defined(value)) return func.$time;
-                                  func.$time = value;
-                                  return func; }
-    func.easing = function(f, data) { if (!f) return func.$easing;
-                                      func.$easing = Element.__convertEasing(f, data,
-                                                     func.relative || func.is_tween);
-                                      return func; }
-    func.data = function(data) { if (!__defined(data)) return func.$data;
-                                 func.$data = data;
-                                 return func; }
-    return func;
-}
-
-// painters classes
-C.PNT_SYSTEM = 'system';
-C.PNT_USER = 'user';
-C.PNT_DEBUG = 'debug';
-
-// FIXME: order should not be important, system should add painters in proper order
-//        by itself.
-
-Painter.ORDER = [ C.PNT_SYSTEM, C.PNT_USER, C.PNT_DEBUG ];
-// these two simplify checking in __mafter/__mbefore
-Painter.FIRST_PNT = C.PNT_SYSTEM;
-Painter.LAST_PNT = C.PNT_DEBUG;
-// painters groups
-Painter.ALL_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER, C.PNT_DEBUG ];
-Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
-
-// See description above for Modifier constructor for details, same technique
-
-// Painter % (func: Function(ctx, data[ctx, t, dt])[, type: C.PNT_*])
-function Painter(func, type) {
-    func.id = guid();
-    func.type = type || C.PNT_USER;
-    anm.registerAsPainter(func);
-    return func;
-}
 
 // TODO:
 /* function ModBuilder() {
@@ -4092,111 +3990,6 @@ Bands.reduce = function(from, to) {
            ];
 }
 
-// Tweens
-// -----------------------------------------------------------------------------
-
-// Tween constants
-
-C.T_TRANSLATE   = 'TRANSLATE';
-C.T_SCALE       = 'SCALE';
-C.T_ROTATE      = 'ROTATE';
-C.T_ROT_TO_PATH = 'ROT_TO_PATH';
-C.T_ALPHA       = 'ALPHA';
-C.T_SHEAR       = 'SHEAR';
-C.T_FILL        = 'FILL';
-C.T_STROKE      = 'STROKE';
-
-function Tween(tween_type, data) {
-    if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
-    var func;
-    if (__fun(tween_type)) {
-        func = tween_type;
-    } else {
-        func = Tweens[tween_type](data);
-        func.tween = tween_type;
-    }
-    func.is_tween = true;
-    var mod = Modifier(func, C.MOD_TWEEN);
-    mod.$data = data;
-    mod.data = Tween.__data_block_fn; // FIXME
-    return mod;
-}
-Tween.__data_block_fn = function() { throw new AnimErr("Data should be passed to tween in a constructor"); };
-// tween order
-Tween.TWEENS_PRIORITY = {};
-
-Tween.TWEENS_PRIORITY[C.T_TRANSLATE]   = 0;
-Tween.TWEENS_PRIORITY[C.T_SCALE]       = 1;
-Tween.TWEENS_PRIORITY[C.T_ROTATE]      = 2;
-Tween.TWEENS_PRIORITY[C.T_ROT_TO_PATH] = 3;
-Tween.TWEENS_PRIORITY[C.T_ALPHA]       = 4;
-Tween.TWEENS_PRIORITY[C.T_SHEAR]       = 5;
-Tween.TWEENS_PRIORITY[C.T_FILL]        = 6;
-Tween.TWEENS_PRIORITY[C.T_STROKE]      = 7;
-
-Tween.TWEENS_COUNT = 8;
-
-var Tweens = {};
-// FIXME: always pass data at first call as in C.T_FILL, C.T_STROKE
-Tweens[C.T_ROTATE] =
-    function(data) {
-      return function(t, dt, duration) {
-        this.angle = data[0] * (1.0 - t) + data[1] * t;
-        //state.angle = (Math.PI / 180) * 45;
-      };
-    };
-Tweens[C.T_TRANSLATE] =
-    function(data) {
-      return function(t, dt, duration) {
-          var p = data.pointAt(t);
-          if (!p) return;
-          this.$mpath = data;
-          this.x = p[0];
-          this.y = p[1];
-      };
-    };
-Tweens[C.T_ALPHA] =
-    function(data) {
-      return function(t, dt, duration) {
-        this.alpha = data[0] * (1.0 - t) + data[1] * t;
-      };
-    };
-Tweens[C.T_SCALE] =
-    function(data) {
-      return function(t, dt, duration) {
-        this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
-      };
-    };
-Tweens[C.T_ROT_TO_PATH] =
-    function() {
-      return function(t, dt, duration) {
-        var path = this.$mpath;
-        if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
-      };
-    };
-Tweens[C.T_SHEAR] =
-    function(data) {
-      return function(t, dt, duration) {
-        this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
-        this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
-      };
-    };
-Tweens[C.T_FILL] =
-    function(data) {
-        var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-        return function(t, dt, duration) {
-            this.$fill = interp_func(t);
-        }
-    };
-Tweens[C.T_STROKE] =
-    function(data) {
-        var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-        return function (t, dt, duration) {
-            this.$stroke = interp_func(t);
-        }
-    };
-
 
 
 // Exports
@@ -4238,7 +4031,7 @@ return (function(anm) {
     anm.Modifier = Modifier; anm.Painter = Painter;
     anm.Brush = Brush;
     anm.Color = Color;
-    anm.Tweens = Tweens; anm.Tween = Tween;
+    anm.Tween = Tween;
     anm.MSeg = MSeg; anm.LSeg = LSeg; anm.CSeg = CSeg;
     anm.Render = Render; anm.Bands = Bands;  // why Render and Bands classes are visible to pulic?
     anm.__dev = { 'strf': utils.strf,

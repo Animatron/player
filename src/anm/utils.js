@@ -83,7 +83,7 @@ function strf(str, subst) {
         : match
       ;
     });
-};
+}
 
 // collects all characters from string
 // before specified char, starting from start
@@ -96,6 +96,12 @@ function collect_to(str, start, ch) {
     return result;
 }
 
+
+function guid() {
+   return Math.random().toString(36).substring(2, 10) +
+          Math.random().toString(36).substring(2, 10);
+}
+
 module.exports = {
     fmt_time: fmt_time,
     ell_text: ell_text,
@@ -106,5 +112,6 @@ module.exports = {
     obj_clone: obj_clone,
     mrg_obj: mrg_obj,
     strf: strf,
-    collect_to: collect_to
+    collect_to: collect_to,
+    guid: guid
 };

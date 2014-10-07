@@ -64,7 +64,7 @@ Import._type = function(src) {
 Import.project = function(prj) {
     //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
-    cur_import_id = anm.guid();
+    cur_import_id = anm.utils.guid();
     anm.lastImportedProject = prj;
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;

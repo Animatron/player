@@ -31,7 +31,6 @@ var anm = {
     constants: constants,
     modules: require('./anm/modules.js'),
     importers: require('./anm/importers.js'),
-    guid: guid,
     conf: require('./anm/conf.js'),
     is: require('./anm/is.js'),
     iter: require('./anm/iter.js'),
@@ -45,27 +44,12 @@ var anm = {
     player_manager: require('./anm/player_manager.js'),
 
     loc: require('./anm/loc.js'),
-    errors: require('./anm/errors.js')
+    errors: require('./anm/errors.js'),
+
+    utils: require('./anm/utils.js')
 };
 
 
-// GUID
-// -----------------------------------------------------------------------------
-
-function guid() {
-   return Math.random().toString(36).substring(2, 10) +
-          Math.random().toString(36).substring(2, 10);
-}
-
-
-
-anm.registerAsModifier = function(f) {
-    f[constants.MARKERS.MODIFIER_MARKER] = true;
-}
-
-anm.registerAsPainter = function(f) {
-    f[constants.MARKERS.PAINTER_MARKER] = true;
-}
 
 // Export
 // -----------------------------------------------------------------------------
