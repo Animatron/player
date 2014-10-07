@@ -2595,10 +2595,9 @@ Element.prototype.fullTransform = function(ctx) {
 }
 // > Element.fullInvTransform % (ctx: Context)
 Element.prototype.fullInvTransform = function(ctx) {
-    var matrix = this.invTransform(ctx);
-    this.applyInvPivot(ctx);
     this.applyInvReg(ctx);
-    return matrix;
+    this.applyInvPivot(ctx);
+    return this.invTransform(ctx);
 }
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
