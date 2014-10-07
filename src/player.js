@@ -51,7 +51,8 @@
 // Module Definition
 // -----------------------------------------------------------------------------
 
-var anm = require('./anm.js');
+var anm = require('./anm.js'),
+    utils = require('./anm/utils.js');
 
 var $engine = anm.engine;
 var $conf = anm.conf;
@@ -65,6 +66,10 @@ var $log = anm.log;
 
 var provideEvents = anm.events.provideEvents;
 var registerEvent = anm.events.registerEvent;
+
+// Classes
+var Controls = require('./anm/controls.js');
+
 
 // ### Other External utilities
 /* ---------- */
@@ -102,119 +107,6 @@ var PlayerError = anm.errors.PlayerError,
 var AnimationError = anm.errors.AnimationError,
     AnimErr = AnimationError;
 
-// ### Internal utilities
-/* ---------------------- */
-
-// collects all characters from string
-// before specified char, starting from start
-function __collect_to(str, start, ch) {
-    var result = '';
-    for (var i = start; str[i] !== ch; i++) {
-        if (i === str.length) throw new SysErr('Reached end of string');
-        result += str[i];
-    }
-    return result;
-}
-
-/*function _strhash() {
-  var hash = 0;
-  if (this.length == 0) return hash;
-  for (i = 0; i < this.length; i++) {
-    char = this.charCodeAt(i);
-    hash = ((hash<<5)-hash)+char;
-    hash = hash & hash; // Convert to 32bit integer
-  }
-  return hash;
-}*/
-
-// TODO: move to Color class
-
-function fmt_time(time) {
-  if (!__finite(time)) return '∞';
-  var _time = Math.abs(time),
-        _h = Math.floor(_time / 3600),
-        _m = Math.floor((_time - (_h * 3600)) / 60),
-        _s = Math.floor(_time - (_h * 3600) - (_m * 60));
-
-  return ((time < 0) ? '-' : '') +
-          ((_h > 0)  ? (((_h < 10) ? ('0' + _h) : _h) + ':') : '') +
-          ((_m < 10) ? ('0' + _m) : _m) + ':' +
-          ((_s < 10) ? ('0' + _s) : _s)
-}
-
-function ell_text(text, max_len) {
-    if (!text) return '';
-    var _len = text.length;
-    if (_len <= max_len) return text;
-    var _semilen = Math.floor(_len / 2) - 2;
-    return text.slice(0, _semilen) + '...'
-         + text.slice(_len - _semilen);
-}
-
-// ### Internal Helpers
-/* -------------------- */
-
-// map back to functions for faster access (is it really so required?)
-
-// #### mathematics
-
-function __close(n1, n2, precision) {
-    if (!(precision === 0)) {
-        precision = precision || 2;
-    }
-    var multiplier = Math.pow(10, precision);
-    return Math.round(n1 * multiplier) ==
-           Math.round(n2 * multiplier);
-}
-
-function __roundTo(n, precision) {
-    if (!precision) return Math.round(n);
-    //return n.toPrecision(precision);
-    var multiplier = Math.pow(10, precision);
-    return Math.round(n * multiplier) / multiplier;
-}
-
-function __interpolateFloat(a, b, t) {
-    return a*(1-t)+b*t;
-}
-
-// #### other
-
-function __paramsToObj(pstr) {
-    var o = {}, ps = pstr.split('&'), i = ps.length, pair;
-    while (i--) { pair = ps[i].split('='); o[pair[0]] = pair[1]; }
-    return o;
-}
-
-// for one-level objects, so no hasOwnProperty check
-function obj_clone(what) {
-    var dest = {};
-    for (var prop in what) {
-        dest[prop] = what[prop];
-    }
-    return dest;
-}
-
-function _mrg_obj(src, backup, trg) {
-    if (!backup) return src;
-    var res = trg || {};
-    for (var prop in backup) {
-        res[prop] = __defined(src[prop]) ? src[prop] : backup[prop]; };
-    return res;
-}
-
-function _strf(str, subst) {
-    var args = subst;
-    return str.replace(/{(\d+)}/g, function(match, number) {
-      return __defined(args[number])
-        ? args[number]
-        : match
-      ;
-    });
-};
-
-/* TODO: Create custom `undefined`, consider changing Infinity to Number.POSITIVE_INIFINITY */
-
 
 // Internal Constants
 // -----------------------------------------------------------------------------
@@ -224,7 +116,7 @@ var TIME_PRECISION = 9; // the number of digits after the floating point
                         // used to get rid of floating point-conversion issues
 
 function __adjust(t) {
-    return __roundTo(t, TIME_PRECISION);
+    return utils.roundTo(t, TIME_PRECISION);
 }
 
 function __t_cmp(t0, t1) {
@@ -242,54 +134,6 @@ var _ResMan = anm.resource_manager;
 var _PlrMan = anm.player_manager;
 
 
-// ### Events
-/* ---------- */
-
-// NB: All of the events must have different values, or the flow will be broken
-// FIXME: allow grouping events, i.e. value may a group_marker + name of an event
-//        also, allow events to belong to several groups, it may replace a tests like
-//        XT_MOUSE or XT_CONTROL or isPlayerEvent
-
-// * mouse
-registerEvent('X_MCLICK', 'mclick', 1);
-registerEvent('X_MDCLICK', 'mdclick', 2);
-registerEvent('X_MUP', 'mup', 4);
-registerEvent('X_MDOWN', 'mdown', 8);
-registerEvent('X_MMOVE', 'mmove', 16);
-registerEvent('X_MOVER', 'mover', 32);
-registerEvent('X_MOUT', 'mout', 64);
-
-registerEvent('XT_MOUSE', 'mouse',
-  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
-
-// * keyboard
-registerEvent('X_KPRESS', 'kpress', 128);
-registerEvent('X_KUP', 'kup', 256);
-registerEvent('X_KDOWN', 'kdown', 1024);
-
-registerEvent('XT_KEYBOARD', 'keyboard',
-  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
-
-// * controllers
-registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
-
-// * draw
-registerEvent('X_DRAW', 'draw', 'draw');
-
-// * bands
-registerEvent('X_START', 'start', 'x_start');
-registerEvent('X_STOP', 'stop', 'x_stop');
-
-// * playing (player state)
-registerEvent('S_PLAY', 'play', 'play');
-registerEvent('S_PAUSE', 'pause', 'pause');
-registerEvent('S_STOP', 'stop', 'stop');
-registerEvent('S_COMPLETE', 'complete', 'complete');
-registerEvent('S_REPEAT', 'repeat', 'repeat');
-registerEvent('S_IMPORT', 'import', 'import');
-registerEvent('S_LOAD', 'load', 'load');
-registerEvent('S_RES_LOAD', 'res_load', 'res_load');
-registerEvent('S_ERROR', 'error', 'error');
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
@@ -965,7 +809,7 @@ Player.prototype._prepare = function(elm) {
     if (__str(elm)) {
         wrapper_id = elm;
         wrapper = $engine.getElementById(wrapper_id);
-        if (!wrapper_id) throw new PlayerErr(_strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
+        if (!wrapper_id) throw new PlayerErr(utils.strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
     } else {
         if (!elm.id) elm.id = ('anm-player-' + Player.__instances);
         wrapper_id = elm.id;
@@ -1162,7 +1006,7 @@ Player.prototype.drawAt = function(time) {
                                                              // will be called when all remote resources were
                                                              // finished loading
     if ((time < 0) || (time > this.anim.duration)) {
-        throw new PlayerErr(_strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
+        throw new PlayerErr(utils.strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
@@ -1773,7 +1617,7 @@ Player.prototype.__onerror = function(err) {
 
       player.anim = null;
       // was here: /*if (player.state)*/ player.__unsafe_stop();
-  } catch(e) { throw new SysErr(_strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
+  } catch(e) { throw new SysErr(utils.strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
 
   try {
       if (player.state &&
@@ -1838,7 +1682,7 @@ Player.prototype.__makeSafe = function(methods) {
   var player = this;
   for (var i = 0, il = methods.length; i < il; i++) {
     var method = methods[i];
-    if (!player[method]) throw new SysErr(_strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
+    if (!player[method]) throw new SysErr(utils.strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
     player['__unsafe_'+method] = player[method];
     player[method] = player.__defSafe(player[method]);
   }
@@ -3415,7 +3259,7 @@ Element.prototype.shallow = function() {
     this.forAllPainters(function(painter, type) {
         clone.paint(painter);
     });
-    clone.__u_data = obj_clone(this.__u_data);
+    clone.__u_data = utils.obj_clone(this.__u_data);
     return clone;
 }
 Element.prototype._addChild = function(elm) {
@@ -3864,7 +3708,7 @@ L.loadFromUrl = function(player, url, importer, callback) {
     var url_with_params = url.split('?'),
         url = url_with_params[0],
         url_params = url_with_params[1], // TODO: validate them?
-        params = (url_params && url_params.length > 0) ? __paramsToObj(url_params) : {},
+        params = (url_params && url_params.length > 0) ? utils.paramsToObj(url_params) : {},
         options = Player._optsFromUrlParams(params);
 
     if (options) {
@@ -3873,7 +3717,7 @@ L.loadFromUrl = function(player, url, importer, callback) {
     }
 
     var failure = player.__defAsyncSafe(function(err) {
-        throw new SysErr(_strf(Errors.P.SNAPSHOT_LOADING_FAILED,
+        throw new SysErr(utils.strf(Errors.P.SNAPSHOT_LOADING_FAILED,
                                [ (err ? (err.message || err) : '¿Por qué?') ]));
     });
 
@@ -4825,7 +4669,7 @@ Path._collectPositions = function(path, start, count) {
     var positions = [];
     var got = 0;
     while (got != count) {
-        var posstr = __collect_to(path, pos, ' ');
+        var posstr = utils.collect_to(path, pos, ' ');
         pos += posstr.length + 1; got++;
         positions.push(parseFloat(posstr));
     }
@@ -5366,10 +5210,10 @@ Color.toHslaStr = function(color) {
 };
 Color.interpolate = function(c1, c2, t) {
     return {
-        r: Math.round(__interpolateFloat(c1.r, c2.r, t)),
-        g: Math.round(__interpolateFloat(c1.g, c2.g, t)),
-        b: Math.round(__interpolateFloat(c1.b, c2.b, t)),
-        a: __interpolateFloat(c1.a, c2.a, t)
+        r: Math.round(utils.interpolateFloat(c1.r, c2.r, t)),
+        g: Math.round(utils.interpolateFloat(c1.g, c2.g, t)),
+        b: Math.round(utils.interpolateFloat(c1.b, c2.b, t)),
+        a: utils.interpolateFloat(c1.a, c2.a, t)
     };
 };
 
@@ -5626,7 +5470,7 @@ function interpolateBrushes(from, to) {
     var result = from.clone();
     return function(t) {
         if (__defined(from.width) && __defined(to.width)) { // from.type && to.type == C.BT_STROKE
-            result.width = __interpolateFloat(from.width, to.width, t);
+            result.width = utils.interpolateFloat(from.width, to.width, t);
         }
         if (from.color) {
             result.grad = null;
@@ -5638,22 +5482,22 @@ function interpolateBrushes(from, to) {
             // direction
             for (i = 0; i < fromg.dir.length; i++) {
                 if (!trgg.dir[i]) trgg.dir[i] = [];
-                trgg.dir[0] = __interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
-                trgg.dir[1] = __interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
+                trgg.dir[0] = utils.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
+                trgg.dir[1] = utils.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
             };
             // stops
             if (!trgg.stops ||
                 (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
             for (i = 0; i < fromg.stops.length; i++) {
                 if (!trgg.stops[i]) trgg.stops[i] = [];
-                trgg.stops[i][0] = __interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
+                trgg.stops[i][0] = utils.interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
                 trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
             };
             // radius
             if (fromg.r) {
                 if (!trgg.r) trgg.r = [];
-                trgg.r[0] = __interpolateFloat(fromg.r[0], tog.r[0], t);
-                trgg.r[1] = __interpolateFloat(fromg.r[1], tog.r[1], t);
+                trgg.r[0] = utils.interpolateFloat(fromg.r[0], tog.r[0], t);
+                trgg.r[1] = utils.interpolateFloat(fromg.r[1], tog.r[1], t);
             } else { trgg.r = null; }
         }
         result.invalidate();
@@ -5794,868 +5638,7 @@ var _Image = Sheet; // Image is the same thing as Sheet, with only one [1, 1] re
                     // it will be exported as `Image`, but renamed here not to confuse
                     // with browser Image object
 
-// Controls
-// -----------------------------------------------------------------------------
 
-function Controls(player) {
-    this.player = player;
-    this.canvas = null;
-    this.ctx = null;
-    this.ready = false;
-    this.bounds = [];
-    this.hidden = false;
-    this.focused = false; // the current button is focused
-    this.elapsed = false;
-    this.theme = null;
-    this.info = null;
-    this._time = -1000;
-    this._lhappens = C.NOTHING;
-    this._initHandlers(); /* TODO: make automatic */
-}
-Controls.DEFAULT_THEME = {
-  'font': {
-      'face': 'Arial, sans-serif',
-      'weight': 'bold',
-      'timesize': 13.5,
-      'statussize': 8.5,
-      'infosize_a': 10,
-      'infosize_b': 8
-  },
-  'radius': { // all radius values are relative to (Math.min(width, height) / 2)
-      'inner': .25,
-      'outer': .28,
-      'loader': .25,
-      'buttonv': .15, // height of a button
-      'buttonh': .14, // width of a button
-      'time': .5, // time text position
-      'status': .8, // info text position
-      'substatus': .9
-  },
-  'width': { // stroke width
-      'inner': 5, // button stroke
-      'outer': 3, // progress stroke
-      'button': 7 // button stroke
-  },
-  'statuslimit': 40, // maximum length of status line
-  'join': {
-      'button': 'round' // join for button stroke
-  },
-  'colors': {
-      /* 'bggrad': { // back gradient start is at (0.1 * Math.max(width/height))
-                  // and end is at (1.0 * Math.max(width/height))
-          //'start': 'rgba(30,30,30,.7)',
-          //'end': 'rgba(30,30,30,1)'
-          //'start': 'rgba(30,30,30,.20)', // fefbf2
-          //'end': 'rgba(30,30,30,.05)' // eae5d8
-          'start': 'rgba(234,229,216,.8)',
-          'end': 'rgba(234,229,216,.8)'
-      }, */
-      'bggrad': [ // back gradient start is at (0.1 * Math.max(width/height))
-                  // and end is at (1.0 * Math.max(width/height))
-          [ .2,  .2 ],  // [ stop position, alpha ]
-          [ .24, .15 ], // [ stop position, alpha ]
-          [ .27, .1 ], // [ stop position, alpha ]
-          [ .4, 0 ]    // [ stop position, alpha ]
-      ],
-      'progress': {
-          //'passed': 'rgba(0,0,0,.05)',
-          //'left': 'rgba(255,255,255,1)'
-          //'passed': 'rgba(50,158,192,.85)',
-          //'passed': 'rgba(203,86,49,1)',
-          'passed': 'rgba(241,91,42,1.0)',
-          'left': 'rgba(255,255,255,1)'
-      },
-      //'button': 'rgba(180,180,180,.85)',
-      'button': 'rgba(50,158,192,1)',
-      //'stroke': 'rgba(180,180,180,.85)'
-      'stroke': 'rgba(50,158,192,.85)',
-      'fill': 'rgba(255,255,255,1)',
-      'hoverfill': 'rgba(255,255,255,1)',
-      'disabledfill': 'rgba(124,30,30,0)',
-      'text': 'rgba(50,158,192,.85)',
-      'error': 'rgba(250,0,0,.8)',
-      'infobg': 'rgba(128,0,0,.8)',
-      'secondary': 'rgba(255,255,255,.6)'
-  },
-  'anmguy': {
-      'colors': [ 'rgba(65,61,62,1)', // black
-                  'rgba(241,91,42,1)' // orange
-                ],
-      'center_pos': [ .5, .8 ],
-      'corner_pos': [ .825, .9692 ],
-      //'corner_pos': [ .77, .9692 ],
-      'copy_pos': [ .917, .98 ],
-      //'copy_pos': [ .89, .98 ],
-      'center_alpha': 1,
-      'corner_alpha': .3,
-      'center_scale': .07,
-      'corner_scale': .04 // relatively to minimum side
-  }
-};
-Controls.THEME = Controls.DEFAULT_THEME;
-Controls.LAST_ID = 0;
-provideEvents(Controls, [C.X_DRAW]);
-Controls.prototype.update = function(parent) {
-    var cvs = this.canvas;
-    if (!cvs) {
-        cvs = $engine.addCanvasOverlay('ctrls-' + Controls.LAST_ID, parent,
-                 [ 0, 0, 1, 1 ],
-                 function(cvs) {
-                    $engine.registerAsControlsElement(cvs, parent);
-                 });
-        Controls.LAST_ID++;
-        this.id = cvs.id;
-        this.canvas = cvs;
-        this.ctx = $engine.getContext(cvs, '2d');
-        this.subscribeEvents(cvs, parent);
-        this.hide();
-        this.changeTheme(Controls.THEME);
-    } else {
-        $engine.updateOverlay(parent, cvs);
-    }
-    this.handleAreaChange();
-    if (this.info) this.info.update(parent);
-    Controls.__BACK_GRAD = null; // invalidate back gradient
-}
-Controls.prototype.subscribeEvents = function(canvas, parent) {
-    $engine.subscribeCanvasEvents(parent, {
-        mouseenter: (function(controls) {
-                return function(evt) { controls.handleMouseEnter(); };
-            })(this),
-        mouseleave: (function(controls) {
-                return function(evt) { controls.handleMouseLeave(); };
-            })(this),
-        click: (function(controls) {
-                return function(evt) { controls.handlePlayerClick(); };
-            })(this)
-    });
-    $engine.subscribeCanvasEvents(canvas, {
-        mouseenter: (function(controls) {
-                return function(evt) { controls.handleMouseEnter(); };
-            })(this),
-        mouseleave: (function(controls) {
-                return function(evt) { controls.handleMouseLeave(); };
-            })(this),
-        mousemove: (function(controls) {
-                return function(evt) { controls.handleMouseMove(evt); };
-            })(this),
-        mousedown: (function(controls) {
-                return function(evt) { controls.handleClick(); };
-            })(this)
-    });
-}
-Controls.prototype.render = function(time) {
-    if (this.hidden && !this.__force) return;
-
-    if (!this.bounds) return;
-
-    // TODO: may be this function should check player mode by itself and create canvas
-    //       only in case it is required, but player should create Controls instance
-    //       all the time, independently of the mode.
-
-    var player = this.player,
-        state = player.state,
-        _s = state.happens;
-    //if (_s == C.NOTHING) return;
-
-    var time = (time > 0) ? time : 0;
-    if (!this.__force &&
-        (time === this._time) &&
-        (_s === this._lhappens)) return;
-
-    // these states do not change controls visually between frames
-    if (__defined(this._lastDrawn) &&
-        (this._lastDrawn === _s) &&
-        ((_s === C.STOPPED) ||
-         (_s === C.NOTHING) ||
-         (_s === C.ERROR))
-       ) return;
-
-    this.rendering = true;
-
-    if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
-        ((_s !== C.LOADING) && (_s !== C.RES_LOADING))) {
-        Controls._stopLoadingAnimation(this.ctx);
-    }
-
-    this._time = time;
-    this._lhappens = _s;
-
-    var ctx = this.ctx,
-        theme = this.theme,
-        duration = state.duration,
-        progress = time / ((duration !== 0) ? duration : 1);
-
-    var _w = this.bounds[2],
-        _h = this.bounds[3],
-        ratio = $engine.PX_RATIO;
-
-    ctx.save();
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    if (ratio != 1) ctx.scale(ratio, ratio);
-    ctx.clearRect(0, 0, _w, _h);
-
-    if (_s === C.PLAYING) {
-        /* Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawProgress(ctx, theme, _w, _h, progress);
-        Controls._drawPause(ctx, theme, _w, _h, this.focused);
-        if (duration) {
-            Controls._drawTime(ctx, theme, _w, _h, time, duration);
-        } */
-    } else if (_s === C.STOPPED) {
-        Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawPlay(ctx, theme, _w, _h, this.focused);
-    } else if (_s === C.PAUSED) {
-        Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawProgress(ctx, theme, _w, _h, progress);
-        Controls._drawPlay(ctx, theme, _w, _h, this.focused);
-        if (duration) {
-            Controls._drawTime(ctx, theme, _w, _h, time, duration);
-        }
-    } else if (_s === C.NOTHING) {
-        Controls._drawBack(ctx, theme, _w, _h);
-        Controls._drawNoAnimation(ctx, theme, _w, _h, this.focused);
-    } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
-        Controls._runLoadingAnimation(ctx, function(ctx) {
-            ctx.clearRect(0, 0, _w, _h);
-            //Controls._drawBack(ctx, theme, _w, _h);
-            Controls._drawLoading(ctx, theme, _w, _h,
-                                  (((Date.now() / 100) % 60) / 60), '');
-                                  // isRemoteLoading ? player._loadSrc '...' : '');
-        });
-    } else if (_s === C.ERROR) {
-        Controls._drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
-    }
-    this._lastDrawn = _s;
-
-    ctx.restore();
-    this.fire(C.X_DRAW, state);
-
-    this.__force = false;
-
-    if (this.info) {
-      if (_s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
-      else { this._infoShown = false; }
-    }
-
-    this.rendering = false;
-}
-Controls.prototype.react = function(time) {
-    if (this.hidden) return;
-
-    var _p = this.player,
-        _s = _p.state.happens;
-    if ((_s === C.NOTHING) || (_s === C.LOADING) || (_s === C.ERROR)) return;
-    if (_s === C.STOPPED) { /*$log.debug('play from start');*/ _p.play(0); return; }
-    if (_s === C.PAUSED) { /*$log.debug('play from ' + this._time);*/ _p.play(this._time); return; }
-    if (_s === C.PLAYING) { /*$log.debug('pause at' + time);*/ this._time = time; _p.pause(); return; }
-}
-Controls.prototype.refreshByMousePos = function(pos) {
-    if (!this.bounds) return;
-    var state = this.player.state,
-        _lx = pos[0],
-        _ly = pos[1],
-        _w = this.bounds[2],
-        _h = this.bounds[3],
-        button_rad = Math.min(_w / 2, _h / 2) * this.theme.radius.inner;
-    var lfocused = this.focused;
-    this.focused = (_lx >= (_w / 2) - button_rad) &&
-                   (_lx <= (_w / 2) + button_rad) &&
-                   (_ly >= (_h / 2) - button_rad) &&
-                   (_ly <= (_h / 2) + button_rad);
-    if (lfocused !== this.focused) {
-        this.forceNextRedraw();
-    }
-    this.render(state.time);
-}
-Controls.prototype.handleAreaChange = function() {
-    if (!this.player || !this.player.canvas) return;
-    this.bounds = $engine.getCanvasBounds(this.canvas);
-}
-Controls.prototype.handleMouseMove = function(evt) {
-    if (!evt) return;
-    this._last_mevt = evt;
-    //var pos = $engine.getEventPosition(evt, this.canvas);
-    //if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
-        if (this.hidden) this.show();
-        this.refreshByMousePos($engine.getEventPosition(evt, this.canvas));
-    //} else {
-    //    this.handleMouseOut();
-    //}
-}
-Controls.prototype.handleClick = function() {
-    var state = this.player.state;
-    this.forceNextRedraw();
-    this.react(state.time);
-    this.render(state.time);
-    if (state.happens === C.PLAYING) this.hide();
-}
-Controls.prototype.handlePlayerClick = function() {
-    if (this.player.handleEvents) return;
-    var state = this.player.state;
-    if (state.happens === C.PLAYING) {
-        this.show();
-        this.forceNextRedraw();
-        this.react(state.time);
-        this.render(state.time);
-    }
-}
-Controls.prototype.handleMouseEnter = function() {
-    var state = this.player.state;
-    if (state.happens !== C.PLAYING) {
-        if (this.hidden) this.show();
-        this.forceNextRedraw();
-        this.render(state.time);
-    }
-}
-Controls.prototype.handleMouseLeave = function() {
-    var state = this.player.state;
-    if ((state.happens === C.NOTHING) ||
-        (state.happens === C.LOADING) ||
-        (state.happens === C.RES_LOADING) ||
-        (state.happens === C.ERROR) ||
-        (state.happens === C.STOPPED)) {
-        this.forceNextRedraw();
-        this.render(state.time);
-    } else {
-        this.hide();
-    }
-}
-Controls.prototype.forceRefresh = function() {
-    this.forceNextRedraw();
-    this.render(this.player.state.time);
-}
-/* TODO: take initial state from imported project */
-Controls.prototype.hide = function() {
-    $engine.hideElement(this.canvas);
-    this.hidden = true;
-    if (this.info) this.info.hide();
-}
-Controls.prototype.show = function() {
-    $engine.showElement(this.canvas);
-    this.hidden = false;
-    if (this.info && this._infoShown) this.info.show();
-}
-Controls.prototype.reset = function() {
-    this._time = -1000;
-    this.elapsed = false;
-    if (this.info) this.info.reset();
-}
-Controls.prototype.detach = function(parent) {
-    $engine.detachElement(parent, this.canvas);
-    if (this.info) this.info.detach(parent);
-    if (this.ctx) $engine.clearAnmProps(this.ctx);
-}
-Controls.prototype.inBounds = function(pos) {
-    //if (this.hidden) return false;
-    var _b = this.bounds;
-    return (pos[0] >= _b[0]) &&
-           (pos[0] <= _b[0] + _b[2]) &&
-           (pos[1] >= _b[1]) &&
-           (pos[1] <= _b[1] + _b[3]);
-}
-Controls.prototype.localInBounds = function(pos) {
-    //if (this.hidden) return false;
-    var _b = this.bounds;
-    if (!_b) return false;
-    return (pos[0] >= 0) &&
-           (pos[0] <= _b[2]) &&
-           (pos[1] >= 0) &&
-           (pos[1] <= _b[3]);
-}
-Controls.prototype.changeTheme = function(to) {
-    this.theme = to;
-    // TODO: redraw
-}
-Controls.prototype.forceNextRedraw = function() {
-    this.__force = true;
-}
-Controls.prototype._scheduleLoading = function() {
-    if (this._loadingInterval) return;
-    var controls = this;
-    this._loadingInterval = setInterval(function() {
-         controls.forceNextRedraw();
-         controls.render();
-    }, 50);
-}
-Controls.prototype._stopLoading = function() {
-    if (!this._loadingInterval) return;
-    clearInterval(this._loadingInterval);
-    this._loadingInterval = 0;
-    this.forceNextRedraw();
-    this.render(this.player.state.time);
-}
-Controls.prototype.enable = function() {
-    var player = this.player,
-        state = player.state;
-    this.update(this.player.canvas);
-    if ((state.happens === C.NOTHING) ||
-        (state.happens === C.LOADING) ||
-        (state.happens === C.RES_LOADING) ||
-        (state.happens === C.ERROR)) {
-      this.show();
-      this.forceNextRedraw();
-      this.render();
-    }
-}
-Controls.prototype.disable = function() {
-    this.hide();
-    // FIXME: unsubscribe events!
-    this.detach(this.player.wrapper);
-}
-Controls.prototype.enableInfo = function() {
-    if (!this.info) this.info = new InfoBlock(this.player);
-    this.info.update(this.player.canvas);
-}
-Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.wrapper);
-    /*if (this.info) */this.info = null;
-}
-Controls.prototype.setDuration = function(value) {
-    if (this.info) this.info.setDuration(value);
-}
-Controls.prototype.inject = function(anim, duration) {
-    if (this.info) this.info.inject(anim, duration);
-}
-Controls.__BACK_GRAD = null;
-Controls._drawBack = function(ctx, theme, w, h, bgcolor) {
-    ctx.save();
-    var cx = w / 2,
-        cy = h / 2;
-
-    var rgb = [ 175, 200, 200 ],
-        bgcolor = bgcolor || '#fff';
-
-    // FIXME: use color parser here!
-    //if ((bgcolor == '#000') ||
-    //    (bgcolor == '#000000')) rgb = [ 0, 0, 0 ];
-
-    var grd;
-    if (!Controls.__BACK_GRAD) {
-        grd = ctx.createRadialGradient(cx, cy, 0,
-                                       cx, cy, Math.max(cx, cy) * 1.2);
-        var stops = theme.colors.bggrad;
-        for (var i = 0, il = stops.length; i < il; i++) {
-            grd.addColorStop(stops[i][0], 'rgba(' + rgb[0] + ','
-                                                  + rgb[1] + ','
-                                                  + rgb[2] + ','
-                                                  + stops[i][1] + ')');
-        }
-        Controls.__BACK_GRAD = grd;
-    } else {
-        grd = Controls.__BACK_GRAD;
-    }
-
-    ctx.fillStyle = grd;
-    ctx.fillRect(0, 0, w, h);
-
-    ctx.restore();
-}
-Controls._drawProgress = function(ctx, theme, w, h, progress) {
-    if (!__finite(progress)) return;
-
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        progress_rad = Math.min(cx, cy) * theme.radius.outer;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress));
-    ctx.strokeStyle = theme.colors.progress.passed;
-    ctx.lineWidth = theme.width.outer;
-    ctx.stroke();
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, progress_rad, (1.5 * Math.PI), (1.5 * Math.PI) + ((2 * Math.PI) * progress), true);
-    ctx.strokeStyle = theme.colors.progress.left;
-    ctx.lineWidth = theme.width.outer;
-    ctx.stroke();
-
-    ctx.restore();
-
-}
-Controls._drawPause = function(ctx, theme, w, h, focused) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        inner_rad = Math.min(cx, cy) * theme.radius.inner,
-        button_width = Math.min(cx, cy) * theme.radius.buttonh,
-        button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = focused ? theme.colors.hoverfill : theme.colors.fill;
-    ctx.strokeStyle = theme.colors.stroke;
-    ctx.lineWidth = theme.width.inner;
-    ctx.stroke();
-    ctx.fill();
-
-    var x = cx - (button_width / 2),
-        y = cy - (button_height / 2),
-        bar_width = 1 / 4,
-        between = 2 / 4;
-
-    ctx.lineWidth = theme.width.button;
-    ctx.lineJoin = theme.join.button;
-    ctx.fillStyle = theme.colors.button;
-    ctx.strokeStyle = theme.colors.button;
-    ctx.strokeRect(x, y, bar_width * button_width, button_height);
-    ctx.strokeRect(x + ((bar_width + between) * button_width), y,
-                   bar_width * button_width, button_height);
-    ctx.fillRect(x, y, bar_width * button_width, button_height);
-    ctx.fillRect(x + (bar_width + between) * button_width, y,
-                 bar_width * button_width, button_height);
-
-    ctx.restore();
-
-    Controls._drawGuyInCorner(ctx, theme, w, h);
-}
-Controls._drawPlay = function(ctx, theme, w, h, focused) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        inner_rad = Math.min(cx, cy) * theme.radius.inner,
-        // play button should be thinner than standard button
-        button_width = Math.min(cx, cy) * theme.radius.buttonh * 0.8,
-        button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.beginPath();
-    ctx.arc(cx, cy, inner_rad, 0, 2 * Math.PI);
-    ctx.fillStyle = focused ? theme.colors.hoverfill : theme.colors.fill;
-    ctx.strokeStyle = theme.colors.stroke;
-    ctx.lineWidth = theme.width.inner;
-    ctx.stroke();
-    ctx.fill();
-
-    // this way play button "weight" looks more centered
-    ctx.translate(button_width / (((button_width > button_height)
-                                   ? (button_width / button_height)
-                                   : (button_height / button_width)) * 4), 0);
-
-    ctx.beginPath();
-    ctx.moveTo(cx - (button_width / 2), cy - (button_height / 2));
-    ctx.lineTo(cx + (button_width / 2), cy);
-    ctx.lineTo(cx - (button_width / 2), cy + (button_height / 2));
-    ctx.closePath();
-    ctx.lineWidth = theme.width.button;
-    ctx.lineJoin = theme.join.button;
-    ctx.fillStyle = theme.colors.button;
-    ctx.strokeStyle = theme.colors.button;
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.restore();
-
-    Controls._drawGuyInCorner(ctx, theme, w, h);
-}
-Controls._drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
-    Controls._drawLoadingProgress(ctx, w, h, hilite_pos, theme.radius.loader,
-                                             theme.colors.progress.left, theme.colors.progress.passed);
-
-    if (src) {
-        Controls._drawText(ctx, theme,
-                     w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize,
-                     ell_text(src, theme.statuslimit));
-    } else if (hilite_pos == -1) {
-        Controls._drawText(ctx, theme,
-                     w / 2, ((h / 2) * (1 + theme.radius.status)),
-                     theme.font.statussize,
-                     '...');
-    }
-
-    Controls._drawText(ctx, theme,
-                   w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize,
-                   Strings.COPYRIGHT);
-
-    Controls._drawGuyInCenter(ctx, theme, w, h);
-}
-Controls._drawLoadingProgress = function(ctx, w, h, hilite_pos, radius, normal_color, hilite_color) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        circles = 15,
-        outer_rad = Math.min(cx, cy) * radius,
-        circle_rad = Math.min(cx, cy) / 25,
-        two_pi = 2 * Math.PI,
-        hilite_idx = Math.ceil(circles * hilite_pos);
-
-    ctx.translate(cx, cy);
-    for (var i = 0; i <= circles; i++) {
-        ctx.beginPath();
-        ctx.arc(0, outer_rad, circle_rad, 0, two_pi);
-        ctx.fillStyle = (i != hilite_idx) ? normal_color : hilite_color;
-        ctx.fill();
-        ctx.rotate(two_pi / circles);
-    }
-    ctx.restore();
-}
-Controls._drawNoAnimation = function(ctx, theme, w, h, focused) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        button_width = Math.min(cx, cy) * theme.radius.buttonh,
-        button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.fillStyle = '#eee';
-    ctx.fillRect(3, 3, w - 3, h - 3);
-
-    ctx.translate(cx, cy);
-
-    ctx.lineWidth = theme.width.button;
-    ctx.lineJoin = theme.join.button;
-    ctx.fillStyle = theme.colors.button;
-    ctx.strokeStyle = theme.colors.button;
-    ctx.rotate(-Math.PI / 4);
-    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-
-    ctx.rotate(2 * Math.PI / 4);
-    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-
-    ctx.restore();
-
-    Controls._drawText(ctx, theme,
-                   w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize,
-                   Strings.COPYRIGHT);
-
-    Controls._drawGuyInCenter(ctx, theme, w, h);
-
-}
-Controls._drawError = function(ctx, theme, w, h, error, focused) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        button_width = Math.min(cx, cy) * theme.radius.buttonh,
-        button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.fillStyle = '#eee';
-    ctx.fillRect(3, 3, w - 3, h - 3);
-
-    ctx.translate(cx, cy);
-
-    ctx.lineWidth = theme.width.button;
-    ctx.lineJoin = theme.join.button;
-    ctx.fillStyle = theme.colors.error;
-    ctx.strokeStyle = theme.colors.error;
-    ctx.rotate(-Math.PI / 4);
-    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-
-    ctx.rotate(2 * Math.PI / 4);
-    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-
-    ctx.restore();
-
-    Controls._drawText(ctx, theme,
-                   w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize * 1.2,
-                   (error && error.message) ? ell_text(error.message, theme.statuslimit)
-                                            : error, theme.colors.error);
-
-    Controls._drawText(ctx, theme,
-                   w / 2, ((h / 2) * (1 + theme.radius.substatus)),
-                   theme.font.statussize,
-                   Strings.COPYRIGHT);
-
-    Controls._drawGuyInCenter(ctx, theme, w, h, [ theme.colors.button,
-                                                  theme.colors.error ]);
-}
-Controls._drawTime = function(ctx, theme, w, h, time, duration) {
-    Controls._drawText(ctx, theme,
-                       w / 2, ((h / 2) * (1 + theme.radius.time)),
-                       theme.font.timesize,
-                       fmt_time(time) + ' / ' + fmt_time(duration));
-
-}
-Controls._drawText = function(ctx, theme, x, y, size, text, color, align) {
-    ctx.save();
-    ctx.font = theme.font.weight + ' ' + Math.floor(size || 15) + 'pt ' + theme.font.face;
-    ctx.textAlign = align || 'center';
-    ctx.textBaseline = 'middle';
-    ctx.fillStyle = color || theme.colors.text;
-    ctx.fillText(text, x, y);
-    ctx.restore();
-}
-Controls._drawGuyInCorner = function(ctx, theme, w, h, colors, pos, scale) {
-    // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
-    // Controls._drawText(ctx, theme,
-    //                    w - 10,
-    //                    theme.anmguy.copy_pos[1] * h,
-    //                    (theme.font.statussize - (1600 / w)),
-    //                    Strings.COPYRIGHT, theme.colors.secondary, 'right');
-
-    /* if ((w / ratio) >= 400) {
-      drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.corner_pos[0]) * w,
-                            //theme.anmguy.copy_pos[0] * w,
-                            (pos ? pos[1] : theme.anmguy.corner_pos[1]) * h,
-                       (scale || theme.anmguy.corner_scale) * Math.min(w, h),
-                       colors || theme.anmguy.colors, theme.anmguy.corner_alpha);
-    } */
-}
-Controls._drawGuyInCenter = function(ctx, theme, w, h, colors, pos, scale) {
-    drawAnimatronGuy(ctx, (pos ? pos[0] : theme.anmguy.center_pos[0]) * w,
-                          (pos ? pos[1] : theme.anmguy.center_pos[1]) * h,
-                     (scale || theme.anmguy.center_scale) * Math.min(w, h),
-                     colors || theme.anmguy.colors, theme.anmguy.center_alpha);
-
-    // FIXME: place COPYRIGHT text directly under the guy in drawAnimatronGuy function
-}
-Controls._runLoadingAnimation = function(ctx, paint) {
-    // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
-    //        and Contols._scheduleLoading() should be used to start all the drawing process
-    var props = $engine.getAnmProps(ctx);
-    if (props.loading_req) return;
-    var ratio = $engine.PX_RATIO;
-    // var isRemoteLoading = (_s === C.RES_LOADING); /*(player._loadTarget === C.LT_URL)*/
-    props.supress_loading = false;
-    function loading_loop() {
-        if (props.supress_loading) return;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        if (ratio != 1) ctx.scale(ratio, ratio);
-        // FIXME: redraw only the changed circles
-        paint(ctx);
-        ctx.restore();
-        return __nextFrame(loading_loop);
-    }
-    props.loading_req = __nextFrame(loading_loop);
-}
-Controls._stopLoadingAnimation = function(ctx, paint) {
-    // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
-    //        and Contols._stopLoading() should be used to stop the drawing process
-    var props = $engine.getAnmProps(ctx);
-    if (!props.loading_req) return;
-    props.supress_loading = true;
-    __stopAnim(props.loading_req);
-    props.loading_req = null;
-}
-
-// Info Block
-// -----------------------------------------------------------------------------
-
-function InfoBlock(player) {
-    this.canvas = null;
-    this.ctx = null;
-    this.ready = false;
-    this.hidden = false;
-    this.attached = false;
-}
-/* FIXME: merge Info Block and Controls? */
-InfoBlock.BASE_BGCOLOR = Controls.THEME.colors.infobg;
-InfoBlock.BASE_FGCOLOR = Controls.THEME.colors.text;
-InfoBlock.OPACITY = 1;
-InfoBlock.PADDING = 6;
-InfoBlock.OFFSET_X = 0.03; // percents of canvas height
-InfoBlock.OFFSET_Y = 0.02; // percents of canvas width
-InfoBlock.FONT = Controls.THEME.font.face;
-InfoBlock.FONT_SIZE_A = Controls.THEME.font.infosize_a;
-InfoBlock.FONT_SIZE_B = Controls.THEME.font.infosize_b;
-InfoBlock.DEFAULT_WIDTH = 0.3; // percents of canvas height
-InfoBlock.DEFAULT_HEIGHT = 0.1; // percents of canvas height
-InfoBlock.LAST_ID = 0;
-InfoBlock.prototype.detach = function(parent) {
-    if (!this.attached) return;
-    $engine.detachElement(parent, this.canvas);
-    this.attached = false;
-}
-// TODO: move to engine
-InfoBlock.prototype.update = function(parent) {
-    var cvs = this.canvas,
-        pconf = $engine.getCanvasSize(parent),
-        _m = InfoBlock.MARGIN,
-        _w = InfoBlock.DEFAULT_WIDTH, _h = InfoBlock.DEFAULT_HEIGHT;
-    if (!cvs) {
-        cvs = $engine.addCanvasOverlay('info-' + InfoBlock.LAST_ID, parent,
-                 [ InfoBlock.OFFSET_X, InfoBlock.OFFSET_Y,
-                   InfoBlock.DEFAULT_WIDTH, InfoBlock.DEFAULT_HEIGHT ],
-                 function(cvs) {
-                    $engine.registerAsInfoElement(cvs, parent);
-                 });
-        InfoBlock.LAST_ID++;
-        this.id = cvs.id;
-        this.canvas = cvs;
-        this.attached = true;
-        this.ctx = $engine.getContext(cvs, '2d');
-        this.hide();
-        this.changeTheme(InfoBlock.BASE_FGCOLOR, InfoBlock.BASE_BGCOLOR);
-    } else {
-        $engine.updateOverlay(parent, cvs);
-    }
-    //var cconf = $engine.getCanvasParameters(cvs);
-    // _canvas.style.left = _cp[0] + 'px';
-    // _canvas.style.top = _cp[1] + 'px';
-    //this._ratio = cconf[2];
-    //this.ctx.font = Controls.FONT_WEIGHT + ' ' + Math.floor(Controls._TS) + 'px ' + Controls.FONT;
-    this.bounds = $engine.getCanvasBounds(cvs);
-}
-InfoBlock.prototype.render = function() {
-    if (!this.__data) return;
-    var meta = this.__data[0],
-        anim = this.__data[1],
-        duration = this.__data[2] || meta.duration;
-    var ratio = $engine.PX_RATIO;
-    /* TODO: show speed */
-    var _tl = new Text(meta.title || '[No title]', 'bold ' + Math.floor(InfoBlock.FONT_SIZE_A) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),
-        _bl = new Text((meta.author || '[Unknown]') + ' ' + (duration ? (duration + 's') : '?s') +
-                       ' ' + (anim.width || 0) + 'x' + (anim.height || 0),
-                      Math.floor(InfoBlock.FONT_SIZE_B) + 'px ' + InfoBlock.FONT, { color: this.__fgcolor }),  // meta.version, meta.description, meta.copyright
-        _p = InfoBlock.PADDING,
-        _td = _tl.dimen(),
-        _bd = _bl.dimen(),
-        _nw = Math.max(_td[0], _bd[0]) + _p + _p,
-        _nh = _td[1] + _bd[1] + (_p * 3),
-        ctx = this.ctx;
-    $engine.setCanvasSize(this.canvas, _nw, _nh);
-    ctx.save();
-    if (ratio != 1) ctx.scale(ratio, ratio);
-    ctx.clearRect(0, 0, _nw, _nh);
-    ctx.fillStyle = this.__bgcolor;
-    //Controls.__roundRect(ctx, 0, 0, _nw, _nh, 5);
-    ctx.fill();
-    ctx.fillStyle = this.__fgcolor;
-    ctx.translate(_p, _p);
-    _tl.apply(ctx);
-    ctx.globalAlpha = .8;
-    ctx.translate(0, _bd[1] + _p);
-    _bl.apply(ctx);
-    ctx.restore();
-}
-InfoBlock.prototype.inject = function(anim, duration) {
-    if (!anim) return;
-    var meta = anim.meta;
-    this.__data = [ anim, meta, duration || (meta && meta.duration) || anim.duration || 0 ];
-    if (this.ready) this.render();
-}
-InfoBlock.prototype.reset = function() {
-
-}
-InfoBlock.prototype.hide = function() {
-    $engine.hideElement(this.canvas);
-    this.hidden = true;
-}
-InfoBlock.prototype.show = function() {
-    $engine.showElement(this.canvas);
-    this.hidden = false;
-}
-InfoBlock.prototype.setDuration = function(value) {
-    if (this.__data) this.inject(this.__data[0], value);
-}
-InfoBlock.prototype.changeTheme = function(front, back) {
-    this.__fgcolor = front;
-    this.__bgcolor = back;
-    // TODO: redraw
-}
 
 var _anmGuySpec = [
   [ 180, 278 ], // origin
@@ -6796,10 +5779,7 @@ return (function(anm) {
     anm.Tweens = Tweens; anm.Tween = Tween; anm.Easing = Easing;
     anm.MSeg = MSeg; anm.LSeg = LSeg; anm.CSeg = CSeg;
     anm.Render = Render; anm.Bands = Bands;  // why Render and Bands classes are visible to pulic?
-
-    anm.obj_clone = obj_clone; /*anm.ajax = $engine.ajax;*/
-
-    anm.__dev = { 'strf': _strf,
+    anm.__dev = { 'strf': utils.strf,
                    'adjust': __adjust,
                    't_cmp': __t_cmp,
                    'TIME_PRECISION': TIME_PRECISION/*,

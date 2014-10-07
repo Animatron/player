@@ -97,6 +97,56 @@ function provideEvents(subj, events) {
 registerEvent('S_NEW_PLAYER', 'new_player', 'new_player');
 registerEvent('S_PLAYER_DETACH', 'player_detach', 'player_detach');
 
+// ### Events
+/* ---------- */
+
+// NB: All of the events must have different values, or the flow will be broken
+// FIXME: allow grouping events, i.e. value may a group_marker + name of an event
+//        also, allow events to belong to several groups, it may replace a tests like
+//        XT_MOUSE or XT_CONTROL or isPlayerEvent
+
+// * mouse
+registerEvent('X_MCLICK', 'mclick', 1);
+registerEvent('X_MDCLICK', 'mdclick', 2);
+registerEvent('X_MUP', 'mup', 4);
+registerEvent('X_MDOWN', 'mdown', 8);
+registerEvent('X_MMOVE', 'mmove', 16);
+registerEvent('X_MOVER', 'mover', 32);
+registerEvent('X_MOUT', 'mout', 64);
+
+registerEvent('XT_MOUSE', 'mouse',
+  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
+
+// * keyboard
+registerEvent('X_KPRESS', 'kpress', 128);
+registerEvent('X_KUP', 'kup', 256);
+registerEvent('X_KDOWN', 'kdown', 1024);
+
+registerEvent('XT_KEYBOARD', 'keyboard',
+  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
+
+// * controllers
+registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
+
+// * draw
+registerEvent('X_DRAW', 'draw', 'draw');
+
+// * bands
+registerEvent('X_START', 'start', 'x_start');
+registerEvent('X_STOP', 'stop', 'x_stop');
+
+// * playing (player state)
+registerEvent('S_PLAY', 'play', 'play');
+registerEvent('S_PAUSE', 'pause', 'pause');
+registerEvent('S_STOP', 'stop', 'stop');
+registerEvent('S_COMPLETE', 'complete', 'complete');
+registerEvent('S_REPEAT', 'repeat', 'repeat');
+registerEvent('S_IMPORT', 'import', 'import');
+registerEvent('S_LOAD', 'load', 'load');
+registerEvent('S_RES_LOAD', 'res_load', 'res_load');
+registerEvent('S_ERROR', 'error', 'error');
+
+
 module.exports = {
   registerEvent: registerEvent,
   provideEvents: provideEvents
