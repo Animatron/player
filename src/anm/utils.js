@@ -26,8 +26,6 @@ function ell_text(text, max_len) {
 // ### Internal Helpers
 /* -------------------- */
 
-// map back to functions for faster access (is it really so required?)
-
 // #### mathematics
 
 function compareFloat(n1, n2, precision) {
@@ -102,6 +100,30 @@ function guid() {
           Math.random().toString(36).substring(2, 10);
 }
 
+function fit_rects(pw, ph, aw, ah) {
+    // pw == player width, ph == player height
+    // aw == anim width,   ah == anim height
+    var xw = pw / aw,
+        xh = ph / ah;
+    var factor = Math.min(xw, xh);
+    var hcoord = (pw - aw * factor) / 2,
+        vcoord = (ph - ah * factor) / 2;
+    if ((xw != 1) || (xh != 1)) {
+        var anim_rect = [ hcoord, vcoord, aw * factor, ah * factor ];
+        if (hcoord != 0) {
+            return [ factor,
+                     anim_rect,
+                     [ 0, 0, hcoord, ph ],
+                     [ hcoord + (aw * factor), 0, hcoord, ph ] ];
+        } else if (vcoord != 0) {
+            return [ factor,
+                     anim_rect,
+                     [ 0, 0, aw, vcoord ],
+                     [ 0, vcoord + (ah * factor), aw, vcoord ] ];
+        } else return [ factor, anim_rect ];
+    } else return [ 1, [ 0, 0, aw, ah ] ];
+}
+
 module.exports = {
     fmt_time: fmt_time,
     ell_text: ell_text,
@@ -113,5 +135,6 @@ module.exports = {
     mrg_obj: mrg_obj,
     strf: strf,
     collect_to: collect_to,
-    guid: guid
+    guid: guid,
+    fit_rects: fit_rects
 };
