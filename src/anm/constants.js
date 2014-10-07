@@ -140,4 +140,15 @@ C.BL_ALPHABETIC = 'alphabetic';
 C.BL_HANGING = 'hanging';
 C.BL_IDEOGRAPHIC = 'ideographic';
 
+// path constants
+C.P_MOVETO = 0;
+C.P_LINETO = 1;
+C.P_CURVETO = 2;
+
+C.PC_ROUND = 'round';
+C.PC_BUTT = 'butt';
+C.PC_MITER = 'miter';
+C.PC_SQUARE = 'square';
+C.PC_BEVEL = 'bevel';
+
 module.exports = C;

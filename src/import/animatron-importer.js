@@ -25,6 +25,9 @@ var C = anm.constants,
     Brush = anm.Brush,
     Bands = anm.Bands,
     Tween = anm.Tween,
+    MSeg = anm.MSeg,
+    LSeg = anm.LSeg,
+    CSeg = anm.CSeg,
     is = anm.is,
     $log = anm.log;
     //test = anm._valcheck
@@ -456,13 +459,13 @@ Import._decodeBinaryPath = function(encoded) {
                             var p = Import._pathReadPoint(s, [], base);
                             base = p;
 
-                            Path._parserVisitor("M", p, path);
+                            path.add(new MSeg(p));
                             break;
                         case 1:
                             var p = Import._pathReadPoint(s, [], base);
                             base = p;
 
-                            Path._parserVisitor("L", p, path);
+                            path.add(new LSeg(p));
                             break;
                         case 2:
                             var p = Import._pathReadPoint(s, [], base);
@@ -470,7 +473,7 @@ Import._decodeBinaryPath = function(encoded) {
                             Import._pathReadPoint(s, p);
                             base = [p[p.length - 2], p[p.length - 1]];
 
-                            Path._parserVisitor("C", p, path);
+                            path.add(new CSeg(p));
                             break;
                         case 3:
                             _do = false;
