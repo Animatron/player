@@ -78,8 +78,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
 
     // createTextMeasurer() -> function(text) -> [ width, height ]
 
-    // createTransform() -> Transform
-
     // getElementById(id) -> Element
     // findElementPosition(element) -> [ x, y ]
     // findScrollAwarePosition(eelementlm) -> [ x, y ]
@@ -345,10 +343,6 @@ function DomEngine() { return (function() { // wrapper here is just to isolate i
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
-    }
-
-    $DE.createTransform = function() {
-        return new Transform();
     }
 
     // Elements
