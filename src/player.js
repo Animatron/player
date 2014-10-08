@@ -2668,8 +2668,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var bounds = this.bounds(),
                     ratio = $engine.PX_RATIO,
-                    width = Math.ceil(bounds.width * this.sx),
-                    height = Math.ceil(bounds.height * this.sy);
+                    width = Math.ceil(bounds.width),
+                    height = Math.ceil(bounds.height);
 
                 var last_cvs_size = this._maskCvsSize || $engine.getCanvasSize(mcvs);
 
@@ -4217,6 +4217,9 @@ function Tween(tween_type, data) {
     return mod;
 }
 Tween.__data_block_fn = function() { throw new AnimErr("Data should be passed to tween in a constructor"); };
+
+// TODO: add function to add every tween type in easy way, may be separate module?
+// .tween(new anm.Tween(C.T_TRANSLATE, [[0, 0], [100, 100]]).band(0, Infinity)) does not work
 
 var Easing = {};
 
