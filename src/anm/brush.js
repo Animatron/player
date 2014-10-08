@@ -2,7 +2,7 @@ var Color = require('./color.js'),
     C = require('./constants.js'),
     conf = require('./conf.js'),
     is = require('./is.js'),
-    engine = require('../anm.js').engine,
+    engine = require('engine'),
     AnimationError = require('./errors.js').AnimationError;
 
 // Brush

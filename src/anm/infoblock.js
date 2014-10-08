@@ -1,4 +1,4 @@
-var engine = require('../anm.js').engine,
+var engine = require('engine'),
     theme = require('./controls_theme.js');
 
 // Info Block

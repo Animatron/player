@@ -1,6 +1,6 @@
 var provideEvents = require('./events.js').provideEvents,
     C = require('./constants.js'),
-    engine = require('../anm.js').engine,
+    engine = require('engine'),
     InfoBlock = require('./infoblock.js'),
     is = require('./is.js'),
     Strings = require('./loc.js').Strings,

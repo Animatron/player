@@ -63,5 +63,8 @@
   },
   "scripts": {
     "test": "jake test"
+  },
+  "browser": {
+    "engine": "./src/engine/dom-engine.js"
   }
 }

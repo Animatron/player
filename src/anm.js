@@ -19,9 +19,7 @@ var constants = require('./anm/constants.js');
 
 // Engine
 // -----------------------------------------------------------------------------
-
-//todo: make other engines usable
-var engine = require('./engine/dom-engine.js');
+var engine = require('engine');
 
 
 // Public Namespace

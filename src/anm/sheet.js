@@ -1,6 +1,6 @@
 var resMan = require('./resource_manager.js'),
     conf = require('./conf.js'),
-    engine = require('../anm.js').engine,
+    engine = require('engine'),
     log = require('./log.js');
 
 Sheet.instances = 0;
