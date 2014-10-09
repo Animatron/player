@@ -351,7 +351,7 @@ Import.branch = function(type, src, all, anim) {
             };
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
-                masked.setMask(mask);
+                masked.mask(mask);
                 togo--;
             }
         }
