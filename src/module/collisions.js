@@ -569,16 +569,16 @@ function p_drawGhost(ctx) {
         ctx.restore();
     }
 }*/
-var prevAddDebugRender = E.__addDebugRender;
-E.__addDebugRender = function(elm) {
-    prevAddDebugRender(elm);
+var prevAddDebugRender = E.prototype.addDebugRender;
+E.prototype.addDebugRender = function() {
+    prevAddDebugRender.call(this);
 
-    elm.__paint({ type: E.DEBUG_PNT }, p_drawCPath);
-    elm.__paint({ type: E.DEBUG_PNT }, p_drawAdoptedRect);
-    elm.__paint({ type: E.DEBUG_PNT }, p_drawAdoptedPoints);
-    //elm.__paint({ type: E.DEBUG_PNT }, 0, p_drawPathAt);
-    elm.__paint({ type: E.DEBUG_PNT }, p_drawGhost);
-    //elm.__paint({ type: E.DEBUG_PNT }, 0, p_drawGhostVec);
+    this.__paint({ type: E.DEBUG_PNT }, p_drawCPath);
+    this.__paint({ type: E.DEBUG_PNT }, p_drawAdoptedRect);
+    this.__paint({ type: E.DEBUG_PNT }, p_drawAdoptedPoints);
+    //this.__paint({ type: E.DEBUG_PNT }, 0, p_drawPathAt);
+    this.__paint({ type: E.DEBUG_PNT }, p_drawGhost);
+    //this.__paint({ type: E.DEBUG_PNT }, 0, p_drawGhostVec);
 }
 
 var prevMAfter = E.prototype.__mafter;

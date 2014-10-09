@@ -3,7 +3,8 @@ var C = require('./constants.js'),
     segments = require('./segments.js')
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
-    CSeg = segments.CSeg;
+    CSeg = segments.CSeg,
+    utils = require('./utils.js');
 
 // Paths
 // -----------------------------------------------------------------------------
