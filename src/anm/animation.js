@@ -3,14 +3,14 @@ var C = require('./constants.js'),
     Element = require('./element.js'),
     Clip = Element,
     Brush = require('./brush.js'),
-    is = require('./is.js'),
     iter = require('./iter.js'),
     provideEvents = require('./events.js').provideEvents,
     AnimationError = require('./errors.js').AnimationError,
     Errors = require('./loc.js').Errors,
     ResMan = require('./resource_manager.js'),
     FontDetector = require('../vendor/font_detector.js'),
-    utils = require('./utils.js');
+    utils = require('./utils.js'),
+    is = utils.is;
 
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */

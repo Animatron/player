@@ -1,6 +1,6 @@
 var C = require('./constants.js'),
     Brush = require('./brush.js'),
-    is = require('./is.js'),
+    is = require('./utils.js').is,
     SystemError = require('./errors.js').SystemError;
 
 function Text(lines, font, align, baseline, underlined) {

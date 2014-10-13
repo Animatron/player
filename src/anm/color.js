@@ -1,5 +1,5 @@
-var is = require('./is.js'),
-    utils = require('./utils.js');
+var utils = require('./utils.js'),
+    is = utils.is;
 //a set of functions for parsing, converting and intepolating color values
 var Color = {};
 Color.TRANSPARENT  = 'transparent';

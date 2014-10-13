@@ -1,10 +1,10 @@
 var C = require('./constants.js'),
-    is = require('./is.js'),
     segments = require('./segments.js')
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
     CSeg = segments.CSeg,
-    utils = require('./utils.js');
+    utils = require('./utils.js'),
+    is = utils.is;
 
 // Paths
 // -----------------------------------------------------------------------------

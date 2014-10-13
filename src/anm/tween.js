@@ -1,5 +1,5 @@
 var C = require('./constants.js'),
-    is = require('./is.js'),
+    is = require('./utils.js').is,
     Modifier = require('./modifier.js'),
     AnimationError = require('./errors.js').AnimationError;
 

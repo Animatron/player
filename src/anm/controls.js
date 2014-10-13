@@ -2,9 +2,9 @@ var provideEvents = require('./events.js').provideEvents,
     C = require('./constants.js'),
     engine = require('engine'),
     InfoBlock = require('./infoblock.js'),
-    is = require('./is.js'),
     Strings = require('./loc.js').Strings,
-    utils = require('./utils.js');
+    utils = require('./utils.js'),
+    is = utils.is;
 
 // Controls
 // -----------------------------------------------------------------------------

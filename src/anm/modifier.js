@@ -1,5 +1,5 @@
 var C = require('./constants.js'),
-    is = require('./is.js'),
+    is = require('./utils.js').is,
     EasingImpl = require('./easings.js'),
     guid = require('./utils.js').guid;
 

@@ -8,12 +8,12 @@ var C = require('./constants.js'),
     Bands = require('./bands.js'),
     AnimationError = require('./errors.js').AnimationError,
     Errors = require('./loc.js').Errors,
-    is = require('./is.js'),
     Color = require('./color.js'),
     log = require('./log.js'),
     utils = require('./utils.js'),
     Render = require('./render.js'),
     iter = require('./iter.js'),
+    is = utils.is,
     global_opts = require('./global_opts.js');
 
 
