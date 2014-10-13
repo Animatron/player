@@ -1042,7 +1042,7 @@ Element.prototype.clearMask = function() {
     this.__mask = null;
 }
 Element.prototype.data = function(val) {
-  if (!__defined(val)) return this.$data;
+  if (!is.defined(val)) return this.$data;
   this.$data = val;
   return this;
 }

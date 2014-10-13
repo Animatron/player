@@ -36,7 +36,6 @@ function Modifier(func, type) {
     func[C.MARKERS.MODIFIER_MARKER] = true;
     func.band = function(start, stop) { if (!is.defined(start)) return func.$band;
                                         // FIXME: array bands should not pass
-                                        // if (__arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
                                         if (is.arr(start)) {
                                             stop = start[1];
                                             start = start[0];

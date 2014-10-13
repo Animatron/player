@@ -28,7 +28,7 @@ var C = anm.constants,
     MSeg = anm.MSeg,
     LSeg = anm.LSeg,
     CSeg = anm.CSeg,
-    is = anm.is,
+    is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck
 

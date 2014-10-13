@@ -46,7 +46,7 @@
 
 var conf = require('./conf.js'),
     log = require('./log.js'),
-    is = require('./is.js');
+    is = require('./utils.js').is;
 
 function rmLog(str) {
   if (conf.logResMan) {
