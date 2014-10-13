@@ -1,7 +1,8 @@
 var C = require('./constants.js'),
     Brush = require('./brush.js'),
     is = require('./utils.js').is,
-    SystemError = require('./errors.js').SystemError;
+    SystemError = require('./errors.js').SystemError,
+    engine = require('engine');
 
 function Text(lines, font, align, baseline, underlined) {
     this.lines = lines;
@@ -18,6 +19,8 @@ Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_ALIGN = C.TA_LEFT;
 Text.DEFAULT_BASELINE = C.BL_BOTTOM; // FIXME: also change to middle?
 Text.DEFAULT_UNDERLINE = false;
+
+Text.__measuring_f = engine.createTextMeasurer();
 
 Text.prototype.apply = function(ctx) {
     ctx.save();

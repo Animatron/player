@@ -275,14 +275,17 @@ $DE.createTextMeasurer = function() {
     var buff = $DE.__textBuf;
     if (!buff) {
         /* FIXME: dispose buffer when text is removed from scene */
-        var _div = $doc.createElement('div');
-        _div.style.visibility = 'hidden';
-        _div.style.position = 'absolute';
-        _div.style.top = -10000 + 'px';
-        _div.style.left = -10000 + 'px';
-        $doc.body.appendChild(_div);
-        $DE.__textBuf = _div;
-        buff = $DE.__textBuf;
+        $DE.onDocReady(function(){
+          var div = $doc.createElement('div');
+          div.style.visibility = 'hidden';
+          div.style.position = 'absolute';
+          div.style.top = -10000 + 'px';
+          div.style.left = -10000 + 'px';
+          $doc.body.appendChild(div);
+          $DE.__textBuf = div;
+          buff = $DE.__textBuf;
+        });
+
     }
     return function(text, lines_arg) {
         var has_arg = (typeof lines_arg !== 'undefined');
@@ -403,7 +406,7 @@ $DE.createCanvas = function(width, height, bg, ratio) {
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
 
-    if (anm.is.str(wrapper)) {
+    if (anm.utils.is.str(wrapper)) {
         wrapper = $doc.getElementById(wrapper);
     }
 
