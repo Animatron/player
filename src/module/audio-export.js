@@ -7,9 +7,6 @@
  * @VERSION
  */
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/modules/audio-export', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var Player = anm.Player,
     C = anm.C;
@@ -31,9 +28,4 @@ Player.prototype.exportAudio = function() {
 };
 
 var conf = {};
-
 anm.modules.register('audio-export', conf);
-
-return conf;
-
-});

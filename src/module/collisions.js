@@ -7,10 +7,6 @@
  * @VERSION
  */
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/modules/collisions', ['anm', 'anm/Player'], function(anm/*, Player*/) {
-
 var $engine = anm.engine;
 var C = anm.constants;
 
@@ -940,7 +936,3 @@ G.__curveCrosses = function(px, py, x0, y0,
                              xmc1, ymc1, xc1, yc1,
                              x1, y1, level + 1));
 }
-
-return opts;
-
-});
