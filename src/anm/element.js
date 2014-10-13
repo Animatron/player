@@ -12,7 +12,7 @@ var C = require('./constants.js'),
     log = require('./log.js'),
     utils = require('./utils.js'),
     Render = require('./render.js'),
-    iter = require('./iter.js'),
+    iter = utils.iter,
     is = utils.is,
     global_opts = require('./global_opts.js');
 
