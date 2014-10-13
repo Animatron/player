@@ -15,142 +15,30 @@
 // natural order, mostly from general things to internal ones. However, to make
 // code work properly it is not always possible to keep this principle.
 //
-// Here I'll give the actual order of things with few notes on each thing to make you have a good _view
-// from above_.
-//
-// - **Utils** —
-// - **Constants** —
-// - **Modules** —
-// - **Player** —
-//     - _Player Control API_ —
-// - **Animation** —
-// - **Element** —
-// - **Import** —
-// - **Rendering** —
-// - **Bands** —
-// - **Tweens** —
-// - **Easings** —
-// - **Path** —
-//     - _Segments_ —
-// - **Text** —
-// - **Sheet** -
-// - **Brush** -
-// - **Controls** —
-// - **Info Block** —
-// - **Strings** —
-// - **Exports** —
-//
-// > While doing future refactorings, I may change this order a bit accidently or rename some sections and
-// > forget to update this list (blame me), so please do not consider it to be the very strict
-// > and representing something more than a general feel of file.
-//
-// > NB: Comments are in very early progress
-
-// So, let's start
-
 // Module Definition
 // -----------------------------------------------------------------------------
 
-var anm = require('./anm.js'),
-    utils = anm.utils;
-
-var $engine = anm.engine;
-var $conf = anm.conf;
-var $log = anm.log;
-
-// Utils
-// -----------------------------------------------------------------------------
-
-// ### Events
-/* ---------- */
-
-var provideEvents = anm.events.provideEvents;
-var registerEvent = anm.events.registerEvent;
-
-// Classes
-var Controls = require('./anm/controls.js'),
-    Sheet = require('./anm/sheet.js'),
-    Color = require('./anm/color.js'),
-    Brush = require('./anm/brush.js'),
-    Text = require('./anm/text.js'),
-    FontDetector = require('./vendor/font_detector.js'),
-    Transform = require('./vendor/transform.js'),
-    segments = require('./anm/segments.js'),
-    MSeg = segments.MSeg,
-    LSeg = segments.LSeg,
-    CSeg = segments.CSeg,
-    Path = require('./anm/path.js'),
-    EasingImpl = require('./anm/easings.js'),
-    Modifier = require('./anm/modifier.js'),
-    Painter = require('./anm/painter.js'),
-    Tween = require('./anm/tween.js'),
-    Bands = require('./anm/bands.js'),
-    Render = require('./anm/render.js'),
-    Loader = require('./anm/loader.js'),
-    Animation = require('./anm/animation.js'),
-    Element = require('./anm/element.js'),
-    global_opts = require('./anm/global_opts.js');
-
-
-// ### Other External utilities
-/* ---------- */
-
-var iter = anm.iter;
-var guid = utils.guid;
-
-// value/typecheck
-var is = anm.is;
-var __defined = is.defined,
-    __finite  = is.finite,
-    __nan     = is.nan,
-    __arr     = is.arr,
-    __num     = is.num,
-    __fun     = is.fun,
-    __obj     = is.obj,
-    __str     = is.str,
-
-    __modifier = is.modifier;
-    __painter  = is.painter;
-    __tween    = is.tween;
-
-// ### Strings & Errors
-/* ---------- */
-
-var Strings = anm.loc.Strings,
-    Errors = anm.loc.Errors;
-
-var SystemError = anm.errors.SystemError,
-    SysErr = SystemError;
-
-var PlayerError = anm.errors.PlayerError,
-    PlayerErr = PlayerError;
-
-var AnimationError = anm.errors.AnimationError,
-    AnimErr = AnimationError;
-
-
-
-// Constants
-// -----------------------------------------------------------------------------
-
-var C = anm.constants; // will be transferred to public namespace both from bottom of player.js
-
-var _ResMan = anm.resource_manager;
-var _PlrMan = anm.player_manager;
-
-
-var M = {};
-
-C.MOD_PLAYER = 'player';
-
-// ### Options
-/* ----------- */
-
-
-M[C.MOD_PLAYER] = global_opts;
-
-/* TODO: the problem with controls receiving events is that `handle_` method is now saved as 'handle_8' instead of 'handle_mclick' */
-
+var C = require('./constants.js'),
+    utils = require('./utils.js'),
+    engine = require('engine'),
+    conf = require('./conf.js'),
+    log = require('./log.js'),
+    is = utils.is,
+    events = require('./events.js');
+    Controls = require('./controls.js'),
+    Sheet = require('./sheet.js'),
+    Render = require('./render.js'),
+    Loader = require('./loader.js'),
+    Animation = require('./animation.js'),
+    Element = require('./element.js'),
+    global_opts = require('./global_opts.js'),
+    loc = require('./loc.js'),
+    Strings = loc.Strings,
+    Errors = loc.Errors,
+    errors = require('./errors.js'),
+    resourceManager = require('./resource_manager.js'),
+    playerManager = require('./player_manager.js'),
+    provideEvents = events.provideEvents;
 
 
 // Player
@@ -250,7 +138,7 @@ Player.EMPTY_STROKE_WIDTH = 3;
   *
   * Methods listed below are directly wrapped with try/catch to check
   * which way of handling/suppressing errors is current one for this player
-  * and act with catched errors basing on this way
+  * and act with caught errors basing on this way
   */
 Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
@@ -330,19 +218,19 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
  */
 
 Player.prototype.init = function(elm, opts) {
-    if (this.canvas || this.wrapper) throw new PlayerErr(Errors.P.INIT_TWICE);
-    if (this.anim) throw new PlayerErr(Errors.P.INIT_AFTER_LOAD);
+    if (this.canvas || this.wrapper) throw new errors.PlayerError(Errors.P.INIT_TWICE);
+    if (this.anim) throw new errors.PlayerError(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
     this._prepare(elm);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
-    this._addOpts($engine.extractUserOptions(this.canvas));
-    this._addOpts($engine.extractUserOptions(this.wrapper));
+    this._addOpts(engine.extractUserOptions(this.canvas));
+    this._addOpts(engine.extractUserOptions(this.wrapper));
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
     /* TODO: if (this.canvas.hasAttribute('data-url')) */
 
-    _PlrMan.fire(C.S_NEW_PLAYER, this);
+    playerManager.fire(C.S_NEW_PLAYER, this);
     return this;
 }
 
@@ -375,7 +263,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
-        throw new PlayerErr(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
+        throw new errors.PlayerError(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
     }
 
     /* object */
@@ -390,7 +278,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         duration, importer, callback;
 
     if (object && object.id && player.anim && (player.anim.id == object.id)) {
-        $log.info('Animation with ID=' + object.id + ' is already loaded in player, skipping the call');
+        log.info('Animation with ID=' + object.id + ' is already loaded in player, skipping the call');
         return;
     }
 
@@ -402,21 +290,21 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     //        we can't let ourselves create an importer instance manually here,
     //        so it's considered a problem of naming.
     if ((arg2 && arg2.IMPORTER_ID) || (arg3 && arg3.IMPORTER_ID)) {
-        throw new Error(Errors.P.IMPORTER_CONSTRUCTOR_PASSED);
+        throw new errors.PlayerError(Errors.P.IMPORTER_CONSTRUCTOR_PASSED);
     }
 
-    if (__fun(arg2)) { callback = arg2 } /* object, callback */
-    else if (__num(arg2) || !arg2) { /* object, duration[, ...] */
-        if (__num(arg2)) {
+    if (is.fun(arg2)) { callback = arg2 } /* object, callback */
+    else if (is.num(arg2) || !arg2) { /* object, duration[, ...] */
+        if (is.num(arg2)) {
           duration = arg2;
           durationPassed = true;
         }
-        if (__obj(arg3)) { /* object, duration, importer[, callback] */
+        if (is.obj(arg3)) { /* object, duration, importer[, callback] */
           importer = arg3; callback = arg4;
-        } else if (__fun(arg3)) { /* object, duration, callback */
+        } else if (is.fun(arg3)) { /* object, duration, callback */
           callback = arg3;
         }
-    } else if (__obj(arg2)) { /* object, importer[, ...] */
+    } else if (is.obj(arg2)) { /* object, importer[, ...] */
         importer = arg2;
         callback = arg3;
     }
@@ -426,7 +314,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                              // it was requested after the call to 'play', or else it was called by user
                              // FIXME: may be playLock was set by player and user calls this method
                              //        while some animation is already loading
-        if (player._postponedLoad) throw new PlayerErr(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        if (player._postponedLoad) throw new errors.PlayerError(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
         player._lastReceivedAnimationId = null;
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
@@ -443,10 +331,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new PlayerErr(Errors.P.NO_ANIMATION_PASSED);
+        throw new errors.PlayerError(Errors.P.NO_ANIMATION_PASSED);
     }
 
-    if (!player.__canvasPrepared) throw new PlayerErr(Errors.P.CANVAS_NOT_PREPARED);
+    if (!player.__canvasPrepared) throw new errors.PlayerError(Errors.P.CANVAS_NOT_PREPARED);
 
     player._reset();
 
@@ -479,7 +367,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
             // subscribe to wait until remote resources will be ready or failed
-            _ResMan.subscribe(player.id, remotes, [ player.__defAsyncSafe(
+            resourceManager.subscribe(player.id, remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
                     //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
@@ -522,10 +410,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (object instanceof Animation) { // Animation instance
             player._loadTarget = C.LT_ANIMATION;
             Loader.loadAnimation(player, object, whenDone);
-        } else if (__arr(object) || (object instanceof Element)) { // array of elements
+        } else if (is.arr(object) || (object instanceof Element)) { // array of elements
             player._loadTarget = C.LT_ELEMENTS;
             Loader.loadElements(player, object, whenDone);
-        } else if (__str(object)) { // URL
+        } else if (is.str(object)) { // URL
             var controls = player.controls;
             player._loadTarget = C.LT_URL;
             player._loadSrc = object;
@@ -549,8 +437,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     return player;
 }
 
-var __nextFrame = $engine.getRequestFrameFunc(),
-    __stopAnim  = $engine.getCancelFrameFunc();
+var __nextFrame = engine.getRequestFrameFunc(),
+    __stopAnim  = engine.getCancelFrameFunc();
 /**
  * @method play
  * @chainable
@@ -570,7 +458,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     if (state.happens === C.PLAYING) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
-        else throw new PlayerErr(Errors.P.ALREADY_PLAYING);
+        else throw new errors.PlayerError(Errors.P.ALREADY_PLAYING);
     }
 
     if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
@@ -580,7 +468,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         player._playLock = true;
         var loadArgs = player._postponedLoad,
             playArgs = arguments;
-        if (!loadArgs) throw new PlayerErr(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
+        if (!loadArgs) throw new errors.PlayerError(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
         var loadCallback = loadArgs[3];
         function afterLoad() {
             if (loadCallback) loadCallback.call(player, arguments);
@@ -602,8 +490,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
                                                        // finished loading
 
     // reassigns var to ensure proper function is used
-    //__nextFrame = $engine.getRequestFrameFunc();
-    //__stopAnim = $engine.getCancelFrameFunc();
+    //__nextFrame = engine.getRequestFrameFunc();
+    //__stopAnim = engine.getCancelFrameFunc();
 
     player._ensureHasAnim();
 
@@ -621,7 +509,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                      : (anim.duration || (anim.isEmpty() ? 0
                                                            : Animation.DEFAULT_DURATION));
 
-    if (state.duration == undefined) throw new PlayerErr(Errors.P.DURATION_IS_NOT_KNOWN);
+    if (state.duration == undefined) throw new errors.PlayerError(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -745,7 +633,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new PlayerErr(Errors.P.PAUSING_WHEN_STOPPED);
+        throw new errors.PlayerError(Errors.P.PAUSING_WHEN_STOPPED);
     }
 
     if (state.happens === C.PLAYING) {
@@ -789,23 +677,23 @@ provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(elm) {
-    if (!elm) throw new PlayerErr(Errors.P.NO_WRAPPER_PASSED);
+    if (!elm) throw new errors.PlayerError(Errors.P.NO_WRAPPER_PASSED);
     var wrapper_id, wrapper;
-    if (__str(elm)) {
+    if (is.str(elm)) {
         wrapper_id = elm;
-        wrapper = $engine.getElementById(wrapper_id);
-        if (!wrapper_id) throw new PlayerErr(utils.strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
+        wrapper = engine.getElementById(wrapper_id);
+        if (!wrapper_id) throw new errors.PlayerError(utils.strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
     } else {
         if (!elm.id) elm.id = ('anm-player-' + Player.__instances);
         wrapper_id = elm.id;
         wrapper = elm;
     }
-    var assign_data = $engine.assignPlayerToWrapper(wrapper, this, 'anm-player-' + Player.__instances);
+    var assign_data = engine.assignPlayerToWrapper(wrapper, this, 'anm-player-' + Player.__instances);
     this.id = assign_data.id;
     this.wrapper = assign_data.wrapper;
     this.canvas = assign_data.canvas;
-    if (!$engine.checkPlayerCanvas(this.canvas)) throw new PlayerErr(Errors.P.CANVAS_NOT_VERIFIED);
-    this.ctx = $engine.getContext(this.canvas, '2d');
+    if (!engine.checkPlayerCanvas(this.canvas)) throw new errors.PlayerError(Errors.P.CANVAS_NOT_VERIFIED);
+    this.ctx = engine.getContext(this.canvas, '2d');
     this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
@@ -816,10 +704,10 @@ Player.prototype._prepare = function(elm) {
 Player.prototype._addOpts = function(opts) {
     // TODO: use addOpts to add any additional options to current ones
     // will move all options directly in the player object
-    this.debug =    __defined(opts.debug)    ? opts.debug    : this.debug;
-    this.mode =     __defined(opts.mode)     ? opts.mode     : this.mode;
-    this.repeat =   __defined(opts.repeat)   ? opts.repeat   : this.repeat;
-    this.autoPlay = __defined(opts.autoPlay) ? opts.autoPlay : this.autoPlay;
+    this.debug =    is.defined(opts.debug)    ? opts.debug    : this.debug;
+    this.mode =     is.defined(opts.mode)     ? opts.mode     : this.mode;
+    this.repeat =   is.defined(opts.repeat)   ? opts.repeat   : this.repeat;
+    this.autoPlay = is.defined(opts.autoPlay) ? opts.autoPlay : this.autoPlay;
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
     this.width =   opts.width || this.width;
@@ -828,57 +716,57 @@ Player.prototype._addOpts = function(opts) {
     this.ribbonsColor =
                    opts.ribbonsColor || this.ribbonsColor;
     this.thumbnail = opts.thumbnail || this.thumbnail;
-    this.loadingMode = __defined(opts.loadingMode)
+    this.loadingMode = is.defined(opts.loadingMode)
                         ? opts.loadingMode : this.loadingMode;
-    this.audioEnabled = __defined(opts.audioEnabled)
+    this.audioEnabled = is.defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
-    this.imagesEnabled = __defined(opts.imagesEnabled)
+    this.imagesEnabled = is.defined(opts.imagesEnabled)
                         ? opts.imagesEnabled : this.imagesEnabled;
-    this.shadowsEnabled = __defined(opts.shadowsEnabled)
+    this.shadowsEnabled = is.defined(opts.shadowsEnabled)
                         ? opts.shadowsEnabled : this.shadowsEnabled;
-    this.controlsEnabled = __defined(opts.controlsEnabled)
+    this.controlsEnabled = is.defined(opts.controlsEnabled)
                         ? opts.controlsEnabled : this.controlsEnabled;
-    this.infoEnabled = __defined(opts.infoEnabled)
+    this.infoEnabled = is.defined(opts.infoEnabled)
                         ? opts.infoEnabled : this.infoEnabled;
-    this.handleEvents = __defined(opts.handleEvents)
+    this.handleEvents = is.defined(opts.handleEvents)
                         ? opts.handleEvents : this.handleEvents;
-    this.drawStill = __defined(opts.drawStill)
+    this.drawStill = is.defined(opts.drawStill)
                         ? opts.drawStill : this.drawStill;
-    this.infiniteDuration = __defined(opts.infiniteDuration)
+    this.infiniteDuration = is.defined(opts.infiniteDuration)
                         ? opts.infiniteDuration : this.infiniteDuration;
-    this.forceAnimationSize = __defined(opts.forceAnimationSize)
+    this.forceAnimationSize = is.defined(opts.forceAnimationSize)
                         ? opts.forceAnimationSize : this.forceAnimationSize;
-    this.muteErrors = __defined(opts.muteErrors)
+    this.muteErrors = is.defined(opts.muteErrors)
                         ? opts.muteErrors : this.muteErrors;
 }
 Player.prototype._checkOpts = function() {
     if (!this.canvas) return;
 
-    this.infiniteDuration = __defined(this.infiniteDuration)
+    this.infiniteDuration = is.defined(this.infiniteDuration)
                             ? this.infiniteDuration
                             : (this.mode ? (this.mode & C.M_INFINITE_DURATION) : undefined);
-    this.handleEvents = __defined(this.handleEvents)
+    this.handleEvents = is.defined(this.handleEvents)
                             ? this.handleEvents
                             : (this.mode ? (this.mode & C.M_HANDLE_EVENTS) : undefined);
-    this.controlsEnabled = __defined(this.controlsEnabled)
+    this.controlsEnabled = is.defined(this.controlsEnabled)
                             ? this.controlsEnabled
                             : (this.mode ? (this.mode & C.M_CONTROLS_ENABLED) : undefined);
-    this.infoEnabled = __defined(this.infoEnabled)
+    this.infoEnabled = is.defined(this.infoEnabled)
                             ? this.infoEnabled
                             : (this.mode ? (this.mode & C.M_INFO_ENABLED) : undefined);
-    this.drawStill = __defined(this.drawStill)
+    this.drawStill = is.defined(this.drawStill)
                             ? this.drawStill
                             : (this.mode ? (this.mode & C.M_DRAW_STILL) : undefined);
 
     if (!this.width || !this.height) {
-        var cvs_size = $engine.getCanvasSize(this.canvas);
+        var cvs_size = engine.getCanvasSize(this.canvas);
         this.width = cvs_size[0];
         this.height = cvs_size[1];
     }
 
     this._resize(this.width, this.height);
 
-    if (this.bgColor) $engine.setCanvasBackground(this.canvas, this.bgColor);
+    if (this.bgColor) engine.setCanvasBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
@@ -898,7 +786,7 @@ Player.prototype._checkOpts = function() {
     }
 
     if (this.ctx) {
-        var props = $engine.getAnmProps(this.ctx);
+        var props = engine.getAnmProps(this.ctx);
         props.skip_shadows = !this.shadowsEnabled;
     }
 
@@ -922,10 +810,9 @@ Player.prototype._updateMode = function() {
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
     this.stop();
-    Text.__measuring_f = $engine.createTextMeasurer();
     /* TODO: load some default information into player */
-    var to_load = $engine.hasUrlToLoad(this.wrapper);
-    if (!to_load.url) to_load = $engine.hasUrlToLoad(this.canvas);
+    var to_load = engine.hasUrlToLoad(this.wrapper);
+    if (!to_load.url) to_load = engine.hasUrlToLoad(this.canvas);
     if (to_load.url) {
         this.load(to_load.url,
                   (to_load.importer_id) && anm.importers.isAccessible(to_load.importer_id)
@@ -983,7 +870,7 @@ Player.prototype.changeZoom = function(zoom) {
  * draw current {@link anm.Animation animation} at specified time
  */
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw new PlayerErr(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
+    if (time === Player.NO_TIME) throw new errors.PlayerError(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
     if ((this.state.happens === C.RES_LOADING) &&
         (player.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
                                                    return; } // if player loads remote resources just now,
@@ -991,7 +878,7 @@ Player.prototype.drawAt = function(time) {
                                                              // will be called when all remote resources were
                                                              // finished loading
     if ((time < 0) || (time > this.anim.duration)) {
-        throw new PlayerErr(utils.strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
+        throw new errors.PlayerError(utils.strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
@@ -1046,7 +933,7 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
     if (player.__thumb &&
         player.__thumb.src == url) return;
     if (player.ctx) { // FIXME: make this a function
-      var ratio = $engine.PX_RATIO,
+      var ratio = engine.PX_RATIO,
           ctx = player.ctx;
       ctx.save();
       ctx.clearRect(0, 0, player.width * ratio, player.height * ratio);
@@ -1071,14 +958,14 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
  * @method detach
  */
 Player.prototype.detach = function() {
-    if (!$engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
     if (this.controls) this.controls.detach(this.wrapper);
-    $engine.detachPlayer(this);
+    engine.detachPlayer(this);
     if (this.ctx) {
-        $engine.clearAnmProps(this.ctx);
+        engine.clearAnmProps(this.ctx);
     }
     this._reset();
-    _PlrMan.fire(C.S_PLAYER_DETACH, this);
+    playerManager.fire(C.S_PLAYER_DETACH, this);
 }
 /**
  * @method attachedTo
@@ -1086,13 +973,13 @@ Player.prototype.detach = function() {
  * @param {HTMLElement} canvas_or_wrapper
  */
 Player.prototype.attachedTo = function(canvas_or_wrapper) {
-    return $engine.playerAttachedTo(canvas_or_wrapper, this);
+    return engine.playerAttachedTo(canvas_or_wrapper, this);
 }
 /**
  * @method isAttached
  */
 Player.prototype.isAttached = function() {
-    return $engine.playerAttachedTo(this.wrapper, this);
+    return engine.playerAttachedTo(this.wrapper, this);
 }
 /**
  * @static @method attachedTo
@@ -1101,7 +988,7 @@ Player.prototype.isAttached = function() {
  * @param {anm.Player} player
  */
 Player.attachedTo = function(canvas_or_wrapper, player) {
-    return $engine.playerAttachedTo(canvas_or_wrapper, player);
+    return engine.playerAttachedTo(canvas_or_wrapper, player);
 }
 /**
  * @method invalidate
@@ -1126,7 +1013,7 @@ Player.__invalidate = function(player) {
  */
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFOREFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw new errors.PlayerError(Errors.P.BEFOREFRAME_BEFORE_PLAY);
     this.__userBeforeFrame = callback;
 }
 /**
@@ -1137,7 +1024,7 @@ Player.prototype.beforeFrame = function(callback) {
  * @param {Boolean} callback.return
  */
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw new errors.PlayerError(Errors.P.AFTERFRAME_BEFORE_PLAY);
     this.__userAfterFrame = callback;
 }
 /**
@@ -1148,7 +1035,7 @@ Player.prototype.afterFrame = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.beforeRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.BEFORENDER_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw new errors.PlayerError(Errors.P.BEFORENDER_BEFORE_PLAY);
     this.__userBeforeRender = callback;
 }
 /**
@@ -1159,7 +1046,7 @@ Player.prototype.beforeRender = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.afterRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerErr(Errors.P.AFTERRENDER_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw new errors.PlayerError(Errors.P.AFTERRENDER_BEFORE_PLAY);
     this.__userAfterRender = callback;
 }
 /**
@@ -1169,10 +1056,10 @@ Player.prototype.afterRender = function(callback) {
  */
 Player.prototype.subscribeEvents = function(canvas) {
     var doRedraw = Player.__invalidate(this);
-    $engine.subscribeWindowEvents({
+    engine.subscribeWindowEvents({
         load: doRedraw
     });
-    $engine.subscribeCanvasEvents(canvas, {
+    engine.subscribeCanvasEvents(canvas, {
         mouseover: (function(player) {
                         return function(evt) {
                             if (global_opts.autoFocus &&
@@ -1202,7 +1089,7 @@ Player.prototype._drawEmpty = function() {
 
     ctx.save();
 
-    var ratio = $engine.PX_RATIO;
+    var ratio = engine.PX_RATIO;
     // FIXME: somehow scaling context by ratio here makes all look bad
 
     // background
@@ -1226,7 +1113,7 @@ Player.prototype._drawStill = function() {
         if (player.__thumb) {
             player._drawThumbnail();
         } else if (anim) {
-            if (!player.infiniteDuration && __finite(anim.duration)) {
+            if (!player.infiniteDuration && is.finite(anim.duration)) {
                 player.drawAt(anim.duration * Player.PREVIEW_POS);
             } else {
                 player.drawAt(state.from);
@@ -1243,7 +1130,7 @@ Player.prototype._drawThumbnail = function() {
         thumb_height  = thumb_dimen[1],
         player_width  = this.width,
         player_height = this.height,
-        px_ratio      = $engine.PX_RATIO;
+        px_ratio      = engine.PX_RATIO;
     var ctx = this.ctx;
     ctx.save();
     if (px_ratio != 1) ctx.scale(px_ratio, px_ratio);
@@ -1297,7 +1184,7 @@ Player.prototype._drawSplash = function() {
 
     ctx.setTransform(1, 0, 0, 1, 0, 0);
 
-    var ratio = $engine.PX_RATIO;
+    var ratio = engine.PX_RATIO;
 
     // background
     ctx.fillStyle = this.bgColor || Player.EMPTY_BG;
@@ -1423,7 +1310,7 @@ Player.prototype._reset = function() {
     if ((this.loadingMode === C.LM_ONREQUEST) &&
         (state.happens === C.RES_LOADING)) {
         this._clearPostpones();
-        _ResMan.cancel(this.id);
+        resourceManager.cancel(this.id);
     }
     state.happens = C.NOTHING;
     state.from = 0;
@@ -1431,8 +1318,8 @@ Player.prototype._reset = function() {
     state.duration = undefined;
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
     if (this.controls) this.controls.reset();
-    this.ctx.clearRect(0, 0, this.width * $engine.PX_RATIO,
-                             this.height * $engine.PX_RATIO);
+    this.ctx.clearRect(0, 0, this.width * engine.PX_RATIO,
+                             this.height * engine.PX_RATIO);
     /*this.stop();*/
 }
 Player.prototype._stopAndContinue = function() {
@@ -1445,26 +1332,26 @@ Player.prototype._stopAndContinue = function() {
 }
 // FIXME: moveTo is not moving anything for the moment
 Player.prototype._moveTo = function(x, y) {
-    $engine.setCanvasPosition(this.canvas, x, y);
+    engine.setCanvasPosition(this.canvas, x, y);
 }
 Player.prototype._resize = function(width, height) {
     var cvs = this.canvas,
         new_size = this.__userSize || [ width, height ],
-        cur_size = $engine.getCanvasParameters(cvs);
+        cur_size = engine.getCanvasParameters(cvs);
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
         new_size = cur_size;
     };
-    $engine.setCanvasSize(cvs, new_size[0], new_size[1]);
+    engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];
-    $engine.updateCanvasOverlays(cvs);
+    engine.updateCanvasOverlays(cvs);
     if (this.controls) this.controls.handleAreaChange();
     this.forceRedraw();
     return new_size;
 };
 Player.prototype._restyle = function(bg) {
-    $engine.setCanvasBackground(this.canvas, bg);
+    engine.setCanvasBackground(this.canvas, bg);
     this.forceRedraw();
 };
 // FIXME: methods below may be removed, but they are required for tests
@@ -1493,7 +1380,7 @@ Player.prototype._renderControlsAt = function(time) {
 }
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
-        $engine.setTabIndex(this.canvas, this.__instanceNum);
+        engine.setTabIndex(this.canvas, this.__instanceNum);
     }
     if (anim) {
         var subscribed = false;
@@ -1515,7 +1402,7 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
 }
 Player.prototype.__unsubscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
-        $engine.setTabIndex(this.canvas, undefined);
+        engine.setTabIndex(this.canvas, undefined);
     }
     if (anim) {
         if (!this.__boundTo) return;
@@ -1532,10 +1419,10 @@ Player.prototype.__unsubscribeDynamicEvents = function(anim) {
     }
 }
 Player.prototype._ensureHasState = function() {
-    if (!this.state) throw new PlayerErr(Errors.P.NO_STATE);
+    if (!this.state) throw new errors.PlayerError(Errors.P.NO_STATE);
 }
 Player.prototype._ensureHasAnim = function() {
-    if (!this.anim) throw new PlayerErr(Errors.P.NO_ANIMATION);
+    if (!this.anim) throw new errors.PlayerError(Errors.P.NO_ANIMATION);
 }
 Player.prototype.__beforeFrame = function(anim) {
     return (function(player, state, anim, callback) {
@@ -1544,7 +1431,7 @@ Player.prototype.__beforeFrame = function(anim) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
-                 (__finite(state.duration) &&
+                 (is.finite(state.duration) &&
                     (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
@@ -1554,7 +1441,7 @@ Player.prototype.__beforeFrame = function(anim) {
                    player.play();
                    player.fire(C.S_REPEAT);
                 } else if (!player.infiniteDuration
-                       && __finite(state.duration)) {
+                       && is.finite(state.duration)) {
                    player.drawAt(state.duration);
                 }
                 return false;
@@ -1584,7 +1471,7 @@ Player.prototype.__afterFrame = function(anim) {
 Player.prototype.__onerror = function(err) {
   var player = this;
   var doMute = player.muteErrors;
-      doMute = doMute && !(err instanceof SysErr);
+      doMute = doMute && !(err instanceof errors.SystemError);
 
   if (player.state &&
       ((player.state.happens == C.LOADING) ||
@@ -1600,7 +1487,7 @@ Player.prototype.__onerror = function(err) {
 
       player.anim = null;
       // was here: /*if (player.state)*/ player.__unsafe_stop();
-  } catch(e) { throw new SysErr(utils.strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
+  } catch(e) { throw new errors.SystemError(utils.strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
 
   try {
       if (player.state &&
@@ -1665,7 +1552,7 @@ Player.prototype.__makeSafe = function(methods) {
   var player = this;
   for (var i = 0, il = methods.length; i < il; i++) {
     var method = methods[i];
-    if (!player[method]) throw new SysErr(utils.strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
+    if (!player[method]) throw new errors.SystemError(utils.strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
     player['__unsafe_'+method] = player[method];
     player[method] = player.__defSafe(player[method]);
   }
@@ -1695,7 +1582,7 @@ Player.prototype._notifyAPI = function() {
     if (this._loadTarget !== C.LT_URL) return;
     if (!this._loadSrc || !this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     if (!this.statImg) {
-      this.statImg = $engine.createStatImg();
+      this.statImg = engine.createStatImg();
     };
     var loadSrc = this._loadSrc,
         id = this.anim.meta._anm_id,
@@ -1761,12 +1648,12 @@ Player._optsFromUrlParams = function(params/* as object */) {
     function __extractBool() {
         var variants = arguments;
         for (var i = 0; i < variants.length; i++) {
-            if (__defined(params[variants[i]])) return __boolParam(params[variants[i]]);
+            if (is.defined(params[variants[i]])) return __boolParam(params[variants[i]]);
         }
         return undefined;
     }
     var opts = {};
-    opts.debug = __defined(params.debug) ? __boolParam(params.debug) : undefined;
+    opts.debug = is.defined(params.debug) ? __boolParam(params.debug) : undefined;
     opts.muteErrors = __extractBool('me', 'muterrors');
     opts.repeat = __extractBool('r', 'repeat');
     opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
@@ -1813,82 +1700,22 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     // flag was set from some different source of options (async, for example),
     // then the rule (for the moment) is: last one wins
 
-    if (__defined(params.t)) {
+    if (is.defined(params.t)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.t / 100);
-    } else if (__defined(params.from)) {
+    } else if (is.defined(params.from)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.from / 100);
-    } else if (__defined(params.p)) {
+    } else if (is.defined(params.p)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
-    } else if (__defined(params.still)) {
+    } else if (is.defined(params.still)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.still / 100).pause();
     }
 }
-// TODO:
-/* function ModBuilder() {
-
-} */
-// new Modifier().band(0, 2).normalBand(0, 0.5).
-//   easing(..).priority(..).data(..);
-
-/* function TweenBuilder() {
-    this.value = Tween();
-} */
-// new TweenBuilder().band(...).type("scale").from(10, 20).to(30, 40).scale(band, 10).build()
-
-
-// Import
-// -----------------------------------------------------------------------------
 
 
 
 
-// Exports
-// -----------------------------------------------------------------------------
-
-return (function(anm) {
-
-    function createPlayer(elm, opts) { var p = new Player();
-                                         p.init(elm, opts); return p; }
-    function findAndInitPotentialPlayers() {
-        var matches = $engine.findPotentialPlayers();
-        for (var i = 0, il = matches.length; i < il; i++) {
-            createPlayer(matches[i]);
-        }
-    }
-
-    //registerGlobally('createPlayer', __createPlayer);
-
-    /*anm.__js_pl_all = this;*/
-
-    anm.createPlayer = createPlayer;
-    anm.findById = function(where, id) {
-        var found = [];
-        if (where.name == name) found.push(name);
-        where.travelChildren(function(elm)  {
-            if (elm.id == id) found.push(elm);
-        });
-        return found;
-    }
-    anm.findByName = function(where, name) {
-        where.findByName(name);
-    }
-
-    anm._$ = createPlayer;
-
-    anm.Player = Player;
-    anm.Animation = Animation; anm.Element = Element; anm.Clip = Element;
-    anm.Path = Path; anm.Text = Text; anm.Sheet = Sheet; anm.Image = Sheet;
-    anm.Modifier = Modifier; anm.Painter = Painter;
-    anm.Brush = Brush;
-    anm.Color = Color;
-    anm.Tween = Tween;
-    anm.MSeg = MSeg; anm.LSeg = LSeg; anm.CSeg = CSeg;
-    anm.Render = Render; anm.Bands = Bands;  // why Render and Bands classes are visible to pulic?
-    $engine.onDocReady(findAndInitPotentialPlayers);
-    return Player;
-
-})(anm);
+module.exports = Player;

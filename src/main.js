@@ -11,16 +11,22 @@
 
 var PUBLIC_NAMESPACE = 'anm';
 
-var ENGINE_VAR = '__anm_engine';
+var constants = require('./anm/constants.js'),
+    engine = require('engine'),
+    Player = require('./anm/player.js');
 
-var constants = require('./anm/constants.js');
+function findAndInitPotentialPlayers() {
+    var matches = engine.findPotentialPlayers();
+    for (var i = 0, il = matches.length; i < il; i++) {
+        anm.createPlayer(matches[i]);
+    }
+}
 
+engine.onDocReady(findAndInitPotentialPlayers);
 
-
-// Engine
-// -----------------------------------------------------------------------------
-var engine = require('engine');
-
+var Element = require('./anm/element.js'),
+    Sheet = require('./anm/sheet.js'),
+    segments = require('./anm/segments.js');
 
 // Public Namespace
 // -----------------------------------------------------------------------------
@@ -31,24 +37,39 @@ var anm = {
     importers: require('./anm/importers.js'),
     conf: require('./anm/conf.js'),
     log: require('./anm/log.js'),
-    // Engine
     engine: engine,
-    // Events
     events: require('./anm/events.js'),
-    // Managers
     resource_manager: require('./anm/resource_manager.js'),
     player_manager: require('./anm/player_manager.js'),
-
     loc: require('./anm/loc.js'),
     errors: require('./anm/errors.js'),
+    utils: require('./anm/utils.js'),
 
-    utils: require('./anm/utils.js')
+    Player: Player,
+    Animation: require('./anm/animation.js'),
+    Element: Element,
+    Clip: Element,
+    Path: require('./anm/path.js'),
+    Text: require('./anm/text.js'),
+    Sheet: Sheet,
+    Image: Sheet,
+    Modifier: require('./anm/modifier.js'),
+    Painter: require('./anm/painter.js'),
+    Brush: require('./anm/brush.js'),
+    Color: require('./anm/color.js'),
+    Tween: require('./anm/tween.js'),
+    MSeg: segments.MSeg,
+    LSeg: segments.LSeg,
+    CSeg: segments.CSeg,
+
+    createPlayer: function(elm, opts) {
+        var p = new Player();
+        p.init(elm, opts);
+        return p;
+    }
 };
-
-
 
 // Export
 // -----------------------------------------------------------------------------
-
 global[PUBLIC_NAMESPACE] = anm;
 module.exports = anm;
