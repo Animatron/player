@@ -30,8 +30,6 @@ var anm = {
     modules: require('./anm/modules.js'),
     importers: require('./anm/importers.js'),
     conf: require('./anm/conf.js'),
-    is: require('./anm/is.js'),
-    iter: require('./anm/iter.js'),
     log: require('./anm/log.js'),
     // Engine
     engine: engine,
