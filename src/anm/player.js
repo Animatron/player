@@ -248,13 +248,13 @@ Player.prototype.init = function(elm, opts) {
  * * `load(animation, duration, callback)`;
  * * `load(animation, duration, importer, callback)`;
  *
+ * TODO
+ *
  * @param {anm.Animation|Object} animation
  * @param {Number} [duration]
  * @param {anm.Importer} [importer]
  * @param {Function} [callback]
- * @param {anm.Animation} callback.animation The resulting Animation, was it adapted with Importer or not
- *
- * TODO
+ * @param {anm.Animation} callback.animation The resulting {@link anm.Animation animation}, was it adapted with {@link anm.Importer importer} or not
  */
 Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
@@ -443,6 +443,8 @@ var __nextFrame = engine.getRequestFrameFunc(),
  * @method play
  * @chainable
  *
+ * Start playing current {@link anm.Animation animation} from the very start, or, if specified, some given time.
+ *
  * @param {Number} [from]
  * @param {Number} [speed]
  * @param {Number} [stopAfter]
@@ -553,6 +555,8 @@ Player.prototype.play = function(from, speed, stopAfter) {
 /**
  * @method stop
  * @chainable
+ *
+ * Stop playing an {@link anm.Animation animation}.
  */
 Player.prototype.stop = function() {
     /* if (state.happens === C.STOPPED) return; */
@@ -614,6 +618,8 @@ Player.prototype.stop = function() {
 /**
  * @method pause
  * @chainable
+ *
+ * Pause the {@link anm.Animation animation}, if playing.
  */
 Player.prototype.pause = function() {
     var player = this;
@@ -660,6 +666,8 @@ Player.prototype.pause = function() {
 
 /**
  * @method onerror
+ *
+ * Set a callback to be called on every error happened
  *
  * @param {Function} callback
  * @param {Error} callback.error
@@ -819,8 +827,12 @@ Player.prototype._postInit = function() {
                   ? anm.importers.create(to_load.importer_id) : null);
     }
 }
+// TODO: player.mode()
 /**
  * @method changeRect
+ * @deprecated in favor of `rect()`
+ *
+ * Change the rectangle Player owns at a page.
  *
  * @param {Object} rect
  * @param {Number} rect.x
@@ -843,6 +855,8 @@ Player.prototype.changeRect = function(rect) {
 } */
 /**
  * @method forceRedraw
+ *
+ * Force player to redraw controls and visuals according to current state
  */
 Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.forceNextRedraw();
@@ -858,6 +872,9 @@ Player.prototype.forceRedraw = function() {
 }
 /**
  * @method changeZoom
+ * @deprecated in favor of `zoom()`
+ *
+ * Change zoom of an {@link anm.Animation animation}. Does not resizes the player itself.
  *
  * @param {Number} zoom
  */
@@ -867,8 +884,9 @@ Player.prototype.changeZoom = function(zoom) {
 /**
  * @method drawAt
  *
+ * Draw current {@link anm.Animation animation} at specified time
+ *
  * @param {Number} time
- * draw current {@link anm.Animation animation} at specified time
  */
 Player.prototype.drawAt = function(time) {
     if (time === Player.NO_TIME) throw new errors.PlayerError(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
@@ -900,6 +918,9 @@ Player.prototype.drawAt = function(time) {
 }
 /**
  * @method setSize
+ * @deprecated in favor of `size()`
+ *
+ * Set player width and height manually.
  *
  * @param {Number} width
  * @param {Number} height
@@ -910,8 +931,10 @@ Player.prototype.setSize = function(width, height) {
 }
 /**
  * @method setThumbnail
+ * @deprecated in favor of `thumbnail()`
  *
- * TODO
+ * Allows to set thumbnail for a player, so player will show this image during the process of
+ * loading an animation and when there's no animation was loaded inside.
  *
  * ...It's optional to specify `target_width`/`target_height`, especially if aspect ratio
  * of animation(s) that will be loaded into player matches to aspect ratio of player itself.
@@ -920,6 +943,7 @@ Player.prototype.setSize = function(width, height) {
  * so, since animation will be received later, and if aspect ratios of animation and player
  * does not match, both thumbnail and the animation will be drawn at a same position
  * with same black ribbons applied;
+ *
  * If size will not be specified, player will try to match aspect ratio of an image to
  * show it without stretches, so if thumbnail image size matches to animation size has
  * the same aspect ratio as an animation, it is also ok to omit the size data here
@@ -957,6 +981,9 @@ Player.prototype.setThumbnail = function(url, target_width, target_height) {
 }
 /**
  * @method detach
+ *
+ * Detach Player from the DOM — removes all the elements were create for
+ * this Player instance.
  */
 Player.prototype.detach = function() {
     if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
@@ -970,6 +997,9 @@ Player.prototype.detach = function() {
 }
 /**
  * @method attachedTo
+ * @deprecated in favor of `attached(elm)`
+ *
+ * Check if this player was attached to a given element.
  *
  * @param {HTMLElement} canvas_or_wrapper
  */
@@ -978,12 +1008,17 @@ Player.prototype.attachedTo = function(canvas_or_wrapper) {
 }
 /**
  * @method isAttached
+ * @deprecated in favor of `attached()`
+ *
+ * Check if player was attached to a DOM
  */
 Player.prototype.isAttached = function() {
     return engine.playerAttachedTo(this.wrapper, this);
 }
 /**
  * @static @method attachedTo
+ *
+ * Check if this player was attached to a given element.
  *
  * @param {HTMLElement} canvas_or_wrapper
  * @param {anm.Player} player
@@ -1008,6 +1043,8 @@ Player.__invalidate = function(player) {
 /**
  * @method beforeFrame
  *
+ * Call given function before rendering every frame during playing (when context was already modified for this frame)
+ *
  * @param {Function} callback
  * @param {Number} callback.time
  * @param {Boolean} callback.return
@@ -1020,6 +1057,8 @@ Player.prototype.beforeFrame = function(callback) {
 /**
  * @method afterFrame
  *
+ * Call given function after rendering every frame during playing (when context is still modified for this frame)
+ *
  * @param {Function} callback
  * @param {Number} callback.time
  * @param {Boolean} callback.return
@@ -1030,6 +1069,8 @@ Player.prototype.afterFrame = function(callback) {
 }
 /**
  * @method beforeRender
+ *
+ * Call given function before rendering every frame during playing (when context is not yet modified for this frame)
  *
  * @param {Function} callback
  * @param {Number} callback.time
@@ -1042,6 +1083,8 @@ Player.prototype.beforeRender = function(callback) {
 /**
  * @method afterRender
  *
+ * Call given function after rendering every frame during playing (when context modications are rolled back)
+ *
  * @param {Function} callback
  * @param {Number} callback.time
  * @param {Canvas2DContext} callback.ctx
@@ -1052,6 +1095,9 @@ Player.prototype.afterRender = function(callback) {
 }
 /**
  * @method subscribeEvents
+ * @private
+ *
+ * Subscribe all the required events for given canvas.
  *
  * @param {Canvas} canvas
  */
@@ -1614,7 +1660,9 @@ Player.prototype._notifyAPI = function() {
 
 /**
  * @deprecated
- * @static @method createState
+ * @static @private @method createState
+ *
+ * Create a state for current player instance.
  *
  * @return {Object} Player state
  */
@@ -1676,9 +1724,11 @@ Player._optsFromUrlParams = function(params/* as object */) {
 /**
  * @static @method forSnapshot
  *
+ * Load an {@link anm.Animation animation} from a JSON located at some remote URL.
+ *
  * @param {HTMLElement|String} elm DOM Element ID or the DOM Element itself
- * @param {String} snapshot_url
- * @param {anm.Importer} importer
+ * @param {String} snapshot_url URL of a JSON
+ * @param {anm.Importer} importer an importer which knows how to convert given JSON to an {@link anm.Animation animation} instance
  * @param {Function} [callback]
  * @param {anm.Animation} callback.animation
  * @param {Object} [opts] see {@link anm.Player#init} for the description of possible options
