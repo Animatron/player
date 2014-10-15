@@ -79,7 +79,7 @@ var C = require('./constants.js'),
  * * {@link anm.Player#pause}
  * * {@link anm.Player#drawAt}
  *
- * To set thumbnail to show while animation loads or wasn't started, use {@link anm.Player#setThumbnail}.
+ * To set thumbnail to show while animation loads or wasn't started, use {@link anm.Player#thumbnail}.
  *
  * @constructor
  */
@@ -710,20 +710,20 @@ Player.prototype._prepare = function(elm) {
     this.__canvasPrepared = true;
 }
 Player.prototype._addOpts = function(opts) {
-    // TODO: use addOpts to add any additional options to current ones
-    // will move all options directly in the player object
     this.debug =    is.defined(opts.debug)    ? opts.debug    : this.debug;
-    this.mode =     is.defined(opts.mode)     ? opts.mode     : this.mode;
     this.repeat =   is.defined(opts.repeat)   ? opts.repeat   : this.repeat;
     this.autoPlay = is.defined(opts.autoPlay) ? opts.autoPlay : this.autoPlay;
+
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
     this.width =   opts.width || this.width;
     this.height =  opts.height || this.height;
     this.bgColor = opts.bgColor || this.bgColor;
+
     this.ribbonsColor =
                    opts.ribbonsColor || this.ribbonsColor;
-    this.thumbnail = opts.thumbnail || this.thumbnail;
+    this.thumbnailSrc = opts.thumbnail || this.thumbnailSrc;
+
     this.loadingMode = is.defined(opts.loadingMode)
                         ? opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled)
@@ -746,25 +746,11 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.forceAnimationSize : this.forceAnimationSize;
     this.muteErrors = is.defined(opts.muteErrors)
                         ? opts.muteErrors : this.muteErrors;
+
+    if (is.defined(opts.mode)) { this.mode(opts.mode); }
 }
 Player.prototype._checkOpts = function() {
     if (!this.canvas) return;
-
-    this.infiniteDuration = is.defined(this.infiniteDuration)
-                            ? this.infiniteDuration
-                            : (this.mode ? (this.mode & C.M_INFINITE_DURATION) : undefined);
-    this.handleEvents = is.defined(this.handleEvents)
-                            ? this.handleEvents
-                            : (this.mode ? (this.mode & C.M_HANDLE_EVENTS) : undefined);
-    this.controlsEnabled = is.defined(this.controlsEnabled)
-                            ? this.controlsEnabled
-                            : (this.mode ? (this.mode & C.M_CONTROLS_ENABLED) : undefined);
-    this.infoEnabled = is.defined(this.infoEnabled)
-                            ? this.infoEnabled
-                            : (this.mode ? (this.mode & C.M_INFO_ENABLED) : undefined);
-    this.drawStill = is.defined(this.drawStill)
-                            ? this.drawStill
-                            : (this.mode ? (this.mode & C.M_DRAW_STILL) : undefined);
 
     if (!this.width || !this.height) {
         var cvs_size = engine.getCanvasSize(this.canvas);
@@ -798,22 +784,7 @@ Player.prototype._checkOpts = function() {
         props.skip_shadows = !this.shadowsEnabled;
     }
 
-    this.__appliedMode = this.mode;
-
-    if (this.thumbnail) this.setThumbnail(this.thumbnail);
-}
-Player.prototype._updateMode = function() {
-    if (!this.canvas || !this.mode) return;
-    if (!this.__appliedMode == this.mode) return;
-
-    // force to re-use the mode value in _checkOpts
-    this.infiniteDuration = undefined;
-    this.handleEvents = undefined;
-    this.controlsEnabled = undefined;
-    this.infoEnabled = undefined;
-    this.drawStill = undefined;
-
-    this._checkOpts();
+    if (this.thumbnailSrc) this.thumbnail(this.thumbnailSrc);
 }
 // initial state of the player, called from constuctor
 Player.prototype._postInit = function() {
@@ -827,25 +798,46 @@ Player.prototype._postInit = function() {
                   ? anm.importers.create(to_load.importer_id) : null);
     }
 }
-// TODO: player.mode()
 /**
- * @method changeRect
- * @deprecated in favor of `rect()`
+ * @method mode
+ * @chainable
  *
- * Change the rectangle Player owns at a page.
+ * Set player mode. Since it splits mode to separate properties, this method doesn't work
+ * as getter.
  *
- * @param {Object} rect
+ * @param {Number} `C.M_*` constant
+ */
+Player.prototype.mode = function(val) {
+    if (!is.defined(val)) { throw new errors.PlayerError("Please define a mode to set"); }
+    this.infiniteDuration = (val & C.M_INFINITE_DURATION) || undefined;
+    this.handleEvents = (val & C.M_HANDLE_EVENTS) || undefined;
+    this.controlsEnabled = (val & C.M_CONTROLS_ENABLED) || undefined;
+    this.infoEnabled = (val & C.M_INFO_ENABLED) || undefined;
+    this.drawStill = (val & C.M_DRAW_STILL) || undefined;
+    return this;
+}
+/**
+ * @method rect
+ * @chainable
+ *
+ * Get or change the rectangle Player owns at a page.
+ *
+ * @param {Object} [rect]
  * @param {Number} rect.x
  * @param {Number} rect.y
  * @param {Number} rect.width
  * @param {Number} rect.height
+ *
+ * @return {Object|anm.Player}
  */
-// TODO: rename to "rect"
-Player.prototype.changeRect = function(rect) {
+Player.prototype.rect = function(rect) {
+    if (!rect) return { x: this.x, y: this.y,
+                        width: this.width, height: this.height };
     this.x = rect.x; this.y = rect.y;
     this.width = rect.width; this.height = rect.height;
     this._moveTo(rect.x, rect.y);
     this._resize(rect.width, rect.height);
+    return this;
 }
 /* Player.prototype._rectChanged = function(rect) {
     var cur_w = this.state.width,
@@ -871,15 +863,21 @@ Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.render(this.state.time);
 }
 /**
- * @method changeZoom
- * @deprecated in favor of `zoom()`
+ * @method zoom
+ * @chainable
  *
- * Change zoom of an {@link anm.Animation animation}. Does not resizes the player itself.
+ * Change zoom of an {@link anm.Animation animation}, or just get a current one.
+ * Does not resizes the player itself.
  *
- * @param {Number} zoom
+ * @param {Number} [zoom]
+ *
+ * @return {anm.Player|Number} The Player or current zoom
  */
-Player.prototype.changeZoom = function(zoom) {
-    this.zoom = zoom;
+Player.prototype.zoom = function(zoom) {
+    if (is.number(zoom)) {
+        this.zoom = zoom;
+        return this;
+    } else return this.zoom;
 }
 /**
  * @method drawAt
@@ -917,21 +915,24 @@ Player.prototype.drawAt = function(time) {
     return this;
 }
 /**
- * @method setSize
- * @deprecated in favor of `size()`
+ * @method size
+ * @chainable
  *
- * Set player width and height manually.
+ * Get or set and override Player width and height manually
  *
  * @param {Number} width
  * @param {Number} height
+ *
+ * @return {anm.Element|Array} width / height or the Element
  **/
-Player.prototype.setSize = function(width, height) {
+Player.prototype.size = function(width, height) {
+    if (!is.defined(width)) return [ this.width, this.height ];
     this.__userSize = [ width, height ];
     this._resize();
+    return this;
 }
 /**
- * @method setThumbnail
- * @deprecated in favor of `thumbnail()`
+ * @method thumbnail
  *
  * Allows to set thumbnail for a player, so player will show this image during the process of
  * loading an animation and when there's no animation was loaded inside.
@@ -952,8 +953,8 @@ Player.prototype.setSize = function(width, height) {
  * @param {Number} [target_width]
  * @param {Number} [target_height]
  */
-Player.prototype.setThumbnail = function(url, target_width, target_height) {
-    if (!url) return;
+Player.prototype.thumbnail = function(url, target_width, target_height) {
+    if (!url) return this.thumbnailSrc;
     var player = this;
     if (player.__thumb &&
         player.__thumb.src == url) return;
@@ -997,7 +998,6 @@ Player.prototype.detach = function() {
 }
 /**
  * @method attachedTo
- * @deprecated in favor of `attached(elm)`
  *
  * Check if this player was attached to a given element.
  *
@@ -1008,7 +1008,6 @@ Player.prototype.attachedTo = function(canvas_or_wrapper) {
 }
 /**
  * @method isAttached
- * @deprecated in favor of `attached()`
  *
  * Check if player was attached to a DOM
  */
@@ -1346,7 +1345,7 @@ Player.prototype._stopLoadingAnimation = function() {
  * @return a nice string
  */
 Player.prototype.toString = function() {
-    return "[ Player '" + this.id + "' m-" + this.mode + " ]";
+    return "[ Player '" + this.id + "' ]"; // "' m-" + this.mode + " ]";
 }
 // reset player to initial state, called before loading any animation
 Player.prototype._reset = function() {

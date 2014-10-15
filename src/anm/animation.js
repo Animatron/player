@@ -81,10 +81,10 @@ provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
  *
  * May be used as:
  *
- * `anim.add(new anm.Element());`
- * `anim.add([new anm.Element(), new anm.Element()]);`
- * `anim.add(function(ctx) {...}, function(t) { ... });`
- * `anim.add(function(ctx) {...}, function(t) { ... },
+ * * `anim.add(new anm.Element());`
+ * * `anim.add([new anm.Element(), new anm.Element()]);`
+ * * `anim.add(function(ctx) {...}, function(t) { ... });`
+ * * `anim.add(function(ctx) {...}, function(t) { ... },
  *           function(ctx, prev(ctx)) { ... });`
  *
  * @param {anm.Element|anm.Clip|Array[Element]} subject Any number of Elements to add
@@ -195,8 +195,8 @@ Animation.prototype.iter = function(func, rfunc) {
  * Render the Animation for given context at given time.
  *
  * @param {Canvas2DContext} ctx
- * @param {Float} time
- * @param {Float} [dt] The difference in time between current frame and previous one
+ * @param {Number} time
+ * @param {Number} [dt] The difference in time between current frame and previous one
  */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
@@ -228,7 +228,7 @@ Animation.prototype.handle__x = function(type, evt) {
  *
  * Get the duration where all child elements' bands fit.
  *
- * @return {Float} The calculated duration
+ * @return {Number} The calculated duration
  */
 Animation.prototype.getFittingDuration = function() {
     var max_pos = -Infinity;
@@ -439,7 +439,7 @@ Animation.prototype.find = function(name, where) {
     return found;
 }
 /**
- * @method find
+ * @method findById
  *
  * Searches for {@link anm.Element elements} by ID inside another inside the
  * Animation. Actually, just gets it from hash map, so O(1).
