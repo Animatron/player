@@ -25,6 +25,9 @@ var data_block_fn = function() {
    throw new AnimationError("Data should be passed to tween in a constructor");
 };
 
+// TODO: add function to add every tween type in easy way, may be separate module?
+// .tween(new anm.Tween(C.T_TRANSLATE, [[0, 0], [100, 100]]).band(0, Infinity)) does not work
+
 // tween order
 Tween.TWEENS_PRIORITY = {};
 Tween.TWEENS_COUNT = 8;

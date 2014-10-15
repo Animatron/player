@@ -10,7 +10,7 @@ function Text(lines, font, align, baseline, underlined) {
     this.align = align || Text.DEFAULT_ALIGN;
     this.baseline = baseline || Text.DEFAULT_BASELINE;
     this.underlined = is.defined(underlined) ? underlined : Text.DEFAULT_UNDERLINE;
-    this._bnds = null;
+    this.$bounds = null;
 }
 
 Text.DEFAULT_FFACE = 'sans-serif';
@@ -24,8 +24,8 @@ Text.__measuring_f = engine.createTextMeasurer();
 
 Text.prototype.apply = function(ctx) {
     ctx.save();
-    var dimen = this.dimen(),
-        height = (dimen[1] / this.lineCount()),
+    var bounds = this.bounds(),
+        height = (bounds.height / this.lineCount()),
         underlined = this.underlined;
     ctx.font = this.font;
     ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
@@ -50,11 +50,15 @@ Text.prototype.apply = function(ctx) {
         y = 0;
         Brush.stroke(ctx, stroke);
         ctx.lineWidth = 1;
+        var line_bounds = null,
+            line_width = 0,
+            me = this;
         this.visitLines(function(line) {
-            var width = me.dimen(line)[0];
+            line_bounds = Text.bounds(me, line);
+            line_width = line_bounds.width;
             ctx.beginPath();
             ctx.moveTo(0, y + height);      // not entirely correct
-            ctx.lineTo(width, y + height);
+            ctx.lineTo(line_width, y + height);
             ctx.stroke();
 
             y += height;
@@ -62,14 +66,10 @@ Text.prototype.apply = function(ctx) {
     }
     ctx.restore();
 }
-Text.prototype.dimen = function(/*optional: */lines) {
-    //if (this._dimen) return this._dimen;
-    if (!Text.__measuring_f) throw new SystemError('no Text buffer, bounds call failed');
-    return Text.__measuring_f(this, lines);
-}
 Text.prototype.bounds = function() {
-    var dimen = this.dimen();
-    return [ 0, 0, dimen[0], dimen[1] ];
+    if (this.$bounds) return this.$bounds;
+    var bounds = Text.bounds(this, this.lines);
+    return (this.$bounds = bounds);
 }
 // should be static
 Text.prototype.ascent = function(height, baseline) {
@@ -98,8 +98,17 @@ Text.prototype.clone = function() {
     }
     return c;
 }
-Text.prototype.invalidate = function() { }
+Text.prototype.invalidate = function() {
+    this.$bounds = null;
+}
 Text.prototype.reset = function() { }
 Text.prototype.dispose = function() { }
+Text.bounds = function(spec, lines) {
+    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
+    var dimen = Text.__measuring_f(spec, lines);
+    return {
+        x: 0, y: 0, width: dimen[0], height: dimen[0]
+    };
+}
 
 module.exports = Text;

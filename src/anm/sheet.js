@@ -82,7 +82,7 @@ Sheet.prototype.apply = function(ctx) {
     }
     this._active_region = region;
     ctx.drawImage(this._image, region[0], region[1],
-                                   region[2], region[3], 0, 0, region[2], region[3]);
+                               region[2], region[3], 0, 0, region[2], region[3]);
 }
 Sheet.prototype.applyMissed = function(ctx) {
     ctx.save();
@@ -101,23 +101,14 @@ Sheet.prototype.applyMissed = function(ctx) {
     ctx.stroke();
     ctx.restore();
 }
-Sheet.prototype.dimen = function() {
-    if (this.wasError) return [ Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
-    /* if (!this.ready || !this._active_region) return [0, 0];
-    var r = this._active_region;
-    return [ r[2], r[3] ]; */
-    return this._dimen;
-}
+Sheet.MISSED_BOUNDS = { x: 0, y: 0, width: Sheet.MISSED_SIDE, height: Sheet.MISSED_SIDE };
+Sheet.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
 Sheet.prototype.bounds = function() {
-    if (this.wasError) return [ 0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE ];
+    if (this.wasError) return Sheet.MISSED_BOUNDS;
     // TODO: when using current_region, bounds will depend on that region
-    if (!this.ready || !this._active_region) return [0, 0, 0, 0];
+    if (!this.ready || !this._active_region) return Sheet.NO_BOUNDS;
     var r = this._active_region;
-    return [ 0, 0, r[2], r[3] ];
-}
-Sheet.prototype.boundsRect = function() {
-    // TODO: when using current_region, bounds will depend on that region
-    throw new Error('Not Implemented. Why?');
+    return { x: 0, y: 0, width: r[2], height: r[3] };
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);

@@ -155,9 +155,11 @@ Path.prototype.end = function() {
     return [ this.segs[lastidx].pts[s-2],   // last-x
              this.segs[lastidx].pts[s-1] ]; // last-y
 }
+Path.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
 Path.prototype.bounds = function() {
     // FIXME: it is not ok for curve path, possibly
-    if (this.segs.length <= 0) return [0, 0, 0, 0];
+    if (this.$bounds) return this.$bounds;
+    if (this.segs.length <= 0) return Path.NO_BOUNDS;
     var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
@@ -172,21 +174,9 @@ Path.prototype.bounds = function() {
             maxY = Math.max(maxY, pts[pi]);
         }
     });
-    return [ minX, minY, maxX, maxY ];
-}
-Path.prototype.dimen = function() {
-    // FIXME: cache bounds and dimen, reset on invalidate
-    var bounds = this.bounds();
-    return [ bounds[2] - bounds[0], bounds[3] - bounds[1] ];
-}
-Path.prototype.boundsRect = function() {
-    var b = this.bounds();
-    // returns clockwise coordinates of the points
-    // for easier drawing
-          // minX, minY, maxX, minY,
-    return [ b[0], b[1], b[2], b[1],
-          // maxX, maxY, minX, maxY
-             b[2], b[3], b[0], b[3] ];
+    return (this.$bounds = { x: minX, y: minY,
+                             width: maxX - minX,
+                             height: maxY - minY });
 }
 /* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {
@@ -219,12 +209,12 @@ Path.prototype.zoom = function(vals) {
 // and a center point
 Path.prototype.normalize = function() {
     var bounds = this.bounds();
-    var w = (bounds[2]-bounds[0]),
-        h = (bounds[3]-bounds[1]);
+    var w = bounds.width,
+        h = bounds.height;
     var hw = Math.floor(w/2),
         hh = Math.floor(h/2);
-    var min_x = bounds[0],
-        min_y = bounds[1];
+    var min_x = bounds.x,
+        min_y = bounds.y;
     this.vpoints(function(x, y) {
         return [ x - min_x - hw,
                  y - min_y - hh];
@@ -248,7 +238,9 @@ Path.prototype.clone = function() {
     });
     return _clone;
 }
-Path.prototype.invalidate = function() { }
+Path.prototype.invalidate = function() {
+    this.$bounds = null;
+}
 Path.prototype.reset = function() {
     this.segs = [];
 }

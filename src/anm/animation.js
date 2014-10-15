@@ -267,9 +267,9 @@ Animation.prototype.__ensureHasMaskCanvas = function(lvl) {
         this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
     if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
     if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = engine.createCanvas(this.width * 2, this.height * 2);
+    this.__maskCvs[lvl] = engine.createCanvas(1, 1);
     this.__maskCtx[lvl] = engine.getContext(this.__maskCvs[lvl], '2d');
-    this.__backCvs[lvl] = engine.createCanvas(this.width * 2, this.height * 2);
+    this.__backCvs[lvl] = engine.createCanvas(1, 1);
     this.__backCtx[lvl] = engine.getContext(this.__backCvs[lvl], '2d');
     //document.body.appendChild(this.__maskCvs[lvl]);
     //document.body.appendChild(this.__backCvs[lvl]);

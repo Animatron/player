@@ -174,7 +174,11 @@ Element.prototype.initVisuals = function() {
 
     this.composite_op = null; // composition operation
 
+    this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
+
+    this.$bounds = null; // Element bounds incl. children, cached
+    this.$my_bounds = null; // Element bounds on its own, cached
 
     return this;
 }
@@ -213,6 +217,7 @@ Element.prototype.resetEvents = Element.prototype.initEvents;
 // > Element.path % ([value: Path]) => Path | Element
 Element.prototype.path = function(value) {
     if (value) {
+        this.invalidate();
         this.type = C.ET_PATH;
         this.$path = value;
         return this;
@@ -221,6 +226,7 @@ Element.prototype.path = function(value) {
 // > Element.text % ([value: Text]) => Text | Element
 Element.prototype.text = function(value) {
     if (value) {
+        this.invalidate();
         this.type = C.ET_TEXT;
         this.$text = value;
         return this;
@@ -229,6 +235,7 @@ Element.prototype.text = function(value) {
 // > Element.image % ([value: Sheet]) => Sheet | Element
 Element.prototype.image = function(value) {
     if (value) {
+        this.invalidate();
         this.type = C.ET_SHEET;
         this.$image = value;
         return this;
@@ -398,6 +405,26 @@ Element.prototype.transform = function(ctx) {
     this.matrix.apply(ctx);
     return this.matrix;
 }
+// > Element.invTransform % (ctx: Context)
+Element.prototype.invTransform = function(ctx) {
+    this.matrix = Element.getIMatrixOf(this, this.matrix);
+    ctx.globalAlpha *= this.alpha;
+    this.matrix.apply(ctx);
+    return this.matrix;
+}
+// > Element.fullTransform % (ctx: Context)
+Element.prototype.fullTransform = function(ctx) {
+    var matrix = this.transform(ctx);
+    this.applyPivot(ctx);
+    this.applyReg(ctx);
+    return matrix;
+}
+// > Element.fullInvTransform % (ctx: Context)
+Element.prototype.fullInvTransform = function(ctx) {
+    this.applyInvReg(ctx);
+    this.applyInvPivot(ctx);
+    return this.invTransform(ctx);
+}
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
@@ -444,7 +471,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             // changed if there were jumps or something), so children will
             // get the proper value
             gtime = this.gtime(ltime);
-            if (!this.__mask) {
+            if (!this.$mask) {
                 // draw directly to context, if has no mask
                 this.transform(ctx);
                 this.painters(ctx);
@@ -452,6 +479,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     elm.render(ctx, gtime, dt);
                 });
             } else {
+                // FIXME: the complete mask process should be a Painter.
+
                 var anim = this.anim;
                 if (!anim) throw new AnimationError(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
                 var level = this.level;
@@ -461,51 +490,62 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var anim_width = anim.width,
-                    anim_height = anim.height,
-                    dbl_anim_width = anim.width * 2,
-                    dbl_anim_height = anim.height * 2,
-                    ratio = engine.PX_RATIO;
+                var bounds = this.bounds(),
+                    ratio = engine.PX_RATIO,
+                    width = Math.ceil(bounds.width),
+                    height = Math.ceil(bounds.height);
 
-                /* FIXME: configure mask canvas using clips bounds (incl. children) */
+                var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
 
-                // double size of the canvases ensures that the
-                // element will fit into canvas if its point was
+                if ((last_cvs_size[0] < (width * ratio)) ||
+                    (last_cvs_size[1] < (height * ratio))) {
+                    // mcvs/bcvs both always have the same size, so we save/check only one of them
+                    this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
+                    engine.setCanvasSize(bcvs, width, height);
+                } else {
+                    this._maskCvsSize = last_cvs_size;
+                }
 
                 bctx.save(); // bctx first open
                 if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, dbl_anim_width,
-                                     dbl_anim_height);
+                bctx.clearRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
 
-                bctx.translate(anim_width, anim_height);
-                this.transform(bctx);
+                // FIXME: disable particular painters instead
+                // draw() moves context to a pivot / registration point location,
+                // since they are treated as "visual" part (may be its not so right),
+                // so in this case we need to rollback them before
+                this.applyInvPivot(bctx);
+                this.applyInvReg(bctx);
                 this.visitChildren(function(elm) {
                     elm.render(bctx, gtime, dt);
                 });
-                this.draw(bctx, ltime, dt);
+                this.draw(bctx);
 
                 bctx.restore(); // bctx second closed
+
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
-                if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, dbl_anim_width,
-                                     dbl_anim_height);
 
-                mctx.translate(anim_width, anim_height);
-                this.__mask.render(mctx, gtime, dt);
+                if (ratio !== 1) mctx.scale(ratio, ratio);
+                mctx.clearRect(0, 0, width, height);
+
+                // same as above, we need not only to subtract our transformations
+                // (notice that we use NOT the mask matrix, but a matrix of the
+                // masked element (this)), but also to rollback pivot / reg.point
+                this.fullInvTransform(mctx);
+                this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 //bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0,
-                                     dbl_anim_width, dbl_anim_height);
+                bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                ctx.drawImage(bcvs, -anim_width, -anim_height,
-                                    dbl_anim_width, dbl_anim_height);
+                this.fullTransform(ctx);
+                ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }
           finally { ctx.restore(); }
@@ -641,7 +681,6 @@ Element.prototype.add = function(arg1, arg2, arg3) {
         var elm = new Element(arg1, arg2);
         if (arg3) elm.changeTransform(arg3);
         this._addChild(elm);
-        return elm;
     } else if (is.arr(arg1)) { // elements array mode
         for (var ei = 0, el = elms.length; ei < el; ei++) {
             this._addChild(elms[ei]);
@@ -649,11 +688,15 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     } else { // element object mode
         this._addChild(arg1);
     }
+    this.invalidate();
+    return this;
 }
 // > Element.remove % (elm: Element)
 Element.prototype.remove = function(elm) {
     if (!elm) throw new AnimationError(Errors.A.NO_ELEMENT_TO_REMOVE);
     if (this.__safeDetach(elm) == 0) throw new AnimationError(Errors.A.NO_ELEMENT);
+    this.invalidate();
+    return this;
 }
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
@@ -1005,41 +1048,97 @@ Element.prototype.global = function(pt) {
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
 Element.prototype.invalidate = function() {
-    //this._dimen = null;
+    this.$bounds = null;
+    this.$my_bounds = null;
+    if (this.parent) this.parent.invalidate();
+}
+Element.prototype.invalidateVisuals = function() {
     //TODO: replace with this['$' + this.type].invalidate() ?
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
 }
-Element.prototype.dimen = function() {
-    // _dimen value is not cached, it's just a user object allowing
-    // to set custom dimensions (though may be we also need to cache
-    // dimensions not relative to type)
-    if (this._dimen) return this._dimen;
+Element.prototype.bounds = function(value) {
+    if (value) { /* this.invalidate(); */ this.$bounds = value; return this; }
+    if (this.$bounds) return this.$bounds;
+    var my_bounds = this.myBounds();
+    if (!this.children.length) return (this.$bounds = my_bounds);
+    else {
+        // not to corrupt the bounds object, we clone it
+        var result = { x: my_bounds.x, // FIXME: Infinity?
+                       y: my_bounds.y, // FIXME: Infinity?
+                       width: my_bounds.width,
+                       height: my_bounds.height };
+        var child_bounds = null;
+        this.visitChildren(function(child) {
+            child_bounds = child.bounds();
+            if (child_bounds.x < result.x) result.x = child_bounds.x;
+            if (child_bounds.y < result.y) result.y = child_bounds.y;
+            if (child_bounds.width > result.width) result.width = child_bounds.width;
+            if (child_bounds.height > result.height) result.height = child_bounds.height;
+        });
+        return (this.$bounds = result);
+    }
+}
+Element.prototype.myBounds = function() {
+    if (this.$my_bounds) return this.$my_bounds;
     var subj = this.$path || this.$text || this.$image;
-    if (subj) return subj.dimen();
+    if (subj) { return (this.$my_bounds = subj.bounds()); }
+    else return (this.$my_bounds = { x: 0, y: 0, width: 0, height: 0 });
 }
-Element.prototype.bounds = function() {
-    if (this._bounds) return this._bounds;
+Element.prototype.isEmpty = function() {
+    var my_bounds = this.myBounds();
+    return (my_bounds.width == 0) && (my_bounds.height == 0);
+}
+Element.prototype.applyPivot = function(ctx) {
+    var pivot = this.$pivot;
+    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
+    var my_bounds = this.myBounds();
+    if (!my_bounds) return;
+    ctx.translate(-(pivot[0] * my_bounds.width),
+                  -(pivot[1] * my_bounds.height));
+}
+Element.prototype.applyInvPivot = function(ctx) {
+    var pivot = this.$pivot;
+    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
+    var my_bounds = this.myBounds();
+    if (!my_bounds) return;
+    ctx.translate(pivot[0] * my_bounds.width,
+                  pivot[1] * my_bounds.height);
+}
+Element.prototype.applyReg = function(ctx) {
+    var reg = this.$reg;
+    if ((reg[0] === 0) && (reg[1] === 0)) return;
+    ctx.translate(-reg[0], -reg[1]);
+}
+Element.prototype.applyInvReg = function(ctx) {
+    var reg = this.$reg;
+    if ((reg[0] === 0) && (reg[1] === 0)) return;
+    ctx.translate(reg[0], reg[1]);
+}
+Element.prototype.applyVisuals = function(ctx) {
     var subj = this.$path || this.$text || this.$image;
-    if (subj) return (this._bounds = subj.bounds());
+    if (!subj) return;
+
+    ctx.save();
+    // FIXME: split into p_applyBrush and p_drawVisuals,
+    //        so user will be able to use brushes with
+    //        his own painters
+    if (this.$fill)   { this.$fill.apply(ctx);   } else { Brush.clearFill(ctx);   };
+    if (this.$stroke) { this.$stroke.apply(ctx); } else { Brush.clearStroke(ctx); };
+    if (this.$shadow) { this.$shadow.apply(ctx); } else { Brush.clearShadow(ctx); };
+    subj.apply(ctx);
+    ctx.restore();
 }
-Element.prototype.boundsRect = function() {
-    var b = this.bounds();
-    if (!b) return null;
-    // returns clockwise coordinates of the points
-    // for easier drawing
-          // minX, minY, maxX, minY,
-    return [ b[0], b[1], b[2], b[1],
-          // maxX, maxY, minX, maxY
-             b[2], b[3], b[0], b[3] ];
+Element.prototype.applyAComp = function(ctx) {
+    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
 }
-Element.prototype.setMask = function(elm) {
-    if (!elm) throw new AnimErr('No valid masking element was passed');
+Element.prototype.mask = function(elm) {
+    if (!elm) return this.$mask;
     if (this.anim) this.anim.__ensureHasMaskCanvas(this.level);
-    this.__mask = elm;
+    this.$mask = elm;
 }
-Element.prototype.clearMask = function() {
-    this.__mask = null;
+Element.prototype.noMask = function() {
+    this.$mask = null;
 }
 Element.prototype.data = function(val) {
   if (!is.defined(val)) return this.$data;
@@ -1370,7 +1469,10 @@ Element.transferVisuals = function(src, trg) {
     trg.$path = src.$path ? src.$path.clone() : null;
     trg.$text = src.$text ? src.$text.clone() : null;
     trg.$image = src.$image ? src.$image.clone() : null;
+    trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
+    // trg.$bounds = src.$bounds ? src.$bounds.clone : null;
+    // trg.$my_bounds = src.$my_bounds ? src.$my_bounds.clone : null;
     trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {

@@ -147,49 +147,27 @@ Render.drawFPS = r_fps;
 
 // SYSTEM PAINTERS
 
-Render.p_useReg = new Painter(function(ctx) {
-    var reg = this.$reg;
-    if ((reg[0] === 0) && (reg[1] === 0)) return;
-    ctx.translate(-reg[0], -reg[1]);
-}, C.PNT_SYSTEM);
+Render.p_useReg = new Painter(function(ctx) { this.applyReg(ctx); }, C.PNT_SYSTEM);
 
-Render.p_usePivot = new Painter(function(ctx) {
-    var pivot = this.$pivot;
-    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
-    var dimen = this.dimen();
-    if (!dimen) return;
-    ctx.translate(-(pivot[0] * dimen[0]),
-                  -(pivot[1] * dimen[1]));
-}, C.PNT_SYSTEM);
+Render.p_usePivot = new Painter(function(ctx) { this.applyPivot(ctx); }, C.PNT_SYSTEM);
 
-Render.p_drawVisuals = new Painter(function(ctx) {
-    var subj = this.$path || this.$text || this.$image;
-    if (!subj) return;
+Render.p_drawVisuals = new Painter(function(ctx) { this.applyVisuals(ctx); }, C.PNT_SYSTEM);
 
-    ctx.save();
-    // FIXME: split into p_applyBrush and p_drawVisuals,
-    //        so user will be able to use brushes with
-    //        his own painters
-    if (this.$fill)   { this.$fill.apply(ctx);   } else { Brush.clearFill(ctx);   };
-    if (this.$stroke) { this.$stroke.apply(ctx); } else { Brush.clearStroke(ctx); };
-    if (this.$shadow) { this.$shadow.apply(ctx); } else { Brush.clearShadow(ctx); };
-    subj.apply(ctx);
-    ctx.restore();
-}, C.PNT_SYSTEM);
-
-Render.p_applyAComp = new Painter(function(ctx) {
-    if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
-}, C.PNT_SYSTEM);
+Render.p_applyAComp = new Painter(function(ctx) { this.applyAComp(ctx); }, C.PNT_SYSTEM);
 
 // DEBUG PAINTERS
 
+// TODO: also move into Element class
+
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
     if (!(pivot = pivot || this.$pivot)) return;
-    var dimen = this.dimen() || [ 0, 0 ];
-    var stokeStyle = dimen ? '#600' : '#f00';
+    var my_bounds = this.myBounds();
+    var stokeStyle = this.isEmpty() ? '#600' : '#f00';
     ctx.save();
-    ctx.translate(pivot[0] * dimen[0],
-                  pivot[1] * dimen[1]);
+    if (bounds) {
+        ctx.translate(pivot[0] * my_bounds.width,
+                      pivot[1] * my_bounds.height);
+    }
     ctx.beginPath();
     ctx.lineWidth = 1.0;
     ctx.strokeStyle = stokeStyle;

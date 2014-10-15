@@ -828,6 +828,7 @@ Player.prototype._postInit = function() {
  * @param {Number} rect.width
  * @param {Number} rect.height
  */
+// TODO: rename to "rect"
 Player.prototype.changeRect = function(rect) {
     this.x = rect.x; this.y = rect.y;
     this.width = rect.width; this.height = rect.height;
@@ -1125,9 +1126,9 @@ Player.prototype._drawStill = function() {
 }
 // _drawThumbnail draws a prepared thumbnail image, which is set by user
 Player.prototype._drawThumbnail = function() {
-    var thumb_dimen   = this.__thumbSize || this.__thumb.dimen(),
-        thumb_width   = thumb_dimen[0],
-        thumb_height  = thumb_dimen[1],
+    var thumb_bounds  = this.__thumbSize || this.__thumb.bounds(),
+        thumb_width   = thumb_bounds.width,
+        thumb_height  = thumb_bounds.width,
         player_width  = this.width,
         player_height = this.height,
         px_ratio      = engine.PX_RATIO;
@@ -1139,7 +1140,7 @@ Player.prototype._drawThumbnail = function() {
         this.__thumb.apply(ctx);
     } else {
         var f_rects    = utils.fit_rects(player_width, player_height,
-                                     thumb_width,  thumb_height),
+                                         thumb_width,  thumb_height),
             factor     = f_rects[0],
             thumb_rect = f_rects[1],
             rect1      = f_rects[2],

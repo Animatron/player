@@ -36,7 +36,7 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
         } catch(e) { failure(e); }
     };
 
-    var anm_cookie = $engine.getCookie('_animatronauth');
+    var anm_cookie = engine.getCookie('_animatronauth');
 
     engine.ajax(url, success, failure, 'GET',
         anm_cookie ? { 'Animatron-Security-Token': anm_cookie } : null);
