@@ -475,8 +475,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // draw directly to context, if has no mask
                 this.transform(ctx);
                 this.painters(ctx);
-                this.visitChildren(function(elm) {
-                    elm.render(ctx, gtime, dt);
+                this.each(function(child) {
+                    child.render(ctx, gtime, dt);
                 });
             } else {
                 // FIXME: the complete mask process should be a Painter.
@@ -518,8 +518,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // so in this case we need to rollback them before
                 this.applyInvPivot(bctx);
                 this.applyInvReg(bctx);
-                this.visitChildren(function(elm) {
-                    elm.render(bctx, gtime, dt);
+                this.each(function(child) {
+                    child.render(bctx, gtime, dt);
                 });
                 this.draw(bctx);
 
@@ -793,7 +793,7 @@ Element.prototype.inform = function(ltime) {
         if (!this.__firedStart) {
             this.fire(C.X_START, ltime, duration);
             // FIXME: it may fire start before the child band starts, do not do this!
-            /* this.travelChildren(function(elm) { // TODO: implement __fireDeep
+            /* this.traverse(function(elm) { // TODO: implement __fireDeep
                 if (!elm.__firedStart) {
                     elm.fire(C.X_START, ltime, duration);
                     elm.__firedStart = true;
@@ -805,7 +805,7 @@ Element.prototype.inform = function(ltime) {
         if (cmp >= 0) {
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
-                this.travelChildren(function(elm) { // TODO: implement __fireDeep
+                this.traverse(function(elm) { // TODO: implement __fireDeep
                     if (!elm.__firedStop) {
                         elm.fire(C.X_STOP, ltime, duration);
                         elm.__firedStop = true;
@@ -875,8 +875,8 @@ Element.prototype.findWrapBand = function() {
     var children = this.children;
     if (children.length === 0) return this.gband;
     var result = [ Infinity, 0 ];
-    this.visitChildren(function(elm) {
-        result = Bands.expand(result, elm.gband);
+    this.each(function(child) {
+        result = Bands.expand(result, child.gband);
         //result = Bands.expand(result, elm.findWrapBand());
     });
     return (result[0] !== Infinity) ? result : null;
@@ -884,8 +884,8 @@ Element.prototype.findWrapBand = function() {
 Element.prototype.dispose = function() {
     this.disposeHandlers();
     this.disposeVisuals();
-    this.visitChildren(function(elm) {
-        elm.dispose();
+    this.each(function(child) {
+        child.dispose();
     });
 }
 // FIXME: what's the difference with resetVisuals?
@@ -906,32 +906,35 @@ Element.prototype.reset = function() {
         if (modifier.__wasCalled) modifier.__wasCalled[elm.id] = false;
         if (is.defined(modifier.__wasCalledAt)) modifier.__wasCalledAt[elm.id] = -1;
     });
-    this.visitChildren(function(elm) {
+    this.each(function(elm) {
         elm.reset();
     });
 }
-Element.prototype.visitChildren = function(func) {
+Element.prototype.each = function(func) {
     var children = this.children;
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         func(children[ei]);
     };
     this.__unsafeToRemove = false;
+    return this;
 }
-Element.prototype.travelChildren = function(func) {
+Element.prototype.traverse = function(func) {
     var children = this.children;
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         var elem = children[ei];
         func(elem);
-        elem.travelChildren(func);
+        elem.traverse(func);
     };
     this.__unsafeToRemove = false;
+    return this;
 }
-Element.prototype.iterateChildren = function(func, rfunc) {
+Element.prototype.iter = function(func, rfunc) {
     this.__unsafeToRemove = true;
     iter(this.children).each(func, rfunc);
     this.__unsafeToRemove = false;
+    return this;
 }
 Element.prototype.hasChildren = function() {
     return this.children.length > 0;
@@ -1069,7 +1072,7 @@ Element.prototype.bounds = function(value) {
                        width: my_bounds.width,
                        height: my_bounds.height };
         var child_bounds = null;
-        this.visitChildren(function(child) {
+        this.each(function(child) {
             child_bounds = child.bounds();
             if (child_bounds.x < result.x) result.x = child_bounds.x;
             if (child_bounds.y < result.y) result.y = child_bounds.y;
@@ -1150,7 +1153,7 @@ Element.prototype.toString = function() {
     buf.push('\'' + (this.name || this.id) + '\' ');
     /*if (this.children.length > 0) {
         buf.push('( ');
-        this.visitChildren(function(child) {
+        this.each(function(child) {
             buf.push(child.toString() + ', ');
         });
         buf.push(') ');
@@ -1161,8 +1164,8 @@ Element.prototype.toString = function() {
     buf.push(']');
     return buf.join("");
 }
-Element.prototype.findByName = function(name) {
-    this.anim.findByName(name, this);
+Element.prototype.find = function(name) {
+    this.anim.find(name, this);
 }
 Element.prototype.clone = function() {
     var clone = new Element();
@@ -1424,7 +1427,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         }
         return 1;
     } else {
-        this.visitChildren(function(ielm) {
+        this.each(function(ielm) {
             found += ielm.__safeDetach(what, found);
         });
         return found;

@@ -217,7 +217,7 @@ __MYSELF.prototype._transferRepetitionData = function(src, trg) {
                              ? src['end'].counter : Infinity;
 
     if (src['end'] && (trg.mode == C.R_LOOP)) {
-        trg.travelChildren(function(child) {
+        trg.traverse(function(child) {
             child.mode = C.R_LOOP;
         });
     }

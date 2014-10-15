@@ -14,7 +14,7 @@ var Player = anm.Player,
 Player.prototype.exportAudio = function() {
   var result = [];
   if (this.anim) {
-    this.anim.visitElems(function(elm) {
+    this.anim.traverse(function(elm) {
       if (elm.is(C.ET_AUDIO)) {
         result.push({ 'url': elm._audio_url,
                       'band_offset': elm._audio_band_offset,

@@ -12,8 +12,8 @@ Bands.recalc = function(elm, in_band) {
                   : [0, 0] );
     elm.gband = [ in_band[0] + elm.lband[0],
                   in_band[0] + elm.lband[1] ];
-    elm.visitChildren(function(celm) {
-        Bands.recalc(celm, elm.gband);
+    elm.each(function(child) {
+        Bands.recalc(child, elm.gband);
     });
 }
 

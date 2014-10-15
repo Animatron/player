@@ -18,13 +18,13 @@ var $log = anm.log;
 
 var __findByName = function(elm) {
   return function(name, context) {
-    return anm.findByName(context || elm.anim, name);
+    return anm.find(context || elm.anim, name);
   };
 };
 
 var __jumpToScene = function(elm) {
   return function(name) {
-    var scenes = this.findByName(name);
+    var scenes = this.find(name);
     if (scenes.length) {
       elm.scene.invokeLater(function() {
         if (elm.scene.__player_instance) {

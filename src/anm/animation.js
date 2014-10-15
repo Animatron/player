@@ -34,6 +34,12 @@ var DOM_TO_EVT_MAP = {
 /**
  * @class anm.Animation
  *
+ * Create an Animation.
+ *
+ * It holds an elements tree, an id-to-element map, background fill, zoom and
+ * repeat option. It also may render itself to any context with {@link anm.Animation#render}
+ * method.
+ *
  * @constructor
  */
 function Animation() {
@@ -67,15 +73,25 @@ provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                            C.S_CHANGE_STATE,
                            C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                            C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
-/* TODO: add chaining to all external Animation methods? */
-// > Animation.add % (elem: Element | Clip)
-// > Animation.add % (elems: Array[Element]) => Clip
-// > Animation.add % (draw: Function(ctx: Context),
-//                onframe: Function(time: Float),
-//                [ transform: Function(ctx: Context,
-//                                      prev: Function(Context)) ])
-//                => Element
-// > Animation.add % (element: Element)
+/**
+ * @method add
+ * @chainable
+ *
+ * Append an one or several {@link anm.Element elements} to this animation.
+ *
+ * May be used as:
+ *
+ * `anim.add(new anm.Element());`
+ * `anim.add([new anm.Element(), new anm.Element()]);`
+ * `anim.add(function(ctx) {...}, function(t) { ... });`
+ * `anim.add(function(ctx) {...}, function(t) { ... },
+ *           function(ctx, prev(ctx)) { ... });`
+ *
+ * @param {anm.Element|anm.Clip|Array[Element]} subject Any number of Elements to add
+ *
+ * @return {anm.Element} The Element was appended.
+ *
+ */
 Animation.prototype.add = function(arg1, arg2, arg3) {
     // this method only adds an element to a top-level
     // FIXME: allow to add elements deeper or rename this
@@ -84,18 +100,26 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
         var elm = new Element(arg1, arg2);
         if (arg3) elm.changeTransform(arg3);
         this.addToTree(elm);
-        return elm;
+        //return elm;
     } else if (is.arr(arg1)) { // elements array mode
         var clip = new Clip();
         clip.add(arg1);
         this.addToTree(_clip);
-        return clip;
+        //return clip;
     } else { // element object mode
         this.addToTree(arg1);
     }
+    return this;
 }
 /* addS allowed to add static element before, such as image, may be return it in some form? */
-// > Animation.remove % (elm: Element)
+/**
+ * @method remove
+ * @chainable
+ *
+ * Remove (unregister) element from this animation.
+ *
+ * @param {anm.Element} element
+ */
 Animation.prototype.remove = function(elm) {
     // error will be thrown in _unregister method
     //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
@@ -105,6 +129,7 @@ Animation.prototype.remove = function(elm) {
     } else {
         this._unregister(elm);
     }
+    return this;
 }
 // > Animation.prototype.clear % ()
 /* Animation.prototype.clear = function() {
@@ -117,23 +142,62 @@ Animation.prototype.remove = function(elm) {
         hash[elm.id]._unbind(); // unsafe, because calls unregistering
     }
 } */
-// > Animation.visitElems % (visitor: Function(elm: Element))
-Animation.prototype.visitElems = function(visitor, data) {
+/**
+ * @method traverse
+ * @chainable
+ *
+ * Visit every element in a tree, no matter how deep it is.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.element
+ * @param {Object} [data]
+ */
+// visitElems
+Animation.prototype.traverse = function(visitor, data) {
     for (var elmId in this.hash) {
         visitor(this.hash[elmId], data);
     }
+    return this;
 }
-Animation.prototype.travelChildren = Animation.prototype.visitElems;
-// > Animation.visitRoots % (visitor: Function(elm: Element))
-Animation.prototype.visitRoots = function(visitor, data) {
+/**
+ * @method each
+ * @chainable
+ *
+ * Visit every root element (direct Animation child) in a tree.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Object} [data]
+ */
+Animation.prototype.each = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
         visitor(this.tree[i], data);
     }
+    return this;
 }
-Animation.prototype.visitChildren = Animation.prototype.visitRoots;
-Animation.prototype.iterateRoots = function(func, rfunc) {
+/**
+ * @method iter
+ * @chainable
+ *
+ * Iterate through every root (direct Animation child) element in a tree.
+ *
+ * @param {Function} iterator
+ * @param {anm.Element} iterator.child
+ * @param {Boolean} iterator.return `false`, if this element should be removed
+ */
+Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
+    return this;
 }
+/**
+ * @method render
+ *
+ * Render the Animation for given context at given time.
+ *
+ * @param {Canvas2DContext} ctx
+ * @param {Float} time
+ * @param {Float} [dt] The difference in time between current frame and previous one
+ */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
     var zoom = this.zoom;
@@ -146,56 +210,110 @@ Animation.prototype.render = function(ctx, time, dt) {
             ctx.fillStyle = this.bgfill.apply(ctx);
             ctx.fillRect(0, 0, this.width, this.height);
         }
-        this.visitRoots(function(elm) {
-            elm.render(ctx, time, dt);
+        this.each(function(child) {
+            child.render(ctx, time, dt);
         });
     } finally { ctx.restore(); }
     this.fire(C.X_DRAW,ctx);
 }
 Animation.prototype.handle__x = function(type, evt) {
-    this.visitElems(function(elm) {
+    this.traverse(function(elm) {
         elm.fire(type, evt);
     });
     return true;
 }
 // TODO: test
+/**
+ * @method getFittingDuration
+ *
+ * Get the duration where all child elements' bands fit.
+ *
+ * @return {Float} The calculated duration
+ */
 Animation.prototype.getFittingDuration = function() {
     var max_pos = -Infinity;
     var me = this;
-    this.visitRoots(function(elm) {
-        var elm_tpos = elm._max_tpos();
+    this.each(function(child) {
+        var elm_tpos = child._max_tpos();
         if (elm_tpos > max_pos) max_pos = elm_tpos;
     });
     return max_pos;
 }
+/**
+ * @method reset
+ * @chainable
+ *
+ * Reset all render-related data for itself, and the data of all the elements.
+ */
 Animation.prototype.reset = function() {
     this.__informEnabled = true;
-    this.visitRoots(function(elm) {
-        elm.reset();
+    this.each(function(child) {
+        child.reset();
     });
+    return this;
 }
+/**
+ * @method dispose
+ * @chainable
+ *
+ * Remove every possible allocated data to either never use this animation again or
+ * start using it from scratch as if it never was used before.
+ */
 Animation.prototype.dispose = function() {
     this.disposeHandlers();
     var me = this;
     /* FIXME: unregistering removes from tree, ensure it is safe */
-    this.iterateRoots(function(elm) {
-        me._unregister_no_rm(elm);
-        elm.dispose();
+    this.iter(function(child) {
+        me._unregister_no_rm(child);
+        child.dispose();
         return false;
     });
+    return this;
 }
+/**
+ * @method isEmpty
+ *
+ * Does Animation has any Elements inside.
+ *
+ * @return {Boolean} `true` if no Elements, `false` if there are some.
+ */
 Animation.prototype.isEmpty = function() {
     return this.tree.length == 0;
 }
+/**
+ * @method toString
+ *
+ * Get a pretty description of this Animation
+ *
+ * @return {String} pretty string
+ */
 Animation.prototype.toString = function() {
     return "[ Animation "+(this.name ? "'"+this.name+"'" : "")+"]";
 }
+/**
+ * @method subscribeEvents
+ * @private
+ *
+ * @param {Canvas} canvas
+ */
 Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
 }
+/**
+ * @method unsubscribeEvents
+ * @private
+ *
+ * @param {Canvas} canvas
+ */
 Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 }
+/**
+ * @method addToTree
+ * @private
+ *
+ * @param {anm.Element} element
+ */
 Animation.prototype.addToTree = function(elm) {
     if (!elm.children) {
         throw new AnimationError('It appears that it is not a clip object or element that you pass');
@@ -216,8 +334,8 @@ Animation.prototype._register = function(elm) {
     elm.anim = this;
     this.hash[elm.id] = elm;
     var me = this;
-    elm.visitChildren(function(elm) {
-        me._register(elm);
+    elm.each(function(child) {
+        me._register(child);
     });
 }
 Animation.prototype._unregister_no_rm = function(elm) {
@@ -226,8 +344,8 @@ Animation.prototype._unregister_no_rm = function(elm) {
 Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
     if (!elm.registered) throw new AnimationError(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
-    elm.visitChildren(function(elm) {
-        me._unregister(elm);
+    elm.each(function(child) {
+        me._unregister(child);
     });
     var pos = -1;
     if (!save_in_tree) {
@@ -243,7 +361,7 @@ Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree 
 Animation.prototype._collectRemoteResources = function(player) {
     var remotes = [],
         anim = this;
-    this.visitElems(function(elm) {
+    this.traverse(function(elm) {
         if (elm._hasRemoteResources(anim, player)) {
            remotes = remotes.concat(elm._collectRemoteResources(anim, player)/* || []*/);
         }
@@ -255,7 +373,7 @@ Animation.prototype._collectRemoteResources = function(player) {
 }
 Animation.prototype._loadRemoteResources = function(player) {
     var anim = this;
-    this.visitElems(function(elm) {
+    this.traverse(function(elm) {
         if (elm._hasRemoteResources(anim, player)) {
            elm._loadRemoteResources(anim, player);
         }
@@ -299,37 +417,73 @@ Animation.prototype.__removeMaskCanvases = function() {
         this.__backCtx = null;
     }
 }
-Animation.prototype.findById = function(id) {
-    return this.hash[id];
-}
-Animation.prototype.findByName = function(name, where) {
+/**
+ * @method find
+ *
+ * Searches for {@link anm.Element elements} by name inside another
+ * {@link anm.Element element} or inside the whole Animation itself, if no other
+ * element was provided.
+ *
+ * @param {String} name Name of the element(s) to find
+ * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
+ *
+ * @return {Array} An array of found elements
+ */
+Animation.prototype.find = function(name, where) {
     var where = where || this;
     var found = [];
     if (where.name == name) found.push(name);
-    where.travelChildren(function(elm)  {
+    where.traverse(function(elm)  {
         if (elm.name == name) found.push(elm);
     });
     return found;
 }
+/**
+ * @method find
+ *
+ * Searches for {@link anm.Element elements} by ID inside another inside the
+ * Animation. Actually, just gets it from hash map, so O(1).
+ *
+ * @param {String} id ID of the element to find
+ * @return {anm.Element|Null} An element you've searched for, or null
+ */
+Animation.prototype.findById = function(id) {
+    return this.hash[id];
+}
+/*
+ * @method invokeAllLaters
+ * @private
+ */
 Animation.prototype.invokeAllLaters = function() {
     for (var i = 0; i < this._laters.length; i++) {
         this._laters[i].call(this);
     };
 }
+/*
+ * @method clearAllLaters
+ * @private
+ */
 Animation.prototype.clearAllLaters = function() {
     this._laters = [];
 }
-// > Animation.invokeLater % (f: Function())
+/*
+ * @method invokeLater
+ * @private
+ */
 Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
+/*
+ * @method loadFonts
+ * @private
+ */
 Animation.prototype.loadFonts = function(player) {
     if (!this.fonts || !this.fonts.length) {
         return;
     }
 
     var fonts = this.fonts,
-        style = document.createElement('style'),
+        style = document.createElement('style'), // FIXME: should use engine
         css = '',
         fontsToLoad = [],
         detector = new FontDetector();
@@ -355,9 +509,10 @@ Animation.prototype.loadFonts = function(player) {
     };
 
     style.innerHTML = css;
-    document.head.appendChild(style);
+    document.head.appendChild(style); // FIXME: should use engine
 
     for (var i = 0; i < fontsToLoad.length; i++) {
+        // FIXME: should not require a player (probably)
         ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
             var face = fontsToLoad[i].face,
                 interval = 100,

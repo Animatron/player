@@ -46,7 +46,7 @@ E.prototype.dbounds = function(t) {
         minX = minY = Number.MAX_VALUE;
         maxX = maxY = 0;
     }
-    this.travelChildren(function(elm) {
+    this.traverse(function(elm) {
         var cb = elm.bounds(t);
         if (!cb) return;
         minX = Math.min(minX, cb[0]);
@@ -73,7 +73,7 @@ E.prototype.drect = function(t) {
         x1 = y1 = y2 = x4 = Number.MAX_VALUE;
         x2 = y4 = x3 = y3 = 0;
     }
-    this.travelChildren(function(elm) {
+    this.traverse(function(elm) {
         var cr = elm.rect(t);
         if (!cr) return;
         x1 = Math.min(x1, cr[0]); y1 = Math.min(y1, cr[1]);
@@ -120,7 +120,7 @@ E.prototype.contains = function(pt, t) {
     if (!b) {
         if (this.hasChildren()) {
             var result = false;
-            this.iterateChildren(function(child) {
+            this.iter(function(child) {
                 if(!result && child.contains(pt, t)) {
                     result = true;
                 }
@@ -150,8 +150,8 @@ E.prototype.dcontains = function(pt, t) {
         matched.push(this);
     }
     if (this.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(celm.dcontains(pt, t));
+        elm.each(function(child) {
+            matched.concat(child.dcontains(pt, t));
         });
     }
     return matched;
@@ -187,8 +187,8 @@ E.prototype.dintersects = function(elm, t) {
         matched.push(this);
     }
     if (this.children) {
-        elm.visitChildren(function(celm) {
-            matched.concat(celm.dintersects(elm, t));
+        elm.each(function(child) {
+            matched.concat(child.dintersects(elm, t));
         });
     }
     return matched;
@@ -700,14 +700,14 @@ Animation.prototype.handle__x = function(type, evt) {
         if (type & C.XT_MOUSE) {
             switch (type) {
                 case C.X_MCLICK: case C.X_MDCLICK: case C.X_MUP: case C.X_MDOWN: {
-                    this.visitElems(function(elm) {
+                    this.traverse(function(elm) {
                         if (elm.shown &&
                             elm.contains(evt.pos)) elm.fire(type, evt);
                     });
                     return true;
                 }
                 case C.X_MMOVE: {
-                    this.visitElems(function(elm) {
+                    this.traverse(function(elm) {
                         if (elm.shown) {
                             if (elm.contains(evt.pos)) {
                                 elm.fire(C.X_MMOVE, evt);

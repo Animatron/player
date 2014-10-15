@@ -104,7 +104,7 @@ Import.project = function(prj) {
                                last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
             node_res.lband = node_res.gband;
-            node_res.travelChildren(function(elm) {
+            node_res.traverse(function(elm) {
                 var e_gband_before = elm.gband;
                 elm.gband = [ last_scene_band[1] + e_gband_before[0],
                               last_scene_band[1] + e_gband_before[1] ];
