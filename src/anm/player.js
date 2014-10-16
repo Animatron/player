@@ -1303,7 +1303,7 @@ Player.prototype._drawLoadingProgress = function() {
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     if (this.controls) return;
-    Controls._stopLoadingAnimation(this.ctx);
+    Controls.stopLoadingAnimation(this.ctx);
     this._drawEmpty();
 }
 Player.prototype._drawErrorSplash = function(e) {
