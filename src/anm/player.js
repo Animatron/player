@@ -805,7 +805,7 @@ Player.prototype._postInit = function() {
  * Set player mode. Since it splits mode to separate properties, this method doesn't work
  * as getter.
  *
- * @param {Number} `C.M_*` constant
+ * @param {Number} val `C.M_*` constant
  */
 Player.prototype.mode = function(val) {
     if (!is.defined(val)) { throw new errors.PlayerError("Please define a mode to set"); }

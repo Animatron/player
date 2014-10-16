@@ -194,7 +194,7 @@ Animation.prototype.iter = function(func, rfunc) {
  *
  * Render the Animation for given context at given time.
  *
- * @param {Canvas2DContext} ctx
+ * @param {Canvas2DContext} context
  * @param {Number} time
  * @param {Number} [dt] The difference in time between current frame and previous one
  */
