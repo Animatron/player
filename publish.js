@@ -235,7 +235,7 @@ var start = (function () {
 
             _u.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.createImporter('animatron'));
+                      anm.Player.forSnapshot(CANVAS_ID, _snapshotUrl_, anm.importers.create('animatron'));
                 }
             );
         } catch (e) {

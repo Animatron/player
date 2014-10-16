@@ -12,15 +12,12 @@
 // This importer imports only the compact format of animations (where all elements are arrays
 // of arrays)
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/importers/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var AnimatronImporter = (function() {
 
 var IMPORTER_ID = 'ANM';
 
-var C = anm.C,
+var C = anm.constants,
     Animation = anm.Animation,
     Element = anm.Element,
     Path = anm.Path,
@@ -28,7 +25,10 @@ var C = anm.C,
     Brush = anm.Brush,
     Bands = anm.Bands,
     Tween = anm.Tween,
-    is = anm.is,
+    MSeg = anm.MSeg,
+    LSeg = anm.LSeg,
+    CSeg = anm.CSeg,
+    is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck
 
@@ -64,7 +64,7 @@ Import._type = function(src) {
 Import.project = function(prj) {
     //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
-    cur_import_id = anm.guid();
+    cur_import_id = anm.utils.guid();
     anm.lastImportedProject = prj;
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
@@ -104,7 +104,7 @@ Import.project = function(prj) {
                                last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
             node_res.lband = node_res.gband;
-            node_res.travelChildren(function(elm) {
+            node_res.traverse(function(elm) {
                 var e_gband_before = elm.gband;
                 elm.gband = [ last_scene_band[1] + e_gband_before[0],
                               last_scene_band[1] + e_gband_before[1] ];
@@ -459,13 +459,13 @@ Import._decodeBinaryPath = function(encoded) {
                             var p = Import._pathReadPoint(s, [], base);
                             base = p;
 
-                            Path._parserVisitor("M", p, path);
+                            path.add(new MSeg(p));
                             break;
                         case 1:
                             var p = Import._pathReadPoint(s, [], base);
                             base = p;
 
-                            Path._parserVisitor("L", p, path);
+                            path.add(new LSeg(p));
                             break;
                         case 2:
                             var p = Import._pathReadPoint(s, [], base);
@@ -473,7 +473,7 @@ Import._decodeBinaryPath = function(encoded) {
                             Import._pathReadPoint(s, p);
                             base = [p[p.length - 2], p[p.length - 1]];
 
-                            Path._parserVisitor("C", p, path);
+                            path.add(new CSeg(p));
                             break;
                         case 3:
                             _do = false;
@@ -967,8 +967,6 @@ return __MYSELF;
 
 })();
 
-anm.registerImporter('animatron', AnimatronImporter);
+anm.importers.register('animatron', AnimatronImporter);
 
-return AnimatronImporter;
-
-});
+//module.exports = AnimatronImporter;

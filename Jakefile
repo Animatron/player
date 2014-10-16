@@ -65,7 +65,8 @@ var Binaries = {
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
     GIT: 'git',
-    GZIP: 'gzip'
+    GZIP: 'gzip',
+    BROWSERIFY: 'browserify'
 };
 
 var Dirs = {
@@ -98,12 +99,12 @@ var Files = {
                         ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ /* 'collisions.js', */
                                'audio.js',
-                               'audio-export.js',
-                               'scripting.js',
+                               //'audio-export.js',
+                               //'scripting.js',
                                'shapes.js' ],
                       // COLLISIONS: 'collisions.js',
                       AUDIO: 'audio.js',
-                      AUDIO_EXPORT: 'audio-export.js',
+                      //AUDIO_EXPORT: 'audio-export.js',
                       SCRIPTING: 'scripting.js',
                       SHAPES: 'shapes.js' }, },
     Doc: { README: 'README.md',
@@ -112,44 +113,14 @@ var Files = {
 }
 
 var Bundles = [
-    { name: 'Standard',
-      file: 'standard',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
-                                                            Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES,   [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
-                                                              Files.Main.PLAYER ]))
+      includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
                                                               // Files.Ext.MODULES.COLLISIONS,
                                                               Files.Ext.MODULES.SCRIPTING,
-                                                              Files.Ext.MODULES.SHAPES ])) },
-    /* { name: 'Animatron-Intact',
-      file: 'animatron-intact',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
-                                                              Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module */
-    { name: 'Develop',
-      file: 'develop',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
-                                                            Files.Main.PLAYER ])) },
-    { name: 'Hardcore',
-      file: 'hardcore',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
-                                                            Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ )) }
+                                                              Files.Ext.MODULES.SHAPES ])) }
 ];
 
 var Tests = {
@@ -896,7 +867,7 @@ task('_prepare', function() {
 // _bundles ====================================================================
 
 desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder']));
-task('_bundles', function() {
+task('_bundles', ['browserify'], function() {
     _print('Create Bundles..');
     var BUILD_TIME = _build_time();
     var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
@@ -949,7 +920,7 @@ task('_bundle', function(param) {
 
 desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
 task('_organize', function() {
-
+    return;
     _print('Copy files to ' + Dirs.DIST + '..');
 
     jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.INIT),
@@ -988,6 +959,7 @@ task('_organize', function() {
 
 desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
 task('_versionize', function() {
+    return;
     _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
 
     _print('.. Main files');
@@ -1097,16 +1069,16 @@ task('_minify', { async: true }, function() {
             if (!Object.keys(queue).length) complete();
         });
     }
-
+    /*
     _print('.. Vendor Files');
 
     Files.Ext.VENDOR.forEach(function(vendorFile) {
         minifyInQueue(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
-
+    */
     _print('.. Main files');
 
-    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    //minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
     minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
 
     _print('.. Bundles');
@@ -1114,7 +1086,7 @@ task('_minify', { async: true }, function() {
     Bundles.forEach(function(bundle) {
         minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
-
+    /*
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
@@ -1132,7 +1104,7 @@ task('_minify', { async: true }, function() {
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
         minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
-
+    */
 });
 
 // _build-file =================================================================
@@ -1179,6 +1151,14 @@ task('_build-file', { async: true }, function() {
         throw new Error(msg);
     });
     _getCommintHash.run();
+});
+
+task('browserify', {'async': true}, function(){
+  _print('browserifying...');
+  jake.exec('browserify src/main.js -o dist/player.js', function() {
+    _print('created dist/player.js');
+    complete();
+  });
 });
 
 // UTILS =======================================================================

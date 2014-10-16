@@ -152,4 +152,4 @@ Transform.prototype.extract = function() {
 
 } */
 
-if (typeof exports !== 'undefined') exports.Transform = Transform;
+if (typeof module !== 'undefined') module.exports = Transform;

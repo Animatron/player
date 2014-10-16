@@ -12,11 +12,7 @@
 // TODO: element.arc
 // and so on
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/modules/shapes', ['anm', 'anm/Player'], function(anm/*, Player*/) {
-
-    anm.registerModule('shapes', {});
+    anm.modules.register('shapes', {});
 
     var E = anm.Element;
 
@@ -36,5 +32,3 @@ __anm_engine.define('anm/modules/shapes', ['anm', 'anm/Player'], function(anm/*,
         path.add(new LSeg([ x, y ]));
         return this.path(path);
     }
-
-});

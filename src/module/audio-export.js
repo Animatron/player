@@ -7,9 +7,6 @@
  * @VERSION
  */
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/modules/audio-export', ['anm', 'anm/Player'], function(anm/*, Player*/) {
 
 var Player = anm.Player,
     C = anm.C;
@@ -17,7 +14,7 @@ var Player = anm.Player,
 Player.prototype.exportAudio = function() {
   var result = [];
   if (this.anim) {
-    this.anim.visitElems(function(elm) {
+    this.anim.traverse(function(elm) {
       if (elm.is(C.ET_AUDIO)) {
         result.push({ 'url': elm._audio_url,
                       'band_offset': elm._audio_band_offset,
@@ -31,9 +28,4 @@ Player.prototype.exportAudio = function() {
 };
 
 var conf = {};
-
-anm.registerModule('audio-export', conf);
-
-return conf;
-
-});
+anm.modules.register('audio-export', conf);
