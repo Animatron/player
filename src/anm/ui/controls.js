@@ -346,7 +346,6 @@ Controls.prototype.inject = function(anim, duration) {
     if (this.info) this.info.inject(anim, duration);
 }
 
-
 var BACK_GRAD = null,
     nextFrame = engine.getRequestFrameFunc(),
     stopAnim = engine.getCancelFrameFunc();
@@ -665,7 +664,7 @@ var runLoadingAnimation = function(ctx, paint) {
     }
     props.loading_req = nextFrame(loading_loop);
 }
-var stopLoadingAnimation = function(ctx, paint) {
+Controls.stopLoadingAnimation = function(ctx) {
     // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
     //        and Contols._stopLoading() should be used to stop the drawing process
     var props = engine.getAnmProps(ctx);
