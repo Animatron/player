@@ -641,8 +641,8 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     props.ratio = ratio;
     props.width = _w;
     props.height = _h;
-    if (!cvs.style.width)  { (props.inst_rule || cvs).style.width  = _w + 'px'; }
-    if (!cvs.style.height) { (props.inst_rule || cvs).style.height = _h + 'px'; }
+    /* if (!cvs.style.width) { */ (props.inst_rule || cvs).style.width  = _w + 'px'; /* } */
+    /* if (!cvs.style.height) { */ (props.inst_rule || cvs).style.height = _h + 'px'; /* } */
     cvs.setAttribute('width', _w * (ratio || 1));
     cvs.setAttribute('height', _h * (ratio || 1));
     $DE._saveCanvasPos(cvs);

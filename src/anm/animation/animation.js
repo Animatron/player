@@ -389,8 +389,8 @@ Animation.prototype.__ensureHasMaskCanvas = function(lvl) {
     this.__maskCtx[lvl] = engine.getContext(this.__maskCvs[lvl], '2d');
     this.__backCvs[lvl] = engine.createCanvas(1, 1);
     this.__backCtx[lvl] = engine.getContext(this.__backCvs[lvl], '2d');
-    //document.body.appendChild(this.__maskCvs[lvl]);
-    //document.body.appendChild(this.__backCvs[lvl]);
+    document.body.appendChild(this.__maskCvs[lvl]);
+    document.body.appendChild(this.__backCvs[lvl]);
 }
 Animation.prototype.__removeMaskCanvases = function() {
     if (!this.__maskCvs && !this.__backCvs) return;

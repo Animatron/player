@@ -518,6 +518,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // so in this case we need to rollback them before
                 this.applyInvPivot(bctx);
                 this.applyInvReg(bctx);
+                //this.transform(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
@@ -540,11 +541,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.restore(); // mctx first close
 
-                //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
                 this.fullTransform(ctx);
+                //this.transform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }
