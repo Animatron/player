@@ -1,7 +1,7 @@
-var C = require('./constants.js'),
-    is = require('./utils.js').is,
+var C = require('../constants.js'),
+    is = require('../utils.js').is,
     Modifier = require('./modifier.js'),
-    AnimationError = require('./errors.js').AnimationError;
+    AnimationError = require('../errors.js').AnimationError;
 
 // Tweens
 // -----------------------------------------------------------------------------

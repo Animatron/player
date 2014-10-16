@@ -24,9 +24,9 @@ function findAndInitPotentialPlayers() {
 
 engine.onDocReady(findAndInitPotentialPlayers);
 
-var Element = require('./anm/element.js'),
-    Sheet = require('./anm/sheet.js'),
-    segments = require('./anm/segments.js');
+var Element = require('./anm/animation/element.js'),
+    Sheet = require('./anm/graphics/sheet.js'),
+    segments = require('./anm/graphics/segments.js');
 
 // Public Namespace
 // -----------------------------------------------------------------------------
@@ -46,18 +46,18 @@ var anm = {
     utils: require('./anm/utils.js'),
 
     Player: Player,
-    Animation: require('./anm/animation.js'),
+    Animation: require('./anm/animation/animation.js'),
     Element: Element,
     Clip: Element,
-    Path: require('./anm/path.js'),
-    Text: require('./anm/text.js'),
+    Path: require('./anm/graphics/path.js'),
+    Text: require('./anm/graphics/text.js'),
     Sheet: Sheet,
     Image: Sheet,
-    Modifier: require('./anm/modifier.js'),
-    Painter: require('./anm/painter.js'),
-    Brush: require('./anm/brush.js'),
-    Color: require('./anm/color.js'),
-    Tween: require('./anm/tween.js'),
+    Modifier: require('./anm/animation/modifier.js'),
+    Painter: require('./anm/animation/painter.js'),
+    Brush: require('./anm/graphics/brush.js'),
+    Color: require('./anm/graphics/color.js'),
+    Tween: require('./anm/animation/tween.js'),
     MSeg: segments.MSeg,
     LSeg: segments.LSeg,
     CSeg: segments.CSeg,

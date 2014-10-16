@@ -1,7 +1,7 @@
 var C = require('./constants.js'),
-    Painter = require('./painter.js'),
-    Modifier = require('./modifier.js'),
-    Brush = require('./brush.js'),
+    Painter = require('./animation/painter.js'),
+    Modifier = require('./animation/modifier.js'),
+    Brush = require('./graphics/brush.js'),
     engine = require('engine'),
     nextFrame = engine.getRequestFrameFunc(),
     fit_rects = require('./utils.js').fit_rects;

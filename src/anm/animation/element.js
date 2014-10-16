@@ -1,20 +1,20 @@
-var C = require('./constants.js'),
-    provideEvents = require('./events.js').provideEvents,
-    Transform = require('../vendor/transform.js'),
-    Brush = require('./brush.js'),
+var C = require('../constants.js'),
+    provideEvents = require('../events.js').provideEvents,
+    Transform = require('../../vendor/transform.js'),
+    Brush = require('../graphics/brush.js'),
     Modifier = require('./modifier.js'),
     Painter = require('./painter.js'),
     engine = require('engine'),
-    Bands = require('./bands.js'),
-    AnimationError = require('./errors.js').AnimationError,
-    Errors = require('./loc.js').Errors,
-    Color = require('./color.js'),
-    log = require('./log.js'),
-    utils = require('./utils.js'),
-    Render = require('./render.js'),
+    Bands = require('./band.js'),
+    AnimationError = require('../errors.js').AnimationError,
+    Errors = require('../loc.js').Errors,
+    Color = require('../graphics/color.js'),
+    log = require('../log.js'),
+    utils = require('../utils.js'),
+    Render = require('../render.js'),
     iter = utils.iter,
     is = utils.is,
-    global_opts = require('./global_opts.js');
+    global_opts = require('../global_opts.js');
 
 
 
