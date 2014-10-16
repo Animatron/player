@@ -1,7 +1,7 @@
-var C = require('./constants.js'),
+var C = require('../constants.js'),
     Brush = require('./brush.js'),
-    is = require('./utils.js').is,
-    SystemError = require('./errors.js').SystemError,
+    is = require('../utils.js').is,
+    SystemError = require('../errors.js').SystemError,
     engine = require('engine');
 
 function Text(lines, font, align, baseline, underlined) {

@@ -1,5 +1,5 @@
-var C = require('./constants.js'),
-    guid = require('./utils.js').guid;
+var C = require('../constants.js'),
+    guid = require('../utils.js').guid;
 // FIXME: order should not be important, system should add painters in proper order
 //        by itself.
 

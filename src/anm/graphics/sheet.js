@@ -1,7 +1,7 @@
-var resMan = require('./resource_manager.js'),
-    conf = require('./conf.js'),
+var resMan = require('../resource_manager.js'),
+    conf = require('../conf.js'),
     engine = require('engine'),
-    log = require('./log.js');
+    log = require('../log.js');
 
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;

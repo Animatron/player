@@ -1,4 +1,4 @@
-var C = require('./constants.js');
+var C = require('../constants.js');
 
 function MSeg(pts) {
     this.type = C.P_MOVETO;

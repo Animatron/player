@@ -1,7 +1,7 @@
-var C = require('./constants.js'),
-    is = require('./utils.js').is,
-    EasingImpl = require('./easings.js'),
-    guid = require('./utils.js').guid;
+var C = require('../constants.js'),
+    is = require('../utils.js').is,
+    EasingImpl = require('./easing.js'),
+    guid = require('../utils.js').guid;
 
 
 Modifier.ORDER = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER, C.MOD_EVENT ];

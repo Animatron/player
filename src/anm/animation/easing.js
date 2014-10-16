@@ -1,5 +1,5 @@
-var C = require('./constants.js'),
-    CSeg = require('./segments.js').CSeg;
+var C = require('../constants.js'),
+    CSeg = require('../graphics/segments.js').CSeg;
 
 // Easings
 // -----------------------------------------------------------------------------

@@ -1,9 +1,9 @@
 var Color = require('./color.js'),
-    C = require('./constants.js'),
-    conf = require('./conf.js'),
-    is = require('./utils.js').is,
+    C = require('../constants.js'),
+    conf = require('../conf.js'),
+    is = require('../utils.js').is,
     engine = require('engine'),
-    AnimationError = require('./errors.js').AnimationError;
+    AnimationError = require('../errors.js').AnimationError;
 
 // Brush
 // -----------------------------------------------------------------------------
