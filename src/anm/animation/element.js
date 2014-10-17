@@ -517,9 +517,10 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // draw() moves context to a pivot / registration point location,
                 // since they are treated as "visual" part (may be its not so right),
                 // so in this case we need to rollback them before
+                this.$mask.applyInvPivot(bctx);
+                this.$mask.applyInvReg(bctx);
                 this.applyInvPivot(bctx);
                 this.applyInvReg(bctx);
-                //this.transform(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
@@ -530,34 +531,26 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
-                mctx.setTransform(1, 0, 0, 1, 0, 0);
 
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
+                this.$mask.applyInvPivot(mctx);
+                this.$mask.applyInvReg(mctx);
                 // same as above, we need not only to subtract our transformations
                 // (notice that we use NOT the mask matrix, but a matrix of the
                 // masked element (this)), but also have to rollback pivot / reg.point
                 this.fullInvTransform(mctx);
-                this.$mask.applyInvReg(mctx);
-                this.$mask.applyInvPivot(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
-                //mctx.fillStyle = '#000';
-                //mctx.fillText('mctx', 10, 10);
-
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                //bctx.fillStyle = '#000';
-                //bctx.fillText('bctx', 10, 10);
-
-                //ctx.setTransform(1, 0, 0, 1, 0, 0);
                 this.fullTransform(ctx);
-                this.$mask.applyReg(ctx);
                 this.$mask.applyPivot(ctx);
+                this.$mask.applyReg(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }
