@@ -490,7 +490,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var bounds = this.bounds(),
+                var bounds = this.$mask.bounds(),
                     ratio = engine.PX_RATIO,
                     width = Math.ceil(bounds.width),
                     height = Math.ceil(bounds.height);
@@ -507,6 +507,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 }
 
                 bctx.save(); // bctx first open
+                bctx.setTransform(1, 0, 0, 1, 0, 0);
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
 
@@ -529,23 +530,34 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
+                mctx.setTransform(1, 0, 0, 1, 0, 0);
 
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
                 // same as above, we need not only to subtract our transformations
                 // (notice that we use NOT the mask matrix, but a matrix of the
-                // masked element (this)), but also to rollback pivot / reg.point
+                // masked element (this)), but also have to rollback pivot / reg.point
                 this.fullInvTransform(mctx);
+                this.$mask.applyInvReg(mctx);
+                this.$mask.applyInvPivot(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
+                //mctx.fillStyle = '#000';
+                //mctx.fillText('mctx', 10, 10);
+
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
+                //bctx.fillStyle = '#000';
+                //bctx.fillText('bctx', 10, 10);
+
+                //ctx.setTransform(1, 0, 0, 1, 0, 0);
                 this.fullTransform(ctx);
-                //this.transform(ctx);
+                this.$mask.applyReg(ctx);
+                this.$mask.applyPivot(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }
