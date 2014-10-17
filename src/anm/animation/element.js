@@ -513,6 +513,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.save(); // bctx second open
 
+                //console.log(this.$reg);
+                //console.log(this.$mask.$reg);
+
                 // FIXME: disable particular painters instead
                 // draw() moves context to a pivot / registration point location,
                 // since they are treated as "visual" part (may be its not so right),
@@ -535,12 +538,12 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
-                this.$mask.applyInvPivot(mctx);
-                this.$mask.applyInvReg(mctx);
                 // same as above, we need not only to subtract our transformations
                 // (notice that we use NOT the mask matrix, but a matrix of the
                 // masked element (this)), but also have to rollback pivot / reg.point
                 this.fullInvTransform(mctx);
+                this.$mask.applyInvPivot(mctx);
+                this.$mask.applyInvReg(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
@@ -548,9 +551,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                this.fullTransform(ctx);
                 this.$mask.applyPivot(ctx);
                 this.$mask.applyReg(ctx);
+                this.fullTransform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }

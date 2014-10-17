@@ -413,7 +413,7 @@ Animation.prototype.__removeMaskCanvases = function() {
                 this.__backCtx[i] = null; // is it required?
             }
         }
-        this.__maskCvs = null;
+        this.__backCvs = null;
         this.__backCtx = null;
     }
 }
