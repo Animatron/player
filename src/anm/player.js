@@ -988,6 +988,7 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
  */
 Player.prototype.detach = function() {
     if (!engine.playerAttachedTo(this.wrapper, this)) return; // throw error?
+    this.stop();
     if (this.controls) this.controls.detach(this.wrapper);
     engine.detachPlayer(this);
     if (this.ctx) {
