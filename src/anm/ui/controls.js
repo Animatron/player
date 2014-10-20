@@ -108,7 +108,7 @@ Controls.prototype.render = function(time) {
 
     if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
         ((_s !== C.LOADING) && (_s !== C.RES_LOADING))) {
-        stopLoadingAnimation(this.ctx);
+        Controls.stopLoadingAnimation(this.ctx);
     }
 
     this._time = time;
