@@ -510,14 +510,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       && mask.prepare()
                       && mask.visible)) return;
 
-
-
-                //bctx.scale(.3, .3);
-                //this.fullTransform(bctx);
-                //mask.applyInvReg(bctx);
-                //this.fullInvTransform(bctx);
-                //mask.invTransform(bctx);
-                //bctx.scale(.6, .6);
                 mask.invTransform(bctx);
                 this.transform(bctx);
                 this.each(function(child) {
@@ -538,8 +530,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // (notice that we use NOT the mask matrix, but a matrix of the
                 // masked element (this)), but also have to rollback pivot / reg.point
                 mask.invTransform(mctx);
-                //this.$mask.applyInvPivot(mctx);
-                //this.$mask.applyInvReg(mctx);
                 mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
@@ -547,8 +537,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                //this.$mask.applyPivot(ctx);
-                //this.$mask.applyReg(ctx);
                 mask.transform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.strokeStyle = '#f00';
