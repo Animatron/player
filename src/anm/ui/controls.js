@@ -108,7 +108,7 @@ Controls.prototype.render = function(time) {
 
     if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
         ((_s !== C.LOADING) && (_s !== C.RES_LOADING))) {
-        stopLoadingAnimation(this.ctx);
+        Controls.stopLoadingAnimation(this.ctx);
     }
 
     this._time = time;
@@ -345,7 +345,6 @@ Controls.prototype.setDuration = function(value) {
 Controls.prototype.inject = function(anim, duration) {
     if (this.info) this.info.inject(anim, duration);
 }
-
 
 var BACK_GRAD = null,
     nextFrame = engine.getRequestFrameFunc(),
@@ -665,7 +664,7 @@ var runLoadingAnimation = function(ctx, paint) {
     }
     props.loading_req = nextFrame(loading_loop);
 }
-var stopLoadingAnimation = function(ctx, paint) {
+Controls.stopLoadingAnimation = function(ctx) {
     // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
     //        and Contols._stopLoading() should be used to stop the drawing process
     var props = engine.getAnmProps(ctx);

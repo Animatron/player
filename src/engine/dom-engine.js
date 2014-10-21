@@ -93,6 +93,8 @@ var $DE = {};
 
 // createStatImg() -> Image
 
+// removeElement(element) -> void
+
 
 // Framing
 
@@ -527,6 +529,10 @@ $DE.detachPlayer = function(player) {
         $DE.clearAnmProps(player.controls.canvas);
         if (player.controls.info) $DE.clearAnmProps(player.controls.info.canvas);
     }
+
+    if (player.statImg) {
+      $DE.removeElement(player.statImg);
+    }
     //FIXME: should remove stylesTag when last player was deleted from page
     //$DE.detachElement(null, $DE.__stylesTag);
     //$DE.__stylesTag = null;
@@ -871,6 +877,12 @@ $DE.createStatImg = function() {
     $doc.body.appendChild(img);
 
     return img;
+}
+
+$DE.removeElement = function(element) {
+  if (element) {
+    element.parentNode.removeChild(element);
+  }
 }
 
 
