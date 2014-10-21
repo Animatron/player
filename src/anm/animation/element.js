@@ -462,7 +462,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                  && this.modifiers(ltime, dt)
                  && this.prepare() // FIXME: rename to .reset(), move before transform
                                    //        or even inside it, move out of condition
-                 && this.visible;
+                 && this.visible; // modifiers should be applied even if element isn't visible
     }
     if (drawMe) {
         ctx.save();
@@ -516,14 +516,25 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //console.log(this.$reg);
                 //console.log(this.$mask.$reg);
 
-                // FIXME: disable particular painters instead
-                // draw() moves context to a pivot / registration point location,
-                // since they are treated as "visual" part (may be its not so right),
-                // so in this case we need to rollback them before
-                this.$mask.applyInvPivot(bctx);
-                this.$mask.applyInvReg(bctx);
-                this.applyInvPivot(bctx);
-                this.applyInvReg(bctx);
+                var mask = this.$mask;
+
+                //mask.applyPivot(bctx);
+                //mask.applyReg(bctx);
+                // FIXME: move this chain completely into one method, or,
+                //        which is even better, make all these checks to be modifiers
+                if (!(mask.fits(ltime)
+                      && mask.modifiers(ltime, dt)
+                      && mask.prepare()
+                      && mask.visible)) return;
+
+
+
+                mask.applyPivot(bctx);
+                mask.applyReg(bctx);
+                //bctx.translate(-50, 0);
+                bctx.translate(-50, 0);
+                this.transform(bctx);
+                // bctx.scale(1, -1);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
@@ -531,7 +542,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.restore(); // bctx second closed
 
-                bctx.globalCompositeOperation = 'destination-in';
+                /* bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
 
@@ -541,19 +552,19 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // same as above, we need not only to subtract our transformations
                 // (notice that we use NOT the mask matrix, but a matrix of the
                 // masked element (this)), but also have to rollback pivot / reg.point
-                this.fullInvTransform(mctx);
-                this.$mask.applyInvPivot(mctx);
-                this.$mask.applyInvReg(mctx);
+                //this.fullInvTransform(mctx);
+                //this.$mask.applyInvPivot(mctx);
+                //this.$mask.applyInvReg(mctx);
                 this.$mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 bctx.drawImage(mcvs, 0, 0, width, height);
-                bctx.restore(); // bctx first closed
+                bctx.restore(); // bctx first closed */
 
-                this.$mask.applyPivot(ctx);
-                this.$mask.applyReg(ctx);
-                this.fullTransform(ctx);
+                //this.$mask.applyPivot(ctx);
+                //this.$mask.applyReg(ctx);
+                mask.fullTransform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }
@@ -1506,8 +1517,16 @@ Element.getMatrixOf = function(elm, m) {
     return t;
 }
 Element.getIMatrixOf = function(elm, m) {
-    var t = Element.getMatrixOf(elm, m);
-    t.invert();
+    //var t = Element.getMatrixOf(elm, m);
+    //t.invert();
+    //return t;
+    var t = (m ? (m.reset(), m)
+                : new Transform());
+    t.scale(1 / elm.sx, 1 / elm.sy);
+    t.shear(1 / elm.hx, 1 / elm.hy);
+    t.rotate((2 * Math.PI) - elm.angle);
+    t.translate(-elm.x, -elm.y);
+    //_t.translate(-elm.reg[0], -elm.reg[1]);
     return t;
 }
 /* TODO: add createFromImgUrl?
