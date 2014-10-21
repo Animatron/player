@@ -529,12 +529,12 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
 
 
-                mask.applyPivot(bctx);
-                mask.applyReg(bctx);
-                //bctx.translate(-50, 0);
-                bctx.translate(-50, 0);
+                //mask.applyPivot(bctx);
+                //mask.applyReg(bctx);
+                bctx.scale(.5, .5);
+                bctx.translate(-300, -200);
                 this.transform(bctx);
-                // bctx.scale(1, -1);
+                mask.invTransform(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
@@ -566,6 +566,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //this.$mask.applyReg(ctx);
                 mask.fullTransform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
+                ctx.strokeStyle = '#f00';
+                ctx.lineWidth = 1;
+                ctx.strokeRect(0, 0, width, height);
             }
         } catch(e) { log.error(e); }
           finally { ctx.restore(); }
@@ -1517,16 +1520,8 @@ Element.getMatrixOf = function(elm, m) {
     return t;
 }
 Element.getIMatrixOf = function(elm, m) {
-    //var t = Element.getMatrixOf(elm, m);
-    //t.invert();
-    //return t;
-    var t = (m ? (m.reset(), m)
-                : new Transform());
-    t.scale(1 / elm.sx, 1 / elm.sy);
-    t.shear(1 / elm.hx, 1 / elm.hy);
-    t.rotate((2 * Math.PI) - elm.angle);
-    t.translate(-elm.x, -elm.y);
-    //_t.translate(-elm.reg[0], -elm.reg[1]);
+    var t = Element.getMatrixOf(elm, m);
+    t.invert();
     return t;
 }
 /* TODO: add createFromImgUrl?
