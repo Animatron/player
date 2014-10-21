@@ -549,7 +549,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 //this.$mask.applyPivot(ctx);
                 //this.$mask.applyReg(ctx);
-                //mask.fullTransform(ctx);
+                mask.transform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.strokeStyle = '#f00';
                 ctx.lineWidth = 1;
