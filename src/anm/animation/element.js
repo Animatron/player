@@ -408,10 +408,10 @@ Element.prototype.transform = function(ctx) {
 }
 // > Element.invTransform % (ctx: Context)
 Element.prototype.invTransform = function(ctx) {
-    this.matrix = Element.getIMatrixOf(this, this.matrix);
+    var inv_matrix = Element.getIMatrixOf(this, this.matrix);
     ctx.globalAlpha *= this.alpha;
-    this.matrix.apply(ctx);
-    return this.matrix;
+    inv_matrix.apply(ctx);
+    return inv_matrix;
 }
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
@@ -518,7 +518,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //this.fullInvTransform(bctx);
                 //mask.invTransform(bctx);
                 //bctx.scale(.6, .6);
-                mask.transform(bctx);
+                mask.invTransform(bctx);
+                this.transform(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
@@ -526,7 +527,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 bctx.restore(); // bctx second closed
 
-                /* bctx.globalCompositeOperation = 'destination-in';
+                bctx.globalCompositeOperation = 'destination-in';
 
                 mctx.save(); // mctx first open
 
@@ -536,19 +537,19 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 // same as above, we need not only to subtract our transformations
                 // (notice that we use NOT the mask matrix, but a matrix of the
                 // masked element (this)), but also have to rollback pivot / reg.point
-                //this.fullInvTransform(mctx);
+                mask.invTransform(mctx);
                 //this.$mask.applyInvPivot(mctx);
                 //this.$mask.applyInvReg(mctx);
-                this.$mask.render(mctx, gtime, dt);
+                mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
 
                 bctx.drawImage(mcvs, 0, 0, width, height);
-                bctx.restore(); // bctx first closed */
+                bctx.restore(); // bctx first closed
 
                 //this.$mask.applyPivot(ctx);
                 //this.$mask.applyReg(ctx);
-                mask.fullTransform(ctx);
+                //mask.fullTransform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.strokeStyle = '#f00';
                 ctx.lineWidth = 1;
