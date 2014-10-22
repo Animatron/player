@@ -397,6 +397,20 @@ Element.prototype.forAllPainters = function(f) {
         }
     }
 }
+Element.prototype.adapt = function(arg0, arg1) {
+    if (is.array(arg0)) {
+        var src = arg0, trg = [], pt;
+        var matrix = this.matrix;
+        for (var i, il = arg0.length; i < il; i++) {
+            pt = matrix.transformPoint(arg0[i]);
+            trg.push({ x: pt[0], y: pt[1] });
+        }
+        return trg;
+    } else {
+        var pt = this.matrix.transformPoint(arg0, arg1);
+        return { x: pt[0], y: pt[1] };
+    }
+}
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
 // > Element.transform % (ctx: Context)
@@ -495,7 +509,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 }
 
                 bctx.save(); // bctx first open
-                bctx.setTransform(1, 0, 0, 1, 0, 0);
+                //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
 
