@@ -497,13 +497,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       && mask.visible)) return;
                       // what should happen if mask doesn't fit?
 
-
                 anim.__ensureHasMaskCanvas(level);
                 var mcvs = anim.__maskCvs[level],
                     mctx = anim.__maskCtx[level],
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
-
 
                 var bounds_pts = mask.adapt(mask.boundsPoints());
 
@@ -520,6 +518,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 }
 
                 var ratio  = engine.PX_RATIO,
+                    x = minX, y = minY,
                     width  = Math.ceil(maxX - minX),
                     height = Math.ceil(maxY - minY);
 
@@ -535,18 +534,17 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 }
 
                 bctx.save(); // bctx first open
-                //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
 
+                bctx.translate(-x, -y);
                 bctx.save(); // bctx second open
 
-                mask.invTransform(bctx);
                 this.transform(bctx);
+                this.draw(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
-                this.draw(bctx);
 
                 bctx.restore(); // bctx second closed
 
@@ -557,10 +555,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
-                // same as above, we need not only to subtract our transformations
-                // (notice that we use NOT the mask matrix, but a matrix of the
-                // masked element (this)), but also have to rollback pivot / reg.point
-                mask.invTransform(mctx);
+                bctx.translate(-x, -y);
                 mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
@@ -568,7 +563,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                mask.transform(ctx);
                 ctx.drawImage(bcvs, 0, 0, width, height);
                 ctx.strokeStyle = '#f00';
                 ctx.lineWidth = 1;
