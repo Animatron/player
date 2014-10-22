@@ -492,14 +492,29 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var bounds = this.$mask.bounds(),
-                    ratio = engine.PX_RATIO,
-                    width = Math.ceil(bounds.width),
-                    height = Math.ceil(bounds.height);
+                var mask = this.$mask;
+
+                var bounds_pts = mask.adapt(mask.boundsPoints());
+
+                var minX = Number.MIN_VALUE, minY = Number.MIN_VALUE,
+                    maxX = Number.MAX_VALUE, maxY = Number.MAX_VALUE;
+
+                var pt;
+                for (var i = 0, i = bounds_pts.length; i < il; i++) {
+                    pt = bounds_pts[i];
+                    if (pt.x < minX) minX = pt.x;
+                    if (pt.y < minY) minY = pt.y;
+                    if (pt.x > maxX) maxY = pt.x;
+                    if (pt.y > maxY) maxY = pt.y;
+                }
+
+                var ratio  = engine.PX_RATIO,
+                    width  = Math.ceil(maxX - minX),
+                    height = Math.ceil(maxY - minY);
 
                 var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
 
-                if ((last_cvs_size[0] < (width * ratio)) ||
+                if ((last_cvs_size[0] < (width  * ratio)) ||
                     (last_cvs_size[1] < (height * ratio))) {
                     // mcvs/bcvs both always have the same size, so we save/check only one of them
                     this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
@@ -514,8 +529,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.clearRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
-
-                var mask = this.$mask;
 
                 // FIXME: move this chain completely into one method, or,
                 //        which is even better, make all these checks to be modifiers
@@ -1063,6 +1076,7 @@ Element.prototype.global = function(pt) {
 Element.prototype.invalidate = function() {
     this.$bounds = null;
     this.$my_bounds = null;
+    this.$bounds_points = null;
     if (this.parent) this.parent.invalidate();
 }
 Element.prototype.invalidateVisuals = function() {
@@ -1091,6 +1105,16 @@ Element.prototype.bounds = function(value) {
         });
         return (this.$bounds = result);
     }
+}
+Element.prototype.boundsPoints = function() {
+    if (this.$bounds_points) return this.$bounds_points;
+    var bounds = this.bounds();
+    return this.$bounds_points = [
+        { x: bounds.x, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y },
+        { x: bounds.x + bounds.height, y: bounds.y + bounds.width },
+        { x: bounds.x, y: bounds.y + bounds.height }
+    ];
 }
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
