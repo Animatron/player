@@ -495,7 +495,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       && mask.modifiers(ltime, dt)
                       && mask.prepare()
                       && mask.visible)) return;
-                      // what should happen if mask doesn't fit?
+                      // what should happen if mask doesn't fit in time?
 
                 anim.__ensureHasMaskCanvas(level);
                 var mcvs = anim.__maskCvs[level],
@@ -541,7 +541,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.save(); // bctx second open
 
                 this.transform(bctx);
-                this.draw(bctx);
+                this.painters(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
@@ -555,7 +555,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
-                bctx.translate(-x, -y);
+                mctx.translate(-x, -y);
                 mask.render(mctx, gtime, dt);
 
                 mctx.restore(); // mctx first close
