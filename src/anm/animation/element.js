@@ -556,7 +556,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 mctx.clearRect(0, 0, width, height);
 
                 mctx.translate(-x, -y);
-                mask.render(mctx, gtime, dt);
+                mask.transform(mctx);
+                mask.painters(mctx);
+                mask.each(function(child) {
+                    child.render(mctx, gtime, dt);
+                });
 
                 mctx.restore(); // mctx first close
 
