@@ -398,11 +398,11 @@ Element.prototype.forAllPainters = function(f) {
     }
 }
 Element.prototype.adapt = function(arg0, arg1) {
-    if (is.array(arg0)) {
+    if (is.arr(arg0)) {
         var src = arg0, trg = [], pt;
         var matrix = this.matrix;
-        for (var i, il = arg0.length; i < il; i++) {
-            pt = matrix.transformPoint(arg0[i]);
+        for (var i = 0, il = arg0.length; i < il; i++) {
+            pt = matrix.transformPoint(arg0[i].x, arg0[i].y);
             trg.push({ x: pt[0], y: pt[1] });
         }
         return trg;
@@ -486,25 +486,36 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 var anim = this.anim;
                 if (!anim) throw new AnimationError(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
                 var level = this.level;
+
+                var mask = this.$mask;
+
+                // FIXME: move this chain completely into one method, or,
+                //        which is even better, make all these checks to be modifiers
+                if (!(mask.fits(ltime)
+                      && mask.modifiers(ltime, dt)
+                      && mask.prepare()
+                      && mask.visible)) return;
+                      // what should happen if mask doesn't fit?
+
+
                 anim.__ensureHasMaskCanvas(level);
                 var mcvs = anim.__maskCvs[level],
                     mctx = anim.__maskCtx[level],
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var mask = this.$mask;
 
                 var bounds_pts = mask.adapt(mask.boundsPoints());
 
-                var minX = Number.MIN_VALUE, minY = Number.MIN_VALUE,
-                    maxX = Number.MAX_VALUE, maxY = Number.MAX_VALUE;
+                var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
+                    maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 
                 var pt;
-                for (var i = 0, i = bounds_pts.length; i < il; i++) {
+                for (var i = 0, il = bounds_pts.length; i < il; i++) {
                     pt = bounds_pts[i];
                     if (pt.x < minX) minX = pt.x;
                     if (pt.y < minY) minY = pt.y;
-                    if (pt.x > maxX) maxY = pt.x;
+                    if (pt.x > maxX) maxX = pt.x;
                     if (pt.y > maxY) maxY = pt.y;
                 }
 
@@ -529,13 +540,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.clearRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
-
-                // FIXME: move this chain completely into one method, or,
-                //        which is even better, make all these checks to be modifiers
-                if (!(mask.fits(ltime)
-                      && mask.modifiers(ltime, dt)
-                      && mask.prepare()
-                      && mask.visible)) return;
 
                 mask.invTransform(bctx);
                 this.transform(bctx);
@@ -1112,7 +1116,7 @@ Element.prototype.boundsPoints = function() {
     return this.$bounds_points = [
         { x: bounds.x, y: bounds.y },
         { x: bounds.x + bounds.width, y: bounds.y },
-        { x: bounds.x + bounds.height, y: bounds.y + bounds.width },
+        { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
         { x: bounds.x, y: bounds.y + bounds.height }
     ];
 }
