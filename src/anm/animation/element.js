@@ -636,9 +636,9 @@ Element.prototype.removeModifier = function(modifier) {
 Element.prototype.paint = function(painter) {
     if (!painter) throw new AnimationError('No painter was passed to .paint() method');
     if (!is.painter(painter) && is.fun(painter)) {
-        painter = new AnimationError(painter, C.MOD_USER);
+        painter = new Painter(painter, C.MOD_USER);
     } else if (!is.painter(painter)) {
-        throw new AnimErr('Painter should be either a function or a Painter instance');
+        throw new AnimationError('Painter should be either a function or a Painter instance');
     }
     if (!painter.type) throw new AnimationError('Painter should have a type defined');
     if (painter.__applied_to &&
