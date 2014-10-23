@@ -268,11 +268,6 @@ Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
 }
-// > Element.prepare % () => Boolean
-Element.prototype.prepare = function() {
-    this.matrix.reset();
-    return true;
-}
 // > Element.modifiers % (ltime: Float, dt: Float[, types: Array]) => Boolean
 Element.prototype.modifiers = function(ltime, dt, types) {
     var elm = this;
@@ -330,6 +325,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
 
         elm.__mafter(ltime, type, true);
     } // for each type
+
+    elm.matrix = Element.getMatrixOf(elm, elm.matrix);
 
     elm.__modifying = null;
 
@@ -415,14 +412,13 @@ Element.prototype.adapt = function(arg0, arg1) {
 Element.prototype.draw = Element.prototype.painters;
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
-    this.matrix = Element.getMatrixOf(this, this.matrix);
     ctx.globalAlpha *= this.alpha;
     this.matrix.apply(ctx);
     return this.matrix;
 }
 // > Element.invTransform % (ctx: Context)
 Element.prototype.invTransform = function(ctx) {
-    var inv_matrix = Element.getIMatrixOf(this, this.matrix);
+    var inv_matrix = Element.getIMatrixOf(this); // this will not write to elm matrix
     ctx.globalAlpha *= this.alpha;
     inv_matrix.apply(ctx);
     return inv_matrix;
@@ -462,8 +458,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.modifiers(ltime, dt)
-                 && this.prepare() // FIXME: rename to .reset(), move before transform
-                                   //        or even inside it, move out of condition
                  && this.visible; // modifiers should be applied even if element isn't visible
     }
     if (drawMe) {
@@ -493,7 +487,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //        which is even better, make all these checks to be modifiers
                 if (!(mask.fits(ltime)
                       && mask.modifiers(ltime, dt)
-                      && mask.prepare()
                       && mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
 
@@ -519,8 +512,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var ratio  = engine.PX_RATIO,
                     x = minX, y = minY,
-                    width  = Math.ceil(maxX - minX),
-                    height = Math.ceil(maxY - minY);
+                    width  = 1000, //Math.ceil(maxX - minX),
+                    height = 1000;//Math.ceil(maxY - minY);
 
                 var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
 
