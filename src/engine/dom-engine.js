@@ -236,7 +236,7 @@ $DE.styling = {
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
-    var stylesTag = $doc.createElement('style');
+    var stylesTag = $DE.createStyle();
     stylesTag.type = 'text/css';
 
     // TODO: inject as first element?
