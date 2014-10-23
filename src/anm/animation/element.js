@@ -562,9 +562,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 ctx.translate(x, y);
                 ctx.drawImage(bcvs, 0, 0, width, height);
-                ctx.strokeStyle = '#f00';
-                ctx.lineWidth = 1;
-                ctx.strokeRect(0, 0, width, height);
             }
         } catch(e) { log.error(e); }
           finally { ctx.restore(); }
