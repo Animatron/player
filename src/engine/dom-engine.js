@@ -236,7 +236,7 @@ $DE.styling = {
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
-    var stylesTag = $doc.createElement('style');
+    var stylesTag = $DE.createStyle();
     stylesTag.type = 'text/css';
 
     // TODO: inject as first element?
@@ -531,7 +531,7 @@ $DE.detachPlayer = function(player) {
     }
 
     if (player.statImg) {
-      $DE.removeElement(player.statImg);
+      $DE.detachElement(null, player.statImg);
     }
     //FIXME: should remove stylesTag when last player was deleted from page
     //$DE.detachElement(null, $DE.__stylesTag);
@@ -877,17 +877,11 @@ $DE.createStatImg = function() {
     $doc.body.appendChild(img);
 
     return img;
-}
-
-$DE.removeElement = function(element) {
-  if (element) {
-    element.parentNode.removeChild(element);
-  }
-}
+};
 
 $DE.createStyle = function() {
   return document.createElement('style');
-}
+};
 
 
 module.exports = $DE;
