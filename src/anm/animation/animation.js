@@ -471,6 +471,8 @@ Animation.prototype.clearAllLaters = function() {
 Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
+
+var FONT_LOAD_TIMEOUT = 10000; //in ms
 /*
  * @method loadFonts
  * @private
@@ -481,7 +483,7 @@ Animation.prototype.loadFonts = function(player) {
     }
 
     var fonts = this.fonts,
-        style = document.createElement('style'), // FIXME: should use engine
+        style = engine.createStyle(),
         css = '',
         fontsToLoad = [],
         detector = new FontDetector();
@@ -515,10 +517,15 @@ Animation.prototype.loadFonts = function(player) {
         ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
             var face = fontsToLoad[i].face,
                 interval = 100,
+                counter = 0,
                 intervalId,
                 checkLoaded = function() {
+                    counter += interval;
                     var loaded = detector.detect(face);
-                    if (loaded) {
+                    if (loaded || counter > FONT_LOAD_TIMEOUT) {
+                    // after 10 seconds, we'll just assume the font has been loaded
+                    // and carry on. this should help when the font could not be
+                    // reached for whatever reason.
                         clearInterval(intervalId);
                         success();
                     }
