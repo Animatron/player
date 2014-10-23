@@ -122,6 +122,7 @@ Element.prototype.initState = function() {
     this.t = null; this.rt = null; this.key = null;
                                // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
+
     if (this.matrix) { this.matrix.reset() }
     else { this.matrix = new Transform(); }
 
@@ -152,13 +153,13 @@ Element.prototype.initState = function() {
     if (this._matrix) { this._matrix.reset() }
     else { this._matrix = new Transform(); }
 
+    this.$reg = Element.DEFAULT_REG;   // registration point (static values)
+    this.$pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
+
     return this;
 }
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
-
-    this.$reg = Element.DEFAULT_REG;   // registration point (static values)
-    this.$pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
     // since properties below will conflict with getters/setters having same names,
     // they're renamed with dollar-sign. this way also allows methods to be replaced
@@ -267,11 +268,6 @@ Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
 }
-// > Element.prepare % () => Boolean
-Element.prototype.prepare = function() {
-    this.matrix.reset();
-    return true;
-}
 // > Element.modifiers % (ltime: Float, dt: Float[, types: Array]) => Boolean
 Element.prototype.modifiers = function(ltime, dt, types) {
     var elm = this;
@@ -329,6 +325,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
 
         elm.__mafter(ltime, type, true);
     } // for each type
+
+    elm.matrix = Element.getMatrixOf(elm, elm.matrix);
 
     elm.__modifying = null;
 
@@ -396,34 +394,34 @@ Element.prototype.forAllPainters = function(f) {
         }
     }
 }
+Element.prototype.adapt = function(arg0, arg1) {
+    if (is.arr(arg0)) {
+        var src = arg0, trg = [], pt;
+        var matrix = this.matrix;
+        for (var i = 0, il = arg0.length; i < il; i++) {
+            pt = matrix.transformPoint(arg0[i].x, arg0[i].y);
+            trg.push({ x: pt[0], y: pt[1] });
+        }
+        return trg;
+    } else {
+        var pt = this.matrix.transformPoint(arg0, arg1);
+        return { x: pt[0], y: pt[1] };
+    }
+}
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
 // > Element.transform % (ctx: Context)
 Element.prototype.transform = function(ctx) {
-    this.matrix = Element.getMatrixOf(this, this.matrix);
     ctx.globalAlpha *= this.alpha;
     this.matrix.apply(ctx);
     return this.matrix;
 }
 // > Element.invTransform % (ctx: Context)
 Element.prototype.invTransform = function(ctx) {
-    this.matrix = Element.getIMatrixOf(this, this.matrix);
+    var inv_matrix = Element.getIMatrixOf(this); // this will not write to elm matrix
     ctx.globalAlpha *= this.alpha;
-    this.matrix.apply(ctx);
-    return this.matrix;
-}
-// > Element.fullTransform % (ctx: Context)
-Element.prototype.fullTransform = function(ctx) {
-    var matrix = this.transform(ctx);
-    this.applyPivot(ctx);
-    this.applyReg(ctx);
-    return matrix;
-}
-// > Element.fullInvTransform % (ctx: Context)
-Element.prototype.fullInvTransform = function(ctx) {
-    this.applyInvReg(ctx);
-    this.applyInvPivot(ctx);
-    return this.invTransform(ctx);
+    inv_matrix.apply(ctx);
+    return inv_matrix;
 }
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
@@ -460,9 +458,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) {
         drawMe = this.fits(ltime)
                  && this.modifiers(ltime, dt)
-                 && this.prepare() // FIXME: rename to .reset(), move before transform
-                                   //        or even inside it, move out of condition
-                 && this.visible;
+                 && this.visible; // modifiers should be applied even if element isn't visible
     }
     if (drawMe) {
         ctx.save();
@@ -484,20 +480,44 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 var anim = this.anim;
                 if (!anim) throw new AnimationError(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
                 var level = this.level;
+
+                var mask = this.$mask;
+
+                // FIXME: move this chain completely into one method, or,
+                //        which is even better, make all these checks to be modifiers
+                if (!(mask.fits(ltime)
+                      && mask.modifiers(ltime, dt)
+                      && mask.visible)) return;
+                      // what should happen if mask doesn't fit in time?
+
                 anim.__ensureHasMaskCanvas(level);
                 var mcvs = anim.__maskCvs[level],
                     mctx = anim.__maskCtx[level],
                     bcvs = anim.__backCvs[level],
                     bctx = anim.__backCtx[level];
 
-                var bounds = this.bounds(),
-                    ratio = engine.PX_RATIO,
-                    width = Math.ceil(bounds.width),
-                    height = Math.ceil(bounds.height);
+                var bounds_pts = mask.adapt(mask.boundsPoints());
+
+                var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
+                    maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+
+                var pt;
+                for (var i = 0, il = bounds_pts.length; i < il; i++) {
+                    pt = bounds_pts[i];
+                    if (pt.x < minX) minX = pt.x;
+                    if (pt.y < minY) minY = pt.y;
+                    if (pt.x > maxX) maxX = pt.x;
+                    if (pt.y > maxY) maxY = pt.y;
+                }
+
+                var ratio  = engine.PX_RATIO,
+                    x = minX, y = minY,
+                    width  = Math.ceil(maxX - minX),
+                    height = Math.ceil(maxY - minY);
 
                 var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
 
-                if ((last_cvs_size[0] < (width * ratio)) ||
+                if ((last_cvs_size[0] < (width  * ratio)) ||
                     (last_cvs_size[1] < (height * ratio))) {
                     // mcvs/bcvs both always have the same size, so we save/check only one of them
                     this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
@@ -511,17 +531,13 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.clearRect(0, 0, width, height);
 
                 bctx.save(); // bctx second open
+                bctx.translate(-x, -y);
 
-                // FIXME: disable particular painters instead
-                // draw() moves context to a pivot / registration point location,
-                // since they are treated as "visual" part (may be its not so right),
-                // so in this case we need to rollback them before
-                this.applyInvPivot(bctx);
-                this.applyInvReg(bctx);
+                this.transform(bctx);
+                this.painters(bctx);
                 this.each(function(child) {
                     child.render(bctx, gtime, dt);
                 });
-                this.draw(bctx);
 
                 bctx.restore(); // bctx second closed
 
@@ -532,19 +548,19 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (ratio !== 1) mctx.scale(ratio, ratio);
                 mctx.clearRect(0, 0, width, height);
 
-                // same as above, we need not only to subtract our transformations
-                // (notice that we use NOT the mask matrix, but a matrix of the
-                // masked element (this)), but also to rollback pivot / reg.point
-                this.fullInvTransform(mctx);
-                this.$mask.render(mctx, gtime, dt);
+                mctx.translate(-x, -y);
+                mask.transform(mctx);
+                mask.painters(mctx);
+                mask.each(function(child) {
+                    child.render(mctx, gtime, dt);
+                });
 
                 mctx.restore(); // mctx first close
 
-                //bctx.setTransform(1, 0, 0, 1, 0, 0);
                 bctx.drawImage(mcvs, 0, 0, width, height);
                 bctx.restore(); // bctx first closed
 
-                this.fullTransform(ctx);
+                ctx.translate(x, y);
                 ctx.drawImage(bcvs, 0, 0, width, height);
             }
         } catch(e) { log.error(e); }
@@ -1053,6 +1069,7 @@ Element.prototype.global = function(pt) {
 Element.prototype.invalidate = function() {
     this.$bounds = null;
     this.$my_bounds = null;
+    this.$bounds_points = null;
     if (this.parent) this.parent.invalidate();
 }
 Element.prototype.invalidateVisuals = function() {
@@ -1082,6 +1099,16 @@ Element.prototype.bounds = function(value) {
         return (this.$bounds = result);
     }
 }
+Element.prototype.boundsPoints = function() {
+    if (this.$bounds_points) return this.$bounds_points;
+    var bounds = this.bounds();
+    return this.$bounds_points = [
+        { x: bounds.x, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y },
+        { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
+        { x: bounds.x, y: bounds.y + bounds.height }
+    ];
+}
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
     var subj = this.$path || this.$text || this.$image;
@@ -1091,32 +1118,6 @@ Element.prototype.myBounds = function() {
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();
     return (my_bounds.width == 0) && (my_bounds.height == 0);
-}
-Element.prototype.applyPivot = function(ctx) {
-    var pivot = this.$pivot;
-    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
-    var my_bounds = this.myBounds();
-    if (!my_bounds) return;
-    ctx.translate(-(pivot[0] * my_bounds.width),
-                  -(pivot[1] * my_bounds.height));
-}
-Element.prototype.applyInvPivot = function(ctx) {
-    var pivot = this.$pivot;
-    if ((pivot[0] === 0) && (pivot[1] === 0)) return;
-    var my_bounds = this.myBounds();
-    if (!my_bounds) return;
-    ctx.translate(pivot[0] * my_bounds.width,
-                  pivot[1] * my_bounds.height);
-}
-Element.prototype.applyReg = function(ctx) {
-    var reg = this.$reg;
-    if ((reg[0] === 0) && (reg[1] === 0)) return;
-    ctx.translate(-reg[0], -reg[1]);
-}
-Element.prototype.applyInvReg = function(ctx) {
-    var reg = this.$reg;
-    if ((reg[0] === 0) && (reg[1] === 0)) return;
-    ctx.translate(reg[0], reg[1]);
 }
 Element.prototype.applyVisuals = function(ctx) {
     var subj = this.$path || this.$text || this.$image;
@@ -1463,9 +1464,10 @@ Element.transferState = function(src, trg) {
     trg.hx = src.hx; trg.hy = src.hy;
     trg.angle = src.angle;
     trg.alpha = src.alpha;
+    trg.$reg = [].concat(src.$reg);
+    trg.$pivot = [].concat(src.$pivot);
 }
 Element.transferVisuals = function(src, trg) {
-    trg.$reg = [].concat(src.$reg); trg.$pivot = [].concat(src.$pivot);
     trg.$fill = Brush.clone(src.$fill);
     trg.$stroke = Brush.clone(src.$stroke);
     trg.$shadow = Brush.clone(src.$shadow);
@@ -1493,7 +1495,15 @@ Element.getMatrixOf = function(elm, m) {
     t.rotate(elm.angle);
     t.shear(elm.hx, elm.hy);
     t.scale(elm.sx, elm.sy);
-    //_t.translate(-elm.reg[0], -elm.reg[1]);
+    t.translate(-elm.$reg[0], -elm.$reg[1]);
+
+    var pivot = elm.$pivot;
+    if ((pivot[0] === 0) && (pivot[1] === 0)) return t;
+    var my_bounds = elm.myBounds();
+    if (!my_bounds) return t;
+    t.translate(pivot[0] * my_bounds.width,
+                pivot[1] * my_bounds.height);
+
     return t;
 }
 Element.getIMatrixOf = function(elm, m) {
@@ -1513,8 +1523,6 @@ Element.prototype.addSysModifiers = function() {
     // Render.m_applyPos
 }
 Element.prototype.addSysPainters = function() {
-    this.paint(Render.p_usePivot);
-    this.paint(Render.p_useReg);
     this.paint(Render.p_applyAComp);
     this.paint(Render.p_drawVisuals);
 }

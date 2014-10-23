@@ -1,10 +1,15 @@
-var C = require('./constants.js'),
-    Painter = require('./animation/painter.js'),
-    Modifier = require('./animation/modifier.js'),
-    Brush = require('./graphics/brush.js'),
-    engine = require('engine'),
-    nextFrame = engine.getRequestFrameFunc(),
-    fit_rects = require('./utils.js').fit_rects;
+var C = require('./constants.js');
+
+var Painter = require('./animation/painter.js'),
+    Modifier = require('./animation/modifier.js');
+
+var Brush = require('./graphics/brush.js')
+
+var engine = require('engine'),
+    nextFrame = engine.getRequestFrameFunc();
+
+var fit_rects = require('./utils.js').fit_rects;
+
 // Rendering
 // -----------------------------------------------------------------------------
 
@@ -146,10 +151,6 @@ Render.at = r_at;
 Render.drawFPS = r_fps;
 
 // SYSTEM PAINTERS
-
-Render.p_useReg = new Painter(function(ctx) { this.applyReg(ctx); }, C.PNT_SYSTEM);
-
-Render.p_usePivot = new Painter(function(ctx) { this.applyPivot(ctx); }, C.PNT_SYSTEM);
 
 Render.p_drawVisuals = new Painter(function(ctx) { this.applyVisuals(ctx); }, C.PNT_SYSTEM);
 

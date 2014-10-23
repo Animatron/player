@@ -3,6 +3,7 @@ var C = require('./constants.js'),
 
 var is = {};
 
+// FIXME: rename all to full-names
 is.defined = function(v) {
   return !((typeof v === 'undefined')
    || (typeof v === 'null')
