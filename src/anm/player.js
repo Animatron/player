@@ -863,23 +863,6 @@ Player.prototype.forceRedraw = function() {
     if (this.controls) this.controls.render(this.state.time);
 }
 /**
- * @method zoom
- * @chainable
- *
- * Change zoom of an {@link anm.Animation animation}, or just get a current one.
- * Does not resizes the player itself.
- *
- * @param {Number} [zoom]
- *
- * @return {anm.Player|Number} The Player or current zoom
- */
-Player.prototype.zoom = function(zoom) {
-    if (is.number(zoom)) {
-        this.zoom = zoom;
-        return this;
-    } else return this.zoom;
-}
-/**
  * @method drawAt
  *
  * Draw current {@link anm.Animation animation} at specified time
