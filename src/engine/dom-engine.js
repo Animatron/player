@@ -885,6 +885,10 @@ $DE.removeElement = function(element) {
   }
 }
 
+$DE.createStyle = function() {
+  return document.createElement('style');
+}
+
 
 module.exports = $DE;
 return $DE;
