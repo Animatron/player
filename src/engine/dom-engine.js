@@ -84,16 +84,15 @@ var $DE = {};
 // subscribeWindowEvents(handlers: object) -> none
 // subscribeCanvasEvents(canvas, handlers: object) -> none
 // unsubscribeCanvasEvents(canvas, handlers: object) -> none
-// subscribeSceneToEvents(canvas, scene, map) -> none
-// unsubscribeSceneFromEvents(canvas, scene) -> none
+// subscribeAnimationToEvents(canvas, anim, map) -> none
+// unsubscribeAnimationFromEvents(canvas, anim) -> none
 // subscribeWrapperToStateChanges(wrapper, player) -> none
 
 // keyEvent(evt) -> Event
 // mouseEvent(evt, canvas) -> Event
 
+// createStyle() -> Element
 // createStatImg() -> Image
-
-// removeElement(element) -> void
 
 
 // Framing
@@ -276,7 +275,7 @@ $DE.__textBuf = null;
 $DE.createTextMeasurer = function() {
     var buff = $DE.__textBuf;
     if (!buff) {
-        /* FIXME: dispose buffer when text is removed from scene */
+        /* FIXME: dispose buffer when text is removed from animation */
         $DE.onDocReady(function(){
           var div = $doc.createElement('div');
           div.style.visibility = 'hidden';
@@ -801,35 +800,35 @@ $DE.mouseEvent = function(e, cvs) {
 }
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;
-$DE.subscribeSceneToEvents = function(cvs, scene, map) {
+$DE.subscribeAnimationToEvents = function(cvs, anim, map) {
     if (cvs.__anm.subscribed &&
-        cvs.__anm.subscribed[scene.id]) {
+        cvs.__anm.subscribed[anim.id]) {
         return;
     }
     //cvs.__anm_subscription_id = guid();
     if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
     if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
-    var handlers = cvs.__anm.subscribed[scene.id] || {
-      mouseup:   function(evt) { scene.fire(map.mouseup,   _mevt(evt, cvs)); },
-      mousedown: function(evt) { scene.fire(map.mousedown, _mevt(evt, cvs)); },
-      mousemove: function(evt) { scene.fire(map.mousemove, _mevt(evt, cvs)); },
-      mouseover: function(evt) { scene.fire(map.mouseover, _mevt(evt, cvs)); },
-      mouseout:  function(evt) { scene.fire(map.mouseout,  _mevt(evt, cvs)); },
-      click:     function(evt) { scene.fire(map.click,     _mevt(evt, cvs)); },
-      dblclick:  function(evt) { scene.fire(map.dblclick,  _mevt(evt, cvs)); },
-      keyup:     function(evt) { scene.fire(map.keyup,     _kevt(evt)); },
-      keydown:   function(evt) { scene.fire(map.keydown,   _kevt(evt)); },
-      keypress:  function(evt) { scene.fire(map.keypress,  _kevt(evt)); }
+    var handlers = cvs.__anm.subscribed[anim.id] || {
+      mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
+      mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
+      mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
+      mouseover: function(evt) { anim.fire(map.mouseover, _mevt(evt, cvs)); },
+      mouseout:  function(evt) { anim.fire(map.mouseout,  _mevt(evt, cvs)); },
+      click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
+      dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
+      keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
+      keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); },
+      keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); }
     };
-    cvs.__anm.handlers[scene.id] = handlers;
-    cvs.__anm.subscribed[scene.id] = true;
+    cvs.__anm.handlers[anim.id] = handlers;
+    cvs.__anm.subscribed[anim.id] = true;
     $DE.subscribeCanvasEvents(cvs, handlers);
 }
-$DE.unsubscribeSceneFromEvents = function(cvs, scene) {
+$DE.unsubscribeAnimationFromEvents = function(cvs, anim) {
     if (!cvs.__anm.handlers   ||
         !cvs.__anm.subscribed ||
-        !cvs.__anm.subscribed[scene.id]) return;
-    var handlers = cvs.__anm.handlers[scene.id];
+        !cvs.__anm.subscribed[anim.id]) return;
+    var handlers = cvs.__anm.handlers[anim.id];
     if (!handlers) return;
     $DE.unsubscribeCanvasEvents(cvs, handlers);
 }
