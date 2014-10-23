@@ -512,8 +512,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var ratio  = engine.PX_RATIO,
                     x = minX, y = minY,
-                    width  = 1000, //Math.ceil(maxX - minX),
-                    height = 1000;//Math.ceil(maxY - minY);
+                    width  = Math.ceil(maxX - minX),
+                    height = Math.ceil(maxY - minY);
 
                 var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
 
@@ -530,8 +530,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 if (ratio !== 1) bctx.scale(ratio, ratio);
                 bctx.clearRect(0, 0, width, height);
 
-                bctx.translate(-x, -y);
                 bctx.save(); // bctx second open
+                bctx.translate(-x, -y);
 
                 this.transform(bctx);
                 this.painters(bctx);
