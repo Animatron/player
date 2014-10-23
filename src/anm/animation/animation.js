@@ -498,7 +498,8 @@ Animation.prototype.loadFonts = function(player) {
         fontsToLoad.push(font);
         css += '@font-face {' +
             'font-family: "' + font.face + '"; ' +
-            'src: url(' + font.url + '); ' +
+            'src:' +  font.woff ? 'url("'+font.woff+'") format("woff"), ' : '' +
+            'url("'+font.url+'");' +
             (font.style ? 'style: ' + font.style +'; ' : '') +
             (font.weight ? 'weight: ' + font.weight + '; ' : '') +
             '}\n';
