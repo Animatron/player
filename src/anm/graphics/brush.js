@@ -68,12 +68,14 @@ Brush.prototype.apply = function(ctx) {
         // TODO: mitter
     } else if (this.type == C.BT_SHADOW) {
         if (conf.doNotRenderShadows) return;
+        // FIXME: this could be a slow operation to perform
         var props = engine.getAnmProps(ctx);
         if (props.skip_shadows) return;
+        var ratio = engine.PX_RATIO;
         ctx.shadowColor = style;
-        ctx.shadowBlur = this.blurRadius || 0;
-        ctx.shadowOffsetX = this.offsetX || 0;
-        ctx.shadowOffsetY = this.offsetY || 0;
+        ctx.shadowBlur = (this.blurRadius * ratio) || 0;
+        ctx.shadowOffsetX = (this.offsetX * ratio) || 0;
+        ctx.shadowOffsetY = (this.offsetY * ratio) || 0;
     }
 }
 Brush.prototype.invalidate = function() {
