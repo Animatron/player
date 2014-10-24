@@ -694,7 +694,7 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
 
 // push-go =====================================================================
 
-desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
+desc(_dfit_nl(['Pushes publish.js` script to the S3.',
                'Usage: {jake push-go} to push to `dev` bucket under current version. '+
                    'To push to another bucket or version, pass it as a param: '+
                    '{jake push-go[,rls]}, {jake push-go[latest,rls]}',
@@ -733,32 +733,23 @@ task('push-go', [], { async: true }, function(_version, _bucket) {
 
     s3.setBucket(trg_bucket);
 
-    var GO_LOCAL_PATH = _loc('go'),
-        GO_REMOTE_PATH = '/' + trg_version + '/go';
     var PUBLISHJS_LOCAL_PATH = _loc('publish.js'),
         PUBLISHJS_REMOTE_PATH = '/' + trg_version + '/publish.js';
     var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
         FAVICON_REMOTE_PATH = '/favicon.ico';
 
 
-    s3.putFile(GO_REMOTE_PATH, GO_LOCAL_PATH, 'public-read', { 'content-type': 'text/html' }, function(err, res) {
+    s3.putFile(PUBLISHJS_REMOTE_PATH, PUBLISHJS_LOCAL_PATH, 'public-read', { 'content-type': 'text/javascript' }, function(err, res) {
 
         if (err) { _print(FAILED_MARKER); throw err; }
-        _print(GO_LOCAL_PATH + ' -> s3 as ' + GO_REMOTE_PATH);
+        _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
 
-        s3.putFile(PUBLISHJS_REMOTE_PATH, PUBLISHJS_LOCAL_PATH, 'public-read', { 'content-type': 'text/javascript' }, function(err, res) {
+        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
 
             if (err) { _print(FAILED_MARKER); throw err; }
-            _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
+            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
 
-            s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
-
-                if (err) { _print(FAILED_MARKER); throw err; }
-                _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
-
-                complete();
-
-            });
+            complete();
 
         });
 
