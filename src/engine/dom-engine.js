@@ -177,6 +177,11 @@ $DE.getCookie = function(name) {
     return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
 }
 $DE.onDocReady = function(callback) {
+    //check if the document isn't already ready (sorry for the wording)
+    if ($doc.readyState === 'complete') {
+      callback();
+      return;
+    }
     var listener;
     if ($doc.addEventListener) {
         listener = $doc.addEventListener('DOMContentLoaded', function() {
