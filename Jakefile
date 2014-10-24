@@ -1017,10 +1017,6 @@ task('_minify', { async: true }, function() {
             '--ascii',
             '--compress warnings=false',
             '--screw-ie8', // since April 2014
-            '--source-map-url', _src_map_url(src),
-            '--source-map', _src_map(src),
-            '--source-map-root', _src_map_root(src),
-            '--prefix', _src_map_prefix(src),
             '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
             '--output', dst,
             src

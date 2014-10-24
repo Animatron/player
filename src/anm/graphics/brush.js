@@ -61,10 +61,14 @@ Brush.prototype.apply = function(ctx) {
     if (this.type == C.BT_FILL) {
         ctx.fillStyle = style;
     } else if (this.type == C.BT_STROKE) {
-        ctx.lineWidth = this.width || 0;
-        ctx.strokeStyle = style || Brush.DEFAULT_STROKE;
-        ctx.lineCap = this.cap || Brush.DEFAULT_CAP;
-        ctx.lineJoin = this.join || Brush.DEFAULT_JOIN;
+        if (this.width > 0) {
+          ctx.lineWidth = this.width;
+          ctx.strokeStyle = style || Brush.DEFAULT_STROKE;
+          ctx.lineCap = this.cap || Brush.DEFAULT_CAP;
+          ctx.lineJoin = this.join || Brush.DEFAULT_JOIN;
+        } else {
+          Brush.clearStroke(ctx);
+        }
         // TODO: mitter
     } else if (this.type == C.BT_SHADOW) {
         if (conf.doNotRenderShadows) return;
