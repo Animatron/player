@@ -60,9 +60,9 @@ var C = require('./constants.js'),
  * `<div id="my-precious-player" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200"/></div>`
  *
  * It is recommended to always specify both width and height of a Player, if you know
- * them before. If the scene is loaded synchronously and it has some size specified in
+ * them before. If animation is loaded synchronously and it has some size specified in
  * any way, this doesn't changes a lot, since Player takes its size from these values.
- * But if the scene is loaded asynhronously, a noticable value of time is spent on request,
+ * But if animation is loaded asynhronously, a noticable value of time is spent on request,
  * so it's better to resize Player before the loading will start, so no creepy resize effect
  * will appear.
  *

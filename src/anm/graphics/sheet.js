@@ -1,7 +1,8 @@
-var resMan = require('../resource_manager.js'),
-    conf = require('../conf.js'),
-    engine = require('engine'),
+var conf = require('../conf.js'),
     log = require('../log.js');
+
+var engine = require('engine'),
+    resMan = require('../resource_manager.js');
 
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;
@@ -68,8 +69,10 @@ Sheet.prototype.load = function(player_id, callback, errback) {
                         if (errback) errback.call(me, err); });
 }
 
-Sheet.prototype.apply = function(ctx) {
+Sheet.prototype.apply = function(ctx/*, fill, stroke, shadow*/) {
     if (!this.ready) return;
+
+    ctx.save();
     if (this.wasError) { this.applyMissed(ctx); return; }
     if (this.cur_region < 0) return;
     var region;
@@ -83,6 +86,7 @@ Sheet.prototype.apply = function(ctx) {
     this._active_region = region;
     ctx.drawImage(this._image, region[0], region[1],
                                region[2], region[3], 0, 0, region[2], region[3]);
+    ctx.restore();
 }
 Sheet.prototype.applyMissed = function(ctx) {
     ctx.save();

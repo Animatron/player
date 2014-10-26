@@ -1,8 +1,10 @@
 var C = require('../constants.js'),
-    Brush = require('./brush.js'),
     is = require('../utils.js').is,
-    SystemError = require('../errors.js').SystemError,
-    engine = require('engine');
+    SystemError = require('../errors.js').SystemError;
+
+var engine = require('engine');
+
+var Brush = require('./brush.js');
 
 function Text(lines, font, align, baseline, underlined) {
     this.lines = lines;
@@ -22,33 +24,42 @@ Text.DEFAULT_UNDERLINE = false;
 
 Text.__measuring_f = engine.createTextMeasurer();
 
-Text.prototype.apply = function(ctx) {
+Text.prototype.apply = function(ctx, fill, stroke, shadow) {
     ctx.save();
+
     var bounds = this.bounds(),
         height = (bounds.height / this.lineCount()),
         underlined = this.underlined;
+
     ctx.font = this.font;
     ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
+    ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
 
     var ascent = this.ascent(height, ctx.textBaseline);
 
-    ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
-    var y = 0;
-    this.visitLines(function(line) {
-        ctx.fillText(line, 0, y+ascent);
-        y += height;
-    });
-    Brush.clearShadow(ctx);
-    y = 0;
-    this.visitLines(function(line) {
-        ctx.strokeText(line, 0, y+ascent);
-        y += height;
-    });
-    if (underlined) { // FIXME: no this.fill anymore
-        var stroke = this.fill,
-            me = this; //obj_clone(this.fill);
+    var y;
+    if (shadow) { shadow.apply(ctx); } else { Brush.clearShadow(ctx); }
+    if (fill) {
+        fill.apply(ctx);
         y = 0;
-        Brush.stroke(ctx, stroke);
+        this.visitLines(function(line) {
+            ctx.fillText(line, 0, y+ascent);
+            y += height;
+        });
+    } else { Brush.clearFill(ctx); }
+    if (shadow) { Brush.clearShadow(ctx); }
+    if (stroke) {
+        stroke.apply(ctx);
+        y = 0;
+        this.visitLines(function(line) {
+            ctx.strokeText(line, 0, y+ascent);
+            y += height;
+        });
+    } else { Brush.clearStroke(ctx); }
+    if (underlined && fill) {
+        y = 0;
+        Brush.stroke(ctx, fill); // passing fill is intentional,
+                                 // stroke should be a color of a fill
         ctx.lineWidth = 1;
         var line_bounds = null,
             line_width = 0,
@@ -64,6 +75,7 @@ Text.prototype.apply = function(ctx) {
             y += height;
         });
     }
+
     ctx.restore();
 }
 Text.prototype.bounds = function() {
