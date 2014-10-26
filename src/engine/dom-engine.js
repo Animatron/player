@@ -94,6 +94,7 @@ var $DE = {};
 // createStyle() -> Element
 // createStatImg() -> Image
 
+// canvasSupported -> bool
 
 // Framing
 
@@ -886,6 +887,9 @@ $DE.createStatImg = function() {
 $DE.createStyle = function() {
   return document.createElement('style');
 };
+
+var testCanvas = document.createElement('canvas');
+$DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 
 
 module.exports = $DE;

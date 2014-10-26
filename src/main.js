@@ -63,6 +63,10 @@ var anm = {
     CSeg: segments.CSeg,
 
     createPlayer: function(elm, opts) {
+        if (!engine.canvasSupported) {
+          document.getElementById(elm).innerHTML = anm.loc.Errors.S.SAD_SMILEY_HTML;
+          return null;
+        }
         var p = new Player();
         p.init(elm, opts);
         return p;
