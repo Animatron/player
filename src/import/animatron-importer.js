@@ -279,13 +279,13 @@ Import.branch = function(type, src, all, anim) {
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
         var b = Import.band(lsrc[2]);
-        if (type == TYPE_GROUP) {
+        /* if (type == TYPE_GROUP) {
             ltrg.gband = [ 0, b[1] ];
             ltrg.lband = [ 0, b[1] ];
-        } else {
+        } else { */
             ltrg.lband = b;
             ltrg.gband = b; //in_band ? Bands.wrap(in_band, b) : b;
-        }
+        /* } */
         ltrg.$pivot = [ 0, 0 ];
         ltrg.$reg = lsrc[4] || [ 0, 0 ];
         /* if (lsrc[4]) {
