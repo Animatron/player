@@ -14,8 +14,9 @@ Errors.S = {}; // System Errors
 Errors.P = {}; // Player Errors
 Errors.A = {}; // Animation Errors
 
-// FIXME: move to player those ones who belong only to itself
-//        NB: engine also has error strings
+Errors.S.CANVAS_NOT_SUPPORTED = 'Your browser does not support HTML5 canvas, so we cannot play anything for you.'
+Errors.S.SAD_SMILEY_HTML = '<span style="font-size: 4em;">:(</span><br>' +
+  Errors.S.CANVAS_NOT_SUPPORTED;
 Errors.S.NO_JSON_PARSER = 'JSON parser is not accessible';
 Errors.S.ERROR_HANDLING_FAILED = 'Error-handling mechanics were broken with error {0}';
 Errors.S.NO_METHOD_FOR_PLAYER = 'No method \'{0}\' exist for player';
