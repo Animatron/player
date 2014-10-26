@@ -1,10 +1,14 @@
-var C = require('../constants.js'),
-    segments = require('./segments.js')
+var C = require('../constants.js');
+
+var utils = require('../utils.js'),
+    is = utils.is;
+
+var segments = require('./segments.js')
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
-    CSeg = segments.CSeg,
-    utils = require('../utils.js'),
-    is = utils.is;
+    CSeg = segments.CSeg;
+
+var Brush = require('./brush.js');
 
 // Paths
 // -----------------------------------------------------------------------------
@@ -65,15 +69,21 @@ Path.prototype.add = function(seg) {
     this.segs.push(seg);
 }
 // > Path.apply % (ctx: Context)
-Path.prototype.apply = function(ctx) {
-    var p = this;
+Path.prototype.apply = function(ctx, fill, stroke, shadow) {
+    ctx.save();
+
     // TODO: every segment should apply itself
     //       simplify this to call seg.apply for every segment
     ctx.beginPath();
     this.visit(applyVisitor, ctx);
     // ctx.closePath();
-    ctx.fill();
-    ctx.stroke();
+
+    if (shadow) { shadow.apply(ctx); } else { Brush.clearShadow(ctx); }
+    if (fill) { fill.apply(ctx); ctx.fill(); } else { Brush.clearFill(ctx); }
+    if (shadow) { Brush.clearShadow(ctx); }
+    if (stroke) { stroke.apply(ctx); ctx.stroke(); } else { Brush.clearStroke(ctx); }
+
+    ctx.restore();
 }
 // > Path.parse % (str: String) => Path
 Path.prototype.parse = function(str) {

@@ -453,7 +453,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
-    // FIXME: masks have no scene set to something, but should to (see masks tests)
+    // FIXME: masks have no animation set to something, but should to (see masks tests)
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime)
@@ -1123,15 +1123,11 @@ Element.prototype.applyVisuals = function(ctx) {
     var subj = this.$path || this.$text || this.$image;
     if (!subj) return;
 
-    ctx.save();
+    // save/restore is performed inside .apply method
     // FIXME: split into p_applyBrush and p_drawVisuals,
     //        so user will be able to use brushes with
     //        his own painters
-    if (this.$fill)   { this.$fill.apply(ctx);   } else { Brush.clearFill(ctx);   };
-    if (this.$stroke) { this.$stroke.apply(ctx); } else { Brush.clearStroke(ctx); };
-    if (this.$shadow) { this.$shadow.apply(ctx); } else { Brush.clearShadow(ctx); };
-    subj.apply(ctx);
-    ctx.restore();
+    subj.apply(ctx, this.$fill, this.$stroke, this.$shadow);
 }
 Element.prototype.applyAComp = function(ctx) {
     if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
