@@ -19,7 +19,7 @@ Text.DEFAULT_FFACE = 'sans-serif';
 Text.DEFAULT_FSIZE = 24;
 Text.DEFAULT_FONT = Text.DEFAULT_FSIZE + 'px ' + Text.DEFAULT_FFACE;
 Text.DEFAULT_ALIGN = C.TA_LEFT;
-Text.DEFAULT_BASELINE = C.BL_BOTTOM; // FIXME: also change to middle?
+Text.DEFAULT_BASELINE = C.BL_MIDDLE; // FIXME: also change to middle?
 Text.DEFAULT_UNDERLINE = false;
 
 Text.__measuring_f = engine.createTextMeasurer();
@@ -59,7 +59,7 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
     if (underlined && fill) {
         y = 0;
         Brush.stroke(ctx, fill); // passing fill is intentional,
-                                 // stroke should be a color of a fill
+                                 // stroke should have a color of a fill
         ctx.lineWidth = 1;
         var line_bounds = null,
             line_width = 0,
@@ -119,7 +119,7 @@ Text.bounds = function(spec, lines) {
     if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
     var dimen = Text.__measuring_f(spec, lines);
     return {
-        x: 0, y: 0, width: dimen[0], height: dimen[0]
+        x: 0, y: 0, width: dimen[0], height: dimen[1]
     };
 }
 
