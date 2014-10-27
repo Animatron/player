@@ -485,11 +485,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 // FIXME: move this chain completely into one method, or,
                 //        which is even better, make all these checks to be modifiers
+                // FIXME: call modifiers once for one moment of time. If there are several
+                //        masked elements, they will be called that number of times
                 if (!(mask.fits(ltime)
                       && mask.modifiers(ltime, dt)
                       && mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
 
+                // FIXME: both canvases should be stored in a mask itself.
                 anim.__ensureHasMaskCanvas(level);
                 var mcvs = anim.__maskCvs[level],
                     mctx = anim.__maskCtx[level],
@@ -1067,9 +1070,10 @@ Element.prototype.global = function(pt) {
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
 Element.prototype.invalidate = function() {
+    this.$rect = null;
     this.$bounds = null;
     this.$my_bounds = null;
-    this.$bounds_points = null;
+    this.lastBoundsSavedAt = null;
     if (this.parent) this.parent.invalidate();
 }
 Element.prototype.invalidateVisuals = function() {
@@ -1077,12 +1081,22 @@ Element.prototype.invalidateVisuals = function() {
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
 }
-Element.prototype.bounds = function(value) {
-    if (value) { /* this.invalidate(); */ this.$bounds = value; return this; }
-    if (this.$bounds) return this.$bounds;
-    var my_bounds = this.myBounds();
-    if (!this.children.length) return (this.$bounds = my_bounds);
-    else {
+// returns bound in a parent's coordinate space
+Element.prototype.bounds = function(ltime) {
+    if (is.defined(this.lastBoundsSavedAt) &&
+        (t_cmp(this.lastBoundsSavedAt, ltime) == 0) return this.$bounds;
+
+    var my_rect = this.adapt(Element.rectFromBounds(this.myBounds()));
+
+    var result;
+    if (!this.children.length) {
+        this.$rect = my_rect;
+        return (this.$bounds = {
+            x: my_rect.tr.x, y: my_rect.tr.y,
+            width: my_rect.bl.x - my_rect.tr.x,
+            height: my_rect.bl.y - my_rect.tr.y,
+        });
+    } else {
         // not to corrupt the bounds object, we clone it
         var result = { x: my_bounds.x, // FIXME: Infinity?
                        y: my_bounds.y, // FIXME: Infinity?
@@ -1090,7 +1104,7 @@ Element.prototype.bounds = function(value) {
                        height: my_bounds.height };
         var child_bounds = null;
         this.each(function(child) {
-            child_bounds = child.bounds();
+            child_bounds = child.bounds(); // FIXME: adapt child points here to bounds
             if (child_bounds.x < result.x) result.x = child_bounds.x;
             if (child_bounds.y < result.y) result.y = child_bounds.y;
             if (child_bounds.width > result.width) result.width = child_bounds.width;
@@ -1098,17 +1112,18 @@ Element.prototype.bounds = function(value) {
         });
         return (this.$bounds = result);
     }
+    this.lastBoundsSavedAt = ltime;
+    return (this.$bounds = result);
 }
-Element.prototype.boundsPoints = function() {
-    if (this.$bounds_points) return this.$bounds_points;
-    var bounds = this.bounds();
-    return this.$bounds_points = [
-        { x: bounds.x, y: bounds.y },
-        { x: bounds.x + bounds.width, y: bounds.y },
-        { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-        { x: bounds.x, y: bounds.y + bounds.height }
-    ];
+Element.rectFromBounds = function(from) {
+    return {
+        tl: { x: from.x, y: from.y },
+        tr: { x: from.x + from.width, y: from.y },
+        br: { x: from.x + from.width, y: from.y + from.height },
+        bl: { x: from.x, y: from.y + from.height }
+    };
 }
+// returns bounds with no children consideration, and not affected by any matrix — pure local bounds
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
     var subj = this.$path || this.$text || this.$image;
