@@ -580,7 +580,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version, _bucket) {
+task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
