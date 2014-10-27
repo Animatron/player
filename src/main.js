@@ -33,6 +33,7 @@ var Element = require('./anm/animation/element.js'),
 var anm = {
     global: global,
     constants: constants,
+    C: constants, // for backwards compatibility
     modules: require('./anm/modules.js'),
     importers: require('./anm/importers.js'),
     conf: require('./anm/conf.js'),
@@ -70,6 +71,12 @@ var anm = {
         var p = new Player();
         p.init(elm, opts);
         return p;
+    },
+
+    createImporter: function(importer) {
+      console.warn('anm.createImporter is deprecated and will be removed soon.' +
+        ' Please use anm.importers.create instead');
+      return anm.importers.create(importer);
     }
 };
 
