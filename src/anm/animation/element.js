@@ -422,9 +422,6 @@ Element.prototype.adaptRect = function(rect) {
              bl: matrix.transformPoint(rect.bl),
              br: matrix.transformPoint(rect.br) };
 }
-Element.prototype.adaptBounds = function(rect) {
-    var matrix = this.matrix;
-}
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
 // > Element.transform % (ctx: Context)
@@ -512,7 +509,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bctx = mask.__backCtx;
 
                 // FIXME: test if bounds are not empty
-                var bounds_pts = mask.bounds().toPoints();
+                var bounds_pts = mask.bounds(ltime).toPoints();
 
                 var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                     maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -1104,7 +1101,7 @@ Element.prototype.bounds = function(ltime) {
         var root = this;
         // FIXME: test if bounds are not empty
         root.each(function(child) {
-            result.addRect(root.adaptRect(child.bounds().toRect()));
+            result.addRect(root.adaptRect(child.bounds(ltime).toRect()));
         });
     }
     this.lastBoundsSavedAt = ltime;

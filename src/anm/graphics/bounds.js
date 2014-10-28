@@ -83,9 +83,9 @@ Bounds.prototype.clone = function() {
                       this.width, this.height);
 }
 Bounds.fromRect = function(rect) {
-    return new Bounds(rect.tr.x, rect.tr.y,
-                      rect.br.x - rect.tr.x,
-                      rect.br.y - rect.tr.y);
+    return new Bounds(rect.tl.x, rect.tl.y,
+                      rect.br.x - rect.tl.x,
+                      rect.br.y - rect.tl.y);
 }
 Bounds.fromPoints = function(pts) {
     return new Bounds(pts[0].x, pts[0].y,
