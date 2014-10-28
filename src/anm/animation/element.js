@@ -1,23 +1,30 @@
-var C = require('../constants.js'),
-    provideEvents = require('../events.js').provideEvents,
-    Transform = require('../../vendor/transform.js'),
-    Brush = require('../graphics/brush.js'),
-    Modifier = require('./modifier.js'),
-    Painter = require('./painter.js'),
-    engine = require('engine'),
-    Bands = require('./band.js'),
-    AnimationError = require('../errors.js').AnimationError,
-    Errors = require('../loc.js').Errors,
-    Color = require('../graphics/color.js'),
-    log = require('../log.js'),
+var log = require('../log.js'),
     utils = require('../utils.js'),
-    Render = require('../render.js'),
-    iter = utils.iter,
-    is = utils.is,
     global_opts = require('../global_opts.js');
 
+var iter = utils.iter,
+    is = utils.is;
 
+var engine = require('engine');
 
+var C = require('../constants.js');
+
+var provideEvents = require('../events.js').provideEvents;
+
+var Transform = require('../../vendor/transform.js');
+
+var Render = require('../render.js');
+
+var Brush = require('../graphics/brush.js'),
+    Color = require('../graphics/color.js'),
+    Bounds = require('../graphics/bounds.js');
+
+var Modifier = require('./modifier.js'),
+    Painter = require('./painter.js'),
+    Bands = require('./band.js');
+
+var AnimationError = require('../errors.js').AnimationError,
+    Errors = require('../loc.js').Errors;
 
 // Internal Constants
 // -----------------------------------------------------------------------------

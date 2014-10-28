@@ -6,6 +6,8 @@ var engine = require('engine');
 
 var Brush = require('./brush.js');
 
+var Bounds = require('./bounds.js');
+
 function Text(lines, font, align, baseline, underlined) {
     this.lines = lines;
     this.font = font || Text.DEFAULT_FONT;
@@ -118,9 +120,7 @@ Text.prototype.dispose = function() { }
 Text.bounds = function(spec, lines) {
     if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
     var dimen = Text.__measuring_f(spec, lines);
-    return {
-        x: 0, y: 0, width: dimen[0], height: dimen[1]
-    };
+    return new Bounds(0, 0, dimen[0], dimen[1]);
 }
 
 module.exports = Text;
