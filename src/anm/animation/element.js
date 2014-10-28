@@ -185,8 +185,10 @@ Element.prototype.initVisuals = function() {
     this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
 
-    this.$bounds = null; // Element bounds incl. children, cached
+    this.$bounds = null; // Element bounds incl. children, cached by time position
+    this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
+    this.$my_rect = null; // Element rectangle on its own, cached
 
     return this;
 }
@@ -489,10 +491,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
             } else {
                 // FIXME: the complete mask process should be a Painter.
 
-                var anim = this.anim;
-                if (!anim) throw new AnimationError(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
-                var level = this.level;
-
                 var mask = this.$mask;
 
                 // FIXME: move this chain completely into one method, or,
@@ -505,11 +503,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       // what should happen if mask doesn't fit in time?
 
                 // FIXME: both canvases should be stored in a mask itself.
-                anim.__ensureHasMaskCanvas(level);
-                var mcvs = anim.__maskCvs[level],
-                    mctx = anim.__maskCtx[level],
-                    bcvs = anim.__backCvs[level],
-                    bctx = anim.__backCtx[level];
+                mask.ensureHasMaskCanvas();
+                var mcvs = anim.__maskCvs,
+                    mctx = anim.__maskCtx,
+                    bcvs = anim.__backCvs,
+                    bctx = anim.__backCtx;
 
                 var bounds_pts = mask.adapt(mask.boundsPoints());
 
@@ -1101,7 +1099,7 @@ Element.prototype.bounds = function(ltime) {
     var result = Bounds.fromRect(my_rect);
     if (this.children.length) {
         var child_bounds = null;
-        this.each(function(child) {
+        this.traverse(function(child) {
             result.add(child.adaptRect(child.myRect()));
         });
     }
@@ -1139,12 +1137,27 @@ Element.prototype.applyAComp = function(ctx) {
 }
 Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
-    if (this.anim) this.anim.__ensureHasMaskCanvas(this.level);
     this.$mask = elm;
 }
 Element.prototype.noMask = function() {
     this.$mask = null;
 }
+// @private
+Element.prototype.ensureHasMaskCanvas = function(lvl) {
+    if (this.__maskCvs && this.__backCvs) return;
+    this.__maskCvs = engine.createCanvas(1, 1);
+    this.__maskCtx = engine.getContext(this.__maskCvs, '2d');
+    this.__backCvs = engine.createCanvas(1, 1);
+    this.__backCtx = engine.getContext(this.__backCvs, '2d');
+}
+// @private
+Element.prototype.removeMaskCanvases = function() {
+    if (this.__maskCvs) engine.disposeElement(this.__maskCvs);
+    if (this.__backCvs) engine.disposeElement(this.__backCvs);
+    this.__maskCtx = null;
+    this.__backCtx = null;
+}
+
 Element.prototype.data = function(val) {
   if (!is.defined(val)) return this.$data;
   this.$data = val;
@@ -1477,8 +1490,6 @@ Element.transferVisuals = function(src, trg) {
     trg.$image = src.$image ? src.$image.clone() : null;
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
-    // trg.$bounds = src.$bounds ? src.$bounds.clone : null;
-    // trg.$my_bounds = src.$my_bounds ? src.$my_bounds.clone : null;
     trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {
