@@ -414,12 +414,11 @@ Element.prototype.adapt = function(pts) {
     }
 }
 Element.prototype.adaptRect = function(rect) {
-    var tr = [];
     var matrix = this.matrix;
     return { tl: matrix.transformPoint(rect.tl),
              tr: matrix.transformPoint(rect.tr),
              bl: matrix.transformPoint(rect.bl),
-             br: matrix.transformPoint(rect.br)
+             br: matrix.transformPoint(rect.br) };
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
@@ -1075,17 +1074,15 @@ Element.prototype.offset = function() {
     return [ xsum, ysum ];
 }
 /*Element.prototype.local = function(pt) {
-    var off = this.offset();
-    return [ pt[0] - off[0], pt[1] - off[1] ];
+    this.matrix.transformPoint();
 }
 Element.prototype.global = function(pt) {
-    var off = this.offset();
-    return [ pt[0] + off[0], pt[1] + off[1] ];
+    this.matrix.transformPoint();
 } */
 Element.prototype.invalidate = function() {
     this.$my_rect = null;
-    this.$bounds = null;
     this.$my_bounds = null;
+    this.$bounds = null;
     this.lastBoundsSavedAt = null;
     if (this.parent) this.parent.invalidate();
 }
@@ -1101,43 +1098,20 @@ Element.prototype.bounds = function(ltime) {
 
     var my_rect = this.adaptRect(this.myRect());
 
-    var result;
-    if (!this.children.length) {
-        result = {
-            x: my_rect.tr.x, y: my_rect.tr.y,
-            width: my_rect.bl.x - my_rect.tr.x,
-            height: my_rect.bl.y - my_rect.tr.y,
-        };
-    } else {
-        var rect_sum = {
-            tr: { x: my_rect.tr.x, y: my_rect.tr.y },
-            tl: { x: my_rect.tl.x, y: my_rect.tl.y },
-            bl: { x: my_rect.bl.x, y: my_rect.bl.y },
-            br: { x: my_rect.br.x, y: my_rect.br.y }
-        };
+    var result = Bounds.fromRect(my_rect);
+    if (this.children.length) {
         var child_bounds = null;
         this.each(function(child) {
-            child_rect = child.adaptRect(child.myRect()); // FIXME: adapt child points here to bounds
-            if (rect_sum.tr.x < child_rect.tr.x) rect_sum.tr.x =
+            result.add(child.adaptRect(child.myRect()));
         });
-        result = {
-            x: rect_sum.tr.x, y: rect_sum.tr.y,
-            width: rect_sum.bl.x - rect_sum.tr.x,
-            height: rect_sum.bl.y - rect_sum.tr.y,
-        };
     }
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
 }
 Element.prototype.myRect = function() {
     if (this.$my_rect) return this.$my_rect;
-    var from = this.myBounds();
-    return (this.$my_rect = {
-        tl: { x: from.x, y: from.y },
-        tr: { x: from.x + from.width, y: from.y },
-        br: { x: from.x + from.width, y: from.y + from.height },
-        bl: { x: from.x, y: from.y + from.height }
-    });
+    var bounds = this.myBounds();
+    return (this.$my_rect = bounds.toRect());
 }
 // returns bounds with no children consideration, and not affected by any matrix — pure local bounds
 Element.prototype.myBounds = function() {

@@ -4,6 +4,34 @@ function Bounds(x, y, width, height) {
     this.width = width;
     this.height = height;
 }
+Bounds.prototype.load = function(x1, y1, x2, y2) {
+    if (x2 < x1) {
+        var t = x1; x1 = x2; x2 = t;
+    }
+    if (y2 < y1) {
+        var t = y1; y1 = y2; y2 = t;
+    }
+    this.x = x1;
+    this.y = y1;
+    this.width = x2 - x1;
+    this.height = y2 - y1;
+}
+Bounds.prototype.minX = function() { return this.x; }
+Bounds.prototype.minY = function() { return this.y; }
+Bounds.prototype.maxX = function() { return this.x + this.width; }
+Bounds.prototype.maxY = function() { return this.y + this.height; }
+Bounds.prototype.add = function(other) {
+    this.load(Math.min(this.minX(), other.minX()),
+              Math.min(this.minY(), other.minY()),
+              Math.max(this.maxX(), other.maxX()),
+              Math.max(this.maxY(), other.maxY()));
+}
+Bounds.prototype.addPoint = function(pt) {
+    this.load(Math.min(this.minX(), other.minX()),
+              Math.min(this.minY(), other.minY()),
+              Math.max(this.maxX(), other.maxX()),
+              Math.max(this.maxY(), other.maxY()));
+}
 Bounds.prototype.toRect = function() {
     var points = this.toPoints();
     return {
@@ -29,17 +57,15 @@ Bounds.prototype.clone = function() {
     return new Bounds(this.x, this.y,
                       this.width, this.height);
 }
-Bounds.fromPoints = function(pts) {
-    this.x = pts[0].x;
-    this.y = pts[0].y;
-    this.width = pts[3].x - pts[0].x;
-    this.height = pts[3].y - pts[0].y;
-}
 Bounds.fromRect = function(rect) {
-    this.x = rect.tr.x;
-    this.y = rect.tr.y;
-    this.width = rect.br.x - rect.tr.x;
-    this.height = rect.br.y - rect.tr.y;
+    return new Bounds(rect.tr.x, rect.tr.y,
+                      rect.br.x - rect.tr.x,
+                      rect.br.y - rect.tr.y);
+}
+Bounds.fromPoints = function(pts) {
+    return new Bounds(pts[0].x, pts[0].y,
+                      pts[3].x - pts[0].x,
+                      pts[3].y - pts[0].y);
 }
 Bounds.NONE = new Bounds(NaN, NaN, NaN, NaN);
 
