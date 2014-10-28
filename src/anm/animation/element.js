@@ -394,19 +394,25 @@ Element.prototype.forAllPainters = function(f) {
         }
     }
 }
-Element.prototype.adapt = function(arg0, arg1) {
-    if (is.arr(arg0)) {
-        var src = arg0, trg = [], pt;
+Element.prototype.adapt = function(pts) {
+    if (is.arr(pts)) {
+        var trg = [];
         var matrix = this.matrix;
-        for (var i = 0, il = arg0.length; i < il; i++) {
-            pt = matrix.transformPoint(arg0[i].x, arg0[i].y);
-            trg.push({ x: pt[0], y: pt[1] });
+        for (var i = 0, il = pts.length; i < il; i++) {
+            trg.push(matrix.transformPoint(pts[i]));
         }
         return trg;
     } else {
-        var pt = this.matrix.transformPoint(arg0, arg1);
-        return { x: pt[0], y: pt[1] };
+        return this.matrix.transformPoint(pts);
     }
+}
+Element.prototype.adaptRect = function(rect) {
+    var tr = [];
+    var matrix = this.matrix;
+    return { tl: matrix.transformPoint(rect.tl),
+             tr: matrix.transformPoint(rect.tr),
+             bl: matrix.transformPoint(rect.bl),
+             br: matrix.transformPoint(rect.br)
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
@@ -1070,7 +1076,7 @@ Element.prototype.global = function(pt) {
     return [ pt[0] + off[0], pt[1] + off[1] ];
 } */
 Element.prototype.invalidate = function() {
-    this.$rect = null;
+    this.$my_rect = null;
     this.$bounds = null;
     this.$my_bounds = null;
     this.lastBoundsSavedAt = null;
@@ -1086,42 +1092,45 @@ Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0) return this.$bounds;
 
-    var my_rect = this.adapt(Element.rectFromBounds(this.myBounds()));
+    var my_rect = this.adaptRect(this.myRect());
 
     var result;
     if (!this.children.length) {
-        this.$rect = my_rect;
-        return (this.$bounds = {
+        result = {
             x: my_rect.tr.x, y: my_rect.tr.y,
             width: my_rect.bl.x - my_rect.tr.x,
             height: my_rect.bl.y - my_rect.tr.y,
-        });
+        };
     } else {
-        // not to corrupt the bounds object, we clone it
-        var result = { x: my_bounds.x, // FIXME: Infinity?
-                       y: my_bounds.y, // FIXME: Infinity?
-                       width: my_bounds.width,
-                       height: my_bounds.height };
+        var rect_sum = {
+            tr: { x: my_rect.tr.x, y: my_rect.tr.y },
+            tl: { x: my_rect.tl.x, y: my_rect.tl.y },
+            bl: { x: my_rect.bl.x, y: my_rect.bl.y },
+            br: { x: my_rect.br.x, y: my_rect.br.y }
+        };
         var child_bounds = null;
         this.each(function(child) {
-            child_bounds = child.bounds(); // FIXME: adapt child points here to bounds
-            if (child_bounds.x < result.x) result.x = child_bounds.x;
-            if (child_bounds.y < result.y) result.y = child_bounds.y;
-            if (child_bounds.width > result.width) result.width = child_bounds.width;
-            if (child_bounds.height > result.height) result.height = child_bounds.height;
+            child_rect = child.adaptRect(child.myRect()); // FIXME: adapt child points here to bounds
+            if (rect_sum.tr.x < child_rect.tr.x) rect_sum.tr.x =
         });
-        return (this.$bounds = result);
+        result = {
+            x: rect_sum.tr.x, y: rect_sum.tr.y,
+            width: rect_sum.bl.x - rect_sum.tr.x,
+            height: rect_sum.bl.y - rect_sum.tr.y,
+        };
     }
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
 }
-Element.rectFromBounds = function(from) {
-    return {
+Element.prototype.myRect = function() {
+    if (this.$my_rect) return this.$my_rect;
+    var from = this.myBounds();
+    return (this.$my_rect = {
         tl: { x: from.x, y: from.y },
         tr: { x: from.x + from.width, y: from.y },
         br: { x: from.x + from.width, y: from.y + from.height },
         bl: { x: from.x, y: from.y + from.height }
-    };
+    });
 }
 // returns bounds with no children consideration, and not affected by any matrix — pure local bounds
 Element.prototype.myBounds = function() {
