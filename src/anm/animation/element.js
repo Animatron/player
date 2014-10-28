@@ -422,6 +422,9 @@ Element.prototype.adaptRect = function(rect) {
              bl: matrix.transformPoint(rect.bl),
              br: matrix.transformPoint(rect.br) };
 }
+Element.prototype.adaptBounds = function(rect) {
+    var matrix = this.matrix;
+}
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
 // > Element.transform % (ctx: Context)
@@ -502,14 +505,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       && mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
 
-                // FIXME: both canvases should be stored in a mask itself.
                 mask.ensureHasMaskCanvas();
-                var mcvs = anim.__maskCvs,
-                    mctx = anim.__maskCtx,
-                    bcvs = anim.__backCvs,
-                    bctx = anim.__backCtx;
+                var mcvs = mask.__maskCvs,
+                    mctx = mask.__maskCtx,
+                    bcvs = mask.__backCvs,
+                    bctx = mask.__backCtx;
 
-                var bounds_pts = mask.adapt(mask.boundsPoints());
+                // FIXME: test if bounds are not empty
+                var bounds_pts = mask.bounds().toPoints();
 
                 var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                     maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -1092,15 +1095,16 @@ Element.prototype.invalidateVisuals = function() {
 // returns bound in a parent's coordinate space
 Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
-        (t_cmp(this.lastBoundsSavedAt, ltime) == 0) return this.$bounds;
+        (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
 
     var my_rect = this.adaptRect(this.myRect());
 
     var result = Bounds.fromRect(my_rect);
     if (this.children.length) {
-        var child_bounds = null;
-        this.traverse(function(child) {
-            result.add(child.adaptRect(child.myRect()));
+        var root = this;
+        // FIXME: test if bounds are not empty
+        root.each(function(child) {
+            result.addRect(root.adaptRect(child.bounds().toRect()));
         });
     }
     this.lastBoundsSavedAt = ltime;
@@ -1116,7 +1120,7 @@ Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
     var subj = this.$path || this.$text || this.$image;
     if (subj) { return (this.$my_bounds = subj.bounds()); }
-    else return (this.$my_bounds = { x: 0, y: 0, width: 0, height: 0 });
+    else return (this.$my_bounds = Bounds.NONE);
 }
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();

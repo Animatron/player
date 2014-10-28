@@ -4,7 +4,13 @@ function Bounds(x, y, width, height) {
     this.width = width;
     this.height = height;
 }
-Bounds.prototype.load = function(x1, y1, x2, y2) {
+Bounds.prototype.load = function(other) {
+    this.x = other.x;
+    this.y = other.y;
+    this.width = other.width;
+    this.height = other.height;
+}
+Bounds.prototype.loadDiag = function(x1, y1, x2, y2) {
     if (x2 < x1) {
         var t = x1; x1 = x2; x2 = t;
     }
@@ -16,21 +22,40 @@ Bounds.prototype.load = function(x1, y1, x2, y2) {
     this.width = x2 - x1;
     this.height = y2 - y1;
 }
+Bounds.prototype.loadRect = function(rect) {
+    this.loadDiag(rect.tr.x, rect.tr.y,
+                  rect.bl.x, rect.bl.y);
+}
 Bounds.prototype.minX = function() { return this.x; }
 Bounds.prototype.minY = function() { return this.y; }
 Bounds.prototype.maxX = function() { return this.x + this.width; }
 Bounds.prototype.maxY = function() { return this.y + this.height; }
 Bounds.prototype.add = function(other) {
-    this.load(Math.min(this.minX(), other.minX()),
-              Math.min(this.minY(), other.minY()),
-              Math.max(this.maxX(), other.maxX()),
-              Math.max(this.maxY(), other.maxY()));
+    if (!other.exist()) return;
+    if (this.exist()) {
+        this.loadDiag(Math.min(this.minX(), other.minX()),
+                      Math.min(this.minY(), other.minY()),
+                      Math.max(this.maxX(), other.maxX()),
+                      Math.max(this.maxY(), other.maxY()));
+    } else {
+        this.load(other);
+    }
+}
+Bounds.prototype.addRect = function(rect) {
+    if (this.exist()) {
+        this.loadDiag(Math.min(this.minX(), rect.tl.x),
+                      Math.min(this.minY(), rect.tl.y),
+                      Math.max(this.maxX(), rect.br.x),
+                      Math.max(this.maxY(), rect.br.y));
+    } else {
+        this.loadRect(rect);
+    }
 }
 Bounds.prototype.addPoint = function(pt) {
-    this.load(Math.min(this.minX(), other.minX()),
-              Math.min(this.minY(), other.minY()),
-              Math.max(this.maxX(), other.maxX()),
-              Math.max(this.maxY(), other.maxY()));
+    this.loadDiag(Math.min(this.minX(), pt.x),
+                  Math.min(this.minY(), pt.y),
+                  Math.max(this.maxX(), pt.x),
+                  Math.max(this.maxY(), pt.y));
 }
 Bounds.prototype.toRect = function() {
     var points = this.toPoints();
