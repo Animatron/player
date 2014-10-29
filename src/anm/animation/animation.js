@@ -380,41 +380,6 @@ Animation.prototype._loadRemoteResources = function(player) {
     });
     anim.loadFonts(player);
 }
-Animation.prototype.__ensureHasMaskCanvas = function(lvl) {
-    if (this.__maskCvs && this.__backCvs &&
-        this.__maskCvs[lvl] && this.__backCvs[lvl]) return;
-    if (!this.__maskCvs) { this.__maskCvs = []; this.__maskCtx = []; }
-    if (!this.__backCvs) { this.__backCvs = []; this.__backCtx = []; }
-    this.__maskCvs[lvl] = engine.createCanvas(1, 1);
-    this.__maskCtx[lvl] = engine.getContext(this.__maskCvs[lvl], '2d');
-    this.__backCvs[lvl] = engine.createCanvas(1, 1);
-    this.__backCtx[lvl] = engine.getContext(this.__backCvs[lvl], '2d');
-}
-Animation.prototype.__removeMaskCanvases = function() {
-    if (!this.__maskCvs && !this.__backCvs) return;
-    if (this.__maskCvs) {
-        for (var i = 0, il = this.__maskCvs.length; i < il; i++) {
-            if (this.__maskCvs[i]) { // use `continue`?
-                engine.disposeElement(this.__maskCvs[i]);
-                this.__maskCvs[i] = null; // is it required?
-                this.__maskCtx[i] = null; // is it required?
-            }
-        }
-        this.__maskCvs = null;
-        this.__maskCtx = null;
-    }
-    if (this.__backCvs) {
-        for (var i = 0, il = this.__backCvs.length; i < il; i++) {
-            if (this.__backCvs[i]) { // use `continue`?
-                engine.disposeElement(this.__backCvs[i]);
-                this.__backCvs[i] = null; // is it required?
-                this.__backCtx[i] = null; // is it required?
-            }
-        }
-        this.__backCvs = null;
-        this.__backCtx = null;
-    }
-}
 /**
  * @method find
  *

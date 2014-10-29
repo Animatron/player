@@ -10,6 +10,8 @@ var segments = require('./segments.js')
 
 var Brush = require('./brush.js');
 
+var Bounds = require('./bounds.js');
+
 // Paths
 // -----------------------------------------------------------------------------
 
@@ -165,11 +167,10 @@ Path.prototype.end = function() {
     return [ this.segs[lastidx].pts[s-2],   // last-x
              this.segs[lastidx].pts[s-1] ]; // last-y
 }
-Path.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
 Path.prototype.bounds = function() {
     // FIXME: it is not ok for curve path, possibly
     if (this.$bounds) return this.$bounds;
-    if (this.segs.length <= 0) return Path.NO_BOUNDS;
+    if (this.segs.length <= 0) return Bounds.NONE;
     var minX = this.segs[0].pts[0], maxX = this.segs[0].pts[0],
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
@@ -184,9 +185,8 @@ Path.prototype.bounds = function() {
             maxY = Math.max(maxY, pts[pi]);
         }
     });
-    return (this.$bounds = { x: minX, y: minY,
-                             width: maxX - minX,
-                             height: maxY - minY });
+    return (this.$bounds = new Bounds(minX, minY,
+                                      maxX - minX, maxY - minY));
 }
 /* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {

@@ -1,23 +1,30 @@
-var C = require('../constants.js'),
-    provideEvents = require('../events.js').provideEvents,
-    Transform = require('../../vendor/transform.js'),
-    Brush = require('../graphics/brush.js'),
-    Modifier = require('./modifier.js'),
-    Painter = require('./painter.js'),
-    engine = require('engine'),
-    Bands = require('./band.js'),
-    AnimationError = require('../errors.js').AnimationError,
-    Errors = require('../loc.js').Errors,
-    Color = require('../graphics/color.js'),
-    log = require('../log.js'),
+var log = require('../log.js'),
     utils = require('../utils.js'),
-    Render = require('../render.js'),
-    iter = utils.iter,
-    is = utils.is,
     global_opts = require('../global_opts.js');
 
+var iter = utils.iter,
+    is = utils.is;
 
+var engine = require('engine');
 
+var C = require('../constants.js');
+
+var provideEvents = require('../events.js').provideEvents;
+
+var Transform = require('../../vendor/transform.js');
+
+var Render = require('../render.js');
+
+var Brush = require('../graphics/brush.js'),
+    Color = require('../graphics/color.js'),
+    Bounds = require('../graphics/bounds.js');
+
+var Modifier = require('./modifier.js'),
+    Painter = require('./painter.js'),
+    Bands = require('./band.js');
+
+var AnimationError = require('../errors.js').AnimationError,
+    Errors = require('../loc.js').Errors;
 
 // Internal Constants
 // -----------------------------------------------------------------------------
@@ -178,7 +185,8 @@ Element.prototype.initVisuals = function() {
     this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
 
-    this.$bounds = null; // Element bounds incl. children, cached
+    this.$bounds = null; // Element bounds incl. children, cached by time position
+    this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
 
     return this;
@@ -394,19 +402,29 @@ Element.prototype.forAllPainters = function(f) {
         }
     }
 }
-Element.prototype.adapt = function(arg0, arg1) {
-    if (is.arr(arg0)) {
-        var src = arg0, trg = [], pt;
+Element.prototype.adapt = function(pts) {
+    if (is.arr(pts)) {
+        var trg = [];
         var matrix = this.matrix;
-        for (var i = 0, il = arg0.length; i < il; i++) {
-            pt = matrix.transformPoint(arg0[i].x, arg0[i].y);
-            trg.push({ x: pt[0], y: pt[1] });
+        for (var i = 0, il = pts.length; i < il; i++) {
+            trg.push(matrix.transformPoint(pts[i].x, pts[i].y));
         }
         return trg;
     } else {
-        var pt = this.matrix.transformPoint(arg0, arg1);
-        return { x: pt[0], y: pt[1] };
+        return this.matrix.transformPoint(pts.x, pts.y);
     }
+}
+Element.prototype.adaptBounds = function(bounds) {
+    var matrix = this.matrix;
+    var tl = matrix.transformPoint(bounds.x, bounds.y),
+        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
@@ -477,26 +495,25 @@ Element.prototype.render = function(ctx, gtime, dt) {
             } else {
                 // FIXME: the complete mask process should be a Painter.
 
-                var anim = this.anim;
-                if (!anim) throw new AnimationError(Errors.A.MASK_SHOULD_BE_ATTACHED_TO_ANIMATION);
-                var level = this.level;
-
                 var mask = this.$mask;
 
                 // FIXME: move this chain completely into one method, or,
                 //        which is even better, make all these checks to be modifiers
+                // FIXME: call modifiers once for one moment of time. If there are several
+                //        masked elements, they will be called that number of times
                 if (!(mask.fits(ltime)
                       && mask.modifiers(ltime, dt)
                       && mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
 
-                anim.__ensureHasMaskCanvas(level);
-                var mcvs = anim.__maskCvs[level],
-                    mctx = anim.__maskCtx[level],
-                    bcvs = anim.__backCvs[level],
-                    bctx = anim.__backCtx[level];
+                mask.ensureHasMaskCanvas();
+                var mcvs = mask.__maskCvs,
+                    mctx = mask.__maskCtx,
+                    bcvs = mask.__backCvs,
+                    bctx = mask.__backCtx;
 
-                var bounds_pts = mask.adapt(mask.boundsPoints());
+                // FIXME: test if bounds are not empty
+                var bounds_pts = mask.bounds(ltime).toPoints();
 
                 var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                     maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -1059,17 +1076,15 @@ Element.prototype.offset = function() {
     return [ xsum, ysum ];
 }
 /*Element.prototype.local = function(pt) {
-    var off = this.offset();
-    return [ pt[0] - off[0], pt[1] - off[1] ];
+    this.matrix.transformPoint();
 }
 Element.prototype.global = function(pt) {
-    var off = this.offset();
-    return [ pt[0] + off[0], pt[1] + off[1] ];
+    this.matrix.transformPoint();
 } */
 Element.prototype.invalidate = function() {
-    this.$bounds = null;
     this.$my_bounds = null;
-    this.$bounds_points = null;
+    this.$bounds = null;
+    this.lastBoundsSavedAt = null;
     if (this.parent) this.parent.invalidate();
 }
 Element.prototype.invalidateVisuals = function() {
@@ -1077,43 +1092,29 @@ Element.prototype.invalidateVisuals = function() {
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
 }
-Element.prototype.bounds = function(value) {
-    if (value) { /* this.invalidate(); */ this.$bounds = value; return this; }
-    if (this.$bounds) return this.$bounds;
-    var my_bounds = this.myBounds();
-    if (!this.children.length) return (this.$bounds = my_bounds);
-    else {
-        // not to corrupt the bounds object, we clone it
-        var result = { x: my_bounds.x, // FIXME: Infinity?
-                       y: my_bounds.y, // FIXME: Infinity?
-                       width: my_bounds.width,
-                       height: my_bounds.height };
-        var child_bounds = null;
+// returns bound in a parent's coordinate space
+Element.prototype.bounds = function(ltime) {
+    if (is.defined(this.lastBoundsSavedAt) &&
+        (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
+
+    var result = this.myBounds().clone();
+    if (this.children.length) {
+        // FIXME: test if bounds are not empty
         this.each(function(child) {
-            child_bounds = child.bounds();
-            if (child_bounds.x < result.x) result.x = child_bounds.x;
-            if (child_bounds.y < result.y) result.y = child_bounds.y;
-            if (child_bounds.width > result.width) result.width = child_bounds.width;
-            if (child_bounds.height > result.height) result.height = child_bounds.height;
+            result.add(child.bounds(ltime));
         });
-        return (this.$bounds = result);
     }
+    result = this.adaptBounds(result);
+
+    this.lastBoundsSavedAt = ltime;
+    return (this.$bounds = result);
 }
-Element.prototype.boundsPoints = function() {
-    if (this.$bounds_points) return this.$bounds_points;
-    var bounds = this.bounds();
-    return this.$bounds_points = [
-        { x: bounds.x, y: bounds.y },
-        { x: bounds.x + bounds.width, y: bounds.y },
-        { x: bounds.x + bounds.width, y: bounds.y + bounds.height },
-        { x: bounds.x, y: bounds.y + bounds.height }
-    ];
-}
+// returns bounds with no children consideration, and not affected by any matrix — pure local bounds
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
     var subj = this.$path || this.$text || this.$image;
     if (subj) { return (this.$my_bounds = subj.bounds()); }
-    else return (this.$my_bounds = { x: 0, y: 0, width: 0, height: 0 });
+    else return (this.$my_bounds = Bounds.NONE);
 }
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();
@@ -1134,12 +1135,27 @@ Element.prototype.applyAComp = function(ctx) {
 }
 Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
-    if (this.anim) this.anim.__ensureHasMaskCanvas(this.level);
     this.$mask = elm;
 }
 Element.prototype.noMask = function() {
     this.$mask = null;
 }
+// @private
+Element.prototype.ensureHasMaskCanvas = function(lvl) {
+    if (this.__maskCvs && this.__backCvs) return;
+    this.__maskCvs = engine.createCanvas(1, 1);
+    this.__maskCtx = engine.getContext(this.__maskCvs, '2d');
+    this.__backCvs = engine.createCanvas(1, 1);
+    this.__backCtx = engine.getContext(this.__backCvs, '2d');
+}
+// @private
+Element.prototype.removeMaskCanvases = function() {
+    if (this.__maskCvs) engine.disposeElement(this.__maskCvs);
+    if (this.__backCvs) engine.disposeElement(this.__backCvs);
+    this.__maskCtx = null;
+    this.__backCtx = null;
+}
+
 Element.prototype.data = function(val) {
   if (!is.defined(val)) return this.$data;
   this.$data = val;
@@ -1472,8 +1488,6 @@ Element.transferVisuals = function(src, trg) {
     trg.$image = src.$image ? src.$image.clone() : null;
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
-    // trg.$bounds = src.$bounds ? src.$bounds.clone : null;
-    // trg.$my_bounds = src.$my_bounds ? src.$my_bounds.clone : null;
     trg.composite_op = src.composite_op;
 }
 Element.transferTime = function(src, trg) {

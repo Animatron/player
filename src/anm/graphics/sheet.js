@@ -4,6 +4,8 @@ var conf = require('../conf.js'),
 var engine = require('engine'),
     resMan = require('../resource_manager.js');
 
+var Bounds = require('./bounds.js');
+
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;
 /* TODO: rename to Static and take optional function as source? */
@@ -105,14 +107,13 @@ Sheet.prototype.applyMissed = function(ctx) {
     ctx.stroke();
     ctx.restore();
 }
-Sheet.MISSED_BOUNDS = { x: 0, y: 0, width: Sheet.MISSED_SIDE, height: Sheet.MISSED_SIDE };
-Sheet.NO_BOUNDS = { x: 0, y: 0, width: 0, height: 0 };
+Sheet.MISSED_BOUNDS = new Bounds(0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE);
 Sheet.prototype.bounds = function() {
     if (this.wasError) return Sheet.MISSED_BOUNDS;
     // TODO: when using current_region, bounds will depend on that region
-    if (!this.ready || !this._active_region) return Sheet.NO_BOUNDS;
+    if (!this.ready || !this._active_region) return Bounds.NONE;
     var r = this._active_region;
-    return { x: 0, y: 0, width: r[2], height: r[3] };
+    return new Bounds(0, 0, r[2], r[3]);
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);

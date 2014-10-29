@@ -402,7 +402,9 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if (player.anim) {
         player.__unsubscribeDynamicEvents(player.anim);
-        player.anim.__removeMaskCanvases();
+        player.anim.traverse(function(elm) {
+            elm.removeMaskCanvases();
+        });
     }
 
     if (object) {
