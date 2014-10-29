@@ -1,3 +1,5 @@
+var is = require('../utils.js').is;
+
 function Bounds(x, y, width, height) {
     this.x = x;
     this.y = y;
@@ -53,7 +55,7 @@ Bounds.prototype.toPoints = function() {
 }
 Bounds.prototype.exist = function() {
     // if one of the values is NaN, then the whole bounds are invalid?
-    return (this.x === NaN);
+    return !is.nan(this.x);
 }
 Bounds.prototype.clone = function() {
     return new Bounds(this.x, this.y,
