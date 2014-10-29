@@ -188,7 +188,6 @@ Element.prototype.initVisuals = function() {
     this.$bounds = null; // Element bounds incl. children, cached by time position
     this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
-    this.$my_rect = null; // Element rectangle on its own, cached
 
     return this;
 }
@@ -1083,7 +1082,6 @@ Element.prototype.global = function(pt) {
     this.matrix.transformPoint();
 } */
 Element.prototype.invalidate = function() {
-    this.$my_rect = null;
     this.$my_bounds = null;
     this.$bounds = null;
     this.lastBoundsSavedAt = null;
@@ -1099,8 +1097,6 @@ Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
 
-    var my_rect = this.adaptRect(this.myRect());
-
     var result = this.myBounds().clone();
     if (this.children.length) {
         // FIXME: test if bounds are not empty
@@ -1112,11 +1108,6 @@ Element.prototype.bounds = function(ltime) {
 
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
-}
-Element.prototype.myRect = function() {
-    if (this.$my_rect) return this.$my_rect;
-    var bounds = this.myBounds();
-    return (this.$my_rect = bounds.toRect());
 }
 // returns bounds with no children consideration, and not affected by any matrix — pure local bounds
 Element.prototype.myBounds = function() {
