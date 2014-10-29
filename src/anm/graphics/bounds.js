@@ -22,10 +22,6 @@ Bounds.prototype.loadDiag = function(x1, y1, x2, y2) {
     this.width = x2 - x1;
     this.height = y2 - y1;
 }
-Bounds.prototype.loadRect = function(rect) {
-    this.loadDiag(rect.tr.x, rect.tr.y,
-                  rect.bl.x, rect.bl.y);
-}
 Bounds.prototype.minX = function() { return this.x; }
 Bounds.prototype.minY = function() { return this.y; }
 Bounds.prototype.maxX = function() { return this.x + this.width; }
@@ -41,30 +37,11 @@ Bounds.prototype.add = function(other) {
         this.load(other);
     }
 }
-Bounds.prototype.addRect = function(rect) {
-    if (this.exist()) {
-        this.loadDiag(Math.min(this.minX(), rect.tl.x),
-                      Math.min(this.minY(), rect.tl.y),
-                      Math.max(this.maxX(), rect.br.x),
-                      Math.max(this.maxY(), rect.br.y));
-    } else {
-        this.loadRect(rect);
-    }
-}
 Bounds.prototype.addPoint = function(pt) {
     this.loadDiag(Math.min(this.minX(), pt.x),
                   Math.min(this.minY(), pt.y),
                   Math.max(this.maxX(), pt.x),
                   Math.max(this.maxY(), pt.y));
-}
-Bounds.prototype.toRect = function() {
-    var points = this.toPoints();
-    return {
-        tl: points[0],
-        tr: points[1],
-        br: points[2],
-        bl: points[3]
-    };
 }
 Bounds.prototype.toPoints = function() {
     return [
@@ -81,17 +58,6 @@ Bounds.prototype.exist = function() {
 Bounds.prototype.clone = function() {
     return new Bounds(this.x, this.y,
                       this.width, this.height);
-}
-Bounds.fromRect = function(rect) {
-    var bounds = new Bounds();
-    bounds.loadRect(rect);
-    return bounds;
-}
-Bounds.fromPoints = function(pts) {
-    var bounds = new Bounds();
-    bounds.loadDiag(pts[0].x, pts[0].y,
-                    pts[2].x, pts[2].y);
-    return bounds;
 }
 Bounds.NONE = new Bounds(NaN, NaN, NaN, NaN);
 
