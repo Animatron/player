@@ -408,19 +408,24 @@ Element.prototype.adapt = function(pts) {
         var trg = [];
         var matrix = this.matrix;
         for (var i = 0, il = pts.length; i < il; i++) {
-            trg.push(matrix.transformPoint(pts[i]));
+            trg.push(matrix.transformPoint(pts[i].x, pts[i].y));
         }
         return trg;
     } else {
-        return this.matrix.transformPoint(pts);
+        return this.matrix.transformPoint(pts.x, pts.y);
     }
 }
-Element.prototype.adaptRect = function(rect) {
+Element.prototype.adaptBounds = function(bounds) {
     var matrix = this.matrix;
-    return { tl: matrix.transformPoint(rect.tl),
-             tr: matrix.transformPoint(rect.tr),
-             bl: matrix.transformPoint(rect.bl),
-             br: matrix.transformPoint(rect.br) };
+    var tl = matrix.transformPoint(bounds.x, bounds.y),
+        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
+        bl = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        br = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
 }
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
@@ -1096,14 +1101,15 @@ Element.prototype.bounds = function(ltime) {
 
     var my_rect = this.adaptRect(this.myRect());
 
-    var result = Bounds.fromRect(my_rect);
+    var result = this.myBounds().clone();
     if (this.children.length) {
-        var root = this;
         // FIXME: test if bounds are not empty
-        root.each(function(child) {
-            result.addRect(root.adaptRect(child.bounds(ltime).toRect()));
+        this.each(function(child) {
+            result.add(child.bounds(ltime));
         });
     }
+    result = this.adaptBounds(result);
+
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
 }

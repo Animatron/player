@@ -107,9 +107,9 @@ Transform.prototype.scale = function(sx, sy) {
   this.m[3] *= sy;
 };
 
-Transform.prototype.transformPoint = function(p) {
-  return { x: (p.x * this.m[0] + p.y * this.m[2] + this.m[4]),
-           y: (p.x * this.m[1] + p.y * this.m[3] + this.m[5]) };
+Transform.prototype.transformPoint = function(x, y) {
+  return { x: (x * this.m[0] + y * this.m[2] + this.m[4]),
+           y: (x * this.m[1] + y * this.m[3] + this.m[5]) };
 };
 
 // customized methods

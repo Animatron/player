@@ -83,14 +83,15 @@ Bounds.prototype.clone = function() {
                       this.width, this.height);
 }
 Bounds.fromRect = function(rect) {
-    return new Bounds(rect.tl.x, rect.tl.y,
-                      rect.br.x - rect.tl.x,
-                      rect.br.y - rect.tl.y);
+    var bounds = new Bounds();
+    bounds.loadRect(rect);
+    return bounds;
 }
 Bounds.fromPoints = function(pts) {
-    return new Bounds(pts[0].x, pts[0].y,
-                      pts[3].x - pts[0].x,
-                      pts[3].y - pts[0].y);
+    var bounds = new Bounds();
+    bounds.loadDiag(pts[0].x, pts[0].y,
+                    pts[2].x, pts[2].y);
+    return bounds;
 }
 Bounds.NONE = new Bounds(NaN, NaN, NaN, NaN);
 
