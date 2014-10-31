@@ -24,7 +24,8 @@ function Sheet(src, callback, start_region) {
     this._image = null;
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
-}
+};
+
 Sheet.prototype.load = function(player_id, callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
@@ -69,33 +70,33 @@ Sheet.prototype.load = function(player_id, callback, errback) {
                         me.ready = true;
                         me.wasError = true;
                         if (errback) errback.call(me, err); });
-}
+};
 
-Sheet.prototype.setActiveRegion = function(){
-  if (this.cur_region < 0) return;
-  var region;
-  if (this.region_f) { region = this.region_f(this.cur_region); }
-  else {
-      var r = this.regions[this.cur_region],
-          d = this._dimen;
-      region = [ r[0] * d[0], r[1] * d[1],
-                 r[2] * d[0], r[3] * d[1] ];
-  }
-  this._active_region = region;
-
-}
+Sheet.prototype.updateRegion = function(){
+    if (this.cur_region < 0) return;
+    var region;
+    if (this.region_f) { region = this.region_f(this.cur_region); }
+    else {
+        var r = this.regions[this.cur_region],
+            d = this._dimen;
+        region = [ r[0] * d[0], r[1] * d[1],
+                   r[2] * d[0], r[3] * d[1] ];
+    }
+    this.region = region;
+};
 
 Sheet.prototype.apply = function(ctx/*, fill, stroke, shadow*/) {
     if (!this.ready) return;
 
     ctx.save();
     if (this.wasError) { this.applyMissed(ctx); return; }
-    this.setActiveRegion();
-    var region = this._active_region;
+    this.updateRegion();
+    var region = this.region;
     ctx.drawImage(this._image, region[0], region[1],
                                region[2], region[3], 0, 0, region[2], region[3]);
     ctx.restore();
-}
+};
+
 Sheet.prototype.applyMissed = function(ctx) {
     ctx.save();
     ctx.strokeStyle = '#900';
@@ -112,25 +113,27 @@ Sheet.prototype.applyMissed = function(ctx) {
     ctx.lineTo(side, side);
     ctx.stroke();
     ctx.restore();
-}
+};
+
 Sheet.MISSED_BOUNDS = new Bounds(0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE);
 Sheet.prototype.bounds = function() {
     if (this.wasError) return Sheet.MISSED_BOUNDS;
     // TODO: when using current_region, bounds will depend on that region
     if (!this.ready) return Bounds.NONE;
-    if(!this._active_region) {
-      this.setActiveRegion();
+    if(!this.region) {
+      this.updateRegion();
     }
-    var r = this._active_region;
+    var r = this.region;
     return new Bounds(0, 0, r[2], r[3]);
 }
 Sheet.prototype.clone = function() {
     return new Sheet(this.src);
-}
+};
+
 Sheet.prototype.invalidate = function() {
-}
-Sheet.prototype.reset = function() { }
+};
+Sheet.prototype.reset = function() { };
 Sheet.prototype.dispose = function() {
-}
+};
 
 module.exports = Sheet;
