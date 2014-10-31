@@ -2,7 +2,8 @@ var utils = require('./utils.js'),
     SystemError = require('./errors.js').SystemError,
     PlayerError = require('./errors.js').PlayerError,
     engine = require('engine'),
-    global_opts = require('./global_opts.js');
+    global_opts = require('./global_opts.js'),
+    C = require('./constants.js');
 
 var Loader = {};
 
