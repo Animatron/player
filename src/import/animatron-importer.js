@@ -170,17 +170,11 @@ var TYPE_UNKNOWN =  0,
     TYPE_SCENE   =  2,
     TYPE_PATH    =  3,
     TYPE_TEXT    =  4,
-    TYPE_RECT    =  5,
-    TYPE_OVAL    =  6,
-    TYPE_PENCIL  =  7,
     TYPE_IMAGE   =  8,
     TYPE_GROUP   =  9,
-    TYPE_BRUSH   = 10,
-    TYPE_STAR    = 11,
-    TYPE_POLYGON = 12,
-    TYPE_CURVE   = 13,
     TYPE_AUDIO   = 14,
-    TYPE_LINE    = 15,
+    TYPE_FONT    = 25,
+    TYPE_VIDEO   = 26,
     TYPE_LAYER   = 255; // is it good?
 
 function isPath(type) {
@@ -365,11 +359,12 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
-    else if (type != TYPE_AUDIO) { trg.$path  = Import.path(src);  }
-    if ((type == TYPE_TEXT) || isPath(type)) {
-        trg.$fill = Import.fill(src[1]);
-        trg.$stroke = Import.stroke(src[2]);
-        trg.$shadow = Import.shadow(src[3]);
+    else if (type != TYPE_AUDIO && type != TYPE_VIDEO) { trg.$path  = Import.path(src);  }
+
+    if (trg.$path || trg.$text) {
+        if(src.length>1) trg.$fill = Import.fill(src[1]);
+        if(src.length>2) trg.$stroke = Import.stroke(src[2]);
+        if(src.length>3) trg.$shadow = Import.shadow(src[3]);
     }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
