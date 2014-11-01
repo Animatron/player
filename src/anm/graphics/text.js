@@ -27,8 +27,6 @@ Text.DEFAULT_UNDERLINE = false;
 Text.__measuring_f = engine.createTextMeasurer();
 
 Text.prototype.apply = function(ctx, fill, stroke, shadow) {
-    ctx.save();
-
     var bounds = this.bounds(),
         height = (bounds.height / this.lineCount()),
         underlined = this.underlined;
@@ -77,8 +75,6 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
             y += height;
         });
     }
-
-    ctx.restore();
 }
 Text.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;

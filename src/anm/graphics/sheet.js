@@ -88,13 +88,11 @@ Sheet.prototype.updateRegion = function(){
 Sheet.prototype.apply = function(ctx/*, fill, stroke, shadow*/) {
     if (!this.ready) return;
 
-    ctx.save();
     if (this.wasError) { this.applyMissed(ctx); return; }
     this.updateRegion();
     var region = this.region;
     ctx.drawImage(this._image, region[0], region[1],
                                region[2], region[3], 0, 0, region[2], region[3]);
-    ctx.restore();
 };
 
 Sheet.prototype.applyMissed = function(ctx) {
