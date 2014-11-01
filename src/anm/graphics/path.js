@@ -72,20 +72,16 @@ Path.prototype.add = function(seg) {
 }
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
-    ctx.save();
-
     // TODO: every segment should apply itself
     //       simplify this to call seg.apply for every segment
     ctx.beginPath();
     this.visit(applyVisitor, ctx);
     // ctx.closePath();
 
-    if (shadow) { shadow.apply(ctx); } else { Brush.clearShadow(ctx); }
-    if (fill) { fill.apply(ctx); ctx.fill(); } else { Brush.clearFill(ctx); }
+    if (shadow) { shadow.apply(ctx); }
+    if (fill) { fill.apply(ctx); ctx.fill(); }
     if (shadow) { Brush.clearShadow(ctx); }
-    if (stroke) { stroke.apply(ctx); ctx.stroke(); } else { Brush.clearStroke(ctx); }
-
-    ctx.restore();
+    if (stroke) { stroke.apply(ctx); ctx.stroke(); }
 }
 // > Path.parse % (str: String) => Path
 Path.prototype.parse = function(str) {

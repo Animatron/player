@@ -529,13 +529,13 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var ratio  = engine.PX_RATIO,
                     x = minX, y = minY,
-                    width  = Math.ceil(maxX - minX),
-                    height = Math.ceil(maxY - minY);
+                    width  = Math.round(maxX - minX),
+                    height = Math.round(maxY - minY);
 
                 var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
 
-                if ((last_cvs_size[0] < (width  * ratio)) ||
-                    (last_cvs_size[1] < (height * ratio))) {
+                if ((last_cvs_size[0] < width) ||
+                    (last_cvs_size[1] < height)) {
                     // mcvs/bcvs both always have the same size, so we save/check only one of them
                     this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
                     engine.setCanvasSize(bcvs, width, height);
@@ -543,12 +543,16 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     this._maskCvsSize = last_cvs_size;
                 }
 
-                bctx.save(); // bctx first open
-                if (ratio !== 1) bctx.scale(ratio, ratio);
-                bctx.clearRect(0, 0, width, height);
+                var scale = ratio;  // multiple by global scale when it's known
 
-                bctx.save(); // bctx second open
-                bctx.translate(-x, -y);
+                bctx.clearRect(0, 0, width*scale, height*scale);
+                mctx.clearRect(0, 0, width*scale, height*scale);
+
+                bctx.save();
+                mctx.save();
+
+                bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+                mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
 
                 this.transform(bctx);
                 this.painters(bctx);
@@ -556,29 +560,22 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     child.render(bctx, gtime, dt);
                 });
 
-                bctx.restore(); // bctx second closed
-
-                bctx.globalCompositeOperation = 'destination-in';
-
-                mctx.save(); // mctx first open
-
-                if (ratio !== 1) mctx.scale(ratio, ratio);
-                mctx.clearRect(0, 0, width, height);
-
-                mctx.translate(-x, -y);
                 mask.transform(mctx);
                 mask.painters(mctx);
                 mask.each(function(child) {
                     child.render(mctx, gtime, dt);
                 });
 
-                mctx.restore(); // mctx first close
+                bctx.globalCompositeOperation = 'destination-in';
+                bctx.setTransform(1, 0, 0, 1, 0, 0);
+                bctx.drawImage(mcvs, 0, 0);
 
-                bctx.drawImage(mcvs, 0, 0, width, height);
-                bctx.restore(); // bctx first closed
+                ctx.drawImage(bcvs,
+                    0, 0, width * scale, height * scale,
+                    x, y, width, height);
 
-                ctx.translate(x, y);
-                ctx.drawImage(bcvs, 0, 0, width, height);
+                mctx.restore();
+                bctx.restore();
             }
         } catch(e) { log.error(e); }
           finally { ctx.restore(); }
