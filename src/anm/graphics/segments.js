@@ -1,7 +1,6 @@
 var C = require('../constants.js');
 
 function MSeg(pts) {
-    this.type = C.P_MOVETO;
     this.pts = pts;
 }
 
@@ -33,7 +32,6 @@ MSeg.prototype.clone = function() {
 }
 
 function LSeg(pts) {
-    this.type = C.P_LINETO;
     this.pts = pts;
 }
 LSeg.prototype.draw = function(ctx) {
@@ -72,7 +70,6 @@ LSeg.prototype.clone = function() {
 }
 
 function CSeg(pts) {
-    this.type = C.P_CURVETO;
     this.pts = pts;
 }
 CSeg.prototype.draw = function(ctx) {
