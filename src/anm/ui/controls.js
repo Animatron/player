@@ -509,7 +509,6 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress) {
     ctx.arcTo(x,   y,   x+rw, y,   r);
     ctx.closePath();
     ctx.fill();
-    ctx.sdf();
     drawText(ctx, theme,
                        x+17, (h-30),
                        8,
