@@ -1,7 +1,7 @@
 There are two ways to embed any animation, made in Animatron, into your Webpage, and both are very easy, and configurable far more than Publish (a.k.a. Share) dialog restricts you:
 
-* using `IFRAME`, which includes another tiny webpage with player into yours;
-* using `div` (or any container) tag, which requires you at least to include an additional script in a page, but it's easier to control Player style with CSS this way and, if you really want, to use JavaScript for overriding/tuning-up any part of a rendering process.
+* using `IFRAME`, which includes another tiny webpage with a Player, into yours;
+* using `div` (or any container) tag, which requires you at least (and just) to include an additional script in a page, but it's easier to control Player style with CSS this way and, if you really want, to use JavaScript code for overriding/tuning-up any part of a rendering process. For the easiest version, you just need two HTML tags and an URL of JSON snapshot to make it work, no even a line of JavaScript;
 
 <!-- Using both ways you may configure your Player with a wide number of options. Dozen of them is accessible for `IFRAME` as well as for `div` tag or an URL inside `IFRAME`, or for JavaScript object passed to this Player, they just differ in the naming. -->
 
@@ -11,37 +11,83 @@ There are two ways to embed any animation, made in Animatron, into your Webpage,
 
 Commonly it looks like this:
 
-```
+```html
 <iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96?w=550&h=450" width="550" height="450" frameborder="0"></iframe>
 ```
 
-Where `http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96?w=550&h=450` is the URL of your clip with both `w` (_width_) and `h` (_height_) parameters specified.
+Where `http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96` is the URL of your clip, and `?w=550&h=450` part is `w` (_width_) and `h` (_height_) parameters specified.
 
-Player may be configured both with adding additional parameters to this URL (their names are short ones) or with adding corresponding HTML attributes to the `IFRAME` tag (their names start with `anm-` prefix):
+Player may be configured both with passing additional parameters with this URL (their names are commonly short-named) or with adding corresponding HTML attributes to the `IFRAME` tag (their names start with `anm-` prefix). Below is the example on how to enable auto-play when Player was completely initialized and to disable _Play_ button, both ways:
 
-* `w` or `anm-width`, `h` or `anm-height` — width and height of a rectangle to fit animation into (by default, it equals to an actual dimensions of an animation) — if aspect ratio doesn't match, margins are added to keep animation proportions.
+With URL parameters:
 
-<!-- TODO -->
+```html
+<iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96?w=550&h=450&auto=1&controls=0" width="550" height="450" frameborder="0"></iframe>
+```
 
-...There are just the basic options you may find here, see a [complete list](#Parameter-List) of them below.
+With `IFRAME` attributes:
+
+```html
+<iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96" anm-width="550" anm-height="450" anm-auto-play="true" anm-controls="false" anm-auto-frameborder="0"></iframe>
+```
+
+See a complete list with an every possible option to configure a Player just [in the end of this document][params-list].
 
 # `div`
 
-The second way to play some scene on a page is to use a container element. It gives even more freedom in configuration<!--, but so requires some programming experience-->.
+The second way to play an animation at your page is to use a container element. It gives you even more freedom in configuration<!--, but so requires some programming experience-->.
+
+First, you need to add the latest Player source to your page, in the `<head>` section, and to add a target `div` tag where Player will be projected anywhere in the `<body>` section of your page:
+
+```html
+<!DOCTYPE>
+<html>
+    <head>
+        . . .
+        <!-- PLAYER SOURCE: --> <script src="http://player.animatron.com/latest/bundle/animatron.min.js"></script>
+        . . .
+    </head>
+    <body>
+        . . .
+        <!-- PLAYER TARGET: -->  <div id="player-target"></div>
+        . . .
+    </body>
+</html>
+```
+
+If you need another version of a Player, just specify it by replacing the `latest` with, say, `v1.3`.
 
 ## The Magic of Auto-Initialization
 
+To load some known Animatron snapshot in a Player, you need to know its URL and both width and height of an Animation. These are quite easy to find, though.
+
+URL of a JSON. When you publish (share) your scene from Animatron, you get a URL like `http://clips.animatron.com/...`, a page which you can share with friends. If you add `.json` in the end of this URL, you have a JSON snapshot, like: ...
+
+If you have your own JSON hosted somewhere, you are free to pass its URL instead!
+
+Width and height of your Animation are specified by you in a project in Animatron Editor, or you may find them in `IFRAME` URL, as described above.
+
+Now you are ready to do magic:
+
+```html
+<div id="player-target" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200"/></div>
+```
+
+That's it! Your animation should load from a start and be able to be played. If you need to precisely configure its appearance or logic, [see below][params-list] for a complete list of HTML arguments a Player may understand ("`div`" column), there's truly a lot ways to change things. For example, auto-playing your animation and disabling a _Play_ button will work like this:
+
+```html
+<div id="player-target" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-auto-play="true" anm-controls="false" /></div>
+```
+
+## Initialization from Code
+
 <!-- TODO -->
 
-## Configuration
-
-<!-- TODO -->
-
-...There are just the basic options you may find here, see a [complete list](#Parameter-List) of them below.
+...There are just the basic options you may find here, see a [complete list][params-list] of them below.
 
 ## CSS Styling
 
-# Handling Events
+<!-- # Handling Events -->
 
 # Complete Configuration List
 
@@ -74,3 +120,5 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | `anm-shadows` | `shadowsEnabled` | `true` | enable shadows in animation (they often consume CPU)
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
 `me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors were fired during the playing process, just log them
+
+[params-list]: #Complete-Configuration-List
