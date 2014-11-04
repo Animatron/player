@@ -1666,7 +1666,7 @@ Player.createState = function(player) {
     };
 }
 
-
+// TODO: move into engine?
 Player._optsFromUrlParams = function(params/* as object */) {
     function __boolParam(val) {
         if (!val) return false;
@@ -1688,7 +1688,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     }
     var opts = {};
     opts.debug = is.defined(params.debug) ? __boolParam(params.debug) : undefined;
-    opts.muteErrors = __extractBool('me', 'muterrors');
+    opts.muteErrors = __extractBool('me', 'errors', 'muterrors');
     opts.repeat = __extractBool('r', 'repeat');
     opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
     opts.mode = params.m || params.mode || undefined;
@@ -1703,7 +1703,7 @@ Player._optsFromUrlParams = function(params/* as object */) {
     opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
     opts.thumbnail = params.th || params.thumb || undefined;
     opts.bgColor = params.bg || params.bgcolor;
-    opts.ribbonsColor = params.ribbons || params.ribcolor;
+    opts.ribbonsColor = params.rc || params.ribbons || params.ribcolor;
     return opts;
 }
 /**
@@ -1745,9 +1745,9 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     } else if (is.defined(params.p)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
-    } else if (is.defined(params.still)) {
+    } else if (is.defined(params.at)) {
         if (this.state.happens === C.PLAYING) this.stop();
-        this.play(params.still / 100).pause();
+        this.play(params.at / 100).pause();
     }
 }
 
