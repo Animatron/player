@@ -4,6 +4,7 @@ var provideEvents = require('../events.js').provideEvents,
     InfoBlock = require('./infoblock.js'),
     Strings = require('../loc.js').Strings,
     utils = require('../utils.js'),
+    Path = require('../graphics/path.js');
     is = utils.is;
 
 // Controls
@@ -91,7 +92,12 @@ Controls.prototype.render = function(time) {
         state = player.state,
         _s = state.happens;
 
-    var time = (time > 0) ? time : 0;
+    var time = (time > 0) ? time : 0,
+        coords = {x:0,y:0};
+    if (this._last_mevt) {
+      coords = {x: this._last_mevt.layerX, y: this._last_mevt.layerY};
+    }
+
     if (!this.__force &&
         (time === this._time) &&
         (_s === this._lhappens)) return;
@@ -129,19 +135,24 @@ Controls.prototype.render = function(time) {
     ctx.clearRect(0, 0, _w, _h);
 
     if (_s === C.PLAYING) {
-
+        drawBack(ctx, theme, _w, _h);
+        drawPause(ctx, theme, _w, _h);
+        if (duration) {
+            drawProgress(ctx, theme, _w, _h, progress);
+            drawTime(ctx, theme, _w, _h, time, duration, progress, coords);
+        }
     } else if (_s === C.STOPPED) {
         drawBack(ctx, theme, _w, _h);
         drawPlay(ctx, theme, _w, _h, this.focused);
     } else if (_s === C.PAUSED) {
         drawBack(ctx, theme, _w, _h);
-        drawProgress(ctx, theme, _w, _h, progress);
         drawPlay(ctx, theme, _w, _h, this.focused);
         if (duration) {
-            drawTime(ctx, theme, _w, _h, time, duration, progress);
+            drawProgress(ctx, theme, _w, _h, progress);
+            drawTime(ctx, theme, _w, _h, time, duration, progress, coords);
         }
+
     } else if (_s === C.NOTHING) {
-        drawBack(ctx, theme, _w, _h);
         drawNoAnimation(ctx, theme, _w, _h, this.focused);
     } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
         runLoadingAnimation(ctx, function(ctx) {
@@ -172,29 +183,27 @@ Controls.prototype.render = function(time) {
 Controls.prototype.react = function(time) {
     if (this.hidden) return;
 
-    var _p = this.player,
-        _s = _p.state.happens;
-    if ((_s === C.NOTHING) || (_s === C.LOADING) || (_s === C.ERROR)) return;
-    if (_s === C.STOPPED) { /*$log.debug('play from start');*/ _p.play(0); return; }
-    if (_s === C.PAUSED) { /*$log.debug('play from ' + this._time);*/ _p.play(this._time); return; }
-    if (_s === C.PLAYING) { /*$log.debug('pause at' + time);*/ this._time = time; _p.pause(); return; }
+    var p = this.player,
+        s = p.state.happens;
+    if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
+    if (this._last_mevt) {
+      var coords = {x: this._last_mevt.layerX, y: this._last_mevt.layerY},
+          w = this.bounds[2], h = this.bounds[3];
+      if (coords.y > h-15 && coords.x > 5 && coords.y < w-5) {
+        var time = Math.round(p.state.duration*(coords.x-5)/(w-10));
+        p.pause().play(time);
+        return;
+      }
+    }
+
+    if (s === C.STOPPED) { p.play(0); return; }
+    if (s === C.PAUSED) { p.play(this._time); return; }
+    if (s === C.PLAYING) { this._time = time; p.pause(); return; }
 }
 Controls.prototype.refreshByMousePos = function(pos) {
     if (!this.bounds) return;
-    var state = this.player.state,
-        _lx = pos[0],
-        _ly = pos[1],
-        _w = this.bounds[2],
-        _h = this.bounds[3],
-        button_rad = Math.min(_w / 2, _h / 2) * this.theme.radius.inner;
-    var lfocused = this.focused;
-    this.focused = (_lx >= (_w / 2) - button_rad) &&
-                   (_lx <= (_w / 2) + button_rad) &&
-                   (_ly >= (_h / 2) - button_rad) &&
-                   (_ly <= (_h / 2) + button_rad);
-    if (lfocused !== this.focused) {
-        this.forceNextRedraw();
-    }
+    var state = this.player.state;
+    this.forceNextRedraw();
     this.render(state.time);
 }
 Controls.prototype.handleAreaChange = function() {
@@ -203,7 +212,9 @@ Controls.prototype.handleAreaChange = function() {
 }
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
+    var me=this;
     this._last_mevt = evt;
+
     //var pos = engine.getEventPosition(evt, this.canvas);
     //if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
         if (this.hidden) this.show();
@@ -211,13 +222,29 @@ Controls.prototype.handleMouseMove = function(evt) {
     //} else {
     //    this.handleMouseOut();
     //}
+};
+
+Controls.prototype.scheduleHide = function() {
+  var me=this;
+  clearTimeout(me._hideTimeout);
+  me._hideTimeout = setTimeout(function(){
+    me.hide();
+  }, 1000);
+};
+
+Controls.prototype.resetScheduledHide = function() {
+  clearTimeout(me._hideTimeout);
 }
+
 Controls.prototype.handleClick = function() {
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
     this.render(state.time);
-    if (state.happens === C.PLAYING) this.hide();
+    if (state.happens === C.PLAYING) {
+      this.hide();
+
+    }
 }
 Controls.prototype.handlePlayerClick = function() {
     if (this.player.handleEvents) return;
@@ -231,7 +258,7 @@ Controls.prototype.handlePlayerClick = function() {
 }
 Controls.prototype.handleMouseEnter = function() {
     var state = this.player.state;
-    if (state.happens !== C.PLAYING) {
+    if (true || state.happens !== C.PLAYING) {
         if (this.hidden) this.show();
         this.forceNextRedraw();
         this.render(state.time);
@@ -354,7 +381,7 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
     var cx = w / 2,
         cy = h / 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.arc(cx,cy,40,0,2*Math.PI);
     ctx.fill();
 
@@ -366,9 +393,12 @@ var drawProgress = function(ctx, theme, w, h, progress) {
 
     ctx.save();
 
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
 
     ctx.fillRect(0, h-15, w, 15);
+
+    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillRect(5, h-10, w-10, 5);
     var progressWidth = Math.round(progress*(w-10));
     ctx.fillStyle = 'white';
     ctx.fillRect(5, h-10, progressWidth, 5);
@@ -438,37 +468,6 @@ var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     ctx.restore();
 }
 var drawNoAnimation = function(ctx, theme, w, h, focused) {
-    ctx.save();
-
-    var cx = w / 2,
-        cy = h / 2,
-        button_width = Math.min(cx, cy) * theme.radius.buttonh,
-        button_height = Math.min(cx, cy) * theme.radius.buttonv;
-
-    ctx.fillStyle = '#eee';
-    ctx.fillRect(3, 3, w - 3, h - 3);
-
-    ctx.translate(cx, cy);
-
-    ctx.lineWidth = theme.width.button;
-    ctx.lineJoin = theme.join.button;
-    ctx.fillStyle = theme.colors.button;
-    ctx.strokeStyle = theme.colors.button;
-    ctx.rotate(-Math.PI / 4);
-    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-
-    ctx.rotate(2 * Math.PI / 4);
-    ctx.strokeRect(-(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-    ctx.fillRect(  -(button_width / 2), -(button_height / 8), button_width, button_height / 4);
-
-    ctx.restore();
-
-    drawText(ctx, theme,
-                   w / 2, ((h / 2) * (1 + theme.radius.status)),
-                   theme.font.statussize,
-                   Strings.COPYRIGHT);
-
 
 }
 var drawError = function(ctx, theme, w, h, error, focused) {
@@ -494,11 +493,20 @@ var drawError = function(ctx, theme, w, h, error, focused) {
                                             : error, theme.colors.error);
 
 }
-var drawTime = function(ctx, theme, w, h, time, duration, progress) {
 
+
+
+var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
+
+    var inArea = coords.y >= h-15 && coords.x > 5 && coords.x < w-5;
+    if (inArea) {
+      //calculate time on mouse position
+      progress = (coords.x-5)/(w-10);
+      time = Math.round(duration*progress);
+    }
     var progressPos = 5 + Math.round(progress*(w-10));
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(0,0,0,0.5)';
+    ctx.fillStyle = 'rgba(0,0,0,0.7)';
     ctx.strokeStyle = 'transparent';
     ctx.clearRect(0, h-40, w, 20);
     var x = Math.max(1, progressPos-17), r=3, y=h-40, rw=34, rh=20;
@@ -554,5 +562,6 @@ Controls.stopLoadingAnimation = function(ctx) {
     stopAnim(props.loading_req);
     props.loading_req = null;
 };
+
 
 module.exports = Controls;
