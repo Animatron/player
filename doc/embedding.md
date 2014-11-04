@@ -223,11 +223,11 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
 `me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors were fired during the playing process, just log them
 
-[iframe]: #IFRAME
-[container]: #Container-tag-i-e-div
-[auto-init]: #
-[from-code]: #
-[params-list]: #Complete-Configuration-List
-[css-styling]: #CSS-Styling
-[create-player]: #
-[for-snapshot]: #
+[iframe]: #iframe
+[container]: #container-tag-ie-div
+[auto-init]: #the-magic-of-auto-initialization
+[from-code]: #initialization-from-code
+[params-list]: #complete-configuration-list
+[css-styling]: #css-styling
+[create-player]: #custom-scene-with-createplayer
+[for-snapshot]: #snapshot-with-forsnapshot
