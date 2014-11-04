@@ -37,12 +37,40 @@ The second way to play some scene on a page is to use a container element. It gi
 
 <!-- TODO -->
 
+...There are just the basic options you may find here, see a [complete list](#Parameter-List) of them below.
+
 ## CSS Styling
 
-# Full options List
+# Handling Events
+
+# Complete Configuration List
+
+Note: all boolean values both in tag attributes and as URL parameters are allowed to be _nothing_ / `false` / `0` / `off` / `no` to mean _false_, and `true` / `1` / `on` / `yes` to mean _true_.
 
 URL | `IFRAME`/`div` | JS Object | Default | Description
 ----|----------------|-----------|---------|------------
 `w` | `anm-width`    | `width`   | animation width | width of a rectangle to fit animation into
 `h` | `anm-height`   | `height`  | animation height | height of a rectangle to fit animation into
-`t` | ... | `playFrom` |
+? | `anm-controls` | `controlsEnabled` | `true` | show Play button and playing progress or not, Player HUD
+? | `anm-info` | `infoEnabled` | `true` | (_deprecated_) show animation author and animation name
+? | `anm-auto-play` | `autoPlay` | `false` | start playing animation just when Player was initialized
+? | `anm-repeat` | `repeat` | `false` | `true` to play animation infinitely (loop)
+? | `anm-infinite` | `infiniteDuration` | `false` | keep playing animation even when it finished (do not repeat, but stay at last frame, if there are no inner loops)
+- | _`div`-only:_ `anm-src` | - | - | JSON for the animation  to load from
+? | `anm-speed` | `speed` | `1` | playing speed
+? | `anm-zoom` | `zoom` | `1` | animation zoom
+`t` | - | - | `0` | a time to start playing from (multiplier is 10ms, so `310` means _3s 10ms_)
+`p` | - | - | - | a time of animation where to pause at, when Player was initialized (multiplier is 10ms, so `310` means _3s 10ms_)
+- | `anm-events` | `handleEvents` | `false` | allows animation to catch and process user mouse/keyboard events by itself (has a meaning for games or infographics)
+- | `anm-loading-mode` | `loadingMode` | `onplay` | `onplay` means to start loading an animation when user clicks _Play_ button (and show _thumbnail_ before), `onrequest` means to start loading animation only when the script asked for it and expect it to be completely loaded when user clicks _Play_ button
+- | `anm-mode` | `mode` | - | (_deprecated_) a mode of a Player, one of: ...
+- | `anm-debug` | `debug` | `false` | show debug information like FPS and paths/bounds of objects
+- | `anm-bg-color` | `bgColor` | `transparent` | set background color of an animation (if it is set, it can't be overriden), format is `#00ff00`
+- | `anm-rib-color` | `ribbonsColor` | `#000000` | color of a stripes which appear when aspect ratio of an animation doesn't fit a Player size
+- | `anm-thumbnail` | `thumbnail` | - | URL of an animation thumbnail (still image) to be shown while animation loads
+- | `anm-draw-thumb` | `drawThumbnail` | `true` | show an animation thumbnail (still image) while it loads, if its source is set
+- | `anm-images` | `imagesEnabled` | `true` | enable all remote images used in animation (if they are disabled, special mark will be shown)
+- | `anm-audio` | `audioEnabled` | `true` | enable all sounds used in animation (if disabled, they even will not load)
+- | `anm-shadows` | `shadowsEnabled` | `true` | enable shadows in animation (they often consume CPU)
+- | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
+- | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors were fired during the playing process, just log them
