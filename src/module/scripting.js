@@ -18,9 +18,9 @@ E._customImporters.push(function(source, type, importer, import_id) {
 
     switch(type) {
       case 2: // TYPE_SCENE
-        if (source[4] && is.not_empty(source[4])) throw new Error('Scripting is temporary not supported');
+        if (source[4] && is.not_empty(source[4])) throw new Error('Scripting is temporarily not supported');
       case 255: // TYPE_LAYER
-        if (source[8] && is.not_empty(source[8])) throw new Error('Scripting is temporary not supported');
+        if (source[8] && is.not_empty(source[8])) throw new Error('Scripting is temporarily not supported');
     }
   }
 });
