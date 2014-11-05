@@ -1,9 +1,9 @@
-There are two ways to embed any animation, made in Animatron, into your Webpage, and both are very easy, and configurable far more than Publish (a.k.a. Share) dialog restricts you:
+There are two ways to embed an animation made in Animatron into a webpage. Both are very easy and enable you to configure more options than the Publish (a.k.a. Share) dialog currently allows:
 
-* using `IFRAME`, which includes another tiny webpage with a Player, into yours;
-* using `div` (or any container) tag, which requires you at least (and just) to include an additional script in a page, but it's easier to control Player style with CSS this way and, if you really want, to use JavaScript code for overriding/tuning-up any part of a rendering process. For the easiest version, you just need two HTML tags and an URL of JSON snapshot to make it work, no even a line of JavaScript;
+* using `IFRAME`, which embeds another tiny webpage that contains the Animatron Player into your page.
+* using the `div` (or any container) tag, which requires you to include an additional script in the page. It's easier to control the Player's style with CSS this way and, if you really want, to use JavaScript code for overriding/tuning-up any part of the rendering process. For the easiest version, you just need two HTML tags and a URL of a JSON snapshot to make it work, not even a line of JavaScript.
 
-<!-- Using both ways you may configure your Player with a wide number of options. Dozen of them is accessible for `IFRAME` as well as for `div` tag or an URL inside `IFRAME`, or for JavaScript object passed to this Player, they just differ in the naming. -->
+<!-- Using both ways together, you may configure your Player with a wide number of options. Dozens of them are accessible for `IFRAME` as well as for the `div` tag or a URL inside `IFRAME,` as well as for a JavaScript object passed to this Player - they just differ in names. -->
 
 # Contents
 
@@ -18,7 +18,7 @@ There are two ways to embed any animation, made in Animatron, into your Webpage,
 
 # IFRAME
 
-`IFRAME` code is suggested to you in a Publish (a.k.a. Share) Dialog in Animatron Editor.
+`IFRAME` code is obtained from the Publish (a.k.a. Share) Dialog in the Animatron Editor.
 
 Commonly it looks like this:
 
@@ -26,9 +26,9 @@ Commonly it looks like this:
 <iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96?w=550&h=450" width="550" height="450" frameborder="0"></iframe>
 ```
 
-Where `http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96` is the URL of your clip, and `?w=550&h=450` part is `w` (_width_) and `h` (_height_) parameters specified.
+`http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96` is the URL of your clip, and the `?w=550&h=450` part is the `w` (_width_) and `h` (_height_) parameters specified.
 
-Player may be configured both with passing additional parameters with this URL (their names are commonly short-named) or with adding corresponding HTML attributes to the `IFRAME` tag (their names start with `anm-` prefix). Below is the example on how to enable auto-play when Player was completely initialized and to disable _Play_ button, both ways:
+The Player may be configured both by passing additional parameters with this URL (they are commonly nicknamed) or by adding corresponding HTML attributes to the `IFRAME` tag (their names start with `anm-` prefix). Below is an example of how to enable auto-play when the Player is completely initialized and how to disable the _Play_ button both ways:
 
 With URL parameters:
 
@@ -42,13 +42,13 @@ With `IFRAME` attributes:
 <iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96" anm-width="550" anm-height="450" anm-auto-play="true" anm-controls="false" anm-auto-frameborder="0"></iframe>
 ```
 
-See a complete list with an every possible option to configure a Player just [in the end of this document][params-list].
+See a complete list of every possible option to configure the Player [at the end of this document][params-list].
 
 # Container Tag (i.e. `div`)
 
-The second way to play an animation at your page is to use a container element. It gives you even more freedom in configuration<!--, but so requires some programming experience-->.
+The second way to play an animation on your page is to use a container element. It gives you even more freedom in configuration<!--, but requires some programming experience-->.
 
-First, you need to add the latest Player source to your page, in the `<head>` section, and to add a target `div` tag where Player will be projected anywhere in the `<body>` section of your page:
+First, you need to add the latest Player source to your page in the `<head>` section. You'll also have to add a target `div` tag where the Player will be displayed anywhere in the `<body>` section of your page:
 
 ```html
 <!DOCTYPE>
@@ -66,17 +66,17 @@ First, you need to add the latest Player source to your page, in the `<head>` se
 </html>
 ```
 
-If you need another version of a Player, just specify it by replacing the `latest` with, say, `v1.3`.
+If you need another version of the Player, just specify it by replacing the `latest` with, say, `v1.3`.
 
 ## The Magic of Auto-Initialization
 
-To load some known Animatron snapshot in a Player, you need to know its URL and both width and height of an Animation. These are quite easy to find, though.
+To load a known Animatron snapshot in the Player, you need to know its URL as well as the width and height of the Animation. No worries - these are quite easy to find.
 
-URL of a JSON. When you publish (share) your scene from Animatron, you get a URL like `http://clips.animatron.com/...`, a page which you can share with friends. If you add `.json` in the end of this URL, you have a JSON snapshot, like: ...
+URL of a JSON: When you publish (share) your scene from Animatron, you get a URL like `http://clips.animatron.com/...`, a page which you can share with others by sending its URL. If you add `.json` at the end of this URL, you have a JSON snapshot, like: ...
 
 If you have your own JSON hosted somewhere, you are free to pass its URL instead!
 
-Width and height of your Animation are specified by you in a project in Animatron Editor, or you may find them in `IFRAME` URL, as described above.
+The width and height of your animation are originally specified by you in the project in the Animatron Editor, or you may find them in `IFRAME` URL, as described above.
 
 Now you are ready to do magic:
 
@@ -84,7 +84,7 @@ Now you are ready to do magic:
 <div id="player-target" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" /></div>
 ```
 
-That's it! Your animation should load from a start and be able to be played. If you need to precisely configure its appearance or logic, [see below][params-list] for a complete list of HTML arguments a Player may understand ("`div`" column), there's truly a lot ways to change things. For example, auto-playing your animation and disabling a _Play_ button will work like this:
+That's it! Your animation should load from the start and be able to be played. If you need to precisely configure its appearance or logic, [see below][params-list] for a complete list of HTML arguments the Player will understand ("`div`" column), there's truly a lot ways to change things. For example, auto-playing your animation and disabling the _Play_ button will work like this:
 
 ```html
 <div id="player-target" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" anm-auto-play="true" anm-controls="false" /></div>
@@ -92,7 +92,7 @@ That's it! Your animation should load from a start and be able to be played. If 
 
 ## Initialization from Code
 
-If you have no snapshot URL, or you want to access a Player with JavaScript code, there are also few options:
+If you have no snapshot URL, or you want to access the Player with JavaScript code, there are also few options:
 
 First, ensure to include Player source in the `<head>` of your page:
 
@@ -100,7 +100,7 @@ First, ensure to include Player source in the `<head>` of your page:
 <script src="http://player.animatron.com/latest/bundle/animatron.min.js"></script>
 ```
 
-Second, add a target tag to a `<body>` of your page.
+Second, add a target tag to the `<body>` of your page.
 
 ```html
 <div id="player-target" anm-width="320" anm-height="450"></div>
@@ -108,7 +108,7 @@ Second, add a target tag to a `<body>` of your page.
 
 ### Custom scene with `createPlayer`
 
-Third, in case you _have no_ snapshot URL, you may still load any animation in any format, if you have a special "importer". Or, you may even create an animation just in place using Player API, but it's a different story.
+Thirdly, if you _have no_ snapshot URL, you may still load any animation in any format if you have a special "importer". Or, you may even create an animation just in place using Player API, but it's a different story.
 
 ```js
 var player = anm.createPlayer('player-target');
@@ -144,7 +144,7 @@ var player = anm.Player.forSnapshot(
 );
 ```
 
-You may add a callback to call when snapshot will be received and also configure a Player, either with URL parameters or JavaScript object:
+You may add a callback to call when the snapshot will be received and also configure the Player, either with URL parameters or JavaScript object:
 
 ```js
 var player = anm.Player.forSnapshot(
@@ -182,7 +182,7 @@ It will be replaced with a structure like this:
 </div>
 ```
 
-So you may override any CSS for the player you wish, using these classes. Also, for the wrapper gets an additional class when Player state changes:
+So you may override any CSS for the player you wish, using these classes. Also, the wrapper gets an additional class when the Player state changes:
 
 * `anm-state-nothing`, when Player has nothing to play, just initialized;
 * `anm-state-stopped`, when Player is stopped;
