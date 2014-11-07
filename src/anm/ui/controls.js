@@ -97,7 +97,8 @@ Controls.prototype.render = function(time) {
     var time = (time > 0) ? time : 0,
         coords = {x:0,y:0};
     if (this._last_mevt) {
-      coords = {x: this._last_mevt.layerX, y: this._last_mevt.layerY};
+      var pos = engine.getEventPosition(this._last_mevt, this.canvas),
+          coords = {x: pos[0], y: pos[1]};
     }
 
     if (!this.__force &&
@@ -187,7 +188,8 @@ Controls.prototype.react = function(time) {
         s = p.state.happens;
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
     if (this._last_mevt) {
-      var coords = {x: this._last_mevt.layerX, y: this._last_mevt.layerY},
+      var pos = engine.getEventPosition(this._last_mevt, this.cvs);
+      var coords = {x: pos[0], y: pos[1]},
           w = this.bounds[2], h = this.bounds[3];
       if (coords.y > h-15 && coords.x > 5 && coords.y < w-5) {
         var time = Math.round(p.state.duration*(coords.x-5)/(w-10));
