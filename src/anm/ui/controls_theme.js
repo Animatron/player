@@ -10,10 +10,10 @@ var theme = {
   },
   'circle': {
     'radius': 40,
-    'fill': 'rgba(0,0,0,0.7)'
+    'color': 'rgba(0,0,0,0.7)'
   },
   'progress': {
-    'backColor': 'rgba(0,0,0,7)',
+    'backColor': 'rgba(0,0,0,0.7)',
     'activeColor': 'white',
     'inactiveColor': 'rgba(255,255,255,0.5)'
   },
