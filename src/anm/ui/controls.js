@@ -5,7 +5,8 @@ var provideEvents = require('../events.js').provideEvents,
     Strings = require('../loc.js').Strings,
     utils = require('../utils.js'),
     Path = require('../graphics/path.js');
-    is = utils.is;
+    is = utils.is,
+    Brush = require('../graphics/brush.js');
 
 // Controls
 // -----------------------------------------------------------------------------
@@ -26,8 +27,9 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
 }
 
-Controls.DEFAULT_THEME = require('./controls_theme.js');
+var theme = Controls.DEFAULT_THEME = require('./controls_theme.js');
 Controls.THEME = Controls.DEFAULT_THEME;
+
 Controls.LAST_ID = 0;
 provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
@@ -90,7 +92,7 @@ Controls.prototype.render = function(time) {
 
     var player = this.player,
         state = player.state,
-        _s = state.happens;
+        s = state.happens;
 
     var time = (time > 0) ? time : 0,
         coords = {x:0,y:0};
@@ -100,73 +102,71 @@ Controls.prototype.render = function(time) {
 
     if (!this.__force &&
         (time === this._time) &&
-        (_s === this._lhappens)) return;
+        (s === this._lhappens)) return;
 
     // these states do not change controls visually between frames
     if (is.defined(this._lastDrawn) &&
-        (this._lastDrawn === _s) &&
-        ((_s === C.STOPPED) ||
-         (_s === C.NOTHING) ||
-         (_s === C.ERROR))
+        (this._lastDrawn === s) &&
+        ((s === C.STOPPED) ||
+         (s === C.NOTHING) ||
+         (s === C.ERROR))
        ) return;
 
     this.rendering = true;
 
     if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
-        ((_s !== C.LOADING) && (_s !== C.RES_LOADING))) {
+        ((s !== C.LOADING) && (s !== C.RES_LOADING))) {
         Controls.stopLoadingAnimation(this.ctx);
     }
 
     this._time = time;
-    this._lhappens = _s;
+    this._lhappens = s;
 
     var ctx = this.ctx,
         theme = this.theme,
         duration = state.duration,
         progress = time / ((duration !== 0) ? duration : 1);
 
-    var _w = this.bounds[2],
-        _h = this.bounds[3],
+    var w = this.bounds[2],
+        h = this.bounds[3],
         ratio = engine.PX_RATIO;
 
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ratio != 1) ctx.scale(ratio, ratio);
-    ctx.clearRect(0, 0, _w, _h);
+    ctx.clearRect(0, 0, w, h);
 
-    if (_s === C.PLAYING) {
-        drawBack(ctx, theme, _w, _h);
-        drawPause(ctx, theme, _w, _h);
+    if (s === C.PLAYING) {
+        drawBack(ctx, theme, w, h);
+        drawPause(ctx, theme, w, h);
         if (duration) {
-            drawProgress(ctx, theme, _w, _h, progress);
-            drawTime(ctx, theme, _w, _h, time, duration, progress, coords);
+            drawProgress(ctx, theme, w, h, progress);
+            drawTime(ctx, theme, w, h, time, duration, progress, coords);
         }
-    } else if (_s === C.STOPPED) {
-        drawBack(ctx, theme, _w, _h);
-        drawPlay(ctx, theme, _w, _h, this.focused);
-    } else if (_s === C.PAUSED) {
-        drawBack(ctx, theme, _w, _h);
-        drawPlay(ctx, theme, _w, _h, this.focused);
+    } else if (s === C.STOPPED) {
+        drawBack(ctx, theme, w, h);
+        drawPlay(ctx, theme, w, h, this.focused);
+    } else if (s === C.PAUSED) {
+        drawBack(ctx, theme, w, h);
+        drawPlay(ctx, theme, w, h, this.focused);
         if (duration) {
-            drawProgress(ctx, theme, _w, _h, progress);
-            drawTime(ctx, theme, _w, _h, time, duration, progress, coords);
+            drawProgress(ctx, theme, w, h, progress);
+            drawTime(ctx, theme, w, h, time, duration, progress, coords);
         }
 
-    } else if (_s === C.NOTHING) {
-        drawNoAnimation(ctx, theme, _w, _h, this.focused);
-    } else if ((_s === C.LOADING) || (_s === C.RES_LOADING)) { // TODO: show resource loading progress
+    } else if (s === C.NOTHING) {
+        drawNoAnimation(ctx, theme, w, h, this.focused);
+    } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
         runLoadingAnimation(ctx, function(ctx) {
-            ctx.clearRect(0, 0, _w, _h);
-            //Controls._drawBack(ctx, theme, _w, _h);
-            drawLoading(ctx, theme, _w, _h,
+            ctx.clearRect(0, 0, w, h);
+            drawLoading(ctx, theme, w, h,
                                   (((Date.now() / 100) % 60) / 60), '');
-                                  // isRemoteLoading ? player._loadSrc '...' : '');
         });
-    } else if (_s === C.ERROR) {
-        drawBack(ctx, theme, _w, _h);
-        drawError(ctx, theme, _w, _h, player.__lastError, this.focused);
+    } else if (s === C.ERROR) {
+        drawBack(ctx, theme, w, h);
+        drawError(ctx, theme, w, h, player.__lastError, this.focused);
     }
-    this._lastDrawn = _s;
+    this._lastDrawn = s;
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -174,7 +174,7 @@ Controls.prototype.render = function(time) {
     this.__force = false;
 
     if (this.info) {
-      if (_s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+      if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
       else { this._infoShown = false; }
     }
 
@@ -215,13 +215,8 @@ Controls.prototype.handleMouseMove = function(evt) {
     var me=this;
     this._last_mevt = evt;
 
-    //var pos = engine.getEventPosition(evt, this.canvas);
-    //if (this.localInBounds(pos) && (this.player.state.happens !== C.PLAYING)) {
-        if (this.hidden) this.show();
-        this.refreshByMousePos(engine.getEventPosition(evt, this.canvas));
-    //} else {
-    //    this.handleMouseOut();
-    //}
+    if (this.hidden) this.show();
+    this.refreshByMousePos(engine.getEventPosition(evt, this.canvas));
 };
 
 Controls.prototype.scheduleHide = function() {
@@ -229,7 +224,7 @@ Controls.prototype.scheduleHide = function() {
   clearTimeout(me._hideTimeout);
   me._hideTimeout = setTimeout(function(){
     me.hide();
-  }, 1000);
+  }, 2000);
 };
 
 Controls.prototype.resetScheduledHide = function() {
@@ -243,7 +238,6 @@ Controls.prototype.handleClick = function() {
     this.render(state.time);
     if (state.happens === C.PLAYING) {
       this.hide();
-
     }
 }
 Controls.prototype.handlePlayerClick = function() {
@@ -258,11 +252,9 @@ Controls.prototype.handlePlayerClick = function() {
 }
 Controls.prototype.handleMouseEnter = function() {
     var state = this.player.state;
-    if (true || state.happens !== C.PLAYING) {
-        if (this.hidden) this.show();
-        this.forceNextRedraw();
-        this.render(state.time);
-    }
+    if (this.hidden) this.show();
+    this.forceNextRedraw();
+    this.render(state.time);
 }
 Controls.prototype.handleMouseLeave = function() {
     var state = this.player.state;
@@ -301,23 +293,6 @@ Controls.prototype.detach = function(parent) {
     engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
     if (this.ctx) engine.clearAnmProps(this.ctx);
-}
-Controls.prototype.inBounds = function(pos) {
-    //if (this.hidden) return false;
-    var _b = this.bounds;
-    return (pos[0] >= _b[0]) &&
-           (pos[0] <= _b[0] + _b[2]) &&
-           (pos[1] >= _b[1]) &&
-           (pos[1] <= _b[1] + _b[3]);
-}
-Controls.prototype.localInBounds = function(pos) {
-    //if (this.hidden) return false;
-    var _b = this.bounds;
-    if (!_b) return false;
-    return (pos[0] >= 0) &&
-           (pos[0] <= _b[2]) &&
-           (pos[1] >= 0) &&
-           (pos[1] <= _b[3]);
 }
 Controls.prototype.changeTheme = function(to) {
     this.theme = to;
@@ -360,29 +335,24 @@ Controls.prototype.disable = function() {
     this.detach(this.player.wrapper);
 }
 Controls.prototype.enableInfo = function() {
-    if (!this.info) this.info = new InfoBlock(this.player);
-    this.info.update(this.player.canvas);
 }
 Controls.prototype.disableInfo = function() {
-    if (this.info) this.info.detach(this.player.wrapper);
-    /*if (this.info) */this.info = null;
 }
 Controls.prototype.setDuration = function(value) {
-    if (this.info) this.info.setDuration(value);
 }
 Controls.prototype.inject = function(anim, duration) {
-    if (this.info) this.info.inject(anim, duration);
 }
 
-var BACK_GRAD = null,
-    nextFrame = engine.getRequestFrameFunc(),
+var nextFrame = engine.getRequestFrameFunc(),
     stopAnim = engine.getCancelFrameFunc();
+
 var drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
     var cx = w / 2,
         cy = h / 2;
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-    ctx.arc(cx,cy,40,0,2*Math.PI);
+    ctx.beginPath();
+    ctx.fillStyle = theme.circle.color;
+    ctx.arc(cx,cy,theme.circle.radius,0,2*Math.PI);
     ctx.fill();
 
     ctx.restore();
@@ -390,17 +360,14 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 
 var drawProgress = function(ctx, theme, w, h, progress) {
     if (!is.finite(progress)) return;
-
     ctx.save();
 
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
-
+    ctx.fillStyle = theme.progress.backColor;
     ctx.fillRect(0, h-15, w, 15);
-
-    ctx.fillStyle = 'rgba(255,255,255,0.5)';
+    ctx.fillStyle = theme.progress.inactiveColor;
     ctx.fillRect(5, h-10, w-10, 5);
     var progressWidth = Math.round(progress*(w-10));
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = theme.progress.activeColor;
     ctx.fillRect(5, h-10, progressWidth, 5);
     ctx.restore();
 
@@ -411,7 +378,7 @@ var drawPause = function(ctx, theme, w, h, focused) {
     var cx = w / 2,
         cy = h / 2;
 
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = theme.button.color;
     ctx.fillRect(cx - 12, cy - 17, 8, 34);
     ctx.fillRect(cx + 4, cy - 17, 8, 34);
 
@@ -420,19 +387,17 @@ var drawPause = function(ctx, theme, w, h, focused) {
 }
 var drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
-
-
-
     var cx = w / 2,
         cy = h / 2;
 
     ctx.strokeStyle = 'transparent';
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = theme.button.color;
     ctx.beginPath();
     ctx.moveTo(cx - 12, cy - 20);
     ctx.lineTo(cx - 12, cy + 20);
     ctx.lineTo(cx + 18, cy);
     ctx.lineTo(cx - 12, cy - 20);
+    ctx.closePath();
     ctx.fill();
 
     ctx.restore();
@@ -443,6 +408,7 @@ var drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
     drawBack(ctx, theme, w, h);
     drawLoadingProgress(ctx, w, h, hilite_pos);
 }
+
 var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     ctx.save();
 
@@ -454,22 +420,25 @@ var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
         segmentAngle = twoPi/8;
 
     ctx.translate(cx, cy);
-    ctx.strokeStyle = 'rgba(255,255,255,0.5)';
+    ctx.strokeStyle = theme.loading.inactiveColor;
     ctx.lineWidth = 2;
     ctx.beginPath();
     ctx.arc(0, 0, 36, 0, twoPi);
     ctx.stroke();
+    ctx.closePath();
     ctx.beginPath();
-    ctx.strokeStyle = 'white';
+    ctx.strokeStyle = theme.loading.activeColor;
     ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
     ctx.stroke();
-
+    ctx.closePath();
 
     ctx.restore();
-}
-var drawNoAnimation = function(ctx, theme, w, h, focused) {
+};
 
-}
+var drawNoAnimation = function(ctx, theme, w, h, focused) {
+  //drawAnimatronGuy(ctx,w,h);
+};
+
 var drawError = function(ctx, theme, w, h, error, focused) {
     ctx.save();
 
@@ -477,10 +446,9 @@ var drawError = function(ctx, theme, w, h, error, focused) {
         cy = h / 2;
 
     ctx.translate(cx, cy);
-
     ctx.rotate(Math.PI/4);
     ctx.strokeStyle = 'transparent';
-    ctx.fillStyle = 'white';
+    ctx.fillStyle = theme.button.color;
     ctx.fillRect(-25, -3, 50, 6);
     ctx.fillRect(-3, -25, 6, 50);
 
@@ -491,25 +459,21 @@ var drawError = function(ctx, theme, w, h, error, focused) {
                    theme.font.statussize * 1.2,
                    (error && error.message) ? utils.ell_text(error.message, theme.statuslimit)
                                             : error, theme.colors.error);
-
-}
-
-
+};
 
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
-
     var inArea = coords.y >= h-15 && coords.x > 5 && coords.x < w-5;
     if (inArea) {
-      //calculate time on mouse position
+      //calculate time at mouse position
       progress = (coords.x-5)/(w-10);
       time = Math.round(duration*progress);
     }
     var progressPos = 5 + Math.round(progress*(w-10));
     ctx.beginPath();
-    ctx.fillStyle = 'rgba(0,0,0,0.7)';
+    ctx.fillStyle = theme.progress.backColor;
     ctx.strokeStyle = 'transparent';
     ctx.clearRect(0, h-40, w, 20);
-    var x = Math.max(1, progressPos-17), r=3, y=h-40, rw=34, rh=20;
+    var x = Math.min(Math.max(1, progressPos-17), w-35), r=3, y=h-40, rw=34, rh=20;
     ctx.moveTo(x+r, y);
     ctx.arcTo(x+rw, y,   x+rw, y+rh, r);
     ctx.arcTo(x+rw, y+rh, x,   y+rh, r);
@@ -517,25 +481,20 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     ctx.arcTo(x,   y,   x+rw, y,   r);
     ctx.closePath();
     ctx.fill();
-    drawText(ctx, theme,
-                       x+17, (h-30),
-                       8,
-                       utils.fmt_time(time),
-                       'white');
+    drawText(ctx, theme, x+17, (h-30), 8, utils.fmt_time(time));
+};
 
-}
 var drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.save();
     ctx.font = theme.font.weight + ' ' + Math.floor(size || 15) + 'pt ' + theme.font.face;
     ctx.textAlign = align || 'center';
     ctx.textBaseline = 'middle';
-    ctx.fillStyle = color || theme.colors.text;
+    ctx.fillStyle = color || theme.font.color;
     ctx.fillText(text, x, y);
     ctx.restore();
-}
+};
+
 var runLoadingAnimation = function(ctx, paint) {
-    // FIXME: unlike player's _runLoadingAnimation, this function is more private/internal
-    //        and Contols._scheduleLoading() should be used to start all the drawing process
     var props = engine.getAnmProps(ctx);
     if (props.loading_req) return;
     var ratio = engine.PX_RATIO;
@@ -545,7 +504,6 @@ var runLoadingAnimation = function(ctx, paint) {
         ctx.save();
         ctx.setTransform(1, 0, 0, 1, 0, 0);
         if (ratio != 1) ctx.scale(ratio, ratio);
-        // FIXME: redraw only the changed circles
         paint(ctx);
         ctx.restore();
         return nextFrame(loading_loop);
@@ -553,9 +511,8 @@ var runLoadingAnimation = function(ctx, paint) {
     props.loading_req = nextFrame(loading_loop);
 };
 
+
 Controls.stopLoadingAnimation = function(ctx) {
-    // FIXME: unlike player's _stopLoadingAnimation, this function is more private/internal
-    //        and Contols._stopLoading() should be used to stop the drawing process
     var props = engine.getAnmProps(ctx);
     if (!props.loading_req) return;
     props.supress_loading = true;
