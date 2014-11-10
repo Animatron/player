@@ -225,9 +225,11 @@ Player.prototype.init = function(elm, opts) {
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts(engine.extractUserOptions(this.canvas));
     this._addOpts(engine.extractUserOptions(this.wrapper));
-    if (window && window.frameElement) {
-        this._addOpts(engine.extractUserOptions(window.frameElement));
-    }
+    try {
+        if (window && window.frameElement) {
+            this._addOpts(engine.extractUserOptions(window.frameElement));
+        }
+    } catch(e) {};
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
