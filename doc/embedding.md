@@ -112,8 +112,8 @@ Thirdly, if you _have no_ snapshot URL, you may still load any animation in any 
 
 ```js
 var player = anm.createPlayer('player-target');
-var anim = /* some code or JSON */;
-var importer = /* if it's a JSON, create an importer which can parse this JSON */;
+var animation = /* some code or JSON */;
+var importer = /* if it's a JSON, create an importer which can parse this JSON, i.e. use `anm.importers.create('animatron')` */;
 player.load(anim/*, importer*/);
 player.play();
 ```
