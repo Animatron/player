@@ -9,7 +9,7 @@ var conf = global[PRIVATE_CONF] || {
         logImport: false, // FIXME: create a hash-map of such values, by key
         logResMan: false, //        or just remove these flags in favor of log.debug
         logEvents: false,
-        logLevel: C.L_ERROR,
+        logLevel: C.L_ERROR | C.L_WARN | C.L_INFO,
         doNotLoadAudio: false,
         doNotLoadImages: false,
         doNotRenderShadows: false,

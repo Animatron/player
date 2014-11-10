@@ -89,7 +89,8 @@ var $DE = {};
 // subscribeWrapperToStateChanges(wrapper, player) -> none
 
 // keyEvent(evt) -> Event
-// mouseEvent(evt, canvas) -> Event
+// mouseEvent(evt, canvas) -> Event//
+// preventDefault(evt) -> none
 
 // createStyle() -> Element
 // createStatImg() -> Image
@@ -438,7 +439,7 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     var prev_cvs_id = canvas.id;
     canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
-    if (!wrapper.id) wrapper.id = prev_cvs_id || back_id;
+    if (!wrapper.id) wrapper.id = prev_cvs_id;
     canvas.id = wrapper.id + '-cvs';
     var props = $DE.getAnmProps(canvas);
     props.wrapper = wrapper;
@@ -803,6 +804,10 @@ $DE.keyEvent = function(e) {
 }
 $DE.mouseEvent = function(e, cvs) {
     return { pos: $DE.getEventPosition(e, cvs) };
+}
+$DE.preventDefault = function(evt) {
+    evt.stopPropagation();
+    evt.preventDefault();
 }
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;

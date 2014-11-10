@@ -15,7 +15,7 @@
 
 var AnimatronImporter = (function() {
 
-var IMPORTER_ID = 'ANM';
+var IMPORTER_ID = 'ANM'; // FIXME: change to 'animatron', same name as registered
 
 var C = anm.constants,
     Animation = anm.Animation,
