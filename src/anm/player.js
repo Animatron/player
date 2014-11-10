@@ -1183,7 +1183,7 @@ Player.prototype._drawThumbnail = function() {
             if (rect2) ctx.fillRect(rect2[0], rect2[1],
                                     rect2[2], rect2[3]);
         }
-        if (thumb_rect && (factor != 1)) {
+        if (thumb_rect) {
             ctx.beginPath();
             ctx.rect(thumb_rect[0], thumb_rect[1],
                      thumb_rect[2], thumb_rect[3]);
