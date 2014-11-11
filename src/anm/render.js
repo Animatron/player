@@ -110,8 +110,8 @@ function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
         rect1     = f_rects[2],
         rect2     = f_rects[3];
     ctx.save();
-    if (rect1 || rect2) {
-        ctx.save();
+    if (rect1 || rect2) { // anim_rect is null if no
+        ctx.save(); // second open
         ctx.fillStyle = color || '#000';
         if (rect1) {
             ctx.clearRect(rect1[0], rect1[1],
@@ -127,7 +127,7 @@ function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
         }
         ctx.restore();
     }
-    if (anim_rect) {
+    if (anim_rect && (factor != 1)) {
         ctx.beginPath();
         ctx.rect(anim_rect[0], anim_rect[1],
                  anim_rect[2], anim_rect[3]);

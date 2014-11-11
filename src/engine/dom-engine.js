@@ -89,8 +89,7 @@ var $DE = {};
 // subscribeWrapperToStateChanges(wrapper, player) -> none
 
 // keyEvent(evt) -> Event
-// mouseEvent(evt, canvas) -> Event//
-// preventDefault(evt) -> none
+// mouseEvent(evt, canvas) -> Event
 
 // createStyle() -> Element
 // createStatImg() -> Image
@@ -804,10 +803,6 @@ $DE.keyEvent = function(e) {
 }
 $DE.mouseEvent = function(e, cvs) {
     return { pos: $DE.getEventPosition(e, cvs) };
-}
-$DE.preventDefault = function(evt) {
-    evt.stopPropagation();
-    evt.preventDefault();
 }
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;
