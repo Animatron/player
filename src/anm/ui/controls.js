@@ -140,6 +140,7 @@ Controls.prototype.render = function(time) {
     if (s === C.PLAYING) {
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
+            drawTinyPause(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
         }
     } else if (s === C.STOPPED) {
@@ -150,6 +151,7 @@ Controls.prototype.render = function(time) {
         drawPlay(ctx, theme, w, h, this.focused);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
+            drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
         }
 
@@ -183,14 +185,15 @@ Controls.prototype.react = function(time) {
     if (this.hidden) return;
 
     var p = this.player,
-        s = p.state.happens;
+        s = p.state.happens,
+        btnWidth = theme.progress.buttonWidth;
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
     if (this._last_mevt) {
       var pos = engine.getEventPosition(this._last_mevt, this.canvas);
       var coords = {x: pos[0], y: pos[1]},
           w = this.bounds[2], h = this.bounds[3];
-      if (coords.y > h-15 && coords.x > 5 && coords.x < w-5) {
-        var time = Math.round(p.state.duration*(coords.x-5)/(w-10));
+      if (coords.y > h-15 && coords.x > btnWidth && coords.x < w-btnWidth) {
+        var time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
         if (s === C.PLAYING) {
             p.pause().play(time);
         } else {
@@ -388,7 +391,41 @@ var drawPause = function(ctx, theme, w, h, focused) {
 
     ctx.restore();
 
-}
+};
+
+var drawTinyPause = function(ctx, w, h) {
+    ctx.save();
+
+    var cx = 0,
+        cy = h-15;
+
+    ctx.fillStyle = theme.button.color;
+    ctx.fillRect(cx+9, cy+3, 3, 9);
+    ctx.fillRect(cx+15, cy+3, 3, 9);
+
+    ctx.restore();
+};
+
+var drawTinyPlay = function(ctx, w, h) {
+    ctx.save();
+
+    var cx = 0,
+        cy = h-15;
+
+    ctx.strokeStyle = 'transparent';
+    ctx.fillStyle = theme.button.color;
+    ctx.beginPath();
+    ctx.moveTo(cx + 9, cy + 3);
+    ctx.lineTo(cx + 18, cy + 7);
+    ctx.lineTo(cx + 9, cy + 11);
+    ctx.lineTo(cx + 9, cy + 3);
+    ctx.closePath();
+    ctx.fill();
+
+
+    ctx.restore();
+};
+
 var drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
     var cx = w / 2,
