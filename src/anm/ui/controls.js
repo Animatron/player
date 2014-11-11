@@ -74,8 +74,10 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
                 return function(evt) { controls.handleMouseMove(evt); };
             })(this),
         mousedown: (function(controls) {
-                return function(evt) { controls.handleClick(); };
-            })(this)
+                return function(evt) { controls.handleClick(); engine.preventDefault(evt); };
+            })(this),
+        click: engine.preventDefault,
+        dblclick: engine.preventDefault
     });
 }
 Controls.prototype.render = function(time) {

@@ -225,6 +225,11 @@ Player.prototype.init = function(elm, opts) {
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts(engine.extractUserOptions(this.canvas));
     this._addOpts(engine.extractUserOptions(this.wrapper));
+    try {
+        if (window && window.frameElement) {
+            this._addOpts(engine.extractUserOptions(window.frameElement));
+        }
+    } catch(e) {};
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
@@ -1183,7 +1188,7 @@ Player.prototype._drawThumbnail = function() {
             if (rect2) ctx.fillRect(rect2[0], rect2[1],
                                     rect2[2], rect2[3]);
         }
-        if (thumb_rect && (factor != 1)) {
+        if (thumb_rect) {
             ctx.beginPath();
             ctx.rect(thumb_rect[0], thumb_rect[1],
                      thumb_rect[2], thumb_rect[3]);
@@ -1624,12 +1629,12 @@ Player.prototype._notifyAPI = function() {
                     (loadSrc.indexOf('.animatron-test.com') > 0); // it's not so ok to be 0 in these cases
     locatedAtTest = locatedAtTest || (((loadSrc.indexOf('./') == 0) ||
                                        (loadSrc.indexOf('/') == 0)) &&
-                                      (window.location && (window.location.hostname == 'animatron-test.com')));
+                                      (window && window.location && (window.location.hostname == 'animatron-test.com')));
     locatedAtProd = (loadSrc.indexOf('/animatron-snapshots') > 0) ||
                     (loadSrc.indexOf('.animatron.com') > 0); // it's not so ok to be 0 in these cases
     locatedAtProd = locatedAtProd || (((loadSrc.indexOf('./') == 0) ||
                                        (loadSrc.indexOf('/') == 0)) &&
-                                      (window.location && (window.location.hostname == 'animatron.com')));
+                                      (window && window.location && (window.location.hostname == 'animatron.com')));
     if (locatedAtTest) {
         this.statImg.src = 'http://api.animatron-test.com/stats/report/' + id + '?' + Math.random();
     } else if (locatedAtProd) {
