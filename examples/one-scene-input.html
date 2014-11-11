@@ -54,18 +54,29 @@
       function load() {
           if (!player) return;
 
+          var AnimatronImporter = anm.importers.animatron;
+
           var project = JSON.parse(document.getElementById('scene-input').value);
 
           // canvas0
-          var importer = anm.importers.create('animatron');
+          var importer = new AnimatronImporter();
           player.detach();
+          //var importer = new AnimatronImporter();
           player = createPlayer();
+          //player.setThumbnail('http://www.pixeljoint.com/files/icons/full/miniatfinn_big01.gif');
+          //http://ilikeswhatilikes.files.wordpress.com/2013/09/adventure-time-2.jpg
+          player.thumbnail('http://hdwallcomp.com/wp-content/uploads/2014/04/Cute-Face-Adventure-Time-Cartoons-Wallpaper.png');
+          //player.debug = true;
           player.load(project, importer);
-          }
+          //var b = Builder._$;
+          //player.load(b().band([2, 10])/*.modify(function() { throw new Error('Test'); })*/, 10);
+          //player.play();
+      }
 
       function start() {
-          anm.conf.logImport = true;
-          anm.conf.logResMan = true;
+          if (!window.__anm_conf) window.__anm_conf = {};
+          window.__anm_conf.logImport = true;
+          window.__anm_conf.logResMan = true;
 
           document.getElementById('scene-input').value = DEFAULT_SCENE;
 
@@ -79,7 +90,7 @@
     <h1 style="margin-bottom: 20px">The place to test one scene</h1>
 
     <!-- <canvas id="canvas" width="1080" height="1080"></canvas> -->
-    <div id="anm-player" anm-width="800" anm-height="300"></div>
+    <div id="anm-player" anm-width="540" anm-height="540"></div>
 
     <p style="float: right"><label for="scene-input">Scene JSON:</label><button onclick="load(this)">Load</button><textarea id="scene-input"></textarea></p>
 

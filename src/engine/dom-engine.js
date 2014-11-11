@@ -438,7 +438,7 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     var prev_cvs_id = canvas.id;
     canvas.id = ''; // to ensure no elements will have the same ID in DOM after the execution of next line
-    if (!wrapper.id) wrapper.id = prev_cvs_id;
+    if (!wrapper.id) wrapper.id = prev_cvs_id || back_id;
     canvas.id = wrapper.id + '-cvs';
     var props = $DE.getAnmProps(canvas);
     props.wrapper = wrapper;
