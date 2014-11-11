@@ -138,8 +138,6 @@ Controls.prototype.render = function(time) {
     ctx.clearRect(0, 0, w, h);
 
     if (s === C.PLAYING) {
-        drawBack(ctx, theme, w, h);
-        drawPause(ctx, theme, w, h);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
@@ -193,7 +191,11 @@ Controls.prototype.react = function(time) {
           w = this.bounds[2], h = this.bounds[3];
       if (coords.y > h-15 && coords.x > 5 && coords.x < w-5) {
         var time = Math.round(p.state.duration*(coords.x-5)/(w-10));
-        p.pause().play(time);
+        if (s === C.PLAYING) {
+            p.pause().play(time);
+        } else {
+            p.play(time).pause();
+        }
         return;
       }
     }
@@ -363,14 +365,14 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 var drawProgress = function(ctx, theme, w, h, progress) {
     if (!is.finite(progress)) return;
     ctx.save();
-
+    var btnWidth = theme.progress.buttonWidth;
     ctx.fillStyle = theme.progress.backColor;
     ctx.fillRect(0, h-15, w, 15);
     ctx.fillStyle = theme.progress.inactiveColor;
-    ctx.fillRect(5, h-10, w-10, 5);
-    var progressWidth = Math.round(progress*(w-10));
+    ctx.fillRect(btnWidth, h-10, w-2*btnWidth, 5);
+    var progressWidth = Math.round(progress*(w-2*btnWidth));
     ctx.fillStyle = theme.progress.activeColor;
-    ctx.fillRect(5, h-10, progressWidth, 5);
+    ctx.fillRect(btnWidth, h-10, progressWidth, 5);
     ctx.restore();
 
 }
@@ -464,13 +466,14 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 };
 
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
-    var inArea = coords.y >= h-15 && coords.x > 5 && coords.x < w-5;
+    var btnWidth = theme.progress.buttonWidth,
+        inArea = coords.y >= h-15 && coords.x > btnWidth && coords.x < w-btnWidth;
     if (inArea) {
       //calculate time at mouse position
-      progress = (coords.x-5)/(w-10);
+      progress = (coords.x-btnWidth)/(w-2*btnWidth);
       time = Math.round(duration*progress);
     }
-    var progressPos = 5 + Math.round(progress*(w-10));
+    var progressPos = btnWidth + Math.round(progress*(w-2*btnWidth));
     ctx.beginPath();
     ctx.fillStyle = theme.progress.backColor;
     ctx.strokeStyle = 'transparent';
@@ -481,6 +484,9 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     ctx.arcTo(x+rw, y+rh, x,   y+rh, r);
     ctx.arcTo(x,   y+rh, x,   y,   r);
     ctx.arcTo(x,   y,   x+rw, y,   r);
+    ctx.moveTo(x+rw/2-3, y+rh);
+    ctx.lineTo(x+rw/2, y+rh+3);
+    ctx.lineTo(x+rw/2+3, y+rh);
     ctx.closePath();
     ctx.fill();
     drawText(ctx, theme, x+17, (h-30), 8, utils.fmt_time(time));

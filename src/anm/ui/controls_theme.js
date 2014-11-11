@@ -15,7 +15,8 @@ var theme = {
   'progress': {
     'backColor': 'rgba(0,0,0,0.7)',
     'activeColor': 'white',
-    'inactiveColor': 'rgba(255,255,255,0.5)'
+    'inactiveColor': 'rgba(255,255,255,0.5)',
+    'buttonWidth': 27
   },
   'button': {
     'color': 'white'
