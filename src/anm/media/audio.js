@@ -238,6 +238,10 @@ Audio.prototype.stopIfNotMaster = function() {
 };
 
 Audio.prototype.setVolume = function(volume) {
+    if (this.muted) {
+        this.unmuteVolume = volume;
+        return;
+    }
     if (this._gain) {
         this._gain.gain.value = volume;
     } else {
@@ -249,9 +253,9 @@ Audio.prototype.mute = function() {
     if(this.muted) {
         return;
     }
-    this.muted = true;
     this.unmuteVolume = this.volume;
     this.setVolume(0);
+    this.muted = true;
 };
 
 Audio.prototype.unmute = function() {

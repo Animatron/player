@@ -94,6 +94,7 @@ function Player() {
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
     this.__makeSafe(Player._SAFE_METHODS);
+    this.muted = false;
 }
 Player.__instances = 0;
 
@@ -1117,6 +1118,16 @@ Player.prototype.subscribeEvents = function(canvas) {
                     })(this)
     });
 }
+
+Player.prototype.toggleMute = function() {
+    this.muted = !this.muted;
+    this.anim.traverse(function(el) {
+        if(el.audio) {
+            el.audio.toggleMute();
+        }
+    });
+}
+
 Player.prototype._drawEmpty = function() {
     var ctx = this.ctx,
         w = this.width,

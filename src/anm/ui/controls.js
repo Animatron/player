@@ -142,6 +142,7 @@ Controls.prototype.render = function(time) {
             drawProgress(ctx, theme, w, h, progress);
             drawTinyPause(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
+            drawVolumeBtn(ctx, w, h, player.muted);
         }
     } else if (s === C.STOPPED) {
         drawBack(ctx, theme, w, h);
@@ -153,6 +154,7 @@ Controls.prototype.render = function(time) {
             drawProgress(ctx, theme, w, h, progress);
             drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
+            drawVolumeBtn(ctx, w, h, player.muted);
         }
 
     } else if (s === C.NOTHING) {
@@ -200,6 +202,11 @@ Controls.prototype.react = function(time) {
             p.play(time).pause();
         }
         return;
+      }
+      //mute button?
+      if (coords.y > h-15 && coords.x > w-btnWidth) {
+          p.toggleMute();
+          return;
       }
     }
 
@@ -425,6 +432,51 @@ var drawTinyPlay = function(ctx, w, h) {
 
     ctx.restore();
 };
+
+var drawVolumeBtn = function(ctx, w, h, muted) {
+    ctx.save();
+
+    var cx = w-theme.progress.buttonWidth,
+        cy = h-15;
+
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = theme.button.color;
+    ctx.beginPath();
+    ctx.translate(cx,cy);
+    ctx.moveTo(3,6);
+    ctx.lineTo(6,6);
+    ctx.lineTo(12,3);
+    ctx.lineTo(12,12);
+    ctx.lineTo(6,9);
+    ctx.lineTo(3,9);
+    ctx.lineTo(3,6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = theme.button.color;
+
+    ctx.beginPath();
+    if (muted) {
+        ctx.moveTo(15,5);
+        ctx.lineTo(21,10);
+        ctx.moveTo(15,10);
+        ctx.lineTo(21,5);
+        ctx.stroke();
+    } else {
+        // )))
+        for (var i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(15+i*3,3);
+            ctx.bezierCurveTo(18+i*3,7, 18+i*3,8, 15+i*3, 12);
+            ctx.stroke();
+        }
+    }
+
+
+    ctx.restore();
+}
 
 var drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
