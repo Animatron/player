@@ -98,13 +98,9 @@ Tween.addTween(C.T_STROKE, function(data) {
 
 Tween.addTween(C.T_VOLUME, function(data){
   return function(t) {
-    if (!this._audio_is_loaded) return;
+    if (!this.audio.loaded) return;
     var volume = data[0] * (1.0 - t) + data[1] * t;
-    if (this._gain) {
-        this._gain.gain.value = volume;
-    } else {
-        this.audio.volume = volume;
-    }
+    this.audio.setVolume(volume);
   }
 });
 

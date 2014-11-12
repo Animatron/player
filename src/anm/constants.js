@@ -87,6 +87,7 @@ C.ET_EMPTY = 'empty';
 C.ET_PATH = 'path';
 C.ET_TEXT = 'text';
 C.ET_SHEET = 'image';
+C.ET_AUDIO = 'audio';
 
 // repeat mode
 C.R_ONCE = 0;

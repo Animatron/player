@@ -28,6 +28,7 @@ var C = anm.constants,
     MSeg = anm.MSeg,
     LSeg = anm.LSeg,
     CSeg = anm.CSeg,
+    Audio = anm.Audio,
     is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck
@@ -365,7 +366,12 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
-    else if (type != TYPE_AUDIO) { trg.$path  = Import.path(src);  }
+    else if (isPath(type)) { trg.$path  = Import.path(src);  }
+    else if (type == TYPE_AUDIO) {
+        trg.type = C.ET_AUDIO;
+        trg.audio = Import.audio(src);
+        trg.audio.connect(trg);
+    }
     if ((type == TYPE_TEXT) || isPath(type)) {
         trg.$fill = Import.fill(src[1]);
         trg.$stroke = Import.stroke(src[2]);
@@ -801,6 +807,13 @@ Import.grad = function(src) {
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
+}
+
+Import.audio = function(src) {
+    var audio = new Audio(src[1]);
+    audio.offset = src[2];
+    audio.master = src[3];
+    return audio;
 }
 
 // BitStream

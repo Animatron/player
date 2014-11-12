@@ -885,8 +885,16 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-  return document.createElement('style');
+    return document.createElement('style');
 };
+
+$DE.createElement = function(element) {
+    return document.createElement(element);
+}
+
+$DE.appendToBody = function(element) {
+    document.body.appendChild(element);
+}
 
 var testCanvas = document.createElement('canvas');
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));

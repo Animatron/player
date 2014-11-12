@@ -189,6 +189,8 @@ Element.prototype.initVisuals = function() {
     this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
 
+    this.audio = null;
+
     return this;
 }
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
@@ -1452,16 +1454,30 @@ Element.prototype.__postRender = function() {
 }
 Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) return true;
+    if (this.is(C.ET_AUDIO) && player.audioEnabled) return true;
+
+    return false;
 }
 Element.prototype._collectRemoteResources = function(anim, player) {
-    if (!player.imagesEnabled) return null;
-    if (!this.$image) return null;
-    return [ this.$image.src ];
+    var resources = [];
+
+    if (player.imagesEnabled && this.$image) {
+        resources.push(this.$image.src);
+    }
+    if (player.audioEnabled && this.is(C.ET_AUDIO)) {
+        resources.push(this.audio.url);
+    }
+
+    return resources;
 }
+
 Element.prototype._loadRemoteResources = function(anim, player) {
-    if (!player.imagesEnabled) return;
-    if (!this.$image) return;
-    this.$image.load(player.id);
+    if (player.imagesEnabled && this.$image) {
+        this.$image.load(player.id);
+    }
+    if (this.is(C.ET_AUDIO) && player.audioEnabled) {
+        this.audio.load(player);
+    }
 }
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
@@ -1489,6 +1505,7 @@ Element.transferVisuals = function(src, trg) {
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
+    trg.audio = src.audio ? src.audio.clone() : null;
 }
 Element.transferTime = function(src, trg) {
     trg.mode = src.mode; trg.nrep = src.nrep;
