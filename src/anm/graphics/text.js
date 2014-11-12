@@ -104,10 +104,10 @@ Text.prototype.visitLines = function(func, data) {
         var line;
         for (var i = 0, ilen = lines.length; i < ilen; i++) {
             line = lines[i];
-            func(line, data, i, ilen);
+            func(line);
         }
     } else {
-        func(lines.toString(), data);
+        func(lines.toString());
     }
 }
 Text.prototype.clone = function() {
