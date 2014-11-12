@@ -36,7 +36,7 @@ function audioErrProxy(src, pass_to) {
   }
 }
 
-var testAudio = engine.createElement('audio'),
+var testAudio = engine.createAudio(),
     oggSupported =  !!(testAudio.canPlayType && testAudio.canPlayType('audio/ogg;').replace(/no/, ''));
 
 var audioExt = oggSupported ? '.ogg' : '.mp3';
@@ -117,7 +117,7 @@ Audio.prototype.load = function(player) {
             node.xhr.addEventListener('error', audioErrProxy(url, notify_error), false);
             node.xhr.send();
           } else {
-            var el = engine.createElement("audio");
+            var el = engine.createAudio();
             el.setAttribute("preload", "auto");
 
             var progressListener = function(e) {
@@ -155,7 +155,7 @@ Audio.prototype.load = function(player) {
             el.addEventListener("error", audioErrProxy(me.url, notify_error), false);
 
             var addSource = function(audio, url, type) {
-                var src = engine.createElement("source");
+                var src = engine.createSource();
                 src.type = type;
                 src.src = url;
                 src.addEventListener("error", notify_error, false);

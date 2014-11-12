@@ -888,8 +888,12 @@ $DE.createStyle = function() {
     return document.createElement('style');
 };
 
-$DE.createElement = function(element) {
-    return document.createElement(element);
+$DE.createAudio = function() {
+    return document.createElement('audio');
+}
+
+$DE.createSource = function() {
+    return document.createElement('source');
 }
 
 $DE.appendToBody = function(element) {
