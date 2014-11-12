@@ -33,18 +33,6 @@ m_ctx._audio_ctx = function() {
   }
 }();
 
-C.T_VOLUME = 'VOLUME';
-Tween.addTween(C.T_VOLUME, function(data){
-  return function(t) {
-    if (!this._audio_is_loaded) return;
-    var volume = data[0] * (1.0 - t) + data[1] * t;
-    if (this._gain) {
-      this._gain.gain.value = volume;
-    } else {
-      this.audio.volume = volume;
-    }
-  }
-});
 
 if (anm.importers.isAccessible('animatron')) { // FIXME: should test with require, in some optional way, like 'anm/import/animatron?'
   var Import = anm.importers.get('animatron').Import;
