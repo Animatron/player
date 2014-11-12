@@ -313,7 +313,7 @@ $DE.createTextMeasurer = function() {
             }
             return [ maxWidth, height ];
         } else {
-            buff.innerText = text.lines.toString();
+            buff.innerText = text.lines.toString() || "";
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
