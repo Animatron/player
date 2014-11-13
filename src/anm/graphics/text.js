@@ -27,8 +27,6 @@ Text.DEFAULT_UNDERLINE = false;
 Text.__measuring_f = engine.createTextMeasurer();
 
 Text.prototype.apply = function(ctx, fill, stroke, shadow) {
-    ctx.save();
-
     var bounds = this.bounds(),
         height = (bounds.height / this.lineCount()),
         underlined = this.underlined;
@@ -39,13 +37,14 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
 
     var ascent = this.ascent(height, ctx.textBaseline);
 
-    var y;
+    var x = this.xOffset(bounds.width, ctx.textAlign),
+        y;
     if (shadow) { shadow.apply(ctx); } else { Brush.clearShadow(ctx); }
     if (fill) {
         fill.apply(ctx);
         y = 0;
         this.visitLines(function(line) {
-            ctx.fillText(line, 0, y+ascent);
+            ctx.fillText(line, x, y+ascent);
             y += height;
         });
     } else { Brush.clearFill(ctx); }
@@ -54,7 +53,7 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
         stroke.apply(ctx);
         y = 0;
         this.visitLines(function(line) {
-            ctx.strokeText(line, 0, y+ascent);
+            ctx.strokeText(line, x, y+ascent);
             y += height;
         });
     } else { Brush.clearStroke(ctx); }
@@ -70,15 +69,13 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
             line_bounds = Text.bounds(me, line);
             line_width = line_bounds.width;
             ctx.beginPath();
-            ctx.moveTo(0, y + height);      // not entirely correct
+            ctx.moveTo(x, y + height);      // not entirely correct
             ctx.lineTo(line_width, y + height);
             ctx.stroke();
 
             y += height;
         });
     }
-
-    ctx.restore();
 }
 Text.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
@@ -89,9 +86,17 @@ Text.prototype.bounds = function() {
 Text.prototype.ascent = function(height, baseline) {
     return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
 }
+// should be static
+Text.prototype.xOffset = function(width, align) {
+    if (align == C.TA_LEFT) return 0;
+    if (align == C.TA_CENTER) return width / 2;
+    if (align == C.TA_RIGHT) return width;
+    return 0;
+}
+
 Text.prototype.lineCount = function() {
     var lines = this.lines;
-    return is.arr(lines) ? lines.length : 1;
+    return (is.arr(lines) ? lines.length : 1);
 }
 Text.prototype.visitLines = function(func, data) {
     var lines = this.lines;
@@ -99,10 +104,10 @@ Text.prototype.visitLines = function(func, data) {
         var line;
         for (var i = 0, ilen = lines.length; i < ilen; i++) {
             line = lines[i];
-            func(line, data);
+            func(line);
         }
     } else {
-        func(lines.toString(), data);
+        func(lines.toString());
     }
 }
 Text.prototype.clone = function() {

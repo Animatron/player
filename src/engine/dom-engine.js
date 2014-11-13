@@ -89,7 +89,8 @@ var $DE = {};
 // subscribeWrapperToStateChanges(wrapper, player) -> none
 
 // keyEvent(evt) -> Event
-// mouseEvent(evt, canvas) -> Event
+// mouseEvent(evt, canvas) -> Event//
+// preventDefault(evt) -> none
 
 // createStyle() -> Element
 // createStatImg() -> Image
@@ -284,12 +285,14 @@ $DE.createTextMeasurer = function() {
         /* FIXME: dispose buffer when text is removed from animation */
         $DE.onDocReady(function(){
           var div = $doc.createElement('div');
+          var span = $doc.createElement('span');
           div.style.visibility = 'hidden';
           div.style.position = 'absolute';
           div.style.top = -10000 + 'px';
           div.style.left = -10000 + 'px';
+          div.appendChild(span);
           $doc.body.appendChild(div);
-          $DE.__textBuf = div;
+          $DE.__textBuf = span;
           buff = $DE.__textBuf;
         });
 
@@ -302,14 +305,21 @@ $DE.createTextMeasurer = function() {
         //buff.style.verticalAlign = text.baseline || 'bottom';
         buff.style.whiteSpace = 'pre';
         if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
-            buff.textContent = text.lines.join('\n');
+            var maxWidth = 0, height = 0;
+            for (var i = 0, ilen = lines.length; i < ilen; i++) {
+                buff.innerText = lines[i] || " ";
+                maxWidth = Math.max(buff.offsetWidth, maxWidth);
+                height += buff.offsetHeight;
+            }
+            return [ maxWidth, height ];
         } else {
-            buff.textContent = text.lines.toString();
+            buff.innerText = text.lines.toString() || "";
+            return [ buff.offsetWidth,
+                     buff.offsetHeight ];
         }
         // TODO: test if lines were changed, and if not,
         //       use cached value
-        return [ buff.offsetWidth,
-                 buff.offsetHeight ];
+
     }
 }
 
@@ -803,6 +813,10 @@ $DE.keyEvent = function(e) {
 }
 $DE.mouseEvent = function(e, cvs) {
     return { pos: $DE.getEventPosition(e, cvs) };
+}
+$DE.preventDefault = function(evt) {
+    evt.stopPropagation();
+    evt.preventDefault();
 }
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;

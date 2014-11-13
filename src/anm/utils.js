@@ -26,6 +26,10 @@ is.obj = function(o) {
 is.str = function(s) {
   return typeof s === 'string';
 };
+is.not_empty = function(obj) {
+    if (Object.keys) return (Object.keys(obj).length > 0);
+    else (Object.getOwnPropertyNames(obj).length > 0);
+}
 
 is.modifier = function(f) {
   return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);

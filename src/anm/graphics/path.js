@@ -72,20 +72,17 @@ Path.prototype.add = function(seg) {
 }
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
-    ctx.save();
-
-    // TODO: every segment should apply itself
-    //       simplify this to call seg.apply for every segment
     ctx.beginPath();
-    this.visit(applyVisitor, ctx);
-    // ctx.closePath();
+    // unrolled for speed
+    var segments = this.segs;
+    for (var si = 0, sl = segments.length; si < sl; si++) {
+        segments[si].draw(ctx);
+    }
 
-    if (shadow) { shadow.apply(ctx); } else { Brush.clearShadow(ctx); }
-    if (fill) { fill.apply(ctx); ctx.fill(); } else { Brush.clearFill(ctx); }
+    if (shadow) { shadow.apply(ctx); }
+    if (fill) { fill.apply(ctx); ctx.fill(); }
     if (shadow) { Brush.clearShadow(ctx); }
-    if (stroke) { stroke.apply(ctx); ctx.stroke(); } else { Brush.clearStroke(ctx); }
-
-    ctx.restore();
+    if (stroke) { stroke.apply(ctx); ctx.stroke(); }
 }
 // > Path.parse % (str: String) => Path
 Path.prototype.parse = function(str) {
@@ -118,20 +115,18 @@ Path.prototype.hitAt = function(t) {
     var seg, slen;
     for (var si = 0; si < nsegs; si++) {
         seg = this.segs[si];
-        if (seg.type !== C.P_MOVE_TO) {
-          slen = seg.length(p); // segment length
-          if (distance <= (length + slen)) {
-              // inside current segment
-              var segdist = distance - length;
-              return {
+        slen = seg.length(p); // segment length
+        if (distance <= (length + slen)) {
+            // inside current segment
+            var segdist = distance - length;
+            return {
                 'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
-              };
-          }
-          length += slen;
+            };
         }
+        length += slen;
         // end point of segment
         p = seg.last();
-    };
+    }
 
     /*var lseg = this.segs[nsegs - 1];
       return {
@@ -162,10 +157,7 @@ Path.prototype.start = function() {
 }
 Path.prototype.end = function() {
     if (this.segs.length < 1) return null;
-    var lastidx = this.segs.length - 1;
-    var s = this.segs[lastidx].count; // size of the last segment
-    return [ this.segs[lastidx].pts[s-2],   // last-x
-             this.segs[lastidx].pts[s-1] ]; // last-y
+    return this.segs[this.segs.length - 1].last();
 }
 Path.prototype.bounds = function() {
     // FIXME: it is not ok for curve path, possibly
@@ -244,7 +236,7 @@ Path.prototype.toString = function() {
 Path.prototype.clone = function() {
     var _clone = new Path();
     this.visit(function(seg) {
-        _clone.add(Path.makeSeg(seg.type, [].concat(seg.pts)));
+        _clone.add(seg.clone());
     });
     return _clone;
 }
@@ -321,31 +313,8 @@ var strApplyVisitor = function(marker, positions, ctx) {
                           positions[4], positions[5]);
     }
 };
-var applyVisitor = function(segment, ctx) {
-    var type = segment.type;
-    var positions = segment.pts;
-    if (type === C.P_MOVETO) {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (type === C.P_LINETO) {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (type === C.P_CURVETO) {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
-    }
-}
 var encodeVisitor = function(segment, buffer) {
-    var type = segment.type;
-    var positions = segment.pts;
-    if (type === C.P_MOVETO) {
-        buffer.push('M'+positions[0]+' '+positions[1]);
-    } else if (type === C.P_LINETO) {
-        buffer.push('L'+positions[0]+' '+positions[1]);
-    } else if (type === C.P_CURVETO) {
-        buffer.push('C'+positions[0]+' '+positions[1]+' '+
-                        positions[2]+' '+positions[3]+' '+
-                        positions[4]+' '+positions[5]);
-    }
+    buffer.push(segment.toString());
 }
 
 // converts path given in string form to array of segments
@@ -359,11 +328,6 @@ Path.parse = function(path, target) {
 // parses a path in string form and immediately applies it to context
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, strApplyVisitor, ctx);
-}
-Path.makeSeg = function(type, pts) {
-    if (type === C.P_MOVETO) { return new MSeg(pts); }
-    else if (type === C.P_LINETO) { return new LSeg(pts); }
-    else if (type === C.P_CURVETO) { return new CSeg(pts); }
 }
 
 module.exports = Path;

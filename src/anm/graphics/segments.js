@@ -1,9 +1,11 @@
 var C = require('../constants.js');
 
 function MSeg(pts) {
-    this.type = C.P_MOVETO;
     this.pts = pts;
-    this.count = pts.length;
+}
+
+MSeg.prototype.draw = function(ctx) {
+    ctx.moveTo(this.pts[0], this.pts[1]);
 }
 // > MSeg.length(start: Array[Int,2]) => Double
 MSeg.prototype.length = function(start) {
@@ -23,13 +25,17 @@ MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
 MSeg.prototype.toString = function() {
-    return "M " + this.pts.join(" ");
+    return "M" + this.pts.join(" ");
+}
+MSeg.prototype.clone = function() {
+    return new MSeg(this.pts);
 }
 
 function LSeg(pts) {
-    this.type = C.P_LINETO;
     this.pts = pts;
-    this.count = pts.length;
+}
+LSeg.prototype.draw = function(ctx) {
+    ctx.lineTo(this.pts[0], this.pts[1]);
 }
 LSeg.prototype.length = function(start) {
     var dx = this.pts[0] - start[0];
@@ -57,13 +63,17 @@ LSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
 }
 LSeg.prototype.toString = function() {
-    return "L " + this.pts.join(" ");
+    return "L" + this.pts.join(" ");
+}
+LSeg.prototype.clone = function() {
+    return new LSeg(this.pts);
 }
 
 function CSeg(pts) {
-    this.type = C.P_CURVETO;
     this.pts = pts;
-    this.count = pts.length;
+}
+CSeg.prototype.draw = function(ctx) {
+    ctx.bezierCurveTo(this.pts[0], this.pts[1], this.pts[2], this.pts[3], this.pts[4], this.pts[5]);
 }
 CSeg.prototype.length = function(start) {
     /* FIXME: cache length data and points somewhere */
@@ -201,7 +211,12 @@ CSeg.prototype._calc_params = function(start) {
 
     return params;
 }
-
+CSeg.prototype.clone = function() {
+    return new CSeg(this.pts);
+}
+CSeg.prototype.toString = function() {
+    return "C" + this.pts.join(" ");
+}
 
 module.exports = {
   MSeg: MSeg,

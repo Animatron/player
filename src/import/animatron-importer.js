@@ -15,7 +15,7 @@
 
 var AnimatronImporter = (function() {
 
-var IMPORTER_ID = 'ANM';
+var IMPORTER_ID = 'ANM'; // FIXME: change to 'animatron', same name as registered
 
 var C = anm.constants,
     Animation = anm.Animation,
@@ -171,17 +171,11 @@ var TYPE_UNKNOWN =  0,
     TYPE_SCENE   =  2,
     TYPE_PATH    =  3,
     TYPE_TEXT    =  4,
-    TYPE_RECT    =  5,
-    TYPE_OVAL    =  6,
-    TYPE_PENCIL  =  7,
     TYPE_IMAGE   =  8,
     TYPE_GROUP   =  9,
-    TYPE_BRUSH   = 10,
-    TYPE_STAR    = 11,
-    TYPE_POLYGON = 12,
-    TYPE_CURVE   = 13,
     TYPE_AUDIO   = 14,
-    TYPE_LINE    = 15,
+    TYPE_FONT    = 25,
+    TYPE_VIDEO   = 26,
     TYPE_LAYER   = 255; // is it good?
 
 function isPath(type) {
