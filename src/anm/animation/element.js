@@ -56,9 +56,80 @@ var isPlayerEvent = function(type) {
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
-// > Element % (name: String,
-//              draw: Function(ctx: Context),
-//              onframe: Function(time: Float))
+/**
+ * @class anm.Element
+ *
+ * An Element is literally everything what may be drawn in your animation. Or even not
+ * to be drawn, but to have some position. Or to have children elements. Or both.
+ *
+ * There are also some setter-like methods, and if a name of some setter matches
+ * to the according property it sets, a `$` symbol is appended to a property name: like
+ * the method `elm.fill()` and the property `elm.$fill`. This way allows us not only
+ * to avoid name-clashed, but also serves as an additional mark for user that a value of this
+ * property is easier to construct with a corresponding helper method, rather than,
+ * for example, creating a special {@link anm.Brush Brush} object for a `fill`.
+ *
+ * See {@link anm.Tween Tween} and {@link anm.Element#tween tween()} method for documentation on adding tweens.
+ *
+ * See {@link anm.Modifier Modifier} and {@link anm.Painter Painter} for documentation on
+ * a custom drawing or positioning the element in time.
+ *
+ * Every Element holds several important properties you may access from everywhere:
+ *
+ * @property {String} id element internal ID
+ * @property {String} name element's name, if specified
+ * @property {anm.Animation} anim the animation this element belongs to, if it really belongs to one
+ * @property {anm.Element} parent parent element, if exists
+ * @property {Array[anm.Element]} children A list of children elements for this one. *NB:* Do not modify it, use `.add()` and `.remove()` methods
+ * @property {Any} $data user data
+ *
+ * @property {Boolean} visible Is this element visible or not (called, but not drawn)
+ * @property {Boolean} disable Is this element disabled or not
+ *
+ * @property {Number} x position on the X axis, relatively to parent
+ * @property {Number} y position on the Y axis, relatively to parent
+ * @property {Number} angle rotation angle, in radians, relatively to parent
+ * @property {Number} sx scale over X axis, relatively to parent
+ * @property {Number} sx scale over Y axis, relatively to parent
+ * @property {Number} hx skew over X axis, relatively to parent
+ * @property {Number} hy skew over Y axis, relatively to parent
+ * @property {Number} alpha opacity, relatively to parent
+ *
+ * @property {Number} t TODO
+ * @property {String} key TODO
+ * @property {Object} keys TODO
+ * @property {Function} tf TODO
+ *
+ * @property {Array[Number]} $reg registration point (X and Y position)
+ * @property {Array[Number]} $pivot pivot point (relative X and Y position)
+ *
+ * @property {anm.Brush} $fill element fill
+ * @property {anm.Brush} $stroke element stroke
+ * @property {anm.Brush} $shadow element shadow
+ *
+ * TODO: change to `{anm.Path|anm.Sheet|anm.Text} $visual`
+ * @property {anm.Path} $path set to some curve, if it's a shape
+ * @property {anm.Sheet} $sheet set to some image, if it's an image
+ * @property {anm.Text} $text set to some text, if it's a text
+ *
+ * @property {anm.Element} $mask masking element
+ *
+ * @property mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, TODO see `.repeat()` / `.once()` / `.loop()` methods
+ * @property nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity`
+ *
+ * @property lband element local band, relatively to parent, use `.band()` method to set it
+ * @property gband element global band, relatively to animation
+ *
+ * @constructor
+ *
+ * @param {String} [name]
+ * @param {Function} [draw] If one function may draw this element, you may provide it here
+ * @param {anm.Element} draw.this
+ * @param {Context2D} draw.ctx
+ * @param {Function} [onframe] This function may be called on every frame and modify this element position
+ * @param {anm.Element} onframe.this
+ * @param {Number} onframe.time A current local time
+ */
 function Element(name, draw, onframe) {
     this.id = utils.guid();
     this.name = name || '';

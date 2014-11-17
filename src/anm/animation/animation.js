@@ -77,7 +77,7 @@ provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
  * @method add
  * @chainable
  *
- * Append an one or several {@link anm.Element elements} to this animation.
+ * Append one or several {@link anm.Element elements} to this animation.
  *
  * May be used as:
  *
