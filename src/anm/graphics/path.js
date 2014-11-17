@@ -69,6 +69,20 @@ Path.prototype.length = function() {
 // > Path.add % (seg: Segment)
 Path.prototype.add = function(seg) {
     this.segs.push(seg);
+    return this;
+}
+// > Path.move % (x, y)
+Path.prototype.move = function(x, y) {
+    this.add(new MSeg([x, y]));
+    return this;
+}
+// > Path.line % (x, y)
+Path.prototype.line = function(x, y) {
+    return this.add(new LSeg([x, y]));
+}
+// > Path.curve % (x1, y1, x2, y2, x3, y3)
+Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
+    return this.add(new CSeg([x1, y1, x2, y2, x3, y3]));
 }
 // > Path.apply % (ctx: Context)
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {

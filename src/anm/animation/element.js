@@ -304,12 +304,24 @@ Element.prototype.initEvents = function() {
     return this;
 }
 Element.prototype.resetEvents = Element.prototype.initEvents;
+/**
+ * @method path
+ * @chainable
+ *
+ * Set this element to be a {@link anm.Path Path} or get current path.
+ *
+ * Examples:
+ * * `elm.path("M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z")`
+ * * `elm.path(new Path().move(0, 10).curve(10, 20, 15, 30, 10, 9))`
+ *
+ * @param {String|anm.Path} [path]
+ */
 // > Element.path % ([value: Path]) => Path | Element
 Element.prototype.path = function(value) {
     if (value) {
         this.invalidate();
         this.type = C.ET_PATH;
-        this.$path = value;
+        this.$path = is.str(value) ? new Path(value) : path;
         return this;
     } else return this.$path;
 }
