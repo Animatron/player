@@ -225,6 +225,11 @@ Player.prototype.init = function(elm, opts) {
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts(engine.extractUserOptions(this.canvas));
     this._addOpts(engine.extractUserOptions(this.wrapper));
+    try {
+        if (window && window.frameElement) {
+            this._addOpts(engine.extractUserOptions(window.frameElement));
+        }
+    } catch(e) {};
     this._addOpts(opts || {});
     this._postInit();
     this._checkOpts();
@@ -1159,7 +1164,7 @@ Player.prototype._drawStill = function() {
 Player.prototype._drawThumbnail = function() {
     var thumb_bounds  = this.__thumbSize || this.__thumb.bounds(),
         thumb_width   = thumb_bounds.width,
-        thumb_height  = thumb_bounds.width,
+        thumb_height  = thumb_bounds.height,
         player_width  = this.width,
         player_height = this.height,
         px_ratio      = engine.PX_RATIO;
@@ -1624,12 +1629,12 @@ Player.prototype._notifyAPI = function() {
                     (loadSrc.indexOf('.animatron-test.com') > 0); // it's not so ok to be 0 in these cases
     locatedAtTest = locatedAtTest || (((loadSrc.indexOf('./') == 0) ||
                                        (loadSrc.indexOf('/') == 0)) &&
-                                      (window.location && (window.location.hostname == 'animatron-test.com')));
+                                      (window && window.location && (window.location.hostname == 'animatron-test.com')));
     locatedAtProd = (loadSrc.indexOf('/animatron-snapshots') > 0) ||
                     (loadSrc.indexOf('.animatron.com') > 0); // it's not so ok to be 0 in these cases
     locatedAtProd = locatedAtProd || (((loadSrc.indexOf('./') == 0) ||
                                        (loadSrc.indexOf('/') == 0)) &&
-                                      (window.location && (window.location.hostname == 'animatron.com')));
+                                      (window && window.location && (window.location.hostname == 'animatron.com')));
     if (locatedAtTest) {
         this.statImg.src = 'http://api.animatron-test.com/stats/report/' + id + '?' + Math.random();
     } else if (locatedAtProd) {
