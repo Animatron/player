@@ -74,52 +74,6 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  * See {@link anm.Modifier Modifier} and {@link anm.Painter Painter} for documentation on
  * a custom drawing or positioning the element in time.
  *
- * Every Element holds several important properties you may access from everywhere:
- *
- * @property {String} id element internal ID
- * @property {String} name element's name, if specified
- * @property {anm.Animation} anim the animation this element belongs to, if it really belongs to one
- * @property {anm.Element} parent parent element, if exists
- * @property {Array[anm.Element]} children A list of children elements for this one. *NB:* Do not modify it, use `.add()` and `.remove()` methods
- * @property {Any} $data user data
- *
- * @property {Boolean} visible Is this element visible or not (called, but not drawn)
- * @property {Boolean} disable Is this element disabled or not
- *
- * @property {Number} x position on the X axis, relatively to parent
- * @property {Number} y position on the Y axis, relatively to parent
- * @property {Number} angle rotation angle, in radians, relatively to parent
- * @property {Number} sx scale over X axis, relatively to parent
- * @property {Number} sx scale over Y axis, relatively to parent
- * @property {Number} hx skew over X axis, relatively to parent
- * @property {Number} hy skew over Y axis, relatively to parent
- * @property {Number} alpha opacity, relatively to parent
- *
- * @property {Number} t TODO
- * @property {String} key TODO
- * @property {Object} keys TODO
- * @property {Function} tf TODO
- *
- * @property {Array[Number]} $reg registration point (X and Y position)
- * @property {Array[Number]} $pivot pivot point (relative X and Y position)
- *
- * @property {anm.Brush} $fill element fill
- * @property {anm.Brush} $stroke element stroke
- * @property {anm.Brush} $shadow element shadow
- *
- * TODO: change to `{anm.Path|anm.Sheet|anm.Text} $visual`
- * @property {anm.Path} $path set to some curve, if it's a shape
- * @property {anm.Sheet} $sheet set to some image, if it's an image
- * @property {anm.Text} $text set to some text, if it's a text
- *
- * @property {anm.Element} $mask masking element
- *
- * @property mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, TODO see `.repeat()` / `.once()` / `.loop()` methods
- * @property nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity`
- *
- * @property lband element local band, relatively to parent, use `.band()` method to set it
- * @property gband element global band, relatively to animation
- *
  * @constructor
  *
  * @param {String} [name]
@@ -131,33 +85,39 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  * @param {Number} onframe.time A current local time
  */
 function Element(name, draw, onframe) {
-    this.id = utils.guid();
-    this.name = name || '';
-    this.type = C.ET_EMPTY;
-    this.children = [];
-    this.parent = null;
-    this.level = 0;
-    this.anim = null; // the animation it belongs to / registered in
-    this.visible = true; // user flag, set by user
+
+    this.id = utils.guid(); /** @property {String} id element internal ID @readonly */
+    this.name = name || ''; /** @property {String} name element's name, if specified */
+    this.type = C.ET_EMPTY; /** @property {anm.C.ET_*} type of the element: `ET_EMPTY` (default), `ET_PATH`, `ET_TEXT` or `ET_SHEET` @readonly */
+    this.children = [];     /** @property {Array[anm.Element]} children A list of children elements for this one. Use `.add()` and `.remove()` methods to change @readonly */
+    this.parent = null;     /** @property {anm.Element} parent parent element, if exists @readonly */
+    this.level = 0;         /** @property {Number} level how deep this element is located in animation tree @readonly */
+    this.anim = null;       /** @property {anm.Animation} anim the animation this element belongs to / registered in, if it really belongs to one @readonly */
+    this.disabled = false;  /** @property {Boolean} visible Is this element visible or not (called, but not drawn) */
+    this.visible = true;    /** @property {Boolean} disabled Is this element disabled or not */
+    this.$data = null;      /** @property {Any} $data user data */
+
     this.shown = false; // system flag, set by engine
     this.registered = false; // is registered in animation or not
-    this.disabled = false;
     this.rendering = false; // in process of rendering or not
+
     this.initState(); // initializes matrix, values for transformations
     this.initVisuals(); // initializes visual representation storage and data
     this.initTime(); // initialize time position and everything related to time jumps
     this.initEvents(); // initialize events storage and mechanics
-    this.$modifiers = {};
-    this.$painters = {};
+
+    this.$modifiers = {};  /** @property {Array[anm.Modifier]} $modifiers A list of modifiers, grouped by type @readonly */
+    this.$painters = {};   /** @property {Array[anm.Painter]} $painters A list of painters, grouped by type @readonly */
     if (onframe) this.modify(onframe);
     if (draw) this.paint(draw);
     this.__modifying = null; // current modifiers class, if modifying
     this.__painting = null; // current painters class, if painting
     this.__modifiers_hash = {}; // applied modifiers, by id
     this.__painters_hash = {}; // applied painters, by id
+
     this.__detachQueue = [];
     this.__frameProcessors = [];
-    this.$data = null; // user data
+
     this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
     // TODO: call '.reset() here?'
     var me = this,
@@ -168,6 +128,7 @@ function Element(name, draw, onframe) {
         } else return default_on.call(me, type, handler);
         // return this; // FIXME: make chainable
     };
+
     this.addSysModifiers();
     this.addSysPainters();
     if (global_opts.liveDebug) this.addDebugRender();
@@ -184,10 +145,28 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.S_CHANGE_STATE,
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                          C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+/**
+ * @method is
+ *
+ * Check, if this element represents {@link anm.Path Path}, {@link anm.Text Text},
+ * {@link anm.Sheet Sheet}, or it's empty
+ *
+ * @param {anm.C.ET_*} type to check for
+ * @return {Boolean}
+ */
 Element.prototype.is = function(type) {
     return this.type == type;
 }
 Element.prototype.initState = function() {
+
+    /** @property {Number} x position on the X axis, relatively to parent */
+    /** @property {Number} y position on the Y axis, relatively to parent */
+    /** @property {Number} angle rotation angle, in radians, relative to parent */
+    /** @property {Number} sx scale over X axis, relatively to parent */
+    /** @property {Number} sx scale over Y axis, relatively to parent */
+    /** @property {Number} hx skew over X axis, relatively to parent */
+    /** @property {Number} hy skew over Y axis, relatively to parent */
+    /** @property {Number} alpha opacity, relative to parent */
 
     // current state
     this.x = 0; this.y = 0;   // dynamic position
@@ -196,8 +175,8 @@ Element.prototype.initState = function() {
     this.angle = 0;           // rotation angle
     this.alpha = 1;           // opacity
     // these values are for user to set
-    this.dt = null;
-    this.t = null; this.rt = null; this.key = null;
+    //this.dt = null;
+    //this.t = null; this.rt = null; this.key = null;
                                // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
 
@@ -222,14 +201,19 @@ Element.prototype.initState = function() {
     this._hx = 1; this._hy = 1; // shear by x / by y
     this._angle = 0;            // rotation angle
     this._alpha = 1;            // opacity
+
     // these values are set by engine to provide user with information
     // when previous state was rendered
-    this._dt = null;
-    this._t = null; this._rt = null; this._key = null;
+    //this._dt = null;
+    //this._t = null; this._rt = null; this._key = null;
                                 // cur local time (t) and 0..1 time (rt) and,
                                 // if it was ever applied, the last applied key
+
     if (this._matrix) { this._matrix.reset() }
     else { this._matrix = new Transform(); }
+
+    /** @property {Array[Number]} $reg registration point (X and Y position) @readonly */
+    /** @property {Array[Number]} $pivot pivot point (relative X and Y position) @readonly */
 
     this.$reg = Element.DEFAULT_REG;   // registration point (static values)
     this.$pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
@@ -243,15 +227,26 @@ Element.prototype.initVisuals = function() {
     // they're renamed with dollar-sign. this way also allows methods to be replaced
     // with native JS 1.5 getters/setters just in few steps. (TODO)
 
+    /** @property {anm.Brush} $fill element fill @readonly */
+    /** @property {anm.Brush} $stroke element stroke @readonly */
+    /** @property {anm.Brush} $shadow element shadow @readonly */
+
     this.$fill = null;   // Fill instance
     this.$stroke = null; // Stroke instance
     this.$shadow = null; // Shadow instance
+
+    // TODO: change to `{anm.Path|anm.Sheet|anm.Text} $visual`
+    /** @property {anm.Path} $path set to some curve, if it's a shape @readonly */
+    /** @property {anm.Sheet} $sheet set to some image, if it's an image @readonly */
+    /** @property {anm.Text} $text set to some text, if it's a text @readonly */
 
     this.$path = null;  // Path instanse, if it is a shape
     this.$text = null;  // Text data, if it is a text
     this.$image = null; // Sheet instance, if it is an image or a sprite sheet
 
     this.composite_op = null; // composition operation
+
+    /** @property {anm.Element} $mask masking element @readonly */
 
     this.$mask = null; // Element instance, if this element has a mask
     this.$mpath = null; // move path, though it's not completely "visual"
@@ -264,11 +259,26 @@ Element.prototype.initVisuals = function() {
 }
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
+
+    /** @property {anm.C.R_*} mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, TODO see `.repeat()` / `.once()` / `.loop()` methods @readonly */
+    /** @property {Number} nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity` */
+
     this.mode = C.R_ONCE; // playing mode
     this.nrep = Infinity; // number of repetions for the mode
+
+    /** @property lband element local band, relatively to parent, use `.band()` method to set it @readonly */
+    /** @property gband element global band, relatively to animation @readonly */
+
     // FIXME: rename to "$band"?
     this.lband = [0, Element.DEFAULT_LEN]; // local band
     this.gband = [0, Element.DEFAULT_LEN]; // global band
+
+    /** @property {Number} t TODO (local time) */
+    /** @property {Number} dt TODO (a delta in local time from previous render) */
+    /** @property {Number} rt TODO (time position, relative to band) */
+    /** @property {String} key TODO (time position by a key name) */
+    /** @property {Object} keys TODO (a map of keys -> time) @readonly */
+    /** @property {Function} tf TODO (time function) */
 
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
