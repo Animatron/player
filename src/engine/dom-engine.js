@@ -899,8 +899,20 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-  return document.createElement('style');
+    return document.createElement('style');
 };
+
+$DE.createAudio = function() {
+    return document.createElement('audio');
+}
+
+$DE.createSource = function() {
+    return document.createElement('source');
+}
+
+$DE.appendToBody = function(element) {
+    document.body.appendChild(element);
+}
 
 var testCanvas = document.createElement('canvas');
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));

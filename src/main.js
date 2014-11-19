@@ -59,6 +59,7 @@ var anm = {
     Brush: require('./anm/graphics/brush.js'),
     Color: require('./anm/graphics/color.js'),
     Tween: require('./anm/animation/tween.js'),
+    Audio: require('./anm/media/audio.js'),
     MSeg: segments.MSeg,
     LSeg: segments.LSeg,
     CSeg: segments.CSeg,

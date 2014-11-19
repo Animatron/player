@@ -22,7 +22,7 @@ function Tween(tween_type, data) {
 }
 
 var data_block_fn = function() {
-   throw new AnimationError("Data should be passed to tween in a constructor");
+    throw new AnimationError("Data should be passed to tween in a constructor");
 };
 
 // TODO: add function to add every tween type in easy way, may be separate module?
@@ -35,66 +35,74 @@ Tween.TWEENS_COUNT = 8;
 var Tweens = {};
 
 Tween.addTween = function(id, func) {
-  Tweens[id] = func;
-  Tween.TWEENS_PRIORITY[id] = Tween.TWEENS_COUNT++;
+    Tweens[id] = func;
+    Tween.TWEENS_PRIORITY[id] = Tween.TWEENS_COUNT++;
 }
 
 Tween.addTween(C.T_TRANSLATE, function(data) {
-  return function(t, dt, duration) {
-      var p = data.pointAt(t);
-      if (!p) return;
-      this.$mpath = data;
-      this.x = p[0];
-      this.y = p[1];
-  };
+    return function(t, dt, duration) {
+        var p = data.pointAt(t);
+        if (!p) return;
+        this.$mpath = data;
+        this.x = p[0];
+        this.y = p[1];
+    };
 });
 
 Tween.addTween(C.T_SCALE, function(data) {
-  return function(t, dt, duration) {
-    this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
-    this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
-  };
+    return function(t, dt, duration) {
+      this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
+      this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+    };
 });
 
 Tween.addTween(C.T_ROTATE, function(data) {
-  return function(t, dt, duration) {
-    this.angle = data[0] * (1.0 - t) + data[1] * t;
-    //state.angle = (Math.PI / 180) * 45;
-  };
+    return function(t, dt, duration) {
+        this.angle = data[0] * (1.0 - t) + data[1] * t;
+    };
 });
 
 Tween.addTween(C.T_ROT_TO_PATH, function(data) {
-  return function(t, dt, duration) {
-    var path = this.$mpath;
-    if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
-  };
+    return function(t, dt, duration) {
+        var path = this.$mpath;
+        if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
+    };
 });
 
 Tween.addTween(C.T_ALPHA, function(data) {
-  return function(t, dt, duration) {
-    this.alpha = data[0] * (1.0 - t) + data[1] * t;
-  };
+    return function(t, dt, duration) {
+        this.alpha = data[0] * (1.0 - t) + data[1] * t;
+    };
 });
 
 Tween.addTween(C.T_SHEAR, function(data) {
-  return function(t, dt, duration) {
-    this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
-    this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
+    return function(t, dt, duration) {
+      this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
+      this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
   };
 });
 
 Tween.addTween(C.T_FILL, function(data) {
-  var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-  return function(t, dt, duration) {
-      this.$fill = interp_func(t);
-  }
+    var interp_func = Brush.interpolateBrushes(data[0], data[1]);
+    return function(t, dt, duration) {
+        this.$fill = interp_func(t);
+    }
 });
 
 Tween.addTween(C.T_STROKE, function(data) {
-  var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-  return function (t, dt, duration) {
-      this.$stroke = interp_func(t);
+    var interp_func = Brush.interpolateBrushes(data[0], data[1]);
+    return function (t, dt, duration) {
+        this.$stroke = interp_func(t);
+    }
+});
+
+Tween.addTween(C.T_VOLUME, function(data){
+  return function(t) {
+    if (!this.audio.loaded) return;
+    var volume = data[0] * (1.0 - t) + data[1] * t;
+    this.audio.setVolume(volume);
   }
 });
+
 
 module.exports = Tween;
