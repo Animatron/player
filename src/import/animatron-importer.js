@@ -352,13 +352,14 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
-    else if (isPath(type)) { trg.$path  = Import.path(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.audio = Import.audio(src);
         trg.audio.connect(trg);
     }
-    if ((type == TYPE_TEXT) || isPath(type)) {
+    else if (type == TYPE_VIDEO) {}
+    else { trg.$path  = Import.path(src);  }
+    if (trg.$path || trg.$text) {
         trg.$fill = Import.fill(src[1]);
         trg.$stroke = Import.stroke(src[2]);
         trg.$shadow = Import.shadow(src[3]);
