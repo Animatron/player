@@ -171,6 +171,10 @@ Audio.prototype.load = function(player) {
       function(audio) { // oncomplete
           me.audio = audio;
           me.loaded = true;
+          if (player.muted) {
+              me.mute();
+          }
+
       },
       function(err) { log.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ });
@@ -242,9 +246,10 @@ Audio.prototype.setVolume = function(volume) {
         this.unmuteVolume = volume;
         return;
     }
+    this.volume = volume;
     if (this._gain) {
         this._gain.gain.value = volume;
-    } else {
+    } else if (this.audio) {
         this.audio.volume = volume;
     }
 }

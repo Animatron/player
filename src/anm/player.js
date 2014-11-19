@@ -1126,6 +1126,9 @@ Player.prototype.subscribeEvents = function(canvas) {
 
 Player.prototype.toggleMute = function() {
     this.muted = !this.muted;
+    if (!this.anim) {
+        return;
+    }
     this.anim.traverse(function(el) {
         if(el.audio) {
             el.audio.toggleMute();
