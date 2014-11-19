@@ -317,15 +317,10 @@ Controls.prototype.forceRefresh = function() {
     this.render(this.player.state.time);
 }
 /* TODO: take initial state from imported project */
-
-var gfn = function(f) {
-    return f.toString().split('\n').slice(0,4).join('\t');
-}
 Controls.prototype.hide = function() {
     if (this.hidden || this.fadingOut) {
         return;
     }
-    console.log('hide from', gfn(Controls.prototype.hide.caller));
     var me=this;
     me.resetScheduledHide();
     this.fadeOut(function() {
@@ -339,7 +334,6 @@ Controls.prototype.show = function() {
     if (this.fadingIn || !this.hidden) {
         return;
     }
-    console.log('show from', gfn(Controls.prototype.show.caller));
     engine.showElement(this.canvas);
     this.hidden = false;
     if (this.info && this._infoShown) this.info.show();
@@ -385,9 +379,9 @@ Controls.prototype.enable = function() {
         (state.happens === C.LOADING) ||
         (state.happens === C.RES_LOADING) ||
         (state.happens === C.ERROR)) {
-      this.show();
-      this.forceNextRedraw();
-      this.render();
+        this.show();
+        this.forceNextRedraw();
+        this.render();
     }
 }
 Controls.prototype.disable = function() {
