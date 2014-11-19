@@ -27,7 +27,7 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
 }
 
-var theme = Controls.DEFAULT_THEME = require('./controls_theme.js');
+var theme = Controls.DEFAULT_THEME = require('./controls_theme.json');
 Controls.THEME = Controls.DEFAULT_THEME;
 
 Controls.LAST_ID = 0;
@@ -505,8 +505,6 @@ var drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
 }
 
 var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
-    ctx.save();
-
     var cx = w / 2,
         cy = h / 2,
         segment = Math.ceil(90 * hilite_pos),
@@ -526,8 +524,6 @@ var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
     ctx.stroke();
     ctx.closePath();
-
-    ctx.restore();
 };
 
 var drawNoAnimation = function(ctx, theme, w, h, focused) {

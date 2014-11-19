@@ -179,15 +179,7 @@ var TYPE_UNKNOWN =  0,
     TYPE_LAYER   = 255; // is it good?
 
 function isPath(type) {
-    return (type == TYPE_PATH) ||
-           (type == TYPE_RECT) ||
-           (type == TYPE_OVAL) ||
-           (type == TYPE_PENCIL) ||
-           (type == TYPE_BRUSH) ||
-           (type == TYPE_STAR) ||
-           (type == TYPE_POLYGON) ||
-           (type == TYPE_CURVE) ||
-           (type == TYPE_LINE);
+    return (type == TYPE_PATH);
 }
 
 /** node **/
