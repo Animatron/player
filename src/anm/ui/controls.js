@@ -27,7 +27,7 @@ function Controls(player) {
     this._initHandlers(); /* TODO: make automatic */
 }
 
-var theme = Controls.DEFAULT_THEME = require('./controls_theme.js');
+var theme = Controls.DEFAULT_THEME = require('./controls_theme.json');
 Controls.THEME = Controls.DEFAULT_THEME;
 
 Controls.LAST_ID = 0;
@@ -45,7 +45,6 @@ Controls.prototype.update = function(parent) {
         this.canvas = cvs;
         this.ctx = engine.getContext(cvs, '2d');
         this.subscribeEvents(cvs, parent);
-        this.hide();
         this.changeTheme(Controls.THEME);
     } else {
         engine.updateOverlay(parent, cvs);
@@ -83,7 +82,7 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
         dblclick: engine.preventDefault
     });
 }
-Controls.prototype.render = function(time) {
+Controls.prototype.render = function(time, alpha) {
     if (this.hidden && !this.__force) return;
 
     if (!this.bounds) return;
@@ -96,6 +95,8 @@ Controls.prototype.render = function(time) {
         state = player.state,
         s = state.happens;
 
+    alpha = alpha || this._lastAlpha;
+
     var time = (time > 0) ? time : 0,
         coords = {x:0,y:0};
     if (this._last_mevt) {
@@ -105,14 +106,16 @@ Controls.prototype.render = function(time) {
 
     if (!this.__force &&
         (time === this._time) &&
-        (s === this._lhappens)) return;
+        (s === this._lhappens) &&
+        (this._lastAlpha === alpha)) return;
 
     // these states do not change controls visually between frames
     if (is.defined(this._lastDrawn) &&
         (this._lastDrawn === s) &&
         ((s === C.STOPPED) ||
          (s === C.NOTHING) ||
-         (s === C.ERROR))
+         (s === C.ERROR)) &&
+        (this._lastAlpha === alpha)
        ) return;
 
     this.rendering = true;
@@ -138,13 +141,14 @@ Controls.prototype.render = function(time) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, w, h);
+    ctx.globalAlpha = alpha;
 
     if (s === C.PLAYING) {
-        drawBack(ctx, theme, w, h);
-        drawPause(ctx, theme, w, h);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
+            drawTinyPause(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
+            drawVolumeBtn(ctx, w, h, player.muted);
         }
     } else if (s === C.STOPPED) {
         drawBack(ctx, theme, w, h);
@@ -154,7 +158,9 @@ Controls.prototype.render = function(time) {
         drawPlay(ctx, theme, w, h, this.focused);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
+            drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
+            drawVolumeBtn(ctx, w, h, player.muted);
         }
 
     } else if (s === C.NOTHING) {
@@ -170,6 +176,7 @@ Controls.prototype.render = function(time) {
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
     }
     this._lastDrawn = s;
+    this._lastAlpha = alpha;
 
     ctx.restore();
     this.fire(C.X_DRAW, state);
@@ -187,28 +194,57 @@ Controls.prototype.react = function(time) {
     if (this.hidden) return;
 
     var p = this.player,
-        s = p.state.happens;
+        s = p.state.happens,
+        btnWidth = theme.progress.buttonWidth,
+        bottomHeight = theme.bottomControls.height;
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
     if (this._last_mevt) {
       var pos = engine.getEventPosition(this._last_mevt, this.canvas);
       var coords = {x: pos[0], y: pos[1]},
           w = this.bounds[2], h = this.bounds[3];
-      if (coords.y > h-15 && coords.x > 5 && coords.x < w-5) {
-        var time = Math.round(p.state.duration*(coords.x-5)/(w-10));
-        p.pause().play(time);
+      if (coords.y > h-bottomHeight && coords.x > btnWidth && coords.x < w-btnWidth) {
+        var time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
+        if (s === C.PLAYING) {
+            p.pause().play(time);
+        } else {
+            p.play(time).pause();
+        }
         return;
+      }
+      //mute button?
+      if (coords.y > h-bottomHeight && coords.x > w-btnWidth) {
+          p.toggleMute();
+          return;
       }
     }
 
-    if (s === C.STOPPED) { p.play(0); return; }
-    if (s === C.PAUSED) { p.play(this._time); return; }
-    if (s === C.PLAYING) { this._time = time; p.pause(); return; }
+    if (s === C.STOPPED) {
+        p.play(0);
+        this.scheduleHide();
+        return;
+    }
+    if (s === C.PAUSED) {
+        p.play(this._time);
+        this.scheduleHide();
+        return;
+    }
+    if (s === C.PLAYING) {
+        this._time = time;
+        p.pause();
+        this.resetScheduledHide();
+        return;
+    }
 }
 Controls.prototype.refreshByMousePos = function(pos) {
     if (!this.bounds) return;
     var state = this.player.state;
     this.forceNextRedraw();
     this.render(state.time);
+    if (pos[1] > this.bounds[3]-theme.bottomControls.height) {
+        this.resetScheduledHide();
+    } else {
+        this.scheduleHide();
+    }
 }
 Controls.prototype.handleAreaChange = function() {
     if (!this.player || !this.player.canvas) return;
@@ -219,20 +255,24 @@ Controls.prototype.handleMouseMove = function(evt) {
     var me=this;
     this._last_mevt = evt;
 
-    if (this.hidden) this.show();
+    this.show();
     this.refreshByMousePos(engine.getEventPosition(evt, this.canvas));
 };
 
 Controls.prototype.scheduleHide = function() {
-  var me=this;
-  clearTimeout(me._hideTimeout);
-  me._hideTimeout = setTimeout(function(){
-    me.hide();
-  }, 2000);
+    var me=this;
+    clearTimeout(me._hideTimeout);
+    var state = this.player.state.happens;
+    if (state !== C.PLAYING) {
+        return;
+    }
+    me._hideTimeout = setTimeout(function(){
+        me.hide();
+    }, theme.fadeTimes.inactive);
 };
 
 Controls.prototype.resetScheduledHide = function() {
-  clearTimeout(me._hideTimeout);
+    clearTimeout(this._hideTimeout);
 }
 
 Controls.prototype.handleClick = function() {
@@ -240,9 +280,6 @@ Controls.prototype.handleClick = function() {
     this.forceNextRedraw();
     this.react(state.time);
     this.render(state.time);
-    if (state.happens === C.PLAYING) {
-      this.hide();
-    }
 }
 Controls.prototype.handlePlayerClick = function() {
     if (this.player.handleEvents) return;
@@ -256,7 +293,7 @@ Controls.prototype.handlePlayerClick = function() {
 }
 Controls.prototype.handleMouseEnter = function() {
     var state = this.player.state;
-    if (this.hidden) this.show();
+    this.show();
     this.forceNextRedraw();
     this.render(state.time);
 }
@@ -270,7 +307,9 @@ Controls.prototype.handleMouseLeave = function() {
         this.forceNextRedraw();
         this.render(state.time);
     } else {
-        this.hide();
+        if (!this.fadingIn) {
+            this.hide();
+        }
     }
 }
 Controls.prototype.forceRefresh = function() {
@@ -279,14 +318,26 @@ Controls.prototype.forceRefresh = function() {
 }
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
-    engine.hideElement(this.canvas);
-    this.hidden = true;
-    if (this.info) this.info.hide();
+    if (this.hidden || this.fadingOut) {
+        return;
+    }
+    var me=this;
+    me.resetScheduledHide();
+    this.fadeOut(function() {
+        engine.hideElement(me.canvas);
+        me.hidden = true;
+        if (me.info) me.info.hide();
+    });
 }
+
 Controls.prototype.show = function() {
+    if (this.fadingIn || !this.hidden) {
+        return;
+    }
     engine.showElement(this.canvas);
     this.hidden = false;
     if (this.info && this._infoShown) this.info.show();
+    this.fadeIn();
 }
 Controls.prototype.reset = function() {
     this._time = -1000;
@@ -328,9 +379,9 @@ Controls.prototype.enable = function() {
         (state.happens === C.LOADING) ||
         (state.happens === C.RES_LOADING) ||
         (state.happens === C.ERROR)) {
-      this.show();
-      this.forceNextRedraw();
-      this.render();
+        this.show();
+        this.forceNextRedraw();
+        this.render();
     }
 }
 Controls.prototype.disable = function() {
@@ -350,6 +401,57 @@ Controls.prototype.inject = function(anim, duration) {
 var nextFrame = engine.getRequestFrameFunc(),
     stopAnim = engine.getCancelFrameFunc();
 
+Controls.prototype.fadeIn = function(complete) {
+    var me = this, timeIn = theme.fadeTimes.in;
+    if (me.fadingIn) {
+        return;
+    }
+    me.fadingIn = true;
+    var startTime = null;
+    var fadeIn = function(time) {
+        if (!startTime) {
+            startTime = time;
+        }
+        var elapsed = time - startTime;
+        var alpha = Math.min(elapsed/timeIn, 1);
+        me.render(me.player.state.time, alpha);
+        if (elapsed >= timeIn) {
+            me.fadingIn = false;
+            if(complete) complete();
+        } else {
+            nextFrame(fadeIn);
+        }
+    };
+    me._lastAlpha = 0;
+    nextFrame(fadeIn);
+}
+
+Controls.prototype.fadeOut = function(complete) {
+    var me = this, timeOut = theme.fadeTimes.out;
+    if (me.fadingOut) {
+        return;
+    }
+    me.fadingOut = true;
+    var startTime = null;
+    var fadeOut = function(time) {
+        if (!startTime) {
+            startTime = time;
+        }
+        var elapsed = time - startTime;
+        var alpha = Math.max(1-elapsed/timeOut, 0);
+        me.render(me.player.state.time, alpha);
+        if (elapsed >= timeOut) {
+            me.fadingOut = false;
+            if(complete) complete();
+        } else {
+            nextFrame(fadeOut);
+        }
+    };
+    me._lastAlpha = 1;
+    nextFrame(fadeOut);
+}
+
+
 var drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
     var cx = w / 2,
@@ -365,14 +467,15 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
 var drawProgress = function(ctx, theme, w, h, progress) {
     if (!is.finite(progress)) return;
     ctx.save();
-
+    var btnWidth = theme.progress.buttonWidth,
+        bottomHeight = theme.bottomControls.height;;
     ctx.fillStyle = theme.progress.backColor;
-    ctx.fillRect(0, h-15, w, 15);
+    ctx.fillRect(0, h-bottomHeight, w, bottomHeight);
     ctx.fillStyle = theme.progress.inactiveColor;
-    ctx.fillRect(5, h-10, w-10, 5);
-    var progressWidth = Math.round(progress*(w-10));
+    ctx.fillRect(btnWidth, h-10, w-2*btnWidth, 5);
+    var progressWidth = Math.round(progress*(w-2*btnWidth));
     ctx.fillStyle = theme.progress.activeColor;
-    ctx.fillRect(5, h-10, progressWidth, 5);
+    ctx.fillRect(btnWidth, h-10, progressWidth, 5);
     ctx.restore();
 
 }
@@ -388,7 +491,86 @@ var drawPause = function(ctx, theme, w, h, focused) {
 
     ctx.restore();
 
+};
+
+var drawTinyPause = function(ctx, w, h) {
+    ctx.save();
+
+    var cx = 0,
+        cy = h-theme.bottomControls.height;
+
+    ctx.fillStyle = theme.button.color;
+    ctx.fillRect(cx+9, cy+3, 3, 9);
+    ctx.fillRect(cx+15, cy+3, 3, 9);
+
+    ctx.restore();
+};
+
+var drawTinyPlay = function(ctx, w, h) {
+    ctx.save();
+
+    var cx = 0,
+        cy = h-theme.bottomControls.height;
+
+    ctx.strokeStyle = 'transparent';
+    ctx.fillStyle = theme.button.color;
+    ctx.beginPath();
+    ctx.moveTo(cx + 9, cy + 3);
+    ctx.lineTo(cx + 18, cy + 7);
+    ctx.lineTo(cx + 9, cy + 11);
+    ctx.lineTo(cx + 9, cy + 3);
+    ctx.closePath();
+    ctx.fill();
+
+
+    ctx.restore();
+};
+
+var drawVolumeBtn = function(ctx, w, h, muted) {
+    ctx.save();
+
+    var cx = w-theme.progress.buttonWidth,
+        cy = h-theme.bottomControls.height;
+
+    ctx.strokeStyle = 'transparent';
+    ctx.lineWidth = 1;
+    ctx.fillStyle = theme.button.color;
+    ctx.beginPath();
+    ctx.translate(cx,cy);
+    ctx.moveTo(3,6);
+    ctx.lineTo(6,6);
+    ctx.lineTo(12,3);
+    ctx.lineTo(12,12);
+    ctx.lineTo(6,9);
+    ctx.lineTo(3,9);
+    ctx.lineTo(3,6);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = theme.button.color;
+
+    ctx.beginPath();
+    if (muted) {
+        ctx.moveTo(15,5);
+        ctx.lineTo(21,10);
+        ctx.moveTo(15,10);
+        ctx.lineTo(21,5);
+        ctx.stroke();
+    } else {
+        // )))
+        for (var i = 0; i < 3; i++) {
+            ctx.beginPath();
+            ctx.moveTo(15+i*3,3);
+            ctx.bezierCurveTo(18+i*3,7, 18+i*3,8, 15+i*3, 12);
+            ctx.stroke();
+        }
+    }
+
+
+    ctx.restore();
 }
+
 var drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
     var cx = w / 2,
@@ -414,8 +596,6 @@ var drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
 }
 
 var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
-    ctx.save();
-
     var cx = w / 2,
         cy = h / 2,
         segment = Math.ceil(90 * hilite_pos),
@@ -435,8 +615,6 @@ var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
     ctx.stroke();
     ctx.closePath();
-
-    ctx.restore();
 };
 
 var drawNoAnimation = function(ctx, theme, w, h, focused) {
@@ -466,13 +644,14 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 };
 
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
-    var inArea = coords.y >= h-15 && coords.x > 5 && coords.x < w-5;
+    var btnWidth = theme.progress.buttonWidth,
+        inArea = coords.y >= h-theme.bottomControls.height && coords.x > btnWidth && coords.x < w-btnWidth;
     if (inArea) {
       //calculate time at mouse position
-      progress = (coords.x-5)/(w-10);
+      progress = (coords.x-btnWidth)/(w-2*btnWidth);
       time = Math.round(duration*progress);
     }
-    var progressPos = 5 + Math.round(progress*(w-10));
+    var progressPos = btnWidth + Math.round(progress*(w-2*btnWidth));
     ctx.beginPath();
     ctx.fillStyle = theme.progress.backColor;
     ctx.strokeStyle = 'transparent';
@@ -483,6 +662,9 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     ctx.arcTo(x+rw, y+rh, x,   y+rh, r);
     ctx.arcTo(x,   y+rh, x,   y,   r);
     ctx.arcTo(x,   y,   x+rw, y,   r);
+    ctx.moveTo(x+rw/2-3, y+rh);
+    ctx.lineTo(x+rw/2, y+rh+3);
+    ctx.lineTo(x+rw/2+3, y+rh);
     ctx.closePath();
     ctx.fill();
     drawText(ctx, theme, x+17, (h-30), 8, utils.fmt_time(time));

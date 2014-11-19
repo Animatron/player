@@ -87,6 +87,7 @@ C.ET_EMPTY = 'empty';
 C.ET_PATH = 'path';
 C.ET_TEXT = 'text';
 C.ET_SHEET = 'image';
+C.ET_AUDIO = 'audio';
 
 // repeat mode
 C.R_ONCE = 0;
@@ -163,6 +164,8 @@ C.T_ALPHA       = 'ALPHA';
 C.T_SHEAR       = 'SHEAR';
 C.T_FILL        = 'FILL';
 C.T_STROKE      = 'STROKE';
+C.T_VOLUME = 'VOLUME';
+
 
 
 // modifiers classes
