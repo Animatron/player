@@ -1229,57 +1229,8 @@ Player.prototype._drawSplash = function() {
         this._drawThumbnail();
         return;
     }
+};
 
-    var ctx = this.ctx,
-        w = this.width,
-        h = this.height;
-
-    ctx.save();
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    var ratio = engine.PX_RATIO;
-
-    // background
-    ctx.fillStyle = this.bgColor || Player.EMPTY_BG;
-    ctx.fillRect(0, 0, w * ratio, h * ratio);
-    ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
-    ctx.strokeRect(0, 0, w * ratio, h * ratio);
-
-    if (this.controls) {
-       ctx.restore();
-       return;
-    }
-
-    // text
-    ctx.fillStyle = '#999966';
-    ctx.font = '10px sans-serif';
-    ctx.fillText(Strings.COPYRIGHT, 20 * ratio, (h - 20) * ratio);
-
-    /* ctx.globalAlpha = .6;
-
-    ctx.beginPath();
-    ctx.arc(w / 2 * ratio, h / 2 * ratio,
-            Math.min(w / 4, h / 4) * ratio,
-            0, 2 * Math.PI);
-    ctx.fillStyle = '#a00';
-    ctx.strokeStyle = '#ffe';
-    ctx.lineWidth = 10;
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.globalAlpha = .9;
-
-    ctx.restore();
-
-    Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, [ '#fff', '#900' ],
-                              [ 0.5, 0.5 ], .2); */
-
-    /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
-                     [ '#fff', '#aa0' ]); */
-
-}
 Player.prototype._drawLoadingSplash = function(text) {
     if (this.controls) return;
     this._drawSplash();
