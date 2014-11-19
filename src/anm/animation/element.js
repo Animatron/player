@@ -778,37 +778,9 @@ Element.prototype.ltime = function(gtime) {
     // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
     // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
     // value returned here). See `render()` method comment regarding `ltime` for more details.
-    var gband = this.gband, lband = this.lband;
-    if (!is.finite(gband[1])) return this.__checkJump(gtime - gband[0]);
-    switch (this.mode) {
-        case C.R_ONCE:
-            return this.__checkJump(gtime - gband[0]);
-        case C.R_STAY:
-            return (t_cmp(gtime, gband[1]) <= 0)
-                   ? this.__checkJump(gtime - gband[0])
-                   : this.__checkJump(lband[1] - lband[0]);
-        case C.R_LOOP: {
-                var durtn = lband[1] -
-                            lband[0];
-                if (durtn < 0) return -1;
-                var ffits = (gtime - gband[0]) / durtn,
-                    fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > this.nrep)) return -1;
-                var t = (gtime - gband[0]) - (fits * durtn);
-                return this.__checkJump(t);
-            }
-        case C.R_BOUNCE: {
-                var durtn = lband[1] -
-                            lband[0];
-                if (durtn < 0) return -1;
-                var ffits = (gtime - gband[0]) / durtn,
-                    fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > this.nrep)) return -1;
-                var t = (gtime - gband[0]) - (fits * durtn),
-                    t = ((fits % 2) === 0) ? t : (durtn - t);
-                return this.__checkJump(t);
-            }
-    }
+    return this.__checkJump(
+        Element.checkRepeatMode(gtime, this.gband, this.lband, this.mode, this.nrep)
+    );
 }
 // > Element.handlePlayerEvent % (event: C.S_*, handler: Function(player: Player))
 Element.prototype.handlePlayerEvent = function(event, handler) {
@@ -1278,20 +1250,19 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         // (like [0, 7] modifier band for [0, 10] element band)
         if (!mod_relative) {
             mod_duration = mod_band[1] - mod_band[0];
-            if (t_cmp(ltime, mod_band[0]) < 0) return false;
-            if (t_cmp(ltime, mod_band[1]) > 0) return false;
         // this band is specified relatively to local band in relative time values
         // (like [0, 0.7] modifier band for [0, 10] element band means [0, 7], as above)
         } else {
             mod_band = [ mod_band[0] * elm_duration,
                          mod_band[1] * elm_duration ];
             mod_duration = mod_band[1] - mod_band[0];
-            if (t_cmp(ltime, mod_band[0]) < 0) return false;
-            if (t_cmp(ltime, mod_band[1]) > 0) return false;
         }
 
-        res_time = ltime - mod_band[0];
+        res_time = Modifier.checkRepeatMode(ltime, mod_band,
+                                            modifier.mode || C.R_ONCE, modifier.nrep);
         res_duration = mod_duration;
+        if (t_cmp(res_time, 0) < 0) return false;
+        if (t_cmp(res_time, res_duration) > 0) return false;
 
     // modifier is assigned to trigger at some specific time moment
   } else if (is.num(mod_time)) {
@@ -1517,6 +1488,38 @@ Element.getIMatrixOf = function(elm, m) {
     var t = Element.getMatrixOf(elm, m);
     t.invert();
     return t;
+}
+Element.checkRepeatMode = function(gtime, gband, lband, mode, nrep) {
+    if (!is.finite(gband[1])) return gtime - gband[0];
+    switch (mode) {
+        case C.R_ONCE:
+            return gtime - gband[0];
+        case C.R_STAY:
+            return (t_cmp(gtime, gband[1]) <= 0)
+                   ? gtime - gband[0]
+                   : lband[1] - lband[0];
+        case C.R_LOOP: {
+                var durtn = lband[1] -
+                            lband[0];
+                if (durtn < 0) return -1;
+                var ffits = (gtime - gband[0]) / durtn,
+                    fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > nrep)) return -1;
+                var t = (gtime - gband[0]) - (fits * durtn);
+                return t;
+            }
+        case C.R_BOUNCE: {
+                var durtn = lband[1] -
+                            lband[0];
+                if (durtn < 0) return -1;
+                var ffits = (gtime - gband[0]) / durtn,
+                    fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > nrep)) return -1;
+                var t = (gtime - gband[0]) - (fits * durtn),
+                    t = ((fits % 2) === 0) ? t : (durtn - t);
+                return t;
+            }
+    }
 }
 /* TODO: add createFromImgUrl?
  Element.imgFromURL = function(url) {
