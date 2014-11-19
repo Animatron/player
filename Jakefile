@@ -604,7 +604,7 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
     var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
-        var gzip_it = (stat.name.indexOf('.min') > 0) &&
+        var gzip_it = (stat.name.indexOf('.js') > 0) &&
                       (stat.name !== BUILD_FILE_NAME);
         files.push([ root + '/' + stat.name, // source
                      trg_dir +
