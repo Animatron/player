@@ -4,7 +4,7 @@ var provideEvents = require('../events.js').provideEvents,
     InfoBlock = require('./infoblock.js'),
     Strings = require('../loc.js').Strings,
     utils = require('../utils.js'),
-    Path = require('../graphics/path.js');
+    Path = require('../graphics/path.js'),
     is = utils.is,
     Brush = require('../graphics/brush.js');
 
@@ -52,7 +52,8 @@ Controls.prototype.update = function(parent) {
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
     BACK_GRAD = null; // invalidate back gradient
-}
+};
+
 Controls.prototype.subscribeEvents = function(canvas, parent) {
     engine.subscribeCanvasEvents(parent, {
         mouseenter: (function(controls) {
@@ -81,7 +82,8 @@ Controls.prototype.subscribeEvents = function(canvas, parent) {
         click: engine.preventDefault,
         dblclick: engine.preventDefault
     });
-}
+};
+
 Controls.prototype.render = function(time, alpha) {
     if (this.hidden && !this.__force) return;
 
@@ -97,11 +99,11 @@ Controls.prototype.render = function(time, alpha) {
 
     alpha = alpha || this._lastAlpha;
 
-    var time = (time > 0) ? time : 0,
-        coords = {x:0,y:0};
+    time = Math.max(time, 0);
+    var coords = {x:0,y:0};
     if (this._last_mevt) {
-      var pos = engine.getEventPosition(this._last_mevt, this.canvas),
-          coords = {x: pos[0], y: pos[1]};
+      var pos = engine.getEventPosition(this._last_mevt, this.canvas);
+      coords = {x: pos[0], y: pos[1]};
     }
 
     if (!this.__force &&
@@ -189,7 +191,8 @@ Controls.prototype.render = function(time, alpha) {
     }
 
     this.rendering = false;
-}
+};
+
 Controls.prototype.react = function(time) {
     if (this.hidden) return;
 
@@ -203,7 +206,7 @@ Controls.prototype.react = function(time) {
       var coords = {x: pos[0], y: pos[1]},
           w = this.bounds[2], h = this.bounds[3];
       if (coords.y > h-bottomHeight && coords.x > btnWidth && coords.x < w-btnWidth) {
-        var time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
+        time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
         if (s === C.PLAYING) {
             p.pause().play(time);
         } else {
@@ -234,7 +237,8 @@ Controls.prototype.react = function(time) {
         this.resetScheduledHide();
         return;
     }
-}
+};
+
 Controls.prototype.refreshByMousePos = function(pos) {
     if (!this.bounds) return;
     var state = this.player.state;
@@ -245,11 +249,13 @@ Controls.prototype.refreshByMousePos = function(pos) {
     } else {
         this.scheduleHide();
     }
-}
+};
+
 Controls.prototype.handleAreaChange = function() {
     if (!this.player || !this.player.canvas) return;
     this.bounds = engine.getCanvasBounds(this.canvas);
-}
+};
+
 Controls.prototype.handleMouseMove = function(evt) {
     if (!evt) return;
     var me=this;
@@ -273,14 +279,15 @@ Controls.prototype.scheduleHide = function() {
 
 Controls.prototype.resetScheduledHide = function() {
     clearTimeout(this._hideTimeout);
-}
+};
 
 Controls.prototype.handleClick = function() {
     var state = this.player.state;
     this.forceNextRedraw();
     this.react(state.time);
     this.render(state.time);
-}
+};
+
 Controls.prototype.handlePlayerClick = function() {
     if (this.player.handleEvents) return;
     var state = this.player.state;
@@ -290,13 +297,15 @@ Controls.prototype.handlePlayerClick = function() {
         this.react(state.time);
         this.render(state.time);
     }
-}
+};
+
 Controls.prototype.handleMouseEnter = function() {
     var state = this.player.state;
     this.show();
     this.forceNextRedraw();
     this.render(state.time);
-}
+};
+
 Controls.prototype.handleMouseLeave = function() {
     var state = this.player.state;
     if ((state.happens === C.NOTHING) ||
@@ -311,11 +320,13 @@ Controls.prototype.handleMouseLeave = function() {
             this.hide();
         }
     }
-}
+};
+
 Controls.prototype.forceRefresh = function() {
     this.forceNextRedraw();
     this.render(this.player.state.time);
-}
+};
+
 /* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
     if (this.hidden || this.fadingOut) {
@@ -328,7 +339,8 @@ Controls.prototype.hide = function() {
         me.hidden = true;
         if (me.info) me.info.hide();
     });
-}
+};
+
 
 Controls.prototype.show = function() {
     if (this.fadingIn || !this.hidden) {
@@ -338,24 +350,29 @@ Controls.prototype.show = function() {
     this.hidden = false;
     if (this.info && this._infoShown) this.info.show();
     this.fadeIn();
-}
+};
+
 Controls.prototype.reset = function() {
     this._time = -1000;
     this.elapsed = false;
     if (this.info) this.info.reset();
-}
+};
+
 Controls.prototype.detach = function(parent) {
     engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
     if (this.ctx) engine.clearAnmProps(this.ctx);
-}
+};
+
 Controls.prototype.changeTheme = function(to) {
     this.theme = to;
     // TODO: redraw
-}
+};
+
 Controls.prototype.forceNextRedraw = function() {
     this.__force = true;
-}
+};
+
 Controls.prototype._scheduleLoading = function() {
     if (this._loadingInterval) return;
     var controls = this;
@@ -363,14 +380,16 @@ Controls.prototype._scheduleLoading = function() {
          controls.forceNextRedraw();
          controls.render();
     }, 50);
-}
+};
+
 Controls.prototype._stopLoading = function() {
     if (!this._loadingInterval) return;
     clearInterval(this._loadingInterval);
     this._loadingInterval = 0;
     this.forceNextRedraw();
     this.render(this.player.state.time);
-}
+};
+
 Controls.prototype.enable = function() {
     var player = this.player,
         state = player.state;
@@ -383,20 +402,26 @@ Controls.prototype.enable = function() {
         this.forceNextRedraw();
         this.render();
     }
-}
+};
+
 Controls.prototype.disable = function() {
     this.hide();
     // FIXME: unsubscribe events!
     this.detach(this.player.wrapper);
-}
+};
+
 Controls.prototype.enableInfo = function() {
-}
+};
+
 Controls.prototype.disableInfo = function() {
-}
+};
+
 Controls.prototype.setDuration = function(value) {
-}
+};
+
 Controls.prototype.inject = function(anim, duration) {
-}
+};
+
 
 var nextFrame = engine.getRequestFrameFunc(),
     stopAnim = engine.getCancelFrameFunc();
@@ -424,7 +449,7 @@ Controls.prototype.fadeIn = function(complete) {
     };
     me._lastAlpha = 0;
     nextFrame(fadeIn);
-}
+};
 
 Controls.prototype.fadeOut = function(complete) {
     var me = this, timeOut = theme.fadeTimes.out;
@@ -449,7 +474,7 @@ Controls.prototype.fadeOut = function(complete) {
     };
     me._lastAlpha = 1;
     nextFrame(fadeOut);
-}
+};
 
 
 var drawBack = function(ctx, theme, w, h, bgcolor) {
@@ -462,13 +487,13 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.fill();
 
     ctx.restore();
-}
+};
 
 var drawProgress = function(ctx, theme, w, h, progress) {
     if (!is.finite(progress)) return;
     ctx.save();
     var btnWidth = theme.progress.buttonWidth,
-        bottomHeight = theme.bottomControls.height;;
+        bottomHeight = theme.bottomControls.height;
     ctx.fillStyle = theme.progress.backColor;
     ctx.fillRect(0, h-bottomHeight, w, bottomHeight);
     ctx.fillStyle = theme.progress.inactiveColor;
@@ -478,7 +503,8 @@ var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.fillRect(btnWidth, h-10, progressWidth, 5);
     ctx.restore();
 
-}
+};
+
 var drawPause = function(ctx, theme, w, h, focused) {
     ctx.save();
 
@@ -569,7 +595,7 @@ var drawVolumeBtn = function(ctx, w, h, muted) {
 
 
     ctx.restore();
-}
+};
 
 var drawPlay = function(ctx, theme, w, h, focused) {
     ctx.save();
@@ -588,12 +614,12 @@ var drawPlay = function(ctx, theme, w, h, focused) {
 
     ctx.restore();
 
-}
+};
 
 var drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
     drawBack(ctx, theme, w, h);
     drawLoadingProgress(ctx, w, h, hilite_pos);
-}
+};
 
 var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     var cx = w / 2,
