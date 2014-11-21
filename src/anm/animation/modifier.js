@@ -61,38 +61,6 @@ function Modifier(func, type) {
     func.bounce = function(times) { this.mode = C.R_BOUNCE; if (is.num(times)) this.nrep = times; return this; }
     return func;
 }
-Modifier.checkRepeatMode = function(elm_time, mod_band, mode, nrep) {
-    if (!is.finite(mod_band[1])) return elm_time - mod_band[0];
-    switch (mode) {
-        case C.R_ONCE:
-            return elm_time - mod_band[0];
-        case C.R_STAY:
-            return (t_cmp(elm_time, mod_band[1]) <= 0)
-                   ? elm_time - mod_band[0]
-                   : mod_band[1] - mod_band[0];
-        case C.R_LOOP: {
-                var durtn = mod_band[1] -
-                            mod_band[0];
-                if (durtn < 0) return -1;
-                var ffits = (elm_time - mod_band[0]) / durtn,
-                    fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                var t = (elm_time - mod_band[0]) - (fits * durtn);
-                return t;
-            }
-        case C.R_BOUNCE: {
-                var durtn = mod_band[1] -
-                            mod_band[0];
-                if (durtn < 0) return -1;
-                var ffits = (elm_time - mod_band[0]) / durtn,
-                    fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > nrep)) return -1;
-                var t = (elm_time - mod_band[0]) - (fits * durtn),
-                    t = ((fits % 2) === 0) ? t : (durtn - t);
-                return t;
-            }
-    }
-}
 
 var convertEasing = function(easing, data, relative) {
     if (!easing) return null;

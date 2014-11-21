@@ -203,7 +203,10 @@ Import.node = function(src, all, parent, anim) {
     } else if (type != TYPE_UNKNOWN) {
         trg = Import.leaf(type, src, parent, anim);
     }
-    if (trg) { Import.callCustom(trg, src, type); };
+    if (trg) {
+        trg._anm_type = type;
+        Import.callCustom(trg, src, type);
+    };
     return trg;
 }
 var L_ROT_TO_PATH = 1,
@@ -311,6 +314,14 @@ Import.branch = function(type, src, all, anim) {
             ltrg.mode = Import.mode(null);
         }
 
+        // Clips' end-actions like in Editor are not supported in Player,
+        // but they may be adapted to Player's model (same as Group in Editor)
+        if (ltrg._anm_type == TYPE_CLIP) {
+            ltrg.asClip([].concat(ltrg.lband), ltrg.mode, ltrg.nrep);
+            ltrg.mode = C.R_STAY;
+            ltrg.nrep = Infinity;
+        }
+
         // if do not masks any layers, just add to target
         // if do masks, set it as a mask for them while not adding
         if (!lsrc[3]) { // !masked
@@ -336,7 +347,7 @@ Import.branch = function(type, src, all, anim) {
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
-        // [todo] temporary implementation
+        // TODO temporary implementation
         if (ltrg._audio_master) {
             ltrg.lband = [ltrg.lband[0], Infinity];
             ltrg.gband = [ltrg.gband[0], Infinity];
@@ -344,6 +355,7 @@ Import.branch = function(type, src, all, anim) {
             anim.add(ltrg);
         }
     }
+
     return trg;
 }
 /** leaf **/

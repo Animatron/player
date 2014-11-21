@@ -781,7 +781,7 @@ Element.prototype.ltime = function(gtime) {
     // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
     // value returned here). See `render()` method comment regarding `ltime` for more details.
     return this.__checkJump(
-        Element.checkRepeatMode(gtime, this.gband, this.lband, this.mode, this.nrep)
+        Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
     );
 }
 // > Element.handlePlayerEvent % (event: C.S_*, handler: Function(player: Player))
@@ -1193,6 +1193,12 @@ Element.prototype.shallow = function() {
     clone.__u_data = utils.obj_clone(this.__u_data);
     return clone;
 }
+Element.prototype.asClip = function(band, mode, nrep) {
+    // TODO: find better name for this
+    this.clip_band = band;
+    this.clip_mode = mode;
+    this.clip_nrep = nrep;
+}
 Element.prototype._addChild = function(elm) {
     elm.parent = this;
     elm.level = this.level + 1;
@@ -1260,7 +1266,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
             mod_duration = mod_band[1] - mod_band[0];
         }
 
-        res_time = Modifier.checkRepeatMode(ltime, mod_band,
+        res_time = Element.checkRepeatMode(ltime, mod_band,
                                             modifier.mode || C.R_ONCE, modifier.nrep);
         res_duration = mod_duration;
         if (t_cmp(res_time, 0) < 0) return false;
@@ -1287,6 +1293,11 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         res_time = ltime;
         res_duration = elm_duration;
 
+    }
+
+    if (elm.clip_band) {
+        res_time = Element.checkRepeatMode(elm.lband[0] + res_time, elm.clip_band,
+                                           elm.clip_mode || C.R_ONCE, elm.clip_nrep);
     }
 
     // correct time/duration if required
@@ -1506,33 +1517,33 @@ Element.getIMatrixOf = function(elm, m) {
     t.invert();
     return t;
 }
-Element.checkRepeatMode = function(gtime, gband, lband, mode, nrep) {
-    if (!is.finite(gband[1])) return gtime - gband[0];
+Element.checkRepetition = function(time, band, mode, nrep) {
+    if (!is.finite(band[1])) return time - band[0];
     switch (mode) {
         case C.R_ONCE:
-            return gtime - gband[0];
+            return time - band[0];
         case C.R_STAY:
-            return (t_cmp(gtime, gband[1]) <= 0)
-                   ? gtime - gband[0]
-                   : lband[1] - lband[0];
+            return (t_cmp(time, band[1]) <= 0)
+                   ? time - band[0]
+                   : band[1] - band[0];
         case C.R_LOOP: {
-                var durtn = lband[1] -
-                            lband[0];
+                var durtn = band[1] -
+                            band[0];
                 if (durtn < 0) return -1;
-                var ffits = (gtime - gband[0]) / durtn,
+                var ffits = (time - band[0]) / durtn,
                     fits = Math.floor(ffits);
                 if ((fits < 0) || (ffits > nrep)) return -1;
-                var t = (gtime - gband[0]) - (fits * durtn);
+                var t = (time - band[0]) - (fits * durtn);
                 return t;
             }
         case C.R_BOUNCE: {
-                var durtn = lband[1] -
-                            lband[0];
+                var durtn = band[1] -
+                            band[0];
                 if (durtn < 0) return -1;
-                var ffits = (gtime - gband[0]) / durtn,
+                var ffits = (time - band[0]) / durtn,
                     fits = Math.floor(ffits);
                 if ((fits < 0) || (ffits > nrep)) return -1;
-                var t = (gtime - gband[0]) - (fits * durtn),
+                var t = (time - band[0]) - (fits * durtn),
                     t = ((fits % 2) === 0) ? t : (durtn - t);
                 return t;
             }
