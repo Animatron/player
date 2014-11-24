@@ -8,12 +8,15 @@ var Brush = require('./brush.js');
 
 var Bounds = require('./bounds.js');
 
+// TODO: new Text("My Text").font("Arial").size(5).bold()
+
 function Text(lines, font, align, baseline, underlined) {
     this.lines = lines;
-    this.font = font || Text.DEFAULT_FONT;
-    this.align = align || Text.DEFAULT_ALIGN;
+    this.$font = font || Text.DEFAULT_FONT;
+    this.$align = align || Text.DEFAULT_ALIGN;
     this.baseline = baseline || Text.DEFAULT_BASELINE;
     this.underlined = is.defined(underlined) ? underlined : Text.DEFAULT_UNDERLINE;
+    this.size = -1;
     this.$bounds = null;
 }
 
@@ -31,9 +34,9 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
         height = (bounds.height / this.lineCount()),
         underlined = this.underlined;
 
-    ctx.font = this.font;
+    ctx.font = this.$font;
     ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
-    ctx.textAlign = this.align || Text.DEFAULT_ALIGN;
+    ctx.textAlign = this.$align || Text.DEFAULT_ALIGN;
 
     var ascent = this.ascent(height, ctx.textBaseline);
 
@@ -77,6 +80,16 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
         });
     }
 }
+Text.prototype.font = function(value) {
+    if (!value) return this.$font;
+    this.$font = value;
+    return this;
+}
+Text.prototype.align = function(value) {
+    if (!value) return this.$align;
+    this.$align = value;
+    return this;
+}
 Text.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
     var bounds = Text.bounds(this, this.lines);
@@ -111,7 +124,7 @@ Text.prototype.visitLines = function(func, data) {
     }
 }
 Text.prototype.clone = function() {
-    var c = new Text(this.lines, this.font);
+    var c = new Text(this.lines, this.$font);
     if (this.lines && Array.isArray(this.lines)) {
         c.lines = [].concat(this.lines);
     }

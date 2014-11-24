@@ -313,10 +313,11 @@ Element.prototype.resetEvents = Element.prototype.initEvents;
  * Examples:
  * * `elm.path("M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z")`
  * * `elm.path(new Path().move(0, 10).curve(10, 20, 15, 30, 10, 9))`
+ * * `var my_path = elm.path()`
  *
  * @param {String|anm.Path} [path]
+ * @return {anm.Path|anm.Element}
  */
-// > Element.path % ([value: Path]) => Path | Element
 Element.prototype.path = function(value) {
     if (value) {
         this.invalidate();
@@ -325,16 +326,46 @@ Element.prototype.path = function(value) {
         return this;
     } else return this.$path;
 }
-// > Element.text % ([value: Text]) => Text | Element
+/**
+* @method text
+* @chainable
+*
+* Set this element to be a {@link anm.Text Text} or get current text.
+*
+* Examples:
+* * `elm.text("my text")`
+* * `elm.text(["text","in three","lines"])`
+* * `elm.text(new Text("My Text").font("Arial"))`
+* * `elm.text(new Text(["Two lines", "of text"]).font("italic 20px Arial").align(anm.C.TA_RIGHT))`
+* * `var my_text = elm.text()`
+*
+* @param {String|[String]|anm.Text} [text]
+* @return {anm.Text|anm.Element}
+*/
 Element.prototype.text = function(value) {
     if (value) {
         this.invalidate();
         this.type = C.ET_TEXT;
-        this.$text = value;
+        this.$text = (is.str(value) || is.arr(value)) ? new Text(value) : value;
         return this;
     } else return this.$text;
 }
-// > Element.image % ([value: Sheet]) => Sheet | Element
+/**
+* @method image
+* @chainable
+*
+* Set this element to be an {@link anm.Sheet Image/Sheet} or get current image.
+*
+* Examples:
+* * `elm.image("my text")`
+* * `elm.text(["text","in three","lines"])`
+* * `elm.text(new Text("My Text").font("Arial"))`
+* * `elm.text(new Text(["Two lines", "of text"]).font("italic 20px Arial").align(anm.C.TA_RIGHT))`
+* * `var my_text = elm.image()`
+*
+* @param {String|anm.Sheet} [image]
+* @return {anm.Sheet|anm.Element}
+*/
 Element.prototype.image = function(value) {
     if (value) {
         this.invalidate();
