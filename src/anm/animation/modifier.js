@@ -55,10 +55,6 @@ function Modifier(func, type) {
     func.data = function(data) { if (!is.defined(data)) return this.$data;
                                  this.$data = data;
                                  return this; }
-    func.once = function() { this.mode = C.R_ONCE; return this; }
-    func.stay = function() { this.mode = C.R_STAY; return this; }
-    func.loop = function(times) { this.mode = C.R_LOOP; if (is.num(times)) this.nrep = times; return this; }
-    func.bounce = function(times) { this.mode = C.R_BOUNCE; if (is.num(times)) this.nrep = times; return this; }
     return func;
 }
 

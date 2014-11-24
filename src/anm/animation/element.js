@@ -1271,8 +1271,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
             mod_duration = mod_band[1] - mod_band[0];
         }
 
-        res_time = Element.checkRepeatMode(ltime, mod_band,
-                                           modifier.mode || C.R_ONCE, modifier.nrep);
+        res_time = res_time = ltime - mod_band[0];
         res_duration = mod_duration;
         if (t_cmp(res_time, 0) < 0) return false;
         if (t_cmp(res_time, res_duration) > 0) return false;
