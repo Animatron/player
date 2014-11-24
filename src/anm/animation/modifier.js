@@ -30,8 +30,6 @@ function Modifier(func, type) {
     func.$band = func.$band || null; // either band or time is specified
     func.$time = is.defined(func.$time) ? func.$time : null; // either band or time is specified
     func.$easing = func.$easing || null;
-    func.mode = C.R_ONCE;
-    func.nrep = Infinity;
     func.relative = is.defined(func.relative) ? func.relative : false; // is time or band are specified relatively to element
     func.is_tween = (func.is_tween || (func.type == C.MOD_TWEEN) || false); // should modifier receive relative time or not (like tweens)
     // TODO: may these properties interfere with something? they are assigned to function instances
