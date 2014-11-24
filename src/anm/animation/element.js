@@ -1242,6 +1242,11 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     var res_time,
         res_duration;
 
+    if (elm.clip_band) {
+        ltime = Element.checkRepeatMode(ltime, elm.clip_band,
+                                        elm.clip_mode || C.R_ONCE, elm.clip_nrep);
+    }
+
     // modifier takes the whole element time
     if (mod_time == null) {
 
@@ -1293,11 +1298,6 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         res_time = ltime;
         res_duration = elm_duration;
 
-    }
-
-    if (elm.clip_band) {
-        res_time = Element.checkRepeatMode(res_time, elm.clip_band,
-                                           elm.clip_mode || C.R_ONCE, elm.clip_nrep);
     }
 
     // correct time/duration if required
