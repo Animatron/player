@@ -1267,7 +1267,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         }
 
         res_time = Element.checkRepeatMode(ltime, mod_band,
-                                            modifier.mode || C.R_ONCE, modifier.nrep);
+                                           modifier.mode || C.R_ONCE, modifier.nrep);
         res_duration = mod_duration;
         if (t_cmp(res_time, 0) < 0) return false;
         if (t_cmp(res_time, res_duration) > 0) return false;
@@ -1296,7 +1296,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     }
 
     if (elm.clip_band) {
-        res_time = Element.checkRepeatMode(elm.lband[0] + res_time, elm.clip_band,
+        res_time = Element.checkRepeatMode(res_time, elm.clip_band,
                                            elm.clip_mode || C.R_ONCE, elm.clip_nrep);
     }
 
@@ -1517,7 +1517,7 @@ Element.getIMatrixOf = function(elm, m) {
     t.invert();
     return t;
 }
-Element.checkRepetition = function(time, band, mode, nrep) {
+Element.checkRepeatMode = function(time, band, mode, nrep) {
     if (!is.finite(band[1])) return time - band[0];
     switch (mode) {
         case C.R_ONCE:

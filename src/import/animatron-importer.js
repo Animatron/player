@@ -317,7 +317,9 @@ Import.branch = function(type, src, all, anim) {
         // Clips' end-actions like in Editor are not supported in Player,
         // but they may be adapted to Player's model (same as Group in Editor)
         if (ltrg._anm_type == TYPE_CLIP) {
-            ltrg.asClip([].concat(ltrg.lband), ltrg.mode, ltrg.nrep);
+            ltrg.asClip([0, ltrg.lband[1] - ltrg.lband[0]], ltrg.mode, ltrg.nrep);
+            ltrg.lband = [ ltrg.lband[0], Infinity ];
+            ltrg.gband = [ ltrg.gband[0], Infinity ];
             ltrg.mode = C.R_STAY;
             ltrg.nrep = Infinity;
         }
