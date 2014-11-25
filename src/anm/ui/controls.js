@@ -94,7 +94,7 @@ Controls.prototype.checkMouseTimeout = function(gtime) {
         var idleTime = gtime - this.state.mouseInteractedAt;
         if (idleTime > this.theme.fadeTimes.idle &&
             //if we're in a state where controls should autohide
-            (this.state.happens === C.PLAYING || this.state.happens === C.STOPPED) &&
+            (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) &&
             //and the mouse is not busy somewhere on the bottom area
             !isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])
         ) {
