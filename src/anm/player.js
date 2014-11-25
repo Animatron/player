@@ -601,12 +601,6 @@ Player.prototype.stop = function() {
                    player._postponedLoad)) {
         state.happens = C.STOPPED;
         player._drawStill();
-        if (player.controls/* && !player.controls.hidden*/) {
-            // FIXME: subscribe controls to S_STOP event instead
-            player.controls.show();
-            player.controls.forceNextRedraw();
-            player.controls.render(state.time);
-        }
         player.fire(C.S_CHANGE_STATE, C.STOPPED);
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
@@ -868,7 +862,6 @@ Player.prototype.forceRedraw = function() {
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
     }
-    if (this.controls) this.controls.render(this.state.time);
 }
 /**
  * @method drawAt
@@ -900,9 +893,6 @@ Player.prototype.drawAt = function(time) {
     anim.reset();
     anim.__informEnabled = false;
     Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
-
-    if (this.controls) this.controls.render(time);
-
     return this;
 }
 /**
@@ -1359,9 +1349,6 @@ Player.prototype._disableInfo = function() {
     if (!this.controls) return;
     this.controls.disableInfo();
 }
-Player.prototype._renderControlsAt = function(time) {
-    this.controls.render(time);
-}
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         engine.setTabIndex(this.canvas, this.__instanceNum);
@@ -1438,9 +1425,6 @@ Player.prototype.__beforeFrame = function(anim) {
 Player.prototype.__afterFrame = function(anim) {
     return (function(player, state, anim, callback) {
         return function(time) {
-            if (player.controls && !player.controls.hidden) {
-                player.controls.render(time);
-            }
             if (callback) callback(time);
 
             anim.invokeAllLaters();
