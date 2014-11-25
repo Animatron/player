@@ -1194,6 +1194,7 @@ Element.prototype.shallow = function() {
     return clone;
 }
 Element.prototype.asClip = function(band, mode, nrep) {
+    if (mode == C.R_ONCE) return;
     // TODO: find better name for this
     this.clip_band = band;
     this.clip_mode = mode;
