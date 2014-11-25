@@ -34,25 +34,25 @@ function Modifier(func, type) {
     func.is_tween = (func.is_tween || (func.type == C.MOD_TWEEN) || false); // should modifier receive relative time or not (like tweens)
     // TODO: may these properties interfere with something? they are assigned to function instances
     func[C.MARKERS.MODIFIER_MARKER] = true;
-    func.band = function(start, stop) { if (!is.defined(start)) return func.$band;
+    func.band = function(start, stop) { if (!is.defined(start)) return this.$band;
                                         // FIXME: array bands should not pass
                                         if (is.arr(start)) {
                                             stop = start[1];
                                             start = start[0];
                                         }
                                         if (!is.defined(stop)) { stop = Infinity; }
-                                        func.$band = [ start, stop ];
+                                        this.$band = [ start, stop ];
                                         return func; }
-    func.time = function(value) { if (!is.defined(value)) return func.$time;
-                                  func.$time = value;
-                                  return func; }
-    func.easing = function(f, data) { if (!f) return func.$easing;
-                                      func.$easing = convertEasing(f, data,
-                                                     func.relative || func.is_tween);
-                                      return func; }
-    func.data = function(data) { if (!is.defined(data)) return func.$data;
-                                 func.$data = data;
-                                 return func; }
+    func.time = function(value) { if (!is.defined(value)) return this.$time;
+                                  this.$time = value;
+                                  return this; }
+    func.easing = function(f, data) { if (!f) return this.$easing;
+                                      this.$easing = convertEasing(f, data,
+                                                     this.relative || this.is_tween);
+                                      return this; }
+    func.data = function(data) { if (!is.defined(data)) return this.$data;
+                                 this.$data = data;
+                                 return this; }
     return func;
 }
 

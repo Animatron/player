@@ -197,6 +197,8 @@ function fit_rects(pw, ph, aw, ah) {
     } else return [ 1, [ 0, 0, aw, ah ] ];
 }
 
+// TODO: add array cloning
+
 module.exports = {
     fmt_time: fmt_time,
     ell_text: ell_text,
