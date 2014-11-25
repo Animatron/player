@@ -356,7 +356,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
         var remotes = anim._collectRemoteResources(player);
         if (!remotes.length) {
-            if (player.controls) player.controls.inject(anim);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
             if (callback) callback.call(player, result);
@@ -378,7 +377,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
-                        if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);

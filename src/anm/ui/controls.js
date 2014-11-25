@@ -6,6 +6,11 @@ var provideEvents = require('../events.js').provideEvents,
     utils = require('../utils.js'),
     is = utils.is;
 
+//fade modes
+var FADE_NONE = 0,
+    FADE_IN = 1,
+    FADE_OUT = 2;
+
 // Controls
 // -----------------------------------------------------------------------------
 
@@ -14,12 +19,8 @@ function Controls(player) {
     this.canvas = null;
     this.ctx = null;
     this.bounds = [];
-    this.hidden = false;
-    this.elapsed = false;
     this.theme = null;
     this.info = null;
-    this._time = -1000;
-    this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
     this.state = {
         happens: C.NOTHING,
@@ -30,8 +31,8 @@ function Controls(player) {
         time: 0,
         gtime: 0,
         fadeTimer: 0,
-        fadingIn: false,
-        fadingOut: false
+        fadeMode: FADE_NONE,
+        mouseInteractedAt: 0
     };
 }
 
@@ -64,15 +65,14 @@ Controls.prototype.update = function(parent) {
 };
 
 Controls.prototype.subscribeEvents = function() {
-    var me=this,
-        canvas=this.canvas;
+    var me=this;
 
     me.player.on(C.S_STATE_CHANGE, function(state) {
         me.state.happens = state;
         me.state.changed = true;
     });
 
-    engine.subscribeCanvasEvents(canvas, {
+    engine.subscribeCanvasEvents(me.canvas, {
         mouseenter: function(e) { me.handleMouseEnter(e);},
         mousemove: function(e) { me.handleMouseMove(e);},
         mouseleave: function(e) { me.handleMouseLeave(); },
@@ -82,20 +82,75 @@ Controls.prototype.subscribeEvents = function() {
     });
 };
 
+//check and update the time when the mouse was last moved or clicked.
+//fade out the controls if the mouse has been inactive for `fadeTimes.idle` ms.
+Controls.prototype.checkMouseTimeout = function(gtime) {
+    if (this.state.mouseInteracted) {
+        this.state.mouseInteractedAt = gtime;
+        this.state.mouseInteracted = false;
+        this.state.autoHidden = false;
+        this.show();
+    } else if(!this.state.autoHidden){
+        var idleTime = gtime - this.state.mouseInteractedAt;
+        if (idleTime > this.theme.fadeTimes.idle &&
+            //if we're in a state where controls should autohide
+            (this.state.happens === C.PLAYING || this.state.happens === C.STOPPED) &&
+            //and the mouse is not busy somewhere on the bottom area
+            !isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])
+        ) {
+            this.hide();
+            this.state.autoHidden = true;
+        }
+    }
+};
+
+//check if controls are being faded in/out, update alpha accordingly
+//return true if a fade is in progress
+Controls.prototype.checkFade = function(dt) {
+    var state = this.state,
+        fadeMode = state.fadeMode,
+        fadeModifier = false,
+        alpha = state.alpha;
+    if (fadeMode !== FADE_NONE) {
+        fadeModifier = true;
+        state.fadeTimer -= dt;
+        if (fadeMode === FADE_IN) {
+            alpha = Math.min(1, 1-state.fadeTimer/theme.fadeTimes.in);
+        } else { // FADE_OUT
+            alpha = Math.max(0, state.fadeTimer/theme.fadeTimes.out);
+        }
+        state.alpha = alpha;
+
+        if (state.fadeTimer <= 0) {
+            state.fadeTimer = 0;
+            state.fadeMode = FADE_NONE;
+
+        }
+    }
+    return fadeModifier;
+};
+
 Controls.prototype.render = function(gtime) {
+    this.checkMouseTimeout(gtime);
+
+    var dt = gtime-this.state.gtime;
+    var prevGtime = this.state.gtime;
+    this.state.gtime = gtime;
+
     if (!this.bounds || !this.state.changed) {
+        // no reason to render nothing or the same image again
         return;
     }
 
     this.rendering = true;
-    var dt = gtime-this.gtime,
-        player = this.player,
-        s = this.state.happens,
-        alpha = this.state.alpha,
-        coords = this.state.mpos,
-        time = this.state.time = player.state.time;
 
-    this.gtime = gtime;
+    var fadeModifier = this.checkFade(dt);
+
+    var state = this.state,
+        player = this.player,
+        s = state.happens,
+        coords = state.mpos,
+        time = state.time = player.state.time;
 
     var ctx = this.ctx,
         theme = this.theme,
@@ -106,18 +161,11 @@ Controls.prototype.render = function(gtime) {
         h = this.bounds[3],
         ratio = engine.PX_RATIO;
 
-
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, w, h);
-    ctx.globalAlpha = alpha;
-    if (alpha === 0) {
-        this.state.changed = false;
-        ctx.restore();
-        this.rendering = false;
-        return;
-    }
+    ctx.globalAlpha = state.alpha;
 
     if (s === C.PLAYING) {
         if (duration) {
@@ -129,7 +177,7 @@ Controls.prototype.render = function(gtime) {
     } else if (s === C.STOPPED) {
         drawBack(ctx, theme, w, h);
         drawPlay(ctx, theme, w, h, this.focused);
-        this.state.changed = false;
+        state.changed = false;
     } else if (s === C.PAUSED) {
         drawBack(ctx, theme, w, h);
         drawPlay(ctx, theme, w, h, this.focused);
@@ -139,30 +187,35 @@ Controls.prototype.render = function(gtime) {
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
             drawVolumeBtn(ctx, w, h, player.muted);
         }
-        this.state.changed = false;
+        state.changed = false;
     } else if (s === C.NOTHING) {
         drawNoAnimation(ctx, theme, w, h, this.focused);
-        this.state.changed = false;
+        state.changed = false;
     } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
-            drawLoading(ctx, theme, w, h, ((gtime % 60) / 60), '');
+        drawBack(ctx, theme, w, h);
+        drawLoadingProgress(ctx, w, h, ((gtime / 100  % 60) / 60));
     } else if (s === C.ERROR) {
         drawBack(ctx, theme, w, h);
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
-        this.state.changed = false;
+        state.changed = false;
     }
 
     ctx.restore();
     this.fire(C.X_DRAW);
 
-
     if (this.info) {
       if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
       else { this._infoShown = false; }
     }
+    //we might have a non-changing state like STOPPED, but it will still
+    //need to be redrawn when fading in/out, so we apply our fade modifier
+    //if applicable at this point
+    state.changed |= fadeModifier;
 
     this.rendering = false;
 };
 
+//react to a click on the controls
 Controls.prototype.react = function() {
     if (this.hidden) return;
 
@@ -171,25 +224,26 @@ Controls.prototype.react = function() {
         btnWidth = theme.progress.buttonWidth,
         bottomHeight = theme.bottomControls.height;
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
-    this.state.changed = true;
     var coords = this.state.mpos,
         w = this.bounds[2], h = this.bounds[3];
-    if (isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth) {
-        time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
-        if (s === C.PLAYING) {
-          p.pause().play(time);
-        } else {
-          p.play(time).pause();
-        }
-        this.state.time = time;
-        return;
-    }
-    //mute button?
-    if (isInProgressArea(coords, w, h) && coords.x > w-btnWidth) {
-      p.toggleMute();
-      return;
-    }
 
+    //handle clicks in the bottom area, where the playhead
+    //and mute buttons reside
+    if (isInProgressArea(coords, w, h)) {
+        if (coords.x > btnWidth && coords.x < w-btnWidth) {
+            time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
+            if (s === C.PLAYING) {
+              p.pause().play(time);
+            } else {
+              p.play(time).pause();
+            }
+            this.state.time = time;
+            return;
+        } else if(coords.x > w-btnWidth) { //mute button?
+            p.toggleMute();
+            return;
+        }
+    }
     if (s === C.STOPPED) {
         p.play(0);
         return;
@@ -209,26 +263,33 @@ Controls.prototype.handleAreaChange = function() {
     this.bounds = engine.getCanvasBounds(this.canvas);
 };
 
-Controls.prototype.startShow = function(){
-
-};
-
-Controls.prototype.startHide = function(){
-
-};
-
 Controls.prototype.handleMouseMove = function(evt) {
+    this.state.mouseInteracted = true;
     var pos = engine.getEventPosition(evt, this.canvas);
     this.state.mpos.x = pos[0];
     this.state.mpos.y = pos[1];
-    if (isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])) {
-        this.state.changed = true;
+    if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
+        //if we are in the state where the playhead is accessible,
+        //let's check if the mouse was there.
+        if (isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])) {
+            this.state.changed = true;
+            this.state.mouseInProgressArea = true;
+        } else {
+            // if the mouse left the progress area, we need to redraw the
+            // controls to possibly update the time marker position
+            if (this.state.mouseInProgressArea) {
+                this.state.changed = true;
+            }
+            this.state.mouseInProgressArea = false;
+        }
     }
 };
 
 
 Controls.prototype.handleClick = function() {
     this.state.changed = true;
+    this.state.mouseInteracted = true;
+    this.show();
     this.react();
 };
 
@@ -243,17 +304,29 @@ Controls.prototype.handleMouseLeave = function() {
 
 
 Controls.prototype.hide = function() {
-    this.state.alpha = 0;
+    if (this.state.alpha === 0 || this.state.fadeMode === FADE_OUT) {
+        //already hidden/hiding
+        return;
+    }
+    this.state.fadeMode = FADE_OUT;
+    //we substract the current fadeTimer value so that if the controls only
+    //showed halfway, they will fade out from the exact alpha they were in
+    this.state.fadeTimer = theme.fadeTimes.out - this.state.fadeTimer;
+    this.state.changed = true;
 };
 
 
 Controls.prototype.show = function() {
-    this.state.alpha = 1;
+    if (this.state.alpha === 1 || this.state.fadeMode === FADE_IN) {
+        //already shown/showing
+        return;
+    }
+    this.state.fadeMode = FADE_IN;
+    this.state.fadeTimer = theme.fadeTimes.in - this.state.fadeTimer;
+    this.state.changed = true;
 };
 
 Controls.prototype.reset = function() {
-    this._time = -1000;
-    this.elapsed = false;
     if (this.info) this.info.reset();
 };
 
@@ -274,8 +347,6 @@ Controls.prototype.forceNextRedraw = function() {
 };
 
 Controls.prototype.enable = function() {
-    var player = this.player,
-        state = player.state;
     this.update(this.player.canvas);
 };
 
@@ -291,15 +362,12 @@ Controls.prototype.enableInfo = function() {
 Controls.prototype.disableInfo = function() {
 };
 
-Controls.prototype.setDuration = function(value) {
-};
-
-Controls.prototype.inject = function(anim, duration) {
-};
+var nextFrame = engine.getRequestFrameFunc(),
+    stopAnim = engine.getCancelFrameFunc();
 
 var getRenderFunc = function(controls) {
-    var renderFunc = function() {
-        controls.render.call(controls, arguments);
+    var renderFunc = function(t) {
+        controls.render.call(controls, t);
         nextFrame(renderFunc);
     };
 
@@ -315,15 +383,12 @@ Controls.prototype.stopRenderLoop = function() {
     stopAnim(this.renderFunc);
 };
 
-
+//check whether the mpos coordinates are within the bottom area
 var isInProgressArea = function(mpos, w, h) {
     return(mpos.y <= h && mpos.y >= (h - theme.bottomControls.height));
 };
 
-var nextFrame = engine.getRequestFrameFunc(),
-    stopAnim = engine.getCancelFrameFunc();
-
-
+//draw the play/pause button background
 var drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.save();
     var cx = w / 2,
@@ -332,12 +397,11 @@ var drawBack = function(ctx, theme, w, h, bgcolor) {
     ctx.fillStyle = theme.circle.color;
     ctx.arc(cx,cy,theme.circle.radius,0,2*Math.PI);
     ctx.fill();
-
     ctx.restore();
 };
 
+//draw the progress area, complete with the progress bar
 var drawProgress = function(ctx, theme, w, h, progress) {
-    if (!is.finite(progress)) return;
     ctx.save();
     var btnWidth = theme.progress.buttonWidth,
         bottomHeight = theme.bottomControls.height;
@@ -349,23 +413,37 @@ var drawProgress = function(ctx, theme, w, h, progress) {
     ctx.fillStyle = theme.progress.activeColor;
     ctx.fillRect(btnWidth, h-10, progressWidth, 5);
     ctx.restore();
-
 };
 
+//draw the pause button
 var drawPause = function(ctx, theme, w, h, focused) {
     ctx.save();
-
     var cx = w / 2,
         cy = h / 2;
-
     ctx.fillStyle = theme.button.color;
     ctx.fillRect(cx - 12, cy - 17, 8, 34);
     ctx.fillRect(cx + 4, cy - 17, 8, 34);
-
     ctx.restore();
-
 };
 
+//draw the play button
+var drawPlay = function(ctx, theme, w, h, focused) {
+    ctx.save();
+    var cx = w / 2,
+        cy = h / 2;
+    ctx.strokeStyle = 'transparent';
+    ctx.fillStyle = theme.button.color;
+    ctx.beginPath();
+    ctx.moveTo(cx - 12, cy - 20);
+    ctx.lineTo(cx - 12, cy + 20);
+    ctx.lineTo(cx + 18, cy);
+    ctx.lineTo(cx - 12, cy - 20);
+    ctx.closePath();
+    ctx.fill();
+    ctx.restore();
+};
+
+//draw the small pause/play buttons in the bottom area
 var drawTinyPause = function(ctx, w, h) {
     ctx.save();
 
@@ -399,6 +477,7 @@ var drawTinyPlay = function(ctx, w, h) {
     ctx.restore();
 };
 
+// draw the sound on/off button
 var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.save();
 
@@ -439,35 +518,10 @@ var drawVolumeBtn = function(ctx, w, h, muted) {
             ctx.stroke();
         }
     }
-
-
     ctx.restore();
 };
 
-var drawPlay = function(ctx, theme, w, h, focused) {
-    ctx.save();
-    var cx = w / 2,
-        cy = h / 2;
-
-    ctx.strokeStyle = 'transparent';
-    ctx.fillStyle = theme.button.color;
-    ctx.beginPath();
-    ctx.moveTo(cx - 12, cy - 20);
-    ctx.lineTo(cx - 12, cy + 20);
-    ctx.lineTo(cx + 18, cy);
-    ctx.lineTo(cx - 12, cy - 20);
-    ctx.closePath();
-    ctx.fill();
-
-    ctx.restore();
-
-};
-
-var drawLoading = function(ctx, theme, w, h, hilite_pos, src) {
-    drawBack(ctx, theme, w, h);
-    drawLoadingProgress(ctx, w, h, hilite_pos);
-};
-
+//draw the loader
 var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     var cx = w / 2,
         cy = h / 2,
@@ -516,6 +570,7 @@ var drawError = function(ctx, theme, w, h, error, focused) {
                                             : error, theme.colors.error);
 };
 
+//draw either the current time or the time under the mouse position
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     var btnWidth = theme.progress.buttonWidth,
         inArea = isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth;
