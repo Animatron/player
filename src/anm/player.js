@@ -347,7 +347,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     state.happens = C.LOADING;
     player.fire(C.S_CHANGE_STATE, C.LOADING);
-    player._runLoadingAnimation();
 
     var whenDone = function(result) {
         var anim = player.anim;
@@ -357,7 +356,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
         var remotes = anim._collectRemoteResources(player);
         if (!remotes.length) {
-            player._stopLoadingAnimation();
             if (player.controls) player.controls.inject(anim);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
@@ -380,7 +378,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
-                        player._stopLoadingAnimation();
                         if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
@@ -1262,14 +1259,11 @@ Player.prototype._drawLoadingProgress = function() {
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     if (this.controls) return;
-    Controls.stopLoadingAnimation(this.ctx);
     this._drawEmpty();
 }
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
     if (this.controls) {
-        this.controls.forceNextRedraw();
-        this.controls.render();
         return;
     }
     this._drawSplash();
@@ -1282,21 +1276,6 @@ Player.prototype._drawErrorSplash = function(e) {
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 25);
     ctx.restore();
-}
-Player.prototype._runLoadingAnimation = function(what) {
-    if (this.controls) {
-        this._drawLoadingSplash(what);
-        this.controls._scheduleLoading();
-    } else {
-        this._drawLoadingProgress();
-    }
-}
-Player.prototype._stopLoadingAnimation = function() {
-    if (this.controls) {
-        this.controls._stopLoading();
-    } else {
-        this._stopDrawingLoadingCircles();
-    }
 }
 /**
  * @method toString
@@ -1477,12 +1456,6 @@ Player.prototype.__onerror = function(err) {
   var player = this;
   var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof errors.SystemError);
-
-  if (player.state &&
-      ((player.state.happens == C.LOADING) ||
-       (player.state.happens == C.RES_LOADING))) {
-      player._stopLoadingAnimation();
-  }
 
   try {
       if (player.state) player.state.happens = C.ERROR;

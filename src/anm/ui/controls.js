@@ -4,9 +4,7 @@ var provideEvents = require('../events.js').provideEvents,
     InfoBlock = require('./infoblock.js'),
     Strings = require('../loc.js').Strings,
     utils = require('../utils.js'),
-    Path = require('../graphics/path.js'),
-    is = utils.is,
-    Brush = require('../graphics/brush.js');
+    is = utils.is;
 
 // Controls
 // -----------------------------------------------------------------------------
@@ -15,16 +13,26 @@ function Controls(player) {
     this.player = player;
     this.canvas = null;
     this.ctx = null;
-    this.ready = false;
     this.bounds = [];
     this.hidden = false;
-    this.focused = false; // the current button is focused
     this.elapsed = false;
     this.theme = null;
     this.info = null;
     this._time = -1000;
     this._lhappens = C.NOTHING;
     this._initHandlers(); /* TODO: make automatic */
+    this.state = {
+        happens: C.NOTHING,
+        mpos: {x: 0, y: 0},
+        alpha: 1,
+        click: false,
+        changed: true,
+        time: 0,
+        gtime: 0,
+        fadeTimer: 0,
+        fadingIn: false,
+        fadingOut: false
+    };
 }
 
 var theme = Controls.DEFAULT_THEME = require('./controls_theme.json');
@@ -44,8 +52,9 @@ Controls.prototype.update = function(parent) {
         this.id = cvs.id;
         this.canvas = cvs;
         this.ctx = engine.getContext(cvs, '2d');
-        this.subscribeEvents(cvs, parent);
+        this.subscribeEvents(cvs);
         this.changeTheme(Controls.THEME);
+        this.setupRenderLoop();
     } else {
         engine.updateOverlay(parent, cvs);
     }
@@ -54,96 +63,61 @@ Controls.prototype.update = function(parent) {
     BACK_GRAD = null; // invalidate back gradient
 };
 
-Controls.prototype.subscribeEvents = function(canvas, parent) {
-    engine.subscribeCanvasEvents(parent, {
-        mouseenter: (function(controls) {
-                return function(evt) { controls.handleMouseEnter(); };
-            })(this),
-        mouseleave: (function(controls) {
-                return function(evt) { controls.handleMouseLeave(); };
-            })(this),
-        click: (function(controls) {
-                return function(evt) { controls.handlePlayerClick(); };
-            })(this)
+Controls.prototype.subscribeEvents = function() {
+    var me=this,
+        canvas=this.canvas;
+
+    me.player.on(C.S_STATE_CHANGE, function(state) {
+        me.state.happens = state;
+        me.state.changed = true;
     });
+
     engine.subscribeCanvasEvents(canvas, {
-        mouseenter: (function(controls) {
-                return function(evt) { controls.handleMouseEnter(); };
-            })(this),
-        mouseleave: (function(controls) {
-                return function(evt) { controls.handleMouseLeave(); };
-            })(this),
-        mousemove: (function(controls) {
-                return function(evt) { controls.handleMouseMove(evt); };
-            })(this),
-        mousedown: (function(controls) {
-                return function(evt) { controls.handleClick(); engine.preventDefault(evt); };
-            })(this),
+        mouseenter: function(e) { me.handleMouseEnter(e);},
+        mousemove: function(e) { me.handleMouseMove(e);},
+        mouseleave: function(e) { me.handleMouseLeave(); },
+        mousedown: function(e) { me.handleClick(); engine.preventDefault(e);},
         click: engine.preventDefault,
         dblclick: engine.preventDefault
     });
 };
 
-Controls.prototype.render = function(time, alpha) {
-    if (this.hidden && !this.__force) return;
-
-    if (!this.bounds) return;
-
-    // TODO: may be this function should check player mode by itself and create canvas
-    //       only in case it is required, but player should create Controls instance
-    //       all the time, independently of the mode.
-
-    var player = this.player,
-        state = player.state,
-        s = state.happens;
-
-    alpha = alpha || this._lastAlpha;
-
-    time = Math.max(time, 0);
-    var coords = {x:0,y:0};
-    if (this._last_mevt) {
-      var pos = engine.getEventPosition(this._last_mevt, this.canvas);
-      coords = {x: pos[0], y: pos[1]};
+Controls.prototype.render = function(gtime) {
+    if (!this.bounds || !this.state.changed) {
+        return;
     }
-
-    if (!this.__force &&
-        (time === this._time) &&
-        (s === this._lhappens) &&
-        (this._lastAlpha === alpha)) return;
-
-    // these states do not change controls visually between frames
-    if (is.defined(this._lastDrawn) &&
-        (this._lastDrawn === s) &&
-        ((s === C.STOPPED) ||
-         (s === C.NOTHING) ||
-         (s === C.ERROR)) &&
-        (this._lastAlpha === alpha)
-       ) return;
 
     this.rendering = true;
+    var dt = gtime-this.gtime,
+        player = this.player,
+        s = this.state.happens,
+        alpha = this.state.alpha,
+        coords = this.state.mpos,
+        time = this.state.time = player.state.time;
 
-    if (((this._lhappens === C.LOADING) || (this._lhappens === C.RES_LOADING)) &&
-        ((s !== C.LOADING) && (s !== C.RES_LOADING))) {
-        Controls.stopLoadingAnimation(this.ctx);
-    }
-
-    this._time = time;
-    this._lhappens = s;
+    this.gtime = gtime;
 
     var ctx = this.ctx,
         theme = this.theme,
-        duration = state.duration,
+        duration = this.player.state.duration,
         progress = time / ((duration !== 0) ? duration : 1);
 
     var w = this.bounds[2],
         h = this.bounds[3],
         ratio = engine.PX_RATIO;
 
+
     ctx.save();
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     if (ratio != 1) ctx.scale(ratio, ratio);
     ctx.clearRect(0, 0, w, h);
     ctx.globalAlpha = alpha;
+    if (alpha === 0) {
+        this.state.changed = false;
+        ctx.restore();
+        this.rendering = false;
+        return;
+    }
 
     if (s === C.PLAYING) {
         if (duration) {
@@ -155,6 +129,7 @@ Controls.prototype.render = function(time, alpha) {
     } else if (s === C.STOPPED) {
         drawBack(ctx, theme, w, h);
         drawPlay(ctx, theme, w, h, this.focused);
+        this.state.changed = false;
     } else if (s === C.PAUSED) {
         drawBack(ctx, theme, w, h);
         drawPlay(ctx, theme, w, h, this.focused);
@@ -164,26 +139,21 @@ Controls.prototype.render = function(time, alpha) {
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
             drawVolumeBtn(ctx, w, h, player.muted);
         }
-
+        this.state.changed = false;
     } else if (s === C.NOTHING) {
         drawNoAnimation(ctx, theme, w, h, this.focused);
+        this.state.changed = false;
     } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
-        runLoadingAnimation(ctx, function(ctx) {
-            ctx.clearRect(0, 0, w, h);
-            drawLoading(ctx, theme, w, h,
-                                  (((Date.now() / 100) % 60) / 60), '');
-        });
+            drawLoading(ctx, theme, w, h, ((gtime % 60) / 60), '');
     } else if (s === C.ERROR) {
         drawBack(ctx, theme, w, h);
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
+        this.state.changed = false;
     }
-    this._lastDrawn = s;
-    this._lastAlpha = alpha;
 
     ctx.restore();
-    this.fire(C.X_DRAW, state);
+    this.fire(C.X_DRAW);
 
-    this.__force = false;
 
     if (this.info) {
       if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
@@ -193,61 +163,44 @@ Controls.prototype.render = function(time, alpha) {
     this.rendering = false;
 };
 
-Controls.prototype.react = function(time) {
+Controls.prototype.react = function() {
     if (this.hidden) return;
 
     var p = this.player,
-        s = p.state.happens,
+        s = this.state.happens,
         btnWidth = theme.progress.buttonWidth,
         bottomHeight = theme.bottomControls.height;
     if ((s === C.NOTHING) || (s === C.LOADING) || (s === C.ERROR)) return;
-    if (this._last_mevt) {
-      var pos = engine.getEventPosition(this._last_mevt, this.canvas);
-      var coords = {x: pos[0], y: pos[1]},
-          w = this.bounds[2], h = this.bounds[3];
-      if (coords.y > h-bottomHeight && coords.x > btnWidth && coords.x < w-btnWidth) {
+    this.state.changed = true;
+    var coords = this.state.mpos,
+        w = this.bounds[2], h = this.bounds[3];
+    if (isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth) {
         time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
         if (s === C.PLAYING) {
-            p.pause().play(time);
+          p.pause().play(time);
         } else {
-            p.play(time).pause();
+          p.play(time).pause();
         }
+        this.state.time = time;
         return;
-      }
-      //mute button?
-      if (coords.y > h-bottomHeight && coords.x > w-btnWidth) {
-          p.toggleMute();
-          return;
-      }
+    }
+    //mute button?
+    if (isInProgressArea(coords, w, h) && coords.x > w-btnWidth) {
+      p.toggleMute();
+      return;
     }
 
     if (s === C.STOPPED) {
         p.play(0);
-        this.scheduleHide();
         return;
     }
     if (s === C.PAUSED) {
-        p.play(this._time);
-        this.scheduleHide();
+        p.play(this.state.time);
         return;
     }
     if (s === C.PLAYING) {
-        this._time = time;
         p.pause();
-        this.resetScheduledHide();
         return;
-    }
-};
-
-Controls.prototype.refreshByMousePos = function(pos) {
-    if (!this.bounds) return;
-    var state = this.player.state;
-    this.forceNextRedraw();
-    this.render(state.time);
-    if (pos[1] > this.bounds[3]-theme.bottomControls.height) {
-        this.resetScheduledHide();
-    } else {
-        this.scheduleHide();
     }
 };
 
@@ -256,100 +209,46 @@ Controls.prototype.handleAreaChange = function() {
     this.bounds = engine.getCanvasBounds(this.canvas);
 };
 
+Controls.prototype.startShow = function(){
+
+};
+
+Controls.prototype.startHide = function(){
+
+};
+
 Controls.prototype.handleMouseMove = function(evt) {
-    if (!evt) return;
-    var me=this;
-    this._last_mevt = evt;
-
-    this.show();
-    this.refreshByMousePos(engine.getEventPosition(evt, this.canvas));
-};
-
-Controls.prototype.scheduleHide = function() {
-    var me=this;
-    clearTimeout(me._hideTimeout);
-    var state = this.player.state.happens;
-    if (state !== C.PLAYING) {
-        return;
+    var pos = engine.getEventPosition(evt, this.canvas);
+    this.state.mpos.x = pos[0];
+    this.state.mpos.y = pos[1];
+    if (isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])) {
+        this.state.changed = true;
     }
-    me._hideTimeout = setTimeout(function(){
-        me.hide();
-    }, theme.fadeTimes.inactive);
 };
 
-Controls.prototype.resetScheduledHide = function() {
-    clearTimeout(this._hideTimeout);
-};
 
 Controls.prototype.handleClick = function() {
-    var state = this.player.state;
-    this.forceNextRedraw();
-    this.react(state.time);
-    this.render(state.time);
-};
-
-Controls.prototype.handlePlayerClick = function() {
-    if (this.player.handleEvents) return;
-    var state = this.player.state;
-    if (state.happens === C.PLAYING) {
-        this.show();
-        this.forceNextRedraw();
-        this.react(state.time);
-        this.render(state.time);
-    }
+    this.state.changed = true;
+    this.react();
 };
 
 Controls.prototype.handleMouseEnter = function() {
-    var state = this.player.state;
     this.show();
     this.forceNextRedraw();
-    this.render(state.time);
 };
 
 Controls.prototype.handleMouseLeave = function() {
-    var state = this.player.state;
-    if ((state.happens === C.NOTHING) ||
-        (state.happens === C.LOADING) ||
-        (state.happens === C.RES_LOADING) ||
-        (state.happens === C.ERROR) ||
-        (state.happens === C.STOPPED)) {
-        this.forceNextRedraw();
-        this.render(state.time);
-    } else {
-        if (!this.fadingIn) {
-            this.hide();
-        }
-    }
+    this.hide();
 };
 
-Controls.prototype.forceRefresh = function() {
-    this.forceNextRedraw();
-    this.render(this.player.state.time);
-};
 
-/* TODO: take initial state from imported project */
 Controls.prototype.hide = function() {
-    if (this.hidden || this.fadingOut) {
-        return;
-    }
-    var me=this;
-    me.resetScheduledHide();
-    this.fadeOut(function() {
-        engine.hideElement(me.canvas);
-        me.hidden = true;
-        if (me.info) me.info.hide();
-    });
+    this.state.alpha = 0;
 };
 
 
 Controls.prototype.show = function() {
-    if (this.fadingIn || !this.hidden) {
-        return;
-    }
-    engine.showElement(this.canvas);
-    this.hidden = false;
-    if (this.info && this._infoShown) this.info.show();
-    this.fadeIn();
+    this.state.alpha = 1;
 };
 
 Controls.prototype.reset = function() {
@@ -359,6 +258,7 @@ Controls.prototype.reset = function() {
 };
 
 Controls.prototype.detach = function(parent) {
+    this.stopRenderLoop();
     engine.detachElement(parent, this.canvas);
     if (this.info) this.info.detach(parent);
     if (this.ctx) engine.clearAnmProps(this.ctx);
@@ -366,42 +266,17 @@ Controls.prototype.detach = function(parent) {
 
 Controls.prototype.changeTheme = function(to) {
     this.theme = to;
-    // TODO: redraw
+    this.state.changed = true;
 };
 
 Controls.prototype.forceNextRedraw = function() {
-    this.__force = true;
-};
-
-Controls.prototype._scheduleLoading = function() {
-    if (this._loadingInterval) return;
-    var controls = this;
-    this._loadingInterval = setInterval(function() {
-         controls.forceNextRedraw();
-         controls.render();
-    }, 50);
-};
-
-Controls.prototype._stopLoading = function() {
-    if (!this._loadingInterval) return;
-    clearInterval(this._loadingInterval);
-    this._loadingInterval = 0;
-    this.forceNextRedraw();
-    this.render(this.player.state.time);
+    this.state.changed = true;
 };
 
 Controls.prototype.enable = function() {
     var player = this.player,
         state = player.state;
     this.update(this.player.canvas);
-    if ((state.happens === C.NOTHING) ||
-        (state.happens === C.LOADING) ||
-        (state.happens === C.RES_LOADING) ||
-        (state.happens === C.ERROR)) {
-        this.show();
-        this.forceNextRedraw();
-        this.render();
-    }
 };
 
 Controls.prototype.disable = function() {
@@ -422,59 +297,31 @@ Controls.prototype.setDuration = function(value) {
 Controls.prototype.inject = function(anim, duration) {
 };
 
+var getRenderFunc = function(controls) {
+    var renderFunc = function() {
+        controls.render.call(controls, arguments);
+        nextFrame(renderFunc);
+    };
+
+    return renderFunc;
+};
+
+Controls.prototype.setupRenderLoop = function() {
+    this.renderFunc = getRenderFunc(this);
+    nextFrame(this.renderFunc);
+};
+
+Controls.prototype.stopRenderLoop = function() {
+    stopAnim(this.renderFunc);
+};
+
+
+var isInProgressArea = function(mpos, w, h) {
+    return(mpos.y <= h && mpos.y >= (h - theme.bottomControls.height));
+};
 
 var nextFrame = engine.getRequestFrameFunc(),
     stopAnim = engine.getCancelFrameFunc();
-
-Controls.prototype.fadeIn = function(complete) {
-    var me = this, timeIn = theme.fadeTimes.in;
-    if (me.fadingIn) {
-        return;
-    }
-    me.fadingIn = true;
-    var startTime = null;
-    var fadeIn = function(time) {
-        if (!startTime) {
-            startTime = time;
-        }
-        var elapsed = time - startTime;
-        var alpha = Math.min(elapsed/timeIn, 1);
-        me.render(me.player.state.time, alpha);
-        if (elapsed >= timeIn) {
-            me.fadingIn = false;
-            if(complete) complete();
-        } else {
-            nextFrame(fadeIn);
-        }
-    };
-    me._lastAlpha = 0;
-    nextFrame(fadeIn);
-};
-
-Controls.prototype.fadeOut = function(complete) {
-    var me = this, timeOut = theme.fadeTimes.out;
-    if (me.fadingOut) {
-        return;
-    }
-    me.fadingOut = true;
-    var startTime = null;
-    var fadeOut = function(time) {
-        if (!startTime) {
-            startTime = time;
-        }
-        var elapsed = time - startTime;
-        var alpha = Math.max(1-elapsed/timeOut, 0);
-        me.render(me.player.state.time, alpha);
-        if (elapsed >= timeOut) {
-            me.fadingOut = false;
-            if(complete) complete();
-        } else {
-            nextFrame(fadeOut);
-        }
-    };
-    me._lastAlpha = 1;
-    nextFrame(fadeOut);
-};
 
 
 var drawBack = function(ctx, theme, w, h, bgcolor) {
@@ -671,7 +518,7 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     var btnWidth = theme.progress.buttonWidth,
-        inArea = coords.y >= h-theme.bottomControls.height && coords.x > btnWidth && coords.x < w-btnWidth;
+        inArea = isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth;
     if (inArea) {
       //calculate time at mouse position
       progress = (coords.x-btnWidth)/(w-2*btnWidth);
@@ -705,32 +552,5 @@ var drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.fillText(text, x, y);
     ctx.restore();
 };
-
-var runLoadingAnimation = function(ctx, paint) {
-    var props = engine.getAnmProps(ctx);
-    if (props.loading_req) return;
-    var ratio = engine.PX_RATIO;
-    props.supress_loading = false;
-    function loading_loop() {
-        if (props.supress_loading) return;
-        ctx.save();
-        ctx.setTransform(1, 0, 0, 1, 0, 0);
-        if (ratio != 1) ctx.scale(ratio, ratio);
-        paint(ctx);
-        ctx.restore();
-        return nextFrame(loading_loop);
-    }
-    props.loading_req = nextFrame(loading_loop);
-};
-
-
-Controls.stopLoadingAnimation = function(ctx) {
-    var props = engine.getAnmProps(ctx);
-    if (!props.loading_req) return;
-    props.supress_loading = true;
-    stopAnim(props.loading_req);
-    props.loading_req = null;
-};
-
 
 module.exports = Controls;
