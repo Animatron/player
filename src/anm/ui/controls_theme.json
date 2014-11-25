@@ -31,6 +31,6 @@
     "fadeTimes": {
         "in": 300,
         "out": 300,
-        "inactive": 1000
+        "idle": 2500
     }
 }
