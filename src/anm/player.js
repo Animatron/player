@@ -850,7 +850,6 @@ Player.prototype.rect = function(rect) {
  * Force player to redraw controls and visuals according to current state
  */
 Player.prototype.forceRedraw = function() {
-    if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
@@ -1594,45 +1593,7 @@ Player.createState = function(player) {
 }
 
 
-Player._optsFromUrlParams = function(params/* as object */) {
-    function __boolParam(val) {
-        if (!val) return false;
-        if (val == 0) return false;
-        if (val == 1) return true;
-        if (val == 'false') return false;
-        if (val == 'true') return true;
-        if (val == 'off') return false;
-        if (val == 'on') return true;
-        if (val == 'no') return false;
-        if (val == 'yes') return true;
-    }
-    function __extractBool() {
-        var variants = arguments;
-        for (var i = 0; i < variants.length; i++) {
-            if (is.defined(params[variants[i]])) return __boolParam(params[variants[i]]);
-        }
-        return undefined;
-    }
-    var opts = {};
-    opts.debug = is.defined(params.debug) ? __boolParam(params.debug) : undefined;
-    opts.muteErrors = __extractBool('me', 'muterrors');
-    opts.repeat = __extractBool('r', 'repeat');
-    opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
-    opts.mode = params.m || params.mode || undefined;
-    opts.zoom = params.z || params.zoom;
-    opts.speed = params.v || params.speed;
-    opts.width = params.w || params.width;
-    opts.height = params.h || params.height;
-    opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
-    opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
-    opts.controlsEnabled = __extractBool('c', 'controls');
-    opts.infoEnabled = __extractBool('info');
-    opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
-    opts.thumbnail = params.th || params.thumb || undefined;
-    opts.bgColor = params.bg || params.bgcolor;
-    opts.ribbonsColor = params.ribbons || params.ribcolor;
-    return opts;
-}
+
 /**
  * @static @method forSnapshot
  *

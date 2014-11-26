@@ -3,20 +3,21 @@ var utils = require('./utils.js'),
     PlayerError = require('./errors.js').PlayerError,
     engine = require('engine'),
     global_opts = require('./global_opts.js'),
-    C = require('./constants.js');
+    C = require('./constants.js'),
+    is = utils.is;
 
 var Loader = {};
 
 Loader.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw new SystemError(Errors.S.NO_JSON_PARSER);
 
-    var importer = importer || anm.importers.create('animatron');
+    mporter = importer || anm.importers.create('animatron');
 
-    var url_with_params = url.split('?'),
-        url = url_with_params[0],
-        url_params = url_with_params[1], // TODO: validate them?
+    var url_with_params = url.split('?');
+        url = url_with_params[0];
+    var url_params = url_with_params[1], // TODO: validate them?
         params = (url_params && url_params.length > 0) ? utils.paramsToObj(url_params) : {},
-        options = Player._optsFromUrlParams(params);
+        options = optsFromUrlParams(params);
 
     if (options) {
         player._addOpts(options);
@@ -41,18 +42,19 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
 
     engine.ajax(url, success, failure, 'GET',
         anm_cookie ? { 'Animatron-Security-Token': anm_cookie } : null);
-}
+};
+
 Loader.loadFromObj = function(player, object, importer, callback) {
     if (!importer) throw new PlayerError(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
     var anim = importer.load(object);
     player.fire(C.S_IMPORT, importer, anim, object);
     Loader.loadAnimation(player, anim, callback);
-}
+};
+
 Loader.loadAnimation = function(player, anim, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
-    if (player.debug
-        && !global_opts.liveDebug)
+    if (player.debug && !global_opts.liveDebug)
         anim.visitElems(function(e) {e.addDebugRender();}); /* FIXME: ensure not to add twice */
     if (!anim.width || !anim.height) {
         anim.width = player.width;
@@ -63,11 +65,52 @@ Loader.loadAnimation = function(player, anim, callback) {
     // assign
     player.anim = anim;
     if (callback) callback.call(player, anim);
-}
+};
+
 Loader.loadElements = function(player, elms, callback) {
     var anim = new Animation();
     anim.add(elms);
     Loader.loadAnimation(player, anim, callback);
-}
+};
+
+var optsFromUrlParams = function(params/* as object */) {
+    function __boolParam(val) {
+        if (!val) return false;
+        if (val === 0) return false;
+        if (val == 1) return true;
+        if (val == 'false') return false;
+        if (val == 'true') return true;
+        if (val == 'off') return false;
+        if (val == 'on') return true;
+        if (val == 'no') return false;
+        if (val == 'yes') return true;
+    }
+    function __extractBool() {
+        var variants = arguments;
+        for (var i = 0; i < variants.length; i++) {
+            if (is.defined(params[variants[i]])) return __boolParam(params[variants[i]]);
+        }
+        return undefined;
+    }
+    var opts = {};
+    opts.debug = is.defined(params.debug) ? __boolParam(params.debug) : undefined;
+    opts.muteErrors = __extractBool('me', 'muterrors');
+    opts.repeat = __extractBool('r', 'repeat');
+    opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
+    opts.mode = params.m || params.mode || undefined;
+    opts.zoom = params.z || params.zoom;
+    opts.speed = params.v || params.speed;
+    opts.width = params.w || params.width;
+    opts.height = params.h || params.height;
+    opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
+    opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
+    opts.controlsEnabled = __extractBool('c', 'controls');
+    opts.infoEnabled = __extractBool('info');
+    opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
+    opts.thumbnail = params.th || params.thumb || undefined;
+    opts.bgColor = params.bg || params.bgcolor;
+    opts.ribbonsColor = params.ribbons || params.ribcolor;
+    return opts;
+};
 
 module.exports = Loader;
