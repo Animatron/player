@@ -96,7 +96,7 @@ Controls.prototype.checkMouseTimeout = function(gtime) {
             //if we're in a state where controls should autohide
             (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) &&
             //and the mouse is not busy somewhere on the bottom area
-            !isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])
+            !Controls.isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])
         ) {
             this.hide();
             this.state.autoHidden = true;
@@ -229,7 +229,7 @@ Controls.prototype.react = function() {
 
     //handle clicks in the bottom area, where the playhead
     //and mute buttons reside
-    if (isInProgressArea(coords, w, h)) {
+    if (Controls.isInProgressArea(coords, w, h)) {
         if (coords.x > btnWidth && coords.x < w-btnWidth) {
             time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
             if (s === C.PLAYING) {
@@ -271,7 +271,7 @@ Controls.prototype.handleMouseMove = function(evt) {
     if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
         //if we are in the state where the playhead is accessible,
         //let's check if the mouse was there.
-        if (isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])) {
+        if (Controls.isInProgressArea(this.state.mpos, this.bounds[2], this.bounds[3])) {
             this.state.changed = true;
             this.state.mouseInProgressArea = true;
         } else {
@@ -384,7 +384,7 @@ Controls.prototype.stopRenderLoop = function() {
 };
 
 //check whether the mpos coordinates are within the bottom area
-var isInProgressArea = function(mpos, w, h) {
+Controls.isInProgressArea = function(mpos, w, h) {
     return(mpos.y <= h && mpos.y >= (h - theme.bottomControls.height));
 };
 
@@ -573,7 +573,7 @@ var drawError = function(ctx, theme, w, h, error, focused) {
 //draw either the current time or the time under the mouse position
 var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     var btnWidth = theme.progress.buttonWidth,
-        inArea = isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth;
+        inArea = Controls.isInProgressArea(coords, w, h) && coords.x > btnWidth && coords.x < w-btnWidth;
     if (inArea) {
       //calculate time at mouse position
       progress = (coords.x-btnWidth)/(w-2*btnWidth);

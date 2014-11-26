@@ -435,7 +435,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if (durationPassed) { // FIXME: move to whenDone?
         player.anim.duration = duration;
-        if (player.controls) player.controls.setDuration(duration);
     }
 
     return player;
