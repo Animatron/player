@@ -1,3 +1,5 @@
+[ [Version of this page with a highlighted source code][permanent] ]
+
 There are two ways to embed an animation made in Animatron into a webpage. Both are very easy and enable you to configure more options than the Publish (a.k.a. Share) dialog currently allows:
 
 * using `IFRAME`, which embeds another tiny webpage that contains the Animatron Player into your page.
@@ -9,11 +11,12 @@ There are two ways to embed an animation made in Animatron into a webpage. Both 
 
 * [IFRAME][iframe]
 * [Container Tag][container]
-    * [Auto-Initialization][auto-init]
-    * [Initialization from Code][from-code]
+    * [Auto-Initialization from HTML][auto-init]
+    * [Initialization from JS Code][from-code]
         * [Custom, with `createPlayer`][create-player]
         * [Snapshot, with `forSnapshot`][for-snapshot]
-        * [CSS Styling][css-styling]
+    * [CSS Styling][css-styling]
+    * [Adding events][adding-events]
 * [Complete List of Preferences][params-list]
 
 # IFRAME
@@ -114,7 +117,7 @@ Thirdly, if you _have no_ snapshot URL, you may still load any animation in any 
 var player = anm.createPlayer('player-target');
 var animation = /* some code or JSON */;
 var importer = /* if it's a JSON, create an importer which can parse this JSON, i.e. use `anm.importers.create('animatron')` */;
-player.load(anim/*, importer*/);
+player.load(animation/*, importer*/);
 player.play();
 ```
 
@@ -136,11 +139,11 @@ In case you _have_ a snapshot URL, you may load it this way:
 
 ```js
 var player = anm.Player.forSnapshot(
-    'player-target', /* target tag ID */
-    'http://clips.animatron.com/....json', /* snapshot URL */
-    anm.importers.create('animatron') /* importer which can parse
-      the given scene, in our case it is included in the bundle and
-      named 'animatron'; its instance may be re-used */
+        'player-target', /* target tag ID */
+        'http://clips.animatron.com/....json', /* snapshot URL */
+        anm.importers.create('animatron') /* importer which can parse
+           the given scene, in our case it is included in the bundle and
+           named 'animatron'; its instance may be re-used */
 );
 ```
 
@@ -148,16 +151,16 @@ You may add a callback to call when the snapshot will be received and also confi
 
 ```js
 var player = anm.Player.forSnapshot(
-    'player-target', /* target tag ID */
-    'http://clips.animatron.com/....json', /* snapshot URL */
-    anm.importers.create('animatron'), /* importer which can parse
-      the given scene, in our case it is included in the bundle and
-      named 'animatron'; its instance may be re-used */
-    function(scene) { }, /* callback */
-    /* options, you may specify them here, in a tag as HTML attributes,
-       or as snapshot URL parameters, see below */
-    { autoPlay: true,
-      controlsEnabled: false });
+        'player-target', /* target tag ID */
+        'http://clips.animatron.com/....json', /* snapshot URL */
+        anm.importers.create('animatron'), /* importer which can parse
+           the given scene, in our case it is included in the bundle and
+           named 'animatron'; its instance may be re-used */
+        function(scene) { }, /* callback */
+        /* options, you may specify them here, in a tag as HTML attributes,
+           or as snapshot URL parameters, see below */
+        { autoPlay: true,
+          controlsEnabled: false });
 ```
 
 There are just the basic options you may find here, see a [complete list][params-list] of them below.
@@ -191,6 +194,33 @@ So you may override any CSS for the player you wish, using these classes. Also, 
 * `anm-state-loading`, when Player is loading an animation;
 * `anm-state-error`, when some error happened, so it's not muted and shown by Player
 
+## Adding Events
+
+Same as above, when your target container looks like this:
+
+```html
+<div id="my-target"></div>
+```
+
+Then you have all the power to control it with JS, same way as with any other DOM element. For example you may run playing process on click:
+
+```js
+var player = anm.createPlayer('my-target', { autoPlay: false,
+                                             controlsEnabled: false });
+var animation = /* some Animatron-compatible JSON */;
+var importer = anm.importers.create('animatron');
+player.load(animation, importer);
+
+var my_target = document.getElementById('my-target');
+my_target.addEventListenet('click', function() {
+    player.play();
+});
+```
+
+Of course, this solution also works if you use `forSnaphot` approach, just copy player options and the last block of code from the above example.
+
+In the nearest future, the new Player API and its documentation both will be published to the world, so you will be able to do a very complex and powerful things, if you'd ever want to. Please, stay tuned.
+
 # Complete Configuration List
 
 _Note:_ all boolean values both in tag attributes and as URL parameters are allowed to be _nothing_ / `false` / `0` / `off` / `no` to mean _false_, and `true` / `1` / `on` / `yes` to mean _true_.
@@ -223,11 +253,14 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
 `me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors were fired during the playing process, just log them
 
+[permanent]: https://github.com/Animatron/player/blob/docs/doc/embedding.md
+
 [iframe]: #iframe
 [container]: #container-tag-ie-div
 [auto-init]: #the-magic-of-auto-initialization
 [from-code]: #initialization-from-code
 [params-list]: #complete-configuration-list
 [css-styling]: #css-styling
+[adding-events]: #adding-events
 [create-player]: #custom-scene-with-createplayer
 [for-snapshot]: #snapshot-with-forsnapshot
