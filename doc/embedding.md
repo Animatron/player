@@ -1,4 +1,4 @@
-[ [Version of this page with a highlighted source code][permanent] ]
+[ [A version of this page with a highlighted source code][permanent] ]
 
 There are two ways to embed an animation made in Animatron into a webpage. Both are very easy and enable you to configure more options than the Publish (a.k.a. Share) dialog currently allows:
 
@@ -75,29 +75,37 @@ If you need another version of the Player, just specify it by replacing the `lat
 
 To load a known Animatron snapshot in the Player, you need to know its URL as well as the width and height of the Animation. No worries - these are quite easy to find.
 
-URL of a JSON: When you publish (share) your scene from Animatron, you get a URL like `http://clips.animatron.com/...`, a page which you can share with others by sending its URL. If you add `.json` at the end of this URL, you have a JSON snapshot, like: ...
+URL of a JSON: When you publish (share) your scene from Animatron, you get a URL like `http://clips.animatron.com/...`, a page which you can share with others by sending its URL. If you add `.json` at the end of this URL, you have a JSON snapshot, like: `http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96.json`.
 
 If you have your own JSON hosted somewhere, you are free to pass its URL instead!
 
 The width and height of your animation are originally specified by you in the project in the Animatron Editor, or you may find them in `IFRAME` URL, as described above.
 
+First, ensure to include Player source in the `<head>` of your page:
+
+```html
+<script src="http://player.animatron.com/latest/bundle/animatron.min.js"></script>
+```
+
 Now you are ready to do magic:
 
 ```html
-<div id="player-target" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" /></div>
+<div id="player-target" anm-player-target anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" /></div>
 ```
+
+Please pay proper attention to include `anm-player-target` attribute, since it works as a marker for the Player code to search for in a page, and without it, auto-initialization will not work at all.
 
 That's it! Your animation should load from the start and be able to be played. If you need to precisely configure its appearance or logic, [see below][params-list] for a complete list of HTML arguments the Player will understand ("`div`" column), there's truly a lot ways to change things. For example, auto-playing your animation and disabling the _Play_ button will work like this:
 
 ```html
-<div id="player-target" anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" anm-auto-play="true" anm-controls="false" /></div>
+<div id="player-target" anm-player-target anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" anm-auto-play="true" anm-controls="false" /></div>
 ```
 
 ## Initialization from Code
 
 If you have no snapshot URL, or you want to access the Player with JavaScript code, there are also few options:
 
-First, ensure to include Player source in the `<head>` of your page:
+First, same as in option above, ensure to include Player source in the `<head>` of your page:
 
 ```html
 <script src="http://player.animatron.com/latest/bundle/animatron.min.js"></script>
