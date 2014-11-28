@@ -1542,7 +1542,7 @@ Player.prototype._notifyAPI = function() {
     if (!this.statImg) {
       this.statImg = engine.createStatImg();
     };
-    var loadSrc = this._loadSrc,
+    var loadSrc = this._loadSrc || '/',
         id = this.anim.meta._anm_id,
         locatedAtTest = false,
         locatedAtProd = false;
