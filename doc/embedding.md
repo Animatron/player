@@ -2,8 +2,8 @@
 
 There are two ways to embed an animation made in Animatron into a webpage. Both are very easy and enable you to configure more options than the Publish (a.k.a. Share) dialog currently allows:
 
-* using `IFRAME`, which embeds another tiny webpage that contains the Animatron Player into your page.
-* using the `div` (or any container) tag, which requires you to include an additional script in the page. It's easier to control the Player's style with CSS this way and, if you really want, to use JavaScript code for overriding/tuning-up any part of the rendering process. For the easiest version, you just need two HTML tags and a URL of a JSON snapshot to make it work, not even a line of JavaScript.
+* using `IFRAME`, which embeds another a tiny webpage that contains the Animatron Player into your page.
+* using the `div` (or any container) tag, which requires you to include an additional script in the page. It's easier to control the Player's style with CSS this way and, if you really want, to use JavaScript code for overriding/tuning-up any part of the rendering process. For the easiest version, you just need two HTML tags and a URL of a JSON snapshot to make it work, and not even a line of Javascript.
 
 <!-- Using both ways together, you may configure your Player with a wide number of options. Dozens of them are accessible for `IFRAME` as well as for the `div` tag or a URL inside `IFRAME,` as well as for a JavaScript object passed to this Player - they just differ in names. -->
 
@@ -69,7 +69,7 @@ First, you need to add the latest Player source to your page in the `<head>` sec
 </html>
 ```
 
-If you need another version of the Player, just specify it by replacing the `latest` with, say, `v1.3`.
+If you need a specific version of the Player, just specify it by replacing the `latest` with, say, `v1.3`.
 
 ## The Magic of Auto-Initialization
 
@@ -119,12 +119,12 @@ Second, add a target tag to the `<body>` of your page.
 
 ### Custom scene with `createPlayer`
 
-Thirdly, if you _have no_ snapshot URL, you may still load any animation in any format if you have a special "importer". Or, you may even create an animation just in place using Player API, but it's a different story.
+Thirdly, if you _don't have_ a snapshot URL, you may still load any animation in any format if you have a special _importer_. Or, you may even create an animation just in place using Player API, but it's a different story.
 
 ```js
 var player = anm.createPlayer('player-target');
 var animation = /* some code or JSON */;
-var importer = /* if it's a JSON, create an importer which can parse this JSON, i.e. use `anm.importers.create('animatron')` */;
+var importer = /* if it's a JSON, create an importer which can parse this JSON, e.g. use `anm.importers.create('animatron')` */;
 player.load(animation/*, importer*/);
 player.play();
 ```
@@ -173,7 +173,7 @@ var player = anm.Player.forSnapshot(
 
 There are just the basic options you may find here, see a [complete list][params-list] of them below.
 
-If you plan to operate with player after the scene was received, please do not forget to do it in a callback, not just after this line of code, since in this case loading process is asynchronous and finishes much later than the moment `forSnaphot` will be executed.
+If you plan to operate with the player after the scene was received, please do not forget to do it in a callback, not just after this line of code, since in this case loading process is asynchronous and finishes much later than the moment `forSnaphot` will be executed.
 
 ## CSS Styling
 
@@ -193,7 +193,7 @@ It will be replaced with a structure like this:
 </div>
 ```
 
-So you may override any CSS for the player you wish, using these classes. Also, the wrapper gets an additional class when the Player state changes:
+You may override any CSS for the player you wish using these classes. Also, the wrapper gets an additional class when the Player state changes:
 
 * `anm-state-nothing`, when Player has nothing to play, just initialized;
 * `anm-state-stopped`, when Player is stopped;
@@ -244,8 +244,8 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 `i`/`inf` | `anm-infinite` | `infiniteDuration` | `false` | keep playing animation even when it finished (do not repeat, but stay at last frame, if there are no inner loops)
 `v`/`speed` | `anm-speed` | `speed` | `1` | playing speed
 `z`/`zoom` | `anm-zoom` | `zoom` | `1` | animation zoom
-`t`/`from` | - | - | `0` | a time to start playing from (multiplier is 100ms, so `31` means _3s 10ms_)
-`p`/`at` | - | - | - | a time of animation where to pause at, when Player was initialized (multiplier is 100ms, so `31` means _3s 10ms_)
+`t`/`from` | - | - | `0` | a time to start playing from (multiplier is 100ms, so `31` means _3s 100ms_)
+`p`/`at` | - | - | - | a time of animation where to pause at, when Player was initialized (multiplier is 100ms, so `31` means _3s 100ms_)
 - | _`div`-only:_ `anm-src` | - | - | JSON for the animation  to load from
 `m`/`mode` | `anm-mode` | `mode` | - | (_deprecated_) a mode of a Player, one of: ...
 `lm`/`lmode` | `anm-loading-mode` | `loadingMode` | `onplay` | `onplay` means to start loading an animation when user clicks _Play_ button (and show _thumbnail_ before), `onrequest` means to start loading animation only when the script asked for it and expect it to be completely loaded when user clicks _Play_ button
@@ -254,12 +254,12 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 `bg`/`bgcolor` | `anm-bg-color` | `bgColor` | `transparent` | set background color of an animation (if it is set, it can't be overriden), format is `#00ff00`
 `rc`/`ribcolor`/`ribbons` | `anm-rib-color` | `ribbonsColor` | `#000000` | color of a stripes which appear when aspect ratio of an animation doesn't fit a Player size
 `th`/`thumb` | `anm-thumbnail` | `thumbnail` | - | URL of an animation thumbnail (still image) to be shown while animation loads
-- | `anm-draw-still` | `drawStill` | `true` | show an animation freezed frame or a thumbnail (if its source is set) while animation wasn't started or in process of loading
+- | `anm-draw-still` | `drawStill` | `true` | show an animation's single frame or a thumbnail (if its source is set) while animation wasn't started or in process of loading
 - | `anm-images` | `imagesEnabled` | `true` | enable all remote images used in animation (if they are disabled, special mark will be shown)
 `s`/`audio` | `anm-audio` | `audioEnabled` | `true` | enable all sounds used in animation (if disabled, they even will not load)
 - | `anm-shadows` | `shadowsEnabled` | `true` | enable shadows in animation (they often consume CPU)
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
-`me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors were fired during the playing process, just log them
+`me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors happened during the playing process, just log them
 
 [permanent]: https://github.com/Animatron/player/blob/docs/doc/embedding.md
 
