@@ -327,21 +327,21 @@ Element.prototype.path = function(value) {
     } else return this.$path;
 }
 /**
-* @method text
-* @chainable
-*
-* Set this element to be a {@link anm.Text Text} or get current text.
-*
-* Examples:
-* * `elm.text("my text")`
-* * `elm.text(["text","in three","lines"])`
-* * `elm.text(new Text("My Text").font("Arial"))`
-* * `elm.text(new Text(["Two lines", "of text"]).font("italic 20px Arial").align(anm.C.TA_RIGHT))`
-* * `var my_text = elm.text()`
-*
-* @param {String|[String]|anm.Text} [text]
-* @return {anm.Text|anm.Element}
-*/
+ * @method text
+ * @chainable
+ *
+ * Set this element to be a {@link anm.Text Text} or get current text.
+ *
+ * Examples:
+ * * `elm.text("my text")`
+ * * `elm.text(["text","in three","lines"])`
+ * * `elm.text(new Text("My Text").font("Arial"))`
+ * * `elm.text(new Text(["Two lines", "of text"]).font("italic 20px Arial").align(anm.C.TA_RIGHT))`
+ * * `var my_text = elm.text()`
+ *
+ * @param {String|[String]|anm.Text} [text]
+ * @return {anm.Text|anm.Element}
+ */
 Element.prototype.text = function(value) {
     if (value) {
         this.invalidate();
@@ -351,51 +351,110 @@ Element.prototype.text = function(value) {
     } else return this.$text;
 }
 /**
-* @method image
-* @chainable
-*
-* Set this element to be an {@link anm.Sheet Image/Sheet} or get current image.
-*
-* Examples:
-* * `elm.image("my text")`
-* * `elm.text(["text","in three","lines"])`
-* * `elm.text(new Text("My Text").font("Arial"))`
-* * `elm.text(new Text(["Two lines", "of text"]).font("italic 20px Arial").align(anm.C.TA_RIGHT))`
-* * `var my_text = elm.image()`
-*
-* @param {String|anm.Sheet} [image]
-* @return {anm.Sheet|anm.Element}
-*/
-Element.prototype.image = function(value) {
+ * @method image
+ * @chainable
+ *
+ * Set this element to be an {@link anm.Image Image/Sheet} or get current image.
+ *
+ * Examples:
+ * * `elm.image("path://to.my_image.jpg")`
+ * * `elm.image(new Image("path://to.my_image.jpg"))`
+ * * `elm.image(new Image("path://to.my_image.jpg", function() { console.log("image received"); }))`
+ * * `var my_image = elm.image()`
+ *
+ * @param {String|anm.Image|anm.Sheet} [image] URL or anm.Image instance
+ * @param {Function} [callback] a function to be called when image will be received (NB: only appliable if `image` parameter is specified as an URL string)
+ * @param {anm.Image} [callback.image] anm.Image instance
+ * @param {DomElement} [callback.element] Image Element
+ * @return {anm.Image|anm.Sheet|anm.Element}
+ */
+// TODO: add spite-sheet methods and documenation
+Element.prototype.image = function(value, callback) {
     if (value) {
         this.invalidate();
         this.type = C.ET_SHEET;
-        this.$image = value;
+        this.$image = (is.str(value)) ? new Image(value, callback) : value;
         return this;
     } else return this.$image;
 }
-// > Element.sheet % ([value: Sheet]) => Sheet | Element
-Element.prototype.sheet = Element.prototype.image;
-// > Element.fill % ([value: Brush | String]) => Brush | Element
+/**
+ * @method fill
+ * @chainable
+ *
+ * Set fill for this element
+ *
+ * Examples:
+ * * `elm.fill("#ffaa0b")`
+ * * `elm.fill("rgb(255,170,11)")`
+ * * `elm.fill("rgb(255,170,11,0.8)")`
+ * * `elm.fill("hsl(120,50,100%)")`
+ * * `elm.fill("hsla(120,50,100%,0.8)")`
+ * * `elm.fill(anm.Color.rgb(1.0,0.6,0.1))`
+ * * `elm.fill(anm.Color.hsla(Math.PI/3,50,1.0))`
+ * * `elm.fill(anm.Brush.grad({0: "#000", 0.5: "#ccc"}))`
+ * * `var brush = elm.fill()`
+ *
+ * @param {String|anm.Brush} [color]
+ * @return {anm.Brush|anm.Element}
+ */
 Element.prototype.fill = function(value) {
     if (value) {
         this.$fill = (value instanceof Brush) ? value : Brush.fill(value);
         return this;
     } else return this.$fill;
 }
-// > Element.noFill % () => Element
+/**
+ * @method noFill
+ * @chainable
+ *
+ * Remove fill from this element (set it to transparency)
+ *
+ * @return {anm.Element}
+ */
 Element.prototype.noFill = function() {
     this.$fill = Color.TRANSPARENT;
     return this;
 }
-// > Element.stroke % ([value: Brush | String] | [color: String, width: int]) => Brush | Element
+/**
+* @method stroke
+* @chainable
+*
+* Set stroke for this element
+*
+* Examples:
+* * `elm.stroke("#ffaa0b", 2)`
+* * `elm.stroke("rgb(255,170,11)", 4)`
+* * `elm.stroke("rgb(255,170,11,0.8)", 5)`
+* * `elm.stroke("hsl(120,50,100%)", 3)`
+* * `elm.stroke("hsla(120,50,100%,0.8)", 1)`
+* * `elm.stroke(anm.Color.rgb(1.0,0.6,0.1), 2)`
+* * `elm.stroke(anm.Color.hsla(Math.PI/3,50,1.0), 5)`
+* * `elm.stroke(anm.Brush.grad({0: "#000", 0.5: "#ccc"}), 10)`
+* * `var brush = elm.stroke()`
+*
+* @param {String|anm.Brush} [color] color of the stroke
+* @param {Number} [width] width of the stroke
+* @return {anm.Brush|anm.Element}
+*/
 Element.prototype.stroke = function(value, width) {
     if (value) {
-        this.$stroke = (value instanceof Brush) ? value : Brush.stroke(value, width);
+        if (value instanceof Brush) {
+            this.$stroke = value;
+            if (is.defined(width)) this.$stroke.width = width;
+        } else {
+            this.$stroke = (value instanceof Brush) ? value : Brush.stroke(value, width);
+        }
         return this;
     } else return this.$stroke;
 }
-// > Element.noStroke % () => Element
+/**
+* @method noStroke
+* @chainable
+*
+* Remove stroke from this element
+*
+* @return {anm.Element}
+*/
 Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;

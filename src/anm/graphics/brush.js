@@ -108,9 +108,9 @@ Brush.prototype.adapt = function(ctx) {
     if (this.grad) {
         var src = this.grad,
             stops = src.stops,
-            dir = src.dir,
-            r = src.r;
-            bounds = src.bounds;
+            dir = src.dir || [ [0.5, 0], [0.5, 1] ],
+            r = src.r || 1.0;
+            bounds = src.bounds || [0, 0, 100, 100];
         var grad;
         if (is.defined(src.r)) {
             grad = bounds
@@ -226,6 +226,17 @@ Brush.value = function(value) {
             }
         } else throw new AnimationError('Unknown type of brush');
     } else throw new AnimationError('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
+}
+Brush.grad = function(stops, bounds, dir) {
+    var new_stops = [];
+    for (var prop in stops) {
+        new_stops.push([prop, stops[prop]]);
+    }
+    return { grad: {
+        stops: stops,
+        bounds: bounds,
+        dir: dir
+    } };
 }
 Brush.qfill = function(ctx, color) {
     ctx.fillStyle = color;

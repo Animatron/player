@@ -134,4 +134,8 @@ Sheet.prototype.reset = function() { };
 Sheet.prototype.dispose = function() {
 };
 
+// TODO: Bring back Sprite-animator
+// https://github.com/Animatron/player/blob/3903d59c7653ec6a0dcc578d6193e6bdece4a3a0/src/builder.js#L213
+// https://github.com/Animatron/player/blob/3903d59c7653ec6a0dcc578d6193e6bdece4a3a0/src/builder.js#L926
+
 module.exports = Sheet;
