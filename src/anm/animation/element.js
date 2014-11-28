@@ -69,9 +69,22 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  * property is easier to construct with a corresponding helper method, rather than,
  * for example, creating a special {@link anm.Brush Brush} object for a `fill`.
  *
+ * See {@link anm.Element#add add()} method for documentation on adding children elements.
+ *
+ * See {@link anm.Element#path path()}, {@link anm.Element#text text()} and {@link anm.Element#image image()}
+ * for documentation on changing the type of the element and the way it draws itself.
+ *
+ * See {@link anm.Element#rect rect()}, {@link anm.Element#oval oval()} and other shape-related methods
+ * for documentation on changing element's shape.
+ *
+ * See {@link anm.Element#fill fill()}, {@link anm.Element#stroke stroke()} and
+ * {@link anm.Element#shadow shadow()} methods for documentation on changing appearance of the element.
+ * (Fill/Shadow only apply if element is `path`, `shape` or `text`).
+ *
  * See {@link anm.Tween Tween} and {@link anm.Element#tween tween()} method for documentation on adding tweens.
  *
- * See {@link anm.Modifier Modifier} and {@link anm.Painter Painter} for documentation on
+ * See {@link anm.Modifier Modifier} in pair with {@link anm.Element#modify modify()} method and {@link anm.Painter Painter}
+ * in pair with {@link anm.Element#modify paint()} method for documentation on
  * a custom drawing or positioning the element in time.
  *
  * @constructor
@@ -448,21 +461,33 @@ Element.prototype.stroke = function(value, width) {
     } else return this.$stroke;
 }
 /**
-* @method noStroke
-* @chainable
-*
-* Remove stroke from this element
-*
-* @return {anm.Element}
-*/
+ * @method noStroke
+ * @chainable
+ *
+ * Remove stroke from this element
+ *
+ * @return {anm.Element}
+ */
 Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
 }
-// > Element.modifiers % (ltime: Float, dt: Float[, types: Array]) => Boolean
+/**
+ * @private @method modifiers
+ *
+ * Call all modifiers of the element. Used in element rendering process.
+ * See {@link anm.Modifier Modifier} for detailed documenation on modifiers.
+ *
+ * @param {Number} ltime local time of the element (relatively to parent element), in seconds
+ * @param {Number} [dt] time passed since last frame was rendered, in seconds
+ * @param {[C.MOD_*]} [types] the types and order of modifiers to call (`SYSTEM`, `TWEEN`, `USER`, `EVENT`)
+ *
+ * @return [Boolean] `true` if this element shoud be rendered, `false` if not
+ */
 Element.prototype.modifiers = function(ltime, dt, types) {
     var elm = this;
     var order = types || Modifier.ALL_MODIFIERS;
+    var dt = dt || 0;
 
     // copy current state as previous one
     elm.applyPrevState(elm);
@@ -527,7 +552,15 @@ Element.prototype.modifiers = function(ltime, dt, types) {
 
     return true;
 }
-// > Element.painters % (ctx: Context[, types: Array]) => Boolean
+/**
+ * @private @method painters
+ *
+ * Call all painters of the element. Used in element rendering process.
+ * See {@link anm.Painter Painter} for detailed documenation on painters.
+ *
+ * @param {Context2D} ctx 2D context where element should be drawn
+ * @param {[C.PNT_*]} [types] the types and order of painters to call (`SYSTEM`, `USER`, `DEBUG`)
+ */
 Element.prototype.painters = function(ctx, types) {
     var elm = this;
     var order = types || Painter.ALL_PAINTERS;
@@ -553,7 +586,15 @@ Element.prototype.painters = function(ctx, types) {
 
     elm.__painting = null;
 }
-// > Element.forAllModifiers % (fn: Function(Modifier, type))
+/**
+ * @private @method forAllModifiers
+ *
+ * Iterate over all of the modifiers and call given function
+ *
+ * @param {Function} fn function to call
+ * @param {anm.Modifier} fn.modifier modifier
+ * @param {C.MOD_*} fn.type modifier type
+ */
 Element.prototype.forAllModifiers = function(f) {
     var order = Modifier.ALL_MODIFIERS;
     var modifiers = this.$modifiers;
@@ -570,7 +611,15 @@ Element.prototype.forAllModifiers = function(f) {
 
     }
 }
-// > Element.forAllPainters % (fn: Function(Painter, type))
+/**
+* @private @method forAllModifiers
+*
+* Iterate over all of the painters and call given function
+*
+* @param {Function} fn function to call
+* @param {anm.Painter} fn.painter painter
+* @param {C.PNT_*} fn.type painter type
+*/
 Element.prototype.forAllPainters = function(f) {
     var order = Painter.ALL_PAINTERS;
     var painters = this.$painters;
@@ -585,6 +634,19 @@ Element.prototype.forAllPainters = function(f) {
         }
     }
 }
+/**
+ * @method adapt
+ *
+ * Adapt a point or several ones to element's local coordinate space (relatively to
+ * parent's space). Points are passed as an object `{ x: 100, y: 100 }` or an array
+ * `[ { x: 100, y: 100}, { x: 200.5, y: 150 } ]` and returned in the same format.
+ *
+ * @param {Object|[Object]} pt one or several points to adapt
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ *
+ * @return {Object|[Object]} transformed point or several points
+ */
 Element.prototype.adapt = function(pts) {
     if (is.arr(pts)) {
         var trg = [];
@@ -597,6 +659,21 @@ Element.prototype.adapt = function(pts) {
         return this.matrix.transformPoint(pts.x, pts.y);
     }
 }
+/**
+* @method adapt
+*
+* Adapt bounds to element's local coordinate space (relatively to
+* parent's space). Bounds are passed as an object
+* `{ x: 100, y: 100, width: 200, height: 150 }`.
+*
+* @param {Object} bounds bounds to adapt
+* @param {Number} bounds.x
+* @param {Number} bounds.y
+* @param {Number} bounds.width
+* @param {Number} bounds.height
+*
+* @return {Object} transformed bounds
+*/
 Element.prototype.adaptBounds = function(bounds) {
     var matrix = this.matrix;
     var tl = matrix.transformPoint(bounds.x, bounds.y),
