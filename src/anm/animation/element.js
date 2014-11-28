@@ -686,21 +686,58 @@ Element.prototype.adaptBounds = function(bounds) {
         maxY = Math.max(tl.y, tr.y, bl.y, br.y);
     return new Bounds(minX, minY, maxX - minX, maxY - minY);
 }
+/**
+ * @method draw
+ *
+ * Draw element over some context, without applying transformations, even if element
+ * has some, since they depend on time. To draw element along with applying
+ * transformations in one call, use {@link anm.Element#render render()} method.
+ *
+ * @param {Context2D} ctx context, where element should be drawn
+ */
 // > Element.draw % (ctx: Context)
 Element.prototype.draw = Element.prototype.painters;
-// > Element.transform % (ctx: Context)
+/**
+ * @private @method transform
+ *
+ * Apply every transformation in current matrix to context.
+ *
+ * @param {Context2D} ctx context
+*/
 Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= this.alpha;
     this.matrix.apply(ctx);
     return this.matrix;
 }
-// > Element.invTransform % (ctx: Context)
+/**
+ * @private @method invTransform
+ *
+ * Invert current matrix and apply every transformation in it to context.
+ *
+ * @param {Context2D} ctx context
+ */
 Element.prototype.invTransform = function(ctx) {
     var inv_matrix = Element.getIMatrixOf(this); // this will not write to elm matrix
     ctx.globalAlpha *= this.alpha;
     inv_matrix.apply(ctx);
     return inv_matrix;
 }
+/**
+ * @method render
+ * @chainable
+ *
+ * Render this element at a given global time, which means execute its full render
+ * cycle, starting with checking its time band, and, if band matches time and this
+ * element is enabled, calling _modifiers_ (tweens), applying its state to context
+ * and then drawing it with _painters_. Plus, does the same recursively for every
+ * child or sub-child, if has some.
+ *
+ * @param {Context2D} ctx context to draw onto
+ * @param {Number} gtime global time since the start of the animation (or scene), in seconds
+ * @param {Number} dt time passed since the previous frame was rendered, in seconds
+ *
+ * @return {anm.Element} itself
+ */
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
@@ -848,31 +885,131 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
 }
+/**
+ * @method pivot
+ * @chainable
+ *
+ * Assign a pivot for this element (given in relative coords to element's bounds).
+ * This point becomes the center for all the applied transformations.
+ *
+ * @param {Number} x X position, in range 0..1
+ * @param {Number} y Y position, in range 0..1
+ * @return {anm.Element} itself
+ */
 Element.prototype.pivot = function(x, y) {
     this.$pivot = [ x, y ];
     return this;
 }
+/**
+ * @method reg
+ * @chainable
+ *
+ * Assign a registration point for this element (given in points).
+ * This point becomes the starting point for all the applied transformations.
+ *
+ * @param {Number} x X position, in points
+ * @param {Number} y Y position, in points
+ * @return {anm.Element} itself
+ */
 Element.prototype.reg = function(x, y) {
     this.$reg = [ x, y ];
     return this;
 }
+/**
+ * @method move
+ * @chainable
+ *
+ * Move this element to some point, once and forever.
+ *
+ * NB: If this element has tweens, event handlers and/or any modifiers in general,
+ * they will rewrite this value on the very next render call—so if you want, while having
+ * modifiers, to constantly add these values to the element position, it is
+ * recommended to better add a correspoding static tween or modifier to it,
+ * rather than calling this method.
+ *
+ * @param {Number} x X position, in points
+ * @param {Number} y Y position, in points
+ * @return {anm.Element} itself
+ */
 Element.prototype.move = function(x, y) {
     this.x = x;
     this.y = y;
     return this;
 }
+/**
+ * @method rotate
+ * @chainable
+ *
+ * Rotate this element to some angle, once and forever.
+ *
+ * NB: If this element has tweens, event handlers and/or any modifiers in general,
+ * they will rewrite this value on the very next render call—so if you want, while having
+ * modifiers, to constantly add this value to the element rotation state, it is
+ * recommended to better add a correspoding static tween or modifier to it,
+ * rather than calling this method.
+ *
+ * @param {Number} angle angle, in radians
+ * @return {anm.Element} itself
+ */
 Element.prototype.rotate = function(angle) {
     this.angle = angle;
     return this;
 }
+/**
+ * @method rotateInDeg
+ * @chainable
+ *
+ * Rotate this element to some angle, once and forever.
+ *
+ * NB: If this element has tweens, event handlers and/or any modifiers in general,
+ * they will rewrite this value on the very next render call—so if you want, while having
+ * modifiers, to constantly add this value to the element rotation state, it is
+ * recommended to better add a correspoding static tween or modifier to it,
+ * rather than calling this method.
+ *
+ * @param {Number} angle angle, in degrees
+ * @return {anm.Element} itself
+ */
 Element.prototype.rotateInDeg = function(angle) {
     return this.rotate(angle / 180 * Math.PI);
 }
+/**
+ * @method scale
+ * @chainable
+ *
+ * Scale this element, once and forever.
+ *
+ * NB: If this element has tweens, event handlers and/or any modifiers in general,
+ * they will rewrite this value on the very next render call—so if you want, while having
+ * modifiers, to constantly add these values to the element scale state, it is
+ * recommended to better add a correspoding static tween or modifier to it,
+ * rather than calling this method.
+ *
+ * @param {Number} sx scale by X axis, in points
+ * @param {Number} sy scale by Y axis, in points
+ * @return {anm.Element} itself
+ */
 Element.prototype.scale = function(sx, sy) {
     this.sx = sx;
     this.sy = sy;
     return this;
 }
+/**
+ * @method skew
+ * @chainable
+ *
+ * Skew this element, once and forever.
+ *
+ * NB: If this element has tweens, event handlers and/or any modifiers in general,
+ * they will rewrite this value on the very next render call—so if you want, while having
+ * modifiers, to constantly add these values to the element scale state, it is
+ * recommended to better add a correspoding static tween or modifier to it,
+ * rather than calling this method.
+ *
+ * @param {Number} hx skew by X axis, in points
+ * @param {Number} hy skew by Y axis, in points
+ * @return {anm.Element} itself
+ */
 Element.prototype.skew = function(hx, hy) {
     this.hx = hx;
     this.hy = hy;
