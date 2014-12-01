@@ -1015,15 +1015,28 @@ Element.prototype.skew = function(hx, hy) {
     this.hy = hy;
     return this;
 }
-// FIXME!!!: do not pass time, dt and duration neither to modifiers
-//           nor painters, they should be accessible through this.t / this.dt
-// > Element.modify % (modifier: Function(t: Float,
-//                                        dt: Float,
-//                                        duration: Float,
-//                                        data: Any
-//                                       ) => Boolean
-//                               | Modifier) => Modifier
+/**
+ * @method modify
+ * @chainable
+ *
+ * Add the Modifier to this element. The Modifier is a function which modifies the
+ * element's state, see {@link anm.Modifier Modifier} for detailed information.
+ *
+ * Examples:
+ * * `elm.modify(function(t) { this.x += 1 / t; })`
+ * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; }).band(0, 2).easing(fuction(t) { return 1 - t; }))`
+ *
+ * @param {Function|anm.Modifier} modifier modifier
+ * @param {Number} modifier.t local band time
+ * @param {Number} [modifier.dt] time passed after last render
+ * @param {Number} [modifier.duration] duration of the modifier band or `Infinity` if it has no band
+ * @param {Object} [modifier.data] user data
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.modify = function(band, modifier) {
+    // FIXME!!!: do not pass time, dt and duration neither to modifiers
+    //           nor painters, they should be accessible through this.t / this.dt
     if (!is.arr(band)) { modifier = band;
                         band = null; }
     if (!modifier) throw new AnimationError('No modifier was passed to .modify() method');
@@ -1043,8 +1056,19 @@ Element.prototype.modify = function(band, modifier) {
     modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type + 1 (so 0 means not applied)
     return this;
 }
-// > Element.removeModifier % (modifier: Function)
+/**
+ * @method removeModifier
+ * @chainable
+ *
+ * Remove the modifier which was applied to this element.
+ *
+ * @param {Function|anm.Modifier} modifier modifier to remove
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.removeModifier = function(modifier) {
+    // FIXME!!!: do not pass time, dt and duration neither to modifiers
+    //           nor painters, they should be accessible through this.t / this.dt
     if (!is.modifier(modifier)) throw new AnimationError('Please pass Modifier instance to removeModifier');
     if (!this.__modifiers_hash[modifier.id]) throw new AnimationError('Modifier wasn\'t applied to this element');
     if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimationError(Errors.A.MODIFIER_NOT_ATTACHED);
@@ -1054,12 +1078,23 @@ Element.prototype.removeModifier = function(modifier) {
     delete modifier.__applied_to[this.id];
     return this;
 }
-// > Element.paint % (painter: Function(ctx: Context,
-//                                           data: Any,
-//                                           t: Float,
-//                                           dt: Float)
-//                                  | Painter)
-//                         => Integer
+/**
+ * @method paint
+ * @chainable
+ *
+ * Add the Painter to this element. The Painter is a function which customly draws the
+ * element, see {@link anm.Painter Painter} for detailed information.
+ *
+ * Examples:
+ * * `elm.paint(function(ctx) { ctx.fillStyle = '#f00'; ctx.fillRect(0, 0, 200, 200); })`
+ * * `elm.paint(new Painter(function(t) { ctx.fillStyle = '#f00'; ctx.fillRect(0, 0, 200, 200); }))`
+ *
+ * @param {Function|anm.Painter} painter painter
+ * @param {Number} painter.ctx context to draw onto
+ * @param {Number} [painter.data] user data
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.paint = function(painter) {
     if (!painter) throw new AnimationError('No painter was passed to .paint() method');
     if (!is.painter(painter) && is.fun(painter)) {
@@ -1077,7 +1112,16 @@ Element.prototype.paint = function(painter) {
     painter.__applied_to[this.id] = this.$painters[painter.type].length; // the index in the array by type + 1 (so 0 means not applied)
     return this;
 }
-// > Element.removePainter % (painter: Function | Painter)
+/**
+ * @method removePainter
+ * @chainable
+ *
+ * Remove the painter which was applied to this element.
+ *
+ * @param {Function|anm.Painter} painter painter to remove
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.removePainter = function(painter) {
     if (!is.painter(painter)) throw new AnimationError('Please pass Painter instance to removePainter');
     if (!this.__painters_hash[painter.id]) throw new AnimationError('Painter wasn\'t applied to this element');
@@ -1088,21 +1132,57 @@ Element.prototype.removePainter = function(painter) {
     delete painter.__applied_to[this.id];
     return this;
 }
-// > Element.tween % (tween: Tween)
+/**
+ * @method tween
+ * @chainable
+ *
+ * Add some Tween to this element. The Tween is a pre-defined way of modifing the
+ * element's state, stored in a function. See {@link anm.Tween Tween} for detailed information.
+ *
+ * Examples:
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]))`
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2))`
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(function(t) { return 1 - t; }))`
+ *
+ * @param {anm.Tween} tween tween to apply
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.tween = function(tween) {
     if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .tween() method');
     // tweens are always receiving time as relative time
     // is.finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
 }
-
-// > Element.add % (elem: Element | Clip)
-// > Element.add % (elems: Array[Element])
-// > Element.add % (draw: Function(ctx: Context),
-//                  onframe: Function(time: Float),
-//                  [ transform: Function(ctx: Context,
-//                                        prev: Function(Context)) ])
-//                  => Element
+/**
+* @method removeTween
+* @chainable
+*
+* Remove the tween which was applied to this element.
+*
+* @param {anm.Tween} tween tween to remove
+*
+* @return {anm.Element} itself
+*/
+Element.prototype.removeTween = function(tween) {
+    if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .removeTween() method');
+    return this.removeModifier(tween);
+}
+/**
+* @method add
+* @chainable
+*
+* Add another element (or elements) as a child to this element. Child element will
+* have its `.parent` link set to point to current element.
+*
+* It is also possible to add element via specifying its {@link anm.Painter Painter} and,
+* optionally, {@link anm.Modifier Modifier}, i.e. `elm.add(function(ctx) { ... },
+* function(t) { ... })`
+*
+* @param {anm.Element|[anm.Element]} element new child element
+*
+* @return {anm.Element} parent, itself
+*/
 Element.prototype.add = function(arg1, arg2, arg3) {
     if (arg2) { // element by functions mode
         var elm = new Element(arg1, arg2);
