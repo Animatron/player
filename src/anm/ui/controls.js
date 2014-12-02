@@ -299,7 +299,9 @@ Controls.prototype.handleMouseEnter = function() {
 };
 
 Controls.prototype.handleMouseLeave = function() {
-    this.hide();
+    if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
+        this.hide();
+    }
 };
 
 
