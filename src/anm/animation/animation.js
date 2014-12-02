@@ -32,7 +32,7 @@ var DOM_TO_EVT_MAP = {
 // -----------------------------------------------------------------------------
 
 /**
- * @class anm.animation.Animation
+ * @class anm.Animation
  *
  * Create an Animation.
  *

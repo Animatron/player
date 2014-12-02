@@ -63,7 +63,7 @@ function getAudioContext() {
 var audioContext = getAudioContext();
 
 /**
- * @class anm.media.Audio
+ * @class anm.Audio
  */
 function Audio(url) {
     this.url = url + audioExt;

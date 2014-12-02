@@ -14,7 +14,7 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 // See description above for Modifier constructor for details, same technique
 
 /**
- * @class anm.animation.Painter
+ * @class anm.Painter
  */
 // Painter % (func: Function(ctx, data[ctx, t, dt])[, type: C.PNT_*])
 function Painter(func, type) {

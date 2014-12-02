@@ -3,7 +3,7 @@
 var events = require('./events.js'), C = require('./constants.js');
 
 /**
- * class anm.PlayerManager
+ * @class anm.PlayerManager
  */
 function PlayerManager() {
     this.hash = {};

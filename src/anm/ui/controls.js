@@ -15,7 +15,7 @@ var FADE_NONE = 0,
 // -----------------------------------------------------------------------------
 
 /**
- * @class anm.ui.Controls
+ * @class anm.Controls
  */
 function Controls(player) {
     this.player = player;

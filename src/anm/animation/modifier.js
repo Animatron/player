@@ -23,7 +23,7 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
 //        duration is accessible through this.duration() inside the modifier
 
 /**
- * @class anm.animation.Modifier
+ * @class anm.Modifier
  */
 // Modifier % (func: Function(t, dt, elm_duration)[, type: C.MOD_*])
 function Modifier(func, type) {

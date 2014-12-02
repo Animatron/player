@@ -47,7 +47,7 @@ var Color = require('./color.js'),
 //   offsetY: 15 }
 
 /**
- * @class anm.graphics.Brush
+ * @class anm.Brush
  */
 function Brush() {
     this.type = C.BT_NONE;

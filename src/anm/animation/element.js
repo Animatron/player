@@ -57,7 +57,7 @@ Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
 /**
- * @class anm.animation.Element
+ * @class anm.Element
  *
  * An Element is literally everything what may be drawn in your animation. Or even not
  * to be drawn, but to have some position. Or to have children elements. Or both.
