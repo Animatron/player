@@ -6,7 +6,6 @@ var is = {};
 // FIXME: rename all to full-names
 is.defined = function(v) {
   return !((typeof v === 'undefined')
-   || (typeof v === 'null')
    || (v === null)
    || (v === undefined));
 };
@@ -28,8 +27,8 @@ is.str = function(s) {
 };
 is.not_empty = function(obj) {
     if (Object.keys) return (Object.keys(obj).length > 0);
-    else (Object.getOwnPropertyNames(obj).length > 0);
-}
+    else return (Object.getOwnPropertyNames(obj).length > 0);
+};
 
 is.modifier = function(f) {
   return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
@@ -102,7 +101,7 @@ function ell_text(text, max_len) {
 // #### mathematics
 
 function compareFloat(n1, n2, precision) {
-    if (!(precision === 0)) {
+    if (precision !== 0) {
         precision = precision || 2;
     }
     var multiplier = Math.pow(10, precision);
@@ -183,12 +182,12 @@ function fit_rects(pw, ph, aw, ah) {
         vcoord = (ph - ah * factor) / 2;
     if ((xw != 1) || (xh != 1)) {
         var anim_rect = [ hcoord, vcoord, aw * factor, ah * factor ];
-        if (hcoord != 0) {
+        if (hcoord !== 0) {
             return [ factor,
                      anim_rect,
                      [ 0, 0, hcoord, ph ],
                      [ hcoord + (aw * factor), 0, hcoord, ph ] ];
-        } else if (vcoord != 0) {
+        } else if (vcoord !== 0) {
             return [ factor,
                      anim_rect,
                      [ 0, 0, aw, vcoord ],
