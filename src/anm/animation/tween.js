@@ -5,6 +5,7 @@ var C = require('../constants.js'),
 
 /**
  * @class anm.Tween
+ * @extends anm.Modifier
  */
 function Tween(tween_type, data) {
     if (!tween_type) throw new Error('Tween type is required to be specified or function passed');

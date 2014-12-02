@@ -151,6 +151,11 @@ function Element(name, draw, onframe) {
      *
      * Subscribe for an element-related event with a handler.
      *
+     * There's quite big list of possible events to subscribe, and it will be added here later. `TODO`
+     *
+     * For example, `C.X_START` and `C.X_STOP` events are fired when this element's band
+     * starts and finishes in process of animation rendering.
+     *
      * @param {C.X*} type event type
      * @param {Function} handler event handler
      */
@@ -295,7 +300,7 @@ Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
 
     /** @property {anm.C.R_*} mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, see `.repeat()` / `.once()` / `.loop()` methods @readonly */
-    /** @property {Number} nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity` */
+    /** @property {Number} nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity` @readonly */
 
     this.mode = C.R_ONCE; // playing mode
     this.nrep = Infinity; // number of repetions for the mode
@@ -1157,6 +1162,7 @@ Element.prototype.bounce = function(nrep) {
  * @param {Number} [modifier.dt] time passed after last render
  * @param {Number} [modifier.duration] duration of the modifier band or `Infinity` if it has no band
  * @param {Object} [modifier.data] user data
+ * @param {anm.Element} modifier.this element, owning the modifier
  *
  * @return {anm.Element} itself
  */
