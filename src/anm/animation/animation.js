@@ -387,6 +387,9 @@ Animation.prototype._loadRemoteResources = function(player) {
  * {@link anm.Element element} or inside the whole Animation itself, if no other
  * element was provided.
  *
+ * NB: `find` method will be improved soon to support special syntax of searching,
+ * so you will be able to search almost everything
+ *
  * @param {String} name Name of the element(s) to find
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
@@ -403,6 +406,7 @@ Animation.prototype.find = function(name, where) {
 }
 /**
  * @method findById
+ * @deprecated in favor of special syntax in `find` method
  *
  * Searches for {@link anm.Element elements} by ID inside another inside the
  * Animation. Actually, just gets it from hash map, so O(1).

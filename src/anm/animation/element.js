@@ -85,6 +85,12 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  * {@link anm.Element#shadow shadow()} methods for documentation on changing appearance of the element.
  * (Fill/Shadow only apply if element is `path`, `shape` or `text`).
  *
+ * See {@link anm.Element#band band()} for documentation on how to set element's lifetime relatively to its parent.
+ *
+ * See {@link anm.Element#repeat repeat()}, {@link anm.Element#once once()}, {@link anm.Element#stay stay()},
+ * {@link anm.Element#loop loop()}, {@link anm.Element#bounce bounce()} for documentation on how to make this element
+ * self-repeat or to stay in its last state inside the parent's lifetime.
+ *
  * See {@link anm.Tween Tween} and {@link anm.Element#tween tween()} method for documentation on adding tweens.
  *
  * See {@link anm.Modifier Modifier} in pair with {@link anm.Element#modify modify()} method and {@link anm.Painter Painter}
@@ -288,7 +294,7 @@ Element.prototype.initVisuals = function() {
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
 
-    /** @property {anm.C.R_*} mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, TODO see `.repeat()` / `.once()` / `.loop()` methods @readonly */
+    /** @property {anm.C.R_*} mode the mode of an element repitition `C.R_ONCE` (default) or `C.R_STAY`, `C.R_LOOP`, `C.R_BOUNCE`, see `.repeat()` / `.once()` / `.loop()` methods @readonly */
     /** @property {Number} nrep number of times to repeat, makes sense if the mode is `C.R_LOOP` or `C.R_BOUNCE`, in other cases it's `Infinity` */
 
     this.mode = C.R_ONCE; // playing mode
@@ -1030,6 +1036,112 @@ Element.prototype.skew = function(hx, hy) {
     return this;
 }
 /**
+* @method repeat
+* @chainable
+*
+* Repeat this element inside parent's band using specified mode. Possible modes are:
+*
+* * `C.R_ONCE` — do not repeat at all, just hide this element when its band (lifetime) finished
+* * `C.R_STAY` — "play" this element once and then immediately freeze its last frame, and keep showing it until parent's band will finish
+* * `C.R_LOOP` — loop this element inside parent's band until the latter will finish
+* * `C.R_BOUNCE` — bounce (loop forward and back in time) this element inside parent's band until the latter will finish
+*
+* So, if element has its own band, and this band fits parent's band at least one time,
+* then this element will repeated (or stay) the specified number of times (or infinite
+* number of times by default), but only while it still fits parent's band.
+*
+* If parent's band is infinite and looping is infinite, both elements will stay forever,
+* except the case when a parent of a parent has narrower band.
+*
+* NB: by default, element's band is `[0, Infinity]`, in seconds, relative to parent's band.
+* To change it, use {@link anm.Element#band band()} method.
+*
+* See also: {@link anm.Element#band band()}, {@link anm.Element#once once()},
+*           {@link anm.Element#stay stay()}, {@link anm.Element#loop loop()},
+*           {@link anm.Element#bounce bounce()}
+*
+* @param {anm.C.R_*} mode repeat mode, one of the listed above
+* @param {Number} nrep number of times to repeat or `Infinity` by default
+*
+* @return {anm.Element} itself
+*/
+Element.prototype.repeat = function(mode, nrep) {
+    this.mode = mode;
+    this.nrep = is.num(nrep) ? nrep : Infinity;
+    return this;
+}
+/**
+ * @method once
+ * @chainable
+ *
+ * Do not repeat this element inside the parent's band. In another words, repeat this
+ * element just once. In another words, assign this element a default behavior
+ * when it element "dies" just after its lifetime is finished. In another words,
+ * disable any looping/repeating.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.once = function() {
+    this.mode = C.R_ONCE;
+    this.nrep = Infinity;
+    return this;
+}
+/**
+ * @method stay
+ * @chainable
+ *
+ * Repeat this element once inside its own band, but freeze its last frame until
+ * parents' band will finish, or forever.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.stay = function() {
+    this.mode = C.R_STAY;
+    this.nrep = Infinity;
+    return this;
+}
+/**
+ * @method loop
+ * @chainable
+ *
+ * Loop this element using its own band until its parent's band will finish, or
+ * until specified number of times to repeat will be reached, or forever.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ *
+ * @param {Number} [nrep] number of times to repeat or `Infinity` by default
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.loop = function(nrep) {
+    this.mode = C.R_LOOP;
+    this.nrep = is.num(nrep) ? nrep : Infinity;
+    return this;
+}
+/**
+ * @method bounce
+ * @chainable
+ *
+ * Bounce (loop forward and then back) this element using its own band until
+ * its parent's band will finish, or until specified number of times to repeat
+ * will be reached, or forever.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ *
+ * @param {Number} [nrep] number of times to repeat or `Infinity` by default
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.bounce = function(nrep) {
+    this.mode = C.R_BOUNCE;
+    this.nrep = is.num(nrep) ? nrep : Infinity;
+    return this;
+}
+/**
  * @method modify
  * @chainable
  *
@@ -1569,12 +1681,12 @@ Element.prototype.iter = function(func, rfunc) {
     return this;
 }
 /**
-* @method hasChildren
-*
-* Check if this element has children.
-*
-* @return {Boolean} are there any children
-*/
+ * @method hasChildren
+ *
+ * Check if this element has children.
+ *
+ * @return {Boolean} are there any children
+ */
 Element.prototype.hasChildren = function() {
     return this.children.length > 0;
 }
@@ -1911,7 +2023,6 @@ Element.prototype.removeMaskCanvases = function() {
     this.__maskCtx = null;
     this.__backCtx = null;
 }
-
 Element.prototype.data = function(val) {
     if (!is.defined(val)) return this.$data;
     this.$data = val;
@@ -1933,9 +2044,29 @@ Element.prototype.toString = function() {
     buf.push(']');
     return buf.join("");
 }
+/**
+ * @method find
+ *
+ * Find any element inside this element by its name.
+ *
+ * See also {@link anm.Animation#find animation.find}.
+ *
+ * NB: `find` method will be improved soon to support special syntax of searching,
+ * so you will be able to search almost everything.
+ *
+ * @param {String} name name of the element to search for
+ * @return {anm.Element|Null} found element or `null`
+ */
 Element.prototype.find = function(name) {
     this.anim.find(name, this);
 }
+/**
+ * @method clone
+ *
+ * Clone this element.
+ *
+ * @return {anm.Element} clone
+ */
 Element.prototype.clone = function() {
     var clone = new Element();
     clone.name = this.name;
@@ -1956,6 +2087,13 @@ Element.prototype.clone = function() {
     clone.__u_data = this.__u_data;
     return clone;
 }
+/**
+ * @method shallow
+ *
+ * Shallow-copy this element: clone itself and clone all of its children, modifiers and painters
+ *
+ * @return {anm.Element} shallow copy
+ */
 Element.prototype.shallow = function() {
     var clone = this.clone();
     clone.children = [];
@@ -1978,12 +2116,32 @@ Element.prototype.shallow = function() {
     clone.__u_data = utils.obj_clone(this.__u_data);
     return clone;
 }
+/**
+ * @method asClip
+ * @chainable
+ * @deprecated
+ *
+ * Restrict tweens of this element in a separate band, and repeat them inside.
+ * This method is useful for creating sputnik-like animations, where sputnik
+ * continues to rotate without time reset, while parent keeps looping its own tweens
+ * (say, both move up and down in repetition). Similar to Clips from Flash.
+ *
+ * A high possibility is this logic (`TODO`) will be moved in some separate
+ * `Element` sub-class (named `Clip`?), where instances of this class will act as
+ * described above by default, with a band and mode.
+ *
+ * @param {[Number]} band band, as `[start, stop]`
+ * @param {anm.C.M_*} mode repeat mode
+ * @param {Number} nrep number of repetition
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.asClip = function(band, mode, nrep) {
     if (mode == C.R_ONCE) return;
-    // TODO: find better name for this
     this.clip_band = band;
     this.clip_mode = mode;
     this.clip_nrep = nrep;
+    return this;
 }
 Element.prototype._addChild = function(elm) {
     //if (elm.parent) throw new AnimationError('This element already has parent, clone it before adding');
