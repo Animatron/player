@@ -10,6 +10,9 @@ var Bounds = require('./bounds.js');
 
 // TODO: new Text("My Text").font("Arial").size(5).bold()
 
+/**
+ * @class anm.graphics.Text
+ */
 function Text(lines, font, align, baseline, underlined) {
     this.lines = lines;
     this.$font = font || Text.DEFAULT_FONT;

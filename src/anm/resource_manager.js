@@ -54,6 +54,9 @@ function rmLog(str) {
   }
 }
 
+/**
+ * class anm.ResourceManager
+ */
 function ResourceManager() {
     this._cache = {};
     this._errors = {};

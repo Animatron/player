@@ -3,8 +3,9 @@ var C = require('../constants.js'),
     Modifier = require('./modifier.js'),
     AnimationError = require('../errors.js').AnimationError;
 
-// Tweens
-// -----------------------------------------------------------------------------
+/**
+ * @class anm.animation.Tween
+ */
 function Tween(tween_type, data) {
     if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
     var func;

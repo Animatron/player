@@ -9,6 +9,9 @@ var Bounds = require('./bounds.js');
 Sheet.instances = 0;
 Sheet.MISSED_SIDE = 50;
 /* TODO: rename to Static and take optional function as source? */
+/**
+ * @class anm.graphics.Sheet
+ */
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
     this.src = src;

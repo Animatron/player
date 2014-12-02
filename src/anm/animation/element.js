@@ -57,7 +57,7 @@ Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
 /**
- * @class anm.Element
+ * @class anm.animation.Element
  *
  * An Element is literally everything what may be drawn in your animation. Or even not
  * to be drawn, but to have some position. Or to have children elements. Or both.
@@ -1269,6 +1269,7 @@ Element.prototype.removePainter = function(painter) {
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]))`
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2))`
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(function(t) { return 1 - t; }))`
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(anm.C.E_IN))`
  *
  * @param {anm.Tween} tween tween to apply
  *

@@ -1,6 +1,10 @@
 var utils = require('../utils.js'),
     is = utils.is;
 //a set of functions for parsing, converting and intepolating color values
+
+/**
+ * @class anm.graphics.Color
+ */
 var Color = {};
 Color.TRANSPARENT  = 'transparent';
 // TODO: Color.RED, Color.BLUE, ....

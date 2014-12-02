@@ -34,6 +34,9 @@ var Bounds = require('./bounds.js');
 // Currently our format differs in a number format:
 // "M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z"
 // > Path % (val: String | Array)
+/**
+ * @class anm.graphics.Path
+ */
 function Path(val) {
     this.segs = [];
 
