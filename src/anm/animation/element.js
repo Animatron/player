@@ -132,9 +132,18 @@ function Element(name, draw, onframe) {
     this.__frameProcessors = [];
 
     this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
-    // TODO: call '.reset() here?'
+
+    // FIXME: add all of the `provideEvents` method to docs for all elements who provide them
     var me = this,
         default_on = this.on;
+    /**
+     * @method on
+     *
+     * Subscribe for an element-related event with a handler.
+     *
+     * @param {C.X*} type event type
+     * @param {Function} handler event handler
+     */
     this.on = function(type, handler) {
         if (type & C.XT_CONTROL) {
             return this.m_on.call(me, type, handler);
@@ -1198,7 +1207,16 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     this.invalidate();
     return this;
 }
-// > Element.remove % (elm: Element)
+/**
+ * @method remove
+ * @chainable
+ *
+ * Remove child element which was attached to this element before.
+ *
+ * @param {anm.Element|[anm.Element]} element element to remove
+ *
+ * @return {anm.Element} parent, itself
+ */
 Element.prototype.remove = function(elm) {
     if (!elm) throw new AnimationError(Errors.A.NO_ELEMENT_TO_REMOVE);
     if (this.__safeDetach(elm) == 0) throw new AnimationError(Errors.A.NO_ELEMENT);
@@ -1212,24 +1230,29 @@ Element.prototype._unbind = function() {
     if (this.anim) this.anim._unregister(this);
     // this.anim should be null after unregistering
 }
-// > Element.detach % ()
+/**
+ * @private @method detach
+ *
+ * Detach element from parent, a part of removing process
+ */
 Element.prototype.detach = function() {
     if (this.parent.__safeDetach(this) == 0) throw new AnimationError(Errors.A.ELEMENT_NOT_ATTACHED);
 }
-/* make element band fit all children bands */
-// > Element.makeBandFit % ()
+/**
+ * @private @method makeBandFit
+ *
+ * Loop through the children, find a band that fits them all, and apply it to the element
+ */
 Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
     this.gband = wband;
     this.lband[1] = wband[1] - wband[0];
 }
-// > Element.setBand % (band: Array[2, Float])
-Element.prototype.setBand = function(band) {
-    // TODO: change to .band([start, end]) -> Element
-    this.lband = band;
-    Bands.recalc(this);
-}
-// > Element.fits % (ltime: Float) -> Boolean
+/**
+ * @private @method fits
+ *
+ * Test if band-local time fits element's parent-local band
+ */
 Element.prototype.fits = function(ltime) {
     // NB: the local time passed inside is not relative to parent element's
     // band, but relative to local band of this element. So it's ok not to check
@@ -1240,11 +1263,29 @@ Element.prototype.fits = function(ltime) {
     if (ltime < 0) return false;
     return t_cmp(ltime, this.lband[1] - this.lband[0]) <= 0;
 }
-// > Element.gtime % (ltime: Float) -> Float
+/**
+ * @method gtime
+ *
+ * Get global time (relative to {@link anm.Animation Animation} or {@link anm.Scene scene})
+ * from band-local time (relative to element's band, not parent-local)
+ *
+ * @param {Number} ltime band-local time
+ * @return {Number} global time
+ */
 Element.prototype.gtime = function(ltime) {
     return this.gband[0] + ltime;
 }
-// > Element.ltime % (gtime: Float) -> Float
+/**
+ * @method ltime
+ *
+ * Get band-local time (relative to element's band, not parent-local) from
+ * global time (relative to {@link anm.Animation Animation} or {@link anm.Scene scene}).
+ *
+ * *NB:* This method also checks time-jumps and sets some jump-related flags (`FIXME`), so use it with caution.
+ *
+ * @param {Number} gtime global time
+ * @return {Number} band-local time
+ */
 Element.prototype.ltime = function(gtime) {
     // NB: the `ltime` this method returns is relative to local band of this element
     // and not the band of the parent element, as `lband` does. So having the `0` returned
@@ -1287,12 +1328,27 @@ Element.prototype.ltime = function(gtime) {
             }
     }
 }
-// > Element.handlePlayerEvent % (event: C.S_*, handler: Function(player: Player))
+/**
+ * @private @method handlePlayerEvent
+ *
+ * Pass player event to this element.
+ *
+ * @param {C.S_*} event
+ * @param {Function} handler
+ * @param {anm.Player} handler.player
+ */
 Element.prototype.handlePlayerEvent = function(event, handler) {
     if (!isPlayerEvent(event)) throw new Error('This method is intended to assign only player-related handles');
     this.on(event, handler);
 }
-// > Element.inform % (ltime: Float)
+/**
+ * @private @method inform
+ *
+ * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
+ * some end of its band
+ *
+ * @param {Number} ltime band-local time
+ */
 Element.prototype.inform = function(ltime) {
     if (t_cmp(ltime, 0) >= 0) {
         var duration = this.lband[1] - this.lband[0],
@@ -1324,13 +1380,31 @@ Element.prototype.inform = function(ltime) {
         };
     };
 }
-Element.prototype.band = function(band) {
+/**
+ * @method band
+ * @chainable
+ *
+ * Set a time-band of an element (relatively to parent element or an {@link anm.Animation Animation},
+ * or {@link anm.Scene Scene}, if this element happened to be a direct child of one). Time-band
+ * of an Element is its lifetime, an Element gets its birth and dies at specified time, accordingly.
+ * If it has repeat-mode, it resets its local time and starts living again. Time-band is specified in
+ * seconds relatively to parent element's time-band.
+ *
+ * For example, if parent is in a root of animation and has a band of `[ 1.5, 6 ]`, and its child has a
+ * band of `[ 3.5, 7 ]`, then this child appears at `5` (`1.5 + 3.5`) seconds of global time and hides at
+ * `6` seconds of global time, since its band outlives the parent band, so it was cut.
+ *
+ * @param {Number} start start time of a band
+ * @param {Number} stop stop time of a band
+ * @return {anm.Element} itself
+ */
+Element.prototype.band = function(start, stop) {
     if (!is.defined(start)) return this.lband;
     // FIXME: array bands should not pass
     // if (is.arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
     if (is.arr(start)) {
-        stop = start[1];
         start = start[0];
+        stop = start[1];
     }
     if (!is.defined(stop)) { stop = Infinity; }
     this.lband = [ start, stop ];
@@ -1338,9 +1412,28 @@ Element.prototype.band = function(band) {
         var parent = this.parent;
         this.gband = [ parent.gband[0] + start, parent.gband[0] + stop ];
     }
+    // Bands.recalc(this)
     return this;
 }
-// > Element.duration % () -> Float
+/**
+ * @method band
+ * @chainable
+ *
+ * Set a time-band of an element (relatively to parent element or an {@link anm.Animation Animation},
+ * or {@link anm.Scene Scene}, if this element happened to be a direct child of one). Time-band
+ * of an Element is its lifetime, an Element gets its birth and dies at specified time, accordingly.
+ * If it has repeat-mode, it resets its local time and starts living again. Time-band is specified in
+ * seconds relatively to parent element's time-band.
+ *
+ * For example, if parent is in a root of animation and has a band of `[ 1.5, 6 ]`, and its child has a
+ * band of `[ 3.5, 7 ]`, then this child appears at `5` (`1.5 + 3.5`) seconds of global time and hides at
+ * `6` seconds of global time, since its band outlives the parent band, so it was cut.
+ *
+ * @param {Number} start start time of a band
+ * @param {Number} stop stop time of a band
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.duration = function(value) {
     if (!is.defined(value)) return this.lband[1] - this.lband[0];
     this.gband = [ this.gband[0], this.gband[0] + value ];
@@ -1359,6 +1452,12 @@ Element.prototype._max_tpos = function() {
             ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
             : 0;
 } */
+/**
+ * @private @method m_on
+ *
+ * Subscribe for mouse or keyboard event over this element (these events are
+ * separated from a flow)
+ */
 Element.prototype.m_on = function(type, handler) {
     this.modify(new Modifier(
         function(t) { /* FIXME: handlers must have priority? */
@@ -1388,6 +1487,11 @@ Element.prototype.findWrapBand = function() {
     });
     return (result[0] !== Infinity) ? result : null;
 }
+/**
+ * @private @method dispose
+ *
+ * Dispose the memory-consuming objects, called authomatically on animation end
+ */
 Element.prototype.dispose = function() {
     this.disposeHandlers();
     this.disposeVisuals();
@@ -1395,13 +1499,17 @@ Element.prototype.dispose = function() {
         child.dispose();
     });
 }
-// FIXME: what's the difference with resetVisuals?
 Element.prototype.disposeVisuals = function() {
     if (this.$path)  this.$path.dispose();
     if (this.$text)  this.$text.dispose();
     if (this.$image) this.$image.dispose();
     if (this.$mpath) this.$mpath.dispose();
 }
+/**
+* @private @method reset
+*
+* Reset all stored flags and events, called authomatically on animation end
+*/
 Element.prototype.reset = function() {
     // if positions were set before loading a scene, we don't need to reset them
     //this.resetState();
@@ -1697,6 +1805,7 @@ Element.prototype.shallow = function() {
     return clone;
 }
 Element.prototype._addChild = function(elm) {
+    //if (elm.parent) throw new AnimationError('This element already has parent, clone it before adding');
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
