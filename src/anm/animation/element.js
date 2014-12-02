@@ -316,15 +316,14 @@ Element.prototype.modifiers = function(ltime, dt, types) {
                 modifier = typed_modifiers[j];
                 // lbtime is band-apadted time, if modifier has its own band
                 lbtime = elm.__adaptModTime(modifier, ltime);
-                // `false` will be returned from `__adaptModTime`
-                // for trigger-like modifier if it is required to skip current one,
-                // on the other hand `true` means
-                // "skip this one, but not finish the whole process",
-                if (lbtime === false) continue;
+                // `null` will be returned from `__adaptModTime` for some modifier,
+                // if it is required to skip current one, but continue calling others;
+                // when `false` is returned for some modifier, this element should not be rendered at all
+                if (lbtime === null) continue;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                //                  // time,      dt, duration
-                if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
+                //                                         // time,      dt, duration
+                if ((lbtime === false) || (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false)) {
                     elm.__mafter(ltime, elm.__modifying, false);
                     elm.__modifying = null;
                     return false; // exit the method
@@ -1246,6 +1245,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     if (elm.clip_band) {
         ltime = Element.checkRepeatMode(ltime, elm.clip_band,
                                         elm.clip_mode || C.R_ONCE, elm.clip_nrep);
+        if (ltime < 0) return false;
     }
 
     // modifier takes the whole element time
@@ -1274,20 +1274,20 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
 
         res_time = res_time = ltime - mod_band[0];
         res_duration = mod_duration;
-        if (t_cmp(res_time, 0) < 0) return false;
-        if (t_cmp(res_time, res_duration) > 0) return false;
+        if (t_cmp(res_time, 0) < 0) return null;
+        if (t_cmp(res_time, res_duration) > 0) return null;
 
     // modifier is assigned to trigger at some specific time moment
   } else if (is.num(mod_time)) {
 
-        if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return false;
+        if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return null;
         var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
         if (t_cmp(ltime, tpos) >= 0) {
             if (!modifier.__wasCalled) modifier.__wasCalled = {};
             if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
             modifier.__wasCalled[elm.id] = true;
             modifier.__wasCalledAt[elm.id] = ltime;
-        } else return false;
+        } else return null;
 
         res_time = ltime;
         res_duration = elm_duration;
