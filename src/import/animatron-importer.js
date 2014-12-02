@@ -28,6 +28,7 @@ var C = anm.constants,
     MSeg = anm.MSeg,
     LSeg = anm.LSeg,
     CSeg = anm.CSeg,
+    Audio = anm.Audio,
     is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck
@@ -178,15 +179,7 @@ var TYPE_UNKNOWN =  0,
     TYPE_LAYER   = 255; // is it good?
 
 function isPath(type) {
-    return (type == TYPE_PATH) ||
-           (type == TYPE_RECT) ||
-           (type == TYPE_OVAL) ||
-           (type == TYPE_PENCIL) ||
-           (type == TYPE_BRUSH) ||
-           (type == TYPE_STAR) ||
-           (type == TYPE_POLYGON) ||
-           (type == TYPE_CURVE) ||
-           (type == TYPE_LINE);
+    return (type == TYPE_PATH);
 }
 
 /** node **/
@@ -210,7 +203,10 @@ Import.node = function(src, all, parent, anim) {
     } else if (type != TYPE_UNKNOWN) {
         trg = Import.leaf(type, src, parent, anim);
     }
-    if (trg) { Import.callCustom(trg, src, type); };
+    if (trg) {
+        trg._anm_type = type;
+        Import.callCustom(trg, src, type);
+    };
     return trg;
 }
 var L_ROT_TO_PATH = 1,
@@ -318,6 +314,16 @@ Import.branch = function(type, src, all, anim) {
             ltrg.mode = Import.mode(null);
         }
 
+        // Clips' end-actions like in Editor are not supported in Player,
+        // but they may be adapted to Player's model (same as Group in Editor)
+        if ((ltrg._anm_type == TYPE_CLIP) && (ltrg.mode != C.R_ONCE)) {
+            ltrg.asClip([0, ltrg.lband[1] - ltrg.lband[0]], ltrg.mode, ltrg.nrep);
+            ltrg.lband = [ ltrg.lband[0], Infinity ];
+            ltrg.gband = [ ltrg.gband[0], Infinity ];
+            ltrg.mode = C.R_STAY;
+            ltrg.nrep = Infinity;
+        }
+
         // if do not masks any layers, just add to target
         // if do masks, set it as a mask for them while not adding
         if (!lsrc[3]) { // !masked
@@ -343,7 +349,7 @@ Import.branch = function(type, src, all, anim) {
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
-        // [todo] temporary implementation
+        // TODO temporary implementation
         if (ltrg._audio_master) {
             ltrg.lband = [ltrg.lband[0], Infinity];
             ltrg.gband = [ltrg.gband[0], Infinity];
@@ -351,6 +357,7 @@ Import.branch = function(type, src, all, anim) {
             anim.add(ltrg);
         }
     }
+
     return trg;
 }
 /** leaf **/
@@ -359,12 +366,17 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
-    else if (type != TYPE_AUDIO && type != TYPE_VIDEO) { trg.$path  = Import.path(src);  }
-
+    else if (type == TYPE_AUDIO) {
+        trg.type = C.ET_AUDIO;
+        trg.audio = Import.audio(src);
+        trg.audio.connect(trg);
+    }
+    else if (type == TYPE_VIDEO) {}
+    else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
-        if(src.length>1) trg.$fill = Import.fill(src[1]);
-        if(src.length>2) trg.$stroke = Import.stroke(src[2]);
-        if(src.length>3) trg.$shadow = Import.shadow(src[3]);
+        trg.$fill = Import.fill(src[1]);
+        trg.$stroke = Import.stroke(src[2]);
+        trg.$shadow = Import.shadow(src[3]);
     }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
@@ -616,6 +628,7 @@ Import.tweentype = function(src) {
     if (src === 3) return C.T_SHEAR;
     if (src === 4) return C.T_TRANSLATE;
     //if (src === 5) return C.T_ROT_TO_PATH;
+    if (src === 7) return C.T_VOLUME;
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
 }
@@ -644,6 +657,11 @@ Import.tweendata = function(type, src) {
     if (type === C.T_STROKE) {
         return [Import.stroke(src[0]), Import.stroke(src[1])];
     }
+    if (type === C.T_VOLUME) {
+      if (src.length == 2) return src;
+      if (src.length == 1) return [ src[0], src[0] ];
+    }
+
 }
 /** easing **/
 /*
@@ -790,6 +808,13 @@ Import.grad = function(src) {
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
+}
+
+Import.audio = function(src) {
+    var audio = new Audio(src[1]);
+    audio.offset = src[2];
+    audio.master = src[3];
+    return audio;
 }
 
 // BitStream

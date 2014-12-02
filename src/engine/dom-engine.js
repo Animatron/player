@@ -307,13 +307,13 @@ $DE.createTextMeasurer = function() {
         if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
             var maxWidth = 0, height = 0;
             for (var i = 0, ilen = lines.length; i < ilen; i++) {
-                buff.innerText = lines[i] || " ";
+                buff.textContent = lines[i] || " ";
                 maxWidth = Math.max(buff.offsetWidth, maxWidth);
                 height += buff.offsetHeight;
             }
             return [ maxWidth, height ];
         } else {
-            buff.innerText = text.lines.toString() || "";
+            buff.textContent = text.lines.toString() || "";
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
@@ -899,8 +899,20 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-  return document.createElement('style');
+    return document.createElement('style');
 };
+
+$DE.createAudio = function() {
+    return document.createElement('audio');
+}
+
+$DE.createSource = function() {
+    return document.createElement('source');
+}
+
+$DE.appendToBody = function(element) {
+    document.body.appendChild(element);
+}
 
 var testCanvas = document.createElement('canvas');
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));

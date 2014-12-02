@@ -105,10 +105,10 @@ Color.hueToRgb = function(t1, t2, hue) {
     else return t1;
 };
 Color.rgb = function(r, g, b) {
-    return 'rgb(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ')';
+    return 'rgb(' + r + ',' + g + ',' + b + ')';
 };
 Color.rgba = function(r, g, b, a) {
-    return 'rgba(' + (r * 255) + ',' + (g * 255) + ',' + (b * 255) + ','
+    return 'rgba(' + r + ',' + g + ',' + b + ','
                                + (is.defined(a) ? a.toFixed(2) : 1.0) + ')';
 };
 Color.hsl = function(h, s, l) {

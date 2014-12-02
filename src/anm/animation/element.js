@@ -277,6 +277,8 @@ Element.prototype.initVisuals = function() {
     this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
 
+    this.audio = null;
+
     return this;
 }
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
@@ -531,15 +533,14 @@ Element.prototype.modifiers = function(ltime, dt, types) {
                 modifier = typed_modifiers[j];
                 // lbtime is band-apadted time, if modifier has its own band
                 lbtime = elm.__adaptModTime(modifier, ltime);
-                // `false` will be returned from `__adaptModTime`
-                // for trigger-like modifier if it is required to skip current one,
-                // on the other hand `true` means
-                // "skip this one, but not finish the whole process",
-                if (lbtime === false) continue;
+                // `null` will be returned from `__adaptModTime` for some modifier,
+                // if it is required to skip current one, but continue calling others;
+                // when `false` is returned for some modifier, this element should not be rendered at all
+                if (lbtime === null) continue;
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
-                //                  // time,      dt, duration
-                if (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false) {
+                //                                         // time,      dt, duration
+                if ((lbtime === false) || (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false)) {
                     elm.__mafter(ltime, elm.__modifying, false);
                     elm.__modifying = null;
                     return false; // exit the method
@@ -1296,37 +1297,9 @@ Element.prototype.ltime = function(gtime) {
     // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
     // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
     // value returned here). See `render()` method comment regarding `ltime` for more details.
-    var gband = this.gband, lband = this.lband;
-    if (!is.finite(gband[1])) return this.__checkJump(gtime - gband[0]);
-    switch (this.mode) {
-        case C.R_ONCE:
-            return this.__checkJump(gtime - gband[0]);
-        case C.R_STAY:
-            return (t_cmp(gtime, gband[1]) <= 0)
-                   ? this.__checkJump(gtime - gband[0])
-                   : this.__checkJump(lband[1] - lband[0]);
-        case C.R_LOOP: {
-                var durtn = lband[1] -
-                            lband[0];
-                if (durtn < 0) return -1;
-                var ffits = (gtime - gband[0]) / durtn,
-                    fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > this.nrep)) return -1;
-                var t = (gtime - gband[0]) - (fits * durtn);
-                return this.__checkJump(t);
-            }
-        case C.R_BOUNCE: {
-                var durtn = lband[1] -
-                            lband[0];
-                if (durtn < 0) return -1;
-                var ffits = (gtime - gband[0]) / durtn,
-                    fits = Math.floor(ffits);
-                if ((fits < 0) || (ffits > this.nrep)) return -1;
-                var t = (gtime - gband[0]) - (fits * durtn),
-                    t = ((fits % 2) === 0) ? t : (durtn - t);
-                return this.__checkJump(t);
-            }
-    }
+    return this.__checkJump(
+        Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
+    );
 }
 /**
  * @private @method handlePlayerEvent
@@ -1804,6 +1777,13 @@ Element.prototype.shallow = function() {
     clone.__u_data = utils.obj_clone(this.__u_data);
     return clone;
 }
+Element.prototype.asClip = function(band, mode, nrep) {
+    if (mode == C.R_ONCE) return;
+    // TODO: find better name for this
+    this.clip_band = band;
+    this.clip_mode = mode;
+    this.clip_nrep = nrep;
+}
 Element.prototype._addChild = function(elm) {
     //if (elm.parent) throw new AnimationError('This element already has parent, clone it before adding');
     elm.parent = this;
@@ -1848,6 +1828,12 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     var res_time,
         res_duration;
 
+    if (elm.clip_band) {
+        ltime = Element.checkRepeatMode(ltime, elm.clip_band,
+                                        elm.clip_mode || C.R_ONCE, elm.clip_nrep);
+        if (ltime < 0) return false;
+    }
+
     // modifier takes the whole element time
     if (mod_time == null) {
 
@@ -1864,32 +1850,30 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
         // (like [0, 7] modifier band for [0, 10] element band)
         if (!mod_relative) {
             mod_duration = mod_band[1] - mod_band[0];
-            if (t_cmp(ltime, mod_band[0]) < 0) return false;
-            if (t_cmp(ltime, mod_band[1]) > 0) return false;
         // this band is specified relatively to local band in relative time values
         // (like [0, 0.7] modifier band for [0, 10] element band means [0, 7], as above)
         } else {
             mod_band = [ mod_band[0] * elm_duration,
                          mod_band[1] * elm_duration ];
             mod_duration = mod_band[1] - mod_band[0];
-            if (t_cmp(ltime, mod_band[0]) < 0) return false;
-            if (t_cmp(ltime, mod_band[1]) > 0) return false;
         }
 
-        res_time = ltime - mod_band[0];
+        res_time = res_time = ltime - mod_band[0];
         res_duration = mod_duration;
+        if (t_cmp(res_time, 0) < 0) return null;
+        if (t_cmp(res_time, res_duration) > 0) return null;
 
     // modifier is assigned to trigger at some specific time moment
   } else if (is.num(mod_time)) {
 
-        if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return false;
+        if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return null;
         var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
         if (t_cmp(ltime, tpos) >= 0) {
             if (!modifier.__wasCalled) modifier.__wasCalled = {};
             if (!modifier.__wasCalledAt) modifier.__wasCalledAt = {};
             modifier.__wasCalled[elm.id] = true;
             modifier.__wasCalledAt[elm.id] = ltime;
-        } else return false;
+        } else return null;
 
         res_time = ltime;
         res_duration = elm_duration;
@@ -2035,16 +2019,30 @@ Element.prototype.__postRender = function() {
 }
 Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) return true;
+    if (this.is(C.ET_AUDIO) && player.audioEnabled) return true;
+
+    return false;
 }
 Element.prototype._collectRemoteResources = function(anim, player) {
-    if (!player.imagesEnabled) return null;
-    if (!this.$image) return null;
-    return [ this.$image.src ];
+    var resources = [];
+
+    if (player.imagesEnabled && this.$image) {
+        resources.push(this.$image.src);
+    }
+    if (player.audioEnabled && this.is(C.ET_AUDIO)) {
+        resources.push(this.audio.url);
+    }
+
+    return resources;
 }
+
 Element.prototype._loadRemoteResources = function(anim, player) {
-    if (!player.imagesEnabled) return;
-    if (!this.$image) return;
-    this.$image.load(player.id);
+    if (player.imagesEnabled && this.$image) {
+        this.$image.load(player.id);
+    }
+    if (this.is(C.ET_AUDIO) && player.audioEnabled) {
+        this.audio.load(player);
+    }
 }
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
@@ -2072,6 +2070,7 @@ Element.transferVisuals = function(src, trg) {
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
+    trg.audio = src.audio ? src.audio.clone() : null;
 }
 Element.transferTime = function(src, trg) {
     trg.mode = src.mode; trg.nrep = src.nrep;
@@ -2103,6 +2102,38 @@ Element.getIMatrixOf = function(elm, m) {
     var t = Element.getMatrixOf(elm, m);
     t.invert();
     return t;
+}
+Element.checkRepeatMode = function(time, band, mode, nrep) {
+    if (!is.finite(band[1])) return time - band[0];
+    switch (mode) {
+        case C.R_ONCE:
+            return time - band[0];
+        case C.R_STAY:
+            return (t_cmp(time, band[1]) <= 0)
+                   ? time - band[0]
+                   : band[1] - band[0];
+        case C.R_LOOP: {
+                var durtn = band[1] -
+                            band[0];
+                if (durtn < 0) return -1;
+                var ffits = (time - band[0]) / durtn,
+                    fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > nrep)) return -1;
+                var t = (time - band[0]) - (fits * durtn);
+                return t;
+            }
+        case C.R_BOUNCE: {
+                var durtn = band[1] -
+                            band[0];
+                if (durtn < 0) return -1;
+                var ffits = (time - band[0]) / durtn,
+                    fits = Math.floor(ffits);
+                if ((fits < 0) || (ffits > nrep)) return -1;
+                var t = (time - band[0]) - (fits * durtn),
+                    t = ((fits % 2) === 0) ? t : (durtn - t);
+                return t;
+            }
+    }
 }
 /* TODO: add createFromImgUrl?
  Element.imgFromURL = function(url) {

@@ -94,6 +94,7 @@ function Player() {
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
     this.__makeSafe(Player._SAFE_METHODS);
+    this.muted = false;
 }
 Player.__instances = 0;
 
@@ -113,6 +114,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'infiniteDuration': undefined, // undefined means 'auto'
                                  'drawStill': undefined, // undefined means 'auto'
                                  'audioEnabled': true,
+                                 'audioGlobalVolume': 1.0,
                                  'imagesEnabled': true,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
@@ -345,7 +347,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     state.happens = C.LOADING;
     player.fire(C.S_CHANGE_STATE, C.LOADING);
-    player._runLoadingAnimation();
 
     var whenDone = function(result) {
         var anim = player.anim;
@@ -355,8 +356,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
         var remotes = anim._collectRemoteResources(player);
         if (!remotes.length) {
-            player._stopLoadingAnimation();
-            if (player.controls) player.controls.inject(anim);
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
             if (callback) callback.call(player, result);
@@ -378,8 +377,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
-                        player._stopLoadingAnimation();
-                        if (player.controls) player.controls.inject(result);
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
@@ -438,7 +435,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if (durationPassed) { // FIXME: move to whenDone?
         player.anim.duration = duration;
-        if (player.controls) player.controls.setDuration(duration);
     }
 
     return player;
@@ -602,12 +598,6 @@ Player.prototype.stop = function() {
                    player._postponedLoad)) {
         state.happens = C.STOPPED;
         player._drawStill();
-        if (player.controls/* && !player.controls.hidden*/) {
-            // FIXME: subscribe controls to S_STOP event instead
-            player.controls.show();
-            player.controls.forceNextRedraw();
-            player.controls.render(state.time);
-        }
         player.fire(C.S_CHANGE_STATE, C.STOPPED);
     } else if (state.happens !== C.ERROR) {
         state.happens = C.NOTHING;
@@ -735,6 +725,8 @@ Player.prototype._addOpts = function(opts) {
                         ? opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled)
                         ? opts.audioEnabled : this.audioEnabled;
+    this.globalAudioVolume = is.defined(opts.globalAudioVolume)
+                        ? opts.globalAudioVolume : this.globalAudioVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled)
                         ? opts.imagesEnabled : this.imagesEnabled;
     this.shadowsEnabled = is.defined(opts.shadowsEnabled)
@@ -858,7 +850,6 @@ Player.prototype.rect = function(rect) {
  * Force player to redraw controls and visuals according to current state
  */
 Player.prototype.forceRedraw = function() {
-    if (this.controls) this.controls.forceNextRedraw();
     switch (this.state.happens) {
         case C.STOPPED: this.stop(); break;
         case C.PAUSED: if (this.anim) this.drawAt(this.state.time); break;
@@ -867,7 +858,6 @@ Player.prototype.forceRedraw = function() {
         //case C.LOADING: case C.RES_LOADING: this._drawSplash(); break;
         //case C.ERROR: this._drawErrorSplash(); break;
     }
-    if (this.controls) this.controls.render(this.state.time);
 }
 /**
  * @method drawAt
@@ -899,9 +889,6 @@ Player.prototype.drawAt = function(time) {
     anim.reset();
     anim.__informEnabled = false;
     Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
-
-    if (this.controls) this.controls.render(time);
-
     return this;
 }
 /**
@@ -1119,6 +1106,19 @@ Player.prototype.subscribeEvents = function(canvas) {
                     })(this)
     });
 }
+
+Player.prototype.toggleMute = function() {
+    this.muted = !this.muted;
+    if (!this.anim) {
+        return;
+    }
+    this.anim.traverse(function(el) {
+        if(el.audio) {
+            el.audio.toggleMute();
+        }
+    });
+}
+
 Player.prototype._drawEmpty = function() {
     var ctx = this.ctx,
         w = this.width,
@@ -1212,57 +1212,8 @@ Player.prototype._drawSplash = function() {
         this._drawThumbnail();
         return;
     }
+};
 
-    var ctx = this.ctx,
-        w = this.width,
-        h = this.height;
-
-    ctx.save();
-
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-
-    var ratio = engine.PX_RATIO;
-
-    // background
-    ctx.fillStyle = this.bgColor || Player.EMPTY_BG;
-    ctx.fillRect(0, 0, w * ratio, h * ratio);
-    ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
-    ctx.strokeRect(0, 0, w * ratio, h * ratio);
-
-    if (this.controls) {
-       ctx.restore();
-       return;
-    }
-
-    // text
-    ctx.fillStyle = '#999966';
-    ctx.font = '10px sans-serif';
-    ctx.fillText(Strings.COPYRIGHT, 20 * ratio, (h - 20) * ratio);
-
-    /* ctx.globalAlpha = .6;
-
-    ctx.beginPath();
-    ctx.arc(w / 2 * ratio, h / 2 * ratio,
-            Math.min(w / 4, h / 4) * ratio,
-            0, 2 * Math.PI);
-    ctx.fillStyle = '#a00';
-    ctx.strokeStyle = '#ffe';
-    ctx.lineWidth = 10;
-    ctx.stroke();
-    ctx.fill();
-
-    ctx.globalAlpha = .9;
-
-    ctx.restore();
-
-    Controls._drawGuyInCenter(ctx, Controls.THEME, w * ratio, h * ratio, [ '#fff', '#900' ],
-                              [ 0.5, 0.5 ], .2); */
-
-    /* drawAnimatronGuy(ctx, w / 2, h / 2, Math.min(w, h) * .35,
-                     [ '#fff', '#aa0' ]); */
-
-}
 Player.prototype._drawLoadingSplash = function(text) {
     if (this.controls) return;
     this._drawSplash();
@@ -1294,14 +1245,11 @@ Player.prototype._drawLoadingProgress = function() {
 }
 Player.prototype._stopDrawingLoadingCircles = function() {
     if (this.controls) return;
-    Controls.stopLoadingAnimation(this.ctx);
     this._drawEmpty();
 }
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
     if (this.controls) {
-        this.controls.forceNextRedraw();
-        this.controls.render();
         return;
     }
     this._drawSplash();
@@ -1314,21 +1262,6 @@ Player.prototype._drawErrorSplash = function(e) {
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 25);
     ctx.restore();
-}
-Player.prototype._runLoadingAnimation = function(what) {
-    if (this.controls) {
-        this._drawLoadingSplash(what);
-        this.controls._scheduleLoading();
-    } else {
-        this._drawLoadingProgress();
-    }
-}
-Player.prototype._stopLoadingAnimation = function() {
-    if (this.controls) {
-        this.controls._stopLoading();
-    } else {
-        this._stopDrawingLoadingCircles();
-    }
 }
 /**
  * @method toString
@@ -1412,9 +1345,6 @@ Player.prototype._disableInfo = function() {
     if (!this.controls) return;
     this.controls.disableInfo();
 }
-Player.prototype._renderControlsAt = function(time) {
-    this.controls.render(time);
-}
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         engine.setTabIndex(this.canvas, this.__instanceNum);
@@ -1491,9 +1421,6 @@ Player.prototype.__beforeFrame = function(anim) {
 Player.prototype.__afterFrame = function(anim) {
     return (function(player, state, anim, callback) {
         return function(time) {
-            if (player.controls && !player.controls.hidden) {
-                player.controls.render(time);
-            }
             if (callback) callback(time);
 
             anim.invokeAllLaters();
@@ -1509,12 +1436,6 @@ Player.prototype.__onerror = function(err) {
   var player = this;
   var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof errors.SystemError);
-
-  if (player.state &&
-      ((player.state.happens == C.LOADING) ||
-       (player.state.happens == C.RES_LOADING))) {
-      player._stopLoadingAnimation();
-  }
 
   try {
       if (player.state) player.state.happens = C.ERROR;
@@ -1616,12 +1537,11 @@ Player.prototype._callPostpones = function() {
 }
 Player.prototype._notifyAPI = function() {
     // currently, notifies only about playing start
-    if (this._loadTarget !== C.LT_URL) return;
-    if (!this._loadSrc || !this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
+    if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     if (!this.statImg) {
       this.statImg = engine.createStatImg();
     };
-    var loadSrc = this._loadSrc,
+    var loadSrc = this._loadSrc || '/',
         id = this.anim.meta._anm_id,
         locatedAtTest = false,
         locatedAtProd = false;
@@ -1669,47 +1589,6 @@ Player.createState = function(player) {
         '__redraws': 0, '__rsec': 0
         /*'__drawInterval': null*/
     };
-}
-
-// TODO: move into engine?
-Player._optsFromUrlParams = function(params/* as object */) {
-    function __boolParam(val) {
-        if (!val) return false;
-        if (val == 0) return false;
-        if (val == 1) return true;
-        if (val == 'false') return false;
-        if (val == 'true') return true;
-        if (val == 'off') return false;
-        if (val == 'on') return true;
-        if (val == 'no') return false;
-        if (val == 'yes') return true;
-    }
-    function __extractBool() {
-        var variants = arguments;
-        for (var i = 0; i < variants.length; i++) {
-            if (is.defined(params[variants[i]])) return __boolParam(params[variants[i]]);
-        }
-        return undefined;
-    }
-    var opts = {};
-    opts.debug = is.defined(params.debug) ? __boolParam(params.debug) : undefined;
-    opts.muteErrors = __extractBool('me', 'errors', 'muterrors');
-    opts.repeat = __extractBool('r', 'repeat');
-    opts.autoPlay = __extractBool('a', 'auto', 'autoplay');
-    opts.mode = params.m || params.mode || undefined;
-    opts.zoom = params.z || params.zoom;
-    opts.speed = params.v || params.speed;
-    opts.width = params.w || params.width;
-    opts.height = params.h || params.height;
-    opts.infiniteDuration = __extractBool('i', 'inf', 'infinite');
-    opts.audioEnabled = __extractBool('s', 'snd', 'sound', 'audio');
-    opts.controlsEnabled = __extractBool('c', 'controls');
-    opts.infoEnabled = __extractBool('info');
-    opts.loadingMode = params.lm || params.lmode || params.loadingmode || undefined;
-    opts.thumbnail = params.th || params.thumb || undefined;
-    opts.bgColor = params.bg || params.bgcolor;
-    opts.ribbonsColor = params.rc || params.ribbons || params.ribcolor;
-    return opts;
 }
 /**
  * @static @method forSnapshot
