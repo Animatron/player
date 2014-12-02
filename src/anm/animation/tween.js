@@ -1,7 +1,8 @@
 var C = require('../constants.js'),
     is = require('../utils.js').is,
     Modifier = require('./modifier.js'),
-    AnimationError = require('../errors.js').AnimationError;
+    AnimationError = require('../errors.js').AnimationError,
+    Brush = require('../graphics/brush.js');
 
 // Tweens
 // -----------------------------------------------------------------------------
@@ -37,7 +38,7 @@ var Tweens = {};
 Tween.addTween = function(id, func) {
     Tweens[id] = func;
     Tween.TWEENS_PRIORITY[id] = Tween.TWEENS_COUNT++;
-}
+};
 
 Tween.addTween(C.T_TRANSLATE, function(data) {
     return function(t, dt, duration) {
@@ -77,31 +78,31 @@ Tween.addTween(C.T_ALPHA, function(data) {
 
 Tween.addTween(C.T_SHEAR, function(data) {
     return function(t, dt, duration) {
-      this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
-      this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
-  };
+        this.hx = data[0][0] * (1.0 - t) + data[1][0] * t;
+        this.hy = data[0][1] * (1.0 - t) + data[1][1] * t;
+    };
 });
 
 Tween.addTween(C.T_FILL, function(data) {
     var interp_func = Brush.interpolateBrushes(data[0], data[1]);
     return function(t, dt, duration) {
         this.$fill = interp_func(t);
-    }
+    };
 });
 
 Tween.addTween(C.T_STROKE, function(data) {
     var interp_func = Brush.interpolateBrushes(data[0], data[1]);
     return function (t, dt, duration) {
         this.$stroke = interp_func(t);
-    }
+    };
 });
 
 Tween.addTween(C.T_VOLUME, function(data){
-  return function(t) {
-    if (!this.audio.loaded) return;
-    var volume = data[0] * (1.0 - t) + data[1] * t;
-    this.audio.setVolume(volume);
-  }
+    return function(t) {
+        if (!this.audio.loaded) return;
+        var volume = data[0] * (1.0 - t) + data[1] * t;
+        this.audio.setVolume(volume);
+    };
 });
 
 
