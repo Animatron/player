@@ -69,7 +69,11 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  * property is easier to construct with a corresponding helper method, rather than,
  * for example, creating a special {@link anm.Brush Brush} object for a `fill`.
  *
- * See {@link anm.Element#add add()} method for documentation on adding children elements.
+ * See {@link anm.Element#add add()} and {@link anm.Element#remove remove()} methods for documentation
+ * on adding and removing children elements.
+ *
+ * See {@link anm.Element#each each()} and {@link anm.Element#traverse traverse()} method for documentation
+ * on iteration over children elements.
  *
  * See {@link anm.Element#path path()}, {@link anm.Element#text text()} and {@link anm.Element#image image()}
  * for documentation on changing the type of the element and the way it draws itself.
@@ -1498,6 +1502,18 @@ Element.prototype.reset = function() {
         elm.reset();
     });
 }
+/**
+ * @method each
+ * @chainable
+ *
+ * Iterate over element's children with given function. No sub-children though,
+ * see {@link anm.Element#traverse .traverse()} for it.
+ *
+ * @param {Function} f function to call
+ * @param {anm.Element} f.elm child element
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.each = function(func) {
     var children = this.children;
     this.__unsafeToRemove = true;
@@ -1507,6 +1523,19 @@ Element.prototype.each = function(func) {
     this.__unsafeToRemove = false;
     return this;
 }
+/**
+ * @method traverse
+ * @chainable
+ *
+ * Iterate over element's children including all the levels of sub-children with
+ * given function (see {@link anm.Element#each .each()} method to iterate over
+ * only element's own children).
+ *
+ * @param {Function} f function to call
+ * @param {anm.Element} f.elm child element
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.traverse = function(func) {
     var children = this.children;
     this.__unsafeToRemove = true;
@@ -1518,12 +1547,34 @@ Element.prototype.traverse = function(func) {
     this.__unsafeToRemove = false;
     return this;
 }
+/**
+ * @method iter
+ * @chainable
+ *
+ * _Safely_ iterate over element's children including all the levels of sub-children.
+ * Safe iteration assumes that you are able to remove elements in its process.
+ *
+ * @param {Function} f function to call
+ * @param {anm.Element} f.elm child element
+ * @param {Function} [rf] function which marks element as the one to remove
+ * @param {anm.Element} [rf.elm] child element
+ * @param {Boolean} [rf.return] remove element or not
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.iter = function(func, rfunc) {
     this.__unsafeToRemove = true;
     iter(this.children).each(func, rfunc);
     this.__unsafeToRemove = false;
     return this;
 }
+/**
+* @method hasChildren
+*
+* Check if this element has children.
+*
+* @return {Boolean} are there any children
+*/
 Element.prototype.hasChildren = function() {
     return this.children.length > 0;
 }
@@ -1545,6 +1596,14 @@ Element.prototype.__performDetach = function() {
     });
     this.__detachQueue = [];
 }
+/**
+ * @method clear
+ * @chainable
+ *
+ * Remove all the element's children.
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.clear = function() {
     if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
@@ -1554,22 +1613,40 @@ Element.prototype.clear = function() {
     } else {
         this.__detachQueue = this.__detachQueue.concat(this.children);
     }
+    return this;
 }
+/**
+ * @private @method lock
+ *
+ * Disable user-defined jumps in time for this element and freeze up the state
+ */
 Element.prototype.lock = function() {
     this.__jumpLock = true; // disable jumps in time
     this.__state = this.extractState();
-    this.__pstate = this.extractPrevState();
+    this.__pstate = this.extractPrevState(); // FIXME: remove previous state
 }
+/**
+ * @private @method unlock
+ *
+ * Enable user-defined jumps in time for this element and return the state
+ */
 Element.prototype.unlock = function(collect_res) { // collect_res flag is optional
     var result = collect_res ? this.extractState() : undefined;
     this.applyState(this.__state);
     this.applyPrevState(this.__pstate);
     this.__state = null;
-    this.__pstate = null;
+    this.__pstate = null; // FIXME: remove previous state
     this.__jumpLock = false;
     return result;
 }
 // FIXME: rename and merge get/set into .state() & .prev_state() ?
+/**
+ * @method extractState
+ *
+ * Extract element's state to object
+ *
+ * @return {Object} extracted state
+ */
 Element.prototype.extractState = function() {
     // see .initState() for values definition
     return {
@@ -1592,6 +1669,24 @@ Element.prototype.extractPrevState = function() {
       t: this._t, rt: this._rt, key: this._key
     }
 }
+/**
+ * @method applyState
+ *
+ * Apply a complete state from object to element. NB: Rewrites all the values!
+ *
+ * @param {Object} state state to apply
+ * @param {Number} state.x
+ * @param {Number} state.y
+ * @param {Number} state.sx
+ * @param {Number} state.sy
+ * @param {Number} state.hx
+ * @param {Number} state.hy
+ * @param {Number} state.angle
+ * @param {Number} state.alpha
+ * @param {Number|Null} state.t
+ * @param {Number|Null} state.rt
+ * @param {String|Null} state.key
+ */
 Element.prototype.applyState = function(s) {
     this.x = s.x; this.y = s.y;
     this.sx = s.sx; this.sy = s.sy;
@@ -1608,6 +1703,14 @@ Element.prototype.applyPrevState = function(s) {
     this._alpha = s.alpha;
     this._t = s.t; this._rt = s.rt; this._key = s.key;
 }
+/**
+ * @method stateAt
+ *
+ * Get a state object at specified time
+ *
+ * @param {Number} t time where to take a mask of a state
+ * @return {Object} state at given time
+ */
 Element.prototype.stateAt = function(t) { /* FIXME: test */
     this.lock();
     // calls all modifiers with given time and then unlocks the element
@@ -1617,9 +1720,32 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
               this.modifiers(t, 0, Element.NOEVT_MODIFIERS) // returns true if succeeded
            );
 }
-Element.prototype.getPosition = function() {
-    return [ this.x, this.y ];
+/**
+ * @method pos
+ * @chainable
+ *
+ * Get or set current position of this element, relatively to parent
+ *
+ * @param {Number} [x] X-position
+ * @param {Number} [y] Y-position
+ *
+ * @return {anm.Element|Object} element or position
+ */
+Element.prototype.pos = function(x, y) {
+    if (is.defined(x)) return this.move(x, y);
+    return { x: this.x, y: this.y };
 }
+/**
+ * @method offset
+ *
+ * Get current offset of this element, including all the way to the top of the
+ * element tree.
+ *
+ * @param {Number} [x] X-position
+ * @param {Number} [y] Y-position
+ *
+ * @return {anm.Element|Object} element or position
+ */
 Element.prototype.offset = function() {
     var xsum = 0, ysum = 0;
     var p = this.parent;
@@ -1636,18 +1762,58 @@ Element.prototype.offset = function() {
 Element.prototype.global = function(pt) {
     this.matrix.transformPoint();
 } */
+/**
+ * @method invalidate
+ * @chainable
+ *
+ * Invalidate element bounds. Should be called if you change the inner graphical contents
+ * of the element (i.e. changed points in path or updated text content, or replaced one image with
+ * another, ...).
+ *
+ * For methods like `.add(child)`, `.remove(child)`, `.path(path)`, `.image(img)`, `.text(txt)`
+ * it is done automatically, so no need in calling it if you use them.
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.invalidate = function() {
     this.$my_bounds = null;
     this.$bounds = null;
     this.lastBoundsSavedAt = null;
     if (this.parent) this.parent.invalidate();
+    return this;
 }
+/**
+* @method invalidateVisuals
+* @chainable
+*
+* Invalidate element graphics. Should be called if you change the inner graphical contents
+* of the element (i.e. changed points in path or updated text content, or replaced one image with
+* another, ...).
+*
+* For methods like `.add(child)`, `.remove(child)`, `.path(path)`, `.image(img)`, `.text(txt)`
+* it is done automatically, so no need in calling it if you use them.
+*
+* @return {anm.Element} itself
+*/
 Element.prototype.invalidateVisuals = function() {
     //TODO: replace with this['$' + this.type].invalidate() ?
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
 }
-// returns bound in a parent's coordinate space
+/**
+ * @method bounds
+ *
+ * Returns bounds (`x`, `y`, `width`, `height`) of an element in given time,
+ * in a parent's coordinate space, including element's children.
+ * Last call is cached so if you add/remove children by hands and you want to
+ * get new bounds on next call, you need to call `elm.invalidate()` first, just
+ * after adding/removing. `elm.add()`/`elm.remove()` methods do it automatically,
+ * though.
+ *
+ * @param {Number} ltime band-local time
+ *
+ * @return {Object} bounds
+ */
 Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
@@ -1664,13 +1830,27 @@ Element.prototype.bounds = function(ltime) {
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
 }
-// returns bounds with no children consideration, and not affected by any matrix — pure local bounds
+/**
+ * @method myBounds
+ *
+ * Returns bounds with no children consideration, and not affected by any
+ * matrix — independent of time — pure local bounds.
+ *
+ * @return {Object} bounds
+ */
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
     var subj = this.$path || this.$text || this.$image;
     if (subj) { return (this.$my_bounds = subj.bounds()); }
     else return (this.$my_bounds = Bounds.NONE);
 }
+/**
+ * @method isEmpty
+ *
+ * Check if this element contains something visual, like path, image or text.
+ *
+ * @return {Boolean} if element is empty
+ */
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();
     return (my_bounds.width == 0) && (my_bounds.height == 0);
@@ -1688,12 +1868,33 @@ Element.prototype.applyVisuals = function(ctx) {
 Element.prototype.applyAComp = function(ctx) {
     if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
 }
+/**
+ * @method mask
+ *
+ * Mask this element with another element. Literally, using this method way you
+ * may produce animated masks and use masks with children and mask any elements with
+ * children, same way. Just ensure both contain some overlapping graphics.
+ * To disable masking back, use {@link anm.Element#noMask noMask} method.
+ *
+ * @param {anm.Element} elm Element to mask with
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
     this.$mask = elm;
+    return this;
 }
+/**
+ * @method noMask
+ *
+ * Disable mask previously set with {@link anm.Element#mask mask} method.
+ *
+ * @return {anm.Element} itself
+ */
 Element.prototype.noMask = function() {
     this.$mask = null;
+    return this;
 }
 // @private
 Element.prototype.ensureHasMaskCanvas = function(lvl) {
@@ -1712,9 +1913,9 @@ Element.prototype.removeMaskCanvases = function() {
 }
 
 Element.prototype.data = function(val) {
-  if (!is.defined(val)) return this.$data;
-  this.$data = val;
-  return this;
+    if (!is.defined(val)) return this.$data;
+    this.$data = val;
+    return this;
 }
 Element.prototype.toString = function() {
     var buf = [ '[ Element ' ];
