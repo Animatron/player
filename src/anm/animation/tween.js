@@ -6,6 +6,30 @@ var C = require('../constants.js'),
 /**
  * @class anm.Tween
  * @extends anm.Modifier
+ *
+ * Tween, under the hood, is a pre-defined {@link anm.Modifier Modifier}.
+ * It changes element state (position. rotation, ...) over the time, but in
+ * this case you may choose from a prepared recipe without writing a function on
+ * your own.
+ *
+ * For example, scale Tween is a Modifier with this code:
+ *
+ * ```
+ * var data = [ [ 0.5, 0.5 ], [ 1.0, 2.0 ] ];
+ * function(t) {
+ *     this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
+ *     this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
+ * };
+ * ```
+ *
+ * To add a tween to some element, you just need to know its type and provide
+ * both start-value and end-value, so it will automatically interpolate one to
+ * another.
+ *
+ * Examples:
+ *
+ * *
+ * *
  */
 function Tween(tween_type, data) {
     if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
@@ -19,12 +43,25 @@ function Tween(tween_type, data) {
     func.is_tween = true;
     var mod = Modifier(func, C.MOD_TWEEN);
     mod.$data = data;
+    // FIXME: value should be an array i.e. for scale tween, use object like { sx: <num>, sy: <num> } instead
+    mod.from = function(val) {
+                   if (!is.defined(val) && this.$data) return this.$data[0];
+                   if (!this.$data) this.$data = [];
+                   this.$data[0] = val;
+                   return this;
+               };
+    mod.to   = function(val) {
+                   if (!is.defined(val) && this.$data) return this.$data[1];
+                   if (!this.$data) this.$data = [];
+                   this.$data[1] = val;
+                   return this;
+               };
     mod.data = data_block_fn; // FIXME
     return mod;
 }
 
 var data_block_fn = function() {
-    throw new AnimationError("Data should be passed to tween in a constructor");
+    throw new AnimationError("Data should be passed to tween in a constructor or using from()/to() methods");
 };
 
 // TODO: add function to add every tween type in easy way, may be separate module?
@@ -51,6 +88,7 @@ Tween.addTween(C.T_TRANSLATE, function(data) {
     };
 });
 
+// FIXME: data should be an object instead of array
 Tween.addTween(C.T_SCALE, function(data) {
     return function(t, dt, duration) {
       this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;

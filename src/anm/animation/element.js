@@ -64,7 +64,7 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  *
  * There are also some setter-like methods, and if a name of some setter matches
  * to the according property it sets, a `$` symbol is appended to a property name: like
- * the method `elm.fill()` and the property `elm.$fill`. This way allows us not only
+ * the method {@link anm.Element#fill .fill()} and the property {@link anm.Element#$fill .$fill}`. This way allows us not only
  * to avoid name-clashed, but also serves as an additional mark for user that a value of this
  * property is easier to construct with a corresponding helper method, rather than,
  * for example, creating a special {@link anm.Brush Brush} object for a `fill`.

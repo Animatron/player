@@ -40,6 +40,15 @@ var DOM_TO_EVT_MAP = {
  * repeat option. It also may render itself to any context with {@link anm.Animation#render}
  * method.
  *
+ * Use {@link anm.Animation#add()} to add elements to an animation.
+ *
+ * Use {@link anm.Animation#find()} / {@link anm.Animation#findById()} to search for elements in the animation.
+ *
+ * Use {@link anm.Animation#each()} / {@link anm.Animation#traverse()} to loop through all direct child elements
+ * or through the whole tree of children, correspondingly.
+ *
+ * See {@link anm.Element Element} for detailed description of the basic "brick" of any animation.
+ *
  * @constructor
  */
 function Animation() {
