@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">// Player manager
+// -----------------------------------------------------------------------------
+var events = require(&#39;./events.js&#39;), C = require(&#39;./constants.js&#39;);
+
+<span id='anm-PlayerManager'>/**
+</span> * @class anm.PlayerManager
+ */
+function PlayerManager() {
+    this.hash = {};
+    this.instances = [];
+    this._initHandlers();
+}
+events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
+PlayerManager.prototype.handle__x = function(evt, player) {
+    if (evt == C.S_NEW_PLAYER) {
+        this.hash[player.id] = player;
+        this.instances.push(player);
+    } else if (evt == C.S_PLAYER_DETACH) {
+        // do nothing
+    }
+    return true;
+}
+PlayerManager.prototype.getPlayer = function(cvs_id) {
+    return this.hash[cvs_id];
+}
+
+module.exports = new PlayerManager();
+</pre>
+</body>
+</html>

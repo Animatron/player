@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">var C = require(&#39;../constants.js&#39;),
+    CSeg = require(&#39;../graphics/segments.js&#39;).CSeg;
+
+// Easings
+// -----------------------------------------------------------------------------
+// function-based easings
+
+var EasingImpl = {};
+
+EasingImpl[C.E_PATH] =
+    function(path) {
+        /*var path = Path.parse(str);*/
+        return function(t) {
+            return path.pointAt(t)[1];
+        }
+    };
+EasingImpl[C.E_FUNC] =
+    function(f) {
+        return f;
+    };
+EasingImpl[C.E_CSEG] =
+    function(seg) {
+        return function(t) {
+            return seg.atT([0, 0], t)[1];
+        };
+    };
+EasingImpl[C.E_STDF] =
+    function(num) {
+        return STD_EASINGS[num];
+    };
+
+// segment-based easings
+
+var SEGS = {}; // segments cache for easings
+
+function registerSegEasing(alias, points) {
+    C[&#39;E_&#39;+alias] = alias;
+    var seg = new CSeg(points);
+    SEGS[alias] = seg;
+    var func =
+        function(t) {
+            return seg.atT([0, 0], t)[1];
+        };
+    C[&#39;EF_&#39;+alias] = func;
+    EasingImpl[alias] = function() {
+        return func;
+    }
+}
+
+registerSegEasing(&#39;DEF&#39;,    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
+registerSegEasing(&#39;IN&#39;,     [0.420, 0.000, 1.000, 1.000, 1.000, 1.000]); // In
+registerSegEasing(&#39;OUT&#39;,    [0.000, 0.000, 0.580, 1.000, 1.000, 1.000]); // Out
+registerSegEasing(&#39;INOUT&#39;,  [0.420, 0.000, 0.580, 1.000, 1.000, 1.000]); // InOut
+registerSegEasing(&#39;SIN&#39;,    [0.470, 0.000, 0.745, 0.715, 1.000, 1.000]); // Sine In
+registerSegEasing(&#39;SOUT&#39;,   [0.390, 0.575, 0.565, 1.000, 1.000, 1.000]); // Sine Out
+registerSegEasing(&#39;SINOUT&#39;, [0.445, 0.050, 0.550, 0.950, 1.000, 1.000]); // Sine InOut
+registerSegEasing(&#39;QIN&#39;,    [0.550, 0.085, 0.680, 0.530, 1.000, 1.000]); // Quad In
+registerSegEasing(&#39;QOUT&#39;,   [0.250, 0.460, 0.450, 0.940, 1.000, 1.000]); // Quad Out
+registerSegEasing(&#39;QINOUT&#39;, [0.455, 0.030, 0.515, 0.955, 1.000, 1.000]); // Quad InOut
+registerSegEasing(&#39;CIN&#39;,    [0.550, 0.055, 0.675, 0.190, 1.000, 1.000]); // Cubic In
+registerSegEasing(&#39;COUT&#39;,   [0.215, 0.610, 0.355, 1.000, 1.000, 1.000]); // Cubic Out
+registerSegEasing(&#39;CINOUT&#39;, [0.645, 0.045, 0.355, 1.000, 1.000, 1.000]); // Cubic InOut
+registerSegEasing(&#39;QTIN&#39;,   [0.895, 0.030, 0.685, 0.220, 1.000, 1.000]); // Quart In
+registerSegEasing(&#39;QTOUT&#39;,  [0.165, 0.840, 0.440, 1.000, 1.000, 1.000]); // Quart Out
+registerSegEasing(&#39;QTINOUT&#39;,[0.770, 0.000, 0.175, 1.000, 1.000, 1.000]); // Quart InOut
+registerSegEasing(&#39;QIIN&#39;,   [0.755, 0.050, 0.855, 0.060, 1.000, 1.000]); // Quint In
+registerSegEasing(&#39;QIOUT&#39;,  [0.230, 1.000, 0.320, 1.000, 1.000, 1.000]); // Quart Out
+registerSegEasing(&#39;QIINOUT&#39;,[0.860, 0.000, 0.070, 1.000, 1.000, 1.000]); // Quart InOut
+registerSegEasing(&#39;EIN&#39;,    [0.950, 0.050, 0.795, 0.035, 1.000, 1.000]); // Expo In
+registerSegEasing(&#39;EOUT&#39;,   [0.190, 1.000, 0.220, 1.000, 1.000, 1.000]); // Expo Out
+registerSegEasing(&#39;EINOUT&#39;, [1.000, 0.000, 0.000, 1.000, 1.000, 1.000]); // Expo InOut
+registerSegEasing(&#39;CRIN&#39;,   [0.600, 0.040, 0.980, 0.335, 1.000, 1.000]); // Circ In
+registerSegEasing(&#39;CROUT&#39;,  [0.075, 0.820, 0.165, 1.000, 1.000, 1.000]); // Circ Out
+registerSegEasing(&#39;CRINOUT&#39;,[0.785, 0.135, 0.150, 0.860, 1.000, 1.000]); // Circ InOut
+registerSegEasing(&#39;BIN&#39;,    [0.600, -0.280, 0.735, 0.045, 1.000, 1.000]); // Back In
+registerSegEasing(&#39;BOUT&#39;,   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
+registerSegEasing(&#39;BINOUT&#39;, [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
+
+var STD_EASINGS = [
+    function(t) { return C[&#39;EF_DEF&#39;](t); }, // Default
+    function(t) { return C[&#39;EF_IN&#39;](t); },  // In
+    function(t) { return C[&#39;EF_OUT&#39;](t); }, // Out
+    function(t) { return C[&#39;EF_INOUT&#39;](t); }, // InOut
+    function(t) { return t*t; },    // 4    In Quad
+    function(t) { return t*(2-t); },// 5    Out Quad
+    function(t) {                   // 6    In/Out Quad
+        if (t &lt; 0.5) return 2*t*t;
+        else {
+            t = (t-0.5)*2;
+            return -(t*(t-2)-1)/2;
+        }
+    },
+    function(t) {                   // 7    In Cubic
+        return t*t*t;
+    },
+    function(t) {                  // 8     Out Cubic
+        t = t-1;
+        return t*t*t + 1;
+    },
+    function(t) {                  // 9     In/Out Cubic
+        if (t &lt; 0.5) {
+            t = t*2;
+            return t*t*t/2;
+        } else {
+            t = (t-0.5)*2-1;
+            return (t*t*t+2)/2;
+        }
+    },
+    function(t) {                  // 10   In Sine
+        return 1 - Math.cos(t * (Math.PI/2));
+    },
+    function(t) {                 // 11    Out Sine
+        return Math.sin(t * (Math.PI/2));
+    },
+    function(t) {                 // 12    In/Out Sine
+        return -(Math.cos(Math.PI*t) - 1)/2;
+    },
+    function(t) {                 // 13   In Expo
+        return (t&lt;=0) ? 0 : Math.pow(2, 10 * (t - 1));
+    },
+    function(t) {                // 14    Out Expo
+        return t&gt;=1 ? 1 : (-Math.pow(2, -10 * t) + 1);
+    },
+    function(t) {                // 15    In/Out Expo
+        if (t&lt;=0) return 0;
+        if (t&gt;=1) return 1;
+        if (t &lt; 0.5) return Math.pow(2, 10 * (t*2 - 1))/2;
+        else {
+            return (-Math.pow(2, -10 * (t-0.5)*2) + 2)/2;
+        }
+    },
+    function(t) {               // 16    In Circle
+        return 1-Math.sqrt(1 - t*t);
+    },
+    function(t) {              // 17     Out Circle
+        t = t-1;
+        return Math.sqrt(1 - t*t);
+    },
+    function(t) {              // 18     In/Out Cicrle
+        if ((t*=2) &lt; 1) return -(Math.sqrt(1 - t*t) - 1)/2;
+        return (Math.sqrt(1 - (t-=2)*t) + 1)/2;
+    },
+    function(t) {              // 19    In Back
+        var s = 1.70158;
+        return t*t*((s+1)*t - s);
+    },
+    function(t) {             // 20     Out Back
+        var s = 1.70158;
+        return ((t-=1)*t*((s+1)*t + s) + 1);
+    },
+    function(t) {             // 21     In/Out Back
+        var s = 1.70158;
+        if ((t*=2) &lt; 1) return (t*t*(((s*=(1.525))+1)*t - s))/2;
+        return ((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2)/2;
+    },
+    function(t) {             // 22     In Bounce
+        return 1 - STD_EASINGS[23](1-t);
+    },
+    function(t) {              // 23    Out Bounce
+        if (t &lt; (1/2.75)) {
+            return (7.5625*t*t);
+        } else if (t &lt; (2/2.75)) {
+            return (7.5625*(t-=(1.5/2.75))*t + .75);
+        } else if (t &lt; (2.5/2.75)) {
+            return (7.5625*(t-=(2.25/2.75))*t + .9375);
+        } else {
+            return (7.5625*(t-=(2.625/2.75))*t + .984375);
+        }
+    },
+    function(t) {             // 24     In/Out Bounce
+        if (t &lt; 0.5) return STD_EASINGS[22](t*2) * .5 ;
+        return STD_EASINGS[23](t*2-1) * .5 + .5;
+    }
+];
+
+module.exports = EasingImpl;
+</pre>
+</body>
+</html>

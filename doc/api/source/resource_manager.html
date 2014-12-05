@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">// Resource manager
+// -----------------------------------------------------------------------------
+
+// .subscribe() allows to subscribe to any number of urls and to execute a callback (or few) when
+//              there is a known status for each one of them (received or failed);
+//              callback receives an array of results of length equal to the given urls array
+//              and with null in place of urls which were failed to receive, and it receives total
+//              failure count;
+//
+// .loadOrGet() should be called for every remote resource Resource Manager should be aware of;
+//              it receives a loader function that actually should request for that resource in any way
+//              it wants to (async or not), but should call provided success handler in case of success
+//              or error handler in case of failure; `subject_id` should be the same as for corresponding
+//              subscribe group (it&#39;s the only way we currently found to ensure to unsubscribe loaders
+//              from single subject, instead of all, in case of cancel);
+//
+// .check() is the internal function that iterates through all subscriptions, checks the status
+//          of the urls and calls the subscribed callbacks in case if their resources are ready;
+//          it is called by Resource Manager itself in cases when there was a chance that some resource
+//          changed status;
+//
+// .trigger() notifies Resource Manager about the fact that resource located at given URL was successfully
+//            received and provides it the received value; may be called from outside; forces .check() call;
+//
+// .error() notifies Resource Manager about the fact that resource expected to be located at some URL
+//          was failed to be received and provides it the error object as a cause of the failure;
+//          may be called from outside; forces .check() call;
+//
+// .has() checks if the resource with given URL is stored in Resource Manager&#39;s cache (was received before);
+//
+// .clear() clears all the subscriptions from this subject;
+
+// The system designed with intention (but not restricted to it) that any player will first subscribe (using its ID)
+// to all remote resources from current animation, then trigger them to load with multiple .loadOrGet() calls (with passing
+// the same ID). In .loadOrGet() it should call .trigger() or .error() for a resource in appropriate case.
+// If player needs to stop loading remote resources (i.e. if animation was accidentally changed when it
+// already started but nor finished loading them, or if it was required to be detached at some point in-between),
+// it should call .cancel() with its ID.
+// NB: Notice, that no check is performed just after subscription! Because if new player instance will request resource
+//     which is in cache thanks to previous instance, its own loader (.loadOrGet()) will not be called!
+
+// FIXME: loader in .loadOrGet() should call trigger() and error() instead of notifiers
+// FIXME: get rid of subject_id in .loadOrGet(), it requires to pass player or animation everywhere inside
+//        (may be in favor of subscriptions groups and generating ID automatically inside)
+//        the main pitfall here is that sheet.load or audio.load requires player as an argument
+
+var conf = require(&#39;./conf.js&#39;),
+    log = require(&#39;./log.js&#39;),
+    is = require(&#39;./utils.js&#39;).is;
+
+function rmLog(str) {
+  if (conf.logResMan) {
+    log.debug(str);
+  }
+}
+
+<span id='anm-ResourceManager'>/**
+</span> * @class anm.ResourceManager
+ */
+function ResourceManager() {
+    this._cache = {};
+    this._errors = {};
+    this._waiting = {};
+    this._subscriptions = {};
+    this._url_to_subjects = {};
+}
+ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
+    if (!subject_id) throw new Error(&#39;Subject ID is empty&#39;);
+    if (this._subscriptions[subject_id]) throw new Error(&#39;This subject (\&#39;&#39; + subject_id + &#39;\&#39;) is already subscribed to &#39; +
+                                                         &#39;a bunch of resources, please group them in one.&#39;);
+    var filteredUrls = [];
+    rmLog(&#39;subscribing &#39; + callbacks.length + &#39; to &#39; + urls.length + &#39; urls: &#39; + urls);
+    for (var i = 0; i &lt; urls.length; i++){
+        // there should be no empty urls
+        if (urls[i]) {
+            filteredUrls.push(urls[i]);
+            if (!this._url_to_subjects[urls[i]]) {
+                this._url_to_subjects[urls[i]] = [];
+            }
+            this._url_to_subjects[urls[i]].push(subject_id);
+        }
+    }
+    this._subscriptions[subject_id] = [ filteredUrls,
+                                        is.arr(callbacks) ? callbacks : [ callbacks ] ];
+}
+ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
+    var me = this;
+    if (!subject_id) throw new Error(&#39;Subject ID is empty&#39;);
+    if (!url) throw new Error(&#39;Given URL is empty&#39;);
+    rmLog(&#39;request to load &#39; + url);
+    if (me._cache[url]) {
+        rmLog(&#39;&gt; already received, trigerring success&#39;);
+        var result = me._cache[url];
+        if (onComplete) onComplete(result);
+        me.trigger(url, result); // TODO: is it needed?
+    } else if (me._errors[url]) {
+        rmLog(&#39;&gt; failed to load before, notifying with error&#39;);
+        if (onError) onError(me._errors[url]);
+    } else if (!me._waiting[subject_id] ||
+               !(me._waiting[subject_id] &amp;&amp; me._waiting[subject_id][url])) {
+        rmLog(&#39;&gt; not cached, requesting&#39;);
+        if (!me._waiting[subject_id]) me._waiting[subject_id] = {};
+        me._waiting[subject_id][url] = loader;
+        loader(function(result) {
+            result = result || true; //so that the loader isn&#39;t obliged to return something
+            rmLog(&#39;file at &#39; + url + &#39; succeeded to load, triggering success&#39;);
+            me.trigger(url, result);
+            if (onComplete) onComplete(result);
+            me.check();
+        }, function(err) {
+            rmLog(&#39;file at &#39; + url + &#39; failed to load, triggering error&#39;);
+            me.error(url, err);
+            if (onError) onError(err);
+            me.check();
+        });
+    } else /*if (me._waiting[subject_id] &amp;&amp; me._waiting[subject_id][url])*/ { // already waiting
+        rmLog(&#39;&gt; someone is already waiting for it, subscribing&#39;);
+        me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
+            if (res[0]) { onComplete(res[0]); }
+            else { onError(res[0]); };
+        });
+
+    }
+}
+ResourceManager.prototype.trigger = function(url, value) {
+    if (this._cache[url] || this._errors[url]) { this.check(); return; }
+    rmLog(&#39;triggering success for url &#39; + url);
+    var subjects = this._url_to_subjects[url];
+    if (subjects) { for (var i = 0, il = subjects.length; i &lt; il; i++) {
+        if (this._waiting[subjects[i]]) {
+            delete this._waiting[subjects[i]][url];
+        }
+    } }
+    this._cache[url] = value;
+    //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
+}
+ResourceManager.prototype.error = function(url, err) {
+    if (this._cache[url] || this._errors[url]) { this.check(); return; }
+    rmLog(&#39;triggering error for url &#39; + url);
+    var subjects = this._url_to_subjects[url];
+    if (subjects) { for (var i = 0, il = subjects.length; i &lt; il; i++) {
+        if (this._waiting[subjects[i]]) {
+            delete this._waiting[subjects[i]][url];
+        }
+    } }
+    this._errors[url] = err;
+    //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
+}
+ResourceManager.prototype.has = function(url) {
+    return (typeof this._cache[url] !== &#39;undefined&#39;);
+}
+// call this only if you are sure you want to force this check —
+// this method is called automatically when every new incoming url is triggered
+// as complete or failed
+ResourceManager.prototype.check = function() {
+    rmLog(&#39;checking subscriptions&#39;);
+    var subscriptions = this._subscriptions,
+        cache = this._cache,
+        errors = this._errors,
+        to_remove = null;
+    for (var subject_id in subscriptions) {
+        rmLog(&#39;subscription group \&#39;&#39; + subject_id + &#39;\&#39;&#39;);
+        var urls = subscriptions[subject_id][0],
+            callbacks = subscriptions[subject_id][1],
+            error_count = 0,
+            success_count = 0;
+        for (var u = 0, ul = urls.length; u &lt; ul; u++) {
+            if (errors[urls[u]]) error_count++;
+            if (cache[urls[u]]) success_count++;
+        }
+        rmLog(&#39;success: &#39; + success_count + &#39;, errors: &#39; + error_count + &#39;, ready: &#39;
+                          + ((success_count + error_count) === urls.length));
+        if ((success_count + error_count) === urls.length) {
+            var ready = [];
+            for (var u = 0, ul = urls.length; u &lt; ul; u++) {
+                ready.push(cache[urls[u]] || errors[urls[u]]);
+            };
+            rmLog(&#39;notifying subscribers that &#39; + urls + &#39; are all ready&#39;);
+            for (var k = 0, kl = callbacks.length; k &lt; kl; k++) {
+                //callbacks[k].call(subscriber, ready, error_count);
+                callbacks[k](ready, error_count);
+            }
+            if (!to_remove) to_remove = [];
+            to_remove.push(subject_id);
+        }
+    }
+    if (to_remove) { for (var i = 0, il = to_remove.length; i &lt; il; i++) {
+        rmLog(&#39;removing notified subscribers for subject \&#39;&#39;
+          + to_remove[i] + &#39;\&#39; from queue&#39;);
+        delete subscriptions[to_remove[i]];
+    } }
+}
+ResourceManager.prototype.cancel = function(subject_id) {
+    if (!subject_id) throw new Error(&#39;Subject ID is empty&#39;);
+    if (this._waiting[subject_id]) {
+        var urls = this._subscriptions[subject_id][0];
+        if (urls) { for (var u = 0, ul = urls.length; u &lt; ul; u++) {
+            delete this._waiting[subject_id][urls[u]];
+        } }
+    }
+    // clear _url_to_subjects ?
+    delete this._subscriptions[subject_id];
+}
+ResourceManager.prototype.clear = function() {
+    this._cache = {};
+    this._errors = {};
+    this._waiting = {};
+    this._loaders = {};
+    this._subscriptions = {};
+}
+
+module.exports = new ResourceManager();
+</pre>
+</body>
+</html>

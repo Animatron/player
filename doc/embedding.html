@@ -1,0 +1,196 @@
+<!doctype html>
+<html>
+  <head>
+    <title>The Animatron HTML5 Player Docs</title>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
+    <link rel="stylesheet" href="./md.css" type="text/css" />
+  </head>
+<body><p>[ <a href="https://github.com/Animatron/player/blob/docs/doc/embedding.md">A version of this page with a highlighted source code</a> ]</p>
+<p>There are two ways to embed an animation made in Animatron into a webpage. Both are very easy and enable you to configure more options than the Publish (a.k.a. Share) dialog currently allows:</p>
+<ul>
+<li>using <code>IFRAME</code>, which embeds another a tiny webpage that contains the Animatron Player into your page.</li>
+<li>using the <code>div</code> (or any container) tag, which requires you to include an additional script in the page. It's easier to control the Player's style with CSS this way and, if you really want, to use JavaScript code for overriding/tuning-up any part of the rendering process. For the easiest version, you just need two HTML tags and a URL of a JSON snapshot to make it work, and not even a line of Javascript.</li>
+</ul>
+<!-- Using both ways together, you may configure your Player with a wide number of options. Dozens of them are accessible for `IFRAME` as well as for the `div` tag or a URL inside `IFRAME,` as well as for a JavaScript object passed to this Player - they just differ in names. -->
+
+<h1>Contents</h1>
+<ul>
+<li><a href="#iframe">IFRAME</a></li>
+<li><a href="#container-tag-ie-div">Container Tag</a><ul>
+<li><a href="#the-magic-of-auto-initialization">Auto-Initialization from HTML</a></li>
+<li><a href="#initialization-from-code">Initialization from JS Code</a><ul>
+<li><a href="#custom-scene-with-createplayer">Custom, with <code>createPlayer</code></a></li>
+<li><a href="#snapshot-with-forsnapshot">Snapshot, with <code>forSnapshot</code></a></li>
+</ul>
+</li>
+<li><a href="#css-styling">CSS Styling</a></li>
+<li><a href="#adding-events">Adding events</a></li>
+</ul>
+</li>
+<li><a href="#complete-configuration-list">Complete List of Preferences</a></li>
+</ul>
+<h1>IFRAME</h1>
+<p><code>IFRAME</code> code is obtained from the Publish (a.k.a. Share) Dialog in the Animatron Editor.</p>
+<p>Commonly it looks like this:</p>
+<p><code>html
+&lt;iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96?w=550&amp;h=450" width="550" height="450" frameborder="0"&gt;&lt;/iframe&gt;</code></p>
+<p><code>http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96</code> is the URL of your clip, and the <code>?w=550&amp;h=450</code> part is the <code>w</code> (<em>width</em>) and <code>h</code> (<em>height</em>) parameters specified.</p>
+<p>The Player may be configured both by passing additional parameters with this URL (they are commonly nicknamed) or by adding corresponding HTML attributes to the <code>IFRAME</code> tag (their names start with <code>anm-</code> prefix). Below is an example of how to enable auto-play when the Player is completely initialized and how to disable the <em>Play</em> button both ways:</p>
+<p>With URL parameters:</p>
+<p><code>html
+&lt;iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96?w=550&amp;h=450&amp;auto=1&amp;controls=0" width="550" height="450" frameborder="0"&gt;&lt;/iframe&gt;</code></p>
+<p>With <code>IFRAME</code> attributes:</p>
+<p><code>html
+&lt;iframe src="http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96" anm-width="550" anm-height="450" anm-auto-play="true" anm-controls="false" anm-auto-frameborder="0"&gt;&lt;/iframe&gt;</code></p>
+<p>See a complete list of every possible option to configure the Player <a href="#complete-configuration-list">at the end of this document</a>.</p>
+<h1>Container Tag (i.e. <code>div</code>)</h1>
+<p>The second way to play an animation on your page is to use a container element. It gives you even more freedom in configuration<!--, but requires some programming experience-->.</p>
+<p>First, you need to add the latest Player source to your page in the <code>&lt;head&gt;</code> section. You'll also have to add a target <code>div</code> tag where the Player will be displayed anywhere in the <code>&lt;body&gt;</code> section of your page:</p>
+<p><code>html
+&lt;!DOCTYPE&gt;
+&lt;html&gt;
+    &lt;head&gt;
+        . . .
+        &lt;!-- PLAYER SOURCE: --&gt; &lt;script src="http://player.animatron.com/latest/bundle/animatron.min.js"&gt;&lt;/script&gt;
+        . . .
+    &lt;/head&gt;
+    &lt;body&gt;
+        . . .
+        &lt;!-- PLAYER TARGET: --&gt;  &lt;div id="player-target"&gt;&lt;/div&gt;
+        . . .
+    &lt;/body&gt;
+&lt;/html&gt;</code></p>
+<p>If you need a specific version of the Player, just specify it by replacing the <code>latest</code> with, say, <code>v1.3</code>.</p>
+<h2>The Magic of Auto-Initialization</h2>
+<p>To load a known Animatron snapshot in the Player, you need to know its URL as well as the width and height of the Animation. No worries - these are quite easy to find.</p>
+<p>URL of a JSON: When you publish (share) your scene from Animatron, you get a URL like <code>http://clips.animatron.com/...</code>, a page which you can share with others by sending its URL. If you add <code>.json</code> at the end of this URL, you have a JSON snapshot, like: <code>http://clips.animatron.com/e4082aaa25f43de52bdb952d38ec0b96.json</code>.</p>
+<p>If you have your own JSON hosted somewhere, you are free to pass its URL instead!</p>
+<p>The width and height of your animation are originally specified by you in the project in the Animatron Editor, or you may find them in <code>IFRAME</code> URL, as described above.</p>
+<p>First, ensure to include Player source in the <code>&lt;head&gt;</code> of your page:</p>
+<p><code>html
+&lt;script src="http://player.animatron.com/latest/bundle/animatron.min.js"&gt;&lt;/script&gt;</code></p>
+<p>Now you are ready to do magic:</p>
+<p><code>html
+&lt;div id="player-target" anm-player-target anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" /&gt;&lt;/div&gt;</code></p>
+<p>Please pay proper attention to include <code>anm-player-target</code> attribute, since it works as a marker for the Player code to search for in a page, and without it, auto-initialization will not work at all.</p>
+<p>That's it! Your animation should load from the start and be able to be played. If you need to precisely configure its appearance or logic, <a href="#complete-configuration-list">see below</a> for a complete list of HTML arguments the Player will understand ("<code>div</code>" column), there's truly a lot ways to change things. For example, auto-playing your animation and disabling the <em>Play</em> button will work like this:</p>
+<p><code>html
+&lt;div id="player-target" anm-player-target anm-src="http://example.com/animation.json" anm-width="100" anm-height="200" anm-importer="animatron" anm-auto-play="true" anm-controls="false" /&gt;&lt;/div&gt;</code></p>
+<h2>Initialization from Code</h2>
+<p>If you have no snapshot URL, or you want to access the Player with JavaScript code, there are also few options:</p>
+<p>First, same as in option above, ensure to include Player source in the <code>&lt;head&gt;</code> of your page:</p>
+<p><code>html
+&lt;script src="http://player.animatron.com/latest/bundle/animatron.min.js"&gt;&lt;/script&gt;</code></p>
+<p>Second, add a target tag to the <code>&lt;body&gt;</code> of your page.</p>
+<p><code>html
+&lt;div id="player-target" anm-width="320" anm-height="450"&gt;&lt;/div&gt;</code></p>
+<h3>Custom scene with <code>createPlayer</code></h3>
+<p>Thirdly, if you <em>don't have</em> a snapshot URL, you may still load any animation in any format if you have a special <em>importer</em>. Or, you may even create an animation just in place using Player API, but it's a different story.</p>
+<p><code>js
+var player = anm.createPlayer('player-target');
+var animation = /* some code or JSON */;
+var importer = /* if it's a JSON, create an importer which can parse this JSON, e.g. use `anm.importers.create('animatron')` */;
+player.load(animation/*, importer*/);
+player.play();</code></p>
+<p>You may pass options to <code>createPlayer</code> function, like this:</p>
+<p><code>js
+var player = anm.createPlayer('player-target', {
+        autoPlay: true,
+        controlsEnabled: false
+    });
+. . .</code></p>
+<p>See a <a href="#complete-configuration-list">complete list</a> of them below.</p>
+<h3>Snapshot with <code>forSnapshot</code></h3>
+<p>In case you <em>have</em> a snapshot URL, you may load it this way:</p>
+<p><code>js
+var player = anm.Player.forSnapshot(
+        'player-target', /* target tag ID */
+        'http://clips.animatron.com/....json', /* snapshot URL */
+        anm.importers.create('animatron') /* importer which can parse
+           the given scene, in our case it is included in the bundle and
+           named 'animatron'; its instance may be re-used */
+);</code></p>
+<p>You may add a callback to call when the snapshot will be received and also configure the Player, either with URL parameters or JavaScript object:</p>
+<p><code>js
+var player = anm.Player.forSnapshot(
+        'player-target', /* target tag ID */
+        'http://clips.animatron.com/....json', /* snapshot URL */
+        anm.importers.create('animatron'), /* importer which can parse
+           the given scene, in our case it is included in the bundle and
+           named 'animatron'; its instance may be re-used */
+        function(scene) { }, /* callback */
+        /* options, you may specify them here, in a tag as HTML attributes,
+           or as snapshot URL parameters, see below */
+        { autoPlay: true,
+          controlsEnabled: false });</code></p>
+<p>There are just the basic options you may find here, see a <a href="#complete-configuration-list">complete list</a> of them below.</p>
+<p>If you plan to operate with the player after the scene was received, please do not forget to do it in a callback, not just after this line of code, since in this case loading process is asynchronous and finishes much later than the moment <code>forSnaphot</code> will be executed.</p>
+<h2>CSS Styling</h2>
+<p>If your target <code>div</code> looks like this:</p>
+<p><code>html
+&lt;div id="my-target"&gt;&lt;/div&gt;</code></p>
+<p>It will be replaced with a structure like this:</p>
+<p><code>html
+&lt;div id="my-target" class="anm-wrapper anm-wrapper-my-target"&gt;
+    &lt;canvas class="anm-player anm-player-my-target"&gt;&lt;/canvas&gt;
+    &lt;!-- If controls are enabled --&gt;
+    &lt;canvas class="anm-controls anm-controls-my-target"&gt;&lt;/canvas&gt;
+&lt;/div&gt;</code></p>
+<p>You may override any CSS for the player you wish using these classes. Also, the wrapper gets an additional class when the Player state changes:</p>
+<ul>
+<li><code>anm-state-nothing</code>, when Player has nothing to play, just initialized;</li>
+<li><code>anm-state-stopped</code>, when Player is stopped;</li>
+<li><code>anm-state-playing</code>, when Player is playing some animation;</li>
+<li><code>anm-state-paused</code>, when Player is paused;</li>
+<li><code>anm-state-loading</code>, when Player is loading an animation;</li>
+<li><code>anm-state-error</code>, when some error happened, so it's not muted and shown by Player</li>
+</ul>
+<h2>Adding Events</h2>
+<p>Same as above, when your target container looks like this:</p>
+<p><code>html
+&lt;div id="my-target"&gt;&lt;/div&gt;</code></p>
+<p>Then you have all the power to control it with JS, same way as with any other DOM element. For example you may run playing process on click:</p>
+<p>```js
+var player = anm.createPlayer('my-target', { autoPlay: false,
+                                             controlsEnabled: false });
+var animation = /<em> some Animatron-compatible JSON </em>/;
+var importer = anm.importers.create('animatron');
+player.load(animation, importer);</p>
+<p>var my_target = document.getElementById('my-target');
+my_target.addEventListenet('click', function() {
+    player.play();
+});
+```</p>
+<p>Of course, this solution also works if you use <code>forSnaphot</code> approach, just copy player options and the last block of code from the above example.</p>
+<p>In the nearest future, the new Player API and its documentation both will be published to the world, so you will be able to do a very complex and powerful things, if you'd ever want to. Please, stay tuned.</p>
+<h1>Complete Configuration List</h1>
+<p><em>Note:</em> all boolean values both in tag attributes and as URL parameters are allowed to be <em>nothing</em> / <code>false</code> / <code>0</code> / <code>off</code> / <code>no</code> to mean <em>false</em>, and <code>true</code> / <code>1</code> / <code>on</code> / <code>yes</code> to mean <em>true</em>.</p>
+<p>URL | <code>IFRAME</code>/<code>div</code> | JS Object | Default | Description
+----|----------------|-----------|---------|------------
+<code>w</code>/<code>width</code> | <code>anm-width</code>    | <code>width</code>   | animation width | width of a rectangle to fit animation into
+<code>h</code>/<code>height</code> | <code>anm-height</code>   | <code>height</code>  | animation height | height of a rectangle to fit animation into
+<code>c</code>/<code>controls</code> | <code>anm-controls</code> | <code>controlsEnabled</code> | <code>true</code> | show Play button and playing progress or not, Player HUD
+<code>info</code> | <code>anm-info</code> | <code>infoEnabled</code> | <code>true</code> | (<em>deprecated</em>) show animation author and animation name
+<code>a</code>/<code>auto</code> | <code>anm-auto-play</code> | <code>autoPlay</code> | <code>false</code> | start playing animation just when Player was initialized
+<code>r</code>/<code>repeat</code> | <code>anm-repeat</code> | <code>repeat</code> | <code>false</code> | <code>true</code> to play animation infinitely (loop)
+<code>i</code>/<code>inf</code> | <code>anm-infinite</code> | <code>infiniteDuration</code> | <code>false</code> | keep playing animation even when it finished (do not repeat, but stay at last frame, if there are no inner loops)
+<code>v</code>/<code>speed</code> | <code>anm-speed</code> | <code>speed</code> | <code>1</code> | playing speed
+<code>z</code>/<code>zoom</code> | <code>anm-zoom</code> | <code>zoom</code> | <code>1</code> | animation zoom
+<code>t</code>/<code>from</code> | - | - | <code>0</code> | a time to start playing from (multiplier is 100ms, so <code>31</code> means <em>3s 100ms</em>)
+<code>p</code>/<code>at</code> | - | - | - | a time of animation where to pause at, when Player was initialized (multiplier is 100ms, so <code>31</code> means <em>3s 100ms</em>)
+- | <em><code>div</code>-only:</em> <code>anm-src</code> | - | - | JSON for the animation  to load from
+<code>m</code>/<code>mode</code> | <code>anm-mode</code> | <code>mode</code> | - | (<em>deprecated</em>) a mode of a Player, one of: ...
+<code>lm</code>/<code>lmode</code> | <code>anm-loading-mode</code> | <code>loadingMode</code> | <code>onplay</code> | <code>onplay</code> means to start loading an animation when user clicks <em>Play</em> button (and show <em>thumbnail</em> before), <code>onrequest</code> means to start loading animation only when the script asked for it and expect it to be completely loaded when user clicks <em>Play</em> button
+- | <code>anm-events</code> | <code>handleEvents</code> | <code>false</code> | allows animation to catch and process user mouse/keyboard events by itself (has a meaning for games or infographics)
+- | <code>anm-debug</code> | <code>debug</code> | <code>false</code> | show debug information like FPS and paths/bounds of objects
+<code>bg</code>/<code>bgcolor</code> | <code>anm-bg-color</code> | <code>bgColor</code> | <code>transparent</code> | set background color of an animation (if it is set, it can't be overriden), format is <code>#00ff00</code>
+<code>rc</code>/<code>ribcolor</code>/<code>ribbons</code> | <code>anm-rib-color</code> | <code>ribbonsColor</code> | <code>#000000</code> | color of a stripes which appear when aspect ratio of an animation doesn't fit a Player size
+<code>th</code>/<code>thumb</code> | <code>anm-thumbnail</code> | <code>thumbnail</code> | - | URL of an animation thumbnail (still image) to be shown while animation loads
+- | <code>anm-draw-still</code> | <code>drawStill</code> | <code>true</code> | show an animation's single frame or a thumbnail (if its source is set) while animation wasn't started or in process of loading
+- | <code>anm-images</code> | <code>imagesEnabled</code> | <code>true</code> | enable all remote images used in animation (if they are disabled, special mark will be shown)
+<code>s</code>/<code>audio</code> | <code>anm-audio</code> | <code>audioEnabled</code> | <code>true</code> | enable all sounds used in animation (if disabled, they even will not load)
+- | <code>anm-shadows</code> | <code>shadowsEnabled</code> | <code>true</code> | enable shadows in animation (they often consume CPU)
+- | <code>anm-scene-size</code> | <code>forceSceneSize</code> | <code>false</code> | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
+<code>me</code>/<code>errors</code> | <code>anm-mute-errors</code> | <code>muteErrors</code> | <code>false</code> | do not stop playing if some errors happened during the playing process, just log them</p></body>
+</html>

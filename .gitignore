@@ -1,10 +1,4 @@
-*.bak
 .s3
-.DS_Store
-temp
-dist
-node_modules
-Animatron-player-*.zip
-src/import/sample-scene.json
-examples/files/anm
 VERSION_LOG
+dist
+test-scenes

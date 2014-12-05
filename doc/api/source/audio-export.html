@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 2011-@COPYRIGHT_YEAR by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron Player is licensed under the MIT License, see LICENSE.
+ *
+ * @VERSION
+ */
+
+
+var Player = anm.Player,
+    C = anm.C;
+
+Player.prototype.exportAudio = function() {
+  var result = [];
+  if (this.anim) {
+    this.anim.traverse(function(elm) {
+      if (elm.is(C.ET_AUDIO)) {
+        result.push({ &#39;url&#39;: elm._audio_url,
+                      &#39;band_offset&#39;: elm._audio_band_offset,
+                      &#39;start&#39;: elm.gband[0],
+                      &#39;end&#39;: elm.gband[1] });
+      }
+    });
+  }
+
+  return JSON.stringify(result);
+};
+
+var conf = {};
+anm.modules.register(&#39;audio-export&#39;, conf);
+</pre>
+</body>
+</html>

@@ -18,7 +18,7 @@ h1 {
 	text-align: center;
 	letter-spacing: .07em;
 	margin-top: 15px;
-	margin-bottom: 20px;
+	margin-bottom: 70px;
 	color: #555;
 	font-size: 2.4em;
 }
@@ -46,6 +46,7 @@ p#notice {
 	margin: 50px 65px;
 	padding: 20px;
 	line-height: 1.6em;
+	text-align: center;
 	-webkit-border-radius: 1em;
     -moz-border-radius: 1em;
     border-radius: 1em;

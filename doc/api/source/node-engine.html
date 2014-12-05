@@ -1,0 +1,156 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 2011-@COPYRIGHT_YEAR by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron Player is licensed under the MIT License, see LICENSE.
+ *
+ * @VERSION
+ */
+
+exports.Engine = (function() {
+
+    var Transform = require(&#39;../vendor/matrix.js&#39;).Transform;
+
+    return function() {
+
+        var $NE = {};
+
+        // getRequestFrameFunc() -&gt; function(callback)
+        // getCancelFrameFunc() -&gt; function(id)
+
+        // ajax(url, callback) -&gt; none
+
+        // createTextMeasurer() -&gt; function(text) -&gt; [ width, height ]
+
+        // findPos(elm) -&gt; [ x, y ]
+        // disposeElm(elm) -&gt; none
+        // detachElm(parent | null, child) -&gt; none
+
+        // createCanvas(params | [width, height], pxratio) -&gt; canvas
+        // getPlayerCanvas(id, player) -&gt; canvas
+        // getContext(canvas, type) -&gt; context
+        // playerAttachedTo(canvas, player) -&gt; true | false
+        // detachPlayer(canvas, player) -&gt; none
+        // extractUserOptions(canvas) -&gt; options: object | {}
+        // checkPlayerCanvas(canvas) -&gt; true | false
+        // hasUrlToLoad(canvas) -&gt; string | null
+        // setTabIndex(canvas) -&gt; none
+        // getCanvasParams(canvas) -&gt; [ width, height, ratio ]
+        // getCanvasBounds(canvas) -&gt; [ x, y, width, height, ratio ]
+        // configureCanvas(canvas, options, ratio) -&gt; none
+        // addChildCanvas(id, parent, pos: [x, y], style: object, inside: boolean)
+
+        // evtPos(event) -&gt; [ x, y ]
+        // subscribeEvents(canvas, handlers: object) -&gt; none
+        // subscribeSceneToEvents(scene, canvas) -&gt; none
+
+        $NE.getRequestFrameFunc = function() {
+            return function(callback) {
+                return setTimeout(callback, 1000 / 60);
+            }
+        }
+
+        $NE.getCancelFrameFunc = function() {
+            return function(id) {
+                return clearTimeout(id);
+            }
+        }
+
+        $NE.createTransform = function() {
+            return new Transform();
+        }
+
+        /* TODO: insert a real objects here */
+        $NE.createCanvas = function(params, ratio) { return {}; };
+        $NE.getPlayerCanvas = function(id, player) { return {}; };
+        $NE.getContext = function(canvas, type) { return mocks_factory.context2d(); };
+
+        $NE.ajax = function() { throw new Error(&#39;Not Implemented&#39;); }
+
+        $NE.createTextMeasurer = function() {
+            return function(text) { return [0, 0]; }
+        }
+        $NE.findPos = function(elm) { return [0, 0] };
+        $NE.disposeElm = function(elm) {};
+        $NE.detachElm = function(parent, child) {};
+
+        $NE.playerAttachedTo = function(canvas, player) { return false; }
+        $NE.detachPlayer = function(canvas, player) { };
+        $NE.extractUserOptions = function(canvas) { return {} };
+        $NE.checkPlayerCanvas = function(canvas) { return true; };
+        $NE.hasUrlToLoad = function() { return null; }
+        $NE.setTabIndex = function(canvas) { }
+        $NE.getCanvasParams = function() { return [ 400, 250, 1 ]; }
+        $NE.getCanvasBounds = function(canvas) { return [ 0, 0, 400, 250, 1 ]; }
+        $NE.configureCanvas = function(canvas, options, ratio) { }
+        $NE.addChildCanvas = function(id, parent, pos, style, inside) {}
+
+        $NE.evtPos = function() { [] };
+        $NE.subscribeEvents = function(canvas, handlers) {}
+        $NE.subscribeSceneToEvents = function(scene, canvas) {}
+
+        // TODO: image, proper events
+
+        var mocks_factory = {};
+
+        var __nop = function() {};
+        var _ctxMocksCount = 0;
+        mocks_factory.context2d = function() {
+            return {
+                &#39;__mockId&#39;: _ctxMocksCount++,
+                &#39;save&#39;: __nop,
+                &#39;restore&#39;: __nop,
+                &#39;fillRect&#39;: __nop,
+                &#39;clearRect&#39;: __nop,
+                &#39;fillText&#39;: __nop,
+                &#39;strokeRect&#39;: __nop,
+                &#39;translate&#39;: __nop,
+                &#39;transform&#39;: __nop,
+                &#39;beginPath&#39;: __nop,
+                &#39;closePath&#39;: __nop,
+                &#39;moveTo&#39;: __nop,
+                &#39;lineTo&#39;: __nop,
+                &#39;fill&#39;: __nop,
+                &#39;stroke&#39;: __nop,
+                &#39;clip&#39;: __nop,
+                &#39;rect&#39;: __nop,
+                &#39;drawImage&#39;: __nop,
+                &#39;scale&#39;: __nop,
+                &#39;setTransform&#39;: __nop,
+                &#39;globalAlpha&#39;: 1,
+                &#39;globalCompositeOperation&#39;: &#39;source-over&#39;,
+                &#39;createLinearGradient&#39;: function() { return mocks_factory.linearGradient(); },
+            };
+        };
+
+        mocks_factory.linearGradient = function() {
+            return {
+                &#39;addColorStop&#39;: __nop
+            };
+        };
+
+        return $NE;
+
+    };
+
+})();
+</pre>
+</body>
+</html>

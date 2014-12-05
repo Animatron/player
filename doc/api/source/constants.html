@@ -1,0 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">// Constants
+// -----------------------------------------------------------------------------
+var C = {};
+
+// Logging
+// -----------------------------------------------------------------------------
+
+C.L_DEBUG = 1;
+C.L_INFO = 2;
+C.L_WARN = 4;
+C.L_ERROR = 8;
+
+// Markers
+// -----------------------------------------------------------------------------
+C.MARKERS = {};
+C.MARKERS.MODIFIER_MARKER = &#39;__modifier&#39;;
+C.MARKERS.PAINTER_MARKER  = &#39;__painter&#39;;
+
+// ### Player states
+/* ----------------- */
+
+C.NOTHING = -1;
+C.STOPPED = 0;
+C.PLAYING = 1;
+C.PAUSED = 2;
+C.LOADING = 3;
+C.RES_LOADING = 4;
+C.ERROR = 5;
+
+// public constants below are also appended to C object, but with `X_`-like prefix
+// to indicate their scope, see through all file
+
+// ### Player Modes constants
+/* -------------------------- */
+
+C.M_CONTROLS_ENABLED = 1;    C.M_CONTROLS_DISABLED = 2;
+C.M_INFO_ENABLED = 4;        C.M_INFO_DISABLED = 8;
+C.M_HANDLE_EVENTS = 16;      C.M_DO_NOT_HANDLE_EVENTS = 32;
+C.M_DRAW_STILL = 64;         C.M_DO_NOT_DRAW_STILL = 128;
+C.M_INFINITE_DURATION = 256; C.M_FINITE_DURATION = 512;
+
+C.M_PREVIEW = C.M_CONTROLS_DISABLED
+              | C.M_INFO_DISABLED
+              | C.M_DO_NOT_HANDLE_EVENTS
+              | C.M_DRAW_STILL
+              | C.M_FINITE_DURATION;
+C.M_DYNAMIC = C.M_CONTROLS_DISABLED
+              | C.M_INFO_DISABLED
+              | C.M_HANDLE_EVENTS
+              | C.M_DO_NOT_DRAW_STILL
+              | C.M_INFINITE_DURATION;
+C.M_VIDEO = C.M_CONTROLS_ENABLED
+            | C.M_INFO_DISABLED
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DRAW_STILL
+            | C.M_FINITE_DURATION;
+C.M_SANDBOX = C.M_CONTROLS_DISABLED
+            | C.M_INFO_DISABLED
+            | C.M_DO_NOT_HANDLE_EVENTS
+            | C.M_DO_NOT_DRAW_STILL
+            | C.M_FINITE_DURATION;
+
+// ### Load targets
+/* ---------------- */
+
+C.LT_ANIMATION = 1;
+C.LT_ELEMENTS = 2;
+C.LT_IMPORT = 3;
+C.LT_URL = 4;
+
+// ### Loading modes
+/* ---------------- */
+
+C.LM_ONREQUEST = &#39;onrequest&#39;;
+C.LM_ONPLAY = &#39;onplay&#39;;
+// C.LM_ONSCROLL
+// C.LM_ONSCROLLIN
+
+C.LM_DEFAULT = C.LM_ONREQUEST;
+
+
+// Element
+// -----------------------------------------------------------------------------
+
+// type
+C.ET_EMPTY = &#39;empty&#39;;
+C.ET_PATH = &#39;path&#39;;
+C.ET_TEXT = &#39;text&#39;;
+C.ET_SHEET = &#39;image&#39;;
+C.ET_AUDIO = &#39;audio&#39;;
+
+// repeat mode
+C.R_ONCE = 0;
+C.R_STAY = 1;
+C.R_LOOP = 2;
+C.R_BOUNCE = 3;
+
+// composite operation
+C.C_SRC_OVER = 1; // first (default) is 1, to pass if test
+C.C_SRC_ATOP = 2;
+C.C_SRC_IN = 3;
+C.C_SRC_OUT = 4;
+C.C_DST_OVER = 5;
+C.C_DST_ATOP = 6;
+C.C_DST_IN = 7;
+C.C_DST_OUT = 8;
+C.C_LIGHTER = 9;
+C.C_DARKER = 10;
+C.C_COPY = 11;
+C.C_XOR = 12;
+
+C.AC_NAMES = [];
+C.AC_NAMES[C.C_SRC_OVER] = &#39;source-over&#39;;
+C.AC_NAMES[C.C_SRC_ATOP] = &#39;source-atop&#39;;
+C.AC_NAMES[C.C_SRC_IN]   = &#39;source-in&#39;;
+C.AC_NAMES[C.C_SRC_OUT]  = &#39;source-out&#39;;
+C.AC_NAMES[C.C_DST_OVER] = &#39;destination-over&#39;;
+C.AC_NAMES[C.C_DST_ATOP] = &#39;destination-atop&#39;;
+C.AC_NAMES[C.C_DST_IN]   = &#39;destination-in&#39;;
+C.AC_NAMES[C.C_DST_OUT]  = &#39;destination-out&#39;;
+C.AC_NAMES[C.C_LIGHTER]  = &#39;lighter&#39;;
+C.AC_NAMES[C.C_DARKER]   = &#39;darker&#39;;
+C.AC_NAMES[C.C_COPY]     = &#39;copy&#39;;
+C.AC_NAMES[C.C_XOR]      = &#39;xor&#39;;
+
+C.BT_NONE = &#39;none&#39;;
+C.BT_FILL = &#39;fill&#39;;
+C.BT_STROKE = &#39;stroke&#39;;
+C.BT_SHADOW = &#39;shadow&#39;;
+
+// align
+C.TA_LEFT = &#39;left&#39;;
+C.TA_CENTER = &#39;center&#39;;
+C.TA_RIGHT = &#39;right&#39;;
+
+// baseline
+C.BL_TOP = &#39;top&#39;;
+C.BL_MIDDLE = &#39;middle&#39;;
+C.BL_BOTTOM = &#39;bottom&#39;;
+C.BL_ALPHABETIC = &#39;alphabetic&#39;;
+C.BL_HANGING = &#39;hanging&#39;;
+C.BL_IDEOGRAPHIC = &#39;ideographic&#39;;
+
+C.PC_ROUND = &#39;round&#39;;
+C.PC_BUTT = &#39;butt&#39;;
+C.PC_MITER = &#39;miter&#39;;
+C.PC_SQUARE = &#39;square&#39;;
+C.PC_BEVEL = &#39;bevel&#39;;
+
+// Easings constants
+
+C.E_PATH = &#39;PATH&#39;; // Path
+C.E_FUNC = &#39;FUNC&#39;; // Function
+C.E_CSEG = &#39;CSEG&#39;; // Segment
+C.E_STDF = &#39;STDF&#39;; // Standard function from editor
+
+// Tween constants
+
+C.T_TRANSLATE   = &#39;TRANSLATE&#39;;
+C.T_SCALE       = &#39;SCALE&#39;;
+C.T_ROTATE      = &#39;ROTATE&#39;;
+C.T_ROT_TO_PATH = &#39;ROT_TO_PATH&#39;;
+C.T_ALPHA       = &#39;ALPHA&#39;;
+C.T_SHEAR       = &#39;SHEAR&#39;;
+C.T_FILL        = &#39;FILL&#39;;
+C.T_STROKE      = &#39;STROKE&#39;;
+C.T_VOLUME = &#39;VOLUME&#39;;
+
+
+
+// modifiers classes
+C.MOD_SYSTEM = &#39;system&#39;;
+C.MOD_TWEEN = &#39;tween&#39;;
+C.MOD_USER = &#39;user&#39;;
+C.MOD_EVENT = &#39;event&#39;;
+
+// painters classes
+C.PNT_SYSTEM = &#39;system&#39;;
+C.PNT_USER = &#39;user&#39;;
+C.PNT_DEBUG = &#39;debug&#39;;
+
+module.exports = C;
+</pre>
+</body>
+</html>

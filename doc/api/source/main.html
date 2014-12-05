@@ -1,0 +1,107 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+* Copyright (c) 2011-@COPYRIGHT_YEAR by Animatron.
+* All rights are reserved.
+*
+* Animatron Player is licensed under the MIT License, see LICENSE.
+*
+* @VERSION
+*/
+
+// HERE GOES THE INITIALISATION OF ANM NAMESPACE, GLOBALS AND GLOBAL HELPERS
+
+var PUBLIC_NAMESPACE = &#39;anm&#39;;
+
+var constants = require(&#39;./anm/constants.js&#39;),
+    engine = require(&#39;engine&#39;),
+    Player = require(&#39;./anm/player.js&#39;);
+
+function findAndInitPotentialPlayers() {
+    var matches = engine.findPotentialPlayers();
+    for (var i = 0, il = matches.length; i &lt; il; i++) {
+        anm.createPlayer(matches[i]);
+    }
+}
+
+engine.onDocReady(findAndInitPotentialPlayers);
+
+var Element = require(&#39;./anm/animation/element.js&#39;),
+    Sheet = require(&#39;./anm/graphics/sheet.js&#39;),
+    segments = require(&#39;./anm/graphics/segments.js&#39;);
+
+// Public Namespace
+// -----------------------------------------------------------------------------
+var anm = {
+    global: global,
+    constants: constants,
+    C: constants, // for backwards compatibility
+    modules: require(&#39;./anm/modules.js&#39;),
+    importers: require(&#39;./anm/importers.js&#39;),
+    conf: require(&#39;./anm/conf.js&#39;),
+    log: require(&#39;./anm/log.js&#39;),
+    engine: engine,
+    events: require(&#39;./anm/events.js&#39;),
+    resource_manager: require(&#39;./anm/resource_manager.js&#39;),
+    player_manager: require(&#39;./anm/player_manager.js&#39;),
+    loc: require(&#39;./anm/loc.js&#39;),
+    errors: require(&#39;./anm/errors.js&#39;),
+    utils: require(&#39;./anm/utils.js&#39;),
+
+    Player: Player,
+    Animation: require(&#39;./anm/animation/animation.js&#39;),
+    Element: Element,
+    Clip: Element,
+    Path: require(&#39;./anm/graphics/path.js&#39;),
+    Text: require(&#39;./anm/graphics/text.js&#39;),
+    Sheet: Sheet,
+    Image: Sheet,
+    Modifier: require(&#39;./anm/animation/modifier.js&#39;),
+    Painter: require(&#39;./anm/animation/painter.js&#39;),
+    Brush: require(&#39;./anm/graphics/brush.js&#39;),
+    Color: require(&#39;./anm/graphics/color.js&#39;),
+    Tween: require(&#39;./anm/animation/tween.js&#39;),
+    Audio: require(&#39;./anm/media/audio.js&#39;),
+    MSeg: segments.MSeg,
+    LSeg: segments.LSeg,
+    CSeg: segments.CSeg,
+
+    createPlayer: function(elm, opts) {
+        if (!engine.canvasSupported) {
+          document.getElementById(elm).innerHTML = anm.loc.Errors.S.SAD_SMILEY_HTML;
+          return null;
+        }
+        var p = new Player();
+        p.init(elm, opts);
+        return p;
+    },
+
+    createImporter: function(importer) {
+      console.warn(&#39;anm.createImporter is deprecated and will be removed soon.&#39; +
+        &#39; Please use anm.importers.create instead&#39;);
+      return anm.importers.create(importer);
+    }
+};
+
+// Export
+// -----------------------------------------------------------------------------
+global[PUBLIC_NAMESPACE] = anm;
+module.exports = anm;
+</pre>
+</body>
+</html>

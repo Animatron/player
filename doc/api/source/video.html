@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">/*
+ * Copyright (c) 2011-@COPYRIGHT_YEAR by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron Player is licensed under the MIT License, see LICENSE.
+ *
+ * @VERSION
+ */
+
+  // This module is just a stub template for the moment
+
+  var C = anm.constants,
+      E = anm.Element;
+
+  C.ET_VIDEO = &#39;video&#39;;
+
+  var m_ctx = {};
+
+  var prev_initVisuals = E.prototype.initVisuals;
+  E.prototype.initVisuals = function() {
+    prev_initVisuals.apply(this, arguments);
+    this.video = null;
+  }
+
+  var prev_transferVisuals = E.transferVisuals;
+  E.transferVisuals = function(src, trg) {
+    prev_transferVisuals(src, trg);
+    trg.video = src.video ? src.video.clone() : null;
+  }
+
+  var prev_dimen = E.prototype.dimen;
+  E.prototype.dimen = function() {
+    return prev_dimen.apply(this, arguments) || (this.video &amp;&amp; this.video.dimen());
+  }
+
+  var prev_bounds = E.prototype.bounds;
+  E.prototype.bounds = function() {
+    return prev_bounds.apply(this, arguments) || (this.video &amp;&amp; this.video.bounds());
+  }
+
+  // TODO: what else?
+
+  anm.modules.register(&#39;video&#39;, m_ctx);
+</pre>
+</body>
+</html>

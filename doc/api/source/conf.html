@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">// Private configuration
+// -----------------------------------------------------------------------------
+var PRIVATE_CONF = &#39;__anm_conf&#39;,
+    C = require(&#39;./constants.js&#39;);
+
+// private developer-related configuration
+// TODO: merge actual properties with default values, if they are set
+var conf = global[PRIVATE_CONF] || {
+        logImport: false, // FIXME: create a hash-map of such values, by key
+        logResMan: false, //        or just remove these flags in favor of log.debug
+        logEvents: false,
+        logLevel: C.L_ERROR | C.L_WARN | C.L_INFO,
+        doNotLoadAudio: false,
+        doNotLoadImages: false,
+        doNotRenderShadows: false,
+        engine: null
+    };
+global[PRIVATE_CONF] = conf;
+
+module.exports = conf;
+</pre>
+</body>
+</html>

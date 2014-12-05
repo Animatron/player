@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">var C = require(&#39;./constants.js&#39;);
+
+// Events
+// -----------------------------------------------------------------------------
+C.__enmap = {};
+
+function registerEvent(id, name, value) {
+    C[id] = value;
+    C.__enmap[value] = name;
+}
+
+
+// TODO: use EventEmitter
+// FIXME: all errors below were AnimErr instances
+
+// adds specified events support to the `subj` object. `subj` object receives
+// `handlers` property that keeps the listeners for each event. Also, it gets
+// `e_&lt;evt_name&gt;` function for every event provided to call it when it is
+// required to call all handlers of all of thise event name
+// (`fire(&#39;&lt;evt_name&gt;&#39;, ...)` is the same but can not be reassigned by user).
+// `subj` can define `handle_&lt;evt_name&gt;` function to handle concrete event itself,
+// but without messing with other handlers.
+// And, user gets `on` function to subcribe to events and `provides` to check
+// if it is allowed.
+function provideEvents(subj, events) {
+    subj.prototype._initHandlers = (function(evts) { // FIXME: make automatic
+        return function() {
+            var _hdls = {};
+            this.handlers = _hdls;
+            for (var ei = 0, el = evts.length; ei &lt; el; ei++) {
+                _hdls[evts[ei]] = [];
+            }
+        };
+    })(events);
+    subj.prototype.on = function(event, handler) {
+        if (!this.handlers) throw new Error(&#39;Instance is not initialized with handlers, call __initHandlers in its constructor&#39;);
+        if (!this.provides(event)) throw new Error(&#39;Event \&#39;&#39; + C.__enmap[event] +
+                                                     &#39;\&#39; not provided by &#39; + this);
+        if (!handler) throw new Error(&#39;You are trying to assign &#39; +
+                                        &#39;undefined handler for event &#39; + event);
+        this.handlers[event].push(handler);
+        // FIXME: make it chainable, use handler instance to unbind, instead of index
+        return (this.handlers[event].length - 1);
+    };
+    subj.prototype.fire = function(event/*, args*/) {
+        if (!this.handlers) throw new Error(&#39;Instance is not initialized with handlers, call __initHandlers in its constructor&#39;);
+        if (!this.provides(event)) throw new Error(&#39;Event \&#39;&#39; + C.__enmap[event] +
+                                                     &#39;\&#39; not provided by &#39; + this);
+        if (this.disabled) return;
+        var evt_args = Array.prototype.slice.call(arguments, 1);
+        if (this.handle__x &amp;&amp; !(this.handle__x.apply(this, arguments))) return;
+        var name = C.__enmap[event];
+        if (this[&#39;handle_&#39;+name]) this[&#39;handle_&#39;+name].apply(this, evt_args);
+        var _hdls = this.handlers[event];
+        for (var hi = 0, hl = _hdls.length; hi &lt; hl; hi++) {
+            _hdls[hi].apply(this, evt_args);
+        }
+    };
+    subj.prototype.provides = (function(evts) {
+        return function(event) {
+            if (!this.handlers) throw new Error(&#39;Instance is not initialized with handlers, call __initHandlers in its constructor&#39;);
+            if (!event) return evts;
+            return this.handlers.hasOwnProperty(event);
+        }
+    })(events);
+    subj.prototype.unbind = function(event, idx) {
+        if (!this.handlers) throw new Error(&#39;Instance is not initialized with handlers, call __initHandlers in its constructor&#39;);
+        if (!this.provides(event)) throw new Error(&#39;Event &#39; + event +
+                                                     &#39; not provided by &#39; + this);
+        if (this.handlers[event][idx]) {
+            this.handlers[event].splice(idx, 1);
+        } else {
+            throw new Error(&#39;No such handler &#39; + idx + &#39; for event &#39; + event);
+        }
+    };
+    subj.prototype.disposeHandlers = function() {
+        if (!this.handlers) throw new Error(&#39;Instance is not initialized with handlers, call __initHandlers in its constructor&#39;);
+        var _hdls = this.handlers;
+        for (var evt in _hdls) {
+            if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
+        }
+    }
+    /* FIXME: call fire/e_-funcs only from inside of their providers, */
+    /* TODO: wrap them with event objects */
+    var _event;
+    for (var ei = 0, el = events.length; ei &lt; el; ei++) {
+        _event = events[ei];
+        subj.prototype[&#39;e_&#39;+_event] = (function(event) {
+            return function(evtobj) {
+                this.fire(event, evtobj);
+            };
+        })(_event);
+    }
+}
+
+
+registerEvent(&#39;S_NEW_PLAYER&#39;, &#39;new_player&#39;, &#39;new_player&#39;);
+registerEvent(&#39;S_PLAYER_DETACH&#39;, &#39;player_detach&#39;, &#39;player_detach&#39;);
+
+// ### Events
+/* ---------- */
+
+// NB: All of the events must have different values, or the flow will be broken
+// FIXME: allow grouping events, i.e. value may a group_marker + name of an event
+//        also, allow events to belong to several groups, it may replace a tests like
+//        XT_MOUSE or XT_CONTROL or isPlayerEvent
+
+// * mouse
+registerEvent(&#39;X_MCLICK&#39;, &#39;mclick&#39;, 1);
+registerEvent(&#39;X_MDCLICK&#39;, &#39;mdclick&#39;, 2);
+registerEvent(&#39;X_MUP&#39;, &#39;mup&#39;, 4);
+registerEvent(&#39;X_MDOWN&#39;, &#39;mdown&#39;, 8);
+registerEvent(&#39;X_MMOVE&#39;, &#39;mmove&#39;, 16);
+registerEvent(&#39;X_MOVER&#39;, &#39;mover&#39;, 32);
+registerEvent(&#39;X_MOUT&#39;, &#39;mout&#39;, 64);
+
+registerEvent(&#39;XT_MOUSE&#39;, &#39;mouse&#39;,
+  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
+
+// * keyboard
+registerEvent(&#39;X_KPRESS&#39;, &#39;kpress&#39;, 128);
+registerEvent(&#39;X_KUP&#39;, &#39;kup&#39;, 256);
+registerEvent(&#39;X_KDOWN&#39;, &#39;kdown&#39;, 1024);
+
+registerEvent(&#39;XT_KEYBOARD&#39;, &#39;keyboard&#39;,
+  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
+
+// * controllers
+registerEvent(&#39;XT_CONTROL&#39;, &#39;control&#39;, (C.XT_KEYBOARD | C.XT_MOUSE));
+
+// * draw
+registerEvent(&#39;X_DRAW&#39;, &#39;draw&#39;, &#39;draw&#39;);
+
+// * bands
+registerEvent(&#39;X_START&#39;, &#39;start&#39;, &#39;x_start&#39;);
+registerEvent(&#39;X_STOP&#39;, &#39;stop&#39;, &#39;x_stop&#39;);
+
+// * playing (player state)
+registerEvent(&#39;S_PLAY&#39;, &#39;play&#39;, &#39;play&#39;);
+registerEvent(&#39;S_PAUSE&#39;, &#39;pause&#39;, &#39;pause&#39;);
+registerEvent(&#39;S_STOP&#39;, &#39;stop&#39;, &#39;stop&#39;);
+registerEvent(&#39;S_COMPLETE&#39;, &#39;complete&#39;, &#39;complete&#39;);
+registerEvent(&#39;S_REPEAT&#39;, &#39;repeat&#39;, &#39;repeat&#39;);
+registerEvent(&#39;S_IMPORT&#39;, &#39;import&#39;, &#39;import&#39;);
+registerEvent(&#39;S_LOAD&#39;, &#39;load&#39;, &#39;load&#39;);
+registerEvent(&#39;S_RES_LOAD&#39;, &#39;res_load&#39;, &#39;res_load&#39;);
+registerEvent(&#39;S_ERROR&#39;, &#39;error&#39;, &#39;error&#39;);
+
+
+module.exports = {
+  registerEvent: registerEvent,
+  provideEvents: provideEvents
+};
+</pre>
+</body>
+</html>

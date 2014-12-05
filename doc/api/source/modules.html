@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">// Modules
+// -----------------------------------------------------------------------------
+var modules = {};
+
+modules.register = function(alias, conf) {
+  if (modules[alias]) throw new Error(&#39;Module &#39; + alias + &#39; is already registered!&#39;);
+  modules[alias] = conf;
+};
+
+modules.get = function(alias) {
+  return modules[alias];
+};
+
+modules.isAccessible = function(alias) {
+  return typeof modules[alias] !== &#39;undefined&#39;;
+};
+
+module.exports = modules;
+</pre>
+</body>
+</html>
