@@ -48,9 +48,25 @@ var Color = require('./color.js'),
 
 /**
  * @class anm.Brush
+ *
+ * Brush holds either fill, stroke or shadow data in one object.
+ *
+ * Examples:
+ *
+ * * `var brush = Brush.fill('#ff0000');`
+ * * `var brush = Brush.stroke('#ff0000', 10);`
+ * * `var brush = Brush.stroke(Color.rgba(10, 20, 40, 0.5), 10);`
+ * * `var brush = Brush.fill(Brush.grad({0: "#000", 0.5: "#ccc"}));`
+ * * `var brush = Brush.fill(Brush.rgrad({0: "#000", 0.5: "#ccc"}, [0.5, 0.5]));`
+ * * `var brush = Brush.shadow('rgb(10, 20, 40)', 3, 0, 0);`
+ *
+ * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill()}, {@link anm.Element#stroke Element.stroke()},
+ * {@link anm.Element#shadow Element.shadow()}
+ *
  */
-function Brush() {
+function Brush(value) {
     this.type = C.BT_NONE;
+    if (value) Brush.value(value, this);
 }
 Brush.DEFAULT_CAP = C.PC_ROUND;
 Brush.DEFAULT_JOIN = C.PC_ROUND;
@@ -58,6 +74,13 @@ Brush.DEFAULT_FILL = '#ffbc05';
 Brush.DEFAULT_STROKE = Color.TRANSPARENT;
 Brush.DEFAULT_SHADOW = Color.TRANSPARENT;
 
+/**
+ * @method apply
+ *
+ * Apply this brush to given context
+ *
+ * @param {Context2D} ctx context to apply to
+ */
 Brush.prototype.apply = function(ctx) {
     if (this.type == C.BT_NONE) return;
     var style = this._style || (this._style = this.adapt(ctx));
@@ -85,6 +108,11 @@ Brush.prototype.apply = function(ctx) {
         ctx.shadowOffsetY = (this.offsetY * ratio) || 0;
     }
 }
+/**
+ * @method invalidate
+ *
+ * Invalidate this brush, if its content was updated
+ */
 Brush.prototype.invalidate = function() {
     //this.type = C.BT_NONE;
     this._converted = false;
@@ -146,6 +174,13 @@ Brush.prototype.adapt = function(ctx) {
     }
     return null;
 }
+/**
+ * @method clone
+ *
+ * Clone this brush
+ *
+ * @return {anm.Brush} clone
+ */
 Brush.prototype.clone = function()  {
     var src = this,
         trg = new Brush();
@@ -175,6 +210,23 @@ Brush.prototype.clone = function()  {
     if (src.hasOwnProperty('offsetY')) trg.offsetY = src.offsetY;
     return trg;
 }
+/**
+ * @static @method fill
+ *
+ * Create a Fill-Brush
+ *
+ * See {@link anm.Element#fill Element.fill()}
+ *
+ * Examples:
+ *
+ * * `var brush = Brush.fill('#ff0000')`
+ * * `var brush = Brush.fill(Color.rgba(70, 12, 35, 0.5))`
+ * * `var brush = Brush.fill(Color.hsl(0.6, 100, 15))`
+ * * `var brush = Brush.fill(Brush.grad({0: '#ffffff', 0.5: '#cccccc'}))`
+ *
+ * @param {String|Object} color color or gradient
+ * @return {anm.Brush}
+ */
 Brush.fill = function(value) {
     var brush = new Brush();
     brush.type = C.BT_FILL;
@@ -185,6 +237,28 @@ Brush.fill = function(value) {
     }
     return brush;
 }
+/**
+ * @static @method stroke
+ *
+ * Create a Stroke-Brush
+ *
+ * See {@link anm.Element#stroke Element.stroke()}
+ *
+ * Examples:
+ *
+ * * `var brush = Brush.stroke('#ff0000', 2)`
+ * * `var brush = Brush.stroke(Color.rgba(70, 12, 35, 0.5), 5, C.PC_ROUND)`
+ * * `var brush = Brush.stroke(Color.hsl(0.6, 100, 15), 1)`
+ * * `var brush = Brush.stroke(Brush.grad({0: '#ffffff', 0.5: '#cccccc'}), 2)`
+ *
+ * @param {String|Object} color color or gradient
+ * @param {Number} width width, in pixels
+ * @param {C.PC_*} [cap]
+ * @param {C.PC_*} [join]
+ * @param {C.PC_*} [mitter]
+ *
+ * @return {anm.Brush}
+ */
 Brush.stroke = function(color, width, cap, join, mitter) {
     var brush = Brush.fill(color);
     brush.type = C.BT_STROKE;
@@ -194,6 +268,25 @@ Brush.stroke = function(color, width, cap, join, mitter) {
     brush.mitter = mitter;
     return brush;
 }
+/**
+ * @static @method shadow
+ *
+ * Create a Shadow-Brush
+ *
+ * See {@link anm.Element#shadow Element.shadow()}
+ *
+ * Examples:
+ *
+ * * `var brush = Brush.shadow('#ff0000', 2)`
+ * * `var brush = Brush.shadow(Color.rgba(70, 12, 35, 0.5), 5, 2, 2)`
+ *
+ * @param {String|Object} color color or gradient
+ * @param {Number} [blurRadius] blur radius
+ * @param {Number} [offsetX] offset by X axis
+ * @param {Number} [offsetY] offset by Y axis
+ *
+ * @return {anm.Brush}
+ */
 Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
     var brush = Brush.fill(color);
     brush.type = C.BT_SHADOW;
@@ -202,8 +295,8 @@ Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
     brush.offsetY = offsetY || 0;
     return brush;
 }
-Brush.value = function(value) {
-    var brush = new Brush();
+Brush.value = function(value, target) {
+    var brush = target || (new Brush());
     if (!value) {
         brush.type = C.BT_NONE;
     } else if (is.str(value)) {
@@ -236,6 +329,18 @@ Brush.grad = function(stops, bounds, dir) {
         new_stops.push([prop, stops[prop]]);
     }
     return { grad: {
+        stops: stops,
+        bounds: bounds,
+        dir: dir
+    } };
+}
+Brush.rgrad = function(stops, r, bounds, dir) {
+    var new_stops = [];
+    for (var prop in stops) {
+        new_stops.push([prop, stops[prop]]);
+    }
+    return { grad: {
+        r: r,
         stops: stops,
         bounds: bounds,
         dir: dir

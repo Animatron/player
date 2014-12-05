@@ -17,7 +17,10 @@ var Bounds = require('./bounds.js');
  *
  * Examples:
  *
- * * `var text = new Text('Hello')`
+ * * `var text = new Text('Hello');`
+ * * `var text = new Text('Hello').font('Arial');`
+ * * `var text = new Text('Hello').font('12px Arial italic');`
+ * * `var text = new Text(['Hello', 'Hello', 'Is there anybody in there?']).align(C.TA_CENTER);`
  *
  * See: {@link anm.Element#text Element.text()}
  *

@@ -350,6 +350,7 @@ Element.prototype.resetEvents = Element.prototype.initEvents;
  * Set this element to be a {@link anm.Path Path} or get current path.
  *
  * Examples:
+ *
  * * `elm.path("M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z")`
  * * `elm.path(new Path().move(0, 10).curve(10, 20, 15, 30, 10, 9))`
  * * `var my_path = elm.path()`
@@ -372,6 +373,7 @@ Element.prototype.path = function(value) {
  * Set this element to be a {@link anm.Text Text} or get current text.
  *
  * Examples:
+ *
  * * `elm.text("my text")`
  * * `elm.text(["text","in three","lines"])`
  * * `elm.text(new Text("My Text").font("Arial"))`
@@ -396,6 +398,7 @@ Element.prototype.text = function(value) {
  * Set this element to be an {@link anm.Image Image/Sheet} or get current image.
  *
  * Examples:
+ *
  * * `elm.image("path://to.my_image.jpg")`
  * * `elm.image(new Image("path://to.my_image.jpg"))`
  * * `elm.image(new Image("path://to.my_image.jpg", function() { console.log("image received"); }))`
@@ -423,6 +426,7 @@ Element.prototype.image = function(value, callback) {
  * Set fill for this element
  *
  * Examples:
+ *
  * * `elm.fill("#ffaa0b")`
  * * `elm.fill("rgb(255,170,11)")`
  * * `elm.fill("rgb(255,170,11,0.8)")`
@@ -461,6 +465,7 @@ Element.prototype.noFill = function() {
 * Set stroke for this element
 *
 * Examples:
+
 * * `elm.stroke("#ffaa0b", 2)`
 * * `elm.stroke("rgb(255,170,11)", 4)`
 * * `elm.stroke("rgb(255,170,11,0.8)", 5)`
@@ -1154,6 +1159,7 @@ Element.prototype.bounce = function(nrep) {
  * element's state, see {@link anm.Modifier Modifier} for detailed information.
  *
  * Examples:
+ *
  * * `elm.modify(function(t) { this.x += 1 / t; })`
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; }).band(0, 2).easing(fuction(t) { return 1 - t; }))`
  *
@@ -1218,6 +1224,7 @@ Element.prototype.removeModifier = function(modifier) {
  * element, see {@link anm.Painter Painter} for detailed information.
  *
  * Examples:
+ *
  * * `elm.paint(function(ctx) { ctx.fillStyle = '#f00'; ctx.fillRect(0, 0, 200, 200); })`
  * * `elm.paint(new Painter(function(t) { ctx.fillStyle = '#f00'; ctx.fillRect(0, 0, 200, 200); }))`
  *
@@ -1272,6 +1279,7 @@ Element.prototype.removePainter = function(painter) {
  * element's state, stored in a function. See {@link anm.Tween Tween} for detailed information.
  *
  * Examples:
+ *
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]))`
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2))`
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(function(t) { return 1 - t; }))`
@@ -2126,7 +2134,6 @@ Element.prototype.shallow = function() {
 /**
  * @method asClip
  * @chainable
- * @deprecated
  *
  * Restrict tweens of this element in a separate band, and repeat them inside.
  * This method is useful for creating sputnik-like animations, where sputnik
@@ -2142,6 +2149,8 @@ Element.prototype.shallow = function() {
  * @param {Number} nrep number of repetition
  *
  * @return {anm.Element} itself
+ *
+ * @deprecated
  */
 Element.prototype.asClip = function(band, mode, nrep) {
     if (mode == C.R_ONCE) return;

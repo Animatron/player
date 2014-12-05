@@ -535,7 +535,7 @@ Path.parse = function(path, target) {
  * Parses a path in string form and immediately applies it to context
  *
  * @param {Context2D} ctx context to apply to
- * @param {String} SVG representation of a path
+ * @param {String} path SVG representation of a path
  */
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, strApplyVisitor, ctx);

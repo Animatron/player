@@ -415,13 +415,14 @@ Animation.prototype.find = function(name, where) {
 }
 /**
  * @method findById
- * @deprecated in favor of special syntax in `find` method
  *
  * Searches for {@link anm.Element elements} by ID inside another inside the
  * Animation. Actually, just gets it from hash map, so O(1).
  *
  * @param {String} id ID of the element to find
  * @return {anm.Element|Null} An element you've searched for, or null
+ *
+ * @deprecated in favor of special syntax in `find` method
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
