@@ -1,7 +1,8 @@
 var Color = require('./color.js'),
     C = require('../constants.js'),
     conf = require('../conf.js'),
-    is = require('../utils.js').is,
+    utils = require('../utils.js'),
+    is = utils.is,
     engine = require('engine'),
     AnimationError = require('../errors.js').AnimationError;
 
@@ -107,7 +108,8 @@ Brush.prototype.apply = function(ctx) {
         ctx.shadowOffsetX = (this.offsetX * ratio) || 0;
         ctx.shadowOffsetY = (this.offsetY * ratio) || 0;
     }
-}
+};
+
 /**
  * @method invalidate
  *
@@ -117,7 +119,8 @@ Brush.prototype.invalidate = function() {
     //this.type = C.BT_NONE;
     this._converted = false;
     this._style = null;
-}
+};
+
 Brush.prototype.convertColorsToRgba = function() {
     if (this._converted) return;
     if (this.color && is.str(this.color)) {
@@ -131,7 +134,8 @@ Brush.prototype.convertColorsToRgba = function() {
         }
     }
     this._converted = true;
-}
+};
+
 // create canvas-compatible style from brush
 Brush.prototype.adapt = function(ctx) {
     if (this.color && is.str(this.color)) return this.color;
@@ -173,7 +177,8 @@ Brush.prototype.adapt = function(ctx) {
         return grad;
     }
     return null;
-}
+};
+
 /**
  * @method clone
  *
@@ -188,7 +193,7 @@ Brush.prototype.clone = function()  {
     if (src.color && is.str(src.color)) { trg.color = src.color; }
     else if (src.color) {
         trg.color = { r: src.color.r, g: src.color.g, b: src.color.b, a: src.color.a || 1 };
-    };
+    }
     if (src.grad) {
         var src_grad = src.grad,
             trg_grad = {};
@@ -209,7 +214,8 @@ Brush.prototype.clone = function()  {
     if (src.hasOwnProperty('offsetX')) trg.offsetX = src.offsetX;
     if (src.hasOwnProperty('offsetY')) trg.offsetY = src.offsetY;
     return trg;
-}
+};
+
 /**
  * @static @method fill
  *
@@ -236,7 +242,8 @@ Brush.fill = function(value) {
         brush.color = value;
     }
     return brush;
-}
+};
+
 /**
  * @static @method stroke
  *
@@ -267,7 +274,8 @@ Brush.stroke = function(color, width, cap, join, mitter) {
     brush.join = join || Brush.DEFAULT_JOIN;
     brush.mitter = mitter;
     return brush;
-}
+};
+
 /**
  * @static @method shadow
  *
@@ -294,7 +302,8 @@ Brush.shadow = function(color, blurRadius, offsetX, offsetY) {
     brush.offsetX = offsetX || 0;
     brush.offsetY = offsetY || 0;
     return brush;
-}
+};
+
 Brush.value = function(value, target) {
     var brush = target || (new Brush());
     if (!value) {
@@ -322,7 +331,8 @@ Brush.value = function(value, target) {
             }
         } else throw new AnimationError('Unknown type of brush');
     } else throw new AnimationError('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
-}
+};
+
 Brush.grad = function(stops, bounds, dir) {
     var new_stops = [];
     for (var prop in stops) {
@@ -333,7 +343,8 @@ Brush.grad = function(stops, bounds, dir) {
         bounds: bounds,
         dir: dir
     } };
-}
+};
+
 Brush.rgrad = function(stops, r, bounds, dir) {
     var new_stops = [];
     for (var prop in stops) {
@@ -345,35 +356,40 @@ Brush.rgrad = function(stops, r, bounds, dir) {
         bounds: bounds,
         dir: dir
     } };
-}
+};
+
 Brush.qfill = function(ctx, color) {
     ctx.fillStyle = color;
-}
+};
+
 Brush.qstroke = function(ctx, color, width) {
     ctx.lineWidth = width || 1;
     ctx.strokeStyle = color;
     ctx.lineCap = Brush.DEFAULT_CAP;
     ctx.lineJoin = Brush.DEFAULT_JOIN;
-}
+};
+
 Brush.clearFill = function(ctx) {
     ctx.fillStyle = Brush.DEFAULT_FILL;
-}
+};
+
 Brush.clearStroke = function(ctx) {
     ctx.strokeStyle = Brush.DEFAULT_STROKE;
     ctx.lineWidth = 0;
     ctx.lineCap = Brush.DEFAULT_CAP;
     ctx.lineJoin = Brush.DEFAULT_JOIN;
-}
+};
+
 Brush.clearShadow = function(ctx) {
     ctx.shadowColor = Brush.DEFAULT_SHADOW;
     ctx.shadowBlur = 0;
     ctx.shadowOffsetX = 0;
     ctx.shadowOffsetY = 0;
-}
+};
 
 Brush.interpolateBrushes = function(from, to) {
-    var from = (from instanceof Brush) ? from : Brush.value(from),
-        to   = (to   instanceof Brush) ? to   : Brush.value(to);
+    from = (from instanceof Brush) ? from : Brush.value(from);
+    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!from._converted) { from.convertColorsToRgba(); }
     if (!to._converted)   { to.convertColorsToRgba();   }
     var result = from.clone();
@@ -393,7 +409,7 @@ Brush.interpolateBrushes = function(from, to) {
                 if (!trgg.dir[i]) trgg.dir[i] = [];
                 trgg.dir[0] = utils.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
                 trgg.dir[1] = utils.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
-            };
+            }
             // stops
             if (!trgg.stops ||
                 (trgg.stops.length !== fromg.stops.length)) trgg.stops = [];
@@ -401,7 +417,7 @@ Brush.interpolateBrushes = function(from, to) {
                 if (!trgg.stops[i]) trgg.stops[i] = [];
                 trgg.stops[i][0] = utils.interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
                 trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
-            };
+            }
             // radius
             if (fromg.r) {
                 if (!trgg.r) trgg.r = [];
@@ -411,7 +427,7 @@ Brush.interpolateBrushes = function(from, to) {
         }
         result.invalidate();
         return result;
-    }
-}
+    };
+};
 
 module.exports = Brush;
