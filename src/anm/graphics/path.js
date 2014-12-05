@@ -31,18 +31,17 @@ var Bounds = require('./bounds.js');
 // A = elliptical Arc
 // Z = closepath
 
-// Currently our format differs in a number format:
-// "M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z"
-// > Path % (val: String | Array)
 /**
  * @class anm.Path
  *
  * A Class that helps in creating SVG-compatible paths easily.
  *
  * Examples:
+ *
  * * `var path = new Path('M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z');`
  * * `var path = new Path().add(new MSeg([0, 0])).add(new LSeg([20, 20])).add(new CSeg([10, 20, 15, 30, 10, 9]));`
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9);`
+ * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9).close();`
  *
  * See: {@link anm.Element#path Element.path()}, {@link anm.Element#translate_path Element.translate_path()}
  *
@@ -54,6 +53,7 @@ var Bounds = require('./bounds.js');
  */
 function Path(val) {
     this.segs = [];
+    this.closed = false;
 
     if (is.str(val)) {
         this.parse(val);
@@ -65,6 +65,8 @@ function Path(val) {
 /**
  * @method visit
  * @chainable
+ *
+ * // FIXME: rename to `.each`
  *
  * Visits every chunk of path in array-form and calls visitor function, so
  * visitor function gets chunk marker and positions sequentially
@@ -157,6 +159,18 @@ Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
     return this.add(new CSeg([x1, y1, x2, y2, x3, y3]));
 }
 /**
+ * @method close
+ * @chainable
+ *
+ * Close the path
+ *
+ * @return {anm.Path} itself
+ */
+Path.prototype.close = function() {
+    this.closed = true;
+    return this;
+}
+/**
  * @method apply
  *
  * Apply this path to a given 2D context with given fill / stroke / shadow
@@ -177,6 +191,8 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     for (var si = 0, sl = segments.length; si < sl; si++) {
         segments[si].draw(ctx);
     }
+
+    if (this.closed) ctx.closePath();
 
     if (shadow) { shadow.apply(ctx); }
     if (fill) { fill.apply(ctx); ctx.fill(); }
@@ -419,6 +435,7 @@ Path.prototype.clone = function() {
     this.visit(function(seg) {
         _clone.add(seg.clone());
     });
+    clone.closed = this.closed;
     return _clone;
 }
 /**
@@ -431,6 +448,7 @@ Path.prototype.invalidate = function() {
 }
 Path.prototype.reset = function() {
     this.segs = [];
+    this.closed = false;
 }
 Path.prototype.dispose = function() { }
 
