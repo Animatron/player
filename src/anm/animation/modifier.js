@@ -32,6 +32,7 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
  *
  * Examples:
  *
+ * * `elm.modify(function(t) { this.x += 1 / t; })`
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; }))` — modifier with a band equal to element's band
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).band(0, 2))` — modifier with its own band, relative to element's band
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).easing(C.E_INOUT))` — modifier using pre-defined easing

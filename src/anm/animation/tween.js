@@ -26,10 +26,18 @@ var C = require('../constants.js'),
  * both start-value and end-value, so it will automatically interpolate one to
  * another.
  *
+ * Also see {@link anm.Element#translate translate()}, {@link anm.Element#scale scale()},
+ * {@link anm.Element#rotate rotate()}, {@link anm.Element#scale scale()}, {@link anm.Element#skew skew()},
+ * {@link anm.Element#alpha alpha()}, {@link anm.Element#color color()}
+ *
  * Examples:
  *
- * *
- * *
+ * TODO: examples with strings instead of constants
+ *
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]))`
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2))`
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(function(t) { return 1 - t; }))`
+ * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(anm.C.E_IN))`
  */
 function Tween(tween_type, data) {
     if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
@@ -87,6 +95,17 @@ Tween.addTween(C.T_TRANSLATE, function(data) {
         this.y = p[1];
     };
 });
+
+// TODO: add translate by points tween
+/* Tween.addTween(C.T_TRANSLATE, function(data) {
+    return function(t, dt, duration) {
+        var p = data.pointAt(t);
+        if (!p) return;
+        this.$mpath = data;
+        this.x = p[0];
+        this.y = p[1];
+    };
+}); */
 
 // FIXME: data should be an object instead of array
 Tween.addTween(C.T_SCALE, function(data) {

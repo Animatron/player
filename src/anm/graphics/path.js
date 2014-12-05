@@ -36,6 +36,21 @@ var Bounds = require('./bounds.js');
 // > Path % (val: String | Array)
 /**
  * @class anm.Path
+ *
+ * A Class that helps in creating SVG-compatible paths easily.
+ *
+ * Examples:
+ * * `var path = new Path('M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z');`
+ * * `var path = new Path().add(new MSeg([0, 0])).add(new LSeg([20, 20])).add(new CSeg([10, 20, 15, 30, 10, 9]));`
+ * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9);`
+ *
+ * See: {@link anm.Element#path Element.path()}, {@link anm.Element#translate_path Element.translate_path()}
+ *
+ * @constructor
+ *
+ * @param {String} [value] String representation of SVG path
+ *
+ * @return {anm.Path}
  */
 function Path(val) {
     this.segs = [];
@@ -47,19 +62,31 @@ function Path(val) {
     }
 }
 
-// visits every chunk of path in array-form and calls
-// visitor function, so visitor function gets
-// chunk marker and positions sequentially
-// data argument will be also passed to visitor if specified
-// > Path.visit % (visitor: Function[Segment, Any], data: Any)
+/**
+ * @method visit
+ * @chainable
+ *
+ * Visits every chunk of path in array-form and calls visitor function, so
+ * visitor function gets chunk marker and positions sequentially
+ * data argument will be also passed to visitor if specified
+ *
+ * @param {Function} visitor
+ * @param {anm.MSeg|anm.LSeg|anm.CSeg} visitor.segment
+ */
 Path.prototype.visit = function(visitor, data) {
     var segments = this.segs;
     for (var si = 0, sl = segments.length; si < sl; si++) {
         visitor(segments[si], data);
     }
+    return this;
 }
-// path length, in points
-// > Path.length % () => Double
+/**
+ * @method length
+ *
+ * Get path length, in points.
+ *
+ * @return {Number} path length
+ */
 Path.prototype.length = function() {
     var sum = 0;
     var p = this.start();
@@ -69,25 +96,80 @@ Path.prototype.length = function() {
     });
     return sum;
 }
-// > Path.add % (seg: Segment)
+/**
+ * @method add
+ * @chainable
+ *
+ * Add a segment to this path
+ *
+ * @param {anm.MSeg|anm.LSeg|anm.CSeg} segment segment to add
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.add = function(seg) {
     this.segs.push(seg);
     return this;
 }
-// > Path.move % (x, y)
+/**
+ * @method move
+ * @chainable
+ *
+ * Shortcut to adding Move Segment
+ *
+ * @param {Number} x X coordinate of move-to operation
+ * @param {Number} y Y coordinate of move-to operation
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.move = function(x, y) {
-    this.add(new MSeg([x, y]));
-    return this;
+    return this.add(new MSeg([x, y]));
 }
-// > Path.line % (x, y)
+/**
+ * @method line
+ * @chainable
+ *
+ * Shortcut to adding Line Segment
+ *
+ * @param {Number} x X coordinate of line-to operation
+ * @param {Number} y Y coordinate of line-to operation
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.line = function(x, y) {
     return this.add(new LSeg([x, y]));
 }
-// > Path.curve % (x1, y1, x2, y2, x3, y3)
+/**
+ * @method curve
+ * @chainable
+ *
+ * Shortcut to adding Curve Segment
+ *
+ * @param {Number} x1 X coordinate of first point of curve-to operation
+ * @param {Number} y1 Y coordinate of first point of curve-to operation
+ * @param {Number} x2 X coordinate of second point of curve-to operation
+ * @param {Number} y2 Y coordinate of second point of curve-to operation
+ * @param {Number} x3 X coordinate of third point of curve-to operation
+ * @param {Number} y3 Y coordinate of third point of curve-to operation
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
     return this.add(new CSeg([x1, y1, x2, y2, x3, y3]));
 }
-// > Path.apply % (ctx: Context)
+/**
+ * @method apply
+ *
+ * Apply this path to a given 2D context with given fill / stroke / shadow
+ *
+ * Example: `path.apply(ctx, Brush.fill('#ff0000'), Brush.stroke('#00ff00', 2))`
+ *
+ * @param {Context2D} ctx where to apply
+ * @param {anm.Brush} fill fill to use
+ * @param {anm.Brush} stroke stroke to use
+ * @param {anm.Brush} shadow shadow to use
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     ctx.beginPath();
     // unrolled for speed
@@ -101,14 +183,29 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     if (shadow) { Brush.clearShadow(ctx); }
     if (stroke) { stroke.apply(ctx); ctx.stroke(); }
 }
-// > Path.parse % (str: String) => Path
+/**
+ * @method parse
+ * @chainable
+ * @deprecated
+ *
+ * Same as `new Path(str)`, but updates current instance instead of creating new one.
+ *
+ * @param {String} source string representation of SVG path
+ * @return {anm.Path} itself
+ */
 Path.prototype.parse = function(str) {
     if (str) Path.parse(str, this);
     return this;
 }
-// find a segment hit data in a path that corresponds
-// to specified distance (t) of the path (0..1),
-// > Path.hitAt % (t: [0..1]) => Array[Int, 2]
+/**
+ * @method hitAt
+ *
+ * Find a segment hit data in a path that corresponds
+ * to specified distance (t) of the path.
+ *
+ * @param {Number} t distance in a range of [0..1]
+ * @return {Object} hit data
+ */
 Path.prototype.hitAt = function(t) {
     var plen = this.length(); // path length in pixels
     if (plen == 0) return null;
@@ -151,31 +248,62 @@ Path.prototype.hitAt = function(t) {
       };*/
     return null;
 }
-// find a point on a path at specified distance (t) of the path (0..1),
-// a function that transforms the result point (using given start point of
-// segment and a point on a segment) may be passed
-// > Path.pointAt % (t: [0..1]) => Array[Int, 2]
+/**
+ * @method pointAt
+ *
+ * Find a point on a path at specified distance (t) of the path.
+ *
+ * @param {Number} t distance in a range of [0..1]
+ * @return {[Number]} point in a form of [x, y]
+ */
 Path.prototype.pointAt = function(t) {
     var hit = this.hitAt(t);
     if (!hit) return this.start();
     return hit.seg.atT(hit.start, hit.segt);
 }
-// find a tangent on a path at specified distance (t) of the path (0..1)
-// > Path.tangentAt % (t: [0..1]) => Double
+/**
+ * @method tangentAt
+ *
+ * Find a tangent on a path at specified distance (t) of the path.
+ *
+ * @param {Number} t distance in a range of [0..1]
+ * @return {[Number]} point in a form of [x, y]
+ */
 Path.prototype.tangentAt = function(t) {
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
 }
+/**
+ * @method start
+ *
+ * Get first point of a path
+ *
+ * @return {[Number]|Null} point in a form of [x, y]
+ */
 Path.prototype.start = function() {
     if (this.segs.length < 1) return null;
     return [ this.segs[0].pts[0],   // first-x
              this.segs[0].pts[1] ]; // first-y
 }
+/**
+ * @method end
+ *
+ * Get last point of a path
+ *
+ * @return {[Number]|Null} point in a form of [x, y]
+ */
 Path.prototype.end = function() {
     if (this.segs.length < 1) return null;
     return this.segs[this.segs.length - 1].last();
 }
+/**
+ * @method bounds
+ *
+ * Get bounds of a path
+ *
+ * @return {anm.Bounds} path bounds
+ */
 Path.prototype.bounds = function() {
     // FIXME: it is not ok for curve path, possibly
     if (this.$bounds) return this.$bounds;
@@ -211,18 +339,47 @@ Path.prototype.vpoints = function(func) {
         }
     });
 }
+/**
+ * @method shift
+ * @chainable
+ *
+ * Shift this path to a point
+ *
+ * @param {[Number]} point in a form of [x, y]
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.shift = function(pt) {
     this.vpoints(function(x, y) {
         return [ x + pt[0],
                  y + pt[1] ];
     });
+    return this;
 };
+/**
+ * @method zoom
+ * @chainable
+ *
+ * Scale this path by given values
+ *
+ * @param {[Number]} values in a form of [sx, sy]
+ *
+ * @return {anm.Path} itself
+ */
 Path.prototype.zoom = function(vals) {
     this.vpoints(function(x, y) {
         return [ x * vals[0],
                  y * vals[1] ];
     });
+    return this;
 }
+/**
+ * @method normalize
+ *
+ * Moves path to be positioned at 0,0 and returns the difference
+ *
+ * @return {[Number]} [ center-x, center-y ]
+ */
 // moves path to be positioned at 0,0 and
 // returns subtracted top-left point
 // and a center point
@@ -250,6 +407,13 @@ Path.prototype.getPoints = function() {
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
 }
+/**
+ * @method clone
+ *
+ * Clone this path
+ *
+ * @return {anm.Path} clone
+ */
 Path.prototype.clone = function() {
     var _clone = new Path();
     this.visit(function(seg) {
@@ -257,6 +421,11 @@ Path.prototype.clone = function() {
     });
     return _clone;
 }
+/**
+ * @method invalidate
+ *
+ * Invalidate bounds of this path
+ */
 Path.prototype.invalidate = function() {
     this.$bounds = null;
 }
@@ -342,7 +511,14 @@ Path.parse = function(path, target) {
     target.str = path;
     return target;
 }
-// parses a path in string form and immediately applies it to context
+/**
+ * @static @method parseAndAppy
+ *
+ * Parses a path in string form and immediately applies it to context
+ *
+ * @param {Context2D} ctx context to apply to
+ * @param {String} SVG representation of a path
+ */
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, strApplyVisitor, ctx);
 }
