@@ -32,5 +32,9 @@
         "in": 300,
         "out": 300,
         "idle": 2500
+    },
+    "error": {
+        "statusLimit": 40,
+        "color": "darkred"
     }
 }

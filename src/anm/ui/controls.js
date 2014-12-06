@@ -566,10 +566,10 @@ var drawError = function(ctx, theme, w, h, error, focused) {
     ctx.restore();
 
     drawText(ctx, theme,
-                   w / 2, ((h / 2) * (1 + theme.radius.status)),
+                   w / 2, ((h / 2) * (1 + theme.circle.radius)),
                    theme.font.statussize * 1.2,
-                   (error && error.message) ? utils.ell_text(error.message, theme.statuslimit)
-                                            : error, theme.colors.error);
+                   (error && error.message) ? utils.ell_text(error.message, theme.error.statuslimit)
+                                            : error, theme.error.color);
 };
 
 //draw either the current time or the time under the mouse position
