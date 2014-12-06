@@ -29,8 +29,8 @@
         "inactiveColor": "rgba(255,255,255,0.5)"
     },
     "fadeTimes": {
-        "in": 300,
-        "out": 300,
+        "fadein": 300,
+        "fadeout": 300,
         "idle": 2500
     }
 }

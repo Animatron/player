@@ -115,9 +115,9 @@ Controls.prototype.checkFade = function(dt) {
         fadeModifier = true;
         state.fadeTimer -= dt;
         if (fadeMode === FADE_IN) {
-            alpha = Math.min(1, 1-state.fadeTimer/theme.fadeTimes.in);
+            alpha = Math.min(1, 1-state.fadeTimer/theme.fadeTimes.fadein);
         } else { // FADE_OUT
-            alpha = Math.max(0, state.fadeTimer/theme.fadeTimes.out);
+            alpha = Math.max(0, state.fadeTimer/theme.fadeTimes.fadeout);
         }
         state.alpha = alpha;
 
@@ -313,7 +313,7 @@ Controls.prototype.hide = function() {
     this.state.fadeMode = FADE_OUT;
     //we substract the current fadeTimer value so that if the controls only
     //showed halfway, they will fade out from the exact alpha they were in
-    this.state.fadeTimer = theme.fadeTimes.out - this.state.fadeTimer;
+    this.state.fadeTimer = theme.fadeTimes.fadeout - this.state.fadeTimer;
     this.state.changed = true;
 };
 
@@ -324,7 +324,7 @@ Controls.prototype.show = function() {
         return;
     }
     this.state.fadeMode = FADE_IN;
-    this.state.fadeTimer = theme.fadeTimes.in - this.state.fadeTimer;
+    this.state.fadeTimer = theme.fadeTimes.fadein - this.state.fadeTimer;
     this.state.changed = true;
 };
 
