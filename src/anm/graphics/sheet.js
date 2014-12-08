@@ -11,6 +11,22 @@ Sheet.MISSED_SIDE = 50;
 /* TODO: rename to Static and take optional function as source? */
 /**
  * @class anm.Sheet
+ *
+ * Sheet class represent both single image and sprite-sheet. It stores
+ * active region, and if its bounds are equal to image size (and they are,
+ * by default), then the source is treated as a single image. This active region
+ * may be changed dynamically during the animation, and this gives the effect of
+ * a spite-sheet.
+ *
+ * See {@link anm.Element#image Element.image()}
+ *
+ * @constructor
+ *
+ * @param {String} src image/spritesheet URL
+ * @param {Function} [f] callback to perform when image will be received
+ * @param {anm.Sheet} f.this sheet instance
+ * @param {Image} f.img corresponding DOM Image element
+ * @param {Number} [start_region] an id for initial region
  */
 function Sheet(src, callback, start_region) {
     this.id = Sheet.instances++;
@@ -28,7 +44,9 @@ function Sheet(src, callback, start_region) {
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 };
-
+/**
+ * @private @method load
+ */
 Sheet.prototype.load = function(player_id, callback, errback) {
     var callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
@@ -74,8 +92,10 @@ Sheet.prototype.load = function(player_id, callback, errback) {
                         me.wasError = true;
                         if (errback) errback.call(me, err); });
 };
-
-Sheet.prototype.updateRegion = function(){
+/**
+ * @private @method updateRegion
+ */
+Sheet.prototype.updateRegion = function() {
     if (this.cur_region < 0) return;
     var region;
     if (this.region_f) { region = this.region_f(this.cur_region); }
@@ -87,7 +107,9 @@ Sheet.prototype.updateRegion = function(){
     }
     this.region = region;
 };
-
+/**
+ * @private @method apply
+ */
 Sheet.prototype.apply = function(ctx/*, fill, stroke, shadow*/) {
     if (!this.ready) return;
 
@@ -97,7 +119,12 @@ Sheet.prototype.apply = function(ctx/*, fill, stroke, shadow*/) {
     ctx.drawImage(this._image, region[0], region[1],
                                region[2], region[3], 0, 0, region[2], region[3]);
 };
-
+/**
+ * @private @method applyMissed
+ *
+ * If there was an error in process of receiving an image, the "missing" image is
+ * displayed, this method draws it in context.
+ */
 Sheet.prototype.applyMissed = function(ctx) {
     ctx.save();
     ctx.strokeStyle = '#900';
@@ -115,8 +142,14 @@ Sheet.prototype.applyMissed = function(ctx) {
     ctx.stroke();
     ctx.restore();
 };
-
 Sheet.MISSED_BOUNDS = new Bounds(0, 0, Sheet.MISSED_SIDE, Sheet.MISSED_SIDE);
+/**
+ * @method bounds
+ *
+ * Get image bounds
+ *
+ * @return anm.Bounds bounds
+ */
 Sheet.prototype.bounds = function() {
     if (this.wasError) return Sheet.MISSED_BOUNDS;
     // TODO: when using current_region, bounds will depend on that region
@@ -127,7 +160,15 @@ Sheet.prototype.bounds = function() {
     var r = this.region;
     return new Bounds(0, 0, r[2], r[3]);
 }
+/**
+ * @method clone
+ *
+ * Clone this image
+ *
+ * @return anm.Sheet clone
+ */
 Sheet.prototype.clone = function() {
+    // FIXME: fix for sprite-sheet
     return new Sheet(this.src);
 };
 
