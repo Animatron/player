@@ -73,7 +73,7 @@ function Audio(url) {
     this.volume = 1;
     this.audio = null;
 }
-
+/** @private @method load */
 Audio.prototype.load = function(player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
@@ -182,7 +182,7 @@ Audio.prototype.load = function(player) {
       function(err) { log.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ });
 };
-
+/** @private @method play */
 Audio.prototype.play = function(ltime, duration) {
     if (!this.loaded || this.playing) {
       return false;
@@ -217,7 +217,7 @@ Audio.prototype.play = function(ltime, duration) {
       this.audio.play();
     }
 };
-
+/** @private @method stop */
 Audio.prototype.stop = function() {
     if (!this.playing) {
         return;
@@ -239,11 +239,20 @@ Audio.prototype.stop = function() {
     }
     this.playing = false;
 };
-
+/** @private @method stopIfNotMaster */
 Audio.prototype.stopIfNotMaster = function() {
     if(!this.master) this.stop();
 };
-
+/**
+ * @method setVolume
+ * @chainable
+ * @deprecated will be renamed to `.volume()`, will be both getter and setter
+ *
+ * Change audio volume on the fly
+ *
+ * @param {Number} volume Volume value
+ * @return {anm.Audio}
+ */
 Audio.prototype.setVolume = function(volume) {
     if (this.muted) {
         this.unmuteVolume = volume;
@@ -255,17 +264,26 @@ Audio.prototype.setVolume = function(volume) {
     } else if (this.audio) {
         this.audio.volume = volume;
     }
+    return this;
 }
-
+/**
+ * @method mute
+ *
+ * Mute this audio
+ */
 Audio.prototype.mute = function() {
-    if(this.muted) {
+    if (this.muted) {
         return;
     }
     this.unmuteVolume = this.volume;
     this.setVolume(0);
     this.muted = true;
 };
-
+/**
+ * @method unmute
+ *
+ * Unmute this audio
+ */
 Audio.prototype.unmute = function() {
     if(!this.muted) {
         return;
@@ -273,7 +291,11 @@ Audio.prototype.unmute = function() {
     this.muted = false;
     this.setVolume(this.unmuteVolume);
 };
-
+/**
+ * @method toggleMute
+ *
+ * Toggle mute value of this audio
+ */
 Audio.prototype.toggleMute = function() {
     if (this.muted) {
         this.unmute();
@@ -281,7 +303,7 @@ Audio.prototype.toggleMute = function() {
         this.mute();
     }
 };
-
+/** @private @method connect */
 Audio.prototype.connect = function(element) {
     var me = this;
     element.on(C.X_START, function() { me.play.apply(me, arguments) });
