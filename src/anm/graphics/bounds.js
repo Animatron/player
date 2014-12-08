@@ -1,7 +1,7 @@
 var is = require('../utils.js').is;
 
 /**
- * @class Bounds
+ * @class anm.Bounds
  *
  * The holder class for any bounds.
  *

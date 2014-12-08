@@ -1,4 +1,6 @@
 /**
+ * @private @class FontDetector
+ *
  * JavaScript code to detect available availability of a
  * particular font in a browser using JavaScript and CSS.
  *
@@ -16,9 +18,8 @@
  *          then that font is 100% not available in the system
  * Version: 0.3 (24 Mar 2012)
  *          Replaced sans with serif in the list of baseFonts
- */
-
-/**
+ *
+ * ----
  *
  * Usage:
  *
