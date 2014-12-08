@@ -60,7 +60,7 @@ a:hover {
     color: #ccc;
 }
 
-.card-panel h3 {
+.class-categories .section h3 {
     display: none;
     padding-left: 20px;
     font-size: 0.9em;
@@ -100,13 +100,20 @@ ul.links li:hover {
     border: none;
 }
 
-.members .member .name, .members .member .new-keyword, .members .member .pre {
+.members .member .name, .members .member .new-keyword, .members .member .pre, .members .description li, .docClass {
     font-family: monospace;
+}
+
+.members .member .name, .members .member .new-keyword, .members .member .pre {
     font-size: 1.2em;
 }
 
 .members .member .pre {
     font-size: 1.1em;
+}
+
+.members .description .sub-desc {
+    font-family: sans-serif;
 }
 
 .class-overview .new-keyword {
@@ -127,4 +134,21 @@ ul.links li:hover {
     color: #111;
     border-top: 3px solid #f7f7f7;
     padding-top: 15px;
+}
+
+.x-border-layout-ct {
+    background: none
+}
+
+.deprecated-box p {
+    padding: 0;
+    margin: 0;
+}
+
+/* .class-overview .x-panel-body p, .guide-container .x-panel-body p, .comments-index .x-panel-body p {
+    margin: 0;
+} */
+
+#header-content {
+    font-size: 1.6em;
 }
