@@ -404,6 +404,24 @@ Brush.clearShadow = function(ctx) {
     ctx.shadowOffsetY = 0;
 };
 
+<span id='anm-Brush-static-method-interpolateBrushes'>/**
+</span> * @static @method interpolateBrushes
+ *
+ * Create a function from two brushes which takes distance between these brushes
+ * (as `0..1`) and returns the new brush representing the values at this point.
+ * This method used for color tweens, but iterpolates every possible value
+ * including stroke width.
+ * NB: if you re-use the returned function, be aware that it shares and updates
+ * the same instance between the calls.
+ *
+ * See {@link anm.Color#interpolate Color.interpolate()}
+ *
+ * @param {anm.Brush} from initial state of interpolation
+ * @param {anm.Brush} to final state of interpolation
+ * @return {Function} function that takes t and returns interpolation result
+ * @param {Number} return.t distance between initial and final state, as `0..1`
+ * @param {anm.Brush} return.return a brush value as a result of interpolation
+ */
 Brush.interpolateBrushes = function(from, to) {
     from = (from instanceof Brush) ? from : Brush.value(from);
     to   = (to   instanceof Brush) ? to   : Brush.value(to);

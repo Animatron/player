@@ -1552,30 +1552,38 @@ Player.prototype._callPostpones = function() {
     }
     this._queue = [];
 }
+
+var prodHost = &#39;animatron.com&#39;,
+    testHost = &#39;animatron-test.com&#39;,
+    prodStatUrl = &#39;http://api.&#39; + prodHost + &#39;/stats/report/&#39;,
+    testStatUrl = &#39;http://api.&#39; + testHost + &#39;/stats/report/&#39;;
+
 Player.prototype._notifyAPI = function() {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     if (!this.statImg) {
       this.statImg = engine.createStatImg();
     };
-    var loadSrc = this._loadSrc || &#39;/&#39;,
+    var loadSrc = this._loadSrc,
         id = this.anim.meta._anm_id,
         locatedAtTest = false,
         locatedAtProd = false;
-    locatedAtTest = (loadSrc.indexOf(&#39;/animatron-snapshots-dev&#39;) &gt; 0) ||
-                    (loadSrc.indexOf(&#39;.animatron-test.com&#39;) &gt; 0); // it&#39;s not so ok to be 0 in these cases
-    locatedAtTest = locatedAtTest || (((loadSrc.indexOf(&#39;./&#39;) == 0) ||
-                                       (loadSrc.indexOf(&#39;/&#39;) == 0)) &amp;&amp;
-                                      (window &amp;&amp; window.location &amp;&amp; (window.location.hostname == &#39;animatron-test.com&#39;)));
-    locatedAtProd = (loadSrc.indexOf(&#39;/animatron-snapshots&#39;) &gt; 0) ||
-                    (loadSrc.indexOf(&#39;.animatron.com&#39;) &gt; 0); // it&#39;s not so ok to be 0 in these cases
-    locatedAtProd = locatedAtProd || (((loadSrc.indexOf(&#39;./&#39;) == 0) ||
-                                       (loadSrc.indexOf(&#39;/&#39;) == 0)) &amp;&amp;
-                                      (window &amp;&amp; window.location &amp;&amp; (window.location.hostname == &#39;animatron.com&#39;)));
+
+    if (loadSrc) {
+        //if the player was loaded from a snapshot URL, we check the said url
+        //to see if it is from our servers
+        locatedAtTest = loadSrc.indexOf(testHost) !== -1;
+        locatedAtProd = loadSrc.indexOf(prodHost) !== -1;
+    } else if(window &amp;&amp; window.location) {
+        //otherwise, we check if we are on an Animatron&#39;s webpage
+        var hostname = window.location.hostname;
+        locatedAtTest = hostname.indexOf(testHost) !== -1;
+        locatedAtProd = hostname.indexOf(prodHost) !== -1;
+    }
     if (locatedAtTest) {
-        this.statImg.src = &#39;http://api.animatron-test.com/stats/report/&#39; + id + &#39;?&#39; + Math.random();
+        this.statImg.src = testStatUrl + id + &#39;?&#39; + Math.random();
     } else if (locatedAtProd) {
-        this.statImg.src = &#39;http://api.animatron.com/stats/report/&#39; + id + &#39;?&#39; + Math.random();
+        this.statImg.src = prodStatUrl + id + &#39;?&#39; + Math.random();
     }
 };
 

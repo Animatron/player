@@ -90,8 +90,8 @@ function Audio(url) {
     this.volume = 1;
     this.audio = null;
 }
-
-Audio.prototype.load = function(player) {
+<span id='anm-Audio-method-load'>/** @private @method load */
+</span>Audio.prototype.load = function(player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
       function(notify_success, notify_error) { // loader
@@ -199,8 +199,8 @@ Audio.prototype.load = function(player) {
       function(err) { log.error(err ? (err.message || err) : &#39;Unknown error&#39;);
                       /* throw err; */ });
 };
-
-Audio.prototype.play = function(ltime, duration) {
+<span id='anm-Audio-method-play'>/** @private @method play */
+</span>Audio.prototype.play = function(ltime, duration) {
     if (!this.loaded || this.playing) {
       return false;
     }
@@ -234,8 +234,8 @@ Audio.prototype.play = function(ltime, duration) {
       this.audio.play();
     }
 };
-
-Audio.prototype.stop = function() {
+<span id='anm-Audio-method-stop'>/** @private @method stop */
+</span>Audio.prototype.stop = function() {
     if (!this.playing) {
         return;
     }
@@ -256,11 +256,20 @@ Audio.prototype.stop = function() {
     }
     this.playing = false;
 };
-
-Audio.prototype.stopIfNotMaster = function() {
+<span id='anm-Audio-method-stopIfNotMaster'>/** @private @method stopIfNotMaster */
+</span>Audio.prototype.stopIfNotMaster = function() {
     if(!this.master) this.stop();
 };
-
+<span id='anm-Audio-method-setVolume'>/**
+</span> * @method setVolume
+ * @chainable
+ * @deprecated will be renamed to `.volume()`, will be both getter and setter
+ *
+ * Change audio volume on the fly
+ *
+ * @param {Number} volume Volume value
+ * @return {anm.Audio}
+ */
 Audio.prototype.setVolume = function(volume) {
     if (this.muted) {
         this.unmuteVolume = volume;
@@ -272,17 +281,26 @@ Audio.prototype.setVolume = function(volume) {
     } else if (this.audio) {
         this.audio.volume = volume;
     }
+    return this;
 }
-
+<span id='anm-Audio-method-mute'>/**
+</span> * @method mute
+ *
+ * Mute this audio
+ */
 Audio.prototype.mute = function() {
-    if(this.muted) {
+    if (this.muted) {
         return;
     }
     this.unmuteVolume = this.volume;
     this.setVolume(0);
     this.muted = true;
 };
-
+<span id='anm-Audio-method-unmute'>/**
+</span> * @method unmute
+ *
+ * Unmute this audio
+ */
 Audio.prototype.unmute = function() {
     if(!this.muted) {
         return;
@@ -290,7 +308,11 @@ Audio.prototype.unmute = function() {
     this.muted = false;
     this.setVolume(this.unmuteVolume);
 };
-
+<span id='anm-Audio-method-toggleMute'>/**
+</span> * @method toggleMute
+ *
+ * Toggle mute value of this audio
+ */
 Audio.prototype.toggleMute = function() {
     if (this.muted) {
         this.unmute();
@@ -298,8 +320,8 @@ Audio.prototype.toggleMute = function() {
         this.mute();
     }
 };
-
-Audio.prototype.connect = function(element) {
+<span id='anm-Audio-method-connect'>/** @private @method connect */
+</span>Audio.prototype.connect = function(element) {
     var me = this;
     element.on(C.X_START, function() { me.play.apply(me, arguments) });
     element.on(C.X_STOP, function() { me.stopIfNotMaster(); });

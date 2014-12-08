@@ -17,18 +17,40 @@
 <body onload="prettyPrint(); highlight();">
   <pre class="prettyprint lang-js">var is = require(&#39;../utils.js&#39;).is;
 
+<span id='anm-Bounds-method-constructor'><span id='anm-Bounds'>/**
+</span></span> * @class anm.Bounds
+ *
+ * The holder class for any bounds.
+ *
+ * @constructor
+ *
+ * @param {Number} x
+ * @param {Number} y
+ * @param {Number} width
+ * @param {Number} height
+ */
 function Bounds(x, y, width, height) {
     this.x = x;
     this.y = y;
     this.width = width;
     this.height = height;
 }
+<span id='anm-Bounds-method-load'>/**
+</span> * @method load
+ *
+ * Replace current instance values with values from another instance.
+ *
+ * @param {anm.Bounds} other bounds to load values from
+ */
 Bounds.prototype.load = function(other) {
     this.x = other.x;
     this.y = other.y;
     this.width = other.width;
     this.height = other.height;
 }
+<span id='anm-Bounds-method-loadDiag'>/**
+</span> * @private @method loadDiag
+ */
 Bounds.prototype.loadDiag = function(x1, y1, x2, y2) {
     if (x2 &lt; x1) {
         var t = x1; x1 = x2; x2 = t;
@@ -41,10 +63,21 @@ Bounds.prototype.loadDiag = function(x1, y1, x2, y2) {
     this.width = x2 - x1;
     this.height = y2 - y1;
 }
-Bounds.prototype.minX = function() { return this.x; }
-Bounds.prototype.minY = function() { return this.y; }
-Bounds.prototype.maxX = function() { return this.x + this.width; }
-Bounds.prototype.maxY = function() { return this.y + this.height; }
+<span id='anm-Bounds-method-minX'>/** @method minX get minimum X value */
+</span>Bounds.prototype.minX = function() { return this.x; }
+<span id='anm-Bounds-method-minY'>/** @method minY get minimum Y value */
+</span>Bounds.prototype.minY = function() { return this.y; }
+<span id='anm-Bounds-method-maxX'>/** @method maxX get maximum X value */
+</span>Bounds.prototype.maxX = function() { return this.x + this.width; }
+<span id='anm-Bounds-method-maxY'>/** @method maxY get maximum Y value */
+</span>Bounds.prototype.maxY = function() { return this.y + this.height; }
+<span id='anm-Bounds-method-add'>/**
+</span> * @method add
+ *
+ * Add another bounds, so these bounds will be the union of two
+ *
+ * @param {anm.Bounds} other bounds to add
+ */
 Bounds.prototype.add = function(other) {
     if (!other.exist()) return;
     if (this.exist()) {
@@ -56,12 +89,28 @@ Bounds.prototype.add = function(other) {
         this.load(other);
     }
 }
+<span id='anm-Bounds-method-addPoint'>/**
+</span> * @method addPoint
+ *
+ * Add another point, so these bounds will include it
+ *
+ * @param {Object} point point to add
+ * @param {Number} point.x X coord of a point
+ * @param {Number} point.y Y coord of a point
+ */
 Bounds.prototype.addPoint = function(pt) {
     this.loadDiag(Math.min(this.minX(), pt.x),
                   Math.min(this.minY(), pt.y),
                   Math.max(this.maxX(), pt.x),
                   Math.max(this.maxY(), pt.y));
 }
+<span id='anm-Bounds-method-toPoints'>/**
+</span> * @method toPoints
+ *
+ * Convert bounds to four corner points
+ *
+ * @return {[Number]}
+ */
 Bounds.prototype.toPoints = function() {
     return [
         { x: this.x, y: this.y },
@@ -70,10 +119,24 @@ Bounds.prototype.toPoints = function() {
         { x: this.x, y: this.y + this.height }
     ];
 }
+<span id='anm-Bounds-method-exist'>/**
+</span> * @method exist
+ *
+ * Are these bounds set
+ *
+ * @return {Boolean}
+ */
 Bounds.prototype.exist = function() {
     // if one of the values is NaN, then the whole bounds are invalid?
     return !is.nan(this.x);
 }
+<span id='anm-Bounds-method-clone'>/**
+</span> * @method clone
+ *
+ * Clone these bounds
+ *
+ * @return {anm.Bounds}
+ */
 Bounds.prototype.clone = function() {
     return new Bounds(this.x, this.y,
                       this.width, this.height);

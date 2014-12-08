@@ -107,7 +107,7 @@ function ell_text(text, max_len) {
     if (!text) return &#39;&#39;;
     var len = text.length;
     if (len &lt;= max_len) return text;
-    var semilen = Math.floor(_len / 2) - 2;
+    var semilen = Math.floor(len / 2) - 2;
     return text.slice(0, semilen) + &#39;...&#39;
          + text.slice(len - semilen);
 }

@@ -6,11 +6,16 @@
     <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     <link rel="stylesheet" href="./md.css" type="text/css" />
   </head>
-<body><h3>JS Player for Animatron project (not yet released, v0.9)</h3>
-<p><a href="https://travis-ci.org/Animatron/player"><img alt="Build Status" src="https://secure.travis-ci.org/Animatron/player.png?branch=master" /></a></p>
+<body><h3>JS Player for Animatron project (v1.3)</h3>
+<p>[Currently all tests are disabled and not time-bombed in refactoring purposes (some will be turned back on after refactoring iterations, some not), so the badge below just provides nice ecologically green color for us to feel safe]</p>
+<p>[Documentation in general is a subject to change drastically, because it's outdated now. Be aware!]</p>
+<!-- [![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player) -->
+
+<!-- [![Code Climate](https://codeclimate.com/github/Animatron/player.png)](https://codeclimate.com/github/Animatron/player) -->
+
 <p>Licensed under MIT License, see <code>LICENSE</code> file.</p>
+<p><strong>NB:</strong> <strong>Development is in progress. Some links below may not work at all, some documentation is outdated, API is radically changing just in this very minute, so we will update docs when it comes to a more stable state, sorry!</strong></p>
 <p>See <a href="https://github.com/Animatron/player/blob/master/doc/API.md#files">API.md</a> for description on current API state (be aware, it may appear not updated to the <em>real</em> current state).</p>
-<p><strong>NB:</strong> Development is in process. See <a href="https://www.pivotaltracker.com/projects/561405">JS Player Pivotal Tracker page</a> to see what happens in project when you read this.</p>
 <h4>See in action</h4>
 <p>Navigate to <a href="http://animatron.com/player">corresponding Animatron site section</a>, there are some useful links:</p>
 <ul>
@@ -19,41 +24,51 @@
 <li><a href="http://animatron.com/player/tests/index.html">Tests</a> to see what features are working for now.</li>
 </ul>
 <p>Run one of the <code>tests/index.html</code> and run any of the tests to see if something is broken in your version of player.</p>
+<h5>Embedding</h5>
+<p>See <a href="http://animatron.com/player/doc/API.html#Embedding">Embedding section in API docs</a> (or <a href="https://github.com/Animatron/player/blob/master/doc/API.md#Embedding">at github</a>) on detailed information about embedding process.</p>
+<p>Also, a detailed article about it is <a href="TODO">located here</a>.</p>
 <h4>Accessible from Cloud</h4>
 <p>The player files are accessible from the Amazon S3 Cloud in different bundles, each is just one file, so you may choose what you want to take:</p>
 <ul>
-<li>Standard Bundle (player only; a lightweight bundle) is located at <code>http://player.animatron.com/latest/bundle/standard.js</code></li>
-<li>Animatron Bundle (player + animatron improrter; a bundle for the Animatron tool and embedding Animatron preview) is located at <code>http://player.animatron.com/latest/bundle/animatron.js</code></li>
-<li>Develop Bundle (player + builder; a bundle for game or script-based animation developers) is located at <code>http://player.animatron.com/latest/bundle/develop.js</code></li>
-<li>Hardcore Develop Bundle (player + builder + player additional modules, like collisions; a bundle for those game developers who uses complex things like collisions) is located at <code>http://player.animatron.com/latest/bundle/hardcore.js</code></li>
+<li>Standard Bundle (vendor files + DOM-engine + player only; a lightweight bundle) is located at <code>http://player.animatron.com/latest/bundle/standard.min.js</code></li>
+<li>Animatron Bundle (vendor files + DOM-engine + player + builder + animatron importer + required modules; a bundle for the Animatron tool and embedding Animatron preview) is located at <code>http://player.animatron.com/latest/bundle/animatron.min.js</code></li>
+<li>Develop Bundle (vendor files + DOM-engine + player + builder + animatron importer + no modules; a bundle for game or script-based animation developers) is located at <code>http://player.animatron.com/latest/bundle/develop.min.js</code></li>
+<li>Hardcore Develop Bundle (vendor files + DOM-engine + player + builder + animatron importer + all player additional modules, like collisions; a bundle for those game developers who uses complex things like collisions) is located at <code>http://player.animatron.com/latest/bundle/hardcore.min.js</code></li>
 </ul>
 <p>Include one of them as a script to your page, and you're done!</p>
 <p>Also, all files are accessible separately, if you want:</p>
 <ul>
-<li>For most of the cases you need just <a href="http://player.animatron.com/latest/vendor/matrix.js"><code>vendor/matrix.js</code></a>, <a href="http://player.animatron.com/latest/anm.js"><code>anm.js</code></a> and <a href="http://player.animatron.com/latest/player.js"><code>player.js</code></a></li>
-<li>If you plan to program animation in an easy way, include <a href="http://player.animatron.com/latest/builder.js"><code>builder.js</code></a> next to them.</li>
-<li>If you want to import animations from Animatron tool, include <a href="http://player.animatron.com/latest/import/animatron-importer.js"><code>import/animatron-importer.js</code></a> then. The same for other importers.</li>
-<li>If you want to use some hardcore module, i.e. collisions module, include <a href="http://player.animatron.com/latest/module/collisions.js"><code>module/collisions.js</code></a> <strong>before</strong> the builder file (builder will add some features to itself depending on enabled modules, it is wrong, but will be fixed in later versions), if it is used, or just in any place after player file, if it is not. The same for other modules.</li>
+<li>For most of the cases you need just <a href="http://player.animatron.com/latest/vendor/matrix.min.js"><code>vendor/matrix.min.js</code></a>, <a href="http://player.animatron.com/latest/anm.min.js"><code>anm.min.js</code></a>, <a href="http://player.animatron.com/latest/engine/dom-engine.min.js"><code>engine/dom-engine.min.js</code></a> and <a href="http://player.animatron.com/latest/player.min.js"><code>player.min.js</code></a></li>
+<li>If you plan to program animation in an easy way, include <a href="http://player.animatron.com/latest/builder.min.js"><code>builder.min.js</code></a> next to them.</li>
+<li>If you want to import animations from Animatron tool, include <a href="http://player.animatron.com/latest/import/animatron-importer.min.js"><code>import/animatron-importer.min.js</code></a> then. The same for other importers.</li>
+<li>If you want to use some hardcore module, i.e. collisions module, include <a href="http://player.animatron.com/latest/module/collisions.min.js"><code>module/collisions.min.js</code></a> <strong>before</strong> the builder file (builder will add some features to itself depending on enabled modules, it is wrong, but will be fixed in later versions), if it is used, or just in any place after player file, if it is not. The same for other modules.</li>
 </ul>
 <p>URLs scheme for all of them is:</p>
-<pre><code>http://player.animatron.com(/&lt;version&gt;|/latest)[/full][(/bundle|/vendor|/import|/module)]/&lt;file&gt;.js
+<pre><code>http://player.animatron.com(/&lt;version&gt;|/latest)[(/bundle|/vendor|/engine|/import|/module)]/&lt;file&gt;[.min].js
 </code></pre>
 <ul>
 <li><code>(/&lt;version&gt;|/latest)</code> — required; a version of the player you want to get files from (e.g. <code>v0.9</code>), or the latest version</li>
-<li><code>[/full]</code> — optional; specify if you want to gen not-minimized version</li>
-<li><code>[(/bundle|/vendor|/import|/module)]</code> — optional; bundles are located in <code>/bundle</code> folder, <code>/vendor</code> folder is for external files required for player, <code>/import</code> is for importers, <code>/module</code> is for modules; <code>/bundle</code> files are supposed to be added before any other files, if you need them separately and they are not included in the bundle themselves. <code>/vendor</code> files should appear before player files (<code>player.js</code>, <code>builder.js</code>, ...); <code>/import</code> and <code>/module</code> files should appear after player files (<code>player.js</code>, <code>builder.js</code>, ...).</li>
+<li><code>[(/engine|/bundle|/vendor|/import|/module)]</code> — optional; bundles are located in <code>/bundle</code> folder, <code>/vendor</code> folder is for external files required for player, <code>/engine</code> for engines (like DOM-engine), is <code>/import</code> is for importers, <code>/module</code> is for modules; <code>/bundle</code> files are supposed to be added before any other files, if you need them separately and they are not included in the bundle themselves. <code>/vendor</code> files should appear before player files (<code>player.js</code>, <code>builder.js</code>, ...); <code>/import</code> and <code>/module</code> files should appear after player files (<code>player.js</code>, <code>builder.js</code>, ...).</li>
+<li><code>[.min]</code> — optional; specify if you want to get minimized (and gzipped) version of a file.</li>
+</ul>
+<p>JFYI</p>
+<ul>
+<li><code>http://player.animatron.com/VERSIONS</code> file contains the list of all versions.</li>
+<li><code>http://player.animatron.com(/&lt;version&gt;|/latest)/BUILD</code> file contains the build number and date when this version was built (only for recent versions).</li>
 </ul>
 <h4>Locally</h4>
-<p>Clone <code>git@github.com:Animatron/player.git</code> to get your own copy.</p>
-<p>To use JS player in current state, download or copy from the cloned repository:</p>
+<p>You may clone <code>git@github.com:Animatron/player.git</code> to get your own copy of all of the files.</p>
+<p>To use JS player in current state, you may download separately or duplicate from the cloned repository and then add these files in specified order:</p>
 <ul>
+<li>[Optional] <code>src/vendor/json2.js</code> (JSON parser, if target broswer not supports it (currently required only for Animatron Import))</li>
 <li><code>src/vendor/matrix.js</code></li>
+<li><code>src/engine/dom-engine.js</code></li>
 <li><code>src/anm.js</code></li>
 <li><code>src/player.js</code></li>
 <li>[Optional] <code>src/builder.js</code> (allows to build animations in a functional way)</li>
-<li>[Optional] <code>src/module/collisions.js</code> (if you plan to test collisions / point-contains / intersections with your shapes)</li>
 <li>[Optional] <code>src/import/animatron_importer.js</code> (allows to load animations from Animatron tool)</li>
-<li>[Optional] <code>json2.js</code> (JSON parser, if target broswer not supports it (currently required only for Animatron Import))</li>
+<li>[Optional] <code>src/module/collisions.js</code> (if you plan to test collisions / point-contains / intersections with your shapes)</li>
+<li>[Optional] <code>src/module/*.js</code> (currently other modules are extending player only for usage with Animatron-importer)</li>
 </ul>
 <p>And add them in the same order to your page header. Don't forget the <a href="https://github.com/Animatron/player/blob/master/LICENSE#files"><code>LICENSE</code></a> :).</p>
 <p>Run <code>sandbox/sandbox.html</code> to try it for yourself.</p>
@@ -69,14 +84,18 @@
 <li><strong>Hardcore</strong>: vendor files + player + Builder + additional modules (like collisions support) — intended to be used to write more complex games</li>
 </ol>
 <h4>Development</h4>
-<p>To build locally, you'll need to have both <a href="https://github.com/mde/jake"><code>jake</code></a> and <a href="https://github.com/mishoo/UglifyJS2"><code>uglify-js</code> &gt;= 2</a> installed.</p>
-<p>Warning: Building system currently uses <code>cat</code> and <code>mv</code> commands from UNIX shell, so it will need some UNIX-friendly environment to build correctly. However, node.js for MS Windows currently provides an integrated console that supports stuff like that, so probably it will work ok even without installing MinGW or Cygwin.</p>
+<p>To build locally, you'll only need to have <a href="https://github.com/mde/jake"><code>jake</code></a> intalled. Optionally, if you want to get minified sources, please install <a href="https://github.com/mishoo/UglifyJS2"><code>uglify-js</code> &gt;= 2</a> in addition.</p>
+<p>Warning: Build system currently uses <code>cat</code>, <code>mv</code> and some other commands from UNIX shell, so it will need some UNIX-friendly environment to build correctly. However, node.js for MS Windows currently provides an integrated console that supports stuff like that, so probably it will work ok even without installing MinGW or Cygwin.</p>
 <p>Then, you'll just need to run:</p>
 <pre><code>jake
 # or, the same
 jake dist
 </code></pre>
-<p>And you have all the variants of the files in <code>dist</code> folder.</p>
+<p>And you have all the required files in proper structure inside the <code>./dist</code> sub-directory. (Actually, it just prepares bundles and copies only the sources used in distribution).</p>
+<p>You also may want to run <code>dist-and-min</code> to tell <code>jake</code> to additionally generate and put minified files (what is UglifyJS for) in the very same <code>dist</code> directory, among with prepared source maps:</p>
+<pre><code>jake dist-min
+</code></pre>
+<p>The latter task generates all the files which required for distribution. Actually, it should read "dist <strong>and</strong> min", but <code>dist-n-min</code> looks harder to type.</p>
 <p>If you want to generate <a href="http://jashkenas.github.com/docco/">docco</a> (install it first) docs, run:</p>
 <pre><code>jake docs
 </code></pre>
@@ -88,100 +107,136 @@ jake dist
 jake test[02.animations/01.guids]
 </code></pre>
 <p>Here's the contents of the <code>jake -T</code> call, which describes each existing task:</p>
-<pre><code>jake default           # Get full distribution in the /dist directory.
-                       # Exactly the same as calling {jake dist}.
-                       # Requires: `uglify-js`.
-                       # Produces: /dist directory.
+<pre><code>jake default               # Get full distribution in the /dist directory.
+                           # Exactly the same as calling {jake dist}.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
 
-jake clean             # Clean previous build artifacts.
+jake clean                 # Clean previous build artifacts.
 
-jake build             # Build process, with no cleaning.
-                       # Called by &lt;dist&gt;.
-                       # Depends on: &lt;_prepare&gt;, &lt;_bundles&gt;, &lt;_organize&gt;, &lt;_vers
-                       #        ionize&gt;, &lt;_minify&gt;.
-                       # Requires: `uglify-js`.
-                       # Produces: /dist directory.
+jake build                 # Build process (with no prior cleaning).
+                           # Called by &lt;dist&gt;.
+                           # Depends on: &lt;_prepare&gt;, &lt;_organize&gt;, &lt;_build-file&gt;.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
 
-jake dist              # Clean previous build and create distribution files, so
-                       #        `dist` directory will contain the full distribut
-                       #        ion for this version, including all required fil
-                       #        es — sources and bundles.
-                       # Coherently calls &lt;clean&gt; and &lt;build&gt;.
-                       # Requires: `uglify-js`.
-                       # Produces: /dist directory.
+jake build-min             # Build process (with no prior cleaning).
+                           # Called by &lt;dist-min&gt;.
+                           # Depends on: &lt;_prepare&gt;, &lt;_bundles&gt;, &lt;_organize&gt;, &lt;_
+                           #     versionize&gt;, &lt;_minify&gt;, &lt;_build-file&gt;.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
 
-jake test              # Run tests for the sources (not the distribution).
-                       # Usage: Among with {jake test} may be called with provid
-                       #        ing separate spec or spec group, in a way like:
-                       #        {jake test[01.player/*]} or, for concrete spec:
-                       #        {jake test[01.player/06.errors]}.
-                       # Requires: `jasmine-node`, `phantomjs`.
+jake dist                  # Clean previous build and create distribution files,
+                           #     so `dist` directory will contain the full dist
+                           #     ribution for this version, including all requir
+                           #     ed files — sources and bundles.
+                           # Coherently calls &lt;clean&gt; and &lt;build&gt;.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
 
-jake docs              # Generate Docco docs and compile API documentation into
-                       #        HTML files inside of the /doc directory.
-                       # Requires: `docco`, Python installed, `markdown` module
-                       #        for Python(and Python is used only because of th
-                       #        is module).
-                       # Produces: /doc/player.html, /doc/builder.html, /doc/API
-                       #        .html, /doc/README.html, /doc/docco.css.
+jake dist-min              # Clean previous build and create distribution files,
+                           #     so `dist` directory will contain the full dist
+                           #     ribution for this version, including all requir
+                           #     ed files — sources and bundles.
+                           # Coherently calls &lt;clean&gt; and &lt;build&gt;.
+                           # Requires: `uglifyjs`.
+                           # Produces: /dist directory.
 
-jake anm-scene-valid   # Validate Animatron scene JSON file.
-                       # Uses /src/import/animatron-project-VERSION.orderly as v
-                       #        alidation scheme.
-                       # Usage: should be called with providing scene JSON file,
-                       #        in a way like: {jake anm-scene-valid[src/some-s
-                       #        cene.json]}.
-                       # Requires: `orderly` and `jsonschema` node.js modules
+jake test                  # Run tests for the sources (not the distribution).
+                           # Usage: Among with {jake test} may be called with pr
+                           #     oviding separate spec or spec group, in a way l
+                           #     ike: {jake test[01.player/*]} or, for concrete
+                           #     spec: {jake test[01.player/06.errors]}.
+                           # Requires: `jasmine-node`, `phantomjs`.
 
-jake version           # Get current version or apply a new version to the curre
-                       #        nt state of files. If applies a new version, mod
-                       #        ifies VERSION and VERSIONS files, then also adds
-                       #        a git tag, while pushes nothing. Uses VERSION_L
-                       #        OG file to provide annotation for a new tag.
-                       # Usage: {jake version} to get current version and {jake
-                       #        version[v0.8]} to set current version to a new o
-                       #        ne (do not forget to push tags). If this version
-                       #        exists, you will get detailed information about
-                       #        it. To remove a previous version, use &lt;rm-versi
-                       #        on&gt; task.
-                       # Affects: (if creates a new version) VERSION, VERSIONS f
-                       #        iles and a git tag.
+jake docs                  # Generate Docco docs and compile API documentation i
+                           #     nto HTML files inside of the /doc directory.
+                           # Requires: `docco`, Python installed, `markdown` mod
+                           #     ule for Python(and Python is used only because
+                           #     of this module).
+                           # Produces: /doc/player.html, /doc/builder.html, /doc
+                           #     /API.html, /doc/README.html, /doc/scripting.htm
+                           #     l, /doc/docco.css.
 
-jake rm-version        # Remove given version information from versions data fil
-                       #        es among with the git tag. Pushes nothing.
-                       # Usage: {jake version[v0.9:v0.8]} to remove version 0.9
-                       #        and then set current (and latest) version to 0.8
-                       #        , {jake rm-version[v0.9:]} to remove given versi
-                       #        on, but to stay at the current one. (Do not forg
-                       #        et to push tags.) To add a new version, use &lt;ver
-                       #        sion&gt; task.
-                       # Affects: (if removes a version) VERSION, VERSIONS files
-                       #        and removes a git tag.
+jake anm-scene-valid       # Validate Animatron scene JSON file.
+                           # Uses /src/import/animatron-project-VERSION.orderly
+                           #     as validation scheme.
+                           # Usage: should be called with providing scene JSON f
+                           #     ile, in a way like: {jake anm-scene-valid[src/s
+                           #     ome-scene.json]}.
+                           # Requires: `orderly` and `jsonschema` node.js module
+                           #     s
 
-jake push-version      # Builds and pushes current state, among with VERSIONS fi
-                       #        le to S3 at the path of `&lt;VERSION&gt;/` or `latest/
-                       #        `. No git switching to tag or anything smarter t
-                       #        han just build and push to directory. To assign
-                       #        a version to a `HEAD` use {jake version[&lt;version
-                       #        &gt;]}, then you are safe to push.
-                       # Usage: {jake push-version} to push current version from
-                       #        VERSION file. To push to `latest/`, use {jake p
-                       #        ush-version[latest]}.
-                       # Affects: Only changes S3, no touch to VERSION or VERSIO
-                       #        NS or git stuff.
-                       # Requires: `aws2js` and `walk` node.js modules.
+jake version               # Get current version or apply a new version to the c
+                           #     urrent state of files. If applies a new version
+                           #     , modifies VERSION and VERSIONS files, then als
+                           #     o adds a git tag, while pushes nothing. Uses VE
+                           #     RSION_LOG file to provide annotation for a new
+                           #     tag.
+                           # Usage: {jake version} to get current version and {j
+                           #     ake version[v0.8]} to set current version to a
+                           #     new one (do not forget to push tags). If this v
+                           #     ersion exists, you will get detailed informatio
+                           #     n about it. To remove a previous version, use &lt;
+                           #     rm-version&gt; task. Use {jake version[+v0.8]} to
+                           #     force creating a version even if it exists.
+                           # Affects: (if creates a new version) VERSION, VERSIO
+                           #     NS files and a git tag.
 
-jake _prepare          # Internal. Create dist &amp; dist/full folders
-jake _bundles          # Internal. Create bundles from existing sources and put
-                       #        them into dist/full folder
-jake _bundle           # Internal. Create a single bundle file and put it into d
-                       #        ist/full folder, bundle is provided as a paramet
-                       #        er, e.g.: {jake _bundle[animatron]}
-jake _organize         # Internal. Copy source files to dist/full folder
-jake _versionize       # Internal. Inject version in all dist/full files
-jake _minify           # Internal. Create a minified copy of all the sources and
-                       #        bundles from dist/full folder and put them into
-                       #        dist/ folder root
+jake rm-version            # Remove given version information from versions data
+                           #     files among with the git tag. Pushes nothing.
+                           # Usage: {jake version[v0.9:v0.8]} to remove version
+                           #     0.9 and then set current (and latest) version t
+                           #     o 0.8, {jake rm-version[v0.9:]} to remove given
+                           #     version, but to stay at the current one. (Do n
+                           #     ot forget to push tags.) To add a new version,
+                           #     use &lt;version&gt; task.
+                           # Affects: (if removes a version) VERSION, VERSIONS f
+                           #     iles and removes a git tag.
+
+jake push-version          # Builds and pushes current state, among with VERSION
+                           #     S file to S3 at the path of `&lt;VERSION&gt;/` or `la
+                           #     test/`. No git switching to tag or anything sma
+                           #     rter than just build and push to directory. To
+                           #     assign a version to a `HEAD` use {jake version[
+                           #     &lt;version&gt;]}, then you are safe to push.
+                           # Usage: {jake push-version} to push current version
+                           #     from VERSION file. To push to `latest/`, use {j
+                           #     ake push-version[latest]}. It is also possible
+                           #     to select a bucket: so {jake push-version[lates
+                           #     t,rls]} will push latest version to the release
+                           #     bucket (`dev` is default) and {jake push-versi
+                           #     on[,rls]} will push there a current version fro
+                           #     m VERSION file.
+                           # Affects: Only changes S3, no touch to VERSION or VE
+                           #     RSIONS or git stuff.
+                           # Requires: `.s3` file with crendetials in form {user
+                           #     access-id secret}. `aws2js` and `walk` node.js
+                           #     modules.
+
+jake push-go               # Pushes `go` page and `publish.js` script to the S3.
+                           # Usage: {jake push-go} to push to `dev` bucket under
+                           #     current version. To push to another bucket or
+                           #     version, pass it as a param: {jake push-go[,rls
+                           #     ]}, {jake push-go[latest,rls]}
+                           # Affects: Only changes S3.
+                           # Requires: `.s3` file with crendetials in form {user
+                           #     access-id secret}. `aws2js` node.js module.
+
+jake _prepare              # Internal. Create dist folder
+jake _bundles              # Internal. Create bundles from existing sources and
+                           #     put them into dist/bundle folder
+jake _bundle               # Internal. Create a single bundle file and put it in
+                           #     to dist/bundle folder, bundle is provided as a
+                           #     parameter, e.g.: {jake _bundle[animatron]}
+jake _organize             # Internal. Copy source files to dist folder
+jake _versionize           # Internal. Inject version in all dist files
+jake _minify               # Internal. Create a minified copy of all the sources
+                           #     and bundles from dist folder and append a .min
+                           #     suffix to them
+jake _build-file           # Internal. Create a BUILD file informing about the t
+                           #     ime and commit of a build.
 </code></pre>
 <h6>Versions</h6>
 <p>None of the libraries or software is required to run and use the player, except HTML5-Compatible browser.
