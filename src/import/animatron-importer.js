@@ -45,14 +45,15 @@ var cur_import_id;
 // -> Array[?]
 Import._find = function(idx, src) {
     var res = src[idx];
-    if (!res) _reportError('Element with index ' + idx + ' was not found'
-                           + (src ? ' among ' + src.length + ' elements.' : '.') );
+    if (!res) _reportError('Element with index ' + idx + ' was not found' +
+                            (src ? ' among ' + src.length + ' elements.' : '.') );
     return src[idx];
-}
+};
+
 // -> Integer
 Import._type = function(src) {
     return src[0];
-}
+};
 
 /** project **/
 /*
@@ -92,7 +93,7 @@ Import.project = function(prj) {
         //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
         if (node_res.gband[0] == node_res.gband[1]) {
             continue;
-        };
+        }
 
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
@@ -124,7 +125,7 @@ Import.project = function(prj) {
     Import._path_cache = undefined;
 
     return root;
-}
+};
 /** meta **/
 // -> Object
 Import.meta = function(prj) {
@@ -140,11 +141,11 @@ Import.meta = function(prj) {
         'modified': _m.modified,
         '_anm_id': _m.id
     };
-}
+};
 
 Import.fonts = function(prj) {
     return prj.anim.fonts;
-}
+};
 /** anim **/
 /*
  * object {
@@ -164,7 +165,7 @@ Import.anim = function(prj, trg) {
     trg.zoom = _a.zoom || 1.0;
     trg.speed = _a.speed || 1.0;
     if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
-}
+};
 
 var TYPE_UNKNOWN =  0,
     TYPE_CLIP    =  1,
@@ -206,9 +207,10 @@ Import.node = function(src, all, parent, anim) {
     if (trg) {
         trg._anm_type = type;
         Import.callCustom(trg, src, type);
-    };
+    }
     return trg;
-}
+};
+
 var L_ROT_TO_PATH = 1,
     L_OPAQUE_TRANSFORM = 2;
     L_VISIBLE = 4;
@@ -288,7 +290,7 @@ Import.branch = function(type, src, all, anim) {
                 ltrg.tween(t);
             }
             if (translates && (flags & L_ROT_TO_PATH)) {
-                for (var ti = 0, til = translates.length; ti < til; ti++) {
+                for (ti = 0, til = translates.length; ti < til; ti++) {
                     ltrg.tween(
                         new Tween(C.T_ROT_TO_PATH).band(translates[ti].band)
                     );
@@ -336,10 +338,10 @@ Import.branch = function(type, src, all, anim) {
                 togo = lsrc[3], // layers below to apply mask
                 targets_n = _layers_targets.length;
             if (togo > targets_n) {
-                _reportError('No layers collected to apply mask, expected ' + togo
-                             + ', got ' + targets_n);
+                _reportError('No layers collected to apply mask, expected ' +
+                            togo + ', got ' + targets_n);
                 togo = targets_n;
-            };
+            }
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
                 masked.mask(mask);
@@ -359,7 +361,8 @@ Import.branch = function(type, src, all, anim) {
     }
 
     return trg;
-}
+};
+
 /** leaf **/
 // -> Element
 Import.leaf = function(type, src, parent/*, anim*/) {
@@ -380,7 +383,8 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
-}
+};
+
 
 // call custom importers
 Import.callCustom = function(trg, src, type) {
@@ -391,7 +395,7 @@ Import.callCustom = function(trg, src, type) {
             importers[i].call(trg, src, type, IMPORTER_ID, cur_import_id);
         }
     }
-}
+};
 
 /** band **/
 // -> Array[2, Float]
@@ -400,7 +404,8 @@ Import.band = function(src) {
     if (src.length == 1) return [ src[0], Infinity ];
     if (src.length == 2) return src;
     _reportError('Unknown format of band: ' + src);
-}
+};
+
 /** path (shape) **/
 /*
  * array {
@@ -416,7 +421,7 @@ Import.path = function(src) {
     var path = Import._pathDecode(src[4]);
     if (!path) return;
     return new Path(path);
-}
+};
 
 /*
  * Could be either String or Binary encoded path
@@ -438,7 +443,7 @@ Import._pathDecode = function(src) {
     }
 
     return val.segs;
-}
+};
 
 Import._decodeBinaryPath = function(encoded) {
     var path = new Path();
@@ -451,22 +456,22 @@ Import._decodeBinaryPath = function(encoded) {
             if (s) {
                 var _do = true;
                 while (_do) {
-                    var type = s.readBits(2);
+                    var type = s.readBits(2), p;
                     switch (type) {
                         case 0:
-                            var p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, [], base);
                             base = p;
 
                             path.add(new MSeg(p));
                             break;
                         case 1:
-                            var p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, [], base);
                             base = p;
 
                             path.add(new LSeg(p));
                             break;
                         case 2:
-                            var p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, [], base);
                             Import._pathReadPoint(s, p);
                             Import._pathReadPoint(s, p);
                             base = [p[p.length - 2], p[p.length - 1]];
@@ -493,7 +498,7 @@ Import._decodeBinaryPath = function(encoded) {
     }
 
     return path;
-}
+};
 
 Import._pathReadPoint = function(stream, target, base) {
     var l = stream.readBits(5);
@@ -510,7 +515,7 @@ Import._pathReadPoint = function(stream, target, base) {
     target.push(b_x + x / 1000.0);
     target.push(b_y + y / 1000.0);
     return target;
-}
+};
 
 /** text **/
 /*
@@ -535,7 +540,7 @@ Import.text = function(src) {
                     src[5], // align
                     (src[7] & TEXT_MID_BASELINE) ? 'middle' : 'bottom',
                     (src[7] & TEXT_UNDERLINE) ? true : false);
-}
+};
 /** sheet (image) **/
 /*
  * array {
@@ -549,7 +554,7 @@ Import.sheet = function(src) {
     var sheet = new anm.Sheet(src[1]);
     if (src[2]) sheet._dimen = src[2];
     return sheet;
-}
+};
 /** tween **/
 /*
  * union {
@@ -612,13 +617,13 @@ Import.sheet = function(src) {
 // -> Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
-    if (type == null) return null;
+    if (type === null) return null;
     var tween = new Tween(type, Import.tweendata(type, src[3]))
                           .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
     if (easing) tween.easing(easing);
     return tween;
-}
+};
 /** tweentype **/
 // -> Type
 Import.tweentype = function(src) {
@@ -631,11 +636,11 @@ Import.tweentype = function(src) {
     if (src === 7) return C.T_VOLUME;
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
-}
+};
 /** tweendata **/
 // -> Any
 Import.tweendata = function(type, src) {
-    if (src == null) return null; // !!! do not optimize to !src since 0 can also happen
+    if (src === null) return null; // !!! do not optimize to !src since 0 can also happen
     if (type === C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
         (type === C.T_ALPHA)) {
@@ -662,7 +667,7 @@ Import.tweendata = function(type, src) {
       if (src.length == 1) return [ src[0], src[0] ];
     }
 
-}
+};
 /** easing **/
 /*
  * union {
@@ -677,14 +682,14 @@ Import.easing = function(src) {
         return {
             type: C.E_PATH,
             data: Import.pathval('M0 0 ' + src + ' Z')
-        }
+        };
     } else if (is.num(src)) {
         return {
             type: C.E_STDF,
             data: src
-        }
+        };
     }
-}
+};
 /** mode **/
 Import.mode = function(src) {
     if (!src) return C.R_ONCE;
@@ -692,7 +697,7 @@ Import.mode = function(src) {
     if (src === 1) return C.R_LOOP;
     if (src === 2) return C.R_BOUNCE;
     if (src === 3) return C.R_STAY;
-}
+};
 /** brush (paint) **/
 /*
  * union {
@@ -709,7 +714,7 @@ Import.fill = function(src) {
     } else if (is.arr(src)) {
         return Brush.fill(Import.grad(src));
     } else _reportError('Unknown type of brush');
-}
+};
 /** stroke **/
 /*
  * union {
@@ -734,7 +739,7 @@ Import.stroke = function(src) {
                         src[2] || C.PC_ROUND, // cap
                         src[3] || C.PC_ROUND, // join
                         src[4]); // mitter
-}
+};
 /** shadow **/
 /*
  * array {
@@ -750,7 +755,7 @@ Import.shadow = function(src) {
                         src[2],  // blur-radius
                         src[0],  // offsetX
                         src[1]); // offsetY
-}
+};
 /** lgrad **/
 /*
  * array {          // linear gradient
@@ -804,18 +809,18 @@ Import.grad = function(src) {
     } else {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
-}
+};
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
-}
+};
 
 Import.audio = function(src) {
     var audio = new Audio(src[1]);
     audio.offset = src[2];
     audio.master = src[3];
     return audio;
-}
+};
 
 // BitStream
 // -----------------------------------------------------------------------------
@@ -847,14 +852,14 @@ BitStream.prototype.readBits = function(n) {
             return v;
         }
     }
-}
+};
 
 /*
  * Reads one unsigned byte
  */
 BitStream.prototype.readUByte = function() {
     return this.buf[this.pos++]&0xff;
-}
+};
 
 /*
  * Reads n signed bits
@@ -862,13 +867,13 @@ BitStream.prototype.readUByte = function() {
 BitStream.prototype.readSBits = function(n) {
     var v = this.readBits(n);
     // Is the number negative?
-    if( (v&(1 << (n - 1))) != 0 ) {
+    if( (v&(1 << (n - 1))) !== 0 ) {
         // Yes. Extend the sign.
         v |= -1 << n;
     }
 
     return v;
-}
+};
 
 // Base64 Decoder
 // -----------------------------------------------------------------------------
@@ -881,7 +886,9 @@ function Base64Decoder() {}
  */
 Base64Decoder.decode = function(str) {
     return Base64Decoder.str2ab(Base64Decoder._decode(str));
-}
+};
+
+var Int8Array = window.Int8Array || Array;
 
 Base64Decoder.str2ab = function(str) {
     var result = new Int8Array(str.length);
@@ -889,10 +896,10 @@ Base64Decoder.str2ab = function(str) {
         result[i] = str.charCodeAt(i);
     }
     return result;
-}
+};
 
 Base64Decoder._decode = function(data) {
-    if (typeof window['atob'] === 'function') {
+    if (window.atob) {
         // optimize
         return atob(data);
     }
@@ -946,22 +953,22 @@ function ValueCache() {
 
 ValueCache.prototype.put = function(str, val) {
     this.hash2val[this.hash(str)] = val;
-}
+};
 
 ValueCache.prototype.get = function(str) {
     return this.hash2val[this.hash(str)];
-}
+};
 
 ValueCache.prototype.hash = function(str) {
     var hash = 0, i, char;
-    if (str.length == 0) return hash;
+    if (str.length === 0) return hash;
     for (i = 0, l = str.length; i < l; i++) {
         char  = str.charCodeAt(i);
         hash  = ((hash<<5)-hash)+char;
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
-}
+};
 
 // Finish the importer
 // -----------------------------------------------------------------------------
