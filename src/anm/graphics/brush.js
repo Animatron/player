@@ -397,6 +397,8 @@ Brush.clearShadow = function(ctx) {
  * NB: if you re-use the returned function, be aware that it shares and updates
  * the same instance between the calls.
  *
+ * See {@link anm.Color#interpolate Color.interpolate()}
+ *
  * @param {anm.Brush} from initial state of interpolation
  * @param {anm.Brush} to final state of interpolation
  * @return {Function} function that takes t and returns interpolation result
