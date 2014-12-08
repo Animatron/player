@@ -1,0 +1,130 @@
+body {
+    background: white;
+    font-size: 1em;
+}
+
+a {
+    /* color: #670000; */
+    border-radius: 2px;
+    padding: 2px;
+}
+
+a:hover {
+    background-color: #eee;
+}
+
+#center-container h1 {
+    font-family: sans-serif;
+    color: #333;
+    padding: 8px;
+    border-radius: 3px;
+    /* border-left: 1px solid #ccc; */
+    font-size: 2em;
+    margin-bottom: 20px;
+    border-bottom: 1px dashed #ccc;
+}
+
+#center-container h1:hover {
+    /* background-color: #eee; */
+}
+
+#center-container h1.class {
+    font-family: monospace;
+    font-size: 2.2em;
+    position: relative;
+    left: -10px;
+}
+
+#center-container h1 .class-source-link {
+    margin-left: -10px;
+    padding-left: 1.9em;
+}
+
+.class-categories .section {
+    background-color: transparent;
+    border: none;
+    padding-top: 0;
+}
+
+#center-container .class-categories .section h1 {
+    /* border-left: 5px solid #ccc; */
+    margin-bottom: 0;
+    border-bottom: none;
+}
+
+#center-container .class-categories .section h1:before {
+    content: "{";
+    font-weight: bold;
+    position: relative;
+    left: -5px;
+    color: #ccc;
+}
+
+.card-panel h3 {
+    display: none;
+    padding-left: 20px;
+    font-size: 0.9em;
+    color: #666;
+}
+
+li {
+    list-style: disc;
+}
+
+ul.links {
+    margin-top: 10px;
+}
+
+ul.links li {
+    font-size: 1.2em;
+    line-height: 1.6em;
+    font-family: monospace;
+    color: #eee;
+}
+
+ul.links li:hover {
+    color: #dcdcdc;
+}
+
+#classtree-body, #treecontainer .x-grid-cell-inner {
+    font-size: 1.25em;
+    font-family: monospace;
+}
+
+.x-toolbar-default {
+    background: none;
+    border: none;
+}
+
+.class-overview .hierarchy {
+    border: none;
+}
+
+.members .member .name, .members .member .new-keyword, .members .member .pre {
+    font-family: monospace;
+    font-size: 1.2em;
+}
+
+.members .member .pre {
+    font-size: 1.1em;
+}
+
+.class-overview .new-keyword {
+    color: #660000
+}
+
+.members .member {
+    border: none;
+}
+
+.members .member.first-child {
+    border-top: 1px dashed #eee;
+    margin-top: 20px;
+}
+
+.class-overview .doc-contents {
+    font-size: 1.1em;
+    color: #111;
+    border-top: 3px solid #f7f7f7;
+    padding-top: 15px;
+}
