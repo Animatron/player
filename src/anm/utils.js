@@ -90,7 +90,7 @@ function ell_text(text, max_len) {
     if (!text) return '';
     var len = text.length;
     if (len <= max_len) return text;
-    var semilen = Math.floor(_len / 2) - 2;
+    var semilen = Math.floor(len / 2) - 2;
     return text.slice(0, semilen) + '...'
          + text.slice(len - semilen);
 }
