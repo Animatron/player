@@ -98,36 +98,34 @@ var $DE = {};
 // canvasSupported -> bool
 
 // Framing
+// shim adopted from https://gist.github.com/paulirish/1579671
+var requestAnimationFrame, cancelAnimationFrame;
+var lastTime = 0;
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for(var x = 0; x < vendors.length && !global.requestAnimationFrame; ++x) {
+        requestAnimationFrame = global[vendors[x]+'RequestAnimationFrame'];
+        cancelAnimationFrame = global[vendors[x]+'CancelAnimationFrame'] ||
+                                   global[vendors[x]+'CancelRequestAnimationFrame'];
+    }
 
-$DE.__frameFunc = null;
-$DE.__cancelFunc = null;
-$DE.getRequestFrameFunc = function() {
-    if ($DE.__frameFunc) return $DE.__frameFunc;
-    return ($DE.__frameFunc =
-                (window.requestAnimationFrame ||
-                 window.webkitRequestAnimationFrame ||
-                 window.mozRequestAnimationFrame ||
-                 window.oRequestAnimationFrame ||
-                 window.msRequestAnimationFrame ||
-                 window.__anm__frameGen ||
-                 function(callback){
-                   return window.setTimeout(callback, 1000 / 60);
-               })); };
-$DE.getCancelFrameFunc = function() {
-    if ($DE.__cancelFunc) return $DE.__cancelFunc;
-    return ($DE.__cancelFunc =
-                (window.cancelAnimationFrame ||
-                 window.webkitCancelAnimationFrame ||
-                 window.mozCancelAnimationFrame ||
-                 window.oCancelAnimationFrame ||
-                 window.msCancelAnimationFrame ||
-                 window.__anm__frameRem ||
-                 function(id){
-                   return window.clearTimeout(id);
-               })); };
-/*$DE.stopAnim = function(reqId) {
-    $DE.getCancelFrameFunc()(reqId);
-}*/
+    if (!requestAnimationFrame)
+        requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+              timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+
+    if (!cancelAnimationFrame)
+        cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+
+
+$DE.getRequestFrameFunc = function(){ return requestAnimationFrame; };
+$DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 // Global things
 
