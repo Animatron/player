@@ -66,7 +66,7 @@ Tween.addTween(C.T_ROTATE, function(data) {
 Tween.addTween(C.T_ROT_TO_PATH, function(data) {
     return function(t, dt, duration) {
         var path = this.$mpath;
-        if (path) this.angle += path.tangentAt(t); // Math.atan2(this.y, this.x);
+        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
     };
 });
 

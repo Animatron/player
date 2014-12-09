@@ -290,7 +290,7 @@ Import.branch = function(type, src, all, anim) {
             if (translates && (flags & L_ROT_TO_PATH)) {
                 for (var ti = 0, til = translates.length; ti < til; ti++) {
                     ltrg.tween(
-                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].band)
+                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].$band)
                     );
                 }
             }
