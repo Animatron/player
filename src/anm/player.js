@@ -1538,8 +1538,8 @@ Player.prototype._callPostpones = function() {
 
 var prodHost = 'animatron.com',
     testHost = 'animatron-test.com',
-    prodStatUrl = 'http://api.' + prodHost + '/stats/report/',
-    testStatUrl = 'http://api.' + testHost + '/stats/report/';
+    prodStatUrl = '//api.' + prodHost + '/stats/report/',
+    testStatUrl = '//api.' + testHost + '/stats/report/';
 
 Player.prototype._notifyAPI = function() {
     // currently, notifies only about playing start

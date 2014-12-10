@@ -437,7 +437,9 @@ Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
 }
 
-var FONT_LOAD_TIMEOUT = 10000; //in ms
+var FONT_LOAD_TIMEOUT = 10000, //in ms
+    https = engine.isHttps;
+
 /*
  * @method loadFonts
  * @private
@@ -459,6 +461,13 @@ Animation.prototype.loadFonts = function(player) {
         if (!font.url || !font.face || detector.detect(font.face)) {
             //no font name or url || font already available
             continue;
+        }
+        if (https) {
+            //convert the URLs to https
+            font.url = font.url.replace('http:', 'https:');
+            if (font.woff) {
+                font.woff = font.woff.replace('http:', 'https:');
+            }
         }
         fontsToLoad.push(font);
         css += '@font-face {' +
