@@ -26,8 +26,10 @@ function Sheet(src, callback, start_region) {
     this._thumbnail = false; // internal flag, used to load a player thumbnail
 };
 
+var https = engine.isHttps;
+
 Sheet.prototype.load = function(player_id, callback, errback) {
-    var callback = callback || this._callback;
+    callback = callback || this._callback;
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     if (!me.src) {
@@ -35,6 +37,9 @@ Sheet.prototype.load = function(player_id, callback, errback) {
         me.ready = true; me.wasError = true;
         if (errback) errback.call(me, 'Empty source');
         return;
+    }
+    if (https) {
+        me.src = me.src.replace('http:', 'https:');
     }
     resMan.loadOrGet(player_id, me.src,
         function(notify_success, notify_error) { // loader
