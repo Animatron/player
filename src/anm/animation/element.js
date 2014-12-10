@@ -1520,23 +1520,16 @@ Element.prototype.band = function(start, stop) {
     return this;
 }
 /**
- * @method band
+ * @method duration
  * @chainable
  *
- * Set a time-band of an element (relatively to parent element or an {@link anm.Animation Animation},
- * or {@link anm.Scene Scene}, if this element happened to be a direct child of one). Time-band
- * of an Element is its lifetime, an Element gets its birth and dies at specified time, accordingly.
- * If it has repeat-mode, it resets its local time and starts living again. Time-band is specified in
- * seconds relatively to parent element's time-band.
+ * Get or set duration of an element's band
  *
- * For example, if parent is in a root of animation and has a band of `[ 1.5, 6 ]`, and its child has a
- * band of `[ 3.5, 7 ]`, then this child appears at `5` (`1.5 + 3.5`) seconds of global time and hides at
- * `6` seconds of global time, since its band outlives the parent band, so it was cut.
+ * See {@link anm.Element#band band()} method.
  *
- * @param {Number} start start time of a band
- * @param {Number} stop stop time of a band
+ * @param {Number} [value] desired duration
  *
- * @return {anm.Element} itself
+ * @return {anm.Element|Number} itself or current duration value
  */
 Element.prototype.duration = function(value) {
     if (!is.defined(value)) return this.lband[1] - this.lband[0];
