@@ -100,8 +100,8 @@ Path.prototype.hitAt = function(t) {
     var startp = this.start(); // start point of segment
 
     if (t === 0) return {
-          'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
-        };
+        'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
+    };
 
     /*var endp = this.end();
       if (t == 1) return func ? func(startp, endp) : endp;*/
@@ -120,7 +120,7 @@ Path.prototype.hitAt = function(t) {
             // inside current segment
             var segdist = distance - length;
             return {
-                'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? (segdist / slen) : 0
+                'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? seg.atDist(p, segdist)[1] : 0
             };
         }
         length += slen;

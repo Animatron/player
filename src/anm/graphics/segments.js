@@ -11,12 +11,12 @@ MSeg.prototype.draw = function(ctx) {
 MSeg.prototype.length = function(start) {
     return 0;
 }
-// distance is specified in points
+// returns pair, first - distance, second - parameter t that corresponds to given distance
 MSeg.prototype.atDist = function(start, dist) {
-    return [ this.pts[0], this.pts[1] ];
+    return [0, 0];
 }
 MSeg.prototype.atT = function(start, t) {
-    return this.atDist(start, null);
+    return [ this.pts[0], this.pts[1] ];
 }
 MSeg.prototype.tangentAt = function(start, t) {
     return 0;
@@ -43,7 +43,10 @@ LSeg.prototype.length = function(start) {
     return Math.sqrt(dx*dx + dy*dy);
 }
 LSeg.prototype.atDist = function(start, dist) {
-    return this.atT(start, dist / this.length(start));
+    if (dist <= 0) return [0, 0];
+    var length = this.length(start));
+    if (dist >= length) return [length, 1];
+    return [dist, this.atT(start, dist / this.length(start))];
 }
 LSeg.prototype.atT = function(start, t) {
     var p0x = start[0];
@@ -75,7 +78,7 @@ function CSeg(pts) {
 CSeg.prototype.draw = function(ctx) {
     ctx.bezierCurveTo(this.pts[0], this.pts[1], this.pts[2], this.pts[3], this.pts[4], this.pts[5]);
 }
-CSeg.prototype.length = function(start) {
+CSeg.prototype.atDist = function(start, dist) {
     /* FIXME: cache length data and points somewhere */
     var positions = this.pts;
     var p0x = start[0];
@@ -92,8 +95,6 @@ CSeg.prototype.length = function(start) {
     var p2to3 = Math.sqrt(Math.pow(p3x-p2x, 2) + Math.pow(p3y-p2y, 2));
 
     var len = p0to1 + p1to2 + p2to3 + 1;
-
-    var count = len * 3;
 
     // choose the step as 1/len
     var dt = 1.0 / len;
@@ -123,7 +124,7 @@ CSeg.prototype.length = function(start) {
     var dddby = q7y * q5;
 
     var length = 0;
-    for (var idx = 0; idx < count; idx += 3) {
+    for (var idx = 0; idx < len; idx++) {
         var px = bx;
         var py = by;
 
@@ -137,11 +138,14 @@ CSeg.prototype.length = function(start) {
         ddby += dddby;
 
         length += Math.sqrt((bx - px) * (bx - px) + (by - py) * (by - py));
+        if (length >= dist) {
+            return [length, dt * idx];
+        }
     }
-    return length;
+    return [length, 1];
 }
-CSeg.prototype.atDist = function(start, dist) {
-    return this.atT(start, dist / this.length(start));
+CSeg.prototype.length = function(start) {
+    return this.atDist(start, Number.MAX_VALUE)[0];
 }
 CSeg.prototype.atT = function(start, t) {
     var tt = t * t,       // t^2
@@ -159,25 +163,14 @@ CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
 }
 CSeg.prototype.tangentAt = function(start, t) {
-    if ((t < 0) || (t > 1)) return 0;
+    if (t < 0) t = 0;
+    if (t > 1) t = 1;
 
-    var p1 = this.atT(start, t),
-        p2 = this.atT(start, t + 0.001);
+    var a = 3 * (1 - t) * (1 - t);
+    var b = 6 * (1 - t) * t;
+    var c = 3 * t * t;
 
-    return Math.atan2(p2[1] - p1[1], p2[0] - p1[0]);
-
-    /*     this._ensure_params(start);
-    var par = this._params;
-    var t1 = t,
-        t2 = t + 0.001;
-    var tt1 = t1 * t1, // t1^2
-        tt2 = t2 * t2; // t1^2
-    var p1 = [ 3 * par[0] * tt1 + 2 * par[1] * t1 + par[2],
-               3 * par[4] * tt1 + 2 * par[5] * t1 + par[6] ],
-        p2 = [ 3 * par[0] * tt2 + 2 * par[1] * t2 + par[2],
-               3 * par[4] * tt2 + 2 * par[5] * t2 + par[6] ];
-
-    return Math.atan2(p2[1] - p1[1], p2[0] - p1[0]); */
+    return Math.atan2(a * (this.pts[1] - start[1]) + b * (this.pts[3] - this.pts[1]) + c * (this.pts[5] - this.pts[3]), a * (this.pts[0] - start[0]) + b * (this.pts[2] - this.pts[0]) + c * (this.pts[4] - this.pts[2]));
 }
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart &&
