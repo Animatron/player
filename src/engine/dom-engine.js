@@ -98,36 +98,34 @@ var $DE = {};
 // canvasSupported -> bool
 
 // Framing
+// shim adopted from https://gist.github.com/paulirish/1579671
+var requestAnimationFrame, cancelAnimationFrame;
+var lastTime = 0;
+    var vendors = ['ms', 'moz', 'webkit', 'o'];
+    for(var x = 0; x < vendors.length && !global.requestAnimationFrame; ++x) {
+        requestAnimationFrame = global[vendors[x]+'RequestAnimationFrame'];
+        cancelAnimationFrame = global[vendors[x]+'CancelAnimationFrame'] ||
+                                   global[vendors[x]+'CancelRequestAnimationFrame'];
+    }
 
-$DE.__frameFunc = null;
-$DE.__cancelFunc = null;
-$DE.getRequestFrameFunc = function() {
-    if ($DE.__frameFunc) return $DE.__frameFunc;
-    return ($DE.__frameFunc =
-                (window.requestAnimationFrame ||
-                 window.webkitRequestAnimationFrame ||
-                 window.mozRequestAnimationFrame ||
-                 window.oRequestAnimationFrame ||
-                 window.msRequestAnimationFrame ||
-                 window.__anm__frameGen ||
-                 function(callback){
-                   return window.setTimeout(callback, 1000 / 60);
-                 })) };
-$DE.getCancelFrameFunc = function() {
-    if ($DE.__cancelFunc) return $DE.__cancelFunc;
-    return ($DE.__cancelFunc =
-                (window.cancelAnimationFrame ||
-                 window.webkitCancelAnimationFrame ||
-                 window.mozCancelAnimationFrame ||
-                 window.oCancelAnimationFrame ||
-                 window.msCancelAnimationFrame ||
-                 window.__anm__frameRem ||
-                 function(id){
-                   return window.clearTimeout(id);
-                 })) };
-/*$DE.stopAnim = function(reqId) {
-    $DE.getCancelFrameFunc()(reqId);
-}*/
+    if (!requestAnimationFrame)
+        requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+              timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+
+    if (!cancelAnimationFrame)
+        cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+
+
+$DE.getRequestFrameFunc = function(){ return requestAnimationFrame; };
+$DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 // Global things
 
@@ -164,7 +162,8 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     }
 
     req.send(null);
-}
+};
+
 $DE.getCookie = function(name) {
     // from http://www.codelib.net/javascript/cookies.html
     var s = $doc.cookie, i;
@@ -177,7 +176,8 @@ $DE.getCookie = function(name) {
     return null;
     /*var val=RegExp("(\\b|;)"+name+"[^;\\b]+").exec($doc.cookie);
     return val ? unescape(val[0].replace(/^[^=]+./,"")) : null;*/
-}
+};
+
 $DE.onDocReady = function(callback) {
     //check if the document isn't already ready (sorry for the wording)
     if ($doc.readyState === 'complete') {
@@ -191,14 +191,16 @@ $DE.onDocReady = function(callback) {
             callback();
         }, false);
     } else if ($doc.attachEvent) {
-        listener = $doc.attachEvent('onreadystatechange', function() {
+        listener = function() {
             if ($doc.readyState === 'complete') {
                 $doc.detachEvent('onreadystatechange', listener);
                 callback();
             }
-        });
+        };
+        $doc.attachEvent('onreadystatechange', listener);
     }
-}
+};
+
 
 $DE.__stylesTag = null;
 // FIXME: move these constants to anm.js
@@ -236,8 +238,8 @@ $DE.styling = {
         rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
         rule.style.opacity = 1;
     },
-    infoInstance: function(rule, desc) { },
-}
+    infoInstance: function(rule, desc) { }
+};
 
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
@@ -254,7 +256,8 @@ $DE.ensureGlobalStylesInjected = function() {
     // head.insertBefore(stylesTag, head.firstChild);
 
     $DE.__stylesTag = stylesTag;
-}
+};
+
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
     var styles = $DE.__stylesTag.sheet,
         rules = styles.cssRules || styles.rules;
@@ -276,7 +279,7 @@ $DE.injectElementStyles = function(elm, general_class, instance_class) {
     props.gen_rule  = elm_rules[0];
     props.inst_rule = elm_rules[1];
     return elm_rules;
-}
+};
 
 $DE.__textBuf = null;
 $DE.createTextMeasurer = function() {
@@ -320,14 +323,14 @@ $DE.createTextMeasurer = function() {
         // TODO: test if lines were changed, and if not,
         //       use cached value
 
-    }
-}
+    };
+};
 
 // Elements
 
 $DE.getElementById = function(id) {
     return $doc.getElementById(id);
-}
+};
 /* FIXME: replace with elm.getBoundingClientRect();
    see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
 // returns position on a screen, _including_ scroll
@@ -341,13 +344,15 @@ $DE.findElementPosition = function(elm) {
     do {
         curleft += elm.offsetLeft;
         curtop += elm.offsetTop;
-    } while (elm = elm.offsetParent);
+    } while ((elm = elm.offsetParent));
     return [ curleft, curtop ];
-}
+};
+
 $DE.findScrollAwarePosition = function(elm) {
+    var curleft = 0,
+        curtop = 0;
+
     if (elm.getBoundingClientRect) {
-        var curleft = 0,
-            curtop = 0;
         var rect = elm.getBoundingClientRect();
         do {
             curleft += ((elm !== $doc.body)
@@ -356,13 +361,11 @@ $DE.findScrollAwarePosition = function(elm) {
             curtop += ((elm !== $doc.body)
                         ? elm.scrollTop
                         : $doc.documentElement.scrollTop);
-        } while (elm = elm.offsetParent);
+        } while ((elm = elm.offsetParent));
         return [ rect.left - curleft, rect.top - curtop ];
     }
     //var bound = elm.getBoundingClientRect();
     //return [ bound.left, bound.top ];
-    var curleft = 0,
-        curtop = 0;
     do {
         curleft += elm.offsetLeft - ((elm !== $doc.body)
                                      ? elm.scrollLeft
@@ -370,9 +373,9 @@ $DE.findScrollAwarePosition = function(elm) {
         curtop += elm.offsetTop - ((elm !== $doc.body)
                                      ? elm.scrollTop
                                      : $doc.documentElement.scrollTop);
-    } while (elm = elm.offsetParent);
+    } while ((elm = elm.offsetParent));
     return [ curleft, curtop ];
-}
+};
 /*$DE.getElementBounds = function(elm) {
     var rect = elm.getBoundingClientRect();
     return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
@@ -381,9 +384,9 @@ $DE.moveElementTo = function(elm, x, y) {
     var props = $DE.hasAnmProps(elm);
     ((props && props.inst_rule) || elm).style.left = (x === 0) ? '0' : (x + 'px');
     ((props && props.inst_rule) || elm).style.top  = (y === 0) ? '0' : (y + 'px');
-}
+};
 
-$DE.__trashBin;
+$DE.__trashBin = null;
 $DE.disposeElement = function(elm) {
     var trashBin = $DE.__trashBin;
     if (!trashBin) {
@@ -395,22 +398,26 @@ $DE.disposeElement = function(elm) {
     }
     trashBin.appendChild(elm);
     trashBin.innerHTML = '';
-}
+};
+
 $DE.detachElement = function(parent, child) {
     (parent || child.parentNode).removeChild(child);
-}
+};
+
 $DE.showElement = function(elm) {
     var props = $DE.hasAnmProps(elm);
     ((props && props.inst_rule) || elm).style.visibility = 'visible';
-}
+};
+
 $DE.hideElement = function(elm) {
     var props = $DE.hasAnmProps(elm);
     ((props && props.inst_rule) || elm).style.visibility = 'hidden';
-}
+};
+
 $DE.clearChildren = function(elm) {
     // much faster than innerHTML = '';
     while (elm.firstChild) { elm.removeChild(elm.firstChild); }
-}
+};
 
 // Creating & Modifying Canvas
 
@@ -419,7 +426,8 @@ $DE.createCanvas = function(width, height, bg, ratio) {
     $DE.setCanvasSize(cvs, width, height, ratio);
     if (bg) $DE.setCanvasBackground(cvs, bg);
     return cvs;
-}
+};
+
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
 
@@ -487,23 +495,29 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     return { wrapper: wrapper,
              canvas: canvas,
              id: id };
-}
+};
+
 $DE.playerAttachedTo = function(elm, player) {
-    if ($DE.hasAnmProps(elm)) { var props = $DE.getAnmProps(elm);
-                                if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR); };
+    if ($DE.hasAnmProps(elm)) {
+        var props = $DE.getAnmProps(elm);
+        if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR);
+    }
     return elm.hasAttribute(MARKER_ATTR);
-}
+};
+
 $DE.findPotentialPlayers = function() {
     return $doc.querySelectorAll('[' + AUTO_MARKER_ATTR + ']');
-}
+};
 
 $DE.hasAnmProps = function(elm) {
     return elm.__anm;
-}
+};
+
 $DE.getAnmProps = function(elm) {
     if (!elm.__anm) elm.__anm = {};
     return elm.__anm;
-}
+};
+
 $DE.clearAnmProps = function(elm) {
     if (!elm || !elm.__anm) return;
     var __anm = elm.__anm;
@@ -524,7 +538,7 @@ $DE.clearAnmProps = function(elm) {
     if (__anm.gen_class  && elm.classList) elm.classList.remove(__anm.gen_class);
     if (__anm.inst_class && elm.classList) elm.classList.remove(__anm.inst_class);
     delete elm.__anm;
-}
+};
 
 $DE.detachPlayer = function(player) {
     var canvas = player.canvas,
@@ -551,10 +565,12 @@ $DE.detachPlayer = function(player) {
     //FIXME: should remove stylesTag when last player was deleted from page
     //$DE.detachElement(null, $DE.__stylesTag);
     //$DE.__stylesTag = null;
-}
+};
+
 $DE.getContext = function(cvs, type) {
     return cvs.getContext(type);
-}
+};
+
 $DE.extractUserOptions = function(elm) {
 
     function __boolAttr(val) {
@@ -608,26 +624,31 @@ $DE.extractUserOptions = function(elm) {
              'loadingMode': elm.getAttribute('anm-loading-mode'),
              'thumbnail': elm.getAttribute('anm-thumbnail')
            };
-}
+};
+
 $DE.checkPlayerCanvas = function(cvs) {
     return true;
-}
+};
+
 $DE.hasUrlToLoad = function(elm) {
     return {
         url: elm.getAttribute(URL_ATTR) || elm.getAttribute(SNAPSHOT_URL_ATTR),
         importer_id: elm.getAttribute(IMPORTER_ATTR)
-    }
-}
+    };
+};
+
 $DE.setTabIndex = function(cvs, idx) {
     cvs.setAttribute('tabindex', idx);
-}
+};
+
 $DE.getCanvasParameters = function(cvs) {
     // if canvas size was not initialized by player, will return null
     if (!$DE.hasAnmProps(cvs)) return null;
     var props = $DE.getAnmProps(cvs);
     if (!props.width || !props.height) return null;
     return [ props.width, props.height, $DE.PX_RATIO ];
-}
+};
+
 $DE.getCanvasSize = function(cvs) {
     if (cvs.getBoundingClientRect) {
        var rect = cvs.getBoundingClientRect();
@@ -637,10 +658,12 @@ $DE.getCanvasSize = function(cvs) {
              cvs.getAttribute('clientWidth') || cvs.clientWidth,
              /* cvs.getAttribute('offsetHeight') || cvs.offsetHeight || */
              cvs.getAttribute('clientHeight') || cvs.clientHeight ];
-}
+};
+
 $DE.getCanvasPosition = function(cvs) {
     return $DE.findScrollAwarePosition(cvs);
-}
+};
+
 $DE.getCanvasBounds = function(cvs/*, parent*/) {
     //var parent = parent || cvs.parentNode;
     var params = $DE.getCanvasParameters(cvs);
@@ -651,10 +674,11 @@ $DE.getCanvasBounds = function(cvs/*, parent*/) {
     // left+width/top+height, but I think it's better to return values
     // not required to sum up/subtract in this case.
     return [ pos[0], pos[1], params[0], params[1], params[2] ];
-}
+};
+
 $DE.setCanvasSize = function(cvs, width, height, ratio) {
     //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
-    var ratio = ratio || $DE.PX_RATIO;
+    ratio = ratio || $DE.PX_RATIO;
     var _w = width | 0, // to int
         _h = height | 0; // to int
     //$log.debug('resizing ' + (cvs.id || cvs) + ' to ' + _w + ' ' + _h);
@@ -668,17 +692,20 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     cvs.setAttribute('height', _h * (ratio || 1));
     $DE._saveCanvasPos(cvs);
     return [ _w, _h ];
-}
+};
+
 $DE.setCanvasPosition = function(cvs, x, y) {
     var props = $DE.getAnmProps(cvs);
     props.usr_x = x;
     props.usr_y = y;
     // TODO: actually move canvas
     $DE._saveCanvasPos(cvs);
-}
+};
+
 $DE.setCanvasBackground = function(cvs, bg) {
     ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
-}
+};
+
 $DE._saveCanvasPos = function(cvs) {
     // FIXME: use getBoundingClientRect?
     var gcs = ($doc.defaultView &&
@@ -709,7 +736,7 @@ $DE._saveCanvasPos = function(cvs) {
         do {
             ol += elm.offsetLeft;
             ot += elm.offsetTop;
-        } while (elm = elm.offsetParent)
+        } while ((elm = elm.offsetParent));
     }
 
     ol += cpl + cbl + htol;
@@ -722,7 +749,8 @@ $DE._saveCanvasPos = function(cvs) {
     var props = $DE.getAnmProps(cvs);
     props.offset_left = ol || props.usr_x;
     props.offset_top  = ot || props.usr_y;
-}
+};
+
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     // conf should be: [ x, y, w, h ], all in percentage relative to parent
     // style may contain _class attr
@@ -752,18 +780,20 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     if (!p_props.overlays) p_props.overlays = [];
     p_props.overlays.push(cvs);
     return cvs;
-}
+};
+
 $DE.updateCanvasOverlays = function(player_cvs) {
     var p_props = $DE.getAnmProps(player_cvs);
     var overlays = p_props.overlays;
     if (overlays) { for (var i = 0, il = overlays.length; i < il; i++) {
         $DE.updateOverlay(player_cvs, overlays[i], p_props);
     } }
-}
+};
+
 $DE.updateOverlay = function(player_cvs, overlay, p_props) {
-    var p_props = p_props || $DE.getAnmProps(player_cvs);
+    p_props = p_props || $DE.getAnmProps(player_cvs);
     $DE.setCanvasSize(overlay, p_props.width, p_props.height);
-}
+};
 
 // Controls & Info
 
@@ -773,51 +803,57 @@ $DE.registerAsControlsElement = function(elm, player) {
                                 $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
     $DE.styling.controlsGeneral(rules[0]);
     $DE.styling.controlsInstance(rules[1]);
-}
+};
+
 $DE.registerAsInfoElement = function(elm, player) {
     var rules = $DE.injectElementStyles(elm,
                                 $DE.INFO_CLASS,
                                 $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
     $DE.styling.infoGeneral(rules[0]);
     $DE.styling.infoInstance(rules[1]);
-}
+};
 
 // Events
 
 $DE.getEventPosition = function(evt, elm) {
-    /*if (elm && (elm.__rOffsetLeft || elm.__rOffsetTop)) return [ evt.pageX - elm.__rOffsetLeft,
-                                                                 evt.pageY - elm.__rOffsetTop ];
-    else */ if (elm) {
+    if (elm) {
         var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
-        return [ evt.x - shift[0], evt.y - shift[1] ];
+        return [ evt.clientX - shift[0], evt.clientY - shift[1] ];
     } else return [ evt.x, evt.y ];
-}
+};
+
 $DE.subscribeWindowEvents = function(handlers) {
     for (var type in handlers) {
         window.addEventListener(type, handlers[type], false);
     }
-}
+};
+
 $DE.subscribeCanvasEvents = function(cvs, handlers) {
     for (var type in handlers) {
         cvs.addEventListener(type, handlers[type], false);
     }
-}
+};
+
 $DE.unsubscribeCanvasEvents = function(cvs, handlers) {
     for (var type in handlers) {
         cvs.removeEventListener(type, handlers[type]);
     }
-}
+};
+
 $DE.keyEvent = function(e) {
-    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
+    return { key: ((e.keyCode !== null) ? e.keyCode : e.which),
              ch: e.charCode };
-}
+};
+
 $DE.mouseEvent = function(e, cvs) {
     return { pos: $DE.getEventPosition(e, cvs) };
-}
+};
+
 $DE.preventDefault = function(evt) {
     evt.stopPropagation();
     evt.preventDefault();
-}
+};
+
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;
 $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
@@ -843,7 +879,8 @@ $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
     cvs.__anm.handlers[anim.id] = handlers;
     cvs.__anm.subscribed[anim.id] = true;
     $DE.subscribeCanvasEvents(cvs, handlers);
-}
+};
+
 $DE.unsubscribeAnimationFromEvents = function(cvs, anim) {
     if (!cvs.__anm.handlers   ||
         !cvs.__anm.subscribed ||
@@ -851,7 +888,8 @@ $DE.unsubscribeAnimationFromEvents = function(cvs, anim) {
     var handlers = cvs.__anm.handlers[anim.id];
     if (!handlers) return;
     $DE.unsubscribeCanvasEvents(cvs, handlers);
-}
+};
+
 $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
     if (!wrapper.classList) return;
     var C = anm.constants;
@@ -867,10 +905,10 @@ $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
             case C.ERROR:   css_classes = ['anm-state-error']; break;
         }
         if (css_classes.length) {
-            var classList = wrapper.classList;
+            var classList = wrapper.classList, i, il;
             if (player.__prev_classes && player.__prev_classes.length) {
                 var prev_classes = player.__prev_classes;
-                for (var i = 0, il = prev_classes.length; i < il; i++) {
+                for (i = 0, il = prev_classes.length; i < il; i++) {
                     classList.remove(prev_classes[i]);
                 }
             } else {
@@ -878,7 +916,7 @@ $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
                     classList.remove('anm-state-nothing');
                 }
             }
-            for (var i = 0, il = css_classes.length; i < il; i++) {
+            for (i = 0, il = css_classes.length; i < il; i++) {
                 classList.add(css_classes[i]);
             }
             player.__prev_classes = css_classes;
@@ -904,19 +942,21 @@ $DE.createStyle = function() {
 
 $DE.createAudio = function() {
     return document.createElement('audio');
-}
+};
 
 $DE.createSource = function() {
     return document.createElement('source');
-}
+};
 
 $DE.appendToBody = function(element) {
     document.body.appendChild(element);
-}
+};
 
 var testCanvas = document.createElement('canvas');
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 
+var https = window.location && window.location.protocol === 'https:';
+$DE.isHttps = https;
 
 module.exports = $DE;
 return $DE;

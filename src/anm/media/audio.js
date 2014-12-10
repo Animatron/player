@@ -54,7 +54,7 @@ function getAudioContext() {
 
     try {
       var ctx = new AudioContext();
-      return global.anmAudioContext = ctx;
+      return (global.anmAudioContext = ctx);
     } catch (e) {
       return null;
     }
@@ -76,6 +76,9 @@ function Audio(url) {
 /** @private @method load */
 Audio.prototype.load = function(player) {
     var me = this;
+    if (engine.isHttps) {
+        me.url = me.url.replace('http:', 'https:');
+    }
     ResMan.loadOrGet(player.id, me.url,
       function(notify_success, notify_error) { // loader
           if (anm.conf.doNotLoadAudio) {
