@@ -1598,9 +1598,6 @@ Player.createState = function(player) {
         /*'__drawInterval': null*/
     };
 }
-
-
-
 /**
  * @static @method forSnapshot
  *
@@ -1640,9 +1637,9 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     } else if (is.defined(params.p)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
-    } else if (is.defined(params.still)) {
+    } else if (is.defined(params.at)) {
         if (this.state.happens === C.PLAYING) this.stop();
-        this.play(params.still / 100).pause();
+        this.play(params.at / 100).pause();
     }
 }
 

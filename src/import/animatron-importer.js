@@ -12,7 +12,9 @@
 // This importer imports only the compact format of animations (where all elements are arrays
 // of arrays)
 
-
+/**
+ * @class anm.AnimatronImporter
+ */
 var AnimatronImporter = (function() {
 
 var IMPORTER_ID = 'ANM'; // FIXME: change to 'animatron', same name as registered
