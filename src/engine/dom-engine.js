@@ -816,11 +816,9 @@ $DE.registerAsInfoElement = function(elm, player) {
 // Events
 
 $DE.getEventPosition = function(evt, elm) {
-    /*if (elm && (elm.__rOffsetLeft || elm.__rOffsetTop)) return [ evt.pageX - elm.__rOffsetLeft,
-                                                                 evt.pageY - elm.__rOffsetTop ];
-    else */ if (elm) {
+    if (elm) {
         var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
-        return [ evt.x - shift[0], evt.y - shift[1] ];
+        return [ evt.clientX - shift[0], evt.clientY - shift[1] ];
     } else return [ evt.x, evt.y ];
 };
 
