@@ -917,6 +917,8 @@ $DE.appendToBody = function(element) {
 var testCanvas = document.createElement('canvas');
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 
+var https = window.location && window.location.protocol === 'https:';
+$DE.isHttps = https;
 
 module.exports = $DE;
 return $DE;
