@@ -587,11 +587,7 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     ctx.strokeStyle = 'transparent';
     ctx.clearRect(0, h-40, w, 20);
     var x = Math.min(Math.max(1, progressPos-17), w-35), r=3, y=h-40, rw=34, rh=20;
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+rw, y,   x+rw, y+rh, r);
-    ctx.arcTo(x+rw, y+rh, x,   y+rh, r);
-    ctx.arcTo(x,   y+rh, x,   y,   r);
-    ctx.arcTo(x,   y,   x+rw, y,   r);
+    drawRoundedRect(ctx,x,y,rw,rh,r);
     ctx.moveTo(x+rw/2-3, y+rh);
     ctx.lineTo(x+rw/2, y+rh+3);
     ctx.lineTo(x+rw/2+3, y+rh);
@@ -608,6 +604,21 @@ var drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.fillStyle = color || theme.font.color;
     ctx.fillText(text, x, y);
     ctx.restore();
+};
+
+var drawRoundedRect = function(ctx, x, y, w, h, radius)
+{
+  var r = x + w;
+  var b = y + h;
+  ctx.moveTo(x+radius, y);
+  ctx.lineTo(r-radius, y);
+  ctx.quadraticCurveTo(r, y, r, y+radius);
+  ctx.lineTo(r, y+h-radius);
+  ctx.quadraticCurveTo(r, b, r-radius, b);
+  ctx.lineTo(x+radius, b);
+  ctx.quadraticCurveTo(x, b, x, b-radius);
+  ctx.lineTo(x, y+radius);
+  ctx.quadraticCurveTo(x, y, x+radius, y);
 };
 
 module.exports = Controls;
