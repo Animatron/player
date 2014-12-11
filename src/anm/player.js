@@ -713,8 +713,20 @@ Player.prototype._addOpts = function(opts) {
 
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
-    this.width =   opts.width || this.width;
-    this.height =  opts.height || this.height;
+    if (opts.width) {
+        if (is.int(opts.width)) {
+            this.width = opts.width;
+        } else { //float number === percentage
+            this.width *= opts.width;
+        }
+    }
+    if (opts.height) {
+        if (is.int(opts.height)) {
+            this.height = opts.height;
+        } else { //float number === percentage
+            this.height *= opts.height;
+        }
+    }
     this.bgColor = opts.bgColor || this.bgColor;
 
     this.ribbonsColor =
