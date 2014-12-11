@@ -63,6 +63,11 @@ var utils = (function () {
             return size;
         },
 
+        reportError: function (_e) {
+            if (window.console) console.error(_e.message || _e);
+            else alert(_e.message || _e);
+        },
+
         forcedJS: function (path, then) {
             var scriptElm = document.createElement('script');
             scriptElm.type = 'text/javascript';
@@ -103,7 +108,6 @@ var start = (function () {
     params.h = params.h || rect.h;
 
     if (autostart) {
-        params.t = 0;
     }
     if (loop) {
         params.r = 1;

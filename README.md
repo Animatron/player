@@ -1,10 +1,10 @@
-### JS Player for Animatron project (v1.2, though anyway very unstable)
+### JS Player for Animatron project (v1.3)
 
 [Currently all tests are disabled and not time-bombed in refactoring purposes (some will be turned back on after refactoring iterations, some not), so the badge below just provides nice ecologically green color for us to feel safe]
 
-[API, embedding and this documentation in general are a subject to change drastically. Be aware!]
+[Documentation in general is a subject to change drastically, because it's outdated now. Be aware!]
 
-[![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player)
+<!-- [![Build Status](https://secure.travis-ci.org/Animatron/player.png?branch=master)](https://travis-ci.org/Animatron/player) -->
 <!-- [![Code Climate](https://codeclimate.com/github/Animatron/player.png)](https://codeclimate.com/github/Animatron/player) -->
 
 Licensed under MIT License, see `LICENSE` file.

@@ -59,13 +59,14 @@ var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
     UGLIFYJS: NODE_GLOBAL ? 'uglifyjs' : (LOCAL_NODE_DIR + '/uglify-js/bin/uglifyjs'),
     JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
-    DOCCO: NODE_GLOBAL ? 'docco' : (LOCAL_NODE_DIR + '/docco/bin/docco'),
+    JSDUCK: 'jsduck',
     PHANTOMJS: 'phantomjs',
     CAT: 'cat',
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
     GIT: 'git',
-    GZIP: 'gzip'
+    GZIP: 'gzip',
+    BROWSERIFY: 'browserify'
 };
 
 var Dirs = {
@@ -85,8 +86,7 @@ var SubDirs = {
 
 var Files = {
     Main: { INIT: 'anm.js',
-            PLAYER: 'player.js',
-            BUILDER: 'builder.js' },
+            PLAYER: 'player.js' },
     Ext: { VENDOR: [ 'matrix.js'/*, 'json2.js'*/, 'font-detector.js' ],
            ENGINES: { _ALL_: [ 'dom-engine.js',
                                'node-engine.js' ],
@@ -97,61 +97,28 @@ var Files = {
                                  'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
-           MODULES: { _ALL_: [ 'collisions.js',
-                               'audio.js',
-                               'audio-export.js',
-                               'scripting.js' ],
-                      COLLISIONS: 'collisions.js',
-                      AUDIO: 'audio.js',
-                      AUDIO_EXPORT: 'audio-export.js',
-                      SCRIPTING: 'scripting.js' }, },
+           MODULES: { _ALL_: [ /* 'collisions.js', */
+                               //'audio-export.js',
+                               //'scripting.js',
+                               'shapes.js' ],
+                      // COLLISIONS: 'collisions.js',
+                      //AUDIO_EXPORT: 'audio-export.js',
+                      SCRIPTING: 'scripting.js',
+                      SHAPES: 'shapes.js' }, },
     Doc: { README: 'README.md',
-           API: 'API.md',
+           EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
 }
 
 var Bundles = [
-    { name: 'Standard',
-      file: 'standard',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
-                                                            Files.Main.PLAYER ])) },
     { name: 'Animatron',
       file: 'animatron',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES,   [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
-                                                              Files.Main.PLAYER,
-                                                              Files.Main.BUILDER ]))
+      includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
-                                                              Files.Ext.MODULES.COLLISIONS,
-                                                              Files.Ext.MODULES.SCRIPTING ])) },
-    /* { name: 'Animatron-Intact',
-      file: 'animatron-intact',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,      Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                           [ Files.Main.INIT,
-                                                              Files.Main.PLAYER,
-                                                              Files.Main.BUILDER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM_INTACT ])) // animatron-intact-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO ])) }, // include audio module */
-    { name: 'Develop',
-      file: 'develop',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
-                                                            Files.Main.PLAYER,
-                                                            Files.Main.BUILDER ])) },
-    { name: 'Hardcore',
-      file: 'hardcore',
-      includes: _in_dir(Dirs.SRC + '/' + SubDirs.VENDOR,  Files.Ext.VENDOR )
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.ENGINES, [ Files.Ext.ENGINES.DOM ]))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.INIT,
-                                                            Files.Main.PLAYER ]))
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES, Files.Ext.MODULES._ALL_ ))
-        .concat(_in_dir(Dirs.SRC,                         [ Files.Main.BUILDER ])) }
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [
+                                                              // Files.Ext.MODULES.COLLISIONS,
+                                                              Files.Ext.MODULES.SCRIPTING,
+                                                              Files.Ext.MODULES.SHAPES ])) }
 ];
 
 var Tests = {
@@ -160,15 +127,16 @@ var Tests = {
 };
 
 var Docs = {
+    Config: Dirs.DOCS + '/jduck.json',
     FromSRC: { INCLUDE: [ Dirs.SRC + '/*.js' ] },
     FromMD: {
        Files: {
          README_SRC: Files.Doc.README,
          README_DST: Dirs.DOCS + '/README.html',
-         API_SRC: Dirs.DOCS + '/' + Files.Doc.API,
-         API_DST: Dirs.DOCS + '/API.html',
          SCRIPTING_SRC: Dirs.DOCS + '/' + Files.Doc.SCRIPTING,
-         SCRIPTING_DST: Dirs.DOCS + '/scripting.html'
+         SCRIPTING_DST: Dirs.DOCS + '/scripting.html',
+         EMBEDDING_SRC: Dirs.DOCS + '/' + Files.Doc.EMBEDDING,
+         EMBEDDING_DST: Dirs.DOCS + '/embedding.html'
        },
        Parts: {
          _head: Dirs.DOCS + '/_head.html',
@@ -315,26 +283,22 @@ task('test', { async: true }, function(param) {
 
 desc(_dfit_nl(['Generate Docco docs and compile API documentation into '+
                   'HTML files inside of the /doc directory.',
-               'Requires: `docco`, Python installed, `markdown` module for Python'+
+               'Requires: `jsduck`, Python installed, `markdown` module for Python'+
                   '(and Python is used only because of this module).',
-               'Produces: /doc/player.html, /doc/builder.html, '+
-                  '/doc/API.html, /doc/README.html, /doc/scripting.html, /doc/docco.css.']));
+               'Produces: /doc/api/*, /doc/player.html, /doc/embedding.html, '+
+                  '/doc/README.html, /doc/scripting.html.']));
 task('docs', { async: true }, function() {
     _print('Generating docs');
-
-    _print('Using ' + (NODE_GLOBAL ? 'global'
-                               : 'local (at '+LOCAL_NODE_DIR+')')
-                + ' node.js binaries');
 
     function _src_docs(next) {
         _print('For sources');
 
-        jake.exec([ Binaries.DOCCO,
-                    '-o',
-                    _loc(Dirs.DOCS)
-                  ].concat(Docs.FromSRC.INCLUDE)
-                   .join(' '), EXEC_OPTS,
-                  function() { _print('Source docs were Generated successfully');
+        _versionize(_loc(Docs.Config));
+
+        jake.exec([ Binaries.JSDUCK,
+                    '--config=' + _loc(Docs.Config)
+                  ].join(' '), EXEC_OPTS,
+                  function() { _print('Source docs were Generated successfully at ' + _loc(Dirs.DOCS + '/api'));
                                _print(DONE_MARKER);
                                if (next) next(); });
     }
@@ -362,8 +326,8 @@ task('docs', { async: true }, function() {
     }
 
     _src_docs(function() {
-      _md_docs(Docs.FromMD.Files.API_SRC, Docs.FromMD.Files.API_DST, function() {
-        _md_docs(Docs.FromMD.Files.README_SRC, Docs.FromMD.Files.README_DST, function() {
+      _md_docs(Docs.FromMD.Files.README_SRC, Docs.FromMD.Files.README_DST, function() {
+        _md_docs(Docs.FromMD.Files.EMBEDDING_SRC, Docs.FromMD.Files.EMBEDDING_DST, function() {
           _md_docs(Docs.FromMD.Files.SCRIPTING_SRC, Docs.FromMD.Files.SCRIPTING_DST, function() {
             complete();
           });
@@ -614,7 +578,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
                     '`aws2js` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version, _bucket) {
+task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
     if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
@@ -640,7 +604,7 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
     var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
-        var gzip_it = (stat.name.indexOf('.min') > 0) &&
+        var gzip_it = (stat.name.indexOf('.js') > 0) &&
                       (stat.name !== BUILD_FILE_NAME);
         files.push([ root + '/' + stat.name, // source
                      trg_dir +
@@ -728,7 +692,7 @@ task('push-version', [/*'test',*/'dist-min'], { async: true }, function(_version
 
 // push-go =====================================================================
 
-desc(_dfit_nl(['Pushes `go` page and `publish.js` script to the S3.',
+desc(_dfit_nl(['Pushes publish.js` script to the S3.',
                'Usage: {jake push-go} to push to `dev` bucket under current version. '+
                    'To push to another bucket or version, pass it as a param: '+
                    '{jake push-go[,rls]}, {jake push-go[latest,rls]}',
@@ -767,32 +731,23 @@ task('push-go', [], { async: true }, function(_version, _bucket) {
 
     s3.setBucket(trg_bucket);
 
-    var GO_LOCAL_PATH = _loc('go'),
-        GO_REMOTE_PATH = '/' + trg_version + '/go';
     var PUBLISHJS_LOCAL_PATH = _loc('publish.js'),
         PUBLISHJS_REMOTE_PATH = '/' + trg_version + '/publish.js';
     var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
         FAVICON_REMOTE_PATH = '/favicon.ico';
 
 
-    s3.putFile(GO_REMOTE_PATH, GO_LOCAL_PATH, 'public-read', { 'content-type': 'text/html' }, function(err, res) {
+    s3.putFile(PUBLISHJS_REMOTE_PATH, PUBLISHJS_LOCAL_PATH, 'public-read', { 'content-type': 'text/javascript' }, function(err, res) {
 
         if (err) { _print(FAILED_MARKER); throw err; }
-        _print(GO_LOCAL_PATH + ' -> s3 as ' + GO_REMOTE_PATH);
+        _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
 
-        s3.putFile(PUBLISHJS_REMOTE_PATH, PUBLISHJS_LOCAL_PATH, 'public-read', { 'content-type': 'text/javascript' }, function(err, res) {
+        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
 
             if (err) { _print(FAILED_MARKER); throw err; }
-            _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
+            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
 
-            s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
-
-                if (err) { _print(FAILED_MARKER); throw err; }
-                _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
-
-                complete();
-
-            });
+            complete();
 
         });
 
@@ -901,7 +856,7 @@ task('_prepare', function() {
 // _bundles ====================================================================
 
 desc(_dfit(['Internal. Create bundles from existing sources and put them into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder']));
-task('_bundles', function() {
+task('_bundles', ['browserify'], function() {
     _print('Create Bundles..');
     var BUILD_TIME = _build_time();
     var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
@@ -909,6 +864,7 @@ task('_bundles', function() {
     Bundles.forEach(function(bundle) {
         _print('Package bundle \'' + bundle.name + '\'');
         var targetFile = targetDir + '/' + bundle.file + '.js';
+        jake.rmRf(_loc(targetFile));
         _print('.. (c) > ' + targetFile);
         jake.echo(COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
                                    .concat('\n\n\n'),
@@ -953,15 +909,13 @@ task('_bundle', function(param) {
 
 desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
 task('_organize', function() {
-
+    return;
     _print('Copy files to ' + Dirs.DIST + '..');
 
     jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.INIT),
              _loc(Dirs.DIST + '/' + Files.Main.INIT));
     jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.PLAYER),
              _loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.BUILDER),
-             _loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.VENDOR));
     Files.Ext.VENDOR.forEach(function(vendorFile) {
@@ -994,52 +948,43 @@ task('_organize', function() {
 
 desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
 task('_versionize', function() {
+    return;
     _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
-
-    function versionize(src) {
-        var new_content = jake.cat(src).trim()
-                                       .replace(/@VERSION/g, VERSION)
-                                       .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
-        jake.rmRf(src);
-        jake.echo(new_content + '\n', src);
-        _print('v -> ' + src);
-    }
 
     _print('.. Main files');
 
-    versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-    versionize(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
+    _versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    _versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
 
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
     });
 
     _print('.. Modules');
 
     Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
     });
 
     _print('.. Importers');
 
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
-        versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
+        _versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
 
     _print('..Docs');
 
-    versionize(_loc(Files.Doc.README));
-    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.API));
-    versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
+    _versionize(_loc(Files.Doc.README));
+    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.EMBEDDING));
+    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
 
     _print(DONE_MARKER);
 });
@@ -1070,10 +1015,6 @@ task('_minify', { async: true }, function() {
             '--ascii',
             '--compress warnings=false',
             '--screw-ie8', // since April 2014
-            '--source-map-url', _src_map_url(src),
-            '--source-map', _src_map(src),
-            '--source-map-root', _src_map_root(src),
-            '--prefix', _src_map_prefix(src),
             '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
             '--output', dst,
             src
@@ -1113,25 +1054,24 @@ task('_minify', { async: true }, function() {
             if (!Object.keys(queue).length) complete();
         });
     }
-
+    /*
     _print('.. Vendor Files');
 
     Files.Ext.VENDOR.forEach(function(vendorFile) {
         minifyInQueue(_loc(Dirs.DIST + '/' + SubDirs.VENDOR + '/' + vendorFile));
     });
-
+    */
     _print('.. Main files');
 
-    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
+    //minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.INIT));
     minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-    minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + Files.Main.BUILDER));
 
     _print('.. Bundles');
 
     Bundles.forEach(function(bundle) {
         minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
-
+    /*
     _print('.. Engines');
 
     Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
@@ -1149,7 +1089,7 @@ task('_minify', { async: true }, function() {
     Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
         minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
     });
-
+    */
 });
 
 // _build-file =================================================================
@@ -1196,6 +1136,14 @@ task('_build-file', { async: true }, function() {
         throw new Error(msg);
     });
     _getCommintHash.run();
+});
+
+task('browserify', {'async': true}, function(){
+  _print('browserifying...');
+  jake.exec('browserify src/main.js -o dist/player.js', function() {
+    _print('created dist/player.js');
+    complete();
+  });
 });
 
 // UTILS =======================================================================
@@ -1336,6 +1284,15 @@ var _versions = (function() {
     return { read: _read,
              write: _write };
 })();
+
+function _versionize(src) {
+    var new_content = jake.cat(src).trim()
+                                   .replace(/@VERSION/g, VERSION)
+                                   .replace(/@COPYRIGHT_YEAR/g, COPYRIGHT_YEAR);
+    jake.rmRf(src);
+    jake.echo(new_content + '\n', src);
+    _print('v -> ' + src);
+}
 
 // TODO
 /* function _check_npm_packages(list) {

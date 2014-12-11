@@ -9,24 +9,29 @@
 
 // see ./animatron-project-@VERSION.orderly for a readable scheme of accepted project
 
-// This importer imports only the compact format of scenes (where all elements are arrays
+// This importer imports only the compact format of animations (where all elements are arrays
 // of arrays)
 
-if (typeof __anm_engine === 'undefined') throw new Error('No engine found!');
-
-__anm_engine.define('anm/importers/animatron', ['anm', 'anm/Player'], function(anm/*, Player*/) {
-
+/**
+ * @class anm.AnimatronImporter
+ */
 var AnimatronImporter = (function() {
 
-var IMPORTER_ID = 'ANM';
+var IMPORTER_ID = 'ANM'; // FIXME: change to 'animatron', same name as registered
 
-var C = anm.C,
-    Scene = anm.Scene,
+var C = anm.constants,
+    Animation = anm.Animation,
     Element = anm.Element,
     Path = anm.Path,
     Text = anm.Text,
+    Brush = anm.Brush,
     Bands = anm.Bands,
-    is = anm.is,
+    Tween = anm.Tween,
+    MSeg = anm.MSeg,
+    LSeg = anm.LSeg,
+    CSeg = anm.CSeg,
+    Audio = anm.Audio,
+    is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck
 
@@ -42,14 +47,15 @@ var cur_import_id;
 // -> Array[?]
 Import._find = function(idx, src) {
     var res = src[idx];
-    if (!res) _reportError('Element with index ' + idx + ' was not found'
-                           + (src ? ' among ' + src.length + ' elements.' : '.') );
+    if (!res) _reportError('Element with index ' + idx + ' was not found' +
+                            (src ? ' among ' + src.length + ' elements.' : '.') );
     return src[idx];
-}
+};
+
 // -> Integer
 Import._type = function(src) {
     return src[0];
-}
+};
 
 /** project **/
 /*
@@ -58,16 +64,16 @@ Import._type = function(src) {
  *     object *anim*;     // animation info
  * } *project*;
  */
-// -> Scene
+// -> Animation
 Import.project = function(prj) {
     //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
-    cur_import_id = anm.guid();
+    cur_import_id = anm.utils.guid();
     anm.lastImportedProject = prj;
     anm.lastImportId = cur_import_id;
     var scenes_ids = prj.anim.scenes;
     if (!scenes_ids.length) _reportError('No scenes found in given project');
-    var root = new Scene(),
+    var root = new Animation(),
         elems = prj.anim.elements,
         last_scene_band = [ 0, 0 ];
     root.__import_id = cur_import_id;
@@ -87,9 +93,9 @@ Import.project = function(prj) {
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         var node_res = Import.node(node_src, elems, null, root);
         //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
-        if (node_res.xdata.gband[0] == node_res.xdata.gband[1]) {
+        if (node_res.gband[0] == node_res.gband[1]) {
             continue;
-        };
+        }
 
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
@@ -97,31 +103,31 @@ Import.project = function(prj) {
             // gband[1] contains the duration of the scene there, while gband[0] contains 0
             // (see SCENE type handling in Import.node)
             // TODO: fix it with proper native scenes when they will be supported in player
-            var gband_before = node_res.xdata.gband;
-            node_res.xdata.gband = [ last_scene_band[1] + gband_before[0],
-                                     last_scene_band[1] + gband_before[1] ];
+            var gband_before = node_res.gband;
+            node_res.gband = [ last_scene_band[1] + gband_before[0],
+                               last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
-            node_res.xdata.lband = node_res.xdata.gband;
-            node_res.travelChildren(function(elm) {
-                var e_gband_before = elm.xdata.gband;
-                elm.xdata.gband = [ last_scene_band[1] + e_gband_before[0],
-                                    last_scene_band[1] + e_gband_before[1] ];
+            node_res.lband = node_res.gband;
+            node_res.traverse(function(elm) {
+                var e_gband_before = elm.gband;
+                elm.gband = [ last_scene_band[1] + e_gband_before[0],
+                              last_scene_band[1] + e_gband_before[1] ];
             });
         }
-        last_scene_band = node_res.xdata.gband;
+        last_scene_band = node_res.gband;
         root.add(node_res);
     }
 
     if (scenes_ids.length > 0) {
-        node_res.xdata.gband = [last_scene_band[0], Infinity];
-        node_res.xdata.lband = node_res.xdata.gband;
+        node_res.gband = [last_scene_band[0], Infinity];
+        node_res.lband = node_res.gband;
     }
 
     Import._paths = undefined; // clear
     Import._path_cache = undefined;
 
     return root;
-}
+};
 /** meta **/
 // -> Object
 Import.meta = function(prj) {
@@ -137,11 +143,11 @@ Import.meta = function(prj) {
         'modified': _m.modified,
         '_anm_id': _m.id
     };
-}
+};
 
 Import.fonts = function(prj) {
     return prj.anim.fonts;
-}
+};
 /** anim **/
 /*
  * object {
@@ -158,28 +164,26 @@ Import.anim = function(prj, trg) {
     trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
     trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
     trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
-    trg.zoom = _a.zoom ? Import.fill(_a.zoom) : undefined;
-    trg.speed = _a.speed ? Import.fill(_a.speed) : undefined;
+    trg.zoom = _a.zoom || 1.0;
+    trg.speed = _a.speed || 1.0;
     if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
-}
+};
 
 var TYPE_UNKNOWN =  0,
     TYPE_CLIP    =  1,
     TYPE_SCENE   =  2,
     TYPE_PATH    =  3,
     TYPE_TEXT    =  4,
-    TYPE_RECT    =  5,
-    TYPE_OVAL    =  6,
-    TYPE_PENCIL  =  7,
     TYPE_IMAGE   =  8,
     TYPE_GROUP   =  9,
-    TYPE_BRUSH   = 10,
-    TYPE_STAR    = 11,
-    TYPE_POLYGON = 12,
-    TYPE_CURVE   = 13,
     TYPE_AUDIO   = 14,
-    TYPE_LINE    = 15,
+    TYPE_FONT    = 25,
+    TYPE_VIDEO   = 26,
     TYPE_LAYER   = 255; // is it good?
+
+function isPath(type) {
+    return (type == TYPE_PATH);
+}
 
 /** node **/
 /*
@@ -192,19 +196,23 @@ var TYPE_UNKNOWN =  0,
  * } *element*;
  */
 // -> Element
-Import.node = function(src, all, parent, scene) {
+Import.node = function(src, all, parent, anim) {
     var type = Import._type(src),
         trg = null;
     if ((type == TYPE_CLIP) ||
         (type == TYPE_SCENE) ||
         (type == TYPE_GROUP)) {
-        trg = Import.branch(type, src, all, scene);
+        trg = Import.branch(type, src, all, anim);
     } else if (type != TYPE_UNKNOWN) {
-        trg = Import.leaf(type, src, parent, scene);
+        trg = Import.leaf(type, src, parent, anim);
     }
-    if (trg) { Import.callCustom(trg, src, type); };
+    if (trg) {
+        trg._anm_type = type;
+        Import.callCustom(trg, src, type);
+    }
     return trg;
-}
+};
+
 var L_ROT_TO_PATH = 1,
     L_OPAQUE_TRANSFORM = 2;
     L_VISIBLE = 4;
@@ -224,17 +232,17 @@ var L_ROT_TO_PATH = 1,
  * } *group_element*;
  */
 // -> Element
-Import.branch = function(type, src, all, scene) {
+Import.branch = function(type, src, all, anim) {
     var trg = new Element();
     trg.name = src[1];
     var _layers = (type == TYPE_SCENE) ? src[3] : src[2],
         _layers_targets = [];
     if (type == TYPE_SCENE) {
-        trg.xdata.gband = [ 0, src[2] ];
-        trg.xdata.lband = [ 0, src[2] ];
+        trg.gband = [ 0, src[2] ];
+        trg.lband = [ 0, src[2] ];
     } else {
-        trg.xdata.gband = [ 0, Infinity ];
-        trg.xdata.lband = [ 0, Infinity ];
+        trg.gband = [ 0, Infinity ];
+        trg.lband = [ 0, Infinity ];
     }
     // in animatron layers are in reverse order
     for (var li = _layers.length; li--;) {
@@ -258,27 +266,17 @@ Import.branch = function(type, src, all, scene) {
 
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
-        var ltrg = Import.node(nsrc, all, trg, scene);
+        var ltrg = Import.node(nsrc, all, trg, anim);
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
         var flags = lsrc[6];
         ltrg.disabled = !(flags & L_VISIBLE);
-        var x = ltrg.xdata,
-            b = Import.band(lsrc[2]);
-        if (type == TYPE_GROUP) {
-            x.gband = [ 0, b[1] ];
-            x.lband = [ 0, b[1] ];
-        } else {
-            x.lband = b;
-            x.gband = b; //in_band ? Bands.wrap(in_band, b) : b;
-        }
-        x.pvt = [ 0, 0 ];
-        x.reg = lsrc[4] || [ 0, 0 ];
-        /* if (lsrc[4]) {
-            ltrg.bstate.x = lsrc[4][0];
-            ltrg.bstate.y = lsrc[4][1];
-        }; */
+        var b = Import.band(lsrc[2]);
+        ltrg.lband = b;
+        ltrg.gband = b;
+        ltrg.$pivot = [ 0, 0 ];
+        ltrg.$reg = lsrc[4] || [ 0, 0 ];
 
         // apply tweens
         if (lsrc[7]) {
@@ -287,18 +285,17 @@ Import.branch = function(type, src, all, scene) {
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.type == C.T_TRANSLATE) {
+                if (t.tween == C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
-                ltrg.addTween(t);
+                ltrg.tween(t);
             }
             if (translates && (flags & L_ROT_TO_PATH)) {
-                for (var ti = 0, til = translates.length; ti < til; ti++) {
-                    ltrg.addTween({
-                        type: C.T_ROT_TO_PATH,
-                        band: translates[ti].band
-                    });
+                for (ti = 0, til = translates.length; ti < til; ti++) {
+                    ltrg.tween(
+                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].$band)
+                    );
                 }
             }
             translates = [];
@@ -313,12 +310,22 @@ Import.branch = function(type, src, all, scene) {
          */
         // transfer repetition data
         if (lsrc[5]) {
-            x.mode = Import.mode(lsrc[5][0]);
+            ltrg.mode = Import.mode(lsrc[5][0]);
             if (lsrc[5].length > 1) {
-                x.nrep = lsrc[5][1] || Infinity;
+                ltrg.nrep = lsrc[5][1] || Infinity;
             }
         } else {
-            x.mode = Import.mode(null);
+            ltrg.mode = Import.mode(null);
+        }
+
+        // Clips' end-actions like in Editor are not supported in Player,
+        // but they may be adapted to Player's model (same as Group in Editor)
+        if ((ltrg._anm_type == TYPE_CLIP) && (ltrg.mode != C.R_ONCE)) {
+            ltrg.asClip([0, ltrg.lband[1] - ltrg.lband[0]], ltrg.mode, ltrg.nrep);
+            ltrg.lband = [ ltrg.lband[0], Infinity ];
+            ltrg.gband = [ ltrg.gband[0], Infinity ];
+            ltrg.mode = C.R_STAY;
+            ltrg.nrep = Infinity;
         }
 
         // if do not masks any layers, just add to target
@@ -333,40 +340,53 @@ Import.branch = function(type, src, all, scene) {
                 togo = lsrc[3], // layers below to apply mask
                 targets_n = _layers_targets.length;
             if (togo > targets_n) {
-                _reportError('No layers collected to apply mask, expected ' + togo
-                             + ', got ' + targets_n);
+                _reportError('No layers collected to apply mask, expected ' +
+                            togo + ', got ' + targets_n);
                 togo = targets_n;
-            };
+            }
             while (togo) {
                 var masked = _layers_targets[targets_n-togo];
-                masked.setMask(mask);
+                masked.mask(mask);
                 togo--;
             }
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
-        // [todo] temporary implementation
+        // TODO temporary implementation
         if (ltrg._audio_master) {
-            x.lband = [x.lband[0], Infinity];
-            x.gband = [x.gband[0], Infinity];
+            ltrg.lband = [ltrg.lband[0], Infinity];
+            ltrg.gband = [ltrg.gband[0], Infinity];
             trg.remove(ltrg);
-            scene.add(ltrg);
+            anim.add(ltrg);
         }
     }
+
     return trg;
-}
+};
+
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent, scene) {
+Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
-    var x = trg.xdata;
-         if (type == TYPE_IMAGE) { x.sheet = Import.sheet(src); }
-    else if (type == TYPE_TEXT)  { x.text  = Import.text(src);  }
-    else if (type != TYPE_AUDIO) { x.path  = Import.path(src); }
+         if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
+    else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
+    else if (type == TYPE_AUDIO) {
+        trg.type = C.ET_AUDIO;
+        trg.audio = Import.audio(src);
+        trg.audio.connect(trg);
+    }
+    else if (type == TYPE_VIDEO) {}
+    else { trg.$path  = Import.path(src);  }
+    if (trg.$path || trg.$text) {
+        trg.$fill = Import.fill(src[1]);
+        trg.$stroke = Import.stroke(src[2]);
+        trg.$shadow = Import.shadow(src[3]);
+    }
     // FIXME: fire an event instead (event should inform about type of the importer)
     return trg;
-}
+};
+
 
 // call custom importers
 Import.callCustom = function(trg, src, type) {
@@ -377,7 +397,7 @@ Import.callCustom = function(trg, src, type) {
             importers[i].call(trg, src, type, IMPORTER_ID, cur_import_id);
         }
     }
-}
+};
 
 /** band **/
 // -> Array[2, Float]
@@ -386,7 +406,8 @@ Import.band = function(src) {
     if (src.length == 1) return [ src[0], Infinity ];
     if (src.length == 2) return src;
     _reportError('Unknown format of band: ' + src);
-}
+};
+
 /** path (shape) **/
 /*
  * array {
@@ -401,11 +422,8 @@ Import.band = function(src) {
 Import.path = function(src) {
     var path = Import._pathDecode(src[4]);
     if (!path) return;
-    return new Path(path, // Import.pathval
-                    Import.fill(src[1]),
-                    Import.stroke(src[2]),
-                    Import.shadow(src[3]));
-}
+    return new Path(path);
+};
 
 /*
  * Could be either String or Binary encoded path
@@ -419,7 +437,7 @@ Import._pathDecode = function(src) {
 
     var val = Import._path_cache.get(encoded);
     if (val) {
-        return val.duplicate().segs;
+        return [].concat(val.segs);
     } else {
         val = Import._decodeBinaryPath(encoded);
         if (!val) return null;
@@ -427,7 +445,7 @@ Import._pathDecode = function(src) {
     }
 
     return val.segs;
-}
+};
 
 Import._decodeBinaryPath = function(encoded) {
     var path = new Path();
@@ -440,27 +458,27 @@ Import._decodeBinaryPath = function(encoded) {
             if (s) {
                 var _do = true;
                 while (_do) {
-                    var type = s.readBits(2);
+                    var type = s.readBits(2), p;
                     switch (type) {
                         case 0:
-                            var p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, [], base);
                             base = p;
 
-                            Path._parserVisitor("M", p, path);
+                            path.add(new MSeg(p));
                             break;
                         case 1:
-                            var p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, [], base);
                             base = p;
 
-                            Path._parserVisitor("L", p, path);
+                            path.add(new LSeg(p));
                             break;
                         case 2:
-                            var p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, [], base);
                             Import._pathReadPoint(s, p);
                             Import._pathReadPoint(s, p);
                             base = [p[p.length - 2], p[p.length - 1]];
 
-                            Path._parserVisitor("C", p, path);
+                            path.add(new CSeg(p));
                             break;
                         case 3:
                             _do = false;
@@ -482,7 +500,7 @@ Import._decodeBinaryPath = function(encoded) {
     }
 
     return path;
-}
+};
 
 Import._pathReadPoint = function(stream, target, base) {
     var l = stream.readBits(5);
@@ -499,7 +517,7 @@ Import._pathReadPoint = function(stream, target, base) {
     target.push(b_x + x / 1000.0);
     target.push(b_y + y / 1000.0);
     return target;
-}
+};
 
 /** text **/
 /*
@@ -521,13 +539,10 @@ Import.text = function(src) {
     var lines = is.arr(src[6]) ? src : src[6].split('\n');
     return new Text((lines.length > 1) ? lines : lines[0],
                     src[4],
-                    Import.fill(src[1]),
-                    Import.stroke(src[2]),
-                    Import.shadow(src[3]),
                     src[5], // align
                     (src[7] & TEXT_MID_BASELINE) ? 'middle' : 'bottom',
                     (src[7] & TEXT_UNDERLINE) ? true : false);
-}
+};
 /** sheet (image) **/
 /*
  * array {
@@ -541,7 +556,7 @@ Import.sheet = function(src) {
     var sheet = new anm.Sheet(src[1]);
     if (src[2]) sheet._dimen = src[2];
     return sheet;
-}
+};
 /** tween **/
 /*
  * union {
@@ -604,14 +619,13 @@ Import.sheet = function(src) {
 // -> Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
-    if (type == null) return null;
-    return {
-        'type': type,
-        'band': Import.band(src[1]),
-        'easing': Import.easing(src[2]),
-        'data': Import.tweendata(type, src[3])
-    };
-}
+    if (type === null) return null;
+    var tween = new Tween(type, Import.tweendata(type, src[3]))
+                          .band(Import.band(src[1])),
+        easing = Import.easing(src[2]);
+    if (easing) tween.easing(easing);
+    return tween;
+};
 /** tweentype **/
 // -> Type
 Import.tweentype = function(src) {
@@ -621,13 +635,14 @@ Import.tweentype = function(src) {
     if (src === 3) return C.T_SHEAR;
     if (src === 4) return C.T_TRANSLATE;
     //if (src === 5) return C.T_ROT_TO_PATH;
+    if (src === 7) return C.T_VOLUME;
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
-}
+};
 /** tweendata **/
 // -> Any
 Import.tweendata = function(type, src) {
-    if (src == null) return null; // !!! do not optimize to !src since 0 can also happen
+    if (src === null) return null; // !!! do not optimize to !src since 0 can also happen
     if (type === C.T_TRANSLATE) return Import.pathval(src);
     if ((type === C.T_ROTATE) ||
         (type === C.T_ALPHA)) {
@@ -643,13 +658,18 @@ Import.tweendata = function(type, src) {
         if (src.length == 1) return [ [ src[0], src[0] ],
                                       [ src[0], src[0] ] ];
     }
-    if(type === C.T_FILL) {
-        return [Import.brush(src[0]), Import.brush(src[1])];
+    if (type === C.T_FILL) {
+        return [Import.fill(src[0]), Import.fill(src[1])];
     }
     if (type === C.T_STROKE) {
         return [Import.stroke(src[0]), Import.stroke(src[1])];
     }
-}
+    if (type === C.T_VOLUME) {
+      if (src.length == 2) return src;
+      if (src.length == 1) return [ src[0], src[0] ];
+    }
+
+};
 /** easing **/
 /*
  * union {
@@ -664,14 +684,14 @@ Import.easing = function(src) {
         return {
             type: C.E_PATH,
             data: Import.pathval('M0 0 ' + src + ' Z')
-        }
+        };
     } else if (is.num(src)) {
         return {
             type: C.E_STDF,
             data: src
-        }
+        };
     }
-}
+};
 /** mode **/
 Import.mode = function(src) {
     if (!src) return C.R_ONCE;
@@ -679,7 +699,7 @@ Import.mode = function(src) {
     if (src === 1) return C.R_LOOP;
     if (src === 2) return C.R_BOUNCE;
     if (src === 3) return C.R_STAY;
-}
+};
 /** brush (paint) **/
 /*
  * union {
@@ -688,16 +708,15 @@ Import.mode = function(src) {
  *     *rgrad*;         // radial gradient
  * } *paint*;
  */
-Import.brush = function(src) {
-    if (!src) return null;
+ /** fill **/
+Import.fill = function(src) {
+    if (!src) return Brush.fill('transparent');
     if (is.str(src)) {
-        return { color: src };
+        return Brush.fill(src);
     } else if (is.arr(src)) {
-        return Import.grad(src);
+        return Brush.fill(Import.grad(src));
     } else _reportError('Unknown type of brush');
-}
-/** fill **/
-Import.fill = Import.brush;
+};
 /** stroke **/
 /*
  * union {
@@ -716,13 +735,13 @@ Import.fill = Import.brush;
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    var stroke = Import.brush(src[1]);
-    stroke.width = src[0];
-    stroke.cap = src[2] || C.PC_ROUND;
-    stroke.join = src[3] || C.PC_ROUND;
-    stroke.mitter = src[4];
-    return stroke;
-}
+    return Brush.stroke(is.arr(src[1]) ? Import.grad(src[1])
+                                       : src[1], // paint
+                        src[0], // width
+                        src[2] || C.PC_ROUND, // cap
+                        src[3] || C.PC_ROUND, // join
+                        src[4]); // mitter
+};
 /** shadow **/
 /*
  * array {
@@ -734,13 +753,11 @@ Import.stroke = function(src) {
  */
 Import.shadow = function(src) {
     if (!src) return null;
-    var shadow = {};
-    shadow.offsetX = src[0];
-    shadow.offsetY = src[1];
-    shadow.blurRadius = src[2];
-    shadow.color = src[3];
-    return shadow;
-}
+    return Brush.shadow(src[3],  // paint, never a gradient
+                        src[2],  // blur-radius
+                        src[0],  // offsetX
+                        src[1]); // offsetY
+};
 /** lgrad **/
 /*
  * array {          // linear gradient
@@ -781,24 +798,31 @@ Import.grad = function(src) {
         stops.push([ offsets[i], colors[i] ]);
     }
     if (pts.length == 4) {
-        return { lgrad: {
+        return {
             dir: [ [ pts[0], pts[1] ], [ pts[2], pts[3] ] ],
             stops: stops
-        } };
+        };
     } else if (pts.length == 6) {
-        return { rgrad: {
+        return {
             r: [ pts[2], pts[5] ],
             dir: [ [ pts[0], pts[1] ], [ pts[3], pts[4] ] ],
             stops: stops
-        } };
+        };
     } else {
-        _reportError('Unknown type of graient with ' + pts.length + ' points');
+        _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
-}
+};
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
-}
+};
+
+Import.audio = function(src) {
+    var audio = new Audio(src[1]);
+    audio.offset = src[2];
+    audio.master = src[3];
+    return audio;
+};
 
 // BitStream
 // -----------------------------------------------------------------------------
@@ -830,14 +854,14 @@ BitStream.prototype.readBits = function(n) {
             return v;
         }
     }
-}
+};
 
 /*
  * Reads one unsigned byte
  */
 BitStream.prototype.readUByte = function() {
     return this.buf[this.pos++]&0xff;
-}
+};
 
 /*
  * Reads n signed bits
@@ -845,13 +869,13 @@ BitStream.prototype.readUByte = function() {
 BitStream.prototype.readSBits = function(n) {
     var v = this.readBits(n);
     // Is the number negative?
-    if( (v&(1 << (n - 1))) != 0 ) {
+    if( (v&(1 << (n - 1))) !== 0 ) {
         // Yes. Extend the sign.
         v |= -1 << n;
     }
 
     return v;
-}
+};
 
 // Base64 Decoder
 // -----------------------------------------------------------------------------
@@ -864,7 +888,9 @@ function Base64Decoder() {}
  */
 Base64Decoder.decode = function(str) {
     return Base64Decoder.str2ab(Base64Decoder._decode(str));
-}
+};
+
+var Int8Array = window.Int8Array || Array;
 
 Base64Decoder.str2ab = function(str) {
     var result = new Int8Array(str.length);
@@ -872,10 +898,10 @@ Base64Decoder.str2ab = function(str) {
         result[i] = str.charCodeAt(i);
     }
     return result;
-}
+};
 
 Base64Decoder._decode = function(data) {
-    if (typeof window['atob'] === 'function') {
+    if (window.atob) {
         // optimize
         return atob(data);
     }
@@ -929,22 +955,22 @@ function ValueCache() {
 
 ValueCache.prototype.put = function(str, val) {
     this.hash2val[this.hash(str)] = val;
-}
+};
 
 ValueCache.prototype.get = function(str) {
     return this.hash2val[this.hash(str)];
-}
+};
 
 ValueCache.prototype.hash = function(str) {
     var hash = 0, i, char;
-    if (str.length == 0) return hash;
+    if (str.length === 0) return hash;
     for (i = 0, l = str.length; i < l; i++) {
         char  = str.charCodeAt(i);
         hash  = ((hash<<5)-hash)+char;
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
-}
+};
 
 // Finish the importer
 // -----------------------------------------------------------------------------
@@ -961,8 +987,6 @@ return __MYSELF;
 
 })();
 
-anm.registerImporter('animatron', AnimatronImporter);
+anm.importers.register('animatron', AnimatronImporter);
 
-return AnimatronImporter;
-
-});
+//module.exports = AnimatronImporter;

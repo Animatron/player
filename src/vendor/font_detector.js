@@ -1,4 +1,6 @@
 /**
+ * @private @class FontDetector
+ *
  * JavaScript code to detect available availability of a
  * particular font in a browser using JavaScript and CSS.
  *
@@ -16,13 +18,17 @@
  *          then that font is 100% not available in the system
  * Version: 0.3 (24 Mar 2012)
  *          Replaced sans with serif in the list of baseFonts
+ *
+ * ----
+ *
+ * Usage:
+ *
+ * `d = new FontDetector();`
+ *
+ * `d.detect('font name');`
+ *
  */
-
-/**
- * Usage: d = new Detector();
- *        d.detect('font name');
- */
-var Detector = function() {
+var FontDetector = function() {
     // a font will be compared against all the three default fonts.
     // and if it doesn't match all 3 then that font is not available.
     var baseFonts = ['monospace', 'sans-serif', 'serif'];
@@ -68,3 +74,8 @@ var Detector = function() {
 
     this.detect = detect;
 };
+
+
+if (typeof module !== 'undefined') {
+  module.exports = FontDetector;
+}
