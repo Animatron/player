@@ -33,7 +33,7 @@ var utils = (function () {
         parseQueryString: function() {
             var queryString = location.search.substring(1),
                 queries = queryString.split("&"),
-                params = {}, queries, temp, i, l;
+                params = {}, temp, i, l;
             for ( i = 0, l = queries.length; i < l; i++ ) {
                 temp = queries[i].split('=');
                 params[temp[0]] = temp[1];
@@ -63,11 +63,6 @@ var utils = (function () {
             return size;
         },
 
-        reportError: function (_e) {
-            if (window.console) console.error(_e.message || _e);
-            else alert(_e.message || _e);
-        },
-
         forcedJS: function (path, then) {
             var scriptElm = document.createElement('script');
             scriptElm.type = 'text/javascript';
@@ -76,10 +71,15 @@ var utils = (function () {
             scriptElm.onload = scriptElm.onreadystatechange = (function () {
                 var success = false;
                 return function () {
-                    if (!success && (!this.readyState || (this.readyState == 'complete'))) {
+                    if (this.readyState === 'loading') {
+                        return;
+                    }
+                    if (!success && (!this.readyState ||
+                        (this.readyState === 'complete' || this.readyState === 'loaded')
+                        )) {
                         success = true;
                         then();
-                    } else if (!success) {
+                    } else if (!success && window.console) {
                         console.error('Request failed: ' + this.readyState);
                     }
                 }
@@ -113,11 +113,14 @@ var start = (function () {
         params.r = 1;
     }
 
-    var snapshotUrl = amazonDomain + '/' + filename + (_params_ || '');
-
     if (params.v) {
-      PLAYER_VERSION_ID = params.v;
+        PLAYER_VERSION_ID = params.v;
     }
+
+
+    var snapshotUrl = amazonDomain + '/' + filename + '?' +
+        utils.serializeToQueryString(params);
+
 
     return function () {
         try {
@@ -147,7 +150,7 @@ var start = (function () {
                                      'body.no-iframe div.anm-resources-loading, body.no-iframe div.anm-state-resources-loading ' +
                                      '{}', rules.length)];
 
-            function ruleForWrapperStyle(rule) {
+            var ruleForWrapperStyle = function(rule) {
                 rule.style.borderWidth = '1px';
                 rule.style.borderStyle = 'solid';
                 rule.style.borderColor = '#ccc';
@@ -155,14 +158,14 @@ var start = (function () {
                 rule.style.position = 'absolute';
                 rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
                 rule.style.overflow = 'hidden';
-            }
+            };
 
             ruleForWrapperStyle(noIFrameRule);
             ruleForWrapperStyle(noPlayerRule);
             ruleForWrapperStyle(wrapperRule);
 
             if (rect) {
-                function ruleForCanvasPosition(rule) {
+                var ruleForCanvasPosition = function(rule) {
                     rule.style.width = rect[0] + 'px';
                     rule.style.height = rect[1] + 'px';
                     if (!inIFrame) {
@@ -171,7 +174,7 @@ var start = (function () {
                         rule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
                         rule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
                     }
-                }
+                };
 
                 ruleForCanvasPosition(noIFrameRule);
                 ruleForCanvasPosition(noPlayerRule);
@@ -186,14 +189,14 @@ var start = (function () {
                 target.style.height = rect[1] + 'px';
             }
 
-            utils.forcedJS(PROTOCOL + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
+            utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(TARGET_ID, _snapshotUrl_, anm.createImporter('animatron'));
+                      anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.createImporter('animatron'));
                 }
             );
         } catch (e) {
-            console.error(e);
+            if(window.console) console.error(e);
         }
-    }
+    };
 
 })();
