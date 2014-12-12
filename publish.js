@@ -27,7 +27,6 @@
             }
             return str.join("&");
         },
-
         parseQueryString: function() {
             var queryString = location.search.substring(1),
             queries = queryString.split("&"),
@@ -38,8 +37,6 @@
             }
             return params;
         },
-
-
         getRequiredRect: function () {
             if (inIFrame) {
                 return utils.getIframeSize();
@@ -47,7 +44,6 @@
                 return {w: width, h: height};
             }
         },
-
         getIframeSize: function () {
             var size = {w:0, h:0};
             if (typeof window.innerWidth == 'number') {
@@ -57,10 +53,8 @@
                 size.w = document.documentElement.clientWidth;
                 size.h = document.documentElement.clientHeight;
             }
-
             return size;
         },
-
         forcedJS: function (path, then) {
             var scriptElm = document.createElement('script');
             scriptElm.type = 'text/javascript';
@@ -82,7 +76,6 @@
                     }
                 };
             })();
-            scriptElm.onerror = console.error;
             var headElm = document.head || document.getElementsByTagName('head')[0];
             headElm.appendChild(scriptElm);
         }
@@ -92,8 +85,8 @@
     WRAPPER_CLASS = 'anm-wrapper',
     PLAYER_VERSION_ID = playerVersion || 'latest';
 
-    var params = utils.parseQueryString();
-    var rect = utils.getRequiredRect();
+    var params = utils.parseQueryString(),
+        rect = utils.getRequiredRect();
 
     params.w = params.w || rect.w;
     params.h = params.h || rect.h;
@@ -110,8 +103,8 @@
     }
 
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
-    utils.serializeToQueryString(params);
-    var start =  function () {
+        utils.serializeToQueryString(params);
+    var start = function () {
         try {
             var target = document.getElementById(TARGET_ID);
             target.style.width  = params.w + 'px';
