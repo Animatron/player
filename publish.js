@@ -18,6 +18,9 @@
     var inIFrame = (window.self !== window.top);
 
     var utils = {
+        isInt: function(n) {
+            return Math.floor(n) === n;
+        },
         serializeToQueryString: function(obj) {
             var str = [];
             for(var p in obj) {
@@ -86,11 +89,20 @@
     PLAYER_VERSION_ID = playerVersion || 'latest';
 
     var params = utils.parseQueryString(),
-        rect = utils.getRequiredRect();
+        rect = utils.getRequiredRect(),
+        targetWidth, targetHeight;
 
-    params.w = params.w || rect.w;
-    params.h = params.h || rect.h;
-
+    //floating-point w&h parameters mean percentage sizing
+    if (params.w && !utils.isInt(params.w)) {
+        targetWidth = params.w = Math.round(params.w * rect.w);
+    } else {
+        targetWidth = params.w = params.w || rect.w;
+    }
+    if (params.h && !utils.isInt(params.h)) {
+        targetHeight = params.h = Math.round(params.h * rect.h);
+    } else {
+        targetHeight = params.h = params.h || rect.h;
+    }
     if (autostart) {
         params.a = 1;
     }
@@ -110,10 +122,10 @@
                 document.body.className ='no-iframe';
             }
             var target = document.getElementById(TARGET_ID);
-            target.style.width  = params.w + 'px';
-            target.style.height = params.h + 'px';
-            target.style.marginLeft = -Math.floor(params.w / 2) + 'px';
-            target.style.marginTop  = -Math.floor(params.h / 2) + 'px';
+            target.style.width  = targetWidth + 'px';
+            target.style.height = targetHeight + 'px';
+            target.style.marginLeft = -Math.floor(targetWidth / 2) + 'px';
+            target.style.marginTop  = -Math.floor(targetHeight / 2) + 'px';
 
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
