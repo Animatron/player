@@ -958,5 +958,8 @@ $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 var https = window.location && window.location.protocol === 'https:';
 $DE.isHttps = https;
 
+var local = window.location && window.location.protocol === 'file:';
+$DE.isLocal = local;
+
 module.exports = $DE;
 return $DE;
