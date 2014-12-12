@@ -33,7 +33,7 @@ function audioErrProxy(src, pass_to) {
     // e_.MEDIA_ERR_ENCRYPTED=5
     pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
                       err.currentTarget.error.code));
-  }
+  };
 }
 
 var testAudio = engine.createAudio(),
@@ -43,6 +43,13 @@ var audioExt = oggSupported ? '.ogg' : '.mp3';
 var audioType = oggSupported ? 'audio/ogg' : 'audio/mp3';
 
 function getAudioContext() {
+    if (engine.isLocal) {
+        // we will not be able to load the audio as an ArrayBuffer
+        // when we're under file protocol, so we shall have to
+        // fall back to <audio> when playing locally.
+        return null;
+    }
+
     var AudioContext = global.AudioContext || global.webkitAudioContext;
     if (!AudioContext) {
       return null;
@@ -268,7 +275,7 @@ Audio.prototype.setVolume = function(volume) {
         this.audio.volume = volume;
     }
     return this;
-}
+};
 /**
  * @method mute
  *
@@ -309,11 +316,11 @@ Audio.prototype.toggleMute = function() {
 /** @private @method connect */
 Audio.prototype.connect = function(element) {
     var me = this;
-    element.on(C.X_START, function() { me.play.apply(me, arguments) });
+    element.on(C.X_START, function() { me.play.apply(me, arguments); });
     element.on(C.X_STOP, function() { me.stopIfNotMaster(); });
     var stop = function() { me.stop(); };
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
-}
+};
 
 module.exports = Audio;
