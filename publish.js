@@ -106,6 +106,9 @@
         utils.serializeToQueryString(params);
     var start = function () {
         try {
+            if (!inIFrame) {
+                document.body.className ='no-iframe';
+            }
             var target = document.getElementById(TARGET_ID);
             target.style.width  = params.w + 'px';
             target.style.height = params.h + 'px';
