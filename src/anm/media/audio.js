@@ -33,7 +33,7 @@ function audioErrProxy(src, pass_to) {
     // e_.MEDIA_ERR_ENCRYPTED=5
     pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
                       err.currentTarget.error.code));
-  }
+  };
 }
 
 var testAudio = engine.createAudio(),
@@ -43,6 +43,13 @@ var audioExt = oggSupported ? '.ogg' : '.mp3';
 var audioType = oggSupported ? 'audio/ogg' : 'audio/mp3';
 
 function getAudioContext() {
+    if (engine.isLocal) {
+        // we will not be able to load the audio as an ArrayBuffer
+        // when we're under file protocol, so we shall have to
+        // fall back to <audio> when playing locally.
+        return null;
+    }
+
     var AudioContext = global.AudioContext || global.webkitAudioContext;
     if (!AudioContext) {
       return null;
@@ -62,6 +69,9 @@ function getAudioContext() {
 
 var audioContext = getAudioContext();
 
+/**
+ * @class anm.Audio
+ */
 function Audio(url) {
     this.url = url + audioExt;
     this.loaded = false;
@@ -70,7 +80,7 @@ function Audio(url) {
     this.volume = 1;
     this.audio = null;
 }
-
+/** @private @method load */
 Audio.prototype.load = function(player) {
     var me = this;
     if (engine.isHttps) {
@@ -182,7 +192,7 @@ Audio.prototype.load = function(player) {
       function(err) { log.error(err ? (err.message || err) : 'Unknown error');
                       /* throw err; */ });
 };
-
+/** @private @method play */
 Audio.prototype.play = function(ltime, duration) {
     if (!this.loaded || this.playing) {
       return false;
@@ -217,7 +227,7 @@ Audio.prototype.play = function(ltime, duration) {
       this.audio.play();
     }
 };
-
+/** @private @method stop */
 Audio.prototype.stop = function() {
     if (!this.playing) {
         return;
@@ -239,11 +249,20 @@ Audio.prototype.stop = function() {
     }
     this.playing = false;
 };
-
+/** @private @method stopIfNotMaster */
 Audio.prototype.stopIfNotMaster = function() {
     if(!this.master) this.stop();
 };
-
+/**
+ * @method setVolume
+ * @chainable
+ * @deprecated will be renamed to `.volume()`, will be both getter and setter
+ *
+ * Change audio volume on the fly
+ *
+ * @param {Number} volume Volume value
+ * @return {anm.Audio}
+ */
 Audio.prototype.setVolume = function(volume) {
     if (this.muted) {
         this.unmuteVolume = volume;
@@ -255,17 +274,26 @@ Audio.prototype.setVolume = function(volume) {
     } else if (this.audio) {
         this.audio.volume = volume;
     }
-}
-
+    return this;
+};
+/**
+ * @method mute
+ *
+ * Mute this audio
+ */
 Audio.prototype.mute = function() {
-    if(this.muted) {
+    if (this.muted) {
         return;
     }
     this.unmuteVolume = this.volume;
     this.setVolume(0);
     this.muted = true;
 };
-
+/**
+ * @method unmute
+ *
+ * Unmute this audio
+ */
 Audio.prototype.unmute = function() {
     if(!this.muted) {
         return;
@@ -273,7 +301,11 @@ Audio.prototype.unmute = function() {
     this.muted = false;
     this.setVolume(this.unmuteVolume);
 };
-
+/**
+ * @method toggleMute
+ *
+ * Toggle mute value of this audio
+ */
 Audio.prototype.toggleMute = function() {
     if (this.muted) {
         this.unmute();
@@ -281,14 +313,14 @@ Audio.prototype.toggleMute = function() {
         this.mute();
     }
 };
-
+/** @private @method connect */
 Audio.prototype.connect = function(element) {
     var me = this;
-    element.on(C.X_START, function() { me.play.apply(me, arguments) });
+    element.on(C.X_START, function() { me.play.apply(me, arguments); });
     element.on(C.X_STOP, function() { me.stopIfNotMaster(); });
     var stop = function() { me.stop(); };
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
-}
+};
 
 module.exports = Audio;

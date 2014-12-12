@@ -54,6 +54,9 @@ function rmLog(str) {
   }
 }
 
+/**
+ * @singleton @class anm.ResourceManager
+ */
 function ResourceManager() {
     this._cache = {};
     this._errors = {};

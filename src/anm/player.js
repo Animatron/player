@@ -713,8 +713,20 @@ Player.prototype._addOpts = function(opts) {
 
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
-    this.width =   opts.width || this.width;
-    this.height =  opts.height || this.height;
+    if (opts.width) {
+        if (is.int(opts.width)) {
+            this.width = opts.width;
+        } else { //float number === percentage
+            this.width *= opts.width;
+        }
+    }
+    if (opts.height) {
+        if (is.int(opts.height)) {
+            this.height = opts.height;
+        } else { //float number === percentage
+            this.height *= opts.height;
+        }
+    }
     this.bgColor = opts.bgColor || this.bgColor;
 
     this.ribbonsColor =
@@ -1598,9 +1610,6 @@ Player.createState = function(player) {
         /*'__drawInterval': null*/
     };
 }
-
-
-
 /**
  * @static @method forSnapshot
  *
@@ -1640,9 +1649,9 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     } else if (is.defined(params.p)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
-    } else if (is.defined(params.still)) {
+    } else if (is.defined(params.at)) {
         if (this.state.happens === C.PLAYING) this.stop();
-        this.play(params.still / 100).pause();
+        this.play(params.at / 100).pause();
     }
 }
 

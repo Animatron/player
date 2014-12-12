@@ -40,6 +40,15 @@ var DOM_TO_EVT_MAP = {
  * repeat option. It also may render itself to any context with {@link anm.Animation#render}
  * method.
  *
+ * Use {@link anm.Animation#add()} to add elements to an animation.
+ *
+ * Use {@link anm.Animation#find()} / {@link anm.Animation#findById()} to search for elements in the animation.
+ *
+ * Use {@link anm.Animation#each()} / {@link anm.Animation#traverse()} to loop through all direct child elements
+ * or through the whole tree of children, correspondingly.
+ *
+ * See {@link anm.Element Element} for detailed description of the basic "brick" of any animation.
+ *
  * @constructor
  */
 function Animation() {
@@ -77,7 +86,7 @@ provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
  * @method add
  * @chainable
  *
- * Append an one or several {@link anm.Element elements} to this animation.
+ * Append one or several {@link anm.Element elements} to this animation.
  *
  * May be used as:
  *
@@ -387,6 +396,9 @@ Animation.prototype._loadRemoteResources = function(player) {
  * {@link anm.Element element} or inside the whole Animation itself, if no other
  * element was provided.
  *
+ * NB: `find` method will be improved soon to support special syntax of searching,
+ * so you will be able to search almost everything
+ *
  * @param {String} name Name of the element(s) to find
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
@@ -409,6 +421,8 @@ Animation.prototype.find = function(name, where) {
  *
  * @param {String} id ID of the element to find
  * @return {anm.Element|Null} An element you've searched for, or null
+ *
+ * @deprecated in favor of special syntax in `find` method
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
