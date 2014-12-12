@@ -14,26 +14,24 @@
    loop = (boolean) loop animation instead of stoping at the end
    animation = JSON object of animatron movie (currently not used)
 */
+(function(){
+    var inIFrame = (window.self !== window.top);
 
-var inIFrame = false;
-
-var utils = (function () {
-
-    return {
-
+    var utils = {
         serializeToQueryString: function(obj) {
-          var str = [];
-          for(var p in obj)
-            if (obj.hasOwnProperty(p)) {
-              str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+            var str = [];
+            for(var p in obj) {
+                if (obj.hasOwnProperty(p)) {
+                    str.push(encodeURIComponent(p) + "=" + encodeURIComponent(obj[p]));
+                }
             }
-          return str.join("&");
+            return str.join("&");
         },
 
         parseQueryString: function() {
             var queryString = location.search.substring(1),
-                queries = queryString.split("&"),
-                params = {}, temp, i, l;
+            queries = queryString.split("&"),
+            params = {}, temp, i, l;
             for ( i = 0, l = queries.length; i < l; i++ ) {
                 temp = queries[i].split('=');
                 params[temp[0]] = temp[1];
@@ -76,13 +74,13 @@ var utils = (function () {
                     }
                     if (!success && (!this.readyState ||
                         (this.readyState === 'complete' || this.readyState === 'loaded')
-                        )) {
+                    )) {
                         success = true;
                         then();
                     } else if (!success && window.console) {
                         console.error('Request failed: ' + this.readyState);
                     }
-                }
+                };
             })();
             scriptElm.onerror = console.error;
             var headElm = document.head || document.getElementsByTagName('head')[0];
@@ -90,16 +88,9 @@ var utils = (function () {
         }
     };
 
-})();
-
-var start = (function () {
-
-
     var TARGET_ID = 'target',
-        WRAPPER_CLASS = 'anm-wrapper',
-        PLAYER_VERSION_ID = playerVersion || 'latest';
-
-    inIFrame = (window.self !== window.top);
+    WRAPPER_CLASS = 'anm-wrapper',
+    PLAYER_VERSION_ID = playerVersion || 'latest';
 
     var params = utils.parseQueryString();
     var rect = utils.getRequiredRect();
@@ -108,6 +99,7 @@ var start = (function () {
     params.h = params.h || rect.h;
 
     if (autostart) {
+        params.a = 1;
     }
     if (loop) {
         params.r = 1;
@@ -117,86 +109,25 @@ var start = (function () {
         PLAYER_VERSION_ID = params.v;
     }
 
-
     var snapshotUrl = amazonDomain + '/' + filename + '?' +
-        utils.serializeToQueryString(params);
-
-
-    return function () {
+    utils.serializeToQueryString(params);
+    var start =  function () {
         try {
-            if (!inIFrame) {
-                document.body.className = 'no-iframe';
-            }
-            var stylesTag = document.createElement('style');
-            stylesTag.type = 'text/css';
-
-            var head = document.getElementsByTagName("head")[0];
-            head.appendChild(stylesTag);
-
-            var styles = stylesTag.sheet,
-                rules = styles.cssRules || styles.rules;
-
-            var noIFrameRule = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-iframe .anm-wrapper {}', rules.length)],
-                noRectRule   = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-rect .anm-wrapper {}', rules.length)],
-                noPlayerRule = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-iframe canvas#target:not([anm-player]) {}', rules.length)],
-                // there is a version of player where `anm-state-loading` and `anm-state-resources-loading` classes
-                // were incorrectly named `anm-loading`, `anm-resources-loading`, this case is temporary (!) hacked out here
-                wrapperRule  = rules[(styles.insertRule || styles.addRule).call(styles,
-                                     'body.no-iframe div.anm-state-nothing, body.no-iframe div.anm-state-error, '+
-                                     'body.no-iframe div.anm-loading, body.no-iframe div.anm-state-loading, ' +
-                                     'body.no-iframe div.anm-resources-loading, body.no-iframe div.anm-state-resources-loading ' +
-                                     '{}', rules.length)];
-
-            var ruleForWrapperStyle = function(rule) {
-                rule.style.borderWidth = '1px';
-                rule.style.borderStyle = 'solid';
-                rule.style.borderColor = '#ccc';
-                rule.style.display = 'block';
-                rule.style.position = 'absolute';
-                rule.style.boxShadow = '0 2px 10px rgba(0, 0, 0, 0.5)';
-                rule.style.overflow = 'hidden';
-            };
-
-            ruleForWrapperStyle(noIFrameRule);
-            ruleForWrapperStyle(noPlayerRule);
-            ruleForWrapperStyle(wrapperRule);
-
-            if (rect) {
-                var ruleForCanvasPosition = function(rule) {
-                    rule.style.width = rect[0] + 'px';
-                    rule.style.height = rect[1] + 'px';
-                    if (!inIFrame) {
-                        rule.style.top  = '50%';
-                        rule.style.left = '50%';
-                        rule.style.marginLeft = -Math.floor(rect[0] / 2) + 'px';
-                        rule.style.marginTop  = -Math.floor(rect[1] / 2) + 'px';
-                    }
-                };
-
-                ruleForCanvasPosition(noIFrameRule);
-                ruleForCanvasPosition(noPlayerRule);
-            }
-
-            noRectRule.style.top  = '10%';
-            noRectRule.style.left = '10%';
-
-            if (rect) {
-                var target = document.getElementById(TARGET_ID);
-                target.style.width  = rect[0] + 'px';
-                target.style.height = rect[1] + 'px';
-            }
+            var target = document.getElementById(TARGET_ID);
+            target.style.width  = params.w + 'px';
+            target.style.height = params.h + 'px';
+            target.style.marginLeft = -Math.floor(params.w / 2) + 'px';
+            target.style.marginTop  = -Math.floor(params.h / 2) + 'px';
 
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                      anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.createImporter('animatron'));
-                }
-            );
+                    anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'));
+            });
         } catch (e) {
             if(window.console) console.error(e);
         }
     };
+
+    window.start = start;
 
 })();
