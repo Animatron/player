@@ -269,7 +269,12 @@ Element.prototype.noFill = function() {
 // > Element.stroke % ([value: Brush | String] | [color: String, width: int]) => Brush | Element
 Element.prototype.stroke = function(value, width) {
     if (value) {
-        this.$stroke = (value instanceof Brush) ? value : Brush.stroke(value, width);
+        if (value instanceof Brush) {
+            this.$stroke = value;
+            if (is.defined(width)) this.$stroke.width = width;
+        } else {
+            this.$stroke = Brush.stroke(value, width);
+        }
         return this;
     } else return this.$stroke;
 }
