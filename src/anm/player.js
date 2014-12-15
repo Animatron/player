@@ -714,16 +714,16 @@ Player.prototype._addOpts = function(opts) {
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
     if (opts.width) {
-        if (is.int(opts.width) || !is.defined(this.width)) {
+        if (!is.defined(this.width) || is.int(opts.width) || (opts.width > 1)) {
             this.width = opts.width;
-        } else { //float number === percentage
+        } else { // float value less than one === percentage
             this.width *= opts.width;
         }
     }
     if (opts.height) {
-        if (is.int(opts.height) || !is.defined(this.height)) {
+        if (!is.defined(this.height) || is.int(opts.height) || (opts.height > 1)) {
             this.height = opts.height;
-        } else { //float number === percentage
+        } else { // float value less than one === percentage
             this.height *= opts.height;
         }
     }
