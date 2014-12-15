@@ -84,8 +84,11 @@ function Modifier(func, type) {
     func.band = function(start, stop) { if (!is.defined(start)) return this.$band;
                                         // FIXME: array bands should not pass
                                         if (is.arr(start)) {
-                                            start = start[0];
+                                            // NB: be aware, the order "stop, then start" is important here,
+                                            //     because we modify start value intself in the second expression,
+                                            //     so we should take stop value before.
                                             stop = start[1];
+                                            start = start[0];
                                         }
                                         if (!is.defined(stop)) { stop = Infinity; }
                                         this.$band = [ start, stop ];

@@ -2226,13 +2226,13 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
             mod_duration = mod_band[1] - mod_band[0];
         }
 
-        res_time = res_time = ltime - mod_band[0];
+        res_time = ltime - mod_band[0];
         res_duration = mod_duration;
         if (t_cmp(res_time, 0) < 0) return null;
         if (t_cmp(res_time, res_duration) > 0) return null;
 
     // modifier is assigned to trigger at some specific time moment
-  } else if (is.num(mod_time)) {
+    } else if (is.num(mod_time)) {
 
         if (modifier.__wasCalled && modifier.__wasCalled[elm.id]) return null;
         var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
@@ -2261,7 +2261,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
             res_time = t_adjust(res_time) / t_adjust(res_duration);
             res_duration = t_adjust(res_duration);
         } else {
-            res_time = 0;
+            // if band duration is infinite, time value is left as it was
         }
     } else {
         res_time = t_adjust(res_time);
