@@ -145,7 +145,7 @@ Brush.prototype.adapt = function(ctx) {
             stops = src.stops,
             dir = src.dir || [ [0.5, 0], [0.5, 1] ],
             r = src.r || 1.0;
-            bounds = src.bounds || [0, 0, 100, 100];
+            bounds = src.bounds || [0, 0, 1, 1];
         var grad;
         if (is.defined(src.r)) {
             grad = bounds
