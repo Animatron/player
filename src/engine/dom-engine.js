@@ -99,7 +99,8 @@ var $DE = {};
 
 // Framing
 // shim adopted from https://gist.github.com/paulirish/1579671
-var requestAnimationFrame, cancelAnimationFrame;
+var requestAnimationFrame = global.requestAnimationFrame,
+    cancelAnimationFrame = global.cancelAnimationFrame;
 var lastTime = 0;
     var vendors = ['ms', 'moz', 'webkit', 'o'];
     for(var x = 0; x < vendors.length && !global.requestAnimationFrame; ++x) {
@@ -108,7 +109,7 @@ var lastTime = 0;
                                    global[vendors[x]+'CancelRequestAnimationFrame'];
     }
 
-    if (!requestAnimationFrame)
+    if (!requestAnimationFrame) {
         requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
@@ -117,12 +118,12 @@ var lastTime = 0;
             lastTime = currTime + timeToCall;
             return id;
         };
-
-    if (!cancelAnimationFrame)
+    }
+    if (!cancelAnimationFrame) {
         cancelAnimationFrame = function(id) {
             clearTimeout(id);
         };
-
+    }
 
 $DE.getRequestFrameFunc = function(){ return requestAnimationFrame; };
 $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };

@@ -22,7 +22,7 @@ if (global.console) {
 }
 
 var log = {
-    debug: function() { if (conf.logLevel & C.L_DEBUG) console.debug.apply(console, arguments); },
+    debug: function() { if (conf.logLevel & C.L_DEBUG) console.log.apply(console, arguments); },
     info:  function() { if (conf.logLevel & C.L_INFO)  console.info.apply(console, arguments); },
     warn:  function() { if (conf.logLevel & C.L_WARN)  console.warn.apply(console, arguments); },
     error: function() { if (conf.logLevel & C.L_ERROR) console.error.apply(console, arguments); }
