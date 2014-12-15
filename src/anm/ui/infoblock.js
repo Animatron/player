@@ -4,6 +4,12 @@ var engine = require('engine'),
 // Info Block
 // -----------------------------------------------------------------------------
 
+//TODO: Info block should be rendered via DOM, not canvas.
+
+/**
+ * @class anm.InfoBlock
+ * @deprectated
+ */
 function InfoBlock(player, theme) {
     this.canvas = null;
     this.ctx = null;

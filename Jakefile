@@ -98,12 +98,10 @@ var Files = {
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ /* 'collisions.js', */
-                               'audio.js',
                                //'audio-export.js',
                                //'scripting.js',
                                'shapes.js' ],
                       // COLLISIONS: 'collisions.js',
-                      AUDIO: 'audio.js',
                       //AUDIO_EXPORT: 'audio-export.js',
                       SCRIPTING: 'scripting.js',
                       SHAPES: 'shapes.js' }, },
@@ -117,7 +115,7 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.AUDIO,
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [
                                                               // Files.Ext.MODULES.COLLISIONS,
                                                               Files.Ext.MODULES.SCRIPTING,
                                                               Files.Ext.MODULES.SHAPES ])) }
@@ -606,7 +604,7 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
     var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
 
     walker.on('file', function(root, stat, next) {
-        var gzip_it = (stat.name.indexOf('.min') > 0) &&
+        var gzip_it = (stat.name.indexOf('.js') > 0) &&
                       (stat.name !== BUILD_FILE_NAME);
         files.push([ root + '/' + stat.name, // source
                      trg_dir +

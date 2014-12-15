@@ -6,13 +6,15 @@ var is = {};
 // FIXME: rename all to full-names
 is.defined = function(v) {
   return !((typeof v === 'undefined')
-   || (typeof v === 'null')
    || (v === null)
    || (v === undefined));
 };
 is.finite = global.isFinite;
 is.nan = global.isNaN;
 is.arr = Array.isArray;
+is.int = function(n) {
+    return is.num(n) && Math.floor(n) == n;
+};
 is.num = function(n) {
   n = global.parseFloat(n);
   return !is.nan(n) && is.finite(n);
@@ -28,8 +30,8 @@ is.str = function(s) {
 };
 is.not_empty = function(obj) {
     if (Object.keys) return (Object.keys(obj).length > 0);
-    else (Object.getOwnPropertyNames(obj).length > 0);
-}
+    else return (Object.getOwnPropertyNames(obj).length > 0);
+};
 
 is.modifier = function(f) {
   return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
@@ -91,7 +93,7 @@ function ell_text(text, max_len) {
     if (!text) return '';
     var len = text.length;
     if (len <= max_len) return text;
-    var semilen = Math.floor(_len / 2) - 2;
+    var semilen = Math.floor(len / 2) - 2;
     return text.slice(0, semilen) + '...'
          + text.slice(len - semilen);
 }
@@ -102,7 +104,7 @@ function ell_text(text, max_len) {
 // #### mathematics
 
 function compareFloat(n1, n2, precision) {
-    if (!(precision === 0)) {
+    if (precision !== 0) {
         precision = precision || 2;
     }
     var multiplier = Math.pow(10, precision);
@@ -183,12 +185,12 @@ function fit_rects(pw, ph, aw, ah) {
         vcoord = (ph - ah * factor) / 2;
     if ((xw != 1) || (xh != 1)) {
         var anim_rect = [ hcoord, vcoord, aw * factor, ah * factor ];
-        if (hcoord != 0) {
+        if (hcoord !== 0) {
             return [ factor,
                      anim_rect,
                      [ 0, 0, hcoord, ph ],
                      [ hcoord + (aw * factor), 0, hcoord, ph ] ];
-        } else if (vcoord != 0) {
+        } else if (vcoord !== 0) {
             return [ factor,
                      anim_rect,
                      [ 0, 0, aw, vcoord ],
@@ -196,6 +198,8 @@ function fit_rects(pw, ph, aw, ah) {
         } else return [ factor, anim_rect ];
     } else return [ 1, [ 0, 0, aw, ah ] ];
 }
+
+// TODO: add array cloning
 
 module.exports = {
     fmt_time: fmt_time,
