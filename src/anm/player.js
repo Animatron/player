@@ -529,7 +529,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         clearInterval(player.state.__drawInterval);
     }*/
 
-    player._notifyAPI(); // checks if it's really required just inside
+    player.reportStats(); // checks if it's really required just inside
 
     state.happens = C.PLAYING;
 
@@ -1553,7 +1553,7 @@ var prodHost = 'animatron.com',
     prodStatUrl = '//api.' + prodHost + '/stats/report/',
     testStatUrl = '//api.' + testHost + '/stats/report/';
 
-Player.prototype._notifyAPI = function() {
+Player.prototype.reportStats = function() {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
     if (!this.statImg) {
