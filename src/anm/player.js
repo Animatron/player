@@ -606,6 +606,7 @@ Player.prototype.stop = function() {
     }
 
     player.fire(C.S_STOP);
+    player.statsReported = false;
 
     if (anim) anim.reset();
 
@@ -1294,6 +1295,7 @@ Player.prototype._reset = function() {
         this._clearPostpones();
         resourceManager.cancel(this.id);
     }
+    this.statsReported = false;
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
@@ -1556,6 +1558,9 @@ var prodHost = 'animatron.com',
 Player.prototype.reportStats = function() {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
+    if (this.statsReported) {
+        return;
+    }
     if (!this.statImg) {
       this.statImg = engine.createStatImg();
     };
@@ -1580,6 +1585,7 @@ Player.prototype.reportStats = function() {
     } else if (locatedAtProd) {
         this.statImg.src = prodStatUrl + id + '?' + Math.random();
     }
+    this.statsReported = true;
 };
 
 /* Player.prototype.__originateErrors = function() {
