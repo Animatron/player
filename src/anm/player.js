@@ -529,7 +529,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         clearInterval(player.state.__drawInterval);
     }*/
 
-    player._notifyAPI(); // checks if it's really required just inside
+    player.reportStats(); // checks if it's really required just inside
 
     state.happens = C.PLAYING;
 
@@ -606,6 +606,7 @@ Player.prototype.stop = function() {
     }
 
     player.fire(C.S_STOP);
+    player.statsReported = false;
 
     if (anim) anim.reset();
 
@@ -713,8 +714,20 @@ Player.prototype._addOpts = function(opts) {
 
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
-    this.width =   opts.width || this.width;
-    this.height =  opts.height || this.height;
+    if (opts.width) {
+        if (!is.defined(this.width) || is.int(opts.width) || (opts.width > 1)) {
+            this.width = opts.width;
+        } else { // float value less than one === percentage
+            this.width *= opts.width;
+        }
+    }
+    if (opts.height) {
+        if (!is.defined(this.height) || is.int(opts.height) || (opts.height > 1)) {
+            this.height = opts.height;
+        } else { // float value less than one === percentage
+            this.height *= opts.height;
+        }
+    }
     this.bgColor = opts.bgColor || this.bgColor;
 
     this.ribbonsColor =
@@ -1282,6 +1295,7 @@ Player.prototype._reset = function() {
         this._clearPostpones();
         resourceManager.cancel(this.id);
     }
+    this.statsReported = false;
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
@@ -1538,12 +1552,15 @@ Player.prototype._callPostpones = function() {
 
 var prodHost = 'animatron.com',
     testHost = 'animatron-test.com',
-    prodStatUrl = 'http://api.' + prodHost + '/stats/report/',
-    testStatUrl = 'http://api.' + testHost + '/stats/report/';
+    prodStatUrl = '//api.' + prodHost + '/stats/report/',
+    testStatUrl = '//api.' + testHost + '/stats/report/';
 
-Player.prototype._notifyAPI = function() {
+Player.prototype.reportStats = function() {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
+    if (this.statsReported) {
+        return;
+    }
     if (!this.statImg) {
       this.statImg = engine.createStatImg();
     };
@@ -1568,6 +1585,7 @@ Player.prototype._notifyAPI = function() {
     } else if (locatedAtProd) {
         this.statImg.src = prodStatUrl + id + '?' + Math.random();
     }
+    this.statsReported = true;
 };
 
 /* Player.prototype.__originateErrors = function() {
@@ -1598,9 +1616,6 @@ Player.createState = function(player) {
         /*'__drawInterval': null*/
     };
 }
-
-
-
 /**
  * @static @method forSnapshot
  *
@@ -1640,9 +1655,9 @@ Player.prototype._applyUrlParamsToAnimation = function(params) {
     } else if (is.defined(params.p)) {
         if (this.state.happens === C.PLAYING) this.stop();
         this.play(params.p / 100).pause();
-    } else if (is.defined(params.still)) {
+    } else if (is.defined(params.at)) {
         if (this.state.happens === C.PLAYING) this.stop();
-        this.play(params.still / 100).pause();
+        this.play(params.at / 100).pause();
     }
 }
 

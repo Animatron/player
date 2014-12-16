@@ -1,6 +1,9 @@
 {
     "--title": "Animatron Player API v1.3, 2014",
     "--output": "./api",
+    "--head-html": [
+        "<link rel=\"stylesheet\" href=\"../jduck.css\" type=\"text/css\" />"
+    ],
     "--": [
         "../src"
     ]
