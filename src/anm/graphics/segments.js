@@ -44,7 +44,7 @@ LSeg.prototype.length = function(start) {
 }
 LSeg.prototype.atDist = function(start, dist) {
     if (dist <= 0) return [0, 0];
-    var length = this.length(start));
+    var length = this.length(start);
     if (dist >= length) return [length, 1];
     return [dist, this.atT(start, dist / this.length(start))];
 }
