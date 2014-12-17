@@ -133,7 +133,12 @@ $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 $DE.PX_RATIO = window.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
-    var req = new window.XMLHttpRequest();
+    var req;
+    if (isIE9) {
+        req = new window.XDomainRequest();
+    } else {
+        req = new window.XMLHttpRequest();
+    }
 
     if (!req) {
       throw new Error('Failed to create XMLHttp instance'); // SysErr
@@ -154,9 +159,15 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     };
 
     req.onreadystatechange = whenDone;
+    if (isIE9) {
+        req.onload = function(){ callback(req); };
+        req.onerror = function() {
+            if(errback) errback(new Error('XDomainRequest Error'), req);
+        };
+    }
     req.open(method || 'GET', url, true);
 
-    if (headers) {
+    if (headers && !isIE9) {
         for (var header in headers) {
             req.setRequestHeader(header, headers[header]);
         }
@@ -961,6 +972,9 @@ $DE.isHttps = https;
 
 var local = window.location && window.location.protocol === 'file:';
 $DE.isLocal = local;
+
+var isIE9 = navigator.userAgent.indexOf('MSIE 9.0') !== -1;
+$DE.isIE9 = isIE9;
 
 module.exports = $DE;
 return $DE;
