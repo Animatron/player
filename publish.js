@@ -19,7 +19,8 @@
 
     var utils = {
         isInt: function(n) {
-            return Math.floor(n) === n;
+            n = Number(n);
+            return !isNaN(n) && Math.floor(n) === n;
         },
         serializeToQueryString: function(obj) {
             var str = [];
