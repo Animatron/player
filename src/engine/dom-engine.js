@@ -257,7 +257,6 @@ $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
     var stylesTag = $DE.createStyle();
-    stylesTag.type = 'text/css';
 
     // TODO: inject as first element?
     var head = $doc.getElementsByTagName("head")[0];
@@ -448,9 +447,8 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     }
 
     var canvasWasPassed = (wrapper.tagName == 'canvas') || (wrapper.tagName == 'CANVAS');
-    if (canvasWasPassed && console) {
-        (console.warn || console.log).call(console,
-                     'NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
+    if (canvasWasPassed && window.console) {
+        console.warn('NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
                      'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
                      'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
                      'Please pass any container such as <div> to a Player instead of <canvas> to fix it.');
@@ -949,7 +947,9 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-    return document.createElement('style');
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    return style;
 };
 
 $DE.createAudio = function() {
