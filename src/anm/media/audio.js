@@ -137,8 +137,7 @@ Audio.prototype.load = function(player) {
             var progressListener = function(e) {
               var buffered = el.buffered;
               if (buffered.length == 1) {
-                  var end = buffered.end(0);
-                  if (el.duration - end < 0.05) {
+                  if (el.readyState === 4) {
                     el.removeEventListener("progress", progressListener, false);
                     el.removeEventListener("canplay", canPlayListener, false);
                     notify_success(el);
