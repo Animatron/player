@@ -468,7 +468,6 @@ Animation.prototype.loadFonts = function(player) {
         css = '',
         fontsToLoad = [],
         detector = new FontDetector();
-    style.type = 'text/css';
 
     for (var i = 0; i < fonts.length; i++) {
         var font = fonts[i];
@@ -484,42 +483,45 @@ Animation.prototype.loadFonts = function(player) {
             }
         }
         fontsToLoad.push(font);
-        css += '@font-face {' +
-            'font-family: "' + font.face + '"; ' +
-            'src:' +  (font.woff ? 'url("'+font.woff+'") format("woff"), ' : '') +
-            'url("'+font.url+'");' +
-            (font.style ? 'style: ' + font.style +'; ' : '') +
-            (font.weight ? 'weight: ' + font.weight + '; ' : '') +
+        css += '@font-face {\n' +
+            'font-family: "' + font.face + '";\n' +
+            'src:' +  (font.woff ? ' url("'+font.woff+'") format("woff"),\n' : '') +
+            ' url("'+font.url+'") format("truetype");\n' +
+            (font.style ? 'font-style: ' + font.style +';\n' : '') +
+            (font.weight ? 'font-weight: ' + font.weight + ';\n' : '') +
             '}\n';
     }
 
-    if (fontsToLoad.length == 0) {
+    if (fontsToLoad.length === 0) {
         return;
-    };
+    }
 
     style.innerHTML = css;
     document.head.appendChild(style); // FIXME: should use engine
 
-    for (var i = 0; i < fontsToLoad.length; i++) {
-        // FIXME: should not require a player (probably)
-        ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
-            var face = fontsToLoad[i].face,
-                interval = 100,
+    var getLoader = function(i) {
+            var face = fontsToLoad[i].face;
+            return function(success) {
+                var interval = 100,
                 counter = 0,
                 intervalId,
                 checkLoaded = function() {
                     counter += interval;
                     var loaded = detector.detect(face);
                     if (loaded || counter > FONT_LOAD_TIMEOUT) {
-                    // after 10 seconds, we'll just assume the font has been loaded
-                    // and carry on. this should help when the font could not be
-                    // reached for whatever reason.
+                        // after 10 seconds, we'll just assume the font has been loaded
+                        // and carry on. this should help when the font could not be
+                        // reached for whatever reason.
                         clearInterval(intervalId);
                         success();
                     }
                 };
-            intervalId = setInterval(checkLoaded, interval)
-        });
+                intervalId = setInterval(checkLoaded, interval);
+            };
+    };
+
+    for (i = 0; i < fontsToLoad.length; i++) {
+        ResMan.loadOrGet(player.id, fontsToLoad[i].url, getLoader(i));
     }
 
 };
