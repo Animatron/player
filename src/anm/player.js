@@ -475,7 +475,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
             playArgs = arguments;
         if (!loadArgs) throw new errors.PlayerError(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
         var loadCallback = loadArgs[3];
-        function afterLoad() {
+        var afterLoad = function() {
             if (loadCallback) loadCallback.call(player, arguments);
             player._postponedLoad = null;
             player._playLock = false;
@@ -514,7 +514,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                      : (anim.duration || (anim.isEmpty() ? 0
                                                            : Animation.DEFAULT_DURATION));
 
-    if (state.duration == undefined) throw new errors.PlayerError(Errors.P.DURATION_IS_NOT_KNOWN);
+    if (state.duration === undefined) throw new errors.PlayerError(Errors.P.DURATION_IS_NOT_KNOWN);
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -525,16 +525,13 @@ Player.prototype.play = function(from, speed, stopAfter) {
     // __stopAnim is called just for safety reasons :)
     state.__supressFrames = false;
 
-    /*if (state.__drawInterval !== null) {
-        clearInterval(player.state.__drawInterval);
-    }*/
-
-    player.reportStats(); // checks if it's really required just inside
+    if (state.happens === C.STOPPED && !player.repeating) {
+        player.reportStats();
+    }
 
     state.happens = C.PLAYING;
 
 
-    //if (state.from > 2) throw new Error('Test');
 
     // FIXME: W3C says to call stopAnim (cancelAnimationFrame) with ID
     //        of the last call of nextFrame (requestAnimationFrame),
@@ -606,7 +603,6 @@ Player.prototype.stop = function() {
     }
 
     player.fire(C.S_STOP);
-    player.statsReported = false;
 
     if (anim) anim.reset();
 
@@ -714,21 +710,9 @@ Player.prototype._addOpts = function(opts) {
 
     this.zoom =    opts.zoom || this.zoom;
     this.speed =   opts.speed || this.speed;
-    if (opts.width) {
-        if (!is.defined(this.width) || is.int(opts.width) || (opts.width > 1)) {
-            this.width = opts.width;
-        } else { // float value less than one === percentage
-            this.width *= opts.width;
-        }
-    }
-    if (opts.height) {
-        if (!is.defined(this.height) || is.int(opts.height) || (opts.height > 1)) {
-            this.height = opts.height;
-        } else { // float value less than one === percentage
-            this.height *= opts.height;
-        }
-    }
     this.bgColor = opts.bgColor || this.bgColor;
+    this.width = opts.width || this.width;
+    this.height = opts.height || this.height;
 
     this.ribbonsColor =
                    opts.ribbonsColor || this.ribbonsColor;
@@ -1295,7 +1279,6 @@ Player.prototype._reset = function() {
         this._clearPostpones();
         resourceManager.cancel(this.id);
     }
-    this.statsReported = false;
     state.happens = C.NOTHING;
     state.from = 0;
     state.time = Player.NO_TIME;
@@ -1419,6 +1402,7 @@ Player.prototype.__beforeFrame = function(anim) {
                 anim.reset();
                 player.stop();
                 if (player.repeat || anim.repeat) {
+                   player.repeating = true;
                    player.play();
                    player.fire(C.S_REPEAT);
                 } else if (!player.infiniteDuration
@@ -1558,9 +1542,6 @@ var prodHost = 'animatron.com',
 Player.prototype.reportStats = function() {
     // currently, notifies only about playing start
     if (!this.anim || !this.anim.meta || !this.anim.meta._anm_id) return;
-    if (this.statsReported) {
-        return;
-    }
     if (!this.statImg) {
       this.statImg = engine.createStatImg();
     };
@@ -1585,7 +1566,6 @@ Player.prototype.reportStats = function() {
     } else if (locatedAtProd) {
         this.statImg.src = prodStatUrl + id + '?' + Math.random();
     }
-    this.statsReported = true;
 };
 
 /* Player.prototype.__originateErrors = function() {

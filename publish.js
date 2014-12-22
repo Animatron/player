@@ -19,7 +19,8 @@
 
     var utils = {
         isInt: function(n) {
-            return Math.floor(n) === n;
+            n = Number(n);
+            return !isNaN(n) && Math.floor(n) === n;
         },
         serializeToQueryString: function(obj) {
             var str = [];
@@ -31,9 +32,12 @@
             return str.join("&");
         },
         parseQueryString: function() {
-            var queryString = location.search.substring(1),
-            queries = queryString.split("&"),
-            params = {}, temp, i, l;
+            var queryString = location.search.substring(1);
+            if (!queryString) {
+                return {};
+            }
+            var queries = queryString.split("&"),
+                params = {}, temp, i, l;
             for ( i = 0, l = queries.length; i < l; i++ ) {
                 temp = queries[i].split('=');
                 params[temp[0]] = temp[1];
@@ -120,12 +124,18 @@
         try {
             if (!inIFrame) {
                 document.body.className ='no-iframe';
+            } else {
+                document.body.style.overflow = 'hidden';
             }
             var target = document.getElementById(TARGET_ID);
             target.style.width  = targetWidth + 'px';
             target.style.height = targetHeight + 'px';
             target.style.marginLeft = -Math.floor(targetWidth / 2) + 'px';
             target.style.marginTop  = -Math.floor(targetHeight / 2) + 'px';
+            target.style.position = 'absolute';
+            target.style.left = '50%';
+            target.style.top = '50%';
+
 
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
