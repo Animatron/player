@@ -304,7 +304,7 @@ $DE.createTextMeasurer = function() {
     return function(text, lines_arg) {
         var has_arg = (typeof lines_arg !== 'undefined');
         var lines = has_arg ? lines_arg : text.lines;
-        buff.style.font = text.font;
+        buff.style.font = text.$font;
         //buff.style.textAlign = text.align;
         //buff.style.verticalAlign = text.baseline || 'bottom';
         buff.style.whiteSpace = 'pre';

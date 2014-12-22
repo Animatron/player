@@ -76,15 +76,26 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
     ctx.textBaseline = this.baseline || Text.DEFAULT_BASELINE;
     ctx.textAlign = this.$align || Text.DEFAULT_ALIGN;
 
+    console.log('bounds', bounds);
+    console.log('height', height);
+    console.log('underlined', underlined);
+    console.log('font', ctx.font);
+    console.log('textBaseline', ctx.textBaseline);
+    console.log('textAlign', ctx.textAlign);
+
     var ascent = this.ascent(height, ctx.textBaseline);
+
+    console.log('ascent', ascent);
 
     var x = this.xOffset(bounds.width, ctx.textAlign),
         y;
+    console.log('x', x);
     if (shadow) { shadow.apply(ctx); } else { Brush.clearShadow(ctx); }
     if (fill) {
         fill.apply(ctx);
         y = 0;
         this.visitLines(function(line) {
+            console.log('line, x, y: ', line, x, y+ascent);
             ctx.fillText(line, x, y+ascent);
             y += height;
         });
@@ -94,6 +105,7 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
         stroke.apply(ctx);
         y = 0;
         this.visitLines(function(line) {
+            console.log('line, x, y: ', line, x, y+ascent);
             ctx.strokeText(line, x, y+ascent);
             y += height;
         });
