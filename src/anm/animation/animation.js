@@ -471,8 +471,8 @@ Animation.prototype.loadFonts = function(player) {
 
     for (var i = 0; i < fonts.length; i++) {
         var font = fonts[i];
-        if (!font.url || !font.face || detector.detect(font.face)) {
-            //no font name or url || font already available
+        if (!font.url || !font.face) {
+            //no font name or url
             continue;
         }
         if (https) {
