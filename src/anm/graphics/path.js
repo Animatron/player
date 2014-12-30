@@ -90,12 +90,14 @@ Path.prototype.visit = function(visitor, data) {
  * @return {Number} path length
  */
 Path.prototype.length = function() {
+    if (is.defined(this.cached_len)) return this.cached_len;
     var sum = 0;
     var p = this.start();
     this.visit(function(segment) {
         sum += segment.length(p);
         p = segment.last();
     });
+    this.cached_len = sum;
     return sum;
 }
 /**
@@ -449,6 +451,7 @@ Path.prototype.clone = function() {
  * Invalidate bounds of this path
  */
 Path.prototype.invalidate = function() {
+    this.cached_len = undefined;
     this.$bounds = null;
 }
 Path.prototype.reset = function() {

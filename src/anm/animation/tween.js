@@ -91,7 +91,7 @@ Tween.addTween(C.T_TRANSLATE, function(data) {
     return function(t, dt, duration) {
         var p = data.pointAt(t);
         if (!p) return;
-        this.$mpath = data;
+        if (data.length() > 0) this.$mpath = data;
         this.x = p[0];
         this.y = p[1];
     };
