@@ -286,6 +286,11 @@ Path.prototype.pointAt = function(t) {
  * @return {[Number]} point in a form of [x, y]
  */
 Path.prototype.tangentAt = function(t) {
+    var t = t;
+    if (this.length() > 0) {
+        if (t == 0) t = 0.0001;
+        if (t == 1) t = 0.9999;
+    }
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
