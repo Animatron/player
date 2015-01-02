@@ -366,11 +366,11 @@ $DE.findScrollAwarePosition = function(elm) {
     if (elm.getBoundingClientRect) {
         var rect = elm.getBoundingClientRect();
         do {
-            curleft += ((elm !== $doc.body)
-                        ? elm.scrollLeft
+            curleft += ((elm !== $doc.body) ?
+                        elm.scrollLeft
                         : $doc.documentElement.scrollLeft);
-            curtop += ((elm !== $doc.body)
-                        ? elm.scrollTop
+            curtop += ((elm !== $doc.body) ?
+                        elm.scrollTop
                         : $doc.documentElement.scrollTop);
         } while ((elm = elm.offsetParent));
         return [ rect.left - curleft, rect.top - curtop ];
@@ -378,11 +378,11 @@ $DE.findScrollAwarePosition = function(elm) {
     //var bound = elm.getBoundingClientRect();
     //return [ bound.left, bound.top ];
     do {
-        curleft += elm.offsetLeft - ((elm !== $doc.body)
-                                     ? elm.scrollLeft
+        curleft += elm.offsetLeft - ((elm !== $doc.body) ?
+                                     elm.scrollLeft
                                      : $doc.documentElement.scrollLeft);
-        curtop += elm.offsetTop - ((elm !== $doc.body)
-                                     ? elm.scrollTop
+        curtop += elm.offsetTop - ((elm !== $doc.body) ?
+                                     elm.scrollTop
                                      : $doc.documentElement.scrollTop);
     } while ((elm = elm.offsetParent));
     return [ curleft, curtop ];
@@ -618,9 +618,9 @@ $DE.extractUserOptions = function(elm) {
              'autoPlay': __boolAttr(elm.getAttribute('anm-autoplay') || elm.getAttribute('anm-auto-play')),
              'bgColor': elm.getAttribute('anm-bgcolor') || elm.getAttribute('anm-bg-color'),
              'ribbonsColor': elm.getAttribute('anm-ribbons') || elm.getAttribute('anm-ribcolor') || elm.getAttribute('anm-rib-color'),
-             'drawStill': __boolAttr(elm.getAttribute('anm-draw-still')
-                                     || elm.getAttribute('anm-draw-thumbnail')
-                                     || elm.getAttribute('anm-draw-thumb')),
+             'drawStill': __boolAttr(elm.getAttribute('anm-draw-still') ||
+                              elm.getAttribute('anm-draw-thumbnail') ||
+                              elm.getAttribute('anm-draw-thumb')),
              'imagesEnabled': __boolAttr(elm.getAttribute('anm-images') || elm.getAttribute('anm-images-enabled')),
              'shadowsEnabled': __boolAttr(elm.getAttribute('anm-shadows') || elm.getAttribute('anm-shadows-enabled')),
              'audioEnabled': __boolAttr(elm.getAttribute('anm-audio') || elm.getAttribute('anm-audio-enabled')),
