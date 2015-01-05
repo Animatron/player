@@ -197,6 +197,13 @@ function fit_rects(pw, ph, aw, ah) {
     } else return [ 1, [ 0, 0, aw, ah ] ];
 }
 
+function removeElement(array, element) {
+    var index = array.indexOf(element);
+    if (index > -1) {
+        array.splice(index, 1);
+    }
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -213,5 +220,6 @@ module.exports = {
     guid: guid,
     fit_rects: fit_rects,
     is: is,
-    iter: iter
+    iter: iter,
+    removeElement: removeElement
 };
