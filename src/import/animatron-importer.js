@@ -88,10 +88,17 @@ Import.project = function(prj) {
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();
 
+    var node_res;
+    var traverseFunc = function(elm) {
+        var e_gband_before = elm.gband;
+        elm.gband = [ last_scene_band[1] + e_gband_before[0],
+        last_scene_band[1] + e_gband_before[1] ];
+    };
+
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        var node_res = Import.node(node_src, elems, null, root);
+        node_res = Import.node(node_src, elems, null, root);
         //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
         if (node_res.gband[0] == node_res.gband[1]) {
             continue;
@@ -108,11 +115,7 @@ Import.project = function(prj) {
                                last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
             node_res.lband = node_res.gband;
-            node_res.traverse(function(elm) {
-                var e_gband_before = elm.gband;
-                elm.gband = [ last_scene_band[1] + e_gband_before[0],
-                              last_scene_band[1] + e_gband_before[1] ];
-            });
+            node_res.traverse(traverseFunc);
         }
         last_scene_band = node_res.gband;
         root.add(node_res);
@@ -942,7 +945,7 @@ Base64Decoder._decode = function(data) {
     dec = tmp_arr.join('');
 
     return dec;
-}
+};
 
 // Path cache
 // -----------------------------------------------------------------------------
