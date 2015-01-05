@@ -29,7 +29,7 @@ PlayerManager.prototype.handle__x = function(evt, player) {
         // do nothing
     }
     return true;
-}
+};
 /**
  * @method getPlayer
  *
@@ -40,6 +40,6 @@ PlayerManager.prototype.handle__x = function(evt, player) {
  */
 PlayerManager.prototype.getPlayer = function(cvs_id) {
     return this.hash[cvs_id];
-}
+};
 
 module.exports = new PlayerManager();

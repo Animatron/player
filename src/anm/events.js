@@ -61,7 +61,7 @@ function provideEvents(subj, events) {
             if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
             if (!event) return evts;
             return this.handlers.hasOwnProperty(event);
-        }
+        };
     })(events);
     subj.prototype.unbind = function(event, idx) {
         if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
@@ -79,20 +79,18 @@ function provideEvents(subj, events) {
         for (var evt in _hdls) {
             if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
         }
-    }
+    };
     /* FIXME: call fire/e_-funcs only from inside of their providers, */
     /* TODO: wrap them with event objects */
-    var _event;
+    var makeFireFunc = function(event){
+        return function(evtobj) {
+            this.fire(event, evtobj);
+        };
+    };
+    
     for (var ei = 0, el = events.length; ei < el; ei++) {
-        _event = events[ei];
-        subj.prototype['e_'+_event] = (function(event) {
-            return function(evtobj) {
-                this.fire(event, evtobj);
-            };
-        })(_event);
+        subj.prototype['e_'+_event] = makeFireFunc(events[ei]);
     }
-}
-
 
 registerEvent('S_NEW_PLAYER', 'new_player', 'new_player');
 registerEvent('S_PLAYER_DETACH', 'player_detach', 'player_detach');
