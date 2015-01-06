@@ -87,10 +87,11 @@ function provideEvents(subj, events) {
             this.fire(event, evtobj);
         };
     };
-    
+
     for (var ei = 0, el = events.length; ei < el; ei++) {
         subj.prototype['e_'+_event] = makeFireFunc(events[ei]);
     }
+}
 
 registerEvent('S_NEW_PLAYER', 'new_player', 'new_player');
 registerEvent('S_PLAYER_DETACH', 'player_detach', 'player_detach');
