@@ -3,7 +3,7 @@ var C = require('../constants.js');
 var utils = require('../utils.js'),
     is = utils.is;
 
-var segments = require('./segments.js')
+var segments = require('./segments.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
     CSeg = segments.CSeg;
@@ -81,7 +81,7 @@ Path.prototype.visit = function(visitor, data) {
         visitor(segments[si], data);
     }
     return this;
-}
+};
 /**
  * @method length
  *
@@ -97,7 +97,7 @@ Path.prototype.length = function() {
         p = segment.last();
     });
     return sum;
-}
+};
 /**
  * @method add
  * @chainable
@@ -111,7 +111,7 @@ Path.prototype.length = function() {
 Path.prototype.add = function(seg) {
     this.segs.push(seg);
     return this;
-}
+};
 /**
  * @method move
  * @chainable
@@ -125,7 +125,7 @@ Path.prototype.add = function(seg) {
  */
 Path.prototype.move = function(x, y) {
     return this.add(new MSeg([x, y]));
-}
+};
 /**
  * @method line
  * @chainable
@@ -139,7 +139,7 @@ Path.prototype.move = function(x, y) {
  */
 Path.prototype.line = function(x, y) {
     return this.add(new LSeg([x, y]));
-}
+};
 /**
  * @method curve
  * @chainable
@@ -157,7 +157,7 @@ Path.prototype.line = function(x, y) {
  */
 Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
     return this.add(new CSeg([x1, y1, x2, y2, x3, y3]));
-}
+};
 /**
  * @method close
  * @chainable
@@ -169,7 +169,7 @@ Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
 Path.prototype.close = function() {
     this.closed = true;
     return this;
-}
+};
 /**
  * @method apply
  *
@@ -198,7 +198,7 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     if (fill) { fill.apply(ctx); ctx.fill(); }
     if (shadow) { Brush.clearShadow(ctx); }
     if (stroke) { stroke.apply(ctx); ctx.stroke(); }
-}
+};
 /**
  * @method parse
  * @chainable
@@ -212,7 +212,7 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
 Path.prototype.parse = function(str) {
     if (str) Path.parse(str, this);
     return this;
-}
+};
 /**
  * @method hitAt
  *
@@ -224,7 +224,7 @@ Path.prototype.parse = function(str) {
  */
 Path.prototype.hitAt = function(t) {
     var plen = this.length(); // path length in pixels
-    if (plen == 0) return null;
+    if (plen === 0) return null;
     if (t < 0 || t > 1.0) return null;
 
     var startp = this.start(); // start point of segment
@@ -237,7 +237,7 @@ Path.prototype.hitAt = function(t) {
       if (t == 1) return func ? func(startp, endp) : endp;*/
 
     var nsegs = this.segs.length; // number of segments
-    if (nsegs == 0) return null;
+    if (nsegs === 0) return null;
 
     var distance = t * plen;
     var p = startp;
@@ -263,7 +263,7 @@ Path.prototype.hitAt = function(t) {
         'seg': lseg, 'start': p, 'slen': lseg.length(p), 'segt': 1.0
       };*/
     return null;
-}
+};
 /**
  * @method pointAt
  *
@@ -276,7 +276,7 @@ Path.prototype.pointAt = function(t) {
     var hit = this.hitAt(t);
     if (!hit) return this.start();
     return hit.seg.atT(hit.start, hit.segt);
-}
+};
 /**
  * @method tangentAt
  *
@@ -289,7 +289,7 @@ Path.prototype.tangentAt = function(t) {
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
-}
+};
 /**
  * @method start
  *
@@ -301,7 +301,7 @@ Path.prototype.start = function() {
     if (this.segs.length < 1) return null;
     return [ this.segs[0].pts[0],   // first-x
              this.segs[0].pts[1] ]; // first-y
-}
+};
 /**
  * @method end
  *
@@ -312,7 +312,7 @@ Path.prototype.start = function() {
 Path.prototype.end = function() {
     if (this.segs.length < 1) return null;
     return this.segs[this.segs.length - 1].last();
-}
+};
 /**
  * @method bounds
  *
@@ -328,19 +328,19 @@ Path.prototype.bounds = function() {
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
         var pts = segment.pts,
-            pnum = pts.length;
-        for (var pi = 0; pi < pnum; pi+=2) {
+            pnum = pts.length, pi;
+        for (pi = 0; pi < pnum; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 1; pi < pnum; pi+=2) {
+        for (pi = 1; pi < pnum; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
     });
     return (this.$bounds = new Bounds(minX, minY,
                                       maxX - minX, maxY - minY));
-}
+};
 /* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
@@ -354,7 +354,7 @@ Path.prototype.vpoints = function(func) {
             }
         }
     });
-}
+};
 /**
  * @method shift
  * @chainable
@@ -388,7 +388,7 @@ Path.prototype.zoom = function(vals) {
                  y * vals[1] ];
     });
     return this;
-}
+};
 /**
  * @method normalize
  *
@@ -412,17 +412,19 @@ Path.prototype.normalize = function() {
                  y - min_y - hh];
         });
     return [ hw, hh ];
-}
+};
+
 Path.prototype.getPoints = function() {
     var points = [];
     this.visit(function(seg) {
         points = points.concat(seg.pts);
     });
     return points;
-}
+};
+
 Path.prototype.toString = function() {
     return "[ Path '" + Path.toSVGString(this) + "' ]";
-}
+};
 /**
  * @method clone
  *
@@ -437,7 +439,7 @@ Path.prototype.clone = function() {
     });
     clone.closed = this.closed;
     return _clone;
-}
+};
 /**
  * @method invalidate
  *
@@ -445,12 +447,14 @@ Path.prototype.clone = function() {
  */
 Path.prototype.invalidate = function() {
     this.$bounds = null;
-}
+};
+
 Path.prototype.reset = function() {
     this.segs = [];
     this.closed = false;
-}
-Path.prototype.dispose = function() { }
+};
+
+Path.prototype.dispose = function() { };
 
 // visits every chunk of path in string-form and calls
 // visitor function, so visitor function gets
@@ -474,13 +478,15 @@ Path.visitStrPath = function(path, visitor, data) {
         var positions = pos_data[1];
         visitor(marker, positions, data);
     }
-}
+};
+
 Path.toSVGString = function(path) {
     var buffer = [];
     path.visit(encodeVisitor, buffer);
     buffer.push('Z');
     return buffer.join(' ');
-}
+};
+
 // parses `count` positions from path (string form),
 // starting at `start`, returns a length of parsed data and
 // positions array
@@ -494,7 +500,8 @@ var collectPositions = function(path, start, count) {
         positions.push(parseFloat(posstr));
     }
     return [pos - start, positions];
-}
+};
+
 // visitor to parse a string path into Path object
 var parserVisitor = function(marker, positions, path) {
     if (marker === 'M') {
@@ -504,7 +511,8 @@ var parserVisitor = function(marker, positions, path) {
     } else if (marker === 'C') {
         path.add(new CSeg(positions));
     }
-}
+};
+
 // visitor to apply string path to context
 var strApplyVisitor = function(marker, positions, ctx) {
     if (marker === 'M') {
@@ -517,18 +525,19 @@ var strApplyVisitor = function(marker, positions, ctx) {
                           positions[4], positions[5]);
     }
 };
+
 var encodeVisitor = function(segment, buffer) {
     buffer.push(segment.toString());
-}
+};
 
 // converts path given in string form to array of segments
 Path.parse = function(path, target) {
-    var target = target || new Path();
+    target = target || new Path();
     target.segs = [];
     Path.visitStrPath(path, parserVisitor, target);
     target.str = path;
     return target;
-}
+};
 /**
  * @static @method parseAndAppy
  *
@@ -539,6 +548,6 @@ Path.parse = function(path, target) {
  */
 Path.parseAndApply = function(ctx, path) {
     Path.visitStrPath(path, strApplyVisitor, ctx);
-}
+};
 
 module.exports = Path;

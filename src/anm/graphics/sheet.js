@@ -43,7 +43,7 @@ function Sheet(src, callback, start_region) {
     this._image = null;
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
-};
+}
 
 var https = engine.isHttps;
 
@@ -166,7 +166,7 @@ Sheet.prototype.bounds = function() {
     }
     var r = this.region;
     return new Bounds(0, 0, r[2], r[3]);
-}
+};
 /**
  * @method clone
  *
