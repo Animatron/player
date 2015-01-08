@@ -25,8 +25,6 @@ PlayerManager.prototype.handle__x = function(evt, player) {
     if (evt == C.S_NEW_PLAYER) {
         this.hash[player.id] = player;
         this.instances.push(player);
-    } else if (evt == C.S_PLAYER_DETACH) {
-        // do nothing
     }
     return true;
 };
