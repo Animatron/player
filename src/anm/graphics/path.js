@@ -60,6 +60,8 @@ function Path(val) {
     } else if (is.arr(val)) {
         this.segs = val;
     }
+
+    this.cached_hits = {};
 }
 
 /**
@@ -225,15 +227,17 @@ Path.prototype.parse = function(str) {
  * @return {Object} hit data
  */
 Path.prototype.hitAt = function(t) {
+    if (is.defined(this.cached_hits[t])) return this.cached_hits[t];
+
     var plen = this.length(); // path length in pixels
     if (plen == 0) return null;
     if (t < 0 || t > 1.0) return null;
 
     var startp = this.start(); // start point of segment
 
-    if (t === 0) return {
+    if (t === 0) return (this.cached_hits[t] = {
         'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
-    };
+    });
 
     /*var endp = this.end();
       if (t == 1) return func ? func(startp, endp) : endp;*/
@@ -251,9 +255,9 @@ Path.prototype.hitAt = function(t) {
         if (distance <= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
-            return {
+            return (this.cached_hits[t] = {
                 'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? seg.findT(p, segdist) : 0
-            };
+            });
         }
         length += slen;
         // end point of segment
@@ -452,6 +456,7 @@ Path.prototype.clone = function() {
  */
 Path.prototype.invalidate = function() {
     this.cached_len = undefined;
+    this.cached_hits = {};
     this.$bounds = null;
 }
 Path.prototype.reset = function() {

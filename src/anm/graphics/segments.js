@@ -315,7 +315,6 @@ CSeg.prototype.findT = function(start, dist) {
     return this.findLengthAndT(start, dist)[1];
 }
 CSeg.prototype.findLengthAndT = function(start, dist) {
-    /* FIXME: cache length data and points somewhere */
     var positions = this.pts;
     var p0x = start[0];
     var p0y = start[1];
