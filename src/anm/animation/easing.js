@@ -12,7 +12,7 @@ EasingImpl[C.E_PATH] =
         /*var path = Path.parse(str);*/
         return function(t) {
             return path.pointAt(t)[1];
-        }
+        };
     };
 EasingImpl[C.E_FUNC] =
     function(f) {
@@ -44,7 +44,7 @@ function registerSegEasing(alias, points) {
     C['EF_'+alias] = func;
     EasingImpl[alias] = function() {
         return func;
-    }
+    };
 }
 
 registerSegEasing('DEF',    [0.250, 0.100, 0.250, 1.000, 1.000, 1.000]); // Default
@@ -77,10 +77,10 @@ registerSegEasing('BOUT',   [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back
 registerSegEasing('BINOUT', [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
 var STD_EASINGS = [
-    function(t) { return C['EF_DEF'](t); }, // Default
-    function(t) { return C['EF_IN'](t); },  // In
-    function(t) { return C['EF_OUT'](t); }, // Out
-    function(t) { return C['EF_INOUT'](t); }, // InOut
+    function(t) { return C.EF_DEF(t); }, // Default
+    function(t) { return C.EF_IN(t); },  // In
+    function(t) { return C.EF_OUT(t); }, // Out
+    function(t) { return C.EF_INOUT(t); }, // InOut
     function(t) { return t*t; },    // 4    In Quad
     function(t) { return t*(2-t); },// 5    Out Quad
     function(t) {                   // 6    In/Out Quad
@@ -160,16 +160,16 @@ var STD_EASINGS = [
         if (t < (1/2.75)) {
             return (7.5625*t*t);
         } else if (t < (2/2.75)) {
-            return (7.5625*(t-=(1.5/2.75))*t + .75);
+            return (7.5625*(t-=(1.5/2.75))*t + 0.75);
         } else if (t < (2.5/2.75)) {
-            return (7.5625*(t-=(2.25/2.75))*t + .9375);
+            return (7.5625*(t-=(2.25/2.75))*t + 0.9375);
         } else {
-            return (7.5625*(t-=(2.625/2.75))*t + .984375);
+            return (7.5625*(t-=(2.625/2.75))*t + 0.984375);
         }
     },
     function(t) {             // 24     In/Out Bounce
-        if (t < 0.5) return STD_EASINGS[22](t*2) * .5 ;
-        return STD_EASINGS[23](t*2-1) * .5 + .5;
+        if (t < 0.5) return STD_EASINGS[22](t*2) * 0.5;
+        return STD_EASINGS[23](t*2-1) * 0.5 + 0.5;
     }
 ];
 
