@@ -16,17 +16,17 @@ is.int = function(n) {
     return is.num(n) && Math.floor(n) == n;
 };
 is.num = function(n) {
-  n = global.parseFloat(n);
-  return !is.nan(n) && is.finite(n);
+    n = global.parseFloat(n);
+    return !is.nan(n) && is.finite(n);
 };
 is.fun = function(f) {
-  return typeof f === 'function';
+    return typeof f === 'function';
 };
 is.obj = function(o) {
-  return typeof o === 'object';
+    return typeof o === 'object';
 };
 is.str = function(s) {
-  return typeof s === 'string';
+    return typeof s === 'string';
 };
 is.not_empty = function(obj) {
     if (Object.keys) return (Object.keys(obj).length > 0);
@@ -34,13 +34,13 @@ is.not_empty = function(obj) {
 };
 
 is.modifier = function(f) {
-  return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
+    return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
 };
 is.painter = function(f) {
-  return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
+    return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
 };
 is.tween = function(f) {
-  return f.is_tween && is.modifier(f);
+    return f.is_tween && is.modifier(f);
 };
 
 // Iterator
@@ -77,16 +77,16 @@ function iter(a) {
 
 
 function fmt_time(time) {
-  if (!is.finite(time)) return '∞';
-  var absTime = Math.abs(time),
-      h = Math.floor(absTime / 3600),
-      m = Math.floor((absTime - (h * 3600)) / 60),
-      s = Math.floor(absTime - (h * 3600) - (m * 60));
+    if (!is.finite(time)) return '∞';
+    var absTime = Math.abs(time),
+        h = Math.floor(absTime / 3600),
+        m = Math.floor((absTime - (h * 3600)) / 60),
+        s = Math.floor(absTime - (h * 3600) - (m * 60));
 
-  return ((time < 0) ? '-' : '') +
-          ((h > 0)  ? (((h < 10) ? ('0' + h) : h) + ':') : '') +
-          ((m < 10) ? ('0' + m) : m) + ':' +
-          ((s < 10) ? ('0' + s) : s)
+    return ((time < 0) ? '-' : '') +
+            ((h > 0)  ? (((h < 10) ? ('0' + h) : h) + ':') : '') +
+            ((m < 10) ? ('0' + m) : m) + ':' +
+            ((s < 10) ? ('0' + s) : s)
 }
 
 function ell_text(text, max_len) {

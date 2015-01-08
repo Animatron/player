@@ -91,9 +91,18 @@ Tween.addTween(C.T_TRANSLATE, function(data) {
     return function(t, dt, duration) {
         var p = data.pointAt(t);
         if (!p) return;
-        this.$mpath = data;
         this.x = p[0];
         this.y = p[1];
+        // move path is stored both for rotate-to-path tween
+        // and debugging purposes. it is not needed, though, if
+        // it has a length of 0, rotation angle will be taken from
+        // the end of previous one instead;
+        if (data.length() > 0) {
+            this.$mpath = data;
+            this.skippedMovePath = false;
+        } else {
+            this.skippedMovePath = true;
+        }
     };
 });
 
@@ -125,7 +134,13 @@ Tween.addTween(C.T_ROTATE, function(data) {
 Tween.addTween(C.T_ROT_TO_PATH, function(data) {
     return function(t, dt, duration) {
         var path = this.$mpath;
-        if (path) this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+        if (path) {
+            // move path is skipped if was empty at t and
+            // the [end of] previous one is used to
+            // calculate rotation instead
+            var t = this.skippedMovePath ? 1 : t;
+            this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
+        }
     };
 });
 

@@ -75,7 +75,7 @@ var anm = {
     },
 
     createImporter: function(importer) {
-      console.warn('anm.createImporter is deprecated and will be removed soon.' +
+      if(window.console) console.warn('anm.createImporter is deprecated and will be removed soon.' +
         ' Please use anm.importers.create instead');
       return anm.importers.create(importer);
     }

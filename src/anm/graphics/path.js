@@ -90,12 +90,14 @@ Path.prototype.visit = function(visitor, data) {
  * @return {Number} path length
  */
 Path.prototype.length = function() {
+    if (is.defined(this.cached_len)) return this.cached_len;
     var sum = 0;
     var p = this.start();
     this.visit(function(segment) {
         sum += segment.length(p);
         p = segment.last();
     });
+    this.cached_len = sum;
     return sum;
 }
 /**
@@ -286,6 +288,11 @@ Path.prototype.pointAt = function(t) {
  * @return {[Number]} point in a form of [x, y]
  */
 Path.prototype.tangentAt = function(t) {
+    var t = t;
+    if (this.length() > 0) {
+        if (t == 0) t = 0.0001;
+        if (t == 1) t = 0.9999;
+    }
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
@@ -444,6 +451,7 @@ Path.prototype.clone = function() {
  * Invalidate bounds of this path
  */
 Path.prototype.invalidate = function() {
+    this.cached_len = undefined;
     this.$bounds = null;
 }
 Path.prototype.reset = function() {
