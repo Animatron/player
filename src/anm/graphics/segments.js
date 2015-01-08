@@ -11,9 +11,11 @@ MSeg.prototype.draw = function(ctx) {
 MSeg.prototype.length = function(start) {
     return 0;
 }
-// returns pair, first - distance, second - parameter t that corresponds to given distance
 MSeg.prototype.findT = function(start, dist) {
     return 0;
+}
+MSeg.prototype.atDist = function(start, dist) {
+    return this.atT(start, null);
 }
 MSeg.prototype.atT = function(start, t) {
     return [ this.pts[0], this.pts[1] ];
@@ -43,10 +45,13 @@ LSeg.prototype.length = function(start) {
     return Math.sqrt(dx*dx + dy*dy);
 }
 LSeg.prototype.findT = function(start, dist) {
-    if (dist <= 0) return [0, 0];
+    if (dist <= 0) return 0;
     var length = this.length(start);
     if (dist >= length) return 1;
-    return this.atT(start, dist / this.length(start));
+    return dist / length;
+}
+LSeg.prototype.atDist = function(start, dist) {
+    return this.atT(start, this.findT(start, dist));
 }
 LSeg.prototype.atT = function(start, t) {
     var p0x = start[0];
@@ -150,6 +155,9 @@ CSeg.prototype.findLengthAndT = function(start, dist) {
 CSeg.prototype.length = function(start) {
     return this.findLengthAndT(start, Number.MAX_VALUE)[0];
 }
+CSeg.prototype.atDist = function(start, dist) {
+    return this.atT(start, this.findT(start, dist));
+};
 CSeg.prototype.atT = function(start, t) {
     var tt = t * t,       // t^2
         ttt = tt * t,      // t^3
