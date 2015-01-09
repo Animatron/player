@@ -169,8 +169,8 @@ ResourceManager.prototype.check = function() {
         var urls = subscriptions[subject_id][0],
             callbacks = subscriptions[subject_id][1],
             error_count = 0,
-            success_count = 0;
-        for (var u = 0, ul = urls.length; u < ul; u++) {
+            success_count = 0, u;
+        for (u = 0, ul = urls.length; u < ul; u++) {
             if (errors[urls[u]]) error_count++;
             if (cache[urls[u]]) success_count++;
         }

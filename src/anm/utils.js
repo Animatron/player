@@ -197,10 +197,14 @@ function fit_rects(pw, ph, aw, ah) {
     } else return [ 1, [ 0, 0, aw, ah ] ];
 }
 
-function removeElement(array, element) {
-    var index = array.indexOf(element);
-    if (index > -1) {
-        array.splice(index, 1);
+function removeElement(obj, element) {
+    if (is.arr(obj)) {
+        var index = array.indexOf(element);
+        if (index > -1) {
+            array.splice(index, 1);
+        }
+    } else {
+        obj[element] = null;
     }
 }
 

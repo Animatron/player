@@ -89,7 +89,7 @@ function provideEvents(subj, events) {
     };
 
     for (var ei = 0, el = events.length; ei < el; ei++) {
-        subj.prototype['e_'+_event] = makeFireFunc(events[ei]);
+        subj.prototype['e_'+events[ei]] = makeFireFunc(events[ei]);
     }
 }
 
