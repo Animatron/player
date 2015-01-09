@@ -13,7 +13,7 @@ var C = require('../constants.js');
  */
 function MSeg(pts) {
     this.pts = pts;
-}
+};
 /**
  * @method draw
  *
@@ -23,7 +23,7 @@ function MSeg(pts) {
  */
 MSeg.prototype.draw = function(ctx) {
     ctx.moveTo(this.pts[0], this.pts[1]);
-}
+};
 /**
  * @method length
  *
@@ -37,7 +37,7 @@ MSeg.prototype.draw = function(ctx) {
  */
 MSeg.prototype.length = function(start) {
     return 0;
-}
+};
 /**
  * @method findT
  *
@@ -52,7 +52,7 @@ MSeg.prototype.length = function(start) {
  */
 MSeg.prototype.findT = function(start, dist) {
     return 0;
-}
+};
 /**
  * @method atDist
  *
@@ -68,7 +68,7 @@ MSeg.prototype.findT = function(start, dist) {
  */
 MSeg.prototype.atDist = function(start, dist) {
     return this.atT(start, null);
-}
+};
 /**
  * @method atT
  *
@@ -85,7 +85,7 @@ MSeg.prototype.atDist = function(start, dist) {
  */
 MSeg.prototype.atT = function(start, t) {
     return [ this.pts[0], this.pts[1] ];
-}
+};
 /**
  * @method tangentAt
  *
@@ -101,7 +101,7 @@ MSeg.prototype.atT = function(start, t) {
  */
 MSeg.prototype.tangentAt = function(start, t) {
     return 0;
-}
+};
 /**
  * @method last
  *
@@ -111,10 +111,10 @@ MSeg.prototype.tangentAt = function(start, t) {
  */
 MSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
-}
+};
 MSeg.prototype.toString = function() {
     return "M" + this.pts.join(" ");
-}
+};
 /**
  * @method clone
  *
@@ -124,7 +124,7 @@ MSeg.prototype.toString = function() {
  */
 MSeg.prototype.clone = function() {
     return new MSeg(this.pts);
-}
+};
 
 /**
  * @class anm.LSeg
@@ -139,7 +139,7 @@ MSeg.prototype.clone = function() {
  */
 function LSeg(pts) {
     this.pts = pts;
-}
+};
 /**
  * @method draw
  *
@@ -149,7 +149,7 @@ function LSeg(pts) {
  */
 LSeg.prototype.draw = function(ctx) {
     ctx.lineTo(this.pts[0], this.pts[1]);
-}
+};
 /**
  * @method length
  *
@@ -164,7 +164,7 @@ LSeg.prototype.length = function(start) {
     var dx = this.pts[0] - start[0];
     var dy = this.pts[1] - start[1];
     return Math.sqrt(dx*dx + dy*dy);
-}
+};
 /**
  * @method findT
  *
@@ -182,7 +182,7 @@ LSeg.prototype.findT = function(start, dist) {
     var length = this.length(start);
     if (dist >= length) return 1;
     return dist / length;
-}
+};
 /**
  * @method atDist
  *
@@ -197,7 +197,7 @@ LSeg.prototype.findT = function(start, dist) {
  */
 LSeg.prototype.atDist = function(start, dist) {
     return this.atT(start, this.findT(start, dist));
-}
+};
 /**
  * @method atT
  *
@@ -220,7 +220,7 @@ LSeg.prototype.atT = function(start, t) {
         p0x + (p1x - p0x) * t,
         p0y + (p1y - p0y) * t
     ];
-}
+};
 /**
  * @method tangentAt
  *
@@ -237,7 +237,7 @@ LSeg.prototype.atT = function(start, t) {
 LSeg.prototype.tangentAt = function(start, t) {
     return Math.atan2(this.pts[1] - start[1],
                       this.pts[0] - start[0]);
-}
+};
 /**
  * @method last
  *
@@ -247,10 +247,10 @@ LSeg.prototype.tangentAt = function(start, t) {
  */
 LSeg.prototype.last = function() {
     return [ this.pts[0], this.pts[1] ];
-}
+};
 LSeg.prototype.toString = function() {
     return "L" + this.pts.join(" ");
-}
+};
 /**
  * @method clone
  *
@@ -260,7 +260,7 @@ LSeg.prototype.toString = function() {
  */
 LSeg.prototype.clone = function() {
     return new LSeg(this.pts);
-}
+};
 
 /**
  * @class anm.CSeg
@@ -275,7 +275,7 @@ LSeg.prototype.clone = function() {
  */
 function CSeg(pts) {
     this.pts = pts;
-}
+};
 /**
  * @method draw
  *
@@ -285,7 +285,7 @@ function CSeg(pts) {
  */
 CSeg.prototype.draw = function(ctx) {
     ctx.bezierCurveTo(this.pts[0], this.pts[1], this.pts[2], this.pts[3], this.pts[4], this.pts[5]);
-}
+};
 /**
  * @method length
  *
@@ -298,7 +298,7 @@ CSeg.prototype.draw = function(ctx) {
  */
 CSeg.prototype.length = function(start) {
     return this.findLengthAndT(start, Number.MAX_VALUE)[0];
-}
+};
 /**
  * @method findT
  *
@@ -313,7 +313,7 @@ CSeg.prototype.length = function(start) {
  */
 CSeg.prototype.findT = function(start, dist) {
     return this.findLengthAndT(start, dist)[1];
-}
+};
 CSeg.prototype.findLengthAndT = function(start, dist) {
     var positions = this.pts;
     var p0x = start[0];
@@ -378,7 +378,7 @@ CSeg.prototype.findLengthAndT = function(start, dist) {
         }
     }
     return [length, 1];
-}
+};
 /**
  * @method atDist
  *
@@ -420,7 +420,7 @@ CSeg.prototype.atT = function(start, t) {
 
     return [ start[0] * tt2 + this.pts[0] * tt3 + this.pts[2] * tt4 + this.pts[4] * ttt,
              start[1] * tt2 + this.pts[1] * tt3 + this.pts[3] * tt4 + this.pts[5] * ttt ];
-}
+};
 /**
  * @method tangentAt
  *
@@ -449,7 +449,7 @@ CSeg.prototype.tangentAt = function(start, t) {
                       (a * (this.pts[0] - start[0])) +
                       (b * (this.pts[2] - this.pts[0])) +
                       (c * (this.pts[4] - this.pts[2])));
-}
+};
 /**
  * @method last
  *
@@ -459,14 +459,14 @@ CSeg.prototype.tangentAt = function(start, t) {
  */
 CSeg.prototype.last = function() {
     return [ this.pts[4], this.pts[5] ];
-}
+};
 CSeg.prototype._ensure_params = function(start) {
     if (this._lstart &&
         (this._lstart[0] === start[0]) &&
         (this._lstart[1] === start[1])) return;
     this._lstart = start;
     this._params = this._calc_params(start);
-}
+};
 CSeg.prototype._calc_params = function(start) {
     // See http://www.planetclegg.com/projects/WarpingTextToSplines.html
     var pts = this.pts;
@@ -491,7 +491,7 @@ CSeg.prototype._calc_params = function(start) {
     params[7] = p0y;                        // H = y0
 
     return params;
-}
+};
 /**
  * @method clone
  *
@@ -501,13 +501,13 @@ CSeg.prototype._calc_params = function(start) {
  */
 CSeg.prototype.clone = function() {
     return new CSeg(this.pts);
-}
+};
 CSeg.prototype.toString = function() {
     return "C" + this.pts.join(" ");
-}
+};
 
 module.exports = {
   MSeg: MSeg,
   LSeg: LSeg,
   CSeg: CSeg
-}
+};

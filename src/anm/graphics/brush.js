@@ -148,8 +148,8 @@ Brush.prototype.adapt = function(ctx) {
             bounds = src.bounds || [0, 0, 1, 1];
         var grad;
         if (is.defined(src.r)) {
-            grad = bounds
-                ? ctx.createRadialGradient(
+            grad = bounds ?
+                ctx.createRadialGradient(
                                 bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
                                 bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
                                 Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
@@ -160,8 +160,8 @@ Brush.prototype.adapt = function(ctx) {
                                dir[0][0], dir[0][1], r[0],  // x0, y0, r0
                                dir[1][0], dir[1][1], r[1]); // x1, y1, r1
         } else {
-            grad = bounds
-                ? ctx.createLinearGradient(
+            grad = bounds ?
+                ctx.createLinearGradient(
                                 bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
                                 bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
                                 bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width

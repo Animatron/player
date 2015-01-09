@@ -3,7 +3,7 @@ var C = require('./constants.js');
 var Painter = require('./animation/painter.js'),
     Modifier = require('./animation/modifier.js');
 
-var Brush = require('./graphics/brush.js')
+var Brush = require('./graphics/brush.js');
 
 var engine = require('engine'),
     nextFrame = engine.getRequestFrameFunc();
@@ -67,14 +67,15 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     return nextFrame(function() {
         r_loop(ctx, player, anim, before, after, before_render, after_render);
-    })
+    });
 }
+
 function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = engine.PX_RATIO;
     if (ratio !== 1) ctx.scale(ratio, ratio);
-    var width = width | 0,
-        height = height | 0;
+    width = width | 0;
+    height = height | 0;
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
     if (!size_differs) {
@@ -101,6 +102,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
             });
     }
 }
+
 function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
     // pw == player width, ph == player height
     // aw == anim width,   ah == anim height
@@ -138,6 +140,7 @@ function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
     draw_f(factor);
     ctx.restore();
 }
+
 function r_fps(ctx, fps, time) {
     ctx.fillStyle = '#999';
     ctx.font = '20px sans-serif';

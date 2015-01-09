@@ -170,7 +170,7 @@ function Element(name, draw, onframe) {
     this.addSysPainters();
     if (global_opts.liveDebug) this.addDebugRender();
 }
-Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); }
+Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); };
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
@@ -193,7 +193,8 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
  */
 Element.prototype.is = function(type) {
     return this.type == type;
-}
+};
+
 Element.prototype.initState = function() {
 
     /** @property {Number} x position on the X axis, relatively to parent */
@@ -217,7 +218,7 @@ Element.prototype.initState = function() {
                                // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
 
-    if (this.matrix) { this.matrix.reset() }
+    if (this.matrix) { this.matrix.reset(); }
     else { this.matrix = new Transform(); }
 
     // previous state
@@ -246,7 +247,7 @@ Element.prototype.initState = function() {
                                 // cur local time (t) and 0..1 time (rt) and,
                                 // if it was ever applied, the last applied key
 
-    if (this._matrix) { this._matrix.reset() }
+    if (this._matrix) { this._matrix.reset(); }
     else { this._matrix = new Transform(); }
 
     /** @property {Array[Number]} $reg registration point (X and Y position) @readonly */
@@ -256,7 +257,8 @@ Element.prototype.initState = function() {
     this.$pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
     return this;
-}
+};
+
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
 
@@ -295,7 +297,8 @@ Element.prototype.initVisuals = function() {
     this.audio = null;
 
     return this;
-}
+};
+
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
 
@@ -328,7 +331,8 @@ Element.prototype.initTime = function() {
     this.__resetTimeFlags();
 
     return this;
-}
+};
+
 Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.__resetTimeFlags = function() {
     this.__lastJump = null; // a time of last jump in time
@@ -341,7 +345,8 @@ Element.prototype.initEvents = function() {
     this.__evt_st = 0; // events state
     this.__evtCache = [];
     return this;
-}
+};
+
 Element.prototype.resetEvents = Element.prototype.initEvents;
 /**
  * @method path
@@ -365,7 +370,8 @@ Element.prototype.path = function(value) {
         this.$path = is.str(value) ? new Path(value) : path;
         return this;
     } else return this.$path;
-}
+};
+
 /**
  * @method text
  * @chainable
@@ -390,7 +396,8 @@ Element.prototype.text = function(value) {
         this.$text = (is.str(value) || is.arr(value)) ? new Text(value) : value;
         return this;
     } else return this.$text;
-}
+};
+
 /**
  * @method image
  * @chainable
@@ -418,7 +425,8 @@ Element.prototype.image = function(value, callback) {
         this.$image = (is.str(value)) ? new Image(value, callback) : value;
         return this;
     } else return this.$image;
-}
+};
+
 /**
  * @method fill
  * @chainable
@@ -445,7 +453,8 @@ Element.prototype.fill = function(value) {
         this.$fill = (value instanceof Brush) ? value : Brush.fill(value);
         return this;
     } else return this.$fill;
-}
+};
+
 /**
  * @method noFill
  * @chainable
@@ -457,7 +466,8 @@ Element.prototype.fill = function(value) {
 Element.prototype.noFill = function() {
     this.$fill = Color.TRANSPARENT;
     return this;
-}
+};
+
 /**
 * @method stroke
 * @chainable
@@ -490,7 +500,8 @@ Element.prototype.stroke = function(value, width) {
         }
         return this;
     } else return this.$stroke;
-}
+};
+
 /**
  * @method noStroke
  * @chainable
@@ -502,7 +513,8 @@ Element.prototype.stroke = function(value, width) {
 Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
-}
+};
+
 /**
  * @private @method modifiers
  *
@@ -518,7 +530,7 @@ Element.prototype.noStroke = function() {
 Element.prototype.modifiers = function(ltime, dt, types) {
     var elm = this;
     var order = types || Modifier.ALL_MODIFIERS;
-    var dt = dt || 0;
+    dt = dt || 0;
 
     // copy current state as previous one
     elm.applyPrevState(elm);
@@ -581,7 +593,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     elm.resetEvents();
 
     return true;
-}
+};
+
 /**
  * @private @method painters
  *
@@ -615,7 +628,8 @@ Element.prototype.painters = function(ctx, types) {
     } // for each type
 
     elm.__painting = null;
-}
+};
+
 /**
  * @private @method forAllModifiers
  *
@@ -640,7 +654,8 @@ Element.prototype.forAllModifiers = function(f) {
         }
 
     }
-}
+};
+
 /**
 * @private @method forAllModifiers
 *
@@ -663,7 +678,8 @@ Element.prototype.forAllPainters = function(f) {
             }
         }
     }
-}
+};
+
 /**
  * @method adapt
  *
@@ -688,7 +704,8 @@ Element.prototype.adapt = function(pts) {
     } else {
         return this.matrix.transformPoint(pts.x, pts.y);
     }
-}
+};
+
 /**
 * @method adapt
 *
@@ -715,7 +732,8 @@ Element.prototype.adaptBounds = function(bounds) {
         maxX = Math.max(tl.x, tr.x, bl.x, br.x),
         maxY = Math.max(tl.y, tr.y, bl.y, br.y);
     return new Bounds(minX, minY, maxX - minX, maxY - minY);
-}
+};
+
 /**
  * @method draw
  *
@@ -738,7 +756,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= this.alpha;
     this.matrix.apply(ctx);
     return this.matrix;
-}
+};
+
 /**
  * @private @method invTransform
  *
@@ -751,7 +770,8 @@ Element.prototype.invTransform = function(ctx) {
     ctx.globalAlpha *= this.alpha;
     inv_matrix.apply(ctx);
     return inv_matrix;
-}
+};
+
 /**
  * @method render
  * @chainable
@@ -801,9 +821,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // FIXME: masks have no animation set to something, but should to (see masks tests)
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
-        drawMe = this.fits(ltime)
-                 && this.modifiers(ltime, dt)
-                 && this.visible; // modifiers should be applied even if element isn't visible
+        drawMe = this.fits(ltime) &&
+                 this.modifiers(ltime, dt) &&
+                 this.visible; // modifiers should be applied even if element isn't visible
     }
     if (drawMe) {
         ctx.save();
@@ -828,9 +848,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 //        which is even better, make all these checks to be modifiers
                 // FIXME: call modifiers once for one moment of time. If there are several
                 //        masked elements, they will be called that number of times
-                if (!(mask.fits(ltime)
-                      && mask.modifiers(ltime, dt)
-                      && mask.visible)) return;
+                if (!(mask.fits(ltime) &&
+                      mask.modifiers(ltime, dt) &&
+                      mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
 
                 mask.ensureHasMaskCanvas();
@@ -914,7 +934,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
     this.rendering = false;
     if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
-}
+};
+
 /**
  * @method pivot
  * @chainable
@@ -929,7 +950,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 Element.prototype.pivot = function(x, y) {
     this.$pivot = [ x, y ];
     return this;
-}
+};
+
 /**
  * @method reg
  * @chainable
@@ -944,7 +966,8 @@ Element.prototype.pivot = function(x, y) {
 Element.prototype.reg = function(x, y) {
     this.$reg = [ x, y ];
     return this;
-}
+};
+
 /**
  * @method move
  * @chainable
@@ -965,7 +988,8 @@ Element.prototype.move = function(x, y) {
     this.x = x;
     this.y = y;
     return this;
-}
+};
+
 /**
  * @method rotate
  * @chainable
@@ -984,7 +1008,8 @@ Element.prototype.move = function(x, y) {
 Element.prototype.rotate = function(angle) {
     this.angle = angle;
     return this;
-}
+};
+
 /**
  * @method rotateInDeg
  * @chainable
@@ -1002,7 +1027,8 @@ Element.prototype.rotate = function(angle) {
  */
 Element.prototype.rotateInDeg = function(angle) {
     return this.rotate(angle / 180 * Math.PI);
-}
+};
+
 /**
  * @method scale
  * @chainable
@@ -1023,7 +1049,8 @@ Element.prototype.scale = function(sx, sy) {
     this.sx = sx;
     this.sy = sy;
     return this;
-}
+};
+
 /**
  * @method skew
  * @chainable
@@ -1044,7 +1071,8 @@ Element.prototype.skew = function(hx, hy) {
     this.hx = hx;
     this.hy = hy;
     return this;
-}
+};
+
 /**
 * @method repeat
 * @chainable
@@ -1079,7 +1107,8 @@ Element.prototype.repeat = function(mode, nrep) {
     this.mode = mode;
     this.nrep = is.num(nrep) ? nrep : Infinity;
     return this;
-}
+};
+
 /**
  * @method once
  * @chainable
@@ -1097,7 +1126,8 @@ Element.prototype.once = function() {
     this.mode = C.R_ONCE;
     this.nrep = Infinity;
     return this;
-}
+};
+
 /**
  * @method stay
  * @chainable
@@ -1113,7 +1143,8 @@ Element.prototype.stay = function() {
     this.mode = C.R_STAY;
     this.nrep = Infinity;
     return this;
-}
+};
+
 /**
  * @method loop
  * @chainable
@@ -1131,7 +1162,8 @@ Element.prototype.loop = function(nrep) {
     this.mode = C.R_LOOP;
     this.nrep = is.num(nrep) ? nrep : Infinity;
     return this;
-}
+};
+
 /**
  * @method bounce
  * @chainable
@@ -1150,7 +1182,8 @@ Element.prototype.bounce = function(nrep) {
     this.mode = C.R_BOUNCE;
     this.nrep = is.num(nrep) ? nrep : Infinity;
     return this;
-}
+};
+
 /**
  * @method modify
  * @chainable
@@ -1193,7 +1226,8 @@ Element.prototype.modify = function(band, modifier) {
     if (!modifier.__applied_to) modifier.__applied_to = {};
     modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type + 1 (so 0 means not applied)
     return this;
-}
+};
+
 /**
  * @method removeModifier
  * @chainable
@@ -1211,11 +1245,12 @@ Element.prototype.removeModifier = function(modifier) {
     if (!this.__modifiers_hash[modifier.id]) throw new AnimationError('Modifier wasn\'t applied to this element');
     if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimationError(Errors.A.MODIFIER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
-    delete this.__modifiers_hash[modifier.id];
-    delete this.$modifiers[modifier.type].splice(modifier.__applied_to[this.id] - 1, 1); // delete by index
-    delete modifier.__applied_to[this.id];
+    utils.removeElement(this.__modifiers_hash, modifier.id);
+    utils.removeElement(this.$modifiers[modifier.type], modifier);
+    utils.removeElement(modifier.__applied_to, this.id);
     return this;
-}
+};
+
 /**
  * @method paint
  * @chainable
@@ -1250,7 +1285,8 @@ Element.prototype.paint = function(painter) {
     if (!painter.__applied_to) painter.__applied_to = {};
     painter.__applied_to[this.id] = this.$painters[painter.type].length; // the index in the array by type + 1 (so 0 means not applied)
     return this;
-}
+};
+
 /**
  * @method removePainter
  * @chainable
@@ -1266,11 +1302,12 @@ Element.prototype.removePainter = function(painter) {
     if (!this.__painters_hash[painter.id]) throw new AnimationError('Painter wasn\'t applied to this element');
     if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
     //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
-    delete this.__painters_hash[painter.id];
-    delete this.$painters[painter.type].splice(painter.__applied_to[this.id] - 1, 1); // delete by index
-    delete painter.__applied_to[this.id];
+    utils.removeElement(this.__painters_hash, painter.id);
+    utils.removeElement(this.$painters[painter.type], painter);
+    utils.removeElement(painter.__applied_to, this.id);
     return this;
-}
+};
+
 /**
  * @method tween
  * @chainable
@@ -1294,7 +1331,8 @@ Element.prototype.tween = function(tween) {
     // tweens are always receiving time as relative time
     // is.finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
-}
+};
+
 /**
 * @method removeTween
 * @chainable
@@ -1308,7 +1346,8 @@ Element.prototype.tween = function(tween) {
 Element.prototype.removeTween = function(tween) {
     if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .removeTween() method');
     return this.removeModifier(tween);
-}
+};
+
 /**
 * @method add
 * @chainable
@@ -1338,7 +1377,8 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     }
     this.invalidate();
     return this;
-}
+};
+
 /**
  * @method remove
  * @chainable
@@ -1351,25 +1391,28 @@ Element.prototype.add = function(arg1, arg2, arg3) {
  */
 Element.prototype.remove = function(elm) {
     if (!elm) throw new AnimationError(Errors.A.NO_ELEMENT_TO_REMOVE);
-    if (this.__safeDetach(elm) == 0) throw new AnimationError(Errors.A.NO_ELEMENT);
+    if (this.__safeDetach(elm) === 0) throw new AnimationError(Errors.A.NO_ELEMENT);
     this.invalidate();
     return this;
-}
+};
+
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
         this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.anim) this.anim._unregister(this);
     // this.anim should be null after unregistering
-}
+};
+
 /**
  * @private @method detach
  *
  * Detach element from parent, a part of removing process
  */
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) == 0) throw new AnimationError(Errors.A.ELEMENT_NOT_ATTACHED);
-}
+    if (this.parent.__safeDetach(this) === 0) throw new AnimationError(Errors.A.ELEMENT_NOT_ATTACHED);
+};
+
 /**
  * @private @method makeBandFit
  *
@@ -1379,7 +1422,8 @@ Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
     this.gband = wband;
     this.lband[1] = wband[1] - wband[0];
-}
+};
+
 /**
  * @private @method fits
  *
@@ -1394,7 +1438,8 @@ Element.prototype.fits = function(ltime) {
     // method or `ltime` method for more details.
     if (ltime < 0) return false;
     return t_cmp(ltime, this.lband[1] - this.lband[0]) <= 0;
-}
+};
+
 /**
  * @method gtime
  *
@@ -1406,7 +1451,8 @@ Element.prototype.fits = function(ltime) {
  */
 Element.prototype.gtime = function(ltime) {
     return this.gband[0] + ltime;
-}
+};
+
 /**
  * @method ltime
  *
@@ -1431,7 +1477,8 @@ Element.prototype.ltime = function(gtime) {
     return this.__checkJump(
         Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
     );
-}
+};
+
 /**
  * @private @method handlePlayerEvent
  *
@@ -1444,7 +1491,8 @@ Element.prototype.ltime = function(gtime) {
 Element.prototype.handlePlayerEvent = function(event, handler) {
     if (!isPlayerEvent(event)) throw new Error('This method is intended to assign only player-related handles');
     this.on(event, handler);
-}
+};
+
 /**
  * @private @method inform
  *
@@ -1481,9 +1529,10 @@ Element.prototype.inform = function(ltime) {
                 this.__firedStop = true;
                 // TODO: handle STOP event by changing band to end at given time?
             }
-        };
-    };
-}
+        }
+    }
+};
+
 /**
  * @method band
  * @chainable
@@ -1518,7 +1567,8 @@ Element.prototype.band = function(start, stop) {
     }
     // Bands.recalc(this)
     return this;
-}
+};
+
 /**
  * @method duration
  * @chainable
@@ -1536,14 +1586,16 @@ Element.prototype.duration = function(value) {
     this.gband = [ this.gband[0], this.gband[0] + value ];
     this.lband = [ this.lband[0], this.lband[0] + value ];
     return this;
-}
+};
+
 /* TODO: duration cut with global band */
 /* Element.prototype.rel_duration = function() {
     return
 } */
 Element.prototype._max_tpos = function() {
     return (this.gband[1] >= 0) ? this.gband[1] : 0;
-}
+};
+
 /* Element.prototype.neg_duration = function() {
     return (this.xdata.lband[0] < 0)
             ? ((this.xdata.lband[1] < 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
@@ -1565,7 +1617,8 @@ Element.prototype.m_on = function(type, handler) {
                 }
             }
         }, C.MOD_EVENT));
-}
+};
+
 /*Element.prototype.posAtStart = function(ctx) {
     var s = this.state;
     ctx.translate(s.lx, s.ly);
@@ -1583,7 +1636,8 @@ Element.prototype.findWrapBand = function() {
         //result = Bands.expand(result, elm.findWrapBand());
     });
     return (result[0] !== Infinity) ? result : null;
-}
+};
+
 /**
  * @private @method dispose
  *
@@ -1595,13 +1649,15 @@ Element.prototype.dispose = function() {
     this.each(function(child) {
         child.dispose();
     });
-}
+};
+
 Element.prototype.disposeVisuals = function() {
     if (this.$path)  this.$path.dispose();
     if (this.$text)  this.$text.dispose();
     if (this.$image) this.$image.dispose();
     if (this.$mpath) this.$mpath.dispose();
-}
+};
+
 /**
 * @private @method reset
 *
@@ -1621,7 +1677,8 @@ Element.prototype.reset = function() {
     this.each(function(elm) {
         elm.reset();
     });
-}
+};
+
 /**
  * @method each
  * @chainable
@@ -1639,10 +1696,11 @@ Element.prototype.each = function(func) {
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         func(children[ei]);
-    };
+    }
     this.__unsafeToRemove = false;
     return this;
-}
+};
+
 /**
  * @method traverse
  * @chainable
@@ -1663,10 +1721,11 @@ Element.prototype.traverse = function(func) {
         var elem = children[ei];
         func(elem);
         elem.traverse(func);
-    };
+    }
     this.__unsafeToRemove = false;
     return this;
-}
+};
+
 /**
  * @method iter
  * @chainable
@@ -1687,7 +1746,8 @@ Element.prototype.iter = function(func, rfunc) {
     iter(this.children).each(func, rfunc);
     this.__unsafeToRemove = false;
     return this;
-}
+};
+
 /**
  * @method hasChildren
  *
@@ -1697,7 +1757,8 @@ Element.prototype.iter = function(func, rfunc) {
  */
 Element.prototype.hasChildren = function() {
     return this.children.length > 0;
-}
+};
+
 Element.prototype.deepIterateChildren = function(func, rfunc) {
     this.__unsafeToRemove = true;
     iter(this.children).each(function(elem) {
@@ -1705,7 +1766,8 @@ Element.prototype.deepIterateChildren = function(func, rfunc) {
         return func(elem);
     }, rfunc);
     this.__unsafeToRemove = false;
-}
+};
+
 Element.prototype.__performDetach = function() {
     var children = this.children;
     iter(this.__detachQueue).each(function(elm) {
@@ -1715,7 +1777,8 @@ Element.prototype.__performDetach = function() {
         }
     });
     this.__detachQueue = [];
-}
+};
+
 /**
  * @method clear
  * @chainable
@@ -1734,7 +1797,8 @@ Element.prototype.clear = function() {
         this.__detachQueue = this.__detachQueue.concat(this.children);
     }
     return this;
-}
+};
+
 /**
  * @private @method lock
  *
@@ -1744,7 +1808,8 @@ Element.prototype.lock = function() {
     this.__jumpLock = true; // disable jumps in time
     this.__state = this.extractState();
     this.__pstate = this.extractPrevState(); // FIXME: remove previous state
-}
+};
+
 /**
  * @private @method unlock
  *
@@ -1758,7 +1823,8 @@ Element.prototype.unlock = function(collect_res) { // collect_res flag is option
     this.__pstate = null; // FIXME: remove previous state
     this.__jumpLock = false;
     return result;
-}
+};
+
 // FIXME: rename and merge get/set into .state() & .prev_state() ?
 /**
  * @method extractState
@@ -1776,8 +1842,9 @@ Element.prototype.extractState = function() {
       angle: this.angle,
       alpha: this.alpha,
       t: this.t, rt: this.rt, key: this.key
-    }
-}
+    };
+};
+
 Element.prototype.extractPrevState = function() {
     // see .initState() for values definition
     return {
@@ -1787,8 +1854,9 @@ Element.prototype.extractPrevState = function() {
       angle: this._angle,
       alpha: this._alpha,
       t: this._t, rt: this._rt, key: this._key
-    }
-}
+    };
+};
+
 /**
  * @method applyState
  *
@@ -1814,7 +1882,8 @@ Element.prototype.applyState = function(s) {
     this.angle = s.angle;
     this.alpha = s.alpha;
     this.t = s.t; this.rt = s.rt; this.key = s.key;
-}
+};
+
 Element.prototype.applyPrevState = function(s) {
     this._x = s.x; this._y = s.y;
     this._sx = s.sx; this._sy = s.sy;
@@ -1822,7 +1891,8 @@ Element.prototype.applyPrevState = function(s) {
     this._angle = s.angle;
     this._alpha = s.alpha;
     this._t = s.t; this._rt = s.rt; this._key = s.key;
-}
+};
+
 /**
  * @method stateAt
  *
@@ -1839,7 +1909,8 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
     return this.unlock(/* success => return previous state */
               this.modifiers(t, 0, Element.NOEVT_MODIFIERS) // returns true if succeeded
            );
-}
+};
+
 /**
  * @method pos
  * @chainable
@@ -1854,7 +1925,8 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
 Element.prototype.pos = function(x, y) {
     if (is.defined(x)) return this.move(x, y);
     return { x: this.x, y: this.y };
-}
+};
+
 /**
  * @method offset
  *
@@ -1875,7 +1947,8 @@ Element.prototype.offset = function() {
         p = p.parent;
     }
     return [ xsum, ysum ];
-}
+};
+
 /*Element.prototype.local = function(pt) {
     this.matrix.transformPoint();
 }
@@ -1901,7 +1974,8 @@ Element.prototype.invalidate = function() {
     this.lastBoundsSavedAt = null;
     if (this.parent) this.parent.invalidate();
     return this;
-}
+};
+
 /**
 * @method invalidateVisuals
 * @chainable
@@ -1919,7 +1993,8 @@ Element.prototype.invalidateVisuals = function() {
     //TODO: replace with this['$' + this.type].invalidate() ?
     var subj = this.$path || this.$text || this.$image;
     if (subj) subj.invalidate();
-}
+};
+
 /**
  * @method bounds
  *
@@ -1949,7 +2024,8 @@ Element.prototype.bounds = function(ltime) {
 
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
-}
+};
+
 /**
  * @method myBounds
  *
@@ -1963,7 +2039,8 @@ Element.prototype.myBounds = function() {
     var subj = this.$path || this.$text || this.$image;
     if (subj) { return (this.$my_bounds = subj.bounds()); }
     else return (this.$my_bounds = Bounds.NONE);
-}
+};
+
 /**
  * @method isEmpty
  *
@@ -1973,8 +2050,9 @@ Element.prototype.myBounds = function() {
  */
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();
-    return (my_bounds.width == 0) && (my_bounds.height == 0);
-}
+    return (my_bounds.width === 0) && (my_bounds.height === 0);
+};
+
 Element.prototype.applyVisuals = function(ctx) {
     var subj = this.$path || this.$text || this.$image;
     if (!subj) return;
@@ -1984,10 +2062,12 @@ Element.prototype.applyVisuals = function(ctx) {
     //        so user will be able to use brushes with
     //        his own painters
     subj.apply(ctx, this.$fill, this.$stroke, this.$shadow);
-}
+};
+
 Element.prototype.applyAComp = function(ctx) {
     if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
-}
+};
+
 /**
  * @method mask
  *
@@ -2004,7 +2084,8 @@ Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
     this.$mask = elm;
     return this;
-}
+};
+
 /**
  * @method noMask
  *
@@ -2015,7 +2096,8 @@ Element.prototype.mask = function(elm) {
 Element.prototype.noMask = function() {
     this.$mask = null;
     return this;
-}
+};
+
 // @private
 Element.prototype.ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs && this.__backCvs) return;
@@ -2023,19 +2105,22 @@ Element.prototype.ensureHasMaskCanvas = function(lvl) {
     this.__maskCtx = engine.getContext(this.__maskCvs, '2d');
     this.__backCvs = engine.createCanvas(1, 1);
     this.__backCtx = engine.getContext(this.__backCvs, '2d');
-}
+};
+
 // @private
 Element.prototype.removeMaskCanvases = function() {
     if (this.__maskCvs) engine.disposeElement(this.__maskCvs);
     if (this.__backCvs) engine.disposeElement(this.__backCvs);
     this.__maskCtx = null;
     this.__backCtx = null;
-}
+};
+
 Element.prototype.data = function(val) {
     if (!is.defined(val)) return this.$data;
     this.$data = val;
     return this;
-}
+};
+
 Element.prototype.toString = function() {
     var buf = [ '[ Element ' ];
     buf.push('\'' + (this.name || this.id) + '\' ');
@@ -2051,7 +2136,8 @@ Element.prototype.toString = function() {
     }*/
     buf.push(']');
     return buf.join("");
-}
+};
+
 /**
  * @method find
  *
@@ -2067,7 +2153,8 @@ Element.prototype.toString = function() {
  */
 Element.prototype.find = function(name) {
     this.anim.find(name, this);
-}
+};
+
 /**
  * @method clone
  *
@@ -2094,7 +2181,8 @@ Element.prototype.clone = function() {
     // FIXME: What else?
     clone.__u_data = this.__u_data;
     return clone;
-}
+};
+
 /**
  * @method shallow
  *
@@ -2123,7 +2211,8 @@ Element.prototype.shallow = function() {
     });
     clone.__u_data = utils.obj_clone(this.__u_data);
     return clone;
-}
+};
+
 /**
  * @method asClip
  * @chainable
@@ -2151,7 +2240,8 @@ Element.prototype.asClip = function(band, mode, nrep) {
     this.clip_mode = mode;
     this.clip_nrep = nrep;
     return this;
-}
+};
+
 Element.prototype._addChild = function(elm) {
     //if (elm.parent) throw new AnimationError('This element already has parent, clone it before adding');
     elm.parent = this;
@@ -2159,18 +2249,21 @@ Element.prototype._addChild = function(elm) {
     this.children.push(elm); /* or add elem.id? */
     if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
-}
+};
+
 Element.prototype._stateStr = function() {
     return "x: " + this.x + " y: " + this.y + '\n' +
            "sx: " + this.sx + " sy: " + this.sy + '\n' +
            "angle: " + this.angle + " alpha: " + this.alpha + '\n' +
            "p: " + this.p + " t: " + this.t + " key: " + this.key + '\n';
-}
+};
+
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === C.MOD_EVENT) {
         this.__loadEvtsFromCache();
     }*/
-}
+};
+
 Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === C.MOD_USER)) {
         this.__lmatrix = Element._getIMatrixOf(this.bstate, this.state);
@@ -2178,7 +2271,8 @@ Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === C.MOD_EVENT)) {
         this.__clearEvtState();
     }*/
-}
+};
+
 Element.prototype.__adaptModTime = function(modifier, ltime) {
 
     // gets element local time (relative to its local band) and
@@ -2203,7 +2297,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     }
 
     // modifier takes the whole element time
-    if (mod_time == null) {
+    if (mod_time === null) {
 
         res_time = ltime;
         res_duration = elm_duration;
@@ -2272,9 +2366,10 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     return !mod_easing ? [ res_time, res_duration ]
                        : [ mod_easing(res_time, res_duration),
                            res_duration ];
-}
-Element.prototype.__pbefore = function(ctx, type) { }
-Element.prototype.__pafter = function(ctx, type) { }
+};
+
+Element.prototype.__pbefore = function(ctx, type) { };
+Element.prototype.__pafter = function(ctx, type) { };
 Element.prototype.__checkJump = function(at) {
     // FIXME: test if jumping do not fails with floating points problems
     if (this.tf) return this.tf(at);
@@ -2284,12 +2379,10 @@ Element.prototype.__checkJump = function(at) {
     // directly or relatively or with key,
     // get its absolute local value
     t = (is.defined(this.p)) ? this.p : null;
-    t = ((t === null) && (this.t !== null) && is.finite(duration))
-        ? this.t * duration
-        : t;
-    t = ((t === null) && (is.defined(this.key)))
-        ? this.keys[this.key]
-        : t;
+    t = ((t === null) && (this.t !== null) && is.finite(duration)) ?
+        this.t * duration : t;
+    t = ((t === null) && (is.defined(this.key))) ?
+        this.keys[this.key] : t;
     if (t !== null) {
         if ((t < 0) || (t > duration)) {
             throw new AnimationError('failed to calculate jump');
@@ -2310,9 +2403,9 @@ Element.prototype.__checkJump = function(at) {
     // just set it to actual local time
     t = (t !== null) ? t : at;
     if (is.defined(this.__lastJump)) {
-       /* return (jump_pos + (t - jumped_at)) */
-       return (is.finite(this.__lastJump[1])
-                      ? this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
+        /* return (jump_pos + (t - jumped_at)) */
+        return (is.finite(this.__lastJump[1]) ?
+            this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
        // overflow will be checked in fits() method,
        // or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
@@ -2324,9 +2417,9 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (!isPlayerEvent(type)
-        && (type != C.X_START)
-        && (type != C.X_STOP)) {
+    if (!isPlayerEvent(type) &&
+        (type != C.X_START) &&
+        (type != C.X_STOP)) {
       if (this.shown) {
         this.__saveEvt(type, evt);
       } else {
@@ -2334,10 +2427,12 @@ Element.prototype.handle__x = function(type, evt) {
       }
     }
     return true;
-}
+};
+
 Element.prototype.__saveEvt = function(type, evt) {
     this.__evtCache.push([type, evt]);
-}
+};
+
 Element.prototype.__loadEvents = function() {
     var cache = this.__evtCache;
     var cache_len = cache.length;
@@ -2354,14 +2449,16 @@ Element.prototype.__loadEvents = function() {
         }
         this.__evtCache = [];
     }
-}
+};
+
 Element.prototype.__preRender = function(gtime, ltime, ctx) {
     var cr = this.__frameProcessors;
     for (var i = 0, cl = cr.length; i < cl; i++) {
         if (cr[i].call(this, gtime, ltime, ctx) === false) return false;
     }
     return true;
-}
+};
+
 Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
     var children = this.children;
@@ -2380,17 +2477,20 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         });
         return found;
     }
-}
+};
+
 Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
-}
+};
+
 Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) return true;
     if (this.is(C.ET_AUDIO) && player.audioEnabled) return true;
 
     return false;
-}
+};
+
 Element.prototype._collectRemoteResources = function(anim, player) {
     var resources = [];
 
@@ -2402,7 +2502,7 @@ Element.prototype._collectRemoteResources = function(anim, player) {
     }
 
     return resources;
-}
+};
 
 Element.prototype._loadRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) {
@@ -2411,14 +2511,16 @@ Element.prototype._loadRemoteResources = function(anim, player) {
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
         this.audio.load(player);
     }
-}
+};
+
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
     trg.sx = src1.sx * src2.sx; trg.sy = src1.sy * src2.sy;
     trg.hx = src1.hx + src2.hx; trg.hy = src1.hy + src2.hy;
     trg.angle = src1.angle + src2.angle;
     trg.alpha = src1.alpha + src2.alpha;
-}
+};
+
 Element.transferState = function(src, trg) {
     trg.x = src.x; trg.y = src.y;
     trg.sx = src.sx; trg.sy = src.sy;
@@ -2427,7 +2529,8 @@ Element.transferState = function(src, trg) {
     trg.alpha = src.alpha;
     trg.$reg = [].concat(src.$reg);
     trg.$pivot = [].concat(src.$pivot);
-}
+};
+
 Element.transferVisuals = function(src, trg) {
     trg.$fill = Brush.clone(src.$fill);
     trg.$stroke = Brush.clone(src.$stroke);
@@ -2439,14 +2542,16 @@ Element.transferVisuals = function(src, trg) {
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
     trg.audio = src.audio ? src.audio.clone() : null;
-}
+};
+
 Element.transferTime = function(src, trg) {
     trg.mode = src.mode; trg.nrep = src.nrep;
     trg.lband = [].concat(src.lband);
     trg.gband = [].concat(src.gband);
     trg.keys = [].concat(src.keys);
     trg.tf = src.tf;
-}
+};
+
 // TODO: rename to matrixOf ?
 Element.getMatrixOf = function(elm, m) {
     var t = (m ? (m.reset(), m)
@@ -2465,44 +2570,45 @@ Element.getMatrixOf = function(elm, m) {
                 pivot[1] * my_bounds.height);
 
     return t;
-}
+};
+
 Element.getIMatrixOf = function(elm, m) {
     var t = Element.getMatrixOf(elm, m);
     t.invert();
     return t;
-}
+};
+
 Element.checkRepeatMode = function(time, band, mode, nrep) {
     if (!is.finite(band[1])) return time - band[0];
+    var durtn, ffits, fits, t;
     switch (mode) {
         case C.R_ONCE:
             return time - band[0];
         case C.R_STAY:
-            return (t_cmp(time, band[1]) <= 0)
-                   ? time - band[0]
-                   : band[1] - band[0];
+            return (t_cmp(time, band[1]) <= 0) ?
+                time - band[0] : band[1] - band[0];
         case C.R_LOOP: {
-                var durtn = band[1] -
-                            band[0];
+                durtn = band[1] - band[0];
                 if (durtn < 0) return -1;
-                var ffits = (time - band[0]) / durtn,
-                    fits = Math.floor(ffits);
+                ffits = (time - band[0]) / durtn;
+                fits = Math.floor(ffits);
                 if ((fits < 0) || (ffits > nrep)) return -1;
-                var t = (time - band[0]) - (fits * durtn);
+                t = (time - band[0]) - (fits * durtn);
                 return t;
             }
         case C.R_BOUNCE: {
-                var durtn = band[1] -
-                            band[0];
+                durtn = band[1] - band[0];
                 if (durtn < 0) return -1;
-                var ffits = (time - band[0]) / durtn,
-                    fits = Math.floor(ffits);
+                ffits = (time - band[0]) / durtn;
+                fits = Math.floor(ffits);
                 if ((fits < 0) || (ffits > nrep)) return -1;
-                var t = (time - band[0]) - (fits * durtn),
-                    t = ((fits % 2) === 0) ? t : (durtn - t);
+                t = (time - band[0]) - (fits * durtn);
+                t = ((fits % 2) === 0) ? t : (durtn - t);
                 return t;
             }
     }
-}
+};
+
 /* TODO: add createFromImgUrl?
  Element.imgFromURL = function(url) {
     return new Sheet(url);
@@ -2513,16 +2619,18 @@ Element.prototype.addSysModifiers = function() {
     // Render.m_checkBand
     // Render.m_saveReg
     // Render.m_applyPos
-}
+};
+
 Element.prototype.addSysPainters = function() {
     this.paint(Render.p_applyAComp);
     this.paint(Render.p_drawVisuals);
-}
+};
+
 Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawPivot);
     this.paint(Render.p_drawReg);
     this.paint(Render.p_drawName);
     this.paint(Render.p_drawMPath);
-}
+};
 
 module.exports = Element;

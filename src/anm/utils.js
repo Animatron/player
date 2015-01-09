@@ -5,9 +5,9 @@ var is = {};
 
 // FIXME: rename all to full-names
 is.defined = function(v) {
-  return !((typeof v === 'undefined')
-   || (v === null)
-   || (v === undefined));
+  return !((typeof v === 'undefined') ||
+    (v === null) ||
+    (v === undefined));
 };
 is.finite = global.isFinite;
 is.nan = global.isNaN;
@@ -94,8 +94,8 @@ function ell_text(text, max_len) {
     var len = text.length;
     if (len <= max_len) return text;
     var semilen = Math.floor(len / 2) - 2;
-    return text.slice(0, semilen) + '...'
-         + text.slice(len - semilen);
+    return text.slice(0, semilen) + '...' +
+         text.slice(len - semilen);
 }
 
 // ### Internal Helpers
@@ -151,10 +151,8 @@ function mrg_obj(src, backup, trg) {
 function strf(str, subst) {
     var args = subst;
     return str.replace(/{(\d+)}/g, function(match, number) {
-      return is.defined(args[number])
-        ? args[number]
-        : match
-      ;
+      return is.defined(args[number]) ?
+        args[number] : match;
     });
 }
 
@@ -199,6 +197,17 @@ function fit_rects(pw, ph, aw, ah) {
     } else return [ 1, [ 0, 0, aw, ah ] ];
 }
 
+function removeElement(obj, element) {
+    if (is.arr(obj)) {
+        var index = array.indexOf(element);
+        if (index > -1) {
+            array.splice(index, 1);
+        }
+    } else {
+        obj[element] = null;
+    }
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -215,5 +224,6 @@ module.exports = {
     guid: guid,
     fit_rects: fit_rects,
     is: is,
-    iter: iter
+    iter: iter,
+    removeElement: removeElement
 };

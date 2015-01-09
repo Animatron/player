@@ -30,30 +30,35 @@ Bounds.prototype.load = function(other) {
     this.y = other.y;
     this.width = other.width;
     this.height = other.height;
-}
+};
 /**
  * @private @method loadDiag
  */
 Bounds.prototype.loadDiag = function(x1, y1, x2, y2) {
+    var t;
     if (x2 < x1) {
-        var t = x1; x1 = x2; x2 = t;
+        t = x1;
+        x1 = x2;
+        x2 = t;
     }
     if (y2 < y1) {
-        var t = y1; y1 = y2; y2 = t;
+        t = y1;
+        y1 = y2;
+        y2 = t;
     }
     this.x = x1;
     this.y = y1;
     this.width = x2 - x1;
     this.height = y2 - y1;
-}
+};
 /** @method minX get minimum X value */
-Bounds.prototype.minX = function() { return this.x; }
+Bounds.prototype.minX = function() { return this.x; };
 /** @method minY get minimum Y value */
-Bounds.prototype.minY = function() { return this.y; }
+Bounds.prototype.minY = function() { return this.y; };
 /** @method maxX get maximum X value */
-Bounds.prototype.maxX = function() { return this.x + this.width; }
+Bounds.prototype.maxX = function() { return this.x + this.width; };
 /** @method maxY get maximum Y value */
-Bounds.prototype.maxY = function() { return this.y + this.height; }
+Bounds.prototype.maxY = function() { return this.y + this.height; };
 /**
  * @method add
  *
@@ -71,7 +76,7 @@ Bounds.prototype.add = function(other) {
     } else {
         this.load(other);
     }
-}
+};
 /**
  * @method addPoint
  *
@@ -86,7 +91,7 @@ Bounds.prototype.addPoint = function(pt) {
                   Math.min(this.minY(), pt.y),
                   Math.max(this.maxX(), pt.x),
                   Math.max(this.maxY(), pt.y));
-}
+};
 /**
  * @method toPoints
  *
@@ -101,7 +106,7 @@ Bounds.prototype.toPoints = function() {
         { x: this.x + this.width, y: this.y + this.height },
         { x: this.x, y: this.y + this.height }
     ];
-}
+};
 /**
  * @method exist
  *
@@ -112,7 +117,7 @@ Bounds.prototype.toPoints = function() {
 Bounds.prototype.exist = function() {
     // if one of the values is NaN, then the whole bounds are invalid?
     return !is.nan(this.x);
-}
+};
 /**
  * @method clone
  *
@@ -123,7 +128,8 @@ Bounds.prototype.exist = function() {
 Bounds.prototype.clone = function() {
     return new Bounds(this.x, this.y,
                       this.width, this.height);
-}
+};
+
 Bounds.NONE = new Bounds(NaN, NaN, NaN, NaN);
 
 module.exports = Bounds;
