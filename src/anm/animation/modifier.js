@@ -81,18 +81,20 @@ function Modifier(func, type) {
      *
      * @return {anm.Modifier|[Number]} itself, or a band
      */
-    func.band = function(start, stop) { if (!is.defined(start)) return this.$band;
-                                        // FIXME: array bands should not pass
-                                        if (is.arr(start)) {
-                                            // NB: be aware, the order "stop, then start" is important here,
-                                            //     because we modify start value intself in the second expression,
-                                            //     so we should take stop value before.
-                                            stop = start[1];
-                                            start = start[0];
-                                        }
-                                        if (!is.defined(stop)) { stop = Infinity; }
-                                        this.$band = [ start, stop ];
-                                        return func; }
+    func.band = function(start, stop) {
+        if (!is.defined(start)) return this.$band;
+        // FIXME: array bands should not pass
+        if (is.arr(start)) {
+            // NB: be aware, the order "stop, then start" is important here,
+            //     because we modify start value intself in the second expression,
+            //     so we should take stop value before.
+            stop = start[1];
+            start = start[0];
+        }
+        if (!is.defined(stop)) { stop = Infinity; }
+        this.$band = [ start, stop ];
+        return func;
+    };
     /**
      * @method time
      * @chainable
@@ -105,9 +107,11 @@ function Modifier(func, type) {
      *
      * @return {anm.Modifier|Number} itself, or a value of current time to trigger at
      */
-    func.time = function(value) { if (!is.num(value)) return this.$time;
-                                  this.$time = value;
-                                  return this; }
+    func.time = function(value) {
+        if (!is.num(value)) return this.$time;
+        this.$time = value;
+        return this;
+    };
     /**
      * @method easing
      * @chainable
@@ -130,29 +134,34 @@ function Modifier(func, type) {
      *
      * @return {anm.Modifier|Function} modifier itself, or current easing function
      */
-    func.easing = function(f, data) { if (!f) return this.$easing;
-                                      this.$easing = convertEasing(f, data,
-                                                     this.relative || this.is_tween);
-                                      return this; }
-    func.data = function(data) { if (!is.defined(data)) return this.$data;
-                                 this.$data = data;
-                                 return this; }
+    func.easing = function(f, data) {
+        if (!f) return this.$easing;
+        this.$easing = convertEasing(f, data, this.relative || this.is_tween);
+        return this;
+    };
+
+    func.data = function(data) {
+        if (!is.defined(data)) return this.$data;
+        this.$data = data;
+        return this;
+    };
     return func;
 }
 
 var convertEasing = function(easing, data, relative) {
     if (!easing) return null;
+    var f;
     if (is.str(easing)) {
-        var f = EasingImpl[easing](data);
-        return relative ? f : function(t, len) { return f(t / len, len) * len; }
+        f = EasingImpl[easing](data);
+        return relative ? f : function(t, len) { return f(t / len, len) * len; };
     }
     if (is.fun(easing) && !data) return easing;
     if (is.fun(easing) && data) return easing(data);
     if (easing.type) {
-        var f = EasingImpl[easing.type](easing.data || data);
-        return relative ? f : function(t, len) { return f(t / len, len) * len; }
+        f = EasingImpl[easing.type](easing.data || data);
+        return relative ? f : function(t, len) { return f(t / len, len) * len; };
     }
     if (easing.f) return easing.f(easing.data || data);
-}
+};
 
 module.exports = Modifier;

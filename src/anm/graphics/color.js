@@ -34,11 +34,11 @@ Color.from = function(test) {
 };
 /** @static @private @method fromStr */
 Color.fromStr = function(str) {
-    return Color.fromHex(str)
-        || Color.fromRgb(str)
-        || Color.fromRgba(str)
-        || Color.fromHsl(str)
-        || { r: 0, g: 0, b: 0, a: 0};
+    return Color.fromHex(str) ||
+        Color.fromRgb(str) ||
+        Color.fromRgba(str) ||
+        Color.fromHsl(str) ||
+        { r: 0, g: 0, b: 0, a: 0};
 };
 /** @static @private @method fromHex */
 Color.fromHex = function(hex) {
@@ -85,7 +85,6 @@ Color.fromRgba = function(rgba) {
 
 /** @static @private @method fromHsl */
 Color.fromHsl = function(hsl) {
-    return null;
     if (hsl.indexOf('hsl(') !== 0) return null;
     var result = Color.HSL_RE.exec(hsl);
     return result ? Color.fromHslVal(
@@ -170,8 +169,8 @@ Color.rgb = function(r, g, b) {
  * @return {String} result
  */
 Color.rgba = function(r, g, b, a) {
-    return 'rgba(' + r + ',' + g + ',' + b + ','
-                               + (is.defined(a) ? a.toFixed(2) : 1.0) + ')';
+    return 'rgba(' + r + ',' + g + ',' + b + ',' +
+           (is.defined(a) ? a.toFixed(2) : 1.0) + ')';
 };
 /**
  * @static @method hsl
@@ -239,7 +238,7 @@ Color.adapt = function(color) {
     // "r" is reserved for gradients, so we test for "g" to be sure
     if (is.defined(color.g)) return Color.toRgbaStr(color);
     if (is.defined(color.h)) return Color.toHslaStr(color);
-}
+};
 /** @static @private @method toRgbaStr */
 Color.toRgbaStr = function(color) {
     return Color.rgba(color.r,

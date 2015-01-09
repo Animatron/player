@@ -25,11 +25,9 @@ PlayerManager.prototype.handle__x = function(evt, player) {
     if (evt == C.S_NEW_PLAYER) {
         this.hash[player.id] = player;
         this.instances.push(player);
-    } else if (evt == C.S_PLAYER_DETACH) {
-        // do nothing
     }
     return true;
-}
+};
 /**
  * @method getPlayer
  *
@@ -40,6 +38,6 @@ PlayerManager.prototype.handle__x = function(evt, player) {
  */
 PlayerManager.prototype.getPlayer = function(cvs_id) {
     return this.hash[cvs_id];
-}
+};
 
 module.exports = new PlayerManager();

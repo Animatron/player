@@ -11,4 +11,4 @@ module.exports = {
   SystemError:__errorAs('SystemError'),
   PlayerError: __errorAs('PlayerError'),
   AnimationError: __errorAs('AnimationError')
-}
+};

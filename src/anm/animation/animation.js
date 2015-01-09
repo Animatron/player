@@ -119,7 +119,8 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
         this.addToTree(arg1);
     }
     return this;
-}
+};
+
 /* addS allowed to add static element before, such as image, may be return it in some form? */
 /**
  * @method remove
@@ -139,7 +140,8 @@ Animation.prototype.remove = function(elm) {
         this._unregister(elm);
     }
     return this;
-}
+};
+
 // > Animation.prototype.clear % ()
 /* Animation.prototype.clear = function() {
     this.hash = {};
@@ -167,7 +169,8 @@ Animation.prototype.traverse = function(visitor, data) {
         visitor(this.hash[elmId], data);
     }
     return this;
-}
+};
+
 /**
  * @method each
  * @chainable
@@ -183,7 +186,8 @@ Animation.prototype.each = function(visitor, data) {
         visitor(this.tree[i], data);
     }
     return this;
-}
+};
+
 /**
  * @method iter
  * @chainable
@@ -197,7 +201,8 @@ Animation.prototype.each = function(visitor, data) {
 Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
     return this;
-}
+};
+
 /**
  * @method render
  *
@@ -215,7 +220,7 @@ Animation.prototype.render = function(ctx, time, dt) {
             ctx.scale(zoom, zoom);
         }
         if (this.bgfill) {
-            if (!this.bgfill instanceof Brush) this.bgfill = Brush.fill(this.bgfill);
+            if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
             ctx.fillStyle = this.bgfill.apply(ctx);
             ctx.fillRect(0, 0, this.width, this.height);
         }
@@ -224,13 +229,15 @@ Animation.prototype.render = function(ctx, time, dt) {
         });
     } finally { ctx.restore(); }
     this.fire(C.X_DRAW,ctx);
-}
+};
+
 Animation.prototype.handle__x = function(type, evt) {
     this.traverse(function(elm) {
         elm.fire(type, evt);
     });
     return true;
-}
+};
+
 // TODO: test
 /**
  * @method getFittingDuration
@@ -247,7 +254,8 @@ Animation.prototype.getFittingDuration = function() {
         if (elm_tpos > max_pos) max_pos = elm_tpos;
     });
     return max_pos;
-}
+};
+
 /**
  * @method reset
  * @chainable
@@ -260,7 +268,8 @@ Animation.prototype.reset = function() {
         child.reset();
     });
     return this;
-}
+};
+
 /**
  * @method dispose
  * @chainable
@@ -278,7 +287,8 @@ Animation.prototype.dispose = function() {
         return false;
     });
     return this;
-}
+};
+
 /**
  * @method isEmpty
  *
@@ -287,8 +297,9 @@ Animation.prototype.dispose = function() {
  * @return {Boolean} `true` if no Elements, `false` if there are some.
  */
 Animation.prototype.isEmpty = function() {
-    return this.tree.length == 0;
-}
+    return this.tree.length === 0;
+};
+
 /**
  * @method toString
  *
@@ -298,7 +309,8 @@ Animation.prototype.isEmpty = function() {
  */
 Animation.prototype.toString = function() {
     return "[ Animation "+(this.name ? "'"+this.name+"'" : "")+"]";
-}
+};
+
 /**
  * @method subscribeEvents
  * @private
@@ -307,7 +319,8 @@ Animation.prototype.toString = function() {
  */
 Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
-}
+};
+
 /**
  * @method unsubscribeEvents
  * @private
@@ -316,7 +329,8 @@ Animation.prototype.subscribeEvents = function(canvas) {
  */
 Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
-}
+};
+
 /**
  * @method addToTree
  * @private
@@ -330,7 +344,8 @@ Animation.prototype.addToTree = function(elm) {
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
-}
+};
+
 /*Animation.prototype._addElems = function(elems) {
     for (var ei = 0; ei < elems.length; ei++) {
         var _elm = elems[ei];
@@ -346,10 +361,12 @@ Animation.prototype._register = function(elm) {
     elm.each(function(child) {
         me._register(child);
     });
-}
+};
+
 Animation.prototype._unregister_no_rm = function(elm) {
     this._unregister(elm, true);
-}
+};
+
 Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
     if (!elm.registered) throw new AnimationError(Errors.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
@@ -366,7 +383,8 @@ Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree 
     elm.registered = false;
     elm.anim = null;
     //elm.parent = null;
-}
+};
+
 Animation.prototype._collectRemoteResources = function(player) {
     var remotes = [],
         anim = this;
@@ -379,7 +397,8 @@ Animation.prototype._collectRemoteResources = function(player) {
         remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
     }
     return remotes;
-}
+};
+
 Animation.prototype._loadRemoteResources = function(player) {
     var anim = this;
     this.traverse(function(elm) {
@@ -388,7 +407,8 @@ Animation.prototype._loadRemoteResources = function(player) {
         }
     });
     anim.loadFonts(player);
-}
+};
+
 /**
  * @method find
  *
@@ -405,14 +425,15 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @return {Array} An array of found elements
  */
 Animation.prototype.find = function(name, where) {
-    var where = where || this;
+    where = where || this;
     var found = [];
     if (where.name == name) found.push(name);
     where.traverse(function(elm)  {
         if (elm.name == name) found.push(elm);
     });
     return found;
-}
+};
+
 /**
  * @method findById
  *
@@ -426,7 +447,8 @@ Animation.prototype.find = function(name, where) {
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
-}
+};
+
 /*
  * @method invokeAllLaters
  * @private
@@ -434,22 +456,24 @@ Animation.prototype.findById = function(id) {
 Animation.prototype.invokeAllLaters = function() {
     for (var i = 0; i < this._laters.length; i++) {
         this._laters[i].call(this);
-    };
-}
+    }
+};
+
 /*
  * @method clearAllLaters
  * @private
  */
 Animation.prototype.clearAllLaters = function() {
     this._laters = [];
-}
+};
+
 /*
  * @method invokeLater
  * @private
  */
 Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
-}
+};
 
 var FONT_LOAD_TIMEOUT = 10000, //in ms
     https = engine.isHttps;
