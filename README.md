@@ -1,5 +1,7 @@
 ### JS Player for Animatron project (v1.3)
 
+[![Gitter](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/Animatron/player?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 [Currently all tests are disabled and not time-bombed in refactoring purposes (some will be turned back on after refactoring iterations, some not), so the badge below just provides nice ecologically green color for us to feel safe]
 
 [Documentation in general is a subject to change drastically, because it's outdated now. Be aware!]
