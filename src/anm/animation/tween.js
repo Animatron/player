@@ -78,7 +78,7 @@ var data_block_fn = function() {
 
 // tween order
 Tween.TWEENS_PRIORITY = {};
-Tween.TWEENS_COUNT = 8;
+Tween.TWEENS_COUNT = 0;
 
 var Tweens = {};
 
@@ -138,7 +138,7 @@ Tween.addTween(C.T_ROT_TO_PATH, function(data) {
             // move path is skipped if was empty at t and
             // the [end of] previous one is used to
             // calculate rotation instead
-            var t = this.skippedMovePath ? 1 : t;
+            t = this.skippedMovePath ? 1 : t;
             this.angle = path.tangentAt(t); // Math.atan2(this.y, this.x);
         }
     };
@@ -168,6 +168,13 @@ Tween.addTween(C.T_STROKE, function(data) {
     var interp_func = Brush.interpolateBrushes(data[0], data[1]);
     return function (t, dt, duration) {
         this.$stroke = interp_func(t);
+    };
+});
+
+Tween.addTween(C.T_SHADOW, function(data) {
+    var interp_func = Brush.interpolateBrushes(data[0], data[1]);
+    return function (t, dt, duration) {
+        this.$shadow = interp_func(t);
     };
 });
 
