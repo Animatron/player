@@ -641,6 +641,7 @@ Import.tweentype = function(src) {
     if (src === 7) return C.T_VOLUME;
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
+    if (src === 11) return C.T_SHADOW;
 };
 /** tweendata **/
 // -> Any
@@ -666,6 +667,9 @@ Import.tweendata = function(type, src) {
     }
     if (type === C.T_STROKE) {
         return [Import.stroke(src[0]), Import.stroke(src[1])];
+    }
+    if (type === C.T_SHADOW) {
+        return [Import.shadow(src[0]), Import.shadow(src[1])];
     }
     if (type === C.T_VOLUME) {
       if (src.length == 2) return src;

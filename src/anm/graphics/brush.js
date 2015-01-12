@@ -415,6 +415,11 @@ Brush.interpolateBrushes = function(from, to) {
         if (is.defined(from.width) && is.defined(to.width)) { // from.type && to.type == C.BT_STROKE
             result.width = utils.interpolateFloat(from.width, to.width, t);
         }
+        if (from.type === C.BT_SHADOW) { // from.type && to.type == C.BT_STROKE
+            result.offsetX = utils.interpolateFloat(from.offsetX, to.offsetX, t);
+            result.offsetY = utils.interpolateFloat(from.offsetY, to.offsetY, t);
+            result.blurRadius = utils.interpolateFloat(from.blurRadius, to.blurRadius, t);
+        }
         if (from.color) {
             result.grad = null;
             result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
