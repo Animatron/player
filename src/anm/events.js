@@ -82,7 +82,7 @@ function provideEvents(subj, events) {
     };
     /* FIXME: call fire/e_-funcs only from inside of their providers, */
     /* TODO: wrap them with event objects */
-    var makeFireFunc = function(event){
+    var makeFireFunc = function(event) {
         return function(evtobj) {
             this.fire(event, evtobj);
         };
