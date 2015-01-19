@@ -121,7 +121,6 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
     return this;
 };
 
-/* addS allowed to add static element before, such as image, may be return it in some form? */
 /**
  * @method remove
  * @chainable
@@ -142,17 +141,6 @@ Animation.prototype.remove = function(elm) {
     return this;
 };
 
-// > Animation.prototype.clear % ()
-/* Animation.prototype.clear = function() {
-    this.hash = {};
-    this.tree = [];
-    this.duration = 0;
-    var hash = this.hash;
-    this.hash = {};
-    for (var elmId in hash) {
-        hash[elm.id]._unbind(); // unsafe, because calls unregistering
-    }
-} */
 /**
  * @method traverse
  * @chainable
@@ -163,7 +151,6 @@ Animation.prototype.remove = function(elm) {
  * @param {anm.Element} visitor.element
  * @param {Object} [data]
  */
-// visitElems
 Animation.prototype.traverse = function(visitor, data) {
     for (var elmId in this.hash) {
         visitor(this.hash[elmId], data);
