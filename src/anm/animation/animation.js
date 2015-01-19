@@ -486,18 +486,19 @@ Animation.prototype.loadFonts = function(player) {
             //no font name or url
             continue;
         }
+        var url = font.url, woff = font.woff;
         if (https) {
             //convert the URLs to https
-            font.url = font.url.replace('http:', 'https:');
-            if (font.woff) {
-                font.woff = font.woff.replace('http:', 'https:');
+            url = url.replace('http:', 'https:');
+            if (woff) {
+                woff = woff.replace('http:', 'https:');
             }
         }
         fontsToLoad.push(font);
         css += '@font-face {\n' +
             'font-family: "' + font.face + '";\n' +
-            'src:' +  (font.woff ? ' url("'+font.woff+'") format("woff"),\n' : '') +
-            ' url("'+font.url+'") format("truetype");\n' +
+            'src:' +  (woff ? ' url("'+woff+'") format("woff"),\n' : '') +
+            ' url("'+url+'") format("truetype");\n' +
             (font.style ? 'font-style: ' + font.style +';\n' : '') +
             (font.weight ? 'font-weight: ' + font.weight + ';\n' : '') +
             '}\n';

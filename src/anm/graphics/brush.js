@@ -415,6 +415,11 @@ Brush.interpolateBrushes = function(from, to) {
         if (is.defined(from.width) && is.defined(to.width)) { // from.type && to.type == C.BT_STROKE
             result.width = utils.interpolateFloat(from.width, to.width, t);
         }
+        if (from.type === C.BT_SHADOW) { // from.type && to.type == C.BT_STROKE
+            result.offsetX = utils.interpolateFloat(from.offsetX, to.offsetX, t);
+            result.offsetY = utils.interpolateFloat(from.offsetY, to.offsetY, t);
+            result.blurRadius = utils.interpolateFloat(from.blurRadius, to.blurRadius, t);
+        }
         if (from.color) {
             result.grad = null;
             result.color = Color.toRgbaStr(Color.interpolate(from.color, to.color, t));
@@ -425,8 +430,8 @@ Brush.interpolateBrushes = function(from, to) {
             // direction
             for (i = 0; i < fromg.dir.length; i++) {
                 if (!trgg.dir[i]) trgg.dir[i] = [];
-                trgg.dir[0] = utils.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
-                trgg.dir[1] = utils.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
+                trgg.dir[i][0] = utils.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
+                trgg.dir[i][1] = utils.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
             }
             // stops
             if (!trgg.stops ||
@@ -434,7 +439,7 @@ Brush.interpolateBrushes = function(from, to) {
             for (i = 0; i < fromg.stops.length; i++) {
                 if (!trgg.stops[i]) trgg.stops[i] = [];
                 trgg.stops[i][0] = utils.interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
-                trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
+                trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t));
             }
             // radius
             if (fromg.r) {

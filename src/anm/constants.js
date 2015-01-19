@@ -165,6 +165,7 @@ C.T_SHEAR       = 'SHEAR';
 C.T_FILL        = 'FILL';
 C.T_STROKE      = 'STROKE';
 C.T_VOLUME = 'VOLUME';
+C.T_SHADOW = 'SHADOW';
 
 
 
