@@ -529,9 +529,10 @@ Player.prototype.play = function(from, speed, stopAfter) {
         player.reportStats();
     }
 
+    var ctx_props = engine.getAnmProps(player.ctx);
+    ctx_props.factor = this.factor();
+
     state.happens = C.PLAYING;
-
-
 
     // FIXME: W3C says to call stopAnim (cancelAnimationFrame) with ID
     //        of the last call of nextFrame (requestAnimationFrame),
@@ -892,6 +893,10 @@ Player.prototype.drawAt = function(time) {
         }*/;
 
     anim.reset();
+
+    var ctx_props = engine.getAnmProps(player.ctx);
+    ctx_props.factor = this.factor();
+
     anim.__informEnabled = false;
     Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
     return this;
@@ -903,8 +908,8 @@ Player.prototype.drawAt = function(time) {
  *
  * Get or set and override Player width and height manually
  *
- * @param {Number} width
- * @param {Number} height
+ * @param {Number} [width]
+ * @param {Number} [height]
  *
  * @return {anm.Element|Array} width / height or the Element
  **/
@@ -915,6 +920,48 @@ Player.prototype.size = function(width, height) {
     return this;
 };
 
+/**
+ * @method factor
+ *
+ * Returns the difference factor between player size and animation size,
+ * using fit by largest side. _Does not_ counts scene zoom, since it does not
+ * affects player size. Also, _does not_ counts screen pixel ratio.
+ *
+ * @return {Number} factor factor in range `0..1` or `undefined` if animation is not initialized
+ */
+Player.prototype.factor = function() {
+    if (!this.anim) return undefined;
+    if ((this.anim.width === this.width) &&
+        (this.anim.height === this.height)) {
+            return 1; // this.zoom ?
+    } else {
+        return Math.min(this.width / this.anim.width,
+                        this.height / this.anim.height);
+    }
+}
+/**
+ * @method factorData
+ *
+ * Returns the data about how player will be resize due to difference between
+ * player size and animation size.
+ *
+ * @return {Object} factor data or `undefined` if animation is not initialized
+ * @return {Number} return.factor factor in range `0..1`
+ * @return {Array} return.anim_rect coordinates of the rect where animation will be rendered
+ * @return {Array} return.ribbon_one coordinates of the rect where first ribbon will be places, or null if factor=1
+ * @return {Array} return.ribbon_two coordinates of the rect where second ribbon will be places, or null if factor=1
+ */
+Player.prototype.factorData = function() {
+    if (!this.anim) return undefined;
+    var result = utils.fit_rects(this.width, this.height,
+                                 this.anim.width, this.anim.height);
+    return {
+        factor: result[0],
+        anim_rect: result[1],
+        ribbon_one: result[2] || null,
+        ribbon_two: result[3] || null
+    }
+}
 /**
  * @method thumbnail
  *
@@ -1125,6 +1172,11 @@ Player.prototype.subscribeEvents = function(canvas) {
     });
 };
 
+/**
+ * @method toggleMute
+ *
+ * Disable or enable sound
+ */
 Player.prototype.toggleMute = function() {
     this.muted = !this.muted;
     if (!this.anim) {
@@ -1345,6 +1397,10 @@ Player.prototype._resize = function(width, height) {
     this.width = new_size[0];
     this.height = new_size[1];
     engine.updateCanvasOverlays(cvs);
+    if (this.ctx) {
+        var ctx_props = engine.getAnmProps(this.ctx);
+        ctx_props.factor = this.factor();
+    }
     if (this.controls) this.controls.handleAreaChange();
     this.forceRedraw();
     return new_size;

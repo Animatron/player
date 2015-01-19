@@ -102,7 +102,7 @@ Brush.prototype.apply = function(ctx) {
         // FIXME: this could be a slow operation to perform
         var props = engine.getAnmProps(ctx);
         if (props.skip_shadows) return;
-        var ratio = engine.PX_RATIO;
+        var ratio = (engine.PX_RATIO * (props.factor || 1));
         ctx.shadowColor = style;
         ctx.shadowBlur = (this.blurRadius * ratio) || 0;
         ctx.shadowOffsetX = (this.offsetX * ratio) || 0;

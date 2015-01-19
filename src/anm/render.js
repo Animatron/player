@@ -89,8 +89,8 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
         } finally { ctx.restore(); }
     } else {
         r_with_ribbons(ctx, width, height,
-                              anim.width, anim.height,
-                              rib_color,
+                            anim.width, anim.height,
+                            rib_color,
             function(_scale) {
                 try {
                   ctx.clearRect(0, 0, anim.width, anim.height);
