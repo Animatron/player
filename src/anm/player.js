@@ -924,8 +924,8 @@ Player.prototype.size = function(width, height) {
  * @method factor
  *
  * Returns the difference factor between player size and animation size,
- * using fit by largest side. _Does not_ counts scene zoom, since it does not
- * affects player size. Also, _does not_ counts screen pixel ratio.
+ * using fit by largest side. _Does not_ count scene zoom, since it does not
+ * affect player size. Also, _does not_ count screen pixel ratio.
  *
  * @return {Number} factor factor in range `0..1` or `undefined` if animation is not initialized
  */
