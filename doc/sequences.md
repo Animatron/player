@@ -4,7 +4,7 @@ If you'd like to attract users with carouseling the sequences of different anima
 
 First, you need to create these animations in the [Animatron Editor](http://editor.animatron.com) and publish their final variants you want to use.
 
-When you publish an animation, you create a _snapshot_ of it. _Snapshot_ is a saved state of animation, so when you edit your project, no new changes are  reflected in a snapshot until you create a new one.
+When you publish an animation, you create a _snapshot_ of it. _Snapshot_ is a saved state of animation, so when you edit your project, no new changes are reflected in a snapshot until you create a new one.
 
 When you publish an animation, you get a URL of a snapshot in response. When you open this URL in a browser, you see the last state of a project, exactly the way it looked before you pressed the Publish button. This URL looks like:
 
