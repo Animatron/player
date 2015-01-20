@@ -1,10 +1,16 @@
 var utils = require('./utils.js'),
-    SystemError = require('./errors.js').SystemError,
-    PlayerError = require('./errors.js').PlayerError,
-    engine = require('engine'),
-    global_opts = require('./global_opts.js'),
-    C = require('./constants.js'),
     is = utils.is;
+
+var loc = require('./loc.js'),
+    Errors = loc.Errors,
+    errors = require('./errors.js'),
+    SystemError = errors.SystemError,
+    PlayerError = errors.PlayerError;
+
+var C = require('./constants.js'),
+    global_opts = require('./global_opts.js');
+
+var engine = require('engine');
 
 var Loader = {};
 
