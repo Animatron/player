@@ -4,15 +4,15 @@ If you'd like to attract users with carouseling the sequences of different anima
 
 First, you need to create these animations in the [Animatron Editor](http://editor.animatron.com) and publish their final variants you want to use.
 
-When you publish some animation, you create a _snapshot_ of it. _Snapshot_ is a saved state of animation, so when you edit your project, no new changes are  reflected in a snapshot, of course until you create create a new one.
+When you publish an animation, you create a _snapshot_ of it. _Snapshot_ is a saved state of animation, so when you edit your project, no new changes are  reflected in a snapshot until you create a new one.
 
-When you publish some animation, you get an URL of a snapshot in response. When you open this URL in a browser, you see the last state of a project, exactly the way it looked before you pressed a Publish button. This URL looks like:
+When you publish an animation, you get a URL of a snapshot in response. When you open this URL in a browser, you see the last state of a project, exactly the way it looked before you pressed the Publish button. This URL looks like:
 
 `http://clips.animatron.com/dc7d7b1e946fa43c53d012a22f3045e4`
 
 I've created three simple animations with shapes moving from left to right to show you what should be done step-by-step:
 
-(If you feel yourself self-confident, you may just take a look at the [final result](http://codepen.io/shamansir/pen/EammQd), though;)
+(If you feel self-confident, you may just take a look at the [final result](http://codepen.io/shamansir/pen/EammQd), though)
 
 * Square: [Animatron Project](https://editor.animatron.com/#p=d990bd5454f43c927175a111), [Playable Snapshot](http://clips.animatron.com/3a612e05fdb534e68c759af5e28cca99)
 * Circle: [Animatron Project](https://editor.animatron.com/#p=e793bd547fa7a8bf98c2554b), [Playable Snapshot](http://clips.animatron.com/f33e5f0bcdb6a6a7a50e0759a7fb7e17)
@@ -87,12 +87,12 @@ player.on('complete', loadNextSnapshot);
 ```
 
 Here you go, you'll see your projects play one by one. Once more, here you may
-find a [final result](http://codepen.io/shamansir/pen/EammQd).
+find the [final result](http://codepen.io/shamansir/pen/EammQd).
 
 ### Important Notice
 
-Depending on your connection and a page design, you may or may not notice a flashing screen, appearing
-just between your scenes. And it actually exists there. It appears by the reason: when player finishes playing previous
+Depending on your connection and page design, you may or may not notice a flashing screen, appearing
+just between your scenes. And it actually exists there. Here's why: when player finishes playing previous
 snapshot, it starts loading the next one, and it takes a tangible amount of time to load it from remote resource.
 So there is a pause between these snapshots. If you don't like the way it matches your design, you are free to configure
 `EMPTY_BG` and `EMPTY_STROKE` values in the code the way you want, same as `ribbonsColor` Player option.
