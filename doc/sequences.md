@@ -109,7 +109,7 @@ var snapshots = [
 ```
 
 Since now the loading will be synchronous, you can not call load immediately from `complete` handler,
-you need to postpone it a bit, change `loadNextScene` to:
+you need to postpone it a bit, change `loadNextSnapshot` to:
 
 ```javascript
 var currentProject = 0;
