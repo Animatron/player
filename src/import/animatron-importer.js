@@ -295,10 +295,12 @@ Import.branch = function(type, src, all, anim) {
                 ltrg.tween(t);
             }
             if (translates && (flags & L_ROT_TO_PATH)) {
+                var rtp_tween;
                 for (ti = 0, til = translates.length; ti < til; ti++) {
-                    ltrg.tween(
-                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].$band)
-                    );
+                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
+                    if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
+                    ltrg.tween(rtp_tween);
                 }
             }
             translates = [];
