@@ -251,7 +251,7 @@ Audio.prototype.stop = function() {
 };
 /** @private @method stopIfNotMaster */
 Audio.prototype.stopIfNotMaster = function() {
-    if(!this.master) this.stop();
+    if (!this.master) this.stop();
 };
 /**
  * @method setVolume
@@ -295,7 +295,7 @@ Audio.prototype.mute = function() {
  * Unmute this audio
  */
 Audio.prototype.unmute = function() {
-    if(!this.muted) {
+    if (!this.muted) {
         return;
     }
     this.muted = false;
@@ -316,9 +316,15 @@ Audio.prototype.toggleMute = function() {
 /** @private @method connect */
 Audio.prototype.connect = function(element) {
     var me = this;
-    element.on(C.X_START, function() { me.play.apply(me, arguments); });
-    element.on(C.X_STOP, function() { me.stopIfNotMaster(); });
-    var stop = function() { me.stop(); };
+    element.on(C.X_START, function() {
+        me.play.apply(me, arguments);
+    });
+    element.on(C.X_STOP, function() {
+        me.stopIfNotMaster();
+    });
+    var stop = function() {
+        me.stop();
+    };
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
 };

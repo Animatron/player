@@ -1190,8 +1190,8 @@ Player.prototype.toggleMute = function() {
         return;
     }
     this.anim.traverse(function(el) {
-        if(el.audio) {
-            el.audio.toggleMute();
+        if(el.$audio) {
+            el.$audio.toggleMute();
         }
     });
 };

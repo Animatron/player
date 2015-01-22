@@ -294,7 +294,7 @@ Element.prototype.initVisuals = function() {
     this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
 
-    this.audio = null;
+    this.$audio = null;
 
     return this;
 };
@@ -2498,7 +2498,7 @@ Element.prototype._collectRemoteResources = function(anim, player) {
         resources.push(this.$image.src);
     }
     if (player.audioEnabled && this.is(C.ET_AUDIO)) {
-        resources.push(this.audio.url);
+        resources.push(this.$audio.url);
     }
 
     return resources;
@@ -2509,7 +2509,7 @@ Element.prototype._loadRemoteResources = function(anim, player) {
         this.$image.load(player.id);
     }
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
-        this.audio.load(player);
+        this.$audio.load(player);
     }
 };
 
@@ -2538,10 +2538,10 @@ Element.transferVisuals = function(src, trg) {
     trg.$path = src.$path ? src.$path.clone() : null;
     trg.$text = src.$text ? src.$text.clone() : null;
     trg.$image = src.$image ? src.$image.clone() : null;
+    trg.$audio = src.$audio ? src.$audio.clone() : null;
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
-    trg.audio = src.audio ? src.audio.clone() : null;
 };
 
 Element.transferTime = function(src, trg) {
