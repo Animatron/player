@@ -242,7 +242,8 @@ Controls.prototype.react = function() {
                 time = p.anim.duration;
             }
             if (s === C.PLAYING) {
-              p.pause().play(time);
+              p.pause()
+               .play(time);
             } else {
               p.play(time).pause();
             }
