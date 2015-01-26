@@ -1,11 +1,11 @@
 # Let User Control the Scene with Keyboard
 
-Scripting & Interactivity are in the progress in Animatron for the moment of
-writing this article, but some scenarios are possible to code with Animatron Player
+Scripting & Interactivity are in progress in Animatron at the moment of
+writing this article, but some scenarios are actually possible to code with Animatron Player
 even now.
 
-If you need to let user switch some layer to be visible by keypress,
-it is possible and easy to do.
+If you need to let user switch some layer to be visible with a press of some keys,
+it is possible and easy thing to do.
 
 First, you need to prepare your Project in the Animatron Editor itself.
 
@@ -15,29 +15,29 @@ appear later. Say, the first one is a rectangle and the second one is circle.
 So, rectangle is visible at first.
 
 In the Editor, turn off the visibility of the layer with a circle shape, then click
-it the layer with the right mouse button and you'll see _Export_ item in the context menu.
+the layer with the right mouse button and you'll see _Export_ item in your context menu.
 It's a checkbox — so feel free to check it. This way the circle layer will be exported to Player
 but won't be visible at start (by default, all of the invisible layers are not exported).
 
 Ensure lifetime of both layers starts at 0 seconds of a project and ends at the same
-time when the project ends.
+time, when the project ends.
 
 Also, name the layers as _Rectange_ and _Circle_ correspondingly, so it will be
-easy for you to access them from Player.
+easy for you to access them from the Player.
 
 Check the `LOOP` checkbox in the Project Inspector, so animation will wait for user
 input indefinitely.
 
-Now, publish your project to create a snapshot, a saved state. You'll get a URL
-like:
+Now, publish your project to create a snapshot—a saved state. You'll get a URL
+like this in response:
 
 `http://clips.animatron.com/ffe8465956b7a0eb21084e99107a32a1`
 
 Add `.json` to it, and what you'll see is a carefully encoded state of your project.
 
-We may forget about the Editor now and switch to Player and JavaScript.
+We may forget about the Editor now, and switch to Player and JavaScript.
 
-Add this to the head of your HTML5-page:
+Add Player source code to the head of your HTML5-page:
 
 ```html
 <script type="text/javascript" src="http://player.animatron.com/latest/bundle/animatron.min.js"></script>
@@ -52,8 +52,8 @@ Add a target to render a Player there:
 ```
 
 The code to load this snapshot is rather easy, but since it is the remote project,
-loading is asynchronous, so we need to add a callback and perform our action only after the
-snapshot will be completely received. Let's write it first:
+loading is asynchronous, so we need to add a callback and perform our action only when the
+snapshot will be completely received. Let's write this callback first:
 
 ```javascript
 function whenSnapshotReceived() {
@@ -96,11 +96,11 @@ var player = anm.Player.forSnapshot(
 ```
 
 **Important notice**: HTML does not allows handling just any events without having
-a focus on a listening element (and it's rather secure indeed), so to see the effect you
-should _move mouse over the Player_, to give it a focus, and if your browser is friendly,
-you'll see a border indicating that the Player has focus there, and now you may press any
-keys! If you don't like the way this border looks and want to remove it, add
-`#target:focus { outline: 0; }` to your CSS.
+an input focus at a listening element (and it's rather secure indeed), so to see the effect you
+should _move mouse over the Player_, to give it a focus (and if your browser is friendly,
+you'll see a border indicating that the Player has focus there), and now you may press any
+key and observe the result! If you don't like the way this focus-indicating border looks, and want to remove it, add
+`#target:focus { outline: 0; }` anywhere to your CSS.
 
-[Here's the example in action](http://codepen.io/shamansir/pen/qEjwpr?editors=101), move
+[Here's this example in action](http://codepen.io/shamansir/pen/qEjwpr?editors=101), move
 your mouse over the Player and press some key to see the effect.
