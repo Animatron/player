@@ -406,9 +406,18 @@ Brush.clearShadow = function(ctx) {
  * @param {anm.Brush} return.return a brush value as a result of interpolation
  */
 Brush.interpolateBrushes = function(from, to) {
+    var equal = is.equal(from, to);
     from = (from instanceof Brush) ? from : Brush.value(from);
-    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!from._converted) { from.convertColorsToRgba(); }
+    if (equal) {
+        //if the values are the same, we can just skip the interpolating
+        //and return the first value
+        return function() {
+            return from;
+        };
+    }
+
+    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!to._converted)   { to.convertColorsToRgba();   }
     var result = from.clone();
     return function(t) {
