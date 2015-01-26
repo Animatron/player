@@ -201,7 +201,10 @@ Brush.prototype.clone = function()  {
         for (i = 0; i < src_grad.stops.length; i++) {
             trg_grad.stops[i] = [].concat(src_grad.stops[i]);
         }
-        trg_grad.dir = [].concat(src_grad.dir);
+        trg_grad.dir = [];   
+        for (i = 0; i < src_grad.dir.length; i++) {
+            trg_grad.dir[i] = [].concat(src_grad.dir[i]);
+        }
         if (src_grad.r) trg_grad.r = [].concat(src_grad.r);
         trg.grad = trg_grad;
     }
@@ -424,7 +427,7 @@ Brush.interpolateBrushes = function(from, to) {
         if (is.defined(from.width) && is.defined(to.width)) { // from.type && to.type == C.BT_STROKE
             result.width = utils.interpolateFloat(from.width, to.width, t);
         }
-        if (from.type === C.BT_SHADOW) { // from.type && to.type == C.BT_STROKE
+        if (from.type === C.BT_SHADOW) {
             result.offsetX = utils.interpolateFloat(from.offsetX, to.offsetX, t);
             result.offsetY = utils.interpolateFloat(from.offsetY, to.offsetY, t);
             result.blurRadius = utils.interpolateFloat(from.blurRadius, to.blurRadius, t);
