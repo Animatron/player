@@ -201,7 +201,10 @@ Brush.prototype.clone = function()  {
         for (i = 0; i < src_grad.stops.length; i++) {
             trg_grad.stops[i] = [].concat(src_grad.stops[i]);
         }
-        trg_grad.dir = [].concat(src_grad.dir);
+        trg_grad.dir = [];   
+        for (i = 0; i < src_grad.dir.length; i++) {
+            trg_grad.dir[i] = [].concat(src_grad.dir[i]);
+        }
         if (src_grad.r) trg_grad.r = [].concat(src_grad.r);
         trg.grad = trg_grad;
     }
@@ -406,16 +409,25 @@ Brush.clearShadow = function(ctx) {
  * @param {anm.Brush} return.return a brush value as a result of interpolation
  */
 Brush.interpolateBrushes = function(from, to) {
+    var equal = is.equal(from, to);
     from = (from instanceof Brush) ? from : Brush.value(from);
-    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!from._converted) { from.convertColorsToRgba(); }
+    if (equal) {
+        //if the values are the same, we can just skip the interpolating
+        //and return the first value
+        return function() {
+            return from;
+        };
+    }
+
+    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!to._converted)   { to.convertColorsToRgba();   }
     var result = from.clone();
     return function(t) {
         if (is.defined(from.width) && is.defined(to.width)) { // from.type && to.type == C.BT_STROKE
             result.width = utils.interpolateFloat(from.width, to.width, t);
         }
-        if (from.type === C.BT_SHADOW) { // from.type && to.type == C.BT_STROKE
+        if (from.type === C.BT_SHADOW) {
             result.offsetX = utils.interpolateFloat(from.offsetX, to.offsetX, t);
             result.offsetY = utils.interpolateFloat(from.offsetY, to.offsetY, t);
             result.blurRadius = utils.interpolateFloat(from.blurRadius, to.blurRadius, t);
