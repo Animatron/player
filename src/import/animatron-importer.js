@@ -721,7 +721,10 @@ Import.fill = function(src) {
     if (is.str(src)) {
         return Brush.fill(src);
     } else if (is.arr(src)) {
-        return Brush.fill(Import.grad(src));
+        if (is.arr(src[0])) {
+            return Brush.fill(Import.grad(src));
+        }
+        return Brush.fill(Import.pattern(src));
     } else _reportError('Unknown type of brush');
 };
 /** stroke **/
@@ -819,6 +822,30 @@ Import.grad = function(src) {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
 };
+/*
+array {          // pattern
+number;      // id of either shapeelement or image element
+number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
+number;      // width
+number;      // height
+array { number; number; number; number; }  // rectangle, inner bounds
+number;      // opacity
+}
+*/
+var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
+
+Import.pattern = function(src) {
+    var el = anm.lastImportedProject.anim.elements[src[0]];
+    return {
+        elm: Import.leaf(Import._type(el), el),
+        repeat: repeats[src[1]],
+        w: src[2],
+        h: src[3],
+        bounds: src[4],
+        opacity: src[5]
+    };
+};
+
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
