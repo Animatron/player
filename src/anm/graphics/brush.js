@@ -182,10 +182,9 @@ Brush.prototype.adapt = function(ctx) {
         if (elm.$image) {
             //fill = elm.$image._image;
         } else { //shape
-            var canvas = engine.createCanvas(this.pattern.w, this.pattern.h);
+            var canvas = engine.createCanvas(this.pattern.w, this.pattern.h, null, 1);
             var cctx = canvas.getContext('2d');
-            cctx.fillStyle = '#ccc';
-            ctx.fillRect(0,0,this.pattern.w, this.pattern.h);
+            elm.pivot(0,0);
             elm.render(cctx, 0, 0);
             fill = canvas;
         }
