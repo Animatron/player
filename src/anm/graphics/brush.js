@@ -187,9 +187,7 @@ Brush.prototype.adapt = function(ctx) {
         elm.disabled = true;
         fill = canvas;
 
-        if (fill) {
-            return ctx.createPattern(fill, this.pattern.repeat);
-        }
+        return ctx.createPattern(fill, this.pattern.repeat);
     }
     return null;
 };
@@ -216,7 +214,7 @@ Brush.prototype.clone = function()  {
         for (i = 0; i < src_grad.stops.length; i++) {
             trg_grad.stops[i] = [].concat(src_grad.stops[i]);
         }
-        trg_grad.dir = [];   
+        trg_grad.dir = [];
         for (i = 0; i < src_grad.dir.length; i++) {
             trg_grad.dir[i] = [].concat(src_grad.dir[i]);
         }
@@ -366,10 +364,6 @@ Brush.grad = function(stops, bounds, dir) {
         bounds: bounds,
         dir: dir
     } };
-};
-
-Brush.pattern = function() {
-
 };
 
 Brush.rgrad = function(stops, r, bounds, dir) {

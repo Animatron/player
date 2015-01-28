@@ -749,13 +749,13 @@ Import.fill = function(src) {
 Import.stroke = function(src) {
     if (!src) return null;
     var fill;
-    if (is.str(src[0])) {
-        fill = src[0];
-    } else if (is.arr(src[0])) {
-        if (is.arr(src[0][0])) {
-            fill = Import.grad(src[0]);
+    if (is.str(src[1])) {
+        fill = src[1];
+    } else if (is.arr(src[1])) {
+        if (is.arr(src[1][0])) {
+            fill = Import.grad(src[1]);
         }
-        fill = Import.pattern(src[0]);
+        fill = Import.pattern(src[1]);
     }
     return Brush.stroke(fill, // paint
                         src[0], // width
