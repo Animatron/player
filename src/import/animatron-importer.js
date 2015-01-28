@@ -296,10 +296,12 @@ Import.branch = function(type, src, all, anim) {
                 ltrg.tween(t);
             }
             if (translates && (flags & L_ROT_TO_PATH)) {
+                var rtp_tween;
                 for (ti = 0, til = translates.length; ti < til; ti++) {
-                    ltrg.tween(
-                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].$band)
-                    );
+                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
+                    if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
+                    ltrg.tween(rtp_tween);
                 }
             }
             translates = [];
@@ -357,8 +359,8 @@ Import.branch = function(type, src, all, anim) {
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
-        // TODO temporary implementation
-        if (ltrg._audio_master) {
+        // TODO temporary implementation, use custom renderer for that!
+        if (ltrg.$audio && ltrg.$audio.master) {
             ltrg.lband = [ltrg.lband[0], Infinity];
             ltrg.gband = [ltrg.gband[0], Infinity];
             trg.remove(ltrg);
@@ -377,8 +379,8 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
-        trg.audio = Import.audio(src);
-        trg.audio.connect(trg);
+        trg.$audio = Import.audio(src);
+        trg.$audio.connect(trg);
     }
     else if (type == TYPE_VIDEO) {}
     else { trg.$path  = Import.path(src);  }
