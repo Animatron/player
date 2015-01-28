@@ -80,6 +80,7 @@ Import.project = function(prj) {
 
     root.meta = Import.meta(prj);
     root.fonts = Import.fonts(prj);
+    Import.root = root;
     Import.anim(prj, root); // will inject all required properties directly in scene object
     if (prj.meta.duration) root.duration = prj.meta.duration;
 
@@ -835,14 +836,18 @@ number;      // opacity
 var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
 Import.pattern = function(src) {
-    var el = anm.lastImportedProject.anim.elements[src[0]];
+    var el = anm.lastImportedProject.anim.elements[src[0]],
+        elm = Import.leaf(Import._type(el), el);
+
+    elm.alpha = src[5];
+    elm.disabled = true;
+    Import.root.add(elm);
     return {
-        elm: Import.leaf(Import._type(el), el),
+        elm: elm,
         repeat: repeats[src[1]],
         w: src[2],
         h: src[3],
-        bounds: src[4],
-        opacity: src[5]
+        bounds: src[4]
     };
 };
 

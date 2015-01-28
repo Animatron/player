@@ -179,15 +179,13 @@ Brush.prototype.adapt = function(ctx) {
     if (this.pattern) {
         var elm = this.pattern.elm,
             fill;
-        if (elm.$image) {
-            //fill = elm.$image._image;
-        } else { //shape
-            var canvas = engine.createCanvas(this.pattern.w, this.pattern.h, null, 1);
-            var cctx = canvas.getContext('2d');
-            elm.pivot(0,0);
-            elm.render(cctx, 0, 0);
-            fill = canvas;
-        }
+        var canvas = engine.createCanvas(this.pattern.w, this.pattern.h, null, 1);
+        var cctx = canvas.getContext('2d');
+        elm.pivot(0,0);
+        elm.disabled = false;
+        elm.render(cctx, 0, 0);
+        elm.disabled = true;
+        fill = canvas;
 
         if (fill) {
             return ctx.createPattern(fill, this.pattern.repeat);
