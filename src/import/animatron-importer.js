@@ -746,8 +746,16 @@ Import.fill = function(src) {
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    return Brush.stroke(is.arr(src[1]) ? Import.grad(src[1])
-                                       : src[1], // paint
+    var fill;
+    if (is.str(src[0])) {
+        fill = src[0];
+    } else if (is.arr(src[0])) {
+        if (is.arr(src[0][0])) {
+            fill = Import.grad(src[0]);
+        }
+        fill = Import.pattern(src[0]);
+    }
+    return Brush.stroke(fill, // paint
                         src[0], // width
                         src[2] || C.PC_ROUND, // cap
                         src[3] || C.PC_ROUND, // join
