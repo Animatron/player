@@ -80,6 +80,7 @@ Import.project = function(prj) {
 
     root.meta = Import.meta(prj);
     root.fonts = Import.fonts(prj);
+    Import.root = root;
     Import.anim(prj, root); // will inject all required properties directly in scene object
     if (prj.meta.duration) root.duration = prj.meta.duration;
 
@@ -723,7 +724,10 @@ Import.fill = function(src) {
     if (is.str(src)) {
         return Brush.fill(src);
     } else if (is.arr(src)) {
-        return Brush.fill(Import.grad(src));
+        if (is.arr(src[0])) {
+            return Brush.fill(Import.grad(src));
+        }
+        return Brush.fill(Import.pattern(src));
     } else _reportError('Unknown type of brush');
 };
 /** stroke **/
@@ -744,8 +748,16 @@ Import.fill = function(src) {
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    return Brush.stroke(is.arr(src[1]) ? Import.grad(src[1])
-                                       : src[1], // paint
+    var fill;
+    if (is.str(src[1])) {
+        fill = src[1];
+    } else if (is.arr(src[1])) {
+        if (is.arr(src[1][0])) {
+            fill = Import.grad(src[1]);
+        }
+        fill = Import.pattern(src[1]);
+    }
+    return Brush.stroke(fill, // paint
                         src[0], // width
                         src[2] || C.PC_ROUND, // cap
                         src[3] || C.PC_ROUND, // join
@@ -821,6 +833,34 @@ Import.grad = function(src) {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
 };
+/*
+array {          // pattern
+number;      // id of either shapeelement or image element
+number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
+number;      // width
+number;      // height
+array { number; number; number; number; }  // rectangle, inner bounds
+number;      // opacity
+}
+*/
+var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
+
+Import.pattern = function(src) {
+    var el = anm.lastImportedProject.anim.elements[src[0]],
+        elm = Import.leaf(Import._type(el), el);
+
+    elm.alpha = src[5];
+    elm.disabled = true;
+    Import.root.add(elm);
+    return {
+        elm: elm,
+        repeat: repeats[src[1]],
+        w: src[2],
+        h: src[3],
+        bounds: src[4]
+    };
+};
+
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));

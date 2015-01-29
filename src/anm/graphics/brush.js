@@ -176,6 +176,19 @@ Brush.prototype.adapt = function(ctx) {
         }
         return grad;
     }
+    if (this.pattern) {
+        var elm = this.pattern.elm,
+            fill;
+        var canvas = engine.createCanvas(this.pattern.w, this.pattern.h, null, 1);
+        var cctx = canvas.getContext('2d');
+        elm.pivot(0,0);
+        elm.disabled = false;
+        elm.render(cctx, 0, 0);
+        elm.disabled = true;
+        fill = canvas;
+
+        return ctx.createPattern(fill, this.pattern.repeat);
+    }
     return null;
 };
 
@@ -201,7 +214,7 @@ Brush.prototype.clone = function()  {
         for (i = 0; i < src_grad.stops.length; i++) {
             trg_grad.stops[i] = [].concat(src_grad.stops[i]);
         }
-        trg_grad.dir = [];   
+        trg_grad.dir = [];
         for (i = 0; i < src_grad.dir.length; i++) {
             trg_grad.dir[i] = [].concat(src_grad.dir[i]);
         }
@@ -239,8 +252,13 @@ Brush.prototype.clone = function()  {
 Brush.fill = function(value) {
     var brush = new Brush();
     brush.type = C.BT_FILL;
-    if (is.obj(value) && value.stops) {
-        brush.grad = value;
+    if (is.obj(value)) {
+        if (value.stops) {
+            brush.grad = value;
+        } else if (value.elm) {
+            brush.pattern = value;
+        }
+
     } else {
         brush.color = value;
     }
