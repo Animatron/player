@@ -4,14 +4,14 @@ Scripting & Interactivity are in progress in Animatron at the moment of
 writing this article, but some scenarios are actually possible to code with Animatron Player
 even now.
 
-If you need to let user switch some layer to be visible with a press of some keys,
-it is possible and easy thing to do.
+If you need to let user switch some layer to be visible with a press of a key,
+it is possible and an easy thing to do.
 
 First, you need to prepare your Project in the Animatron Editor itself.
 
 You need to create a project with at least two shapes — they both will switch their
-visibility on keypress, but one will be visible at start and second will one will
-appear later. Say, the first one is a rectangle and the second one is circle.
+visibility on keypress, but one will be visible at start and the second one will
+appear later. Say, the first one is a rectangle and the second one is a circle.
 So, rectangle is visible at first.
 
 In the Editor, turn off the visibility of the layer with a circle shape, then click
@@ -22,7 +22,7 @@ but won't be visible at start (by default, all of the invisible layers are not e
 Ensure lifetime of both layers starts at 0 seconds of a project and ends at the same
 time, when the project ends.
 
-Also, name the layers as _Rectange_ and _Circle_ correspondingly, so it will be
+Also, name the layers as _Rectangle_ and _Circle_ correspondingly, so it will be
 easy for you to access them from the Player.
 
 Check the `LOOP` checkbox in the Project Inspector, so animation will wait for user
@@ -103,4 +103,4 @@ key and observe the result! If you don't like the way this focus-indicating bord
 `#target:focus { outline: 0; }` anywhere to your CSS.
 
 [Here's this example in action](http://codepen.io/shamansir/pen/qEjwpr?editors=101), move
-your mouse over the Player and press some key to see the effect.
+your mouse over the Player and press a key to see the effect.
