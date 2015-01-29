@@ -83,6 +83,7 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
     }
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
+    this.check(); // all the urls might be already available
 };
 
 ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {

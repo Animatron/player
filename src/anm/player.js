@@ -377,6 +377,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             state.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
+            // actually start loading remote resources
+            anim._loadRemoteResources(player);
             // subscribe to wait until remote resources will be ready or failed
             resourceManager.subscribe(player.id, remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
@@ -400,8 +402,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     }
                 }
             ) ]);
-            // actually start loading remote resources
-            anim._loadRemoteResources(player);
         }
 
     };
