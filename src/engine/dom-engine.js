@@ -133,7 +133,12 @@ $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 $DE.PX_RATIO = window.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
-    var req = new window.XMLHttpRequest();
+    var req;
+    if (isIE9) {
+        req = new window.XDomainRequest();
+    } else {
+        req = new window.XMLHttpRequest();
+    }
 
     if (!req) {
       throw new Error('Failed to create XMLHttp instance'); // SysErr
@@ -154,9 +159,15 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     };
 
     req.onreadystatechange = whenDone;
+    if (isIE9) {
+        req.onload = function(){ callback(req); };
+        req.onerror = function() {
+            if(errback) errback(new Error('XDomainRequest Error'), req);
+        };
+    }
     req.open(method || 'GET', url, true);
 
-    if (headers) {
+    if (headers && !isIE9) {
         for (var header in headers) {
             req.setRequestHeader(header, headers[header]);
         }
@@ -246,7 +257,6 @@ $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
     var stylesTag = $DE.createStyle();
-    stylesTag.type = 'text/css';
 
     // TODO: inject as first element?
     var head = $doc.getElementsByTagName("head")[0];
@@ -304,7 +314,7 @@ $DE.createTextMeasurer = function() {
     return function(text, lines_arg) {
         var has_arg = (typeof lines_arg !== 'undefined');
         var lines = has_arg ? lines_arg : text.lines;
-        buff.style.font = text.font;
+        buff.style.font = text.$font;
         //buff.style.textAlign = text.align;
         //buff.style.verticalAlign = text.baseline || 'bottom';
         buff.style.whiteSpace = 'pre';
@@ -355,11 +365,11 @@ $DE.findScrollAwarePosition = function(elm) {
     if (elm.getBoundingClientRect) {
         var rect = elm.getBoundingClientRect();
         do {
-            curleft += ((elm !== $doc.body)
-                        ? elm.scrollLeft
+            curleft += ((elm !== $doc.body) ?
+                        elm.scrollLeft
                         : $doc.documentElement.scrollLeft);
-            curtop += ((elm !== $doc.body)
-                        ? elm.scrollTop
+            curtop += ((elm !== $doc.body) ?
+                        elm.scrollTop
                         : $doc.documentElement.scrollTop);
         } while ((elm = elm.offsetParent));
         return [ rect.left - curleft, rect.top - curtop ];
@@ -367,11 +377,11 @@ $DE.findScrollAwarePosition = function(elm) {
     //var bound = elm.getBoundingClientRect();
     //return [ bound.left, bound.top ];
     do {
-        curleft += elm.offsetLeft - ((elm !== $doc.body)
-                                     ? elm.scrollLeft
+        curleft += elm.offsetLeft - ((elm !== $doc.body) ?
+                                     elm.scrollLeft
                                      : $doc.documentElement.scrollLeft);
-        curtop += elm.offsetTop - ((elm !== $doc.body)
-                                     ? elm.scrollTop
+        curtop += elm.offsetTop - ((elm !== $doc.body) ?
+                                     elm.scrollTop
                                      : $doc.documentElement.scrollTop);
     } while ((elm = elm.offsetParent));
     return [ curleft, curtop ];
@@ -436,9 +446,8 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     }
 
     var canvasWasPassed = (wrapper.tagName == 'canvas') || (wrapper.tagName == 'CANVAS');
-    if (canvasWasPassed && console) {
-        (console.warn || console.log).call(console,
-                     'NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
+    if (canvasWasPassed && window.console) {
+        console.warn('NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
                      'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
                      'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
                      'Please pass any container such as <div> to a Player instead of <canvas> to fix it.');
@@ -608,9 +617,9 @@ $DE.extractUserOptions = function(elm) {
              'autoPlay': __boolAttr(elm.getAttribute('anm-autoplay') || elm.getAttribute('anm-auto-play')),
              'bgColor': elm.getAttribute('anm-bgcolor') || elm.getAttribute('anm-bg-color'),
              'ribbonsColor': elm.getAttribute('anm-ribbons') || elm.getAttribute('anm-ribcolor') || elm.getAttribute('anm-rib-color'),
-             'drawStill': __boolAttr(elm.getAttribute('anm-draw-still')
-                                     || elm.getAttribute('anm-draw-thumbnail')
-                                     || elm.getAttribute('anm-draw-thumb')),
+             'drawStill': __boolAttr(elm.getAttribute('anm-draw-still') ||
+                              elm.getAttribute('anm-draw-thumbnail') ||
+                              elm.getAttribute('anm-draw-thumb')),
              'imagesEnabled': __boolAttr(elm.getAttribute('anm-images') || elm.getAttribute('anm-images-enabled')),
              'shadowsEnabled': __boolAttr(elm.getAttribute('anm-shadows') || elm.getAttribute('anm-shadows-enabled')),
              'audioEnabled': __boolAttr(elm.getAttribute('anm-audio') || elm.getAttribute('anm-audio-enabled')),
@@ -937,7 +946,9 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-    return document.createElement('style');
+    var style = document.createElement('style');
+    style.type = 'text/css';
+    return style;
 };
 
 $DE.createAudio = function() {
@@ -960,6 +971,9 @@ $DE.isHttps = https;
 
 var local = window.location && window.location.protocol === 'file:';
 $DE.isLocal = local;
+
+var isIE9 = navigator.userAgent.indexOf('MSIE 9.0') !== -1;
+$DE.isIE9 = isIE9;
 
 module.exports = $DE;
 return $DE;

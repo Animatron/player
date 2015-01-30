@@ -80,6 +80,7 @@ Import.project = function(prj) {
 
     root.meta = Import.meta(prj);
     root.fonts = Import.fonts(prj);
+    Import.root = root;
     Import.anim(prj, root); // will inject all required properties directly in scene object
     if (prj.meta.duration) root.duration = prj.meta.duration;
 
@@ -88,10 +89,17 @@ Import.project = function(prj) {
     Import._paths = prj.anim.paths;
     Import._path_cache = new ValueCache();
 
+    var node_res;
+    var traverseFunc = function(elm) {
+        var e_gband_before = elm.gband;
+        elm.gband = [ last_scene_band[1] + e_gband_before[0],
+        last_scene_band[1] + e_gband_before[1] ];
+    };
+
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
-        var node_res = Import.node(node_src, elems, null, root);
+        node_res = Import.node(node_src, elems, null, root);
         //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
         if (node_res.gband[0] == node_res.gband[1]) {
             continue;
@@ -108,11 +116,7 @@ Import.project = function(prj) {
                                last_scene_band[1] + gband_before[1] ];
             // local band is equal to global band on top level
             node_res.lband = node_res.gband;
-            node_res.traverse(function(elm) {
-                var e_gband_before = elm.gband;
-                elm.gband = [ last_scene_band[1] + e_gband_before[0],
-                              last_scene_band[1] + e_gband_before[1] ];
-            });
+            node_res.traverse(traverseFunc);
         }
         last_scene_band = node_res.gband;
         root.add(node_res);
@@ -292,10 +296,12 @@ Import.branch = function(type, src, all, anim) {
                 ltrg.tween(t);
             }
             if (translates && (flags & L_ROT_TO_PATH)) {
+                var rtp_tween;
                 for (ti = 0, til = translates.length; ti < til; ti++) {
-                    ltrg.tween(
-                        new Tween(C.T_ROT_TO_PATH).band(translates[ti].$band)
-                    );
+                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
+                    if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
+                    ltrg.tween(rtp_tween);
                 }
             }
             translates = [];
@@ -353,8 +359,8 @@ Import.branch = function(type, src, all, anim) {
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
-        // TODO temporary implementation
-        if (ltrg._audio_master) {
+        // TODO temporary implementation, use custom renderer for that!
+        if (ltrg.$audio && ltrg.$audio.master) {
             ltrg.lband = [ltrg.lband[0], Infinity];
             ltrg.gband = [ltrg.gband[0], Infinity];
             trg.remove(ltrg);
@@ -373,8 +379,8 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
-        trg.audio = Import.audio(src);
-        trg.audio.connect(trg);
+        trg.$audio = Import.audio(src);
+        trg.$audio.connect(trg);
     }
     else if (type == TYPE_VIDEO) {}
     else { trg.$path  = Import.path(src);  }
@@ -638,6 +644,7 @@ Import.tweentype = function(src) {
     if (src === 7) return C.T_VOLUME;
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
+    if (src === 11) return C.T_SHADOW;
 };
 /** tweendata **/
 // -> Any
@@ -663,6 +670,9 @@ Import.tweendata = function(type, src) {
     }
     if (type === C.T_STROKE) {
         return [Import.stroke(src[0]), Import.stroke(src[1])];
+    }
+    if (type === C.T_SHADOW) {
+        return [Import.shadow(src[0]), Import.shadow(src[1])];
     }
     if (type === C.T_VOLUME) {
       if (src.length == 2) return src;
@@ -714,7 +724,10 @@ Import.fill = function(src) {
     if (is.str(src)) {
         return Brush.fill(src);
     } else if (is.arr(src)) {
-        return Brush.fill(Import.grad(src));
+        if (is.arr(src[0])) {
+            return Brush.fill(Import.grad(src));
+        }
+        return Brush.fill(Import.pattern(src));
     } else _reportError('Unknown type of brush');
 };
 /** stroke **/
@@ -735,8 +748,16 @@ Import.fill = function(src) {
  */
 Import.stroke = function(src) {
     if (!src) return null;
-    return Brush.stroke(is.arr(src[1]) ? Import.grad(src[1])
-                                       : src[1], // paint
+    var fill;
+    if (is.str(src[1])) {
+        fill = src[1];
+    } else if (is.arr(src[1])) {
+        if (is.arr(src[1][0])) {
+            fill = Import.grad(src[1]);
+        }
+        fill = Import.pattern(src[1]);
+    }
+    return Brush.stroke(fill, // paint
                         src[0], // width
                         src[2] || C.PC_ROUND, // cap
                         src[3] || C.PC_ROUND, // join
@@ -812,6 +833,34 @@ Import.grad = function(src) {
         _reportError('Unknown type of gradient with ' + pts.length + ' points');
     }
 };
+/*
+array {          // pattern
+number;      // id of either shapeelement or image element
+number;      // 0 - no repeat, 1 - repeat xy, 2 - repeat x, 3 - repeat y
+number;      // width
+number;      // height
+array { number; number; number; number; }  // rectangle, inner bounds
+number;      // opacity
+}
+*/
+var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
+
+Import.pattern = function(src) {
+    var el = anm.lastImportedProject.anim.elements[src[0]],
+        elm = Import.leaf(Import._type(el), el);
+
+    elm.alpha = src[5];
+    elm.disabled = true;
+    Import.root.add(elm);
+    return {
+        elm: elm,
+        repeat: repeats[src[1]],
+        w: src[2],
+        h: src[3],
+        bounds: src[4]
+    };
+};
+
 /** pathval **/
 Import.pathval = function(src) {
     return new Path(Import._pathDecode(src));
@@ -942,7 +991,7 @@ Base64Decoder._decode = function(data) {
     dec = tmp_arr.join('');
 
     return dec;
-}
+};
 
 // Path cache
 // -----------------------------------------------------------------------------

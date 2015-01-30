@@ -83,11 +83,13 @@ function Audio(url) {
 /** @private @method load */
 Audio.prototype.load = function(player) {
     var me = this;
-    if (engine.isHttps) {
-        me.url = me.url.replace('http:', 'https:');
-    }
     ResMan.loadOrGet(player.id, me.url,
       function(notify_success, notify_error) { // loader
+          var url = me.url;
+          if (engine.isHttps) {
+              url = url.replace('http:', 'https:');
+          }
+
           if (anm.conf.doNotLoadAudio) {
             notify_error('Loading audio is turned off');
             return;
@@ -95,7 +97,6 @@ Audio.prototype.load = function(player) {
 
           if (audioContext) {
             // use Web Audio API if possible
-            var url = me.url;
 
             var node = {};
 
@@ -136,8 +137,7 @@ Audio.prototype.load = function(player) {
             var progressListener = function(e) {
               var buffered = el.buffered;
               if (buffered.length == 1) {
-                  var end = buffered.end(0);
-                  if (el.duration - end < 0.05) {
+                  if (el.readyState === 4) {
                     el.removeEventListener("progress", progressListener, false);
                     el.removeEventListener("canplay", canPlayListener, false);
                     notify_success(el);
@@ -165,7 +165,7 @@ Audio.prototype.load = function(player) {
 
             el.addEventListener("progress", progressListener, false);
             el.addEventListener("canplay", canPlayListener, false);
-            el.addEventListener("error", audioErrProxy(me.url, notify_error), false);
+            el.addEventListener("error", audioErrProxy(url, notify_error), false);
 
             var addSource = function(audio, url, type) {
                 var src = engine.createSource();
@@ -177,7 +177,7 @@ Audio.prototype.load = function(player) {
 
             try {
               engine.appendToBody(el);
-              addSource(el, me.url, audioType);
+              addSource(el, url, audioType);
             } catch(e) { notify_error(e); }
           }
       },
@@ -251,7 +251,7 @@ Audio.prototype.stop = function() {
 };
 /** @private @method stopIfNotMaster */
 Audio.prototype.stopIfNotMaster = function() {
-    if(!this.master) this.stop();
+    if (!this.master) this.stop();
 };
 /**
  * @method setVolume
@@ -295,7 +295,7 @@ Audio.prototype.mute = function() {
  * Unmute this audio
  */
 Audio.prototype.unmute = function() {
-    if(!this.muted) {
+    if (!this.muted) {
         return;
     }
     this.muted = false;
@@ -316,9 +316,15 @@ Audio.prototype.toggleMute = function() {
 /** @private @method connect */
 Audio.prototype.connect = function(element) {
     var me = this;
-    element.on(C.X_START, function() { me.play.apply(me, arguments); });
-    element.on(C.X_STOP, function() { me.stopIfNotMaster(); });
-    var stop = function() { me.stop(); };
+    element.on(C.X_START, function() {
+        me.play.apply(me, arguments);
+    });
+    element.on(C.X_STOP, function() {
+        me.stopIfNotMaster();
+    });
+    var stop = function() {
+        me.stop();
+    };
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
 };

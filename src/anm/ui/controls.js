@@ -234,9 +234,16 @@ Controls.prototype.react = function() {
     //and mute buttons reside
     if (Controls.isInProgressArea(coords, w, h)) {
         if (coords.x > btnWidth && coords.x < w-btnWidth) {
-            time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
+            time = utils.roundTo(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
+            if (time > p.anim.duration) {
+                //when the animation is something like 3.8 seconds long,
+                //the rounding will exceed the duration, which is not
+                //a good idea.
+                time = p.anim.duration;
+            }
             if (s === C.PLAYING) {
-              p.pause().play(time);
+              p.pause()
+               .play(time);
             } else {
               p.play(time).pause();
             }

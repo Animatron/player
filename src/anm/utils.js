@@ -5,9 +5,9 @@ var is = {};
 
 // FIXME: rename all to full-names
 is.defined = function(v) {
-  return !((typeof v === 'undefined')
-   || (v === null)
-   || (v === undefined));
+  return !((typeof v === 'undefined') ||
+    (v === null) ||
+    (v === undefined));
 };
 is.finite = global.isFinite;
 is.nan = global.isNaN;
@@ -16,17 +16,17 @@ is.int = function(n) {
     return is.num(n) && Math.floor(n) == n;
 };
 is.num = function(n) {
-  n = global.parseFloat(n);
-  return !is.nan(n) && is.finite(n);
+    n = global.parseFloat(n);
+    return !is.nan(n) && is.finite(n);
 };
 is.fun = function(f) {
-  return typeof f === 'function';
+    return typeof f === 'function';
 };
 is.obj = function(o) {
-  return typeof o === 'object';
+    return typeof o === 'object';
 };
 is.str = function(s) {
-  return typeof s === 'string';
+    return typeof s === 'string';
 };
 is.not_empty = function(obj) {
     if (Object.keys) return (Object.keys(obj).length > 0);
@@ -34,13 +34,48 @@ is.not_empty = function(obj) {
 };
 
 is.modifier = function(f) {
-  return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
+    return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
 };
 is.painter = function(f) {
-  return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
+    return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
 };
 is.tween = function(f) {
-  return f.is_tween && is.modifier(f);
+    return f.is_tween && is.modifier(f);
+};
+
+is.equal = function(x, y) {
+    if (x === y) return true;
+    // if both x and y are null or undefined and exactly the same
+
+    if (!(x instanceof Object) || !(y instanceof Object)) return false;
+    // if they are not strictly equal, they both need to be Objects
+
+    if (x.constructor !== y.constructor) return false;
+    // they must have the exact same prototype chain, the closest we can do is
+    // test their constructor.
+
+    for (var p in x) {
+        if (!x.hasOwnProperty(p)) continue;
+        // other properties were tested using x.constructor === y.constructor
+
+        if (!y.hasOwnProperty(p)) return false;
+        // allows to compare x[p] and y[p] when set to undefined
+
+        if (x[p] === y[p]) continue;
+        // if they have the same strict value or identity then they are equal
+
+        if (typeof( x[p]) !== "object") return false;
+        // Numbers, Strings, Functions, Booleans must be strictly equal
+
+        if (!is.equal( x[p],  y[p])) return false;
+        // Objects and Arrays must be tested recursively
+    }
+
+    for (p in y) {
+        if ( y.hasOwnProperty(p) && ! x.hasOwnProperty(p)) return false;
+        // allows x[p] to be set to undefined
+    }
+    return true;
 };
 
 // Iterator
@@ -77,16 +112,16 @@ function iter(a) {
 
 
 function fmt_time(time) {
-  if (!is.finite(time)) return '∞';
-  var absTime = Math.abs(time),
-      h = Math.floor(absTime / 3600),
-      m = Math.floor((absTime - (h * 3600)) / 60),
-      s = Math.floor(absTime - (h * 3600) - (m * 60));
+    if (!is.finite(time)) return '∞';
+    var absTime = Math.abs(time),
+        h = Math.floor(absTime / 3600),
+        m = Math.floor((absTime - (h * 3600)) / 60),
+        s = Math.floor(absTime - (h * 3600) - (m * 60));
 
-  return ((time < 0) ? '-' : '') +
-          ((h > 0)  ? (((h < 10) ? ('0' + h) : h) + ':') : '') +
-          ((m < 10) ? ('0' + m) : m) + ':' +
-          ((s < 10) ? ('0' + s) : s)
+    return ((time < 0) ? '-' : '') +
+            ((h > 0)  ? (((h < 10) ? ('0' + h) : h) + ':') : '') +
+            ((m < 10) ? ('0' + m) : m) + ':' +
+            ((s < 10) ? ('0' + s) : s)
 }
 
 function ell_text(text, max_len) {
@@ -94,8 +129,8 @@ function ell_text(text, max_len) {
     var len = text.length;
     if (len <= max_len) return text;
     var semilen = Math.floor(len / 2) - 2;
-    return text.slice(0, semilen) + '...'
-         + text.slice(len - semilen);
+    return text.slice(0, semilen) + '...' +
+         text.slice(len - semilen);
 }
 
 // ### Internal Helpers
@@ -151,10 +186,8 @@ function mrg_obj(src, backup, trg) {
 function strf(str, subst) {
     var args = subst;
     return str.replace(/{(\d+)}/g, function(match, number) {
-      return is.defined(args[number])
-        ? args[number]
-        : match
-      ;
+      return is.defined(args[number]) ?
+        args[number] : match;
     });
 }
 
@@ -199,6 +232,17 @@ function fit_rects(pw, ph, aw, ah) {
     } else return [ 1, [ 0, 0, aw, ah ] ];
 }
 
+function removeElement(obj, element) {
+    if (is.arr(obj)) {
+        var index = array.indexOf(element);
+        if (index > -1) {
+            array.splice(index, 1);
+        }
+    } else {
+        obj[element] = null;
+    }
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -215,5 +259,6 @@ module.exports = {
     guid: guid,
     fit_rects: fit_rects,
     is: is,
-    iter: iter
+    iter: iter,
+    removeElement: removeElement
 };

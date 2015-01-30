@@ -43,7 +43,7 @@ function Sheet(src, callback, start_region) {
     this._image = null;
     this._callback = callback;
     this._thumbnail = false; // internal flag, used to load a player thumbnail
-};
+}
 
 var https = engine.isHttps;
 
@@ -60,11 +60,12 @@ Sheet.prototype.load = function(player_id, callback, errback) {
         if (errback) errback.call(me, 'Empty source');
         return;
     }
-    if (https) {
-        me.src = me.src.replace('http:', 'https:');
-    }
     resMan.loadOrGet(player_id, me.src,
         function(notify_success, notify_error) { // loader
+            var src = me.src;
+            if (https) {
+                src = src.replace('http:', 'https:');
+            }
             if (!me._thumbnail && conf.doNotLoadImages) {
               notify_error('Loading images is turned off');
               return; }
@@ -84,7 +85,7 @@ Sheet.prototype.load = function(player_id, callback, errback) {
             };
             img.onerror = notify_error;
             img.addEventListener('error', notify_error, false);
-            try { img.src = me.src; }
+            try { img.src = src; }
             catch(e) { notify_error(e); }
         },
         function(image) {  // oncomplete
@@ -165,7 +166,7 @@ Sheet.prototype.bounds = function() {
     }
     var r = this.region;
     return new Bounds(0, 0, r[2], r[3]);
-}
+};
 /**
  * @method clone
  *

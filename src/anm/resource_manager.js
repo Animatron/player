@@ -64,6 +64,7 @@ function ResourceManager() {
     this._subscriptions = {};
     this._url_to_subjects = {};
 }
+
 ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
     if (!subject_id) throw new Error('Subject ID is empty');
     if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
@@ -82,7 +83,9 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
     }
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
-}
+    this.check(); // all the urls might be already available
+};
+
 ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
     var me = this;
     if (!subject_id) throw new Error('Subject ID is empty');
@@ -117,11 +120,12 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
         rmLog('> someone is already waiting for it, subscribing');
         me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
             if (res[0]) { onComplete(res[0]); }
-            else { onError(res[0]); };
+            else { onError(res[0]); }
         });
 
     }
-}
+};
+
 ResourceManager.prototype.trigger = function(url, value) {
     if (this._cache[url] || this._errors[url]) { this.check(); return; }
     rmLog('triggering success for url ' + url);
@@ -133,7 +137,8 @@ ResourceManager.prototype.trigger = function(url, value) {
     } }
     this._cache[url] = value;
     //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
-}
+};
+
 ResourceManager.prototype.error = function(url, err) {
     if (this._cache[url] || this._errors[url]) { this.check(); return; }
     rmLog('triggering error for url ' + url);
@@ -145,10 +150,12 @@ ResourceManager.prototype.error = function(url, err) {
     } }
     this._errors[url] = err;
     //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
-}
+};
+
 ResourceManager.prototype.has = function(url) {
     return (typeof this._cache[url] !== 'undefined');
-}
+};
+
 // call this only if you are sure you want to force this check —
 // this method is called automatically when every new incoming url is triggered
 // as complete or failed
@@ -163,18 +170,18 @@ ResourceManager.prototype.check = function() {
         var urls = subscriptions[subject_id][0],
             callbacks = subscriptions[subject_id][1],
             error_count = 0,
-            success_count = 0;
-        for (var u = 0, ul = urls.length; u < ul; u++) {
+            success_count = 0, u;
+        for (u = 0, ul = urls.length; u < ul; u++) {
             if (errors[urls[u]]) error_count++;
             if (cache[urls[u]]) success_count++;
         }
-        rmLog('success: ' + success_count + ', errors: ' + error_count + ', ready: '
-                          + ((success_count + error_count) === urls.length));
+        rmLog('success: ' + success_count + ', errors: ' + error_count +
+            ', ready: ' + ((success_count + error_count) === urls.length));
         if ((success_count + error_count) === urls.length) {
             var ready = [];
-            for (var u = 0, ul = urls.length; u < ul; u++) {
+            for (u = 0, ul = urls.length; u < ul; u++) {
                 ready.push(cache[urls[u]] || errors[urls[u]]);
-            };
+            }
             rmLog('notifying subscribers that ' + urls + ' are all ready');
             for (var k = 0, kl = callbacks.length; k < kl; k++) {
                 //callbacks[k].call(subscriber, ready, error_count);
@@ -185,11 +192,12 @@ ResourceManager.prototype.check = function() {
         }
     }
     if (to_remove) { for (var i = 0, il = to_remove.length; i < il; i++) {
-        rmLog('removing notified subscribers for subject \''
-          + to_remove[i] + '\' from queue');
+        rmLog('removing notified subscribers for subject \'' +
+            to_remove[i] + '\' from queue');
         delete subscriptions[to_remove[i]];
     } }
-}
+};
+
 ResourceManager.prototype.cancel = function(subject_id) {
     if (!subject_id) throw new Error('Subject ID is empty');
     if (this._waiting[subject_id]) {
@@ -200,13 +208,14 @@ ResourceManager.prototype.cancel = function(subject_id) {
     }
     // clear _url_to_subjects ?
     delete this._subscriptions[subject_id];
-}
+};
+
 ResourceManager.prototype.clear = function() {
     this._cache = {};
     this._errors = {};
     this._waiting = {};
     this._loaders = {};
     this._subscriptions = {};
-}
+};
 
 module.exports = new ResourceManager();

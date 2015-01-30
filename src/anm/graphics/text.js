@@ -117,7 +117,7 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
             y += height;
         });
     }
-}
+};
 /**
  * @method font
  * @chainable
@@ -131,7 +131,7 @@ Text.prototype.font = function(value) {
     if (!value) return this.$font;
     this.$font = value;
     return this;
-}
+};
 /**
  * @method align
  * @chainable
@@ -145,7 +145,7 @@ Text.prototype.align = function(value) {
     if (!value) return this.$align;
     this.$align = value;
     return this;
-}
+};
 /**
  * @method bounds
  *
@@ -157,19 +157,18 @@ Text.prototype.bounds = function() {
     if (this.$bounds) return this.$bounds;
     var bounds = Text.bounds(this, this.lines);
     return (this.$bounds = bounds);
-}
+};
 // should be static
 Text.prototype.ascent = function(height, baseline) {
     return (baseline == C.BL_MIDDLE) ? (height / 2) : height;
-}
+};
 // should be static
 Text.prototype.xOffset = function(width, align) {
     if (align == C.TA_LEFT) return 0;
     if (align == C.TA_CENTER) return width / 2;
     if (align == C.TA_RIGHT) return width;
     return 0;
-}
-
+};
 /**
  * @method lineCount
  *
@@ -180,7 +179,7 @@ Text.prototype.xOffset = function(width, align) {
 Text.prototype.lineCount = function() {
     var lines = this.lines;
     return (is.arr(lines) ? lines.length : 1);
-}
+};
 /**
  * @method visitLines
  *
@@ -202,7 +201,7 @@ Text.prototype.visitLines = function(func, data) {
     } else {
         func(lines.toString());
     }
-}
+};
 /**
  * @method clone
  *
@@ -216,7 +215,7 @@ Text.prototype.clone = function() {
         c.lines = [].concat(this.lines);
     }
     return c;
-}
+};
 /**
  * @method invalidate
  *
@@ -224,13 +223,13 @@ Text.prototype.clone = function() {
  */
 Text.prototype.invalidate = function() {
     this.$bounds = null;
-}
-Text.prototype.reset = function() { }
-Text.prototype.dispose = function() { }
+};
+Text.prototype.reset = function() { };
+Text.prototype.dispose = function() { };
 Text.bounds = function(spec, lines) {
     if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
     var dimen = Text.__measuring_f(spec, lines);
     return new Bounds(0, 0, dimen[0], dimen[1]);
-}
+};
 
 module.exports = Text;
