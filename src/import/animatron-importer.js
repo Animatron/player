@@ -754,8 +754,9 @@ Import.stroke = function(src) {
     } else if (is.arr(src[1])) {
         if (is.arr(src[1][0])) {
             fill = Import.grad(src[1]);
+        } else {
+            fill = Import.pattern(src[1]);
         }
-        fill = Import.pattern(src[1]);
     }
     return Brush.stroke(fill, // paint
                         src[0], // width
