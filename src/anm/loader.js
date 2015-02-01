@@ -12,6 +12,8 @@ var C = require('./constants.js'),
 
 var engine = require('engine');
 
+var Animation = require('./animation/animation.js');
+
 var Loader = {};
 
 Loader.loadFromUrl = function(player, url, importer, callback) {
