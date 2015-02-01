@@ -367,7 +367,7 @@ Element.prototype.path = function(value) {
     if (value) {
         this.invalidate();
         this.type = C.ET_PATH;
-        this.$path = is.str(value) ? new Path(value) : path;
+        this.$path = is.str(value) ? new Path(value) : value;
         return this;
     } else return this.$path;
 };
