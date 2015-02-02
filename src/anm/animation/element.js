@@ -918,7 +918,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx.drawImage(mcvs, 0, 0);
 
                 ctx.drawImage(bcvs,
-                    0, 0, width * scale, height * scale,
+                    0, 0, Math.floor(width * scale), Math.floor(height * scale),
                     x, y, width, height);
 
                 mctx.restore();
