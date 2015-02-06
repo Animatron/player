@@ -288,7 +288,7 @@ Brush.fill = function(value) {
  * @return {anm.Brush}
  */
 Brush.stroke = function(color, width, cap, join, mitter) {
-    var brush = Brush.fill(color);
+    var brush = (color && (color instanceof Brush)) ? color.clone() : Brush.fill(color);
     brush.type = C.BT_STROKE;
     brush.width = width || 0;
     brush.cap = cap || Brush.DEFAULT_CAP;

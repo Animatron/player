@@ -100,9 +100,10 @@ Text.prototype.apply = function(ctx, fill, stroke, shadow) {
     } else { Brush.clearStroke(ctx); }
     if (underlined && fill) {
         y = 0;
-        Brush.stroke(ctx, fill); // passing fill is intentional,
-                                 // stroke should have a color of a fill
-        ctx.lineWidth = 1;
+        var stroke = Brush.stroke(fill, 1); // passing fill is intentional,
+                                            // stroke should have a color of a fill
+        stroke.apply(ctx);
+        //ctx.lineWidth = 1;
         var line_bounds = null,
             line_width = 0,
             me = this;
