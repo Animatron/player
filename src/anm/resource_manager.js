@@ -62,10 +62,11 @@ function ResourceManager() {
     this._errors = {};
     this._waiting = {};
     this._subscriptions = {};
+    this._onprogress = {}; // optional loading progress listeners
     this._url_to_subjects = {};
 }
 
-ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
+ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onprogress) {
     if (!subject_id) throw new Error('Subject ID is empty');
     if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
                                                          'a bunch of resources, please group them in one.');
@@ -83,6 +84,28 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
     }
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
+    if (onprogress) {
+        this.onprogress[subsject_id] = (function(urls) {
+            var summary = {};
+            var count = urls.length,
+                per_url = 1 / count;
+            var sum = 0,
+                err = 0;
+            return function(url, factor) {
+                // incoming factor value should be in range 0..1 for this particular url,
+                // where 0 is not-even-started to load, and 1 is complete loading
+                var prev = summary[url] || 0;
+                if (factor !== -1) { // -1 means error
+                    sum += (factor - prev) * per_url;
+                    summary[url] = factor;
+                } else {
+                    sum -= (prev * per_url);
+                    err += (prev * per_url);
+                }
+                onprogress(sum, err);
+            };
+        })(urls);
+    }
     this.check(); // all the urls might be already available
 };
 
@@ -90,15 +113,18 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
     var me = this;
     if (!subject_id) throw new Error('Subject ID is empty');
     if (!url) throw new Error('Given URL is empty');
+    var progress_f = this.onprogress[subsject_id];
     rmLog('request to load ' + url);
     if (me._cache[url]) {
         rmLog('> already received, trigerring success');
         var result = me._cache[url];
         if (onComplete) onComplete(result);
         me.trigger(url, result); // TODO: is it needed?
+        if (progress_f) progress_f(url, 1);
     } else if (me._errors[url]) {
         rmLog('> failed to load before, notifying with error');
         if (onError) onError(me._errors[url]);
+        if (progress_f) progress_f(url, -1);
     } else if (!me._waiting[subject_id] ||
                !(me._waiting[subject_id] && me._waiting[subject_id][url])) {
         rmLog('> not cached, requesting');
@@ -115,7 +141,9 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
             me.error(url, err);
             if (onError) onError(err);
             me.check();
-        });
+        }, progress_f ? function(factor) {
+            progress_f(url, factor);
+        } : null);
     } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
         rmLog('> someone is already waiting for it, subscribing');
         me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
