@@ -141,6 +141,8 @@ Audio.prototype.load = function(player) {
                     el.removeEventListener("progress", progressListener, false);
                     el.removeEventListener("canplay", canPlayListener, false);
                     notify_success(el);
+                    console.log(me.url, 'notify finish');
+                    notify_progress(1);
                     return;
                   }
 
@@ -154,9 +156,25 @@ Audio.prototype.load = function(player) {
                 // will skip preloading since it seems like it will not work properly anyway:
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
+                console.log(me.url, 'notify finish');
                 notify_success(el);
               }
             };
+
+            var loadingListener = function(e) {
+                var ranges = [];
+                for (var i = 0; i < el.buffered.length; i++) {
+                    ranges.push([ el.buffered.start(i),
+                                  el.buffered.end(i) ]);
+                }
+
+                for (var i = 0, progress = 0; i < el.buffered.length; i ++) {
+                    progress += (100 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                }
+
+                console.log(me.url, 'notify progress', progress);
+                notify_progress(progress);
+            }
 
             var canPlayListener = function(e) {
               me.canPlay = true;
@@ -164,6 +182,8 @@ Audio.prototype.load = function(player) {
             };
 
             el.addEventListener("progress", progressListener, false);
+            el.addEventListener("progress", loadingListener, false);
+            el.addEventListener("loadedmetadata", loadingListener, false);
             el.addEventListener("canplay", canPlayListener, false);
             el.addEventListener("error", audioErrProxy(url, notify_error), false);
 

@@ -85,7 +85,7 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
     if (onprogress) {
-        this.onprogress[subsject_id] = (function(urls) {
+        this._onprogress[subject_id] = (function(urls) {
             var summary = {};
             var count = urls.length,
                 per_url = 1 / count;
@@ -102,18 +102,17 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
                     sum -= (prev * per_url);
                     err += (prev * per_url);
                 }
-                onprogress(sum, err);
+                onprogress(url, sum, err);
             };
         })(urls);
     }
-    this.check(); // all the urls might be already available
 };
 
 ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
     var me = this;
     if (!subject_id) throw new Error('Subject ID is empty');
     if (!url) throw new Error('Given URL is empty');
-    var progress_f = this.onprogress[subsject_id];
+    var progress_f = me._onprogress[subject_id];
     rmLog('request to load ' + url);
     if (me._cache[url]) {
         rmLog('> already received, trigerring success');
@@ -143,10 +142,12 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
             me.check();
         }, progress_f ? function(factor) {
             progress_f(url, factor);
-        } : null);
+        } : function() {});
     } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
         rmLog('> someone is already waiting for it, subscribing');
-        me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
+        var new_id = subject_id + (new Date()).getTime() + Math.random();
+        me._onprogress[new_id] = me._onprogress[subject_id];
+        me.subscribe(new_id, [ url ], function(res) {
             if (res[0]) { onComplete(res[0]); }
             else { onError(res[0]); }
         });
