@@ -399,9 +399,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         }
                     }
                 }
-            ) ], function(url, factor, progress, errors) {
-                console.log(url, 'factor', factor, 'progress', progress, 'errors', errors);
-            });
+            ) ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
+                player.controls.loadingProgress = progress;
+                player.controls.loadingErrors = errors;
+            } : null);
             // actually start loading remote resources
             anim._loadRemoteResources(player);
         }

@@ -2,7 +2,8 @@ var C = require('../constants.js'),
     engine = require('engine'),
     ResMan = require('../resource_manager.js'),
     conf = require('../conf.js'),
-    log = require('../log.js');
+    log = require('../log.js'),
+    utils = require('../utils.js');
 
 // workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
 function syncStream(node){
@@ -139,9 +140,10 @@ Audio.prototype.load = function(player) {
               if (buffered.length == 1) {
                   if (el.readyState === 4) {
                     el.removeEventListener("progress", progressListener, false);
+                    el.removeEventListener("progress", loadingListener, false);
+                    el.removeEventListener("loadedmetadata", loadingListener, false);
                     el.removeEventListener("canplay", canPlayListener, false);
                     notify_success(el);
-                    console.log(me.url, 'notify finish');
                     notify_progress(1);
                     return;
                   }
@@ -156,8 +158,8 @@ Audio.prototype.load = function(player) {
                 // will skip preloading since it seems like it will not work properly anyway:
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
-                console.log(me.url, 'notify finish');
                 notify_success(el);
+                notify_progress(1);
               }
             };
 
@@ -172,7 +174,6 @@ Audio.prototype.load = function(player) {
                     progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
                 }
 
-                console.log(me.url, 'notify progress', progress);
                 notify_progress(progress);
             }
 
