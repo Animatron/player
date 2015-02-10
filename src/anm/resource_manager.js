@@ -70,11 +70,14 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
     if (!subject_id) throw new Error('Subject ID is empty');
     if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
                                                          'a bunch of resources, please group them in one.');
+
     var filteredUrls = [];
     rmLog('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls);
+    var test = {}; // FIXME: a very dirty way to test if urls duplicate, needs to be optimized
     for (var i = 0; i < urls.length; i++){
-        // there should be no empty urls
-        if (urls[i]) {
+        // there should be no empty urls and duplicates
+        if (urls[i] && !test[urls[i]]) {
+            test[urls[i]] = true;
             filteredUrls.push(urls[i]);
             if (!this._url_to_subjects[urls[i]]) {
                 this._url_to_subjects[urls[i]] = [];
@@ -82,12 +85,13 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
             this._url_to_subjects[urls[i]].push(subject_id);
         }
     }
+    rmLog('filtered from ' + urls.length + ' to ' + filteredUrls.length);
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
     if (onprogress) {
-        this._onprogress[subject_id] = (function(urls) {
+        this._onprogress[subject_id] = (function(f_urls) {
             var summary = {};
-            var count = urls.length,
+            var count = f_urls.length,
                 per_url = 1 / count;
             var sum = 0,
                 err = 0;
@@ -99,12 +103,12 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
                     sum += (factor - prev) * per_url;
                     summary[url] = factor;
                 } else {
-                    sum -= (prev * per_url);
-                    err += (prev * per_url);
+                    sum -= prev;
+                    err += prev;
                 }
-                onprogress(url, sum, err);
+                onprogress(url, factor, sum, err);
             };
-        })(urls);
+        })(filteredUrls);
     }
 };
 
@@ -134,11 +138,13 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
             rmLog('file at ' + url + ' succeeded to load, triggering success');
             me.trigger(url, result);
             if (onComplete) onComplete(result);
+            if (progress_f) progress_f(url, 1);
             me.check();
         }, function(err) {
             rmLog('file at ' + url + ' failed to load, triggering error');
             me.error(url, err);
             if (onError) onError(err);
+            if (progress_f) progress_f(url, -1);
             me.check();
         }, progress_f ? function(factor) {
             progress_f(url, factor);
@@ -148,8 +154,8 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
         var new_id = subject_id + (new Date()).getTime() + Math.random();
         me._onprogress[new_id] = me._onprogress[subject_id];
         me.subscribe(new_id, [ url ], function(res) {
-            if (res[0]) { onComplete(res[0]); }
-            else { onError(res[0]); }
+            if (res[0]) { onComplete(res[0]); if (progress_f) progress_f(url, 1); }
+            else { onError(res[0]); if (progress_f) progress_f(url, -1);}
         });
 
     }

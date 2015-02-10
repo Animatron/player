@@ -169,7 +169,7 @@ Audio.prototype.load = function(player) {
                 }
 
                 for (var i = 0, progress = 0; i < el.buffered.length; i ++) {
-                    progress += (100 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                    progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
                 }
 
                 console.log(me.url, 'notify progress', progress);
