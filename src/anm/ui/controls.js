@@ -558,9 +558,9 @@ var drawLoadingProgress = function(ctx, w, h, hilite_pos, factor, errorFactor) {
 
     // draw loading progress at the bottom
     if (factor || errorFactor) {
-        ctx.translate(-cx, cy - 2); // bottom right corner - 2px
+        ctx.translate(-cx, cy - theme.loading.factorLineWidth); // bottom right corner - 2px
         ctx.strokeStyle = theme.loading.factorBackColor;
-        ctx.lineWidth = 2;
+        ctx.lineWidth = theme.loading.factorLineWidth;
         ctx.beginPath();
         ctx.moveTo(0, 0);
         ctx.lineTo(w, 0);

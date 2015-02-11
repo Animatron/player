@@ -27,9 +27,10 @@
     "loading": {
       "activeColor": "white",
       "inactiveColor": "rgba(255,255,255,0.5)",
-      "factorBackColor": "rgba(100,100,100,0.5)",
-      "factorDoneColor": "rgba(255,255,255,0.5)",
-      "factorErrorColor": "rgba(255,0,0,0.5)"
+      "factorBackColor": "rgba(100,100,100,1)",
+      "factorDoneColor": "rgba(255,255,255,1)",
+      "factorErrorColor": "rgba(255,0,0,0.8)",
+      "factorLineWidth": 4
     },
     "fadeTimes": {
         "fadein": 300,
