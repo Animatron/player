@@ -61,7 +61,7 @@ Sheet.prototype.load = function(player_id, callback, errback) {
         return;
     }
     resMan.loadOrGet(player_id, me.src,
-        function(notify_success, notify_error) { // loader
+        function(notify_success, notify_error, notify_progress) { // loader
             var src = me.src;
             if (https) {
                 src = src.replace('http:', 'https:');

@@ -2,7 +2,8 @@ var C = require('../constants.js'),
     engine = require('engine'),
     ResMan = require('../resource_manager.js'),
     conf = require('../conf.js'),
-    log = require('../log.js');
+    log = require('../log.js'),
+    utils = require('../utils.js');
 
 // workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
 function syncStream(node){
@@ -84,7 +85,7 @@ function Audio(url) {
 Audio.prototype.load = function(player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
-      function(notify_success, notify_error) { // loader
+      function(notify_success, notify_error, notify_progress) { // loader
           var url = me.url;
           if (engine.isHttps) {
               url = url.replace('http:', 'https:');
@@ -139,8 +140,11 @@ Audio.prototype.load = function(player) {
               if (buffered.length == 1) {
                   if (el.readyState === 4) {
                     el.removeEventListener("progress", progressListener, false);
+                    el.removeEventListener("progress", loadingListener, false);
+                    el.removeEventListener("loadedmetadata", loadingListener, false);
                     el.removeEventListener("canplay", canPlayListener, false);
                     notify_success(el);
+                    notify_progress(1);
                     return;
                   }
 
@@ -155,8 +159,23 @@ Audio.prototype.load = function(player) {
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
                 notify_success(el);
+                notify_progress(1);
               }
             };
+
+            var loadingListener = function(e) {
+                var ranges = [];
+                for (var i = 0; i < el.buffered.length; i++) {
+                    ranges.push([ el.buffered.start(i),
+                                  el.buffered.end(i) ]);
+                }
+
+                for (var i = 0, progress = 0; i < el.buffered.length; i ++) {
+                    progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                }
+
+                notify_progress(progress);
+            }
 
             var canPlayListener = function(e) {
               me.canPlay = true;
@@ -164,6 +183,8 @@ Audio.prototype.load = function(player) {
             };
 
             el.addEventListener("progress", progressListener, false);
+            el.addEventListener("progress", loadingListener, false);
+            el.addEventListener("loadedmetadata", loadingListener, false);
             el.addEventListener("canplay", canPlayListener, false);
             el.addEventListener("error", audioErrProxy(url, notify_error), false);
 
