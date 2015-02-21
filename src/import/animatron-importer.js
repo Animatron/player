@@ -382,7 +382,11 @@ Import.leaf = function(type, src, parent/*, anim*/) {
         trg.$audio = Import.audio(src);
         trg.$audio.connect(trg);
     }
-    else if (type == TYPE_VIDEO) {}
+    else if (type == TYPE_VIDEO) {
+        trg.type = C.ET_VIDEO;
+        trg.$video = Import.video(src);
+        trg.$video.connect(trg);
+    }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
         trg.$fill = Import.fill(src[1]);
@@ -872,6 +876,12 @@ Import.audio = function(src) {
     audio.offset = src[2];
     audio.master = src[3];
     return audio;
+};
+
+Import.video = function(src) {
+    var video = new Video(src[1]);
+    video.offset = src[2];
+    return video;
 };
 
 // BitStream

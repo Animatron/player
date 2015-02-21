@@ -352,5 +352,15 @@ Audio.prototype.connect = function(element) {
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
 };
+/**
+ * @method clone
+ *
+ * @return {anm.Audio}
+ */
+Audio.prototype.clone = function() {
+    var clone = new Audio('');
+    clone.url = this.url;
+    return clone;
+};
 
 module.exports = Audio;

@@ -7,21 +7,32 @@
  * @VERSION
  */
 
-  // This module is just a stub template for the moment
-
 var C = require('../constants.js');
 
-C.ET_VIDEO = 'video';
-
-var m_ctx = {};
-
-function Video(src) {
-
+function Video(url) {
+    this.url = url;
+    this.loaded = false;
+    this.playing = false;
 }
 
-Video.prototype.load = function(player) {};
+Video.prototype.connect = function(element) {
+    var me = this;
+    element.on(C.X_START, function() {
+        me.play.apply(me, arguments);
+    });
+    var stop = function() { me.stop(); };
+    element.on(C.X_STOP, stop);
+    element.on(C.S_STOP, stop);
+    element.on(C.S_PAUSE, stop);
+};
+Video.prototype.load = function(player) {
+    var me = this;
+    ResMan.loadOrGet(player.id, me.url,
+        function(notify_success, notify_error, notify_progress) { // loader
+        });
+};
 Video.prototype.apply = function(ctx) {};
 Video.prototype.bounds = function() {};
 Video.prototype.invalidate = function() {};
 Video.prototype.dispose = function() {};
-Video.prototype.clone = function() {};
+Video.prototype.clone = function() { return new Video(this.url) };

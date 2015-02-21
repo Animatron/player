@@ -739,6 +739,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.globalAudioVolume : this.globalAudioVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
+    this.videoEnabled = is.defined(opts.videoEnabled) ?
+                        opts.videoEnabled : this.videoEnabled;
     this.shadowsEnabled = is.defined(opts.shadowsEnabled) ?
                         opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = is.defined(opts.controlsEnabled) ?
