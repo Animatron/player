@@ -56,7 +56,7 @@ function getAudioContext() {
       return null;
     }
 
-    if(global.anmAudioContext) {
+    if (global.anmAudioContext) {
         return global.anmAudioContext;
     }
 
