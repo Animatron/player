@@ -1,9 +1,12 @@
-var C = require('../constants.js'),
-    engine = require('engine'),
-    ResMan = require('../resource_manager.js'),
-    conf = require('../conf.js'),
+var conf = require('../conf.js'),
     log = require('../log.js'),
     utils = require('../utils.js');
+
+var C = require('../constants.js');
+
+var engine = require('engine');
+
+var ResMan = require('../resource_manager.js');
 
 // workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
 function syncStream(node){

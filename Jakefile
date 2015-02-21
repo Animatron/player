@@ -103,8 +103,7 @@ var Files = {
                                'shapes.js' ],
                       // AUDIO_EXPORT: 'audio-export.js',
                       SCRIPTING: 'scripting.js',
-                      SHAPES: 'shapes.js',
-                      VIDEO: 'video.js' }, },
+                      SHAPES: 'shapes.js' }, },
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
@@ -115,8 +114,7 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.VIDEO,
-                                                              Files.Ext.MODULES.SCRIPTING,
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.SCRIPTING,
                                                               Files.Ext.MODULES.SHAPES ])) }
 ];
 
