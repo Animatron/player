@@ -31,6 +31,7 @@ var C = anm.constants,
     LSeg = anm.LSeg,
     CSeg = anm.CSeg,
     Audio = anm.Audio,
+    Video = anm.Video,
     is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck

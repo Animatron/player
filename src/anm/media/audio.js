@@ -8,38 +8,6 @@ var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
 
-// workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
-function syncStream(node){
-  var buf8 = new Uint8Array(node.buf);
-  buf8.indexOf = Array.prototype.indexOf;
-  var i=node.sync, b=buf8;
-  while(1) {
-      node.retry++;
-      i=b.indexOf(0xFF,i); if(i==-1 || (b[i+1] & 0xE0 == 0xE0 )) break;
-      i++;
-  }
-  if(i!=-1) {
-      var tmp=node.buf.slice(i); //carefull there it returns copy
-      delete(node.buf); node.buf=null;
-      node.buf=tmp;
-      node.sync=i;
-      return true;
-  }
-  return false;
-}
-
-function audioErrProxy(src, pass_to) {
-  return function(err) {
-    // e_.MEDIA_ERR_ABORTED=1
-    // e_.MEDIA_ERR_NETWORK=2
-    // e_.MEDIA_ERR_DECODE=3
-    // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
-    // e_.MEDIA_ERR_ENCRYPTED=5
-    pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
-                      err.currentTarget.error.code));
-  };
-}
-
 var testAudio = engine.createAudio(),
     oggSupported =  !!(testAudio.canPlayType && testAudio.canPlayType('audio/ogg;').replace(/no/, ''));
 
@@ -197,9 +165,9 @@ Audio.prototype.load = function(player) {
 
             var addSource = function(audio, url, type) {
                 var src = engine.createSource();
+                src.addEventListener("error", notify_error, false);
                 src.type = type;
                 src.src = url;
-                src.addEventListener("error", notify_error, false);
                 audio.appendChild(src);
             };
 
@@ -366,5 +334,37 @@ Audio.prototype.clone = function() {
     clone.url = this.url;
     return clone;
 };
+
+// workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
+function syncStream(node){
+  var buf8 = new Uint8Array(node.buf);
+  buf8.indexOf = Array.prototype.indexOf;
+  var i=node.sync, b=buf8;
+  while(1) {
+      node.retry++;
+      i=b.indexOf(0xFF,i); if(i==-1 || (b[i+1] & 0xE0 == 0xE0 )) break;
+      i++;
+  }
+  if(i!=-1) {
+      var tmp=node.buf.slice(i); //carefull there it returns copy
+      delete(node.buf); node.buf=null;
+      node.buf=tmp;
+      node.sync=i;
+      return true;
+  }
+  return false;
+}
+
+function audioErrProxy(src, pass_to) {
+  return function(err) {
+    // e_.MEDIA_ERR_ABORTED=1
+    // e_.MEDIA_ERR_NETWORK=2
+    // e_.MEDIA_ERR_DECODE=3
+    // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
+    // e_.MEDIA_ERR_ENCRYPTED=5
+    pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
+                      err.currentTarget.error.code));
+  };
+}
 
 module.exports = Audio;

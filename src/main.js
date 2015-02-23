@@ -60,6 +60,7 @@ var anm = {
     Color: require('./anm/graphics/color.js'),
     Tween: require('./anm/animation/tween.js'),
     Audio: require('./anm/media/audio.js'),
+    Video: require('./anm/media/video.js'),
     MSeg: segments.MSeg,
     LSeg: segments.LSeg,
     CSeg: segments.CSeg,

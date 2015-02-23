@@ -7,12 +7,14 @@
  * @VERSION
  */
 
- var conf = require('../conf.js'),
-     log = require('../log.js');
+var conf = require('../conf.js'),
+    log = require('../log.js');
 
- var C = require('../constants.js');
+var C = require('../constants.js');
 
- var engine = require('engine');
+var engine = require('engine');
+
+var ResMan = require('../resource_manager.js');
 
 function Video(url) {
     this.url = url;
@@ -31,6 +33,7 @@ Video.prototype.connect = function(element) {
     element.on(C.S_PAUSE, stop);
 };
 Video.prototype.load = function(player) {
+
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
         function(notify_success, notify_error, notify_progress) { // loader
@@ -82,19 +85,19 @@ Video.prototype.load = function(player) {
                 { 'progress': progressAndLoadingListener,
                   'loadedmetadata': loadingListener,
                   'canplay': canPlayListener,
-                  'error': audioErrProxy(url, notify_error) });
+                  'error': videoErrProxy(url, notify_error) });
 
             var addSource = function(video, url, type) {
                 var src = engine.createSource();
+                src.addEventListener("error", notify_error, false);
                 src.type = type;
                 src.src = url;
-                src.addEventListener("error", notify_error, false);
                 video.appendChild(src);
             };
 
             try {
                 engine.appendToBody(el);
-                addSource(el, url, videoType);
+                addSource(el, url, 'mp4');
             } catch(e) { notify_error(e); }
 
         },
@@ -103,7 +106,7 @@ Video.prototype.load = function(player) {
             me.ready = true;
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                        /* throw err; */ });
+                        /* throw err; */
         });
 };
 Video.prototype.apply = function(ctx) {};
@@ -111,3 +114,29 @@ Video.prototype.bounds = function() {};
 Video.prototype.invalidate = function() {};
 Video.prototype.dispose = function() {};
 Video.prototype.clone = function() { return new Video(this.url) };
+Video.prototype.stop = function() {};
+Video.prototype.play = function(ltime, duration) {
+    if (!this.loaded || this.playing) {
+       return false;
+    }
+
+    this.playing = true;
+    var current_time = this.offset + ltime;
+
+    this.video.currentTime = current_time;
+    this.video.play();
+}
+
+function videoErrProxy(src, pass_to) {
+  return function(err) {
+    // e_.MEDIA_ERR_ABORTED=1
+    // e_.MEDIA_ERR_NETWORK=2
+    // e_.MEDIA_ERR_DECODE=3
+    // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
+    // e_.MEDIA_ERR_ENCRYPTED=5
+    pass_to(new Error('Failed to load video file from ' + src + ' with error code: ' +
+                      err.currentTarget.error.code));
+  };
+}
+
+module.exports = Video;
