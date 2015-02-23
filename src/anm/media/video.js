@@ -90,7 +90,7 @@ Video.prototype.load = function(player) {
             var addSource = function(video, url, type) {
                 var src = engine.createSource();
                 src.addEventListener("error", notify_error, false);
-                src.type = type;
+                src.type = 'video/' + type;
                 src.src = url;
                 video.appendChild(src);
             };

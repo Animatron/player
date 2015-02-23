@@ -840,7 +840,7 @@ $DE.subscribeElementEvents = function(elm, handlers) {
 
 $DE.unsubscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
-        cvs.removeEventListener(type, handlers[type], false);
+        elm.removeEventListener(type, handlers[type], false);
     }
 }
 
