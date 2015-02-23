@@ -16,12 +16,15 @@ var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
 
+/**
+ * @class anm.Video
+ */
 function Video(url) {
     this.url = url;
     this.ready = false;
     this.playing = false;
 }
-
+/** @private @method connect */
 Video.prototype.connect = function(element) {
     var me = this;
     element.on(C.X_START, function() {
@@ -32,6 +35,7 @@ Video.prototype.connect = function(element) {
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
 };
+/** @private @method load */
 Video.prototype.load = function(player) {
 
     var me = this;
@@ -47,6 +51,11 @@ Video.prototype.load = function(player) {
             var progressListener = function(e) {
                 var buffered = el.buffered;
                 if (buffered.length == 1) {
+                    // 0 == HAVE_NOTHING
+                    // 1 == HAVE_METADATA
+                    // 2 == HAVE_CURRENT_DATA
+                    // 3 == HAVE_FUTURE_DATA
+                    // 4 == HAVE_ENOUGH_DATA
                     if (el.readyState === 4) {
                         engine.unsubscribeElementEvents(el,
                             { 'progress': progressAndLoadingListener,
@@ -110,22 +119,12 @@ Video.prototype.load = function(player) {
                         /* throw err; */
         });
 };
+/** @private @method apply */
 Video.prototype.apply = function(ctx) {
     ctx.drawImage(this.video, 0, 0);
 };
 Video.prototype.bounds = function() {};
-Video.prototype.invalidate = function() {};
-Video.prototype.dispose = function() {};
-Video.prototype.clone = function() {
-    var clone = new Video(this.url);
-    clone.offset = this.offset;
-    return clone;
-};
-Video.prototype.stop = function() {
-    if (!this.playing) return;
-    this.video.pause();
-    this.playing = false;
-};
+/** @private @method play */
 Video.prototype.play = function(ltime, duration) {
     if (!this.ready || this.playing) {
        return false;
@@ -137,6 +136,24 @@ Video.prototype.play = function(ltime, duration) {
     this.video.currentTime = current_time;
     this.video.play();
 }
+/** @private @method stop */
+Video.prototype.stop = function() {
+    if (!this.playing) return;
+    this.video.pause();
+    this.playing = false;
+};
+Video.prototype.invalidate = function() {};
+Video.prototype.dispose = function() {};
+/**
+ * @method clone
+ *
+ * @return {anm.Video}
+ */
+Video.prototype.clone = function() {
+    var clone = new Video(this.url);
+    clone.offset = this.offset;
+    return clone;
+};
 
 function videoErrProxy(src, pass_to) {
   return function(err) {

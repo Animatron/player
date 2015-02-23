@@ -109,6 +109,11 @@ Audio.prototype.load = function(player) {
             var progressListener = function(e) {
               var buffered = el.buffered;
               if (buffered.length == 1) {
+                  // 0 == HAVE_NOTHING
+                  // 1 == HAVE_METADATA
+                  // 2 == HAVE_CURRENT_DATA
+                  // 3 == HAVE_FUTURE_DATA
+                  // 4 == HAVE_ENOUGH_DATA
                   if (el.readyState === 4) {
                     engine.unsubscribeElementEvents(el,
                         { 'progress': progressAndLoadingListener,
@@ -332,6 +337,7 @@ Audio.prototype.connect = function(element) {
 Audio.prototype.clone = function() {
     var clone = new Audio('');
     clone.url = this.url;
+    clone.offset = this.offset;
     return clone;
 };
 
