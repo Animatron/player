@@ -832,23 +832,24 @@ $DE.getEventPosition = function(evt, elm) {
     } else return [ evt.x, evt.y ];
 };
 
+$DE.subscribeElementEvents = function(elm, handlers) {
+    for (var type in handlers) {
+        elm.addEventListener(type, handlers[type], false);
+    }
+}
+
+$DE.unsubscribeElementEvents = function(elm, handlers) {
+    for (var type in handlers) {
+        cvs.removeEventListener(type, handlers[type], false);
+    }
+}
+
 $DE.subscribeWindowEvents = function(handlers) {
-    for (var type in handlers) {
-        window.addEventListener(type, handlers[type], false);
-    }
+    $DE.subscribeElementEvents(window, handlers);
 };
 
-$DE.subscribeCanvasEvents = function(cvs, handlers) {
-    for (var type in handlers) {
-        cvs.addEventListener(type, handlers[type], false);
-    }
-};
-
-$DE.unsubscribeCanvasEvents = function(cvs, handlers) {
-    for (var type in handlers) {
-        cvs.removeEventListener(type, handlers[type]);
-    }
-};
+$DE.subscribeCanvasEvents = $DE.subscribeElementEvents;
+$DE.unsubscribeCanvasEvents = $DE.unsubscribeElementEvents;
 
 $DE.keyEvent = function(e) {
     return { key: ((e.keyCode !== null) ? e.keyCode : e.which),
@@ -954,6 +955,10 @@ $DE.createStyle = function() {
 
 $DE.createAudio = function() {
     return document.createElement('audio');
+};
+
+$DE.createVideo = function() {
+    return document.createElement('video');
 };
 
 $DE.createSource = function() {

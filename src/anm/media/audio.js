@@ -142,10 +142,10 @@ Audio.prototype.load = function(player) {
               var buffered = el.buffered;
               if (buffered.length == 1) {
                   if (el.readyState === 4) {
-                    el.removeEventListener("progress", progressListener, false);
-                    el.removeEventListener("progress", loadingListener, false);
-                    el.removeEventListener("loadedmetadata", loadingListener, false);
-                    el.removeEventListener("canplay", canPlayListener, false);
+                    engine.unsubscribeElementEvents(el,
+                        { 'progress': progressAndLoadingListener,
+                          'loadedmetadata': loadingListener,
+                          'canplay': canPlayListener });
                     notify_success(el);
                     notify_progress(1);
                     return;
@@ -180,16 +180,20 @@ Audio.prototype.load = function(player) {
                 notify_progress(progress);
             }
 
+            var progressAndLoadingListener = function(e) {
+                progressListener(e); loadingListener(e);
+            }
+
             var canPlayListener = function(e) {
               me.canPlay = true;
               progressListener(e);
             };
 
-            el.addEventListener("progress", progressListener, false);
-            el.addEventListener("progress", loadingListener, false);
-            el.addEventListener("loadedmetadata", loadingListener, false);
-            el.addEventListener("canplay", canPlayListener, false);
-            el.addEventListener("error", audioErrProxy(url, notify_error), false);
+            engine.subscribeElementEvents(el,
+                { 'progress': progressAndLoadingListener,
+                  'loadedmetadata': loadingListener,
+                  'canplay': canPlayListener,
+                  'error': audioErrProxy(url, notify_error) });
 
             var addSource = function(audio, url, type) {
                 var src = engine.createSource();
