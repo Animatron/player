@@ -46,7 +46,7 @@ var audioContext = getAudioContext();
  */
 function Audio(url) {
     this.url = url + audioExt;
-    this.loaded = false;
+    this.ready = false;
     this.playing = false;
     this.canPlay = false;
     this.volume = 1;
@@ -179,7 +179,7 @@ Audio.prototype.load = function(player) {
       },
       function(audio) { // oncomplete
           me.audio = audio;
-          me.loaded = true;
+          me.ready = true;
           if (player.muted) {
               me.mute();
           }
@@ -190,7 +190,7 @@ Audio.prototype.load = function(player) {
 };
 /** @private @method play */
 Audio.prototype.play = function(ltime, duration) {
-    if (!this.loaded || this.playing) {
+    if (!this.ready || this.playing) {
       return false;
     }
 

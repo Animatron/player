@@ -114,14 +114,18 @@ Video.prototype.bounds = function() {};
 Video.prototype.invalidate = function() {};
 Video.prototype.dispose = function() {};
 Video.prototype.clone = function() { return new Video(this.url) };
-Video.prototype.stop = function() {};
+Video.prototype.stop = function() {
+    if (!this.playing) return;
+    this.video.pause();
+    this.playing = false;
+};
 Video.prototype.play = function(ltime, duration) {
-    if (!this.loaded || this.playing) {
+    if (!this.ready || this.playing) {
        return false;
     }
 
     this.playing = true;
-    var current_time = this.offset + ltime;
+    var current_time = (this.offset || 0) + ltime;
 
     this.video.currentTime = current_time;
     this.video.play();
