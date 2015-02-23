@@ -42,6 +42,7 @@ Video.prototype.load = function(player) {
 
             var el = engine.createVideo();
             el.setAttribute("preload", "auto");
+            el.style.display = 'none';
 
             var progressListener = function(e) {
                 var buffered = el.buffered;
@@ -109,11 +110,17 @@ Video.prototype.load = function(player) {
                         /* throw err; */
         });
 };
-Video.prototype.apply = function(ctx) {};
+Video.prototype.apply = function(ctx) {
+    ctx.drawImage(this.video, 0, 0);
+};
 Video.prototype.bounds = function() {};
 Video.prototype.invalidate = function() {};
 Video.prototype.dispose = function() {};
-Video.prototype.clone = function() { return new Video(this.url) };
+Video.prototype.clone = function() {
+    var clone = new Video(this.url);
+    clone.offset = this.offset;
+    return clone;
+};
 Video.prototype.stop = function() {
     if (!this.playing) return;
     this.video.pause();
