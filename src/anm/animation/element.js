@@ -295,6 +295,7 @@ Element.prototype.initVisuals = function() {
     this.$my_bounds = null; // Element bounds on its own, cached
 
     this.$audio = null;
+    this.$video = null;
 
     return this;
 };
@@ -1655,6 +1656,7 @@ Element.prototype.disposeVisuals = function() {
     if (this.$path)  this.$path.dispose();
     if (this.$text)  this.$text.dispose();
     if (this.$image) this.$image.dispose();
+    if (this.$video) this.$video.dispose();
     if (this.$mpath) this.$mpath.dispose();
 };
 
@@ -1991,7 +1993,7 @@ Element.prototype.invalidate = function() {
 */
 Element.prototype.invalidateVisuals = function() {
     //TODO: replace with this['$' + this.type].invalidate() ?
-    var subj = this.$path || this.$text || this.$image;
+    var subj = this.$path || this.$text || this.$image || this.$video;
     if (subj) subj.invalidate();
 };
 
@@ -2036,7 +2038,7 @@ Element.prototype.bounds = function(ltime) {
  */
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
-    var subj = this.$path || this.$text || this.$image;
+    var subj = this.$path || this.$text || this.$image || this.$video;
     if (subj) { return (this.$my_bounds = subj.bounds()); }
     else return (this.$my_bounds = Bounds.NONE);
 };
@@ -2054,7 +2056,7 @@ Element.prototype.isEmpty = function() {
 };
 
 Element.prototype.applyVisuals = function(ctx) {
-    var subj = this.$path || this.$text || this.$image;
+    var subj = this.$path || this.$text || this.$image || this.$video;
     if (!subj) return;
 
     // save/restore is performed inside .apply method
@@ -2487,6 +2489,7 @@ Element.prototype.__postRender = function() {
 Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) return true;
     if (this.is(C.ET_AUDIO) && player.audioEnabled) return true;
+    if (this.is(C.ET_VIDEO) && player.videoEnabled) return true;
 
     return false;
 };
@@ -2497,8 +2500,13 @@ Element.prototype._collectRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) {
         resources.push(this.$image.src);
     }
+
     if (player.audioEnabled && this.is(C.ET_AUDIO)) {
         resources.push(this.$audio.url);
+    }
+
+    if (player.videoEnabled && this.is(C.ET_VIDEO)) {
+        resources.push(this.$video.url);
     }
 
     return resources;
@@ -2510,6 +2518,9 @@ Element.prototype._loadRemoteResources = function(anim, player) {
     }
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
         this.$audio.load(player);
+    }
+    if (this.is(C.ET_VIDEO) && player.videoEnabled) {
+        this.$video.load(player);
     }
 };
 
@@ -2539,6 +2550,7 @@ Element.transferVisuals = function(src, trg) {
     trg.$text = src.$text ? src.$text.clone() : null;
     trg.$image = src.$image ? src.$image.clone() : null;
     trg.$audio = src.$audio ? src.$audio.clone() : null;
+    trg.$video = src.$video ? src.$video.clone() : null;
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;

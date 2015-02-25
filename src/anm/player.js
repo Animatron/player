@@ -119,10 +119,11 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'height': undefined,
                                  //'fps': undefined,
                                  'infiniteDuration': undefined, // undefined means 'auto'
-                                 'drawStill': undefined, // undefined means 'auto'
+                                 'drawStill': undefined, // undefined means 'auto',
                                  'audioEnabled': true,
                                  'audioGlobalVolume': 1.0,
                                  'imagesEnabled': true,
+                                 'videoEnabled': true,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
@@ -738,6 +739,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.globalAudioVolume : this.globalAudioVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
+    this.videoEnabled = is.defined(opts.videoEnabled) ?
+                        opts.videoEnabled : this.videoEnabled;
     this.shadowsEnabled = is.defined(opts.shadowsEnabled) ?
                         opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = is.defined(opts.controlsEnabled) ?
