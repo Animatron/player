@@ -214,8 +214,8 @@ function fit_rects(pw, ph, aw, ah) {
     var xw = pw / aw,
         xh = ph / ah;
     var factor = Math.min(xw, xh);
-    var hcoord = Math.floor((pw - aw * factor) / 2),
-        vcoord = Math.floor((ph - ah * factor) / 2),
+    var hcoord = Math.ceil((pw - aw * factor) / 2),
+        vcoord = Math.ceil((ph - ah * factor) / 2),
         awf = Math.floor(aw * factor),
         ahf = Math.floor(ah * factor);
     if ((xw != 1) || (xh != 1)) {
