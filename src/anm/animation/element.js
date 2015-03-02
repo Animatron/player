@@ -2066,6 +2066,13 @@ Element.prototype.applyVisuals = function(ctx) {
     subj.apply(ctx, this.$fill, this.$stroke, this.$shadow);
 };
 
+Element.prototype.applyBrushes = function(ctx) {
+    if (this.$shadow) { this.$shadow.apply(ctx); }
+    if (this.$fill) { this.$fill.apply(ctx); ctx.fill(); }
+    if (this.$shadow) { Brush.clearShadow(ctx); }
+    if (this.$stroke) { this.$stroke.apply(ctx); ctx.stroke(); }
+}
+
 Element.prototype.applyAComp = function(ctx) {
     if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
 };
