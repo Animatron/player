@@ -114,7 +114,7 @@ Audio.prototype.load = function(player) {
                   // 2 == HAVE_CURRENT_DATA
                   // 3 == HAVE_FUTURE_DATA
                   // 4 == HAVE_ENOUGH_DATA
-                  if (el.readyState === 4) {
+                  if (el.readyState === 4 || el.readyState === 3) {
                     engine.unsubscribeElementEvents(el,
                         { 'progress': progressAndLoadingListener,
                           'loadedmetadata': loadingListener,
@@ -146,16 +146,16 @@ Audio.prototype.load = function(player) {
                                   el.buffered.end(i) ]);
                 }
 
-                for (var i = 0, progress = 0; i < el.buffered.length; i ++) {
+                for (i = 0, progress = 0; i < el.buffered.length; i ++) {
                     progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
                 }
 
                 notify_progress(progress);
-            }
+            };
 
             var progressAndLoadingListener = function(e) {
                 progressListener(e); loadingListener(e);
-            }
+            };
 
             var canPlayListener = function(e) {
               me.canPlay = true;
@@ -179,7 +179,9 @@ Audio.prototype.load = function(player) {
             try {
               engine.appendToBody(el);
               addSource(el, url, audioType);
-            } catch(e) { notify_error(e); }
+            } catch(e) {
+                notify_error(e);
+            }
           }
       },
       function(audio) { // oncomplete
@@ -190,8 +192,9 @@ Audio.prototype.load = function(player) {
           }
 
       },
-      function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                      /* throw err; */ });
+      function(err) {
+          log.error(err ? (err.message || err) : 'Unknown error');
+      });
 };
 /** @private @method play */
 Audio.prototype.play = function(ltime, duration) {
