@@ -1,6 +1,8 @@
 // Player manager
 // -----------------------------------------------------------------------------
-var events = require('./events.js'), C = require('./constants.js');
+var events = require('./events.js'),
+    C = require('./constants.js'),
+    engine = require('engine');
 
 /**
  * @singleton @class anm.PlayerManager
@@ -20,7 +22,9 @@ function PlayerManager() {
     this.instances = [];
     this._initHandlers();
 }
+
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
+
 PlayerManager.prototype.handle__x = function(evt, player) {
     if (evt == C.S_NEW_PLAYER) {
         this.hash[player.id] = player;
@@ -28,6 +32,7 @@ PlayerManager.prototype.handle__x = function(evt, player) {
     }
     return true;
 };
+
 /**
  * @method getPlayer
  *
@@ -40,4 +45,23 @@ PlayerManager.prototype.getPlayer = function(cvs_id) {
     return this.hash[cvs_id];
 };
 
-module.exports = new PlayerManager();
+PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
+    var i, player;
+    for(i=0;i<this.instances.length;i++) {
+        player = this.instances[i];
+        if (hidden && player.state.happens === C.PLAYING) {
+            player._pausedViaHidden = true;
+            player.pause();
+        } else if (!hidden && player._pausedViaHidden) {
+            player._pausedViaHidden = false;
+            player.play(player.state.from);
+        }
+    }
+};
+
+var manager = new PlayerManager();
+engine.onDocumentHiddenChange = function(hidden) {
+    manager.handleDocumentHiddenChange(hidden);
+};
+
+module.exports = manager;

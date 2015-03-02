@@ -981,5 +981,32 @@ $DE.isLocal = local;
 var isIE9 = navigator.userAgent.indexOf('MSIE 9.0') !== -1;
 $DE.isIE9 = isIE9;
 
+var hidden, visibilityChange;
+if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
+  hidden = "hidden";
+  visibilityChange = "visibilitychange";
+} else if (typeof document.mozHidden !== "undefined") {
+  hidden = "mozHidden";
+  visibilityChange = "mozvisibilitychange";
+} else if (typeof document.msHidden !== "undefined") {
+  hidden = "msHidden";
+  visibilityChange = "msvisibilitychange";
+} else if (typeof document.webkitHidden !== "undefined") {
+  hidden = "webkitHidden";
+  visibilityChange = "webkitvisibilitychange";
+}
+
+if (typeof document[hidden] !== 'undefined' ||
+    typeof document.addEventListener !== 'undefined') {
+        document.addEventListener(visibilityChange,
+            function() {
+                if ($DE.onDocumentHiddenChange) {
+                    $DE.onDocumentHiddenChange(document[hidden]);
+                }
+            }, false);
+}
+
+$DE.onDocumentHiddenChange = null;
+
 module.exports = $DE;
 return $DE;
