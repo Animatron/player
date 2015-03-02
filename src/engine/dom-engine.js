@@ -1000,13 +1000,15 @@ if (typeof document[hidden] !== 'undefined' ||
     typeof document.addEventListener !== 'undefined') {
         document.addEventListener(visibilityChange,
             function() {
-                if ($DE.onDocumentHiddenChange) {
-                    $DE.onDocumentHiddenChange(document[hidden]);
+                if (onDocumentHiddenChange) {
+                    onDocumentHiddenChange(document[hidden]);
                 }
             }, false);
 }
-
-$DE.onDocumentHiddenChange = null;
+var onDocumentHiddenChange = null;
+$DE.onDocumentHiddenChange = function(cb){
+    onDocumentHiddenChange = cb;
+};
 
 module.exports = $DE;
 return $DE;

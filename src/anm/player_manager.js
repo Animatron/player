@@ -45,6 +45,14 @@ PlayerManager.prototype.getPlayer = function(cvs_id) {
     return this.hash[cvs_id];
 };
 
+/**
+ * @method handleDocumentHiddenChange
+ * @private
+ *
+ * Pause players when the browser tab becomes hidden and resume them otherwise
+ *
+ * @param {bool} whether the tab is hidden
+ */
 PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
     var i, player;
     for(i=0;i<this.instances.length;i++) {
@@ -60,8 +68,8 @@ PlayerManager.prototype.handleDocumentHiddenChange = function(hidden) {
 };
 
 var manager = new PlayerManager();
-engine.onDocumentHiddenChange = function(hidden) {
+engine.onDocumentHiddenChange(function(hidden) {
     manager.handleDocumentHiddenChange(hidden);
-};
+});
 
 module.exports = manager;
