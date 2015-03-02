@@ -136,7 +136,7 @@ Controls.prototype.checkFade = function(dt) {
 Controls.prototype.render = function(gtime) {
     this.checkMouseTimeout(gtime);
 
-    var dt = gtime-this.state.gtime;
+    var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
 
@@ -206,8 +206,8 @@ Controls.prototype.render = function(gtime) {
     this.fire(C.X_DRAW);
 
     if (this.info) {
-      if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
-      else { this._infoShown = false; }
+        if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+        else { this._infoShown = false; }
     }
     //we might have a non-changing state like STOPPED, but it will still
     //need to be redrawn when fading in/out, so we apply our fade modifier
