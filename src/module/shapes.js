@@ -27,17 +27,12 @@ var Path = anm.Path,
 // case 'triangle': elm.triangle(0, 0, size.x, size.y); break;
 //
 E.prototype.dot = function(x, y) {
-    this.type = C.ET_PATH;
     var me = this;
     this.paint(function(ctx) {
-        ctx.save();
-        ctx.save();
         ctx.beginPath();
         ctx.arc(x /*x*/, y /*y*/, 3 /* radius */, 0 /* start */, 2*Math.PI /* end */, false /* clockwise */);
         ctx.closePath();
-        ctx.restore();
         me.applyBrushes(ctx);
-        ctx.restore();
     });
 }
 
@@ -56,19 +51,28 @@ E.prototype.rect = function(x, y, width, height) {
 }
 
 E.prototype.oval = function(x, y, width, height) {
-    // ctx.ellipse(x, y, rx, ry, rotation, start, end, anticlockwise);
+    var me = this;
+    this.paint(function(ctx) {
+        if (!ctx.ellipse) return;
+        ctx.beginPath();
+        ctx.ellipse(x, y, width / 2, height / 2, 0 /* rotation */, 0 /* start */, 2*Math.PI /* end */, false /* clockwise */);
+        ctx.closePath();
+        me.applyBrushes(ctx);
+    });
 }
 
 E.prototype.triangle = function(x, y, width, height) {
-    var rx = width / 2;
-    var ry = height / 2;
 
-    var x0 = rx * Math.cos(0) + x;
-    var y0 = ry * Math.sin(0) + y;
-    var x1 = rx * Math.cos((1./3)*(2*Math.PI)) + x;
-    var y1 = ry * Math.sin((1./3)*(2*Math.PI)) + y;
-    var x2 = rx * Math.cos((2./3)*(2*Math.PI)) + x;
-    var y2 = ry * Math.sin((2./3)*(2*Math.PI)) + y;
+    // FIXME: now it's a radius, but not a value of a side
+    var rx = width;
+    var ry = height;
+
+    var x0 = rx * Math.cos(Math.PI / 4) + x;
+    var y0 = ry * Math.sin(Math.PI / 4) + y;
+    var x1 = rx * Math.cos((3./2)*Math.PI) + x;
+    var y1 = ry * Math.sin((3./2)*Math.PI) + y;
+    var x2 = rx * Math.cos((3./4)*Math.PI) + x;
+    var y2 = ry * Math.sin((3./4)*Math.PI) + y;
 
     var path = new Path();
     path.add(new MSeg([ x0, y0 ]));
