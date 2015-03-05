@@ -2584,9 +2584,9 @@ Element.getMatrixOf = function(elm, m) {
     var pivot = elm.$pivot;
     if ((pivot[0] === 0) && (pivot[1] === 0)) return t;
     var my_bounds = elm.myBounds();
-    if (!my_bounds) return t;
-    t.translate(pivot[0] * (my_bounds.width || 0),
-                pivot[1] * (my_bounds.height || 0));
+    if (!my_bounds || (my_bounds === Bounds.NONE)) return t;
+    t.translate(-(pivot[0] * (my_bounds.width || 0)),
+                -(pivot[1] * (my_bounds.height || 0)));
 
     return t;
 };
