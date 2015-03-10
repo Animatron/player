@@ -177,7 +177,7 @@ Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_DRAW, C.X_START, C.X_STOP,
+                         C.X_START, C.X_STOP,
                          // player events
                          C.S_CHANGE_STATE,
                          C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
@@ -930,7 +930,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     this.shown = drawMe;
     this.__postRender();
     this.rendering = false;
-    if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
 };
 

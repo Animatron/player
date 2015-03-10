@@ -43,7 +43,6 @@ var theme = Controls.DEFAULT_THEME = require('./controls_theme.json');
 Controls.THEME = Controls.DEFAULT_THEME;
 
 Controls.LAST_ID = 0;
-provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas;
     if (!cvs) {
@@ -203,7 +202,6 @@ Controls.prototype.render = function(gtime) {
     }
 
     ctx.restore();
-    this.fire(C.X_DRAW);
 
     if (this.info) {
         if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }

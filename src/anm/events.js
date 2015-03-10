@@ -135,9 +135,6 @@ registerEvent('XT_KEYBOARD', 'keyboard',
 // * controllers
 registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 
-// * draw
-registerEvent('X_DRAW', 'draw', 'draw');
-
 // * bands
 registerEvent('X_START', 'start', 'x_start');
 registerEvent('X_STOP', 'stop', 'x_stop');

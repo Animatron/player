@@ -80,7 +80,6 @@ Animation.DEFAULT_DURATION = 10;
 provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                            C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                            C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                           C.X_DRAW,
                            // player events
                            C.S_CHANGE_STATE,
                            C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
@@ -224,7 +223,6 @@ Animation.prototype.render = function(ctx, time, dt) {
         child.render(ctx, time, dt);
     });
     ctx.restore();
-    this.fire(C.X_DRAW,ctx);
 };
 
 Animation.prototype.handle__x = function(type, evt) {
