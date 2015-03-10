@@ -1,12 +1,12 @@
 var C = require('../constants.js'),
-    is = require('../utils.js').is,
-    SystemError = require('../errors.js').SystemError;
+    is = require('../utils.js').is;
+
+var errors = require('../errors.js');
 
 var engine = require('engine');
 
-var Brush = require('./brush.js');
-
-var Bounds = require('./bounds.js');
+var Brush = require('./brush.js'),
+    Bounds = require('./bounds.js');
 
 // TODO: new Text("My Text").font("Arial").size(5).bold()
 
@@ -228,7 +228,7 @@ Text.prototype.invalidate = function() {
 Text.prototype.reset = function() { };
 Text.prototype.dispose = function() { };
 Text.bounds = function(spec, lines) {
-    if (!Text.__measuring_f) throw new SysErr('no Text buffer, bounds call failed');
+    if (!Text.__measuring_f) errors.system('no Text buffer, bounds call failed');
     var dimen = Text.__measuring_f(spec, lines);
     return new Bounds(0, 0, dimen[0], dimen[1]);
 };

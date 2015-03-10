@@ -69,9 +69,5 @@ E.prototype.triangle = function(x, y, width, height) {
     path.add(new LSeg([ x + width, y + height ]));
     path.add(new LSeg([ x, y + height ]));
     path.add(new LSeg([ x + rx, y ]));
-    //path.add(new MSeg([ x - rx, ry ]));
-    //path.add(new LSeg([ x, -ry ]));
-    //path.add(new LSeg([ rx, ry ]));
-    //path.add(new LSeg([ x - rx, ry ]));
     return this.path(path);
 }

@@ -48,6 +48,8 @@ var conf = require('./conf.js'),
     log = require('./log.js'),
     is = require('./utils.js').is;
 
+var errors = require('./errors.js');
+
 function rmLog(str) {
   if (conf.logResMan) {
     log.debug(str);
@@ -67,9 +69,9 @@ function ResourceManager() {
 }
 
 ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onprogress) {
-    if (!subject_id) throw new Error('Subject ID is empty');
-    if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
-                                                         'a bunch of resources, please group them in one.');
+    if (!subject_id) errors.system('Subject ID is empty');
+    if (this._subscriptions[subject_id]) errors.system('This subject (\'' + subject_id + '\') is already subscribed to ' +
+                                                       'a bunch of resources, please group them in one.');
 
     var filteredUrls = [];
     rmLog('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls);
@@ -114,8 +116,8 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onpr
 
 ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
     var me = this;
-    if (!subject_id) throw new Error('Subject ID is empty');
-    if (!url) throw new Error('Given URL is empty');
+    if (!subject_id) errors.system('Subject ID is empty');
+    if (!url) errors.system('Given URL is empty');
     var progress_f = me._onprogress[subject_id];
     rmLog('request to load ' + url);
     if (me._cache[url]) {
@@ -234,7 +236,7 @@ ResourceManager.prototype.check = function() {
 };
 
 ResourceManager.prototype.cancel = function(subject_id) {
-    if (!subject_id) throw new Error('Subject ID is empty');
+    if (!subject_id) errors.system('Subject ID is empty');
     if (this._waiting[subject_id]) {
         var urls = this._subscriptions[subject_id][0];
         if (urls) { for (var u = 0, ul = urls.length; u < ul; u++) {

@@ -4,6 +4,8 @@ var conf = require('../conf.js'),
 var engine = require('engine'),
     resMan = require('../resource_manager.js');
 
+var errors = require('../errors.js');
+
 var Bounds = require('./bounds.js');
 
 Sheet.instances = 0;
@@ -52,7 +54,7 @@ var https = engine.isHttps;
 */
 Sheet.prototype.load = function(player_id, callback, errback) {
     callback = callback || this._callback;
-    if (this._image) throw new Error('Already loaded'); // just skip loading?
+    if (this._image) errors.animation('Image already loaded'); // just skip loading?
     var me = this;
     if (!me.src) {
         log.error('Empty source URL for image');

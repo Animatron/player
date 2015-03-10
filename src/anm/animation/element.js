@@ -23,8 +23,8 @@ var Modifier = require('./modifier.js'),
     Painter = require('./painter.js'),
     Bands = require('./band.js');
 
-var AnimationError = require('../errors.js').AnimationError,
-    Errors = require('../loc.js').Errors;
+var errors = require('../errors.js'),
+    ErrLoc = require('../loc.js').Errors;
 
 // Internal Constants
 // -----------------------------------------------------------------------------
@@ -1211,16 +1211,16 @@ Element.prototype.modify = function(band, modifier) {
     //           nor painters, they should be accessible through this.t / this.dt
     if (!is.arr(band)) { modifier = band;
                         band = null; }
-    if (!modifier) throw new AnimationError('No modifier was passed to .modify() method');
+    if (!modifier) errors.animation('No modifier was passed to .modify() method');
     if (!is.modifier(modifier) && is.fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
     } else if (!is.modifier(modifier)) {
-        throw new AnimationError('Modifier should be either a function or a Modifier instance');
+        errors.animation('Modifier should be either a function or a Modifier instance');
     }
-    if (!modifier.type) throw new AnimationError('Modifier should have a type defined');
+    if (!modifier.type) errors.animation('Modifier should have a type defined');
     if (band) modifier.$band = band;
     if (modifier.__applied_to &&
-        modifier.__applied_to[this.id]) throw new AnimationError('This modifier is already applied to this Element');
+        modifier.__applied_to[this.id]) errors.animation('This modifier is already applied to this Element');
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
     this.__modifiers_hash[modifier.id] = modifier;
@@ -1242,10 +1242,10 @@ Element.prototype.modify = function(band, modifier) {
 Element.prototype.removeModifier = function(modifier) {
     // FIXME!!!: do not pass time, dt and duration neither to modifiers
     //           nor painters, they should be accessible through this.t / this.dt
-    if (!is.modifier(modifier)) throw new AnimationError('Please pass Modifier instance to removeModifier');
-    if (!this.__modifiers_hash[modifier.id]) throw new AnimationError('Modifier wasn\'t applied to this element');
-    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimationError(Errors.A.MODIFIER_NOT_ATTACHED);
-    //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
+    if (!is.modifier(modifier)) errors.animation('Please pass Modifier instance to removeModifier');
+    if (!this.__modifiers_hash[modifier.id]) errors.animation('Modifier wasn\'t applied to this element');
+    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) errors.animation(ErrLoc.A.MODIFIER_NOT_ATTACHED);
+    //if (this.__modifying) errors.animation("Can't remove modifiers while modifying");
     utils.removeElement(this.__modifiers_hash, modifier.id);
     utils.removeElement(this.$modifiers[modifier.type], modifier);
     utils.removeElement(modifier.__applied_to, this.id);
@@ -1271,15 +1271,15 @@ Element.prototype.removeModifier = function(modifier) {
  * @return {anm.Element} itself
  */
 Element.prototype.paint = function(painter) {
-    if (!painter) throw new AnimationError('No painter was passed to .paint() method');
+    if (!painter) errors.animation('No painter was passed to .paint() method');
     if (!is.painter(painter) && is.fun(painter)) {
         painter = new Painter(painter, C.MOD_USER);
     } else if (!is.painter(painter)) {
-        throw new AnimationError('Painter should be either a function or a Painter instance');
+        errors.animation('Painter should be either a function or a Painter instance');
     }
-    if (!painter.type) throw new AnimationError('Painter should have a type defined');
+    if (!painter.type) errors.animation('Painter should have a type defined');
     if (painter.__applied_to &&
-        painter.__applied_to[this.id]) throw new AnimationError('This painter is already applied to this Element');
+        painter.__applied_to[this.id]) errors.animation('This painter is already applied to this Element');
     if (!this.$painters[painter.type]) this.$painters[painter.type] = [];
     this.$painters[painter.type].push(painter);
     this.__painters_hash[painter.id] = painter;
@@ -1299,10 +1299,10 @@ Element.prototype.paint = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.removePainter = function(painter) {
-    if (!is.painter(painter)) throw new AnimationError('Please pass Painter instance to removePainter');
-    if (!this.__painters_hash[painter.id]) throw new AnimationError('Painter wasn\'t applied to this element');
-    if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
-    //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
+    if (!is.painter(painter)) errors.animation('Please pass Painter instance to removePainter');
+    if (!this.__painters_hash[painter.id]) errors.animation('Painter wasn\'t applied to this element');
+    if (!painter.__applied_to || !painter.__applied_to[this.id]) errors.animation(ErrLoc.A.PAINTER_NOT_ATTACHED);
+    //if (this.__modifying) errors.animation("Can't remove modifiers while modifying");
     utils.removeElement(this.__painters_hash, painter.id);
     utils.removeElement(this.$painters[painter.type], painter);
     utils.removeElement(painter.__applied_to, this.id);
@@ -1328,7 +1328,7 @@ Element.prototype.removePainter = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.tween = function(tween) {
-    if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .tween() method');
+    if (!is.tween(tween)) errors.animation('Please pass Tween instance to .tween() method');
     // tweens are always receiving time as relative time
     // is.finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
@@ -1345,7 +1345,7 @@ Element.prototype.tween = function(tween) {
 * @return {anm.Element} itself
 */
 Element.prototype.removeTween = function(tween) {
-    if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .removeTween() method');
+    if (!is.tween(tween)) errors.animation('Please pass Tween instance to .removeTween() method');
     return this.removeModifier(tween);
 };
 
@@ -1391,15 +1391,15 @@ Element.prototype.add = function(arg1, arg2, arg3) {
  * @return {anm.Element} parent, itself
  */
 Element.prototype.remove = function(elm) {
-    if (!elm) throw new AnimationError(Errors.A.NO_ELEMENT_TO_REMOVE);
-    if (this.__safeDetach(elm) === 0) throw new AnimationError(Errors.A.NO_ELEMENT);
+    if (!elm) errors.animation(ErrLoc.A.NO_ELEMENT_TO_REMOVE);
+    if (this.__safeDetach(elm) === 0) errors.animation(ErrLoc.A.NO_ELEMENT);
     this.invalidate();
     return this;
 };
 
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
+        this.__unsafeToRemove) errors.animation(ErrLoc.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.anim) this.anim._unregister(this);
     // this.anim should be null after unregistering
@@ -1411,7 +1411,7 @@ Element.prototype._unbind = function() {
  * Detach element from parent, a part of removing process
  */
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) === 0) throw new AnimationError(Errors.A.ELEMENT_NOT_ATTACHED);
+    if (this.parent.__safeDetach(this) === 0) errors.animation(ErrLoc.A.ELEMENT_NOT_ATTACHED);
 };
 
 /**
@@ -1490,7 +1490,7 @@ Element.prototype.ltime = function(gtime) {
  * @param {anm.Player} handler.player
  */
 Element.prototype.handlePlayerEvent = function(event, handler) {
-    if (!isPlayerEvent(event)) throw new Error('This method is intended to assign only player-related handles');
+    if (!isPlayerEvent(event)) errors.animation('This method is intended to assign only player-related handles');
     this.on(event, handler);
 };
 
@@ -1555,7 +1555,7 @@ Element.prototype.inform = function(ltime) {
 Element.prototype.band = function(start, stop) {
     if (!is.defined(start)) return this.lband;
     // FIXME: array bands should not pass
-    // if (is.arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
+    // if (is.arr(start)) errors.animation('Band is specified with two numbers, not an array');
     if (is.arr(start)) {
         start = start[0];
         stop = start[1];
@@ -1790,7 +1790,7 @@ Element.prototype.__performDetach = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
+    if (this.__unsafeToRemove) errors.animation(ErrLoc.A.UNSAFE_TO_REMOVE);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -2252,7 +2252,7 @@ Element.prototype.asClip = function(band, mode, nrep) {
 };
 
 Element.prototype._addChild = function(elm) {
-    //if (elm.parent) throw new AnimationError('This element already has parent, clone it before adding');
+    //if (elm.parent) errors.animation('This element already has parent, clone it before adding');
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
@@ -2394,7 +2394,7 @@ Element.prototype.__checkJump = function(at) {
         this.keys[this.key] : t;
     if (t !== null) {
         if ((t < 0) || (t > duration)) {
-            throw new AnimationError('failed to calculate jump');
+            errors.animation('Failed to calculate jump');
         }
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
@@ -2475,7 +2475,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
+            if (this.__unsafeToRemove) errors.animation(ErrLoc.A.UNSAFE_TO_REMOVE);
             what._unbind();
             children.splice(pos, 1);
         }

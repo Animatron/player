@@ -1,16 +1,19 @@
-var C = require('../constants.js'),
-    engine = require('engine'),
-    Element = require('./element.js'),
-    Clip = Element,
-    Brush = require('../graphics/brush.js'),
-    provideEvents = require('../events.js').provideEvents,
-    AnimationError = require('../errors.js').AnimationError,
-    Errors = require('../loc.js').Errors,
-    ResMan = require('../resource_manager.js'),
-    FontDetector = require('../../vendor/font_detector.js'),
-    utils = require('../utils.js'),
+var utils = require('../utils.js'),
     is = utils.is,
-    iter = utils.iter;
+    iter = utils.iter,
+    C = require('../constants.js');
+
+var engine = require('engine'),
+    ResMan = require('../resource_manager.js'),
+    FontDetector = require('../../vendor/font_detector.js');
+
+var Element = require('./element.js'),
+    Clip = Element,
+    Brush = require('../graphics/brush.js');
+
+var provideEvents = require('../events.js').provideEvents,
+    errors = require('../errors.js'),
+    ErrLoc = require('../loc.js').Errors;
 
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
@@ -130,8 +133,7 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
  * @param {anm.Element} element
  */
 Animation.prototype.remove = function(elm) {
-    // error will be thrown in _unregister method
-    //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
+    // error will be thrown in _unregister method if element is not registered
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -325,9 +327,7 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
  * @param {anm.Element} element
  */
 Animation.prototype.addToTree = function(elm) {
-    if (!elm.children) {
-        throw new AnimationError('It appears that it is not a clip object or element that you pass');
-    }
+    if (!elm.children) errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT);
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
@@ -340,7 +340,7 @@ Animation.prototype.addToTree = function(elm) {
     }
 }*/
 Animation.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new AnimationError(Errors.A.ELEMENT_IS_REGISTERED);
+    if (this.hash[elm.id]) errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED);
     elm.registered = true;
     elm.anim = this;
     this.hash[elm.id] = elm;
@@ -355,7 +355,7 @@ Animation.prototype._unregister_no_rm = function(elm) {
 };
 
 Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
-    if (!elm.registered) throw new AnimationError(Errors.A.ELEMENT_IS_NOT_REGISTERED);
+    if (!elm.registered) errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED);
     var me = this;
     elm.each(function(child) {
         me._unregister(child);

@@ -1,5 +1,7 @@
 var C = require('./constants.js');
 
+var errors = require('./errors.js');
+
 // Events
 // -----------------------------------------------------------------------------
 C.__enmap = {};
@@ -33,19 +35,19 @@ function provideEvents(subj, events) {
         };
     })(events);
     subj.prototype.on = function(event, handler) {
-        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
-                                                     '\' not provided by ' + this);
-        if (!handler) throw new Error('You are trying to assign ' +
-                                        'undefined handler for event ' + event);
+        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) errors.system('Event \'' + C.__enmap[event] +
+                                                 '\' not provided by ' + this);
+        if (!handler) errors.system('You are trying to assign ' +
+                                    'undefined handler for event ' + event);
         this.handlers[event].push(handler);
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
     subj.prototype.fire = function(event/*, args*/) {
-        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
-                                                     '\' not provided by ' + this);
+        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) errors.system('Event \'' + C.__enmap[event] +
+                                                 '\' not provided by ' + this);
         if (this.disabled) return;
         var evt_args = Array.prototype.slice.call(arguments, 1);
         if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
@@ -58,23 +60,23 @@ function provideEvents(subj, events) {
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
-            if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
             if (!event) return evts;
             return this.handlers.hasOwnProperty(event);
         };
     })(events);
     subj.prototype.unbind = function(event, idx) {
-        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) throw new Error('Event ' + event +
-                                                     ' not provided by ' + this);
+        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) errors.system('Event ' + event +
+                                                 ' not provided by ' + this);
         if (this.handlers[event][idx]) {
             this.handlers[event].splice(idx, 1);
         } else {
-            throw new Error('No such handler ' + idx + ' for event ' + event);
+            errors.system('No such handler ' + idx + ' for event ' + event);
         }
     };
     subj.prototype.disposeHandlers = function() {
-        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         var _hdls = this.handlers;
         for (var evt in _hdls) {
             if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
