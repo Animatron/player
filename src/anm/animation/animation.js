@@ -204,19 +204,18 @@ Animation.prototype.iter = function(func, rfunc) {
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
     var zoom = this.zoom;
-    try {
-        if (zoom != 1) {
-            ctx.scale(zoom, zoom);
-        }
-        if (this.bgfill) {
-            if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
-            this.bgfill.apply(ctx);
-            ctx.fillRect(0, 0, this.width, this.height);
-        }
-        this.each(function(child) {
-            child.render(ctx, time, dt);
-        });
-    } finally { ctx.restore(); }
+    if (zoom != 1) {
+        ctx.scale(zoom, zoom);
+    }
+    if (this.bgfill) {
+        if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
+        this.bgfill.apply(ctx);
+        ctx.fillRect(0, 0, this.width, this.height);
+    }
+    this.each(function(child) {
+        child.render(ctx, time, dt);
+    });
+    ctx.restore();
     this.fire(C.X_DRAW,ctx);
 };
 

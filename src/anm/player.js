@@ -514,7 +514,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                      : (anim.duration || (anim.isEmpty() ? 0
                                                            : Animation.DEFAULT_DURATION));
 
-    if (state.duration === undefined) ErrLoc. new PlayerError(ErrLoc.P.DURATION_IS_NOT_KNOWN);
+    if (state.duration === undefined) errors.player(ErrLoc.P.DURATION_IS_NOT_KNOWN);
 
     state.__startTime = Date.now();
     state.__redraws = 0;

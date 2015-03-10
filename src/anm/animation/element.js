@@ -924,9 +924,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
             mctx.restore();
             bctx.restore();
         }
+        ctx.restore();
     }
-    // immediately when drawn, element becomes shown,
-    // it is reasonable
+    // immediately after being drawn, element is shown, it is reasonable
     this.shown = drawMe;
     this.__postRender();
     this.rendering = false;
