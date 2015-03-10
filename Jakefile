@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2011-2014 by Animatron.
+ * Copyright (c) 2011-2015 by Animatron.
  * All rights are reserved.
  *
  * Animatron player is licensed under the MIT License, see LICENSE.
@@ -40,7 +40,7 @@ var VERSION_FILE = 'VERSION',
        return JSON.parse(jake.cat(_loc(file)).trim());
     })(PACKAGE_FILE);
 
-var COPYRIGHT_YEAR = 2014;
+var COPYRIGHT_YEAR = 2015;
 var COPYRIGHT_COMMENT =
 [ '/*',
   ' * Copyright (c) 2011-' + COPYRIGHT_YEAR + ' by Animatron.',
