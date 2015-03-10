@@ -828,105 +828,102 @@ Element.prototype.render = function(ctx, gtime, dt) {
     }
     if (drawMe) {
         ctx.save();
-        try {
-            // update global time with new local time (it may've been
-            // changed if there were jumps or something), so children will
-            // get the proper value
-            gtime = this.gtime(ltime);
-            if (!this.$mask) {
-                // draw directly to context, if has no mask
-                this.transform(ctx);
-                this.painters(ctx);
-                this.each(function(child) {
-                    child.render(ctx, gtime, dt);
-                });
-            } else {
-                // FIXME: the complete mask process should be a Painter.
+        // update global time with new local time (it may've been
+        // changed if there were jumps or something), so children will
+        // get the proper value
+        gtime = this.gtime(ltime);
+        if (!this.$mask) {
+            // draw directly to context, if has no mask
+            this.transform(ctx);
+            this.painters(ctx);
+            this.each(function(child) {
+                child.render(ctx, gtime, dt);
+            });
+        } else {
+            // FIXME: the complete mask process should be a Painter.
 
-                var mask = this.$mask;
+            var mask = this.$mask;
 
-                // FIXME: move this chain completely into one method, or,
-                //        which is even better, make all these checks to be modifiers
-                // FIXME: call modifiers once for one moment of time. If there are several
-                //        masked elements, they will be called that number of times
-                if (!(mask.fits(ltime) &&
-                      mask.modifiers(ltime, dt) &&
-                      mask.visible)) return;
-                      // what should happen if mask doesn't fit in time?
+            // FIXME: move this chain completely into one method, or,
+            //        which is even better, make all these checks to be modifiers
+            // FIXME: call modifiers once for one moment of time. If there are several
+            //        masked elements, they will be called that number of times
+            if (!(mask.fits(ltime) &&
+                  mask.modifiers(ltime, dt) &&
+                  mask.visible)) return;
+                  // what should happen if mask doesn't fit in time?
 
-                mask.ensureHasMaskCanvas();
-                var mcvs = mask.__maskCvs,
-                    mctx = mask.__maskCtx,
-                    bcvs = mask.__backCvs,
-                    bctx = mask.__backCtx;
+            mask.ensureHasMaskCanvas();
+            var mcvs = mask.__maskCvs,
+                mctx = mask.__maskCtx,
+                bcvs = mask.__backCvs,
+                bctx = mask.__backCtx;
 
-                // FIXME: test if bounds are not empty
-                var bounds_pts = mask.bounds(ltime).toPoints();
+            // FIXME: test if bounds are not empty
+            var bounds_pts = mask.bounds(ltime).toPoints();
 
-                var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
-                    maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+            var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
+                maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 
-                var pt;
-                for (var i = 0, il = bounds_pts.length; i < il; i++) {
-                    pt = bounds_pts[i];
-                    if (pt.x < minX) minX = pt.x;
-                    if (pt.y < minY) minY = pt.y;
-                    if (pt.x > maxX) maxX = pt.x;
-                    if (pt.y > maxY) maxY = pt.y;
-                }
-
-                var ratio  = engine.PX_RATIO,
-                    x = minX, y = minY,
-                    width  = Math.round(maxX - minX),
-                    height = Math.round(maxY - minY);
-
-                var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
-
-                if ((last_cvs_size[0] < width) ||
-                    (last_cvs_size[1] < height)) {
-                    // mcvs/bcvs both always have the same size, so we save/check only one of them
-                    this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
-                    engine.setCanvasSize(bcvs, width, height);
-                } else {
-                    this._maskCvsSize = last_cvs_size;
-                }
-
-                var scale = ratio;  // multiple by global scale when it's known
-
-                bctx.clearRect(0, 0, width*scale, height*scale);
-                mctx.clearRect(0, 0, width*scale, height*scale);
-
-                bctx.save();
-                mctx.save();
-
-                bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-                mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-
-                this.transform(bctx);
-                this.painters(bctx);
-                this.each(function(child) {
-                    child.render(bctx, gtime, dt);
-                });
-
-                mask.transform(mctx);
-                mask.painters(mctx);
-                mask.each(function(child) {
-                    child.render(mctx, gtime, dt);
-                });
-
-                bctx.globalCompositeOperation = 'destination-in';
-                bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0);
-
-                ctx.drawImage(bcvs,
-                    0, 0, Math.floor(width * scale), Math.floor(height * scale),
-                    x, y, width, height);
-
-                mctx.restore();
-                bctx.restore();
+            var pt;
+            for (var i = 0, il = bounds_pts.length; i < il; i++) {
+                pt = bounds_pts[i];
+                if (pt.x < minX) minX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y > maxY) maxY = pt.y;
             }
-        } catch(e) { log.error(e); }
-          finally { ctx.restore(); }
+
+            var ratio  = engine.PX_RATIO,
+                x = minX, y = minY,
+                width  = Math.round(maxX - minX),
+                height = Math.round(maxY - minY);
+
+            var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
+
+            if ((last_cvs_size[0] < width) ||
+                (last_cvs_size[1] < height)) {
+                // mcvs/bcvs both always have the same size, so we save/check only one of them
+                this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
+                engine.setCanvasSize(bcvs, width, height);
+            } else {
+                this._maskCvsSize = last_cvs_size;
+            }
+
+            var scale = ratio;  // multiple by global scale when it's known
+
+            bctx.clearRect(0, 0, width*scale, height*scale);
+            mctx.clearRect(0, 0, width*scale, height*scale);
+
+            bctx.save();
+            mctx.save();
+
+            bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+            mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+
+            this.transform(bctx);
+            this.painters(bctx);
+            this.each(function(child) {
+                child.render(bctx, gtime, dt);
+            });
+
+            mask.transform(mctx);
+            mask.painters(mctx);
+            mask.each(function(child) {
+                child.render(mctx, gtime, dt);
+            });
+
+            bctx.globalCompositeOperation = 'destination-in';
+            bctx.setTransform(1, 0, 0, 1, 0, 0);
+            bctx.drawImage(mcvs, 0, 0);
+
+            ctx.drawImage(bcvs,
+                0, 0, Math.floor(width * scale), Math.floor(height * scale),
+                x, y, width, height);
+
+            mctx.restore();
+            bctx.restore();
+        }
     }
     // immediately when drawn, element becomes shown,
     // it is reasonable

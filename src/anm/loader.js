@@ -30,10 +30,10 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
         player._checkOpts();
     }
 
-    var failure = player.__defAsyncSafe(function(err) {
+    var failure = function(err) {
         errors.system(utils.strf(ErrLoc.P.SNAPSHOT_LOADING_FAILED,
                       [ (err ? (err.message || err) : '¿Por qué?') ]));
-    });
+    };
 
     var success = function(req) {
         try {

@@ -98,7 +98,6 @@ function Player() {
     this.controls = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
-    this.__makeSafe(Player._SAFE_METHODS);
     this.muted = false;
 }
 Player.__instances = 0;
@@ -140,15 +139,6 @@ Player.EMPTY_STROKE_WIDTH = 3;
 
 // ### Playing Control API
 /* ----------------------- */
-
-/**
-  * @private @static @property
-  *
-  * Methods listed below are directly wrapped with try/catch to check
-  * which way of handling/suppressing errors is current one for this player
-  * and act with caught errors basing on this way
-  */
-Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
 /* TODO: add load/play/pause/stop events */
 
@@ -378,7 +368,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
             // subscribe to wait until remote resources will be ready or failed
-            resourceManager.subscribe(player.id, remotes, [ player.__defAsyncSafe(
+            resourceManager.subscribe(player.id, remotes, [
                 function(res_results, err_count) {
                     //if (err_count) errors.animation(ErrLoc.A.RESOURCES_FAILED_TO_LOAD);
                     if (player.anim === result) { // avoid race condition when there were two requests
@@ -400,7 +390,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         }
                     }
                 }
-            ) ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
+            ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
                 player.controls.loadingProgress = progress;
                 player.controls.loadingErrors = errors;
             } : null);
@@ -409,7 +399,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
 
     };
-    whenDone = player.__defAsyncSafe(whenDone);
 
     /* TODO: configure canvas using clips bounds? */
 
@@ -1542,7 +1531,7 @@ Player.prototype.__afterFrame = function(anim) {
 
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
-// this error over itself
+// this error in its UI
 Player.prototype.__onerror = function(err) {
   var player = this;
   var doMute = player.muteErrors;
@@ -1571,63 +1560,6 @@ Player.prototype.__onerror = function(err) {
   if (!doMute) {
       try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
-  }
-};
-
-Player.prototype.__callSafe = function(f) {
-  try {
-    return f.call(this);
-  } catch(err) {
-    this.__onerror(err);
-  }
-};
-
-// safe call generator for player method (synchronous calls)
-Player.prototype.__defSafe = function(method_f) {
-  var player = this;
-  return function() {
-    var args = arguments;
-    if (!this.__safe_ctx) { // already in safe context
-      this.__safe_ctx = true;
-      try {
-        var ret_val = player.__callSafe(function() {
-          return method_f.apply(player, args);
-        });
-        this.__safe_ctx = false;
-        return ret_val;
-      } catch(err) {
-        this.__safe_ctx = false;
-        throw err;
-      }
-    } else {
-      return method_f.apply(player, args);
-    }
-  };
-};
-
-// safe call generator for asycnhronous function
-Player.prototype.__defAsyncSafe = function(func) {
-  var player = this;
-  return function() {
-    var args = arguments;
-    try {
-      var ret_val = player.__callSafe(function() {
-        return func.apply(player, args);
-      });
-      return ret_val;
-    } catch(err) {
-      throw err;
-    }
-  };
-};
-
-Player.prototype.__makeSafe = function(methods) {
-  var player = this;
-  for (var i = 0, il = methods.length; i < il; i++) {
-    var method = methods[i];
-    if (!player[method]) errors.system(utils.strf(ErrLoc.S.NO_METHOD_FOR_PLAYER, [method]));
-    player['__unsafe_'+method] = player[method];
-    player[method] = player.__defSafe(player[method]);
   }
 };
 
