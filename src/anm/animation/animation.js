@@ -154,8 +154,16 @@ Animation.prototype.remove = function(elm) {
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    for (var elmId in this.hash) {
-        visitor(this.hash[elmId], data);
+    if (Object.keys) {
+        var hash = this.hash;
+        var ids = Object.keys(hash);
+        for (var i = 0; i < ids.length; i++) {
+            visitor(hash[ids[i]], data);
+        }
+    } else {
+        for (var elmId in this.hash) {
+            visitor(this.hash[elmId], data);
+        }
     }
     return this;
 };

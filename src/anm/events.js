@@ -44,19 +44,25 @@ function provideEvents(subj, events) {
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
-    subj.prototype.fire = function(event/*, args*/) {
+    subj.prototype.fire = function(event/*, evt_args*/) {
+        if (this.disabled) return;
         if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         if (!this.provides(event)) errors.system('Event \'' + C.__enmap[event] +
                                                  '\' not provided by ' + this);
-        if (this.disabled) return;
-        var evt_args = Array.prototype.slice.call(arguments, 1);
         if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
         var name = C.__enmap[event];
-        if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
-        var _hdls = this.handlers[event];
-        for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-            _hdls[hi].apply(this, evt_args);
+        if (this['handle_'+name] || this.handlers[event].length) {
+            var evt_args = new Array(arguments.length - 1);
+            for (var i = 1; i < arguments.length; i++) {
+                evt_args[i] = arguments[i];
+            }
+            if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
+            var _hdls = this.handlers[event];
+            for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
+                _hdls[hi].apply(this, evt_args);
+            }
         }
+
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
