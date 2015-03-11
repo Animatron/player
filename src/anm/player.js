@@ -216,6 +216,8 @@ Player.EMPTY_STROKE_WIDTH = 3;
  */
 
 Player.prototype.init = function(elm, opts) {
+    var me = this;
+    this.on(C.S_ERROR, me.__onerror());
     if (this.canvas || this.wrapper) errors.player(ErrLoc.P.INIT_TWICE);
     if (this.anim) errors.player(ErrLoc.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
@@ -1456,6 +1458,7 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
         }
         if (!subscribed) {
             this.__boundTo.push([ anim.id, this.canvas ]);
+            anim.on(C.X_ERROR, this.__onerror());
             anim.subscribeEvents(this.canvas);
         }
     }
@@ -1529,10 +1532,15 @@ Player.prototype.__afterFrame = function(anim) {
     })(this, this.state, anim, this.__userAfterFrame);
 };
 
+Player.prototype.__onerror = function() {
+    var me = this;
+    return function(err) { return me.onerror_f(err); };
+}
+
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
 // this error in its UI
-Player.prototype.__onerror = function(err) {
+Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof SystemError);
@@ -1561,11 +1569,6 @@ Player.prototype.__onerror = function(err) {
       try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
   }
-};
-
-Player.prototype.handle__x = function(type, evt) {
-    if (this.anim) this.anim.fire(type, this);
-    return true;
 };
 
 Player.prototype._clearPostpones = function() {

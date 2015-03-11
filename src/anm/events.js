@@ -129,8 +129,7 @@ registerEvent('X_KPRESS', 'kpress', 128);
 registerEvent('X_KUP', 'kup', 256);
 registerEvent('X_KDOWN', 'kdown', 1024);
 
-registerEvent('XT_KEYBOARD', 'keyboard',
-  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
+registerEvent('XT_KEYBOARD', 'keyboard', (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
 
 // * controllers
 registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
@@ -138,6 +137,9 @@ registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
 // * bands
 registerEvent('X_START', 'start', 'x_start');
 registerEvent('X_STOP', 'stop', 'x_stop');
+
+// * Animation or Element error
+registerEvent('X_ERROR', 'error', 'x_error');
 
 // * playing (player state)
 registerEvent('S_PLAY', 'play', 'play');
@@ -148,7 +150,7 @@ registerEvent('S_REPEAT', 'repeat', 'repeat');
 registerEvent('S_IMPORT', 'import', 'import');
 registerEvent('S_LOAD', 'load', 'load');
 registerEvent('S_RES_LOAD', 'res_load', 'res_load');
-registerEvent('S_ERROR', 'error', 'error');
+registerEvent('S_ERROR', 'error', 'error'); // Player error
 
 
 module.exports = {

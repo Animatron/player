@@ -75,15 +75,9 @@ function Animation() {
 
 Animation.DEFAULT_DURATION = 10;
 
-// mouse/keyboard events are assigned in L.loadAnimation
-/* TODO: move them into animation */
 provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                            C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                           C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                           // player events
-                           C.S_CHANGE_STATE,
-                           C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                           C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                           C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 /**
  * @method add
  * @chainable
@@ -225,13 +219,6 @@ Animation.prototype.render = function(ctx, time, dt) {
     ctx.restore();
 };
 
-Animation.prototype.handle__x = function(type, evt) {
-    this.traverse(function(elm) {
-        elm.fire(type, evt);
-    });
-    return true;
-};
-
 // TODO: test
 /**
  * @method getFittingDuration
@@ -349,7 +336,12 @@ Animation.prototype._register = function(elm) {
     elm.registered = true;
     elm.anim = this;
     this.hash[elm.id] = elm;
+
     var me = this;
+
+    if (this.__err_handlers) this.__err_handlers = {};
+    this.__err_handlers[elm.id] = elm.on(C.X_ERROR, function(err) { me.fire(C.X_ERROR, err); });
+
     elm.each(function(child) {
         me._register(child);
     });
@@ -372,6 +364,7 @@ Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree 
       }
     }
     delete this.hash[elm.id];
+    elm.unbind(C.X_ERROR, this.__err_handlers[elm.id]);
     elm.registered = false;
     elm.anim = null;
     //elm.parent = null;
