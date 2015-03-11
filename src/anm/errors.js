@@ -18,24 +18,24 @@ module.exports = {
     system: function(text, player) {
         var err = new SystemError(text);
         if (player) player.fire(C.S_ERROR, err);
-        throw err;
+        return err;
     },
     player: function(text, player) {
         var err = new PlayerError(text);
         if (player) player.fire(C.S_ERROR, err);
-        throw err;
+        return err;
     },
     animation: function(text, anim) {
         var err = new AnimationError(text);
         if (anim) anim.fire(C.X_ERROR, err);
-        throw err;
+        return err;
     },
     element: function(text, elm) {
         var err = new AnimationError(text);
         if (elm && elm.anim) {
             elm.anim.fire(C.X_ERROR, err);
         }
-        throw err;
+        return err;
     },
 
     SystemError: SystemError,

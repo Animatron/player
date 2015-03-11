@@ -54,7 +54,7 @@ var https = engine.isHttps;
 */
 Sheet.prototype.load = function(elm, player_id, callback, errback) {
     callback = callback || this._callback;
-    if (this._image) errors.element('Image already loaded', elm); // just skip loading?
+    if (this._image) throw errors.element('Image already loaded', elm); // just skip loading?
     var me = this;
     if (!me.src) {
         log.error('Empty source URL for image');
@@ -99,7 +99,8 @@ Sheet.prototype.load = function(elm, player_id, callback, errback) {
         function(err) { log.error(err.srcElement || err.path, err.message || err);
                         me.ready = true;
                         me.wasError = true;
-                        if (errback) errback.call(me, err); });
+                        if (errback) errback.call(me, err);
+                        throw errors.element(err ? err.message : 'Unknown', elm); });
 };
 /**
  * @private @method updateRegion

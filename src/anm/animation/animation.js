@@ -319,7 +319,7 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
  * @param {anm.Element} element
  */
 Animation.prototype.addToTree = function(elm) {
-    if (!elm.children) errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
+    if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
@@ -332,7 +332,7 @@ Animation.prototype.addToTree = function(elm) {
     }
 }*/
 Animation.prototype._register = function(elm) {
-    if (this.hash[elm.id]) errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
+    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
     elm.registered = true;
     elm.anim = this;
     this.hash[elm.id] = elm;
@@ -352,7 +352,7 @@ Animation.prototype._unregister_no_rm = function(elm) {
 };
 
 Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
-    if (!elm.registered) errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED, this);
+    if (!elm.registered) throw errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED, this);
     var me = this;
     elm.each(function(child) {
         me._unregister(child);

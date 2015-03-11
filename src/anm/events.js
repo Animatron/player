@@ -35,10 +35,10 @@ function provideEvents(subj, events) {
         };
     })(events);
     subj.prototype.on = function(event, handler) {
-        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) errors.system('Event \'' + C.__enmap[event] +
+        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) throw errors.system('Event \'' + C.__enmap[event] +
                                                  '\' not provided by ' + this);
-        if (!handler) errors.system('You are trying to assign ' +
+        if (!handler) throw errors.system('You are trying to assign ' +
                                     'undefined handler for event ' + event);
         this.handlers[event].push(handler);
         // FIXME: make it chainable, use handler instance to unbind, instead of index
@@ -46,8 +46,8 @@ function provideEvents(subj, events) {
     };
     subj.prototype.fire = function(event/*, evt_args*/) {
         if (this.disabled) return;
-        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) errors.system('Event \'' + C.__enmap[event] +
+        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) throw errors.system('Event \'' + C.__enmap[event] +
                                                  '\' not provided by ' + this);
         if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
         var name = C.__enmap[event];
@@ -66,23 +66,23 @@ function provideEvents(subj, events) {
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
-            if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
             if (!event) return evts;
             return this.handlers.hasOwnProperty(event);
         };
     })(events);
     subj.prototype.unbind = function(event, idx) {
-        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) errors.system('Event ' + event +
+        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) throw errors.system('Event ' + event +
                                                  ' not provided by ' + this);
         if (this.handlers[event][idx]) {
             this.handlers[event].splice(idx, 1);
         } else {
-            errors.system('No such handler ' + idx + ' for event ' + event);
+            throw errors.system('No such handler ' + idx + ' for event ' + event);
         }
     };
     subj.prototype.disposeHandlers = function() {
-        if (!this.handlers) errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         var _hdls = this.handlers;
         for (var evt in _hdls) {
             if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];

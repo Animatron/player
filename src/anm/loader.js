@@ -15,7 +15,7 @@ var Animation = require('./animation/animation.js');
 var Loader = {};
 
 Loader.loadFromUrl = function(player, url, importer, callback) {
-    if (!JSON) errors.system(ErrLoc.S.NO_JSON_PARSER, player);
+    if (!JSON) throw errors.system(ErrLoc.S.NO_JSON_PARSER, player);
 
     mporter = importer || anm.importers.create('animatron');
 
@@ -31,8 +31,8 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
     }
 
     var failure = function(err) {
-        errors.system(utils.strf(ErrLoc.P.SNAPSHOT_LOADING_FAILED,
-                      [ (err ? (err.message || err) : '¿Por qué?') ]));
+        throw errors.system(utils.strf(ErrLoc.P.SNAPSHOT_LOADING_FAILED,
+                            [ (err ? (err.message || err) : '¿Por qué?') ]));
     };
 
     var success = function(req) {
@@ -51,7 +51,7 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
 };
 
 Loader.loadFromObj = function(player, object, importer, callback) {
-    if (!importer) errors.player(ErrLoc.P.NO_IMPORTER_TO_LOAD_WITH, player);
+    if (!importer) throw errors.player(ErrLoc.P.NO_IMPORTER_TO_LOAD_WITH, player);
     var anim = importer.load(object);
     player.fire(C.S_IMPORT, importer, anim, object);
     Loader.loadAnimation(player, anim, callback);

@@ -228,7 +228,7 @@ Text.prototype.invalidate = function() {
 Text.prototype.reset = function() { };
 Text.prototype.dispose = function() { };
 Text.bounds = function(spec, lines) {
-    if (!Text.__measuring_f) errors.system('no Text buffer, bounds call failed');
+    if (!Text.__measuring_f) throw errors.system('no Text buffer, bounds call failed');
     var dimen = Text.__measuring_f(spec, lines);
     return new Bounds(0, 0, dimen[0], dimen[1]);
 };

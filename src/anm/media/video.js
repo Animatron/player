@@ -118,7 +118,7 @@ Video.prototype.load = function(elm, player) {
             me.ready = true;
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                        errors.element(err ? err.message : 'Unknown', elm);
+                        throw errors.element(err ? err.message : 'Unknown', elm);
                         /* throw err; */
         });
 };
