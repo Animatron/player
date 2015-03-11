@@ -43,16 +43,6 @@ function t_cmp(t0, t1) {
     return 0;
 }
 
-var isPlayerEvent = function(type) {
-    // FIXME: make some marker to group types of events
-    return ((type == C.S_CHANGE_STATE) ||
-            (type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
-            (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
-            (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
-            (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
-            (type == C.S_COMPLETE));
-};
-
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
@@ -177,11 +167,7 @@ Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_START, C.X_STOP,
-                         // player events
-                         C.S_CHANGE_STATE,
-                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                         C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                         C.X_START, C.X_STOP ]);
 /**
  * @method is
  *
@@ -1477,20 +1463,6 @@ Element.prototype.ltime = function(gtime) {
 };
 
 /**
- * @private @method handlePlayerEvent
- *
- * Pass player event to this element.
- *
- * @param {C.S_*} event
- * @param {Function} handler
- * @param {anm.Player} handler.player
- */
-Element.prototype.handlePlayerEvent = function(event, handler) {
-    if (!isPlayerEvent(event)) throw errors.element('This method is intended to assign only player-related handles', this);
-    this.on(event, handler);
-};
-
-/**
  * @private @method inform
  *
  * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
@@ -2422,8 +2394,7 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (!isPlayerEvent(type) &&
-        (type != C.X_START) &&
+    if ((type != C.X_START) &&
         (type != C.X_STOP)) {
       if (this.shown) {
         this.__saveEvt(type, evt);

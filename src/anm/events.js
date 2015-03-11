@@ -110,7 +110,7 @@ registerEvent('S_PLAYER_DETACH', 'player_detach', 'player_detach');
 // NB: All of the events must have different values, or the flow will be broken
 // FIXME: allow grouping events, i.e. value may a group_marker + name of an event
 //        also, allow events to belong to several groups, it may replace a tests like
-//        XT_MOUSE or XT_CONTROL or isPlayerEvent
+//        XT_MOUSE or XT_CONTROL
 
 // * mouse
 registerEvent('X_MCLICK', 'mclick', 1);

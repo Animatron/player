@@ -216,8 +216,7 @@ Player.EMPTY_STROKE_WIDTH = 3;
  */
 
 Player.prototype.init = function(elm, opts) {
-    var me = this;
-    this.on(C.S_ERROR, me.__onerror());
+    this.on(C.S_ERROR, this.__onerror());
     if (this.canvas || this.wrapper) throw errors.player(ErrLoc.P.INIT_TWICE, this);
     if (this.anim) throw errors.player(ErrLoc.P.INIT_AFTER_LOAD, this);
     this._initHandlers(); /* TODO: make automatic */
