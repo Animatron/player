@@ -12,6 +12,8 @@ var conf = require('../conf.js'),
 
 var C = require('../constants.js');
 
+var errors = require('../errors.js');
+
 var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
@@ -36,7 +38,7 @@ Video.prototype.connect = function(element) {
     element.on(C.S_PAUSE, stop);
 };
 /** @private @method load */
-Video.prototype.load = function(player) {
+Video.prototype.load = function(elm, player) {
 
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
@@ -116,6 +118,7 @@ Video.prototype.load = function(player) {
             me.ready = true;
         },
         function(err) { log.error(err ? (err.message || err) : 'Unknown error');
+                        errors.element(err ? err.message : 'Unknown', elm);
                         /* throw err; */
         });
 };

@@ -1207,16 +1207,16 @@ Element.prototype.modify = function(band, modifier) {
     //           nor painters, they should be accessible through this.t / this.dt
     if (!is.arr(band)) { modifier = band;
                         band = null; }
-    if (!modifier) errors.animation('No modifier was passed to .modify() method');
+    if (!modifier) errors.element('No modifier was passed to .modify() method', this);
     if (!is.modifier(modifier) && is.fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
     } else if (!is.modifier(modifier)) {
-        errors.animation('Modifier should be either a function or a Modifier instance');
+        errors.element('Modifier should be either a function or a Modifier instance', this);
     }
-    if (!modifier.type) errors.animation('Modifier should have a type defined');
+    if (!modifier.type) errors.element('Modifier should have a type defined', this);
     if (band) modifier.$band = band;
     if (modifier.__applied_to &&
-        modifier.__applied_to[this.id]) errors.animation('This modifier is already applied to this Element');
+        modifier.__applied_to[this.id]) errors.element('This modifier is already applied to this Element', this);
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
     this.__modifiers_hash[modifier.id] = modifier;
@@ -1238,10 +1238,10 @@ Element.prototype.modify = function(band, modifier) {
 Element.prototype.removeModifier = function(modifier) {
     // FIXME!!!: do not pass time, dt and duration neither to modifiers
     //           nor painters, they should be accessible through this.t / this.dt
-    if (!is.modifier(modifier)) errors.animation('Please pass Modifier instance to removeModifier');
-    if (!this.__modifiers_hash[modifier.id]) errors.animation('Modifier wasn\'t applied to this element');
-    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) errors.animation(ErrLoc.A.MODIFIER_NOT_ATTACHED);
-    //if (this.__modifying) errors.animation("Can't remove modifiers while modifying");
+    if (!is.modifier(modifier)) errors.element('Please pass Modifier instance to removeModifier', this);
+    if (!this.__modifiers_hash[modifier.id]) errors.element('Modifier wasn\'t applied to this element', this);
+    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) errors.element(ErrLoc.A.MODIFIER_NOT_ATTACHED, this);
+    //if (this.__modifying) errors.element("Can't remove modifiers while modifying");
     utils.removeElement(this.__modifiers_hash, modifier.id);
     utils.removeElement(this.$modifiers[modifier.type], modifier);
     utils.removeElement(modifier.__applied_to, this.id);
@@ -1267,15 +1267,15 @@ Element.prototype.removeModifier = function(modifier) {
  * @return {anm.Element} itself
  */
 Element.prototype.paint = function(painter) {
-    if (!painter) errors.animation('No painter was passed to .paint() method');
+    if (!painter) errors.element('No painter was passed to .paint() method', this);
     if (!is.painter(painter) && is.fun(painter)) {
         painter = new Painter(painter, C.MOD_USER);
     } else if (!is.painter(painter)) {
-        errors.animation('Painter should be either a function or a Painter instance');
+        errors.element('Painter should be either a function or a Painter instance', this);
     }
-    if (!painter.type) errors.animation('Painter should have a type defined');
+    if (!painter.type) errors.element('Painter should have a type defined', this);
     if (painter.__applied_to &&
-        painter.__applied_to[this.id]) errors.animation('This painter is already applied to this Element');
+        painter.__applied_to[this.id]) errors.element('This painter is already applied to this Element', this);
     if (!this.$painters[painter.type]) this.$painters[painter.type] = [];
     this.$painters[painter.type].push(painter);
     this.__painters_hash[painter.id] = painter;
@@ -1295,10 +1295,10 @@ Element.prototype.paint = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.removePainter = function(painter) {
-    if (!is.painter(painter)) errors.animation('Please pass Painter instance to removePainter');
-    if (!this.__painters_hash[painter.id]) errors.animation('Painter wasn\'t applied to this element');
-    if (!painter.__applied_to || !painter.__applied_to[this.id]) errors.animation(ErrLoc.A.PAINTER_NOT_ATTACHED);
-    //if (this.__modifying) errors.animation("Can't remove modifiers while modifying");
+    if (!is.painter(painter)) errors.element('Please pass Painter instance to removePainter', this);
+    if (!this.__painters_hash[painter.id]) errors.element('Painter wasn\'t applied to this element', this);
+    if (!painter.__applied_to || !painter.__applied_to[this.id]) errors.element(ErrLoc.A.PAINTER_NOT_ATTACHED, this);
+    //if (this.__modifying) errors.element("Can't remove modifiers while modifying", this);
     utils.removeElement(this.__painters_hash, painter.id);
     utils.removeElement(this.$painters[painter.type], painter);
     utils.removeElement(painter.__applied_to, this.id);
@@ -1324,7 +1324,7 @@ Element.prototype.removePainter = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.tween = function(tween) {
-    if (!is.tween(tween)) errors.animation('Please pass Tween instance to .tween() method');
+    if (!is.tween(tween)) errors.element('Please pass Tween instance to .tween() method', this);
     // tweens are always receiving time as relative time
     // is.finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
@@ -1341,7 +1341,7 @@ Element.prototype.tween = function(tween) {
 * @return {anm.Element} itself
 */
 Element.prototype.removeTween = function(tween) {
-    if (!is.tween(tween)) errors.animation('Please pass Tween instance to .removeTween() method');
+    if (!is.tween(tween)) errors.element('Please pass Tween instance to .removeTween() method', this);
     return this.removeModifier(tween);
 };
 
@@ -1387,15 +1387,15 @@ Element.prototype.add = function(arg1, arg2, arg3) {
  * @return {anm.Element} parent, itself
  */
 Element.prototype.remove = function(elm) {
-    if (!elm) errors.animation(ErrLoc.A.NO_ELEMENT_TO_REMOVE);
-    if (this.__safeDetach(elm) === 0) errors.animation(ErrLoc.A.NO_ELEMENT);
+    if (!elm) errors.element(ErrLoc.A.NO_ELEMENT_TO_REMOVE);
+    if (this.__safeDetach(elm) === 0) errors.element(ErrLoc.A.NO_ELEMENT);
     this.invalidate();
     return this;
 };
 
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) errors.animation(ErrLoc.A.UNSAFE_TO_REMOVE);
+        this.__unsafeToRemove) errors.element(ErrLoc.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.anim) this.anim._unregister(this);
     // this.anim should be null after unregistering
@@ -1407,7 +1407,7 @@ Element.prototype._unbind = function() {
  * Detach element from parent, a part of removing process
  */
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) === 0) errors.animation(ErrLoc.A.ELEMENT_NOT_ATTACHED);
+    if (this.parent.__safeDetach(this) === 0) errors.element(ErrLoc.A.ELEMENT_NOT_ATTACHED, this);
 };
 
 /**
@@ -1486,7 +1486,7 @@ Element.prototype.ltime = function(gtime) {
  * @param {anm.Player} handler.player
  */
 Element.prototype.handlePlayerEvent = function(event, handler) {
-    if (!isPlayerEvent(event)) errors.animation('This method is intended to assign only player-related handles');
+    if (!isPlayerEvent(event)) errors.element('This method is intended to assign only player-related handles', this);
     this.on(event, handler);
 };
 
@@ -1551,7 +1551,7 @@ Element.prototype.inform = function(ltime) {
 Element.prototype.band = function(start, stop) {
     if (!is.defined(start)) return this.lband;
     // FIXME: array bands should not pass
-    // if (is.arr(start)) errors.animation('Band is specified with two numbers, not an array');
+    // if (is.arr(start)) errors.element('Band is specified with two numbers, not an array', this);
     if (is.arr(start)) {
         start = start[0];
         stop = start[1];
@@ -1786,7 +1786,7 @@ Element.prototype.__performDetach = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) errors.animation(ErrLoc.A.UNSAFE_TO_REMOVE);
+    if (this.__unsafeToRemove) errors.element(ErrLoc.A.UNSAFE_TO_REMOVE, this);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -2248,7 +2248,7 @@ Element.prototype.asClip = function(band, mode, nrep) {
 };
 
 Element.prototype._addChild = function(elm) {
-    //if (elm.parent) errors.animation('This element already has parent, clone it before adding');
+    //if (elm.parent) errors.element('This element already has parent, clone it before adding', this);
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
@@ -2390,7 +2390,7 @@ Element.prototype.__checkJump = function(at) {
         this.keys[this.key] : t;
     if (t !== null) {
         if ((t < 0) || (t > duration)) {
-            errors.animation('Failed to calculate jump');
+            errors.element('Failed to calculate jump', this);
         }
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
@@ -2471,7 +2471,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) errors.animation(ErrLoc.A.UNSAFE_TO_REMOVE);
+            if (this.__unsafeToRemove) errors.element(ErrLoc.A.UNSAFE_TO_REMOVE, this);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -2517,13 +2517,13 @@ Element.prototype._collectRemoteResources = function(anim, player) {
 
 Element.prototype._loadRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) {
-        this.$image.load(player.id);
+        this.$image.load(this, player.id);
     }
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
-        this.$audio.load(player);
+        this.$audio.load(this, player);
     }
     if (this.is(C.ET_VIDEO) && player.videoEnabled) {
-        this.$video.load(player);
+        this.$video.load(this, player);
     }
 };
 

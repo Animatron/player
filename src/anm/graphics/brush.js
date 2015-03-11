@@ -354,8 +354,8 @@ Brush.value = function(value, target) {
                     brush[key] = value[key];
                 }
             }
-        } else errors.animation('Unknown type of brush');
-    } else errors.animation('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
+        } else errors.element('Unknown type of brush');
+    } else errors.element('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
 };
 
 Brush.grad = function(stops, bounds, dir) {

@@ -52,9 +52,9 @@ var https = engine.isHttps;
 /**
 * @private @method load
 */
-Sheet.prototype.load = function(player_id, callback, errback) {
+Sheet.prototype.load = function(elm, player_id, callback, errback) {
     callback = callback || this._callback;
-    if (this._image) errors.animation('Image already loaded'); // just skip loading?
+    if (this._image) errors.element('Image already loaded', elm); // just skip loading?
     var me = this;
     if (!me.src) {
         log.error('Empty source URL for image');

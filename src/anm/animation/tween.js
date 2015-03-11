@@ -43,7 +43,7 @@ var errors = require('../errors.js');
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(anm.C.E_IN))`
  */
 function Tween(tween_type, data) {
-    if (!tween_type) errors.animation('Tween type is required to be specified or function passed');
+    if (!tween_type) errors.element('Tween type is required to be specified or function passed');
     var func;
     if (is.fun(tween_type)) {
         func = tween_type;
@@ -72,7 +72,7 @@ function Tween(tween_type, data) {
 }
 
 var data_block_fn = function() {
-    errors.animation("Data should be passed to tween in a constructor or using from()/to() methods");
+    errors.element("Data should be passed to tween in a constructor or using from()/to() methods");
 };
 
 // TODO: add function to add every tween type in easy way, may be separate module?
