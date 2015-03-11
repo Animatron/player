@@ -1,42 +1,45 @@
+var C = require('constants.js');
+
 function __errorAs(name) {
-  return function (message) {
-      if (Error.captureStackTrace) Error.captureStackTrace(this, this);
-      var err = new Error(message || '');
-      err.name = name;
-      return err;
-  };
+    return function (message) {
+        if (Error.captureStackTrace) Error.captureStackTrace(this, this);
+        var err = new Error(message || '');
+        err.name = name;
+        return err;
+    };
 }
 
 var SystemError = __errorAs('SystemError'),
     PlayerError = __errorAs('PlayerError'),
     AnimationError = __errorAs('AnimationError');
 
-var lastError = null;
-
-// TODO: group errors by Player instance ID
-
-function fire(err) {
-    lastError = err;
-    //console.error(err);
-    throw err;
-}
-
-function last() { return lastError; }
-
-function forget() { lastError = null; }
-
 module.exports = {
 
-  fire: fire,
-  last: last,
-  forget: forget,
+    system: function(text, player) {
+        var err = new SystemError(text);
+        if (player) player.fire(C.S_ERROR, err);
+        throw err;
+    },
+    player: function(text, player) {
+        var err = new PlayerError(text);
+        if (player) player.fire(C.S_ERROR, err);
+        throw err;
+    },
+    animation: function(text, anim) {
+        var err = new AnimationError(text);
+        if (anim) anim.fire(C.X_ERROR, err);
+        throw err;
+    },
+    element: function(text, elm) {
+        var err = new AnimationError(text);
+        if (elm && elm.anim) {
+            elm.anim.fire(C.X_ERROR, err);
+        }
+        throw err;
+    },
 
-  system: function(text) { fire(new SystemError(text)); },
-  player: function(text) { fire(new PlayerError(text)); },
-  animation: function(text) { fire(new AnimationError(text)); },
-
-  SystemError: SystemError,
-  PlayerError: PlayerError,
-  AnimationError: AnimationError
+    SystemError: SystemError,
+    PlayerError: PlayerError,
+    AnimationError: AnimationError
 
 };
