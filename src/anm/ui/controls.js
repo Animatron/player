@@ -136,7 +136,7 @@ Controls.prototype.checkFade = function(dt) {
 Controls.prototype.render = function(gtime) {
     this.checkMouseTimeout(gtime);
 
-    var dt = gtime-this.state.gtime;
+    var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
 
@@ -195,9 +195,7 @@ Controls.prototype.render = function(gtime) {
         drawNoAnimation(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
-        drawBack(ctx, theme, w, h);
-        drawLoadingProgress(ctx, w, h, ((gtime / 100  % 60) / 60),
-                            this.loadingProgress, this.loadingErrors);
+        drawLoadingProgress(ctx, w, h, this.loadingProgress, this.loadingErrors);
     } else if (s === C.ERROR) {
         drawBack(ctx, theme, w, h);
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
@@ -208,8 +206,8 @@ Controls.prototype.render = function(gtime) {
     this.fire(C.X_DRAW);
 
     if (this.info) {
-      if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
-      else { this._infoShown = false; }
+        if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+        else { this._infoShown = false; }
     }
     //we might have a non-changing state like STOPPED, but it will still
     //need to be redrawn when fading in/out, so we apply our fade modifier
@@ -534,48 +532,30 @@ var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.restore();
 };
 
-//draw the loader
-var drawLoadingProgress = function(ctx, w, h, hilite_pos, factor, errorFactor) {
-    var cx = w / 2,
-        cy = h / 2,
-        segment = Math.ceil(90 * hilite_pos),
-        twoPi = 2 * Math.PI,
-        segmentPos = twoPi/90*segment;
-        segmentAngle = twoPi/8;
+// draw loading progress at the bottom
+var drawLoadingProgress = function(ctx, w, h, factor, errorFactor) {
 
-    ctx.translate(cx, cy);
-    ctx.strokeStyle = theme.loading.inactiveColor;
-    ctx.lineWidth = 2;
-    ctx.beginPath();
-    ctx.arc(0, 0, 36, 0, twoPi);
-    ctx.stroke();
-    ctx.closePath();
-    ctx.beginPath();
-    ctx.strokeStyle = theme.loading.activeColor;
-    ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
-    ctx.stroke();
-    ctx.closePath();
+    if (!factor && !errorFactor) return;
 
     // draw loading progress at the bottom
-    if (factor || errorFactor) {
-        ctx.translate(-cx, cy - theme.loading.factorLineWidth); // bottom right corner - 2px
-        ctx.strokeStyle = theme.loading.factorBackColor;
-        ctx.lineWidth = theme.loading.factorLineWidth;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(w, 0);
+
+    ctx.translate(0, h - theme.loading.factorLineWidth);
+    ctx.strokeStyle = theme.loading.factorBackColor;
+    ctx.lineWidth = theme.loading.factorLineWidth;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w, 0);
+    ctx.stroke();
+    ctx.strokeStyle = theme.loading.factorDoneColor;
+    ctx.beginPath();
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w * factor, 0);
+    ctx.stroke();
+    if (errorFactor) {
+        ctx.strokeStyle = theme.loading.factorErrorColor;
+        ctx.moveTo(w * factor, 0);
+        ctx.lineTo(w * errorFactor, 0);
         ctx.stroke();
-        ctx.strokeStyle = theme.loading.factorDoneColor;
-        ctx.beginPath();
-        ctx.moveTo(0, 0);
-        ctx.lineTo(w * factor, 0);
-        ctx.stroke();
-        if (errorFactor) {
-            ctx.strokeStyle = theme.loading.factorErrorColor;
-            ctx.moveTo(w * factor, 0);
-            ctx.lineTo(w * errorFactor, 0);
-            ctx.stroke();
-        }
     }
 };
 
