@@ -2,10 +2,8 @@ var utils = require('./utils.js'),
     is = utils.is;
 
 var loc = require('./loc.js'),
-    Errors = loc.Errors,
-    errors = require('./errors.js'),
-    SystemError = errors.SystemError,
-    PlayerError = errors.PlayerError;
+    ErrLoc = loc.Errors,
+    errors = require('./errors.js');
 
 var C = require('./constants.js'),
     global_opts = require('./global_opts.js');
@@ -17,7 +15,7 @@ var Animation = require('./animation/animation.js');
 var Loader = {};
 
 Loader.loadFromUrl = function(player, url, importer, callback) {
-    if (!JSON) throw new SystemError(Errors.S.NO_JSON_PARSER);
+    if (!JSON) throw errors.system(ErrLoc.S.NO_JSON_PARSER, player);
 
     mporter = importer || anm.importers.create('animatron');
 
@@ -32,10 +30,10 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
         player._checkOpts();
     }
 
-    var failure = player.__defAsyncSafe(function(err) {
-        throw new SystemError(utils.strf(Errors.P.SNAPSHOT_LOADING_FAILED,
-                               [ (err ? (err.message || err) : '¿Por qué?') ]));
-    });
+    var failure = function(err) {
+        throw errors.system(utils.strf(ErrLoc.P.SNAPSHOT_LOADING_FAILED,
+                            [ (err ? (err.message || err) : '¿Por qué?') ]));
+    };
 
     var success = function(req) {
         try {
@@ -53,7 +51,7 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
 };
 
 Loader.loadFromObj = function(player, object, importer, callback) {
-    if (!importer) throw new PlayerError(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
+    if (!importer) throw errors.player(ErrLoc.P.NO_IMPORTER_TO_LOAD_WITH, player);
     var anim = importer.load(object);
     player.fire(C.S_IMPORT, importer, anim, object);
     Loader.loadAnimation(player, anim, callback);
@@ -62,8 +60,9 @@ Loader.loadFromObj = function(player, object, importer, callback) {
 Loader.loadAnimation = function(player, anim, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
-    if (player.debug && !global_opts.liveDebug)
+    if (player.debug && !global_opts.liveDebug) {
         anim.visitElems(function(e) {e.addDebugRender();}); /* FIXME: ensure not to add twice */
+    }
     if (!anim.width || !anim.height) {
         anim.width = player.width;
         anim.height = player.height;

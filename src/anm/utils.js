@@ -196,7 +196,7 @@ function strf(str, subst) {
 function collect_to(str, start, ch) {
     var result = '';
     for (var i = start; str[i] !== ch; i++) {
-        if (i === str.length) throw new SystemError('Reached end of string');
+        if (i === str.length) throw new Error('Reached end of string');
         result += str[i];
     }
     return result;

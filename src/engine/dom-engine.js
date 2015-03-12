@@ -141,7 +141,7 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     }
 
     if (!req) {
-      throw new Error('Failed to create XMLHttp instance'); // SysErr
+        throw new Error('Failed to create XMLHttp instance'); // SysErr
     }
 
     var whenDone = function() {

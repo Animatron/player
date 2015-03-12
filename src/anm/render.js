@@ -79,26 +79,24 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
     if (!size_differs) {
-        try {
-            ctx.clearRect(0, 0, anim.width,
-                                anim.height);
-            if (before) before(time, ctx);
-            if (zoom != 1) ctx.scale(zoom, zoom);
-            anim.render(ctx, time, dt);
-            if (after) after(time, ctx);
-        } finally { ctx.restore(); }
+        ctx.clearRect(0, 0, anim.width,
+                            anim.height);
+        if (before) before(time, ctx);
+        if (zoom != 1) ctx.scale(zoom, zoom);
+        anim.render(ctx, time, dt);
+        if (after) after(time, ctx);
+        ctx.restore();
     } else {
         r_with_ribbons(ctx, width, height,
                             anim.width, anim.height,
                             rib_color,
             function(_scale) {
-                try {
-                  ctx.clearRect(0, 0, anim.width, anim.height);
-                  if (before) before(time, ctx);
-                  if (zoom != 1) ctx.scale(zoom, zoom);
-                  anim.render(ctx, time, dt);
-                  if (after) after(time, ctx);
-                } finally { ctx.restore(); }
+                ctx.clearRect(0, 0, anim.width, anim.height);
+                if (before) before(time, ctx);
+                if (zoom != 1) ctx.scale(zoom, zoom);
+                anim.render(ctx, time, dt);
+                if (after) after(time, ctx);
+                ctx.restore();
             });
     }
 }

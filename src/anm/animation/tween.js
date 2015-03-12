@@ -1,8 +1,10 @@
-var C = require('../constants.js'),
-    is = require('../utils.js').is,
-    Modifier = require('./modifier.js'),
-    AnimationError = require('../errors.js').AnimationError,
-    Brush = require('../graphics/brush.js');
+var C = require('../constants.js');
+var is = require('../utils.js').is;
+
+var Modifier = require('./modifier.js');
+var Brush = require('../graphics/brush.js');
+
+var errors = require('../errors.js');
 
 /**
  * @class anm.Tween
@@ -41,7 +43,7 @@ var C = require('../constants.js'),
  * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(anm.C.E_IN))`
  */
 function Tween(tween_type, data) {
-    if (!tween_type) throw new Error('Tween type is required to be specified or function passed');
+    if (!tween_type) throw errors.element('Tween type is required to be specified or function passed');
     var func;
     if (is.fun(tween_type)) {
         func = tween_type;
@@ -70,7 +72,7 @@ function Tween(tween_type, data) {
 }
 
 var data_block_fn = function() {
-    throw new AnimationError("Data should be passed to tween in a constructor or using from()/to() methods");
+    throw errors.element("Data should be passed to tween in a constructor or using from()/to() methods");
 };
 
 // TODO: add function to add every tween type in easy way, may be separate module?

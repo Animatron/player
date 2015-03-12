@@ -1,10 +1,11 @@
-var provideEvents = require('../events.js').provideEvents,
-    C = require('../constants.js'),
-    engine = require('engine'),
-    InfoBlock = require('./infoblock.js'),
-    Strings = require('../loc.js').Strings,
-    utils = require('../utils.js'),
+var utils = require('../utils.js'),
     is = utils.is;
+
+var C = require('../constants.js'),
+    Strings = require('../loc.js').Strings;
+
+var engine = require('engine'),
+    InfoBlock = require('./infoblock.js');
 
 //fade modes
 var FADE_NONE = 0,
@@ -24,7 +25,7 @@ function Controls(player) {
     this.bounds = [];
     this.theme = null;
     this.info = null;
-    this._initHandlers(); /* TODO: make automatic */
+
     this.state = {
         happens: C.NOTHING,
         mpos: {x: 0, y: 0},
@@ -43,7 +44,6 @@ var theme = Controls.DEFAULT_THEME = require('./controls_theme.json');
 Controls.THEME = Controls.DEFAULT_THEME;
 
 Controls.LAST_ID = 0;
-provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas;
     if (!cvs) {
@@ -64,7 +64,6 @@ Controls.prototype.update = function(parent) {
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
-    BACK_GRAD = null; // invalidate back gradient
 };
 
 Controls.prototype.subscribeEvents = function() {
@@ -203,7 +202,6 @@ Controls.prototype.render = function(gtime) {
     }
 
     ctx.restore();
-    this.fire(C.X_DRAW);
 
     if (this.info) {
         if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }

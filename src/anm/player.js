@@ -29,11 +29,9 @@ var utils = require('./utils.js'),
     provideEvents = events.provideEvents;
 
 var loc = require('./loc.js'),
-    Strings = loc.Strings,
-    Errors = loc.Errors,
-    errors = require('./errors.js'),
-    PlayerError = errors.PlayerError,
-    SystemError = errors.SystemError;
+    StrLoc = loc.Strings,
+    ErrLoc = loc.Errors,
+    errors = require('./errors.js');
 
 var engine = require('engine'),
     resourceManager = require('./resource_manager.js'),
@@ -100,7 +98,6 @@ function Player() {
     this.controls = null;
     this.__canvasPrepared = false;
     this.__instanceNum = ++Player.__instances;
-    this.__makeSafe(Player._SAFE_METHODS);
     this.muted = false;
 }
 Player.__instances = 0;
@@ -142,15 +139,6 @@ Player.EMPTY_STROKE_WIDTH = 3;
 
 // ### Playing Control API
 /* ----------------------- */
-
-/**
-  * @private @static @property
-  *
-  * Methods listed below are directly wrapped with try/catch to check
-  * which way of handling/suppressing errors is current one for this player
-  * and act with caught errors basing on this way
-  */
-Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
 
 /* TODO: add load/play/pause/stop events */
 
@@ -228,9 +216,10 @@ Player._SAFE_METHODS = [ 'init', 'load', 'play', 'stop', 'pause', 'drawAt' ];
  */
 
 Player.prototype.init = function(elm, opts) {
-    if (this.canvas || this.wrapper) throw new PlayerError(Errors.P.INIT_TWICE);
-    if (this.anim) throw new PlayerError(Errors.P.INIT_AFTER_LOAD);
     this._initHandlers(); /* TODO: make automatic */
+    this.on(C.S_ERROR, this.__onerror());
+    if (this.canvas || this.wrapper) throw errors.player(ErrLoc.P.INIT_TWICE, this);
+    if (this.anim) throw errors.player(ErrLoc.P.INIT_AFTER_LOAD, this);
     this._prepare(elm);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts(engine.extractUserOptions(this.canvas));
@@ -278,7 +267,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
-        throw new PlayerError(Errors.P.COULD_NOT_LOAD_WHILE_PLAYING);
+        throw errors.player(ErrLoc.P.COULD_NOT_LOAD_WHILE_PLAYING, player);
     }
 
     /* object */
@@ -305,7 +294,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     //        we can't let ourselves create an importer instance manually here,
     //        so it's considered a problem of naming.
     if ((arg2 && arg2.IMPORTER_ID) || (arg3 && arg3.IMPORTER_ID)) {
-        throw new PlayerError(Errors.P.IMPORTER_CONSTRUCTOR_PASSED);
+        throw errors.player(ErrLoc.P.IMPORTER_CONSTRUCTOR_PASSED, player);
     }
 
     if (is.fun(arg2)) { callback = arg2; } /* object, callback */
@@ -329,7 +318,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                              // it was requested after the call to 'play', or else it was called by user
                              // FIXME: may be playLock was set by player and user calls this method
                              //        while some animation is already loading
-        if (player._postponedLoad) throw new PlayerError(Errors.P.LOAD_WAS_ALREADY_POSTPONED);
+        if (player._postponedLoad) throw errors.player(ErrLoc.P.LOAD_WAS_ALREADY_POSTPONED, player);
         player._lastReceivedAnimationId = null;
         // this kind of postponed call is different from the ones below (_clearPostpones and _postpone),
         // since this one is related to loading mode, rather than calling later some methods which
@@ -346,10 +335,10 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         player.anim = null;
         player._reset();
         player.stop();
-        throw new PlayerError(Errors.P.NO_ANIMATION_PASSED);
+        throw errors.player(ErrLoc.P.NO_ANIMATION_PASSED, player);
     }
 
-    if (!player.__canvasPrepared) throw new PlayerError(Errors.P.CANVAS_NOT_PREPARED);
+    if (!player.__canvasPrepared) throw errors.player(ErrLoc.P.CANVAS_NOT_PREPARED, player);
 
     player._reset();
 
@@ -380,9 +369,9 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
             // subscribe to wait until remote resources will be ready or failed
-            resourceManager.subscribe(player.id, remotes, [ player.__defAsyncSafe(
+            resourceManager.subscribe(player.id, remotes, [
                 function(res_results, err_count) {
-                    //if (err_count) throw new AnimErr(Errors.A.RESOURCES_FAILED_TO_LOAD);
+                    //if (err_count) throw errors.animation(ErrLoc.A.RESOURCES_FAILED_TO_LOAD, player);
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
@@ -402,7 +391,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         }
                     }
                 }
-            ) ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
+            ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
                 player.controls.loadingProgress = progress;
                 player.controls.loadingErrors = errors;
             } : null);
@@ -411,7 +400,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         }
 
     };
-    whenDone = player.__defAsyncSafe(whenDone);
 
     /* TODO: configure canvas using clips bounds? */
 
@@ -476,7 +464,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     if (state.happens === C.PLAYING) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
-        else throw new PlayerError(Errors.P.ALREADY_PLAYING);
+        else throw errors.player(ErrLoc.P.ALREADY_PLAYING, player);
     }
 
     if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
@@ -486,7 +474,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         player._playLock = true;
         var loadArgs = player._postponedLoad,
             playArgs = arguments;
-        if (!loadArgs) throw new PlayerError(Errors.P.NO_LOAD_CALL_BEFORE_PLAY);
+        if (!loadArgs) throw errors.player(ErrLoc.P.NO_LOAD_CALL_BEFORE_PLAY, player);
         var loadCallback = loadArgs[3];
         var afterLoad = function() {
             if (loadCallback) loadCallback.call(player, arguments);
@@ -527,7 +515,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
                      : (anim.duration || (anim.isEmpty() ? 0
                                                            : Animation.DEFAULT_DURATION));
 
-    if (state.duration === undefined) throw new PlayerError(Errors.P.DURATION_IS_NOT_KNOWN);
+    if (state.duration === undefined) throw errors.player(ErrLoc.P.DURATION_IS_NOT_KNOWN, player);
 
     state.__startTime = Date.now();
     state.__redraws = 0;
@@ -647,7 +635,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw new PlayerError(Errors.P.PAUSING_WHEN_STOPPED);
+        throw errors.player(ErrLoc.P.PAUSING_WHEN_STOPPED, player);
     }
 
     if (state.happens === C.PLAYING) {
@@ -693,12 +681,12 @@ provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
                         C.S_ERROR ]);
 Player.prototype._prepare = function(elm) {
-    if (!elm) throw new PlayerError(Errors.P.NO_WRAPPER_PASSED);
+    if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
     if (is.str(elm)) {
         wrapper_id = elm;
         wrapper = engine.getElementById(wrapper_id);
-        if (!wrapper_id) throw new PlayerError(utils.strf(Errors.P.NO_WRAPPER_WITH_ID, [wrapper_id]));
+        if (!wrapper_id) throw errors.player(utils.strf(ErrLoc.P.NO_WRAPPER_WITH_ID, [wrapper_id]), this);
     } else {
         if (!elm.id) elm.id = ('anm-player-' + Player.__instances);
         wrapper_id = elm.id;
@@ -708,7 +696,7 @@ Player.prototype._prepare = function(elm) {
     this.id = assign_data.id;
     this.wrapper = assign_data.wrapper;
     this.canvas = assign_data.canvas;
-    if (!engine.checkPlayerCanvas(this.canvas)) throw new PlayerError(Errors.P.CANVAS_NOT_VERIFIED);
+    if (!engine.checkPlayerCanvas(this.canvas)) throw errors.player(ErrLoc.P.CANVAS_NOT_VERIFIED, this);
     this.ctx = engine.getContext(this.canvas, '2d');
     this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
@@ -825,7 +813,7 @@ Player.prototype._postInit = function() {
  * @param {Number} val `C.M_*` constant
  */
 Player.prototype.mode = function(val) {
-    if (!is.defined(val)) { throw new PlayerError("Please define a mode to set"); }
+    if (!is.defined(val)) { throw errors.player("Please define a mode to set", this); }
     this.infiniteDuration = (val & C.M_INFINITE_DURATION) || undefined;
     this.handleEvents = (val & C.M_HANDLE_EVENTS) || undefined;
     this.controlsEnabled = (val & C.M_CONTROLS_ENABLED) || undefined;
@@ -888,7 +876,7 @@ Player.prototype.forceRedraw = function() {
  * @param {Number} time
  */
 Player.prototype.drawAt = function(time) {
-    if (time === Player.NO_TIME) throw new PlayerError(Errors.P.PASSED_TIME_VALUE_IS_NO_TIME);
+    if (time === Player.NO_TIME) throw errors.player(ErrLoc.P.PASSED_TIME_VALUE_IS_NO_TIME, this);
     if ((this.state.happens === C.RES_LOADING) &&
         (this.loadingMode === C.LM_ONREQUEST)) { this._postpone('drawAt', arguments);
                                                    return; } // if player loads remote resources just now,
@@ -896,7 +884,7 @@ Player.prototype.drawAt = function(time) {
                                                              // will be called when all remote resources were
                                                              // finished loading
     if ((time < 0) || (time > this.anim.duration)) {
-        throw new PlayerError(utils.strf(Errors.P.PASSED_TIME_NOT_IN_RANGE, [time]));
+        throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,
         u_before = this.__userBeforeRender,
@@ -1104,7 +1092,7 @@ Player.__invalidate = function(player) {
  */
 // TODO: change to before/after for events?
 Player.prototype.beforeFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.BEFOREFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFOREFRAME_BEFORE_PLAY, this);
     this.__userBeforeFrame = callback;
 };
 
@@ -1118,7 +1106,7 @@ Player.prototype.beforeFrame = function(callback) {
  * @param {Boolean} callback.return
  */
 Player.prototype.afterFrame = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.AFTERFRAME_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERFRAME_BEFORE_PLAY, this);
     this.__userAfterFrame = callback;
 };
 
@@ -1132,7 +1120,7 @@ Player.prototype.afterFrame = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.beforeRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.BEFORENDER_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.BEFORENDER_BEFORE_PLAY, this);
     this.__userBeforeRender = callback;
 };
 
@@ -1146,7 +1134,7 @@ Player.prototype.beforeRender = function(callback) {
  * @param {Canvas2DContext} callback.ctx
  */
 Player.prototype.afterRender = function(callback) {
-    if (this.state.happens === C.PLAYING) throw new PlayerError(Errors.P.AFTERRENDER_BEFORE_PLAY);
+    if (this.state.happens === C.PLAYING) throw errors.player(ErrLoc.P.AFTERRENDER_BEFORE_PLAY, this);
     this.__userAfterRender = callback;
 };
 
@@ -1310,7 +1298,7 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '12px sans-serif';
-    ctx.fillText(text || Strings.LOADING, 20, 25);
+    ctx.fillText(text || StrLoc.LOADING, 20, 25);
     ctx.restore();
 };
 
@@ -1349,7 +1337,7 @@ Player.prototype._drawErrorSplash = function(e) {
     ctx.setTransform(1, 0, 0, 1, 0, 0);
     ctx.fillStyle = '#006';
     ctx.font = '14px sans-serif';
-    ctx.fillText(Strings.ERROR +
+    ctx.fillText(StrLoc.ERROR +
                  (e ? ': ' + (e.message || (typeof Error))
                     : '') + '.', 20, 25);
     ctx.restore();
@@ -1469,6 +1457,7 @@ Player.prototype.__subscribeDynamicEvents = function(anim) {
         }
         if (!subscribed) {
             this.__boundTo.push([ anim.id, this.canvas ]);
+            anim.on(C.X_ERROR, this.__onerror());
             anim.subscribeEvents(this.canvas);
         }
     }
@@ -1494,11 +1483,11 @@ Player.prototype.__unsubscribeDynamicEvents = function(anim) {
 };
 
 Player.prototype._ensureHasState = function() {
-    if (!this.state) throw new PlayerError(Errors.P.NO_STATE);
+    if (!this.state) throw errors.player(ErrLoc.P.NO_STATE, this);
 };
 
 Player.prototype._ensureHasAnim = function() {
-    if (!this.anim) throw new PlayerError(Errors.P.NO_ANIMATION);
+    if (!this.anim) throw errors.player(ErrLoc.P.NO_ANIMATION, this);
 };
 
 Player.prototype.__beforeFrame = function(anim) {
@@ -1542,10 +1531,15 @@ Player.prototype.__afterFrame = function(anim) {
     })(this, this.state, anim, this.__userAfterFrame);
 };
 
+Player.prototype.__onerror = function() {
+    var me = this;
+    return function(err) { return me.onerror_f(err); };
+}
+
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
-// this error over itself
-Player.prototype.__onerror = function(err) {
+// this error in its UI
+Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;
       doMute = doMute && !(err instanceof SystemError);
@@ -1554,11 +1548,10 @@ Player.prototype.__onerror = function(err) {
       if (player.state) player.state.happens = C.ERROR;
       player.__lastError = err;
       player.fire(C.S_CHANGE_STATE, C.ERROR);
-      player.fire(C.S_ERROR, err);
 
       player.anim = null;
       // was here: /*if (player.state)*/ player.__unsafe_stop();
-  } catch(e) { throw new SystemError(utils.strf(Errors.S.ERROR_HANDLING_FAILED, [err.message || err])); }
+  } catch(e) { throw e; }
 
   try {
       if (player.state &&
@@ -1574,68 +1567,6 @@ Player.prototype.__onerror = function(err) {
       try { this._drawErrorSplash(err); } catch(e) { /* skip errors in splash */ }
       throw err;
   }
-};
-
-Player.prototype.__callSafe = function(f) {
-  try {
-    return f.call(this);
-  } catch(err) {
-    this.__onerror(err);
-  }
-};
-
-// safe call generator for player method (synchronous calls)
-Player.prototype.__defSafe = function(method_f) {
-  var player = this;
-  return function() {
-    var args = arguments;
-    if (!this.__safe_ctx) { // already in safe context
-      this.__safe_ctx = true;
-      try {
-        var ret_val = player.__callSafe(function() {
-          return method_f.apply(player, args);
-        });
-        this.__safe_ctx = false;
-        return ret_val;
-      } catch(err) {
-        this.__safe_ctx = false;
-        throw err;
-      }
-    } else {
-      return method_f.apply(player, args);
-    }
-  };
-};
-
-// safe call generator for asycnhronous function
-Player.prototype.__defAsyncSafe = function(func) {
-  var player = this;
-  return function() {
-    var args = arguments;
-    try {
-      var ret_val = player.__callSafe(function() {
-        return func.apply(player, args);
-      });
-      return ret_val;
-    } catch(err) {
-      throw err;
-    }
-  };
-};
-
-Player.prototype.__makeSafe = function(methods) {
-  var player = this;
-  for (var i = 0, il = methods.length; i < il; i++) {
-    var method = methods[i];
-    if (!player[method]) throw new SystemError(utils.strf(Errors.S.NO_METHOD_FOR_PLAYER, [method]));
-    player['__unsafe_'+method] = player[method];
-    player[method] = player.__defSafe(player[method]);
-  }
-};
-
-Player.prototype.handle__x = function(type, evt) {
-    if (this.anim) this.anim.fire(type, this);
-    return true;
 };
 
 Player.prototype._clearPostpones = function() {

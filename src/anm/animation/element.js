@@ -23,8 +23,8 @@ var Modifier = require('./modifier.js'),
     Painter = require('./painter.js'),
     Bands = require('./band.js');
 
-var AnimationError = require('../errors.js').AnimationError,
-    Errors = require('../loc.js').Errors;
+var errors = require('../errors.js'),
+    ErrLoc = require('../loc.js').Errors;
 
 // Internal Constants
 // -----------------------------------------------------------------------------
@@ -42,16 +42,6 @@ function t_cmp(t0, t1) {
     if (t_adjust(t0) < t_adjust(t1)) return -1;
     return 0;
 }
-
-var isPlayerEvent = function(type) {
-    // FIXME: make some marker to group types of events
-    return ((type == C.S_CHANGE_STATE) ||
-            (type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
-            (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
-            (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
-            (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
-            (type == C.S_COMPLETE));
-};
 
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
@@ -177,11 +167,7 @@ Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
                          C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_DRAW, C.X_START, C.X_STOP,
-                         // player events
-                         C.S_CHANGE_STATE,
-                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                         C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                         C.X_START, C.X_STOP ]);
 /**
  * @method is
  *
@@ -828,112 +814,108 @@ Element.prototype.render = function(ctx, gtime, dt) {
     }
     if (drawMe) {
         ctx.save();
-        try {
-            // update global time with new local time (it may've been
-            // changed if there were jumps or something), so children will
-            // get the proper value
-            gtime = this.gtime(ltime);
-            if (!this.$mask) {
-                // draw directly to context, if has no mask
-                this.transform(ctx);
-                this.painters(ctx);
-                this.each(function(child) {
-                    child.render(ctx, gtime, dt);
-                });
-            } else {
-                // FIXME: the complete mask process should be a Painter.
+        // update global time with new local time (it may've been
+        // changed if there were jumps or something), so children will
+        // get the proper value
+        gtime = this.gtime(ltime);
+        if (!this.$mask) {
+            // draw directly to context, if has no mask
+            this.transform(ctx);
+            this.painters(ctx);
+            this.each(function(child) {
+                child.render(ctx, gtime, dt);
+            });
+        } else {
+            // FIXME: the complete mask process should be a Painter.
 
-                var mask = this.$mask;
+            var mask = this.$mask;
 
-                // FIXME: move this chain completely into one method, or,
-                //        which is even better, make all these checks to be modifiers
-                // FIXME: call modifiers once for one moment of time. If there are several
-                //        masked elements, they will be called that number of times
-                if (!(mask.fits(ltime) &&
-                      mask.modifiers(ltime, dt) &&
-                      mask.visible)) return;
-                      // what should happen if mask doesn't fit in time?
+            // FIXME: move this chain completely into one method, or,
+            //        which is even better, make all these checks to be modifiers
+            // FIXME: call modifiers once for one moment of time. If there are several
+            //        masked elements, they will be called that number of times
+            if (!(mask.fits(ltime) &&
+                  mask.modifiers(ltime, dt) &&
+                  mask.visible)) return;
+                  // what should happen if mask doesn't fit in time?
 
-                mask.ensureHasMaskCanvas();
-                var mcvs = mask.__maskCvs,
-                    mctx = mask.__maskCtx,
-                    bcvs = mask.__backCvs,
-                    bctx = mask.__backCtx;
+            mask.ensureHasMaskCanvas();
+            var mcvs = mask.__maskCvs,
+                mctx = mask.__maskCtx,
+                bcvs = mask.__backCvs,
+                bctx = mask.__backCtx;
 
-                // FIXME: test if bounds are not empty
-                var bounds_pts = mask.bounds(ltime).toPoints();
+            // FIXME: test if bounds are not empty
+            var bounds_pts = mask.bounds(ltime).toPoints();
 
-                var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
-                    maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+            var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
+                maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 
-                var pt;
-                for (var i = 0, il = bounds_pts.length; i < il; i++) {
-                    pt = bounds_pts[i];
-                    if (pt.x < minX) minX = pt.x;
-                    if (pt.y < minY) minY = pt.y;
-                    if (pt.x > maxX) maxX = pt.x;
-                    if (pt.y > maxY) maxY = pt.y;
-                }
-
-                var ratio  = engine.PX_RATIO,
-                    x = minX, y = minY,
-                    width  = Math.round(maxX - minX),
-                    height = Math.round(maxY - minY);
-
-                var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
-
-                if ((last_cvs_size[0] < width) ||
-                    (last_cvs_size[1] < height)) {
-                    // mcvs/bcvs both always have the same size, so we save/check only one of them
-                    this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
-                    engine.setCanvasSize(bcvs, width, height);
-                } else {
-                    this._maskCvsSize = last_cvs_size;
-                }
-
-                var scale = ratio;  // multiple by global scale when it's known
-
-                bctx.clearRect(0, 0, width*scale, height*scale);
-                mctx.clearRect(0, 0, width*scale, height*scale);
-
-                bctx.save();
-                mctx.save();
-
-                bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-                mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-
-                this.transform(bctx);
-                this.painters(bctx);
-                this.each(function(child) {
-                    child.render(bctx, gtime, dt);
-                });
-
-                mask.transform(mctx);
-                mask.painters(mctx);
-                mask.each(function(child) {
-                    child.render(mctx, gtime, dt);
-                });
-
-                bctx.globalCompositeOperation = 'destination-in';
-                bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0);
-
-                ctx.drawImage(bcvs,
-                    0, 0, Math.floor(width * scale), Math.floor(height * scale),
-                    x, y, width, height);
-
-                mctx.restore();
-                bctx.restore();
+            var pt;
+            for (var i = 0, il = bounds_pts.length; i < il; i++) {
+                pt = bounds_pts[i];
+                if (pt.x < minX) minX = pt.x;
+                if (pt.y < minY) minY = pt.y;
+                if (pt.x > maxX) maxX = pt.x;
+                if (pt.y > maxY) maxY = pt.y;
             }
-        } catch(e) { log.error(e); }
-          finally { ctx.restore(); }
+
+            var ratio  = engine.PX_RATIO,
+                x = minX, y = minY,
+                width  = Math.round(maxX - minX),
+                height = Math.round(maxY - minY);
+
+            var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
+
+            if ((last_cvs_size[0] < width) ||
+                (last_cvs_size[1] < height)) {
+                // mcvs/bcvs both always have the same size, so we save/check only one of them
+                this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
+                engine.setCanvasSize(bcvs, width, height);
+            } else {
+                this._maskCvsSize = last_cvs_size;
+            }
+
+            var scale = ratio;  // multiple by global scale when it's known
+
+            bctx.clearRect(0, 0, width*scale, height*scale);
+            mctx.clearRect(0, 0, width*scale, height*scale);
+
+            bctx.save();
+            mctx.save();
+
+            bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+            mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+
+            this.transform(bctx);
+            this.painters(bctx);
+            this.each(function(child) {
+                child.render(bctx, gtime, dt);
+            });
+
+            mask.transform(mctx);
+            mask.painters(mctx);
+            mask.each(function(child) {
+                child.render(mctx, gtime, dt);
+            });
+
+            bctx.globalCompositeOperation = 'destination-in';
+            bctx.setTransform(1, 0, 0, 1, 0, 0);
+            bctx.drawImage(mcvs, 0, 0);
+
+            ctx.drawImage(bcvs,
+                0, 0, Math.floor(width * scale), Math.floor(height * scale),
+                x, y, width, height);
+
+            mctx.restore();
+            bctx.restore();
+        }
+        ctx.restore();
     }
-    // immediately when drawn, element becomes shown,
-    // it is reasonable
+    // immediately after being drawn, element is shown, it is reasonable
     this.shown = drawMe;
     this.__postRender();
     this.rendering = false;
-    if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
 };
 
@@ -1211,16 +1193,16 @@ Element.prototype.modify = function(band, modifier) {
     //           nor painters, they should be accessible through this.t / this.dt
     if (!is.arr(band)) { modifier = band;
                         band = null; }
-    if (!modifier) throw new AnimationError('No modifier was passed to .modify() method');
+    if (!modifier) throw errors.element('No modifier was passed to .modify() method', this);
     if (!is.modifier(modifier) && is.fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
     } else if (!is.modifier(modifier)) {
-        throw new AnimationError('Modifier should be either a function or a Modifier instance');
+        throw errors.element('Modifier should be either a function or a Modifier instance', this);
     }
-    if (!modifier.type) throw new AnimationError('Modifier should have a type defined');
+    if (!modifier.type) throw errors.element('Modifier should have a type defined', this);
     if (band) modifier.$band = band;
     if (modifier.__applied_to &&
-        modifier.__applied_to[this.id]) throw new AnimationError('This modifier is already applied to this Element');
+        modifier.__applied_to[this.id]) throw errors.element('This modifier is already applied to this Element', this);
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
     this.__modifiers_hash[modifier.id] = modifier;
@@ -1242,10 +1224,10 @@ Element.prototype.modify = function(band, modifier) {
 Element.prototype.removeModifier = function(modifier) {
     // FIXME!!!: do not pass time, dt and duration neither to modifiers
     //           nor painters, they should be accessible through this.t / this.dt
-    if (!is.modifier(modifier)) throw new AnimationError('Please pass Modifier instance to removeModifier');
-    if (!this.__modifiers_hash[modifier.id]) throw new AnimationError('Modifier wasn\'t applied to this element');
-    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimationError(Errors.A.MODIFIER_NOT_ATTACHED);
-    //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
+    if (!is.modifier(modifier)) throw errors.element('Please pass Modifier instance to removeModifier', this);
+    if (!this.__modifiers_hash[modifier.id]) throw errors.element('Modifier wasn\'t applied to this element', this);
+    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw errors.element(ErrLoc.A.MODIFIER_NOT_ATTACHED, this);
+    //if (this.__modifying) throw errors.element("Can't remove modifiers while modifying");
     utils.removeElement(this.__modifiers_hash, modifier.id);
     utils.removeElement(this.$modifiers[modifier.type], modifier);
     utils.removeElement(modifier.__applied_to, this.id);
@@ -1271,15 +1253,15 @@ Element.prototype.removeModifier = function(modifier) {
  * @return {anm.Element} itself
  */
 Element.prototype.paint = function(painter) {
-    if (!painter) throw new AnimationError('No painter was passed to .paint() method');
+    if (!painter) throw errors.element('No painter was passed to .paint() method', this);
     if (!is.painter(painter) && is.fun(painter)) {
         painter = new Painter(painter, C.MOD_USER);
     } else if (!is.painter(painter)) {
-        throw new AnimationError('Painter should be either a function or a Painter instance');
+        throw errors.element('Painter should be either a function or a Painter instance', this);
     }
-    if (!painter.type) throw new AnimationError('Painter should have a type defined');
+    if (!painter.type) throw errors.element('Painter should have a type defined', this);
     if (painter.__applied_to &&
-        painter.__applied_to[this.id]) throw new AnimationError('This painter is already applied to this Element');
+        painter.__applied_to[this.id]) throw errors.element('This painter is already applied to this Element', this);
     if (!this.$painters[painter.type]) this.$painters[painter.type] = [];
     this.$painters[painter.type].push(painter);
     this.__painters_hash[painter.id] = painter;
@@ -1299,10 +1281,10 @@ Element.prototype.paint = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.removePainter = function(painter) {
-    if (!is.painter(painter)) throw new AnimationError('Please pass Painter instance to removePainter');
-    if (!this.__painters_hash[painter.id]) throw new AnimationError('Painter wasn\'t applied to this element');
-    if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
-    //if (this.__modifying) throw new AnimErr("Can't remove modifiers while modifying");
+    if (!is.painter(painter)) throw errors.element('Please pass Painter instance to removePainter', this);
+    if (!this.__painters_hash[painter.id]) throw errors.element('Painter wasn\'t applied to this element', this);
+    if (!painter.__applied_to || !painter.__applied_to[this.id]) throw errors.element(ErrLoc.A.PAINTER_NOT_ATTACHED, this);
+    //if (this.__modifying) throw errors.element("Can't remove modifiers while modifying", this);
     utils.removeElement(this.__painters_hash, painter.id);
     utils.removeElement(this.$painters[painter.type], painter);
     utils.removeElement(painter.__applied_to, this.id);
@@ -1328,7 +1310,7 @@ Element.prototype.removePainter = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.tween = function(tween) {
-    if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .tween() method');
+    if (!is.tween(tween)) throw errors.element('Please pass Tween instance to .tween() method', this);
     // tweens are always receiving time as relative time
     // is.finite(duration) && duration ? (t / duration) : 0
     return this.modify(tween);
@@ -1345,7 +1327,7 @@ Element.prototype.tween = function(tween) {
 * @return {anm.Element} itself
 */
 Element.prototype.removeTween = function(tween) {
-    if (!is.tween(tween)) throw new AnimationError('Please pass Tween instance to .removeTween() method');
+    if (!is.tween(tween)) throw errors.element('Please pass Tween instance to .removeTween() method', this);
     return this.removeModifier(tween);
 };
 
@@ -1391,15 +1373,15 @@ Element.prototype.add = function(arg1, arg2, arg3) {
  * @return {anm.Element} parent, itself
  */
 Element.prototype.remove = function(elm) {
-    if (!elm) throw new AnimationError(Errors.A.NO_ELEMENT_TO_REMOVE);
-    if (this.__safeDetach(elm) === 0) throw new AnimationError(Errors.A.NO_ELEMENT);
+    if (!elm) throw errors.element(ErrLoc.A.NO_ELEMENT_TO_REMOVE);
+    if (this.__safeDetach(elm) === 0) throw errors.element(ErrLoc.A.NO_ELEMENT);
     this.invalidate();
     return this;
 };
 
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
+        this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.anim) this.anim._unregister(this);
     // this.anim should be null after unregistering
@@ -1411,7 +1393,7 @@ Element.prototype._unbind = function() {
  * Detach element from parent, a part of removing process
  */
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) === 0) throw new AnimationError(Errors.A.ELEMENT_NOT_ATTACHED);
+    if (this.parent.__safeDetach(this) === 0) throw errors.element(ErrLoc.A.ELEMENT_NOT_ATTACHED, this);
 };
 
 /**
@@ -1481,20 +1463,6 @@ Element.prototype.ltime = function(gtime) {
 };
 
 /**
- * @private @method handlePlayerEvent
- *
- * Pass player event to this element.
- *
- * @param {C.S_*} event
- * @param {Function} handler
- * @param {anm.Player} handler.player
- */
-Element.prototype.handlePlayerEvent = function(event, handler) {
-    if (!isPlayerEvent(event)) throw new Error('This method is intended to assign only player-related handles');
-    this.on(event, handler);
-};
-
-/**
  * @private @method inform
  *
  * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
@@ -1555,7 +1523,7 @@ Element.prototype.inform = function(ltime) {
 Element.prototype.band = function(start, stop) {
     if (!is.defined(start)) return this.lband;
     // FIXME: array bands should not pass
-    // if (is.arr(start)) throw new AnimErr('Band is specified with two numbers, not an array');
+    // if (is.arr(start)) throw errors.element('Band is specified with two numbers, not an array', this);
     if (is.arr(start)) {
         start = start[0];
         stop = start[1];
@@ -1790,7 +1758,7 @@ Element.prototype.__performDetach = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
+    if (this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE, this);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -2252,7 +2220,7 @@ Element.prototype.asClip = function(band, mode, nrep) {
 };
 
 Element.prototype._addChild = function(elm) {
-    //if (elm.parent) throw new AnimationError('This element already has parent, clone it before adding');
+    //if (elm.parent) throw errors.element('This element already has parent, clone it before adding', this);
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
@@ -2394,7 +2362,7 @@ Element.prototype.__checkJump = function(at) {
         this.keys[this.key] : t;
     if (t !== null) {
         if ((t < 0) || (t > duration)) {
-            throw new AnimationError('failed to calculate jump');
+            throw errors.element('Failed to calculate jump', this);
         }
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
@@ -2426,8 +2394,7 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (!isPlayerEvent(type) &&
-        (type != C.X_START) &&
+    if ((type != C.X_START) &&
         (type != C.X_STOP)) {
       if (this.shown) {
         this.__saveEvt(type, evt);
@@ -2475,7 +2442,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
+            if (this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE, this);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -2521,13 +2488,13 @@ Element.prototype._collectRemoteResources = function(anim, player) {
 
 Element.prototype._loadRemoteResources = function(anim, player) {
     if (player.imagesEnabled && this.$image) {
-        this.$image.load(player.id);
+        this.$image.load(this, player.id);
     }
     if (this.is(C.ET_AUDIO) && player.audioEnabled) {
-        this.$audio.load(player);
+        this.$audio.load(this, player);
     }
     if (this.is(C.ET_VIDEO) && player.videoEnabled) {
-        this.$video.load(player);
+        this.$video.load(this, player);
     }
 };
 
