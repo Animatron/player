@@ -1,4 +1,4 @@
-var C = require('constants.js');
+var C = require('./constants.js');
 
 function __errorAs(name) {
     return function (message) {

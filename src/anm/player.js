@@ -216,10 +216,10 @@ Player.EMPTY_STROKE_WIDTH = 3;
  */
 
 Player.prototype.init = function(elm, opts) {
+    this._initHandlers(); /* TODO: make automatic */
     this.on(C.S_ERROR, this.__onerror());
     if (this.canvas || this.wrapper) throw errors.player(ErrLoc.P.INIT_TWICE, this);
     if (this.anim) throw errors.player(ErrLoc.P.INIT_AFTER_LOAD, this);
-    this._initHandlers(); /* TODO: make automatic */
     this._prepare(elm);
     this._addOpts(Player.DEFAULT_CONFIGURATION);
     this._addOpts(engine.extractUserOptions(this.canvas));

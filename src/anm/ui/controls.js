@@ -1,10 +1,11 @@
-var provideEvents = require('../events.js').provideEvents,
-    C = require('../constants.js'),
-    engine = require('engine'),
-    InfoBlock = require('./infoblock.js'),
-    Strings = require('../loc.js').Strings,
-    utils = require('../utils.js'),
+var utils = require('../utils.js'),
     is = utils.is;
+
+var C = require('../constants.js'),
+    Strings = require('../loc.js').Strings;
+
+var engine = require('engine'),
+    InfoBlock = require('./infoblock.js');
 
 //fade modes
 var FADE_NONE = 0,
@@ -24,7 +25,7 @@ function Controls(player) {
     this.bounds = [];
     this.theme = null;
     this.info = null;
-    this._initHandlers(); /* TODO: make automatic */
+
     this.state = {
         happens: C.NOTHING,
         mpos: {x: 0, y: 0},
