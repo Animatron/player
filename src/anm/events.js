@@ -54,7 +54,7 @@ function provideEvents(subj, events) {
         if (this['handle_'+name] || this.handlers[event].length) {
             var evt_args = new Array(arguments.length - 1);
             for (var i = 1; i < arguments.length; i++) {
-                evt_args[i] = arguments[i];
+                evt_args[i - 1] = arguments[i];
             }
             if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
             var _hdls = this.handlers[event];

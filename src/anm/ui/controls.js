@@ -64,7 +64,6 @@ Controls.prototype.update = function(parent) {
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
-    BACK_GRAD = null; // invalidate back gradient
 };
 
 Controls.prototype.subscribeEvents = function() {

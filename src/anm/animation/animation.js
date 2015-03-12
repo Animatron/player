@@ -339,8 +339,8 @@ Animation.prototype._register = function(elm) {
 
     var me = this;
 
-    if (this.__err_handlers) this.__err_handlers = {};
-    this.__err_handlers[elm.id] = elm.on(C.X_ERROR, function(err) { me.fire(C.X_ERROR, err); });
+    //if (!this.__err_handlers) this.__err_handlers = {};
+    //this.__err_handlers[elm.id] = elm.on(C.X_ERROR, function(err) { me.fire(C.X_ERROR, err); });
 
     elm.each(function(child) {
         me._register(child);
