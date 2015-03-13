@@ -1235,7 +1235,7 @@ Element.prototype.modify = function(band, modifier) {
         modifier.__applied_to[this.id]) throw new AnimationError('This modifier is already applied to this Element');
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
-    this._static = false;
+    this.setStatic(false);
     this.__modifiers_hash[modifier.id] = modifier;
     if (!modifier.__applied_to) modifier.__applied_to = {};
     modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type + 1 (so 0 means not applied)
@@ -2271,6 +2271,7 @@ Element.prototype._addChild = function(elm) {
     this.children.push(elm); /* or add elem.id? */
     if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
+    this._static &= elm.isStatic();
 };
 
 Element.prototype._stateStr = function() {
@@ -2665,8 +2666,15 @@ Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawMPath);
 };
 
-Ekement.prototype.isStatic = function() {
+Element.prototype.isStatic = function() {
     return this._static;
+};
+
+Element.prototype.setStatic = function(s) {
+    this._static = s;
+    if (!s && this.parent) {
+        this.parent.setStatic(s);
+    }
 };
 
 module.exports = Element;
