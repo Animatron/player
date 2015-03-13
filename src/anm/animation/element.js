@@ -845,7 +845,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 });
             } else {
                 // FIXME: the complete mask process should be a Painter.
-
                 var mask = this.$mask;
 
                 // FIXME: move this chain completely into one method, or,
@@ -856,6 +855,14 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       mask.modifiers(ltime, dt) &&
                       mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
+
+                //skip the composite operations if the mask is already rendered
+                if (this.isStatic && mask.rendered) {
+                    ctx.drawImage(bcvs,
+                        0, 0, Math.floor(width * scale), Math.floor(height * scale),
+                        x, y, width, height);
+                }
+
 
                 mask.ensureHasMaskCanvas();
                 var mcvs = mask.__maskCvs,
@@ -927,6 +934,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 mctx.restore();
                 bctx.restore();
+
+                mask.rendered = true;
             }
         } catch(e) { log.error(e); }
           finally { ctx.restore(); }
