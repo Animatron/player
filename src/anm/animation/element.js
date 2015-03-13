@@ -109,6 +109,7 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  */
 function Element(name, draw, onframe) {
 
+
     this.id = utils.guid(); /** @property {String} id element internal ID @readonly */
     this.name = name || ''; /** @property {String} name element's name, if specified */
     this.type = C.ET_EMPTY; /** @property {anm.C.ET_*} type of the element: `ET_EMPTY` (default), `ET_PATH`, `ET_TEXT` or `ET_SHEET` @readonly */
@@ -140,6 +141,8 @@ function Element(name, draw, onframe) {
 
     this.__detachQueue = [];
     this.__frameProcessors = [];
+
+    this._static = true;
 
     this._initHandlers(); // assign handlers for all of the events. TODO: make automatic with provideEvents
 
@@ -1223,6 +1226,7 @@ Element.prototype.modify = function(band, modifier) {
         modifier.__applied_to[this.id]) throw new AnimationError('This modifier is already applied to this Element');
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
+    this._static = false;
     this.__modifiers_hash[modifier.id] = modifier;
     if (!modifier.__applied_to) modifier.__applied_to = {};
     modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type + 1 (so 0 means not applied)
@@ -2650,6 +2654,10 @@ Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawReg);
     this.paint(Render.p_drawName);
     this.paint(Render.p_drawMPath);
+};
+
+Ekement.prototype.isStatic = function() {
+    return this._static;
 };
 
 module.exports = Element;
