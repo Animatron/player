@@ -594,6 +594,13 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
                              'content-encoding': 'gzip' },
         plainTextHeaders = { 'content-type': 'text/plain' };
 
+    if (trg_bucket === Bucket.Development.NAME) {
+        jsonHeaders['cache-control'] = 'max-age=300';
+        jsHeaders['cache-control'] = 'max-age=300';
+        gzippedJsHeaders['cache-control'] = 'max-age=300';
+        plainTextHeaders['cache-control'] = 'max-age=300';
+    }
+
     var walk    = require('walk');
 
     var files   = [];
