@@ -142,6 +142,7 @@ registerEvent('X_STOP', 'stop', 'x_stop');
 registerEvent('X_ERROR', 'error', 'x_error');
 
 // * playing (player state)
+registerEvent('S_CHANGE_STATE', 'player_change_state', 'player_change_state');
 registerEvent('S_PLAY', 'play', 'play');
 registerEvent('S_PAUSE', 'pause', 'pause');
 registerEvent('S_STOP', 'stop', 'stop');
