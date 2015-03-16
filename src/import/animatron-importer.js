@@ -381,12 +381,10 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
-        trg.$video.connect(trg);
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {

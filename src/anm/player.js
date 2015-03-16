@@ -377,6 +377,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
+                        initMedia(player);
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback.call(player, result);
@@ -437,7 +438,18 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     return player;
-}
+};
+
+/**
+ * Connect audio/video elements with player events
+ */
+var initMedia = function(player) {
+    player.anim.traverse(function(el) {
+        if (el.type === C.ET_AUDIO || el.type === C.ET_VIDEO) {
+            (el.$audio || el.$video).connect(player);
+        }
+    });
+};
 
 var __nextFrame = engine.getRequestFrameFunc(),
     __stopAnim  = engine.getCancelFrameFunc();

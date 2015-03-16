@@ -27,15 +27,14 @@ function Video(url) {
     this.playing = false;
 }
 /** @private @method connect */
-Video.prototype.connect = function(element) {
+Video.prototype.connect = function(player) {
     var me = this;
-    element.on(C.X_START, function() {
+    player.on(C.S_PLAY, function() {
         me.play.apply(me, arguments);
     });
     var stop = function() { me.stop(); };
-    element.on(C.X_STOP, stop);
-    element.on(C.S_STOP, stop);
-    element.on(C.S_PAUSE, stop);
+    player.on(C.S_STOP, stop);
+    player.on(C.S_PAUSE, stop);
 };
 /** @private @method load */
 Video.prototype.load = function(elm, player) {
