@@ -234,8 +234,9 @@ Path.prototype.hitAt = function(t) {
     if (t < 0 || t > 1.0) return null;
 
     var startp = this.start(); // start point of segment
+    var cache_t = utils.roundTo(t, 3); // t for caching could be rounded
 
-    if (t === 0) return (this.cached_hits[t] = {
+    if (t === 0) return (this.cached_hits[cache_t] = {
         'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
     });
 
@@ -255,7 +256,7 @@ Path.prototype.hitAt = function(t) {
         if (distance <= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
-            return (this.cached_hits[t] = {
+            return (this.cached_hits[cache_t] = {
                 'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? seg.findT(p, segdist) : 0
             });
         }
@@ -309,7 +310,7 @@ Path.prototype.contains = function(x, y) {
     }
 
     if (!(start === cur)) {
-        crossings += Path.crossingsForLine(x, y, p.x, p.y, startp.x, startp.y);
+        crossings += Path.crossingsForLine(x, y, p[0], p[1], startp[0], startp[1]);
     }
 
     return ((crossings & mask) != 0);
@@ -323,11 +324,6 @@ Path.prototype.contains = function(x, y) {
  * @return {[Number]} point in a form of [x, y]
  */
 Path.prototype.tangentAt = function(t) {
-    var t = t;
-    if (this.length() > 0) {
-        if (t == 0) t = 0.0001;
-        if (t == 1) t = 0.9999;
-    }
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);

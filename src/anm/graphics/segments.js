@@ -507,7 +507,7 @@ CSeg.prototype.toString = function() {
 };
 
 module.exports = {
-  MSeg: MSeg,
-  LSeg: LSeg,
-  CSeg: CSeg
+    MSeg: MSeg,
+    LSeg: LSeg,
+    CSeg: CSeg
 };
