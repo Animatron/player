@@ -284,6 +284,37 @@ Path.prototype.pointAt = function(t) {
     return hit.seg.atT(hit.start, hit.segt);
 };
 /**
+ * @method contains
+ *
+ * Test if point is located inside the path
+ *
+ * @param {Number} x X coordinate of a point
+ * @param {Number} y Y coordinate of a point
+ * @return {Boolean} true if point is inside of a path, and false if not
+ */
+Path.prototype.contains = function(x, y) {
+    var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;
+    var nsegs = this.segs.length; // number of segments
+
+    if (nsegs < 2) return false;
+
+    var startp = this.start(); // start point of segment
+    var p = startp;
+
+    var crossings = 0;
+    for (var si = 0; si < nsegs; si++) {
+        var seg = this.segs[si];
+        crossings += seg.crossings(cur, x, y);
+        p = seg.last();
+    }
+
+    if (!(start === cur)) {
+        crossings += Path.crossingsForLine(x, y, p.x, p.y, startp.x, startp.y);
+    }
+
+    return ((crossings & mask) != 0);
+};
+/**
  * @method tangentAt
  *
  * Find a tangent on a path at specified distance (t) of the path.
