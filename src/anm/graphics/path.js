@@ -305,7 +305,7 @@ Path.prototype.contains = function(x, y) {
     var crossings = 0;
     for (var si = 0; si < nsegs; si++) {
         var seg = this.segs[si];
-        crossings += seg.crossings(cur, x, y);
+        crossings += seg.crossings(p, x, y);
         p = seg.last();
     }
 
