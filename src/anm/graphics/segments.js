@@ -275,6 +275,8 @@ LSeg.prototype.clone = function() {
  */
 function CSeg(pts) {
     this.pts = pts;
+    this._cachedStart = null;
+    this._length = 0;
 };
 /**
  * @method draw
@@ -297,7 +299,10 @@ CSeg.prototype.draw = function(ctx) {
  * @return Number segment length
  */
 CSeg.prototype.length = function(start) {
-    return this.findLengthAndT(start, Number.MAX_VALUE)[0];
+    if (this._cachedStart && ((this._cachedStart[0] === start[0]) &&
+                              (this._cachedStart[1] === start[1])) return this._length;
+    this._cachedStart = start;
+    return (this._length = this.findLengthAndT(start, Number.MAX_VALUE)[0]);
 };
 /**
  * @method findT
