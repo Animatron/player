@@ -6,7 +6,8 @@ var utils = require('../utils.js'),
 var segments = require('./segments.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
-    CSeg = segments.CSeg;
+    CSeg = segments.CSeg,
+    Crossings = segments.Crossing;
 
 var Brush = require('./brush.js');
 
@@ -310,7 +311,7 @@ Path.prototype.contains = function(x, y) {
     }
 
     if (!(start === cur)) {
-        crossings += Path.crossingsForLine(x, y, p[0], p[1], startp[0], startp[1]);
+        crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
     }
 
     return ((crossings & mask) != 0);

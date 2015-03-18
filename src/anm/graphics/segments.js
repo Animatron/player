@@ -268,14 +268,8 @@ LSeg.prototype.tangentAt = function(start, t) {
  * @return {Number} number of crossings
  */
 MSeg.prototype.crossings = function(start, x, y) {
-    if (py < y0 && py < y1) return 0;
-    if (py >= y0 && py >= y1) return 0;
-    // assert(y0 != y1);
-    if (px >= x0 && px >= x1) return 0;
-    if (px < x0 && px < x1) return (y0 < y1) ? 1 : -1;
-    double xintercept = x0 + (py - y0) * (x1 - x0) / (y1 - y0);
-    if (px >= xintercept) return 0;
-    return (y0 < y1) ? 1 : -1;
+    return Crossings.line(x, y, start[0], start[1],
+                          this.pts[0], this.pts[1]);
 };
 /**
  * @method last
@@ -513,46 +507,12 @@ CSeg.prototype.tangentAt = function(start, t) {
  * @return {Number} number of crossings
  */
 CSeg.prototype.crossings = function(start, x, y) {
-    if (py < y0 && py < yc0 && py < yc1 && py < y1) return 0;
-    if (py >= y0 && py >= yc0 && py >= yc1 && py >= y1) return 0;
-    // Note y0 could equal yc0...
-    if (px >= x0 && px >= xc0 && px >= xc1 && px >= x1) return 0;
-    if (px < x0 && px < xc0 && px < xc1 && px < x1) {
-        if (py >= y0) {
-            if (py < y1) return 1;
-        } else {
-            // py < y0
-            if (py >= y1) return -1;
-        }
-        // py outside of y01 range, and/or y0==yc0
-        return 0;
-    }
-    // double precision only has 52 bits of mantissa
-    if (level > 52) return pointCrossingsForLine(px, py, x0, y0, x1, y1);
-    double xmid = (xc0 + xc1) / 2;
-    double ymid = (yc0 + yc1) / 2;
-    xc0 = (x0 + xc0) / 2;
-    yc0 = (y0 + yc0) / 2;
-    xc1 = (xc1 + x1) / 2;
-    yc1 = (yc1 + y1) / 2;
-    double xc0m = (xc0 + xmid) / 2;
-    double yc0m = (yc0 + ymid) / 2;
-    double xmc1 = (xmid + xc1) / 2;
-    double ymc1 = (ymid + yc1) / 2;
-    xmid = (xc0m + xmc1) / 2;
-    ymid = (yc0m + ymc1) / 2;
-    if (Double.isNaN(xmid) || Double.isNaN(ymid)) {
-        // [xy]mid are NaN if any of [xy]c0m or [xy]mc1 are NaN
-        // [xy]c0m or [xy]mc1 are NaN if any of [xy][c][01] are NaN
-        // These values are also NaN if opposing infinities are added
-        return 0;
-    }
-    return (pointCrossingsForCubic(px, py,
-            x0, y0, xc0, yc0,
-            xc0m, yc0m, xmid, ymid, level + 1) +
-            pointCrossingsForCubic(px, py,
-                    xmid, ymid, xmc1, ymc1,
-                    xc1, yc1, x1, y1, level + 1));
+    var pts = this.pts;
+    return Crossings.curve(x, y, start[0], start[1],
+                           pts[0], pts[1],
+                           pts[2], pts[3],
+                           pts[4], pts[5],
+                           0);
 };
 /**
  * @method last
