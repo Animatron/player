@@ -333,7 +333,7 @@ CSeg.prototype.draw = function(ctx) {
  */
 CSeg.prototype.length = function(start) {
     if (this._cachedStart && ((this._cachedStart[0] === start[0]) &&
-                              (this._cachedStart[1] === start[1])) return this._length;
+                              (this._cachedStart[1] === start[1]))) return this._length;
     this._cachedStart = start;
     return (this._length = this.findLengthAndT(start, Number.MAX_VALUE)[0]);
 };
@@ -596,10 +596,10 @@ var Crossings = {
         yc0 = (y0 + yc0) / 2;
         xc1 = (xc1 + x1) / 2;
         yc1 = (yc1 + y1) / 2;
-        double xc0m = (xc0 + xmid) / 2;
-        double yc0m = (yc0 + ymid) / 2;
-        double xmc1 = (xmid + xc1) / 2;
-        double ymc1 = (ymid + yc1) / 2;
+        var xc0m = (xc0 + xmid) / 2;
+        var yc0m = (yc0 + ymid) / 2;
+        var xmc1 = (xmid + xc1) / 2;
+        var ymc1 = (ymid + yc1) / 2;
         xmid = (xc0m + xmc1) / 2;
         ymid = (yc0m + ymc1) / 2;
         if (isNaN(xmid) || isNaN(ymid)) {
@@ -626,7 +626,7 @@ var Crossings = {
         if (px >= xintercept) return 0;
         return (y0 < y1) ? 1 : -1;
     }
-}
+};
 
 module.exports = {
     MSeg: MSeg,

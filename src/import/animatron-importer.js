@@ -358,6 +358,13 @@ Import.branch = function(type, src, all, anim) {
             }
         }
 
+        if (lsrc[9]) { // scripting
+            var events = lsrc[9];
+            for (var event_name in events) {
+                ltrg.on(event_name, eval('('+events[event_name]+')'));
+            }
+        }
+
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
         // TODO temporary implementation, use custom renderer for that!

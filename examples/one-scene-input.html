@@ -52,7 +52,8 @@
       function createPlayer() {
           return anm.createPlayer('anm-player', { /*audioEnabled: false,*/
                                                   loadingMode: anm.constants.LM_ONPLAY,
-                                                  ribbonsColor: 'rgba(255,0,0,0.01)'
+                                                  ribbonsColor: 'rgba(255,0,0,0.01)',
+                                                  controlsEnabled: false
                                                   /*forceSceneSize: true*/
                                                   /*controlsEnabled: false, autoPlay: true*/ });
       }
@@ -67,6 +68,7 @@
           player.detach();
           player = createPlayer();
           player.load(project, importer);
+          player.play();
       }
 
       function start() {
