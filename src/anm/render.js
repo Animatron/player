@@ -166,7 +166,7 @@ Render.p_drawPivot = new Painter(function(ctx, pivot) {
     var my_bounds = this.myBounds();
     var stokeStyle = this.isEmpty() ? '#600' : '#f00';
     ctx.save();
-    if (bounds) {
+    if (my_bounds) {
         ctx.translate(pivot[0] * my_bounds.width,
                       pivot[1] * my_bounds.height);
     }
