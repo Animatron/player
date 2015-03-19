@@ -161,6 +161,25 @@ Render.p_applyAComp = new Painter(function(ctx) { this.applyAComp(ctx); }, C.PNT
 
 // TODO: also move into Element class
 
+Render.p_drawBounds = new Painter(function(ctx, bounds) {
+    var my_bounds = this.myBounds();
+    if (!my_bounds || this.isEmpty()) return;
+    var stokeStyle = this.isEmpty() ? '#f00' : '#600';
+    var width = my_bounds.width, height = my_bounds.height;
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = stokeStyle;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, 0);
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+}, C.PNT_DEBUG);
+
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
     if (!(pivot = pivot || this.$pivot)) return;
     var my_bounds = this.myBounds();
