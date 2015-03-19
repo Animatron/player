@@ -857,7 +857,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                       // what should happen if mask doesn't fit in time?
 
                 //skip the composite operations if the mask is already rendered
-                if (this.isStatic && mask.rendered) {
+                if (this.isStatic() && mask.rendered) {
                     ctx.drawImage(bcvs,
                         0, 0, Math.floor(width * scale), Math.floor(height * scale),
                         x, y, width, height);
