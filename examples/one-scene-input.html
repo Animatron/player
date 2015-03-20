@@ -54,7 +54,8 @@
                                                   loadingMode: anm.constants.LM_ONPLAY,
                                                   ribbonsColor: 'rgba(255,0,0,0.01)',
                                                   controlsEnabled: false,
-                                                  debug: true
+                                                  debug: true,
+                                                  handleEvents: true
                                                   /*forceSceneSize: true*/
                                                   /*controlsEnabled: false, autoPlay: true*/ });
       }
@@ -89,7 +90,7 @@
     <h1 style="margin-bottom: 20px">The place to test one scene</h1>
 
     <!-- <canvas id="canvas" width="1080" height="1080"></canvas> -->
-    <div id="anm-player" anm-width="800" anm-height="300"></div>
+    <div id="anm-player" anm-width="550" anm-height="450"></div>
 
     <p style="float: right"><label for="scene-input">Scene JSON:</label><button onclick="load(this)">Load</button><textarea id="scene-input"></textarea></p>
 

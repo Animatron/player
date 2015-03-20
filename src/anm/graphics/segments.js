@@ -267,7 +267,7 @@ LSeg.prototype.tangentAt = function(start, t) {
  *
  * @return {Number} number of crossings
  */
-MSeg.prototype.crossings = function(start, x, y) {
+LSeg.prototype.crossings = function(start, x, y) {
     return Crossings.line(x, y, start[0], start[1],
                           this.pts[0], this.pts[1]);
 };
@@ -571,7 +571,7 @@ CSeg.prototype.toString = function() {
 };
 
 var Crossings = {
-    curve: function(px, px, x0, y0,
+    curve: function(px, py, x0, y0,
                     xc0, yc0, xc1, yc1,
                     x1, y1, level) {
         if (py < y0 && py < yc0 && py < yc1 && py < y1) return 0;

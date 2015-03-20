@@ -315,9 +315,9 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
 function __isMouseEvent(type) { return type.indexOf('mouse') >= 0; }
 Animation.prototype.handle__x = function(type, evt) {
     if (__isMouseEvent(type)) {
-        var pt = evt.pt;
+        var pos = evt.pos;
         this.each(function(child) {
-            child.inside(function(elm) {
+            child.inside(pos, function(elm) {
                 elm.fire(type, evt);
             });
         });

@@ -828,8 +828,8 @@ $DE.registerAsInfoElement = function(elm, player) {
 $DE.getEventPosition = function(evt, elm) {
     if (elm) {
         var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
-        return [ evt.clientX - shift[0], evt.clientY - shift[1] ];
-    } else return [ evt.x, evt.y ];
+        return { x: evt.clientX - shift[0], y: evt.clientY - shift[1] };
+    } else return { x: evt.x, y: evt.y };
 };
 
 $DE.subscribeElementEvents = function(elm, handlers) {

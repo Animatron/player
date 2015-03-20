@@ -7,7 +7,7 @@ var segments = require('./segments.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
     CSeg = segments.CSeg,
-    Crossings = segments.Crossing;
+    Crossings = segments.Crossings;
 
 var Brush = require('./brush.js');
 
@@ -315,7 +315,7 @@ Path.prototype.pointAt = function(t) {
         p = seg.last();
     }
 
-    if (!(start === cur)) {
+    if (!(start === p)) {
         crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
     }
 
