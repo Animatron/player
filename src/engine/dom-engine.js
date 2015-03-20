@@ -765,6 +765,7 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     // conf should be: [ x, y, w, h ], all in percentage relative to parent
     // style may contain _class attr
     // if (!parent) throw new Error();
+    conf = conf || [0,0,100,100];
     var p_props = $DE.getAnmProps(player_cvs);
     var holder = p_props.wrapper || player_cvs.parentNode || $doc.body;
     var x = conf[0], y = conf[1],
