@@ -106,8 +106,8 @@ registerEvent('S_PLAYER_DETACH', 'detach');
 //        XT_MOUSE or XT_CONTROL
 
 // * mouse
-registerEvent('X_MCLICK', 'click');
-registerEvent('X_MDCLICK', 'dblclick');
+registerEvent('X_MCLICK', 'mouseclick');
+registerEvent('X_MDCLICK', 'mousedoubleclick');
 registerEvent('X_MUP', 'mouseup');
 registerEvent('X_MDOWN', 'mousedown');
 registerEvent('X_MMOVE', 'mousemove');

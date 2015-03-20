@@ -286,15 +286,20 @@ Path.prototype.pointAt = function(t) {
     return hit.seg.atT(hit.start, hit.segt);
 };
 /**
- * @method contains
+ * @method inside
  *
- * Test if point is located inside the path
+ * Checks if point is inside the path. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `path.bounds().inside(pt)`
+ * before calling this method manually.
  *
- * @param {Number} x X coordinate of a point
- * @param {Number} y Y coordinate of a point
- * @return {Boolean} true if point is inside of a path, and false if not
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
  */
-Path.prototype.contains = function(x, y) {
+ Path.prototype.inside = function(pt) {
+    var x = pt.x, y = pt.y;
+
     var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;
     var nsegs = this.segs.length; // number of segments
 

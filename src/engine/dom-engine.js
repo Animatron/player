@@ -876,16 +876,16 @@ $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
     if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
     if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
     var handlers = cvs.__anm.subscribed[anim.id] || {
-      mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
-      mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
-      mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
-      mouseover: function(evt) { anim.fire(map.mouseover, _mevt(evt, cvs)); },
-      mouseout:  function(evt) { anim.fire(map.mouseout,  _mevt(evt, cvs)); },
-      click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
-      dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
-      keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
-      keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); },
-      keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); }
+        click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
+        dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
+        mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
+        mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
+        mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
+        mouseover: function(evt) { anim.fire(map.mouseover, _mevt(evt, cvs)); },
+        mouseout:  function(evt) { anim.fire(map.mouseout,  _mevt(evt, cvs)); },
+        keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); },
+        keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
+        keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); }
     };
     cvs.__anm.handlers[anim.id] = handlers;
     cvs.__anm.subscribed[anim.id] = true;

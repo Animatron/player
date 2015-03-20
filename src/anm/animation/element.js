@@ -166,7 +166,6 @@ Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                         C.X_KPRESS, C.X_KUP, C.X_KDOWN,
                          C.X_START, C.X_STOP ]);
 /**
  * @method is
@@ -665,60 +664,6 @@ Element.prototype.forAllPainters = function(f) {
             }
         }
     }
-};
-
-/**
- * @method adapt
- *
- * Adapt a point or several ones to element's local coordinate space (relatively to
- * parent's space). Points are passed as an object `{ x: 100, y: 100 }` or an array
- * `[ { x: 100, y: 100}, { x: 200.5, y: 150 } ]` and returned in the same format.
- *
- * @param {Object|[Object]} pt one or several points to adapt
- * @param {Number} pt.x
- * @param {Number} pt.y
- *
- * @return {Object|[Object]} transformed point or several points
- */
-Element.prototype.adapt = function(pts) {
-    if (is.arr(pts)) {
-        var trg = [];
-        var matrix = this.matrix;
-        for (var i = 0, il = pts.length; i < il; i++) {
-            trg.push(matrix.transformPoint(pts[i].x, pts[i].y));
-        }
-        return trg;
-    } else {
-        return this.matrix.transformPoint(pts.x, pts.y);
-    }
-};
-
-/**
-* @method adapt
-*
-* Adapt bounds to element's local coordinate space (relatively to
-* parent's space). Bounds are passed as an object
-* `{ x: 100, y: 100, width: 200, height: 150 }`.
-*
-* @param {Object} bounds bounds to adapt
-* @param {Number} bounds.x
-* @param {Number} bounds.y
-* @param {Number} bounds.width
-* @param {Number} bounds.height
-*
-* @return {Object} transformed bounds
-*/
-Element.prototype.adaptBounds = function(bounds) {
-    var matrix = this.matrix;
-    var tl = matrix.transformPoint(bounds.x, bounds.y),
-        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
-        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
-        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
-    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
-        minY = Math.min(tl.y, tr.y, bl.y, br.y),
-        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
-        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
-    return new Bounds(minX, minY, maxX - minX, maxY - minY);
 };
 
 /**
@@ -2012,6 +1957,86 @@ Element.prototype.myBounds = function() {
 };
 
 /**
+ * @method inside
+ *
+ * Test if a point given in global coordinate space is located inside the element's bounds
+ * or one of its children and calls given function for found elements
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @param {Function} fn function to call for matched elements
+ * @param {Element} fn.elm element matched with the point
+ * @param {Number} fn.pt point adapted to child coordinate space
+ */
+ Element.prototype.inside = function(pt, fn) {
+    var my_bounds = this.myBounds();
+    if (my_bounds.inside(pt)) {
+        var subj = this.$path || this.$text || this.$image || this.$video;
+        if (subj && subj.inside(pt)) fn(this, pt);
+    } else {
+        var local_pt = this.adapt(pt);
+        this.each(function(elm) {
+            elm.inside(local_pt, fn);
+        });
+    }
+ };
+
+/**
+ * @method adapt
+ *
+ * Adapt a point or several ones to element's local coordinate space (relatively to
+ * parent's space). Points are passed as an object `{ x: 100, y: 100 }` or an array
+ * `[ { x: 100, y: 100 }, { x: 200.5, y: 150 } ]` and returned in the same format.
+ *
+ * @param {Object|[Object]} pt one or several points to adapt
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ *
+ * @return {Object|[Object]} transformed point or several points
+ */
+Element.prototype.adapt = function(pts) {
+    if (is.arr(pts)) {
+        var trg = [];
+        var matrix = this.matrix;
+        for (var i = 0, il = pts.length; i < il; i++) {
+            trg.push(matrix.transformPoint(pts[i].x, pts[i].y));
+        }
+        return trg;
+    } else {
+        return this.matrix.transformPoint(pts.x, pts.y);
+    }
+};
+
+/**
+* @method adaptBounds
+*
+* Adapt bounds to element's local coordinate space (relatively to
+* parent's space). Bounds are passed as an object
+* `{ x: 100, y: 100, width: 200, height: 150 }`.
+*
+* @param {Object} bounds bounds to adapt
+* @param {Number} bounds.x
+* @param {Number} bounds.y
+* @param {Number} bounds.width
+* @param {Number} bounds.height
+*
+* @return {Object} transformed bounds
+*/
+Element.prototype.adaptBounds = function(bounds) {
+    var matrix = this.matrix;
+    var tl = matrix.transformPoint(bounds.x, bounds.y),
+        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
+};
+
+/**
  * @method isEmpty
  *
  * Check if this element contains something visual, like path, image or text.
@@ -2397,9 +2422,9 @@ Element.prototype.handle__x = function(type, evt) {
     if ((type != C.X_START) &&
         (type != C.X_STOP)) {
       if (this.shown) {
-        this.__saveEvt(type, evt);
+          this.__saveEvt(type, evt);
       } else {
-        return false;
+          return false;
       }
     }
     return true;
