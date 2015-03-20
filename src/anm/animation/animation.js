@@ -317,7 +317,7 @@ Animation.prototype.handle__x = function(type, evt) {
     if (__isMouseEvent(type)) {
         var pos = evt.pos;
         this.each(function(child) {
-            child.inside(pos, function(elm) {
+            child.inside(pos, function(elm, local_pos) {
                 elm.fire(type, evt);
             });
         });

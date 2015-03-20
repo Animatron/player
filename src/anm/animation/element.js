@@ -1865,10 +1865,10 @@ Element.prototype.offset = function() {
 };
 
 /*Element.prototype.local = function(pt) {
-    this.matrix.transformPoint();
+    return this.matrix.transformPoint(pt);
 }
 Element.prototype.global = function(pt) {
-    this.matrix.transformPoint();
+    return this.matrix.adaptPoint(pt);
 } */
 /**
  * @method invalidate
@@ -1969,18 +1969,18 @@ Element.prototype.myBounds = function() {
  * @param {Element} fn.elm element matched with the point
  * @param {Number} fn.pt point adapted to child coordinate space
  */
- Element.prototype.inside = function(pt, fn) {
+Element.prototype.inside = function(pt, fn) {
     var my_bounds = this.myBounds();
-    if (my_bounds.inside(pt)) {
+    var local_pt = this.adapt(pt);
+    if (my_bounds.inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        if (subj && subj.inside(pt)) fn(this, pt);
+        if (subj && subj.inside(local_pt)) fn(this, local_pt);
     } else {
-        var local_pt = this.adapt(pt);
         this.each(function(elm) {
             elm.inside(local_pt, fn);
         });
     }
- };
+};
 
 /**
  * @method adapt
@@ -1998,13 +1998,14 @@ Element.prototype.myBounds = function() {
 Element.prototype.adapt = function(pts) {
     if (is.arr(pts)) {
         var trg = [];
-        var matrix = this.matrix;
+        var matrix = this.matrix; // should we store inverted matrix and
+                                  // use inv_matrix.transformPoint instead?
         for (var i = 0, il = pts.length; i < il; i++) {
-            trg.push(matrix.transformPoint(pts[i].x, pts[i].y));
+            trg.push(matrix.adaptPoint(pts[i].x, pts[i].y));
         }
         return trg;
     } else {
-        return this.matrix.transformPoint(pts.x, pts.y);
+        return this.matrix.adaptPoint(pts.x, pts.y);
     }
 };
 
@@ -2025,10 +2026,10 @@ Element.prototype.adapt = function(pts) {
 */
 Element.prototype.adaptBounds = function(bounds) {
     var matrix = this.matrix;
-    var tl = matrix.transformPoint(bounds.x, bounds.y),
-        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
-        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
-        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var tl = matrix.adaptPoint(bounds.x, bounds.y),
+        tr = matrix.adaptPoint(bounds.x + bounds.width, bounds.y),
+        br = matrix.adaptPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.adaptPoint(bounds.x, bounds.y + bounds.height);
     var minX = Math.min(tl.x, tr.x, bl.x, br.x),
         minY = Math.min(tl.y, tr.y, bl.y, br.y),
         maxX = Math.max(tl.x, tr.x, bl.x, br.x),
