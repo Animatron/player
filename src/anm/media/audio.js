@@ -321,21 +321,19 @@ Audio.prototype.toggleMute = function() {
     }
 };
 /** @private @method connect */
-Audio.prototype.connect = function(player) {
+Audio.prototype.connect = function(element, anim) {
     var me = this;
-    player.on(C.S_PLAY, function() {
+    element.on(C.X_START, function() {
         me.play.apply(me, arguments);
     });
-    /*
-    player.on(C.X_STOP, function() {
+    element.on(C.X_STOP, function() {
         me.stopIfNotMaster();
     });
-    */
     var stop = function() {
         me.stop();
     };
-    player.on(C.S_STOP, stop);
-    player.on(C.S_PAUSE, stop);
+    anim.on(C.A_STOP, stop);
+    anim.on(C.A_PAUSE, stop);
 };
 /**
  * @method clone

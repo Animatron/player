@@ -128,6 +128,11 @@ registerEvent('X_STOP', 'bandstop');
 // * Animation or Element error
 registerEvent('X_ERROR', 'error');
 
+// * animation start/stop
+registerEvent('A_START', 'animationstart');
+registerEvent('A_STOP', 'animationstop');
+registerEvent('A_PAUSE', 'animationpause');
+
 // * playing (player state)
 
 registerEvent('S_CHANGE_STATE', 'statechange');
