@@ -61,7 +61,7 @@ Loader.loadAnimation = function(player, anim, callback) {
     if (player.anim) player.anim.dispose();
     // add debug rendering
     if (player.debug && !global_opts.liveDebug) {
-        anim.visitElems(function(e) {e.addDebugRender();}); /* FIXME: ensure not to add twice */
+        anim.traverse(function(e) {e.addDebugRender();});
     }
     if (!anim.width || !anim.height) {
         anim.width = player.width;

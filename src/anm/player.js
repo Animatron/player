@@ -1542,7 +1542,9 @@ Player.prototype.__afterFrame = function(anim) {
 
 Player.prototype.__onerror = function() {
     var me = this;
-    return function(err) { return me.onerror_f(err); };
+    return function(err) {
+        return me.__onerror_f(err);
+    };
 }
 
 // Called when any error happens during player initialization or animation

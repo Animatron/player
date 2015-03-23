@@ -18,6 +18,8 @@ var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
 
+var Bounds = require('../graphics/bounds.js');
+
 /**
  * @class anm.Video
  */
@@ -125,7 +127,30 @@ Video.prototype.load = function(elm, player) {
 Video.prototype.apply = function(ctx) {
     ctx.drawImage(this.video, 0, 0);
 };
-Video.prototype.bounds = function() {};
+Video.prototype.bounds = function() {
+    if (this.$bounds) return this.$bounds;
+    if (!this.video) return Bounds.NONE;
+    var bounds = new Bounds(0, 0,
+                            this.video.width,
+                            this.video.height);
+    return (this.$bounds = bounds);
+};
+/**
+ * @method inside
+ *
+ * Checks if point is inside the shape. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `video.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+ Video.prototype.inside = function(pt) {
+    return true; // if point is inside of the bounds, point is considered to be
+                 // inside the video shape
+};
 /** @private @method play */
 Video.prototype.play = function(ltime, duration) {
     if (!this.ready || this.playing) {
@@ -144,7 +169,9 @@ Video.prototype.stop = function() {
     this.video.pause();
     this.playing = false;
 };
-Video.prototype.invalidate = function() {};
+Video.prototype.invalidate = function() {
+    this.$bounds = null;
+};
 Video.prototype.dispose = function() {};
 /**
  * @method clone
