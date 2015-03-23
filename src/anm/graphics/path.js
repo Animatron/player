@@ -6,7 +6,8 @@ var utils = require('../utils.js'),
 var segments = require('./segments.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
-    CSeg = segments.CSeg;
+    CSeg = segments.CSeg,
+    Crossings = segments.Crossings;
 
 var Brush = require('./brush.js');
 
@@ -234,8 +235,9 @@ Path.prototype.hitAt = function(t) {
     if (t < 0 || t > 1.0) return null;
 
     var startp = this.start(); // start point of segment
+    var cache_t = utils.roundTo(t, 3); // t for caching could be rounded
 
-    if (t === 0) return (this.cached_hits[t] = {
+    if (t === 0) return (this.cached_hits[cache_t] = {
         'seg': this.segs[0], 'start': startp, 'slen': 0.0, 'segt': 0.0
     });
 
@@ -255,7 +257,7 @@ Path.prototype.hitAt = function(t) {
         if (distance <= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
-            return (this.cached_hits[t] = {
+            return (this.cached_hits[cache_t] = {
                 'seg': seg, 'start': p, 'slen': slen, 'segt': (slen != 0) ? seg.findT(p, segdist) : 0
             });
         }
@@ -284,6 +286,42 @@ Path.prototype.pointAt = function(t) {
     return hit.seg.atT(hit.start, hit.segt);
 };
 /**
+ * @method inside
+ *
+ * Checks if point is inside the path. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `path.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+ Path.prototype.inside = function(pt) {
+    var x = pt.x, y = pt.y;
+
+    var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;
+    var nsegs = this.segs.length; // number of segments
+
+    if (nsegs < 2) return false;
+
+    var startp = this.start(); // start point of segment
+    var p = startp;
+
+    var crossings = 0;
+    for (var si = 0; si < nsegs; si++) {
+        var seg = this.segs[si];
+        crossings += seg.crossings(p, x, y);
+        p = seg.last();
+    }
+
+    if (!(start === p)) {
+        crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
+    }
+
+    return ((crossings & mask) != 0);
+};
+/**
  * @method tangentAt
  *
  * Find a tangent on a path at specified distance (t) of the path.
@@ -292,11 +330,6 @@ Path.prototype.pointAt = function(t) {
  * @return {[Number]} point in a form of [x, y]
  */
 Path.prototype.tangentAt = function(t) {
-    var t = t;
-    if (this.length() > 0) {
-        if (t == 0) t = 0.0001;
-        if (t == 1) t = 0.9999;
-    }
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);

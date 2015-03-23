@@ -159,6 +159,22 @@ Text.prototype.bounds = function() {
     var bounds = Text.bounds(this, this.lines);
     return (this.$bounds = bounds);
 };
+/**
+ * @method inside
+ *
+ * Checks if point is inside the shape. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `text.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+Text.prototype.inside = function(pt) {
+    return true; // if point is inside of the bounds, point is considered to be
+                 // inside the text shape, for the moment
+};
 // should be static
 Text.prototype.ascent = function(height, baseline) {
     return (baseline == C.BL_MIDDLE) ? (height / 2) : height;

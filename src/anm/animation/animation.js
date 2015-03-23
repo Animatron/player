@@ -19,16 +19,16 @@ var provideEvents = require('../events.js').provideEvents,
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
 var DOM_TO_EVT_MAP = {
-  'mouseup':   C.X_MUP,
-  'mousedown': C.X_MDOWN,
-  'mousemove': C.X_MMOVE,
-  'mouseover': C.X_MOVER,
-  'mouseout':  C.X_MOUT,
-  'click':     C.X_MCLICK,
-  'dblclick':  C.X_MDCLICK,
-  'keyup':     C.X_KUP,
-  'keydown':   C.X_KDOWN,
-  'keypress':  C.X_KPRESS
+    'click':     C.X_MCLICK,
+    'dblclick':  C.X_MDCLICK,
+    'mouseup':   C.X_MUP,
+    'mousedown': C.X_MDOWN,
+    'mousemove': C.X_MMOVE,
+    'mouseover': C.X_MOVER,
+    'mouseout':  C.X_MOUT,
+    'keypress':  C.X_KPRESS,
+    'keyup':     C.X_KUP,
+    'keydown':   C.X_KDOWN
 };
 
 // Animation
@@ -311,6 +311,20 @@ Animation.prototype.subscribeEvents = function(canvas) {
 Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
+
+function __isMouseEvent(type) { return type.indexOf('mouse') >= 0; }
+Animation.prototype.handle__x = function(type, evt) {
+    if (__isMouseEvent(type)) {
+        var pos = evt.pos;
+        this.each(function(child) {
+            child.inside(pos, function(elm) { // filter elements
+                return elm.subscribedTo(type);
+            }, function(elm, local_pos) { // point is inside
+                elm.fire(type, evt);
+            });
+        });
+    }
+}
 
 /**
  * @method addToTree

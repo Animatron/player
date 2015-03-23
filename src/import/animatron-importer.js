@@ -67,7 +67,6 @@ Import._type = function(src) {
  */
 // -> Animation
 Import.project = function(prj) {
-    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
     cur_import_id = anm.utils.guid();
     anm.lastImportedProject = prj;
@@ -355,6 +354,18 @@ Import.branch = function(type, src, all, anim) {
                 var masked = _layers_targets[targets_n-togo];
                 masked.mask(mask);
                 togo--;
+            }
+        }
+
+        if (lsrc[9]) { // scripting
+            var events = lsrc[9];
+            var script = createScriptContext(ltrg);
+            for (var event_name in events) {
+                ltrg.on(event_name, eval(
+                    '(function(script, element) {' +
+                        'return (function() {'+events[event_name]+'});' +
+                    '});'
+                )(script, ltrg));
             }
         }
 
@@ -1032,6 +1043,23 @@ ValueCache.prototype.hash = function(str) {
     }
     return hash;
 };
+
+// Script helpers
+// -----------------------------------------------------------------------------
+
+var createScriptContext = function(element) {
+    return {
+        jump: function(t) {
+            // FIXME
+            var players = anm.player_manager.instances;
+            var last_player = players[players.length - 1];
+            if (last_player) {
+                last_player.stop();
+                last_player.play(t);
+            }
+        }
+    }
+}
 
 // Finish the importer
 // -----------------------------------------------------------------------------

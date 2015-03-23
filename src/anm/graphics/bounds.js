@@ -119,6 +119,21 @@ Bounds.prototype.exist = function() {
     return !is.nan(this.x);
 };
 /**
+ * @method inside
+ *
+ * Is given point inside
+ *
+ * @param {Object} pt
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean}
+ */
+Bounds.prototype.inside = function(pt) {
+    if (!this.exist()) return false;
+    return (pt.x >= this.x) && ((pt.x - this.x) <= this.width) &&
+           (pt.y >= this.y) && ((pt.y - this.y) <= this.height);
+}
+/**
  * @method clone
  *
  * Clone these bounds
