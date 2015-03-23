@@ -881,8 +881,6 @@ $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
         mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
         mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
         mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
-        mouseover: function(evt) { anim.fire(map.mouseover, _mevt(evt, cvs)); },
-        mouseout:  function(evt) { anim.fire(map.mouseout,  _mevt(evt, cvs)); },
         keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); },
         keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
         keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); }

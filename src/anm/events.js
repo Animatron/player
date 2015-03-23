@@ -37,6 +37,9 @@ function provideEvents(subj, events) {
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
+    subj.prototype.subscribedTo = function(event) {
+        return this.handlers && this.handlers[event] && this.handlers[event].length;
+    };
     subj.prototype.fire = function(event/*, evt_args*/) {
         if (this.disabled) return;
         if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');

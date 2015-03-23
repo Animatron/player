@@ -1966,18 +1966,21 @@ Element.prototype.myBounds = function() {
  * @param {Number} pt.x
  * @param {Number} pt.y
  * @param {Function} fn function to call for matched elements
- * @param {Element} fn.elm element matched with the point
+ * @param {anm.Element} fn.elm element matched with the point
  * @param {Number} fn.pt point adapted to child coordinate space
+ * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
+ * @param {anm.Element} filter.elm element to check
  */
-Element.prototype.inside = function(pt, fn) {
-    var my_bounds = this.myBounds();
+Element.prototype.inside = function(pt, filter, fn) {
+    var passed_filter = !filter || filter(this);
+    if (!passed_filter && !this.hasChildren()) return;
     var local_pt = this.adapt(pt);
-    if (my_bounds.inside(local_pt)) {
+    if (passed_filter && this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
         if (subj && subj.inside(local_pt)) fn(this, local_pt);
     } else {
         this.each(function(elm) {
-            elm.inside(local_pt, fn);
+            elm.inside(local_pt, filter, fn);
         });
     }
 };

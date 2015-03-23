@@ -317,7 +317,9 @@ Animation.prototype.handle__x = function(type, evt) {
     if (__isMouseEvent(type)) {
         var pos = evt.pos;
         this.each(function(child) {
-            child.inside(pos, function(elm, local_pos) {
+            child.inside(pos, function(elm) { // filter elements
+                return elm.subscribedTo(type);
+            }, function(elm, local_pos) { // point is inside
                 elm.fire(type, evt);
             });
         });
