@@ -32,8 +32,7 @@ function provideEvents(subj, events) {
         if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         if (!this.provides(event)) throw errors.system('Event \'' + event +
                                                  '\' is not provided by ' + this);
-        if (!handler) throw errors.system('You are trying to assign ' +
-                                    'undefined handler for an event \'' + event + '\'');
+        if (!handler) return;
         this.handlers[event].push(handler);
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
