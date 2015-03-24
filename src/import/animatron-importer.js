@@ -688,8 +688,8 @@ Import.tweendata = function(type, src) {
         return [Import.shadow(src[0]), Import.shadow(src[1])];
     }
     if (type === C.T_VOLUME) {
-      if (src.length == 2) return src;
-      if (src.length == 1) return [ src[0], src[0] ];
+        if (src.length == 2) return src;
+        if (src.length == 1) return [ src[0], src[0] ];
     }
 
 };

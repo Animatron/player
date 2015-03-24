@@ -168,7 +168,7 @@ Tween.addTween(C.T_SHADOW, function(data) {
 
 Tween.addTween(C.T_VOLUME, function(data){
     return function(t) {
-        if (!this.$audio.loaded) return;
+        if (!this.$audio.ready) return;
         var volume = data[0] * (1.0 - t) + data[1] * t;
         this.$audio.setVolume(volume);
     };
