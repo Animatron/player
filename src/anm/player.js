@@ -362,7 +362,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(anim);
         }
-        setLayerContext(player);
         var remotes = anim._collectRemoteResources(player);
         if (!remotes.length) {
             player.fire(C.S_LOAD, result);
@@ -450,48 +449,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     return player;
-};
-
-var setLayerContext = function(player) {
-    // 0 - background layer, static elements under any active ones
-    // 1 - main layer, active elements and those caught in between them
-    // 2 - foreground layer, static elements abobe any active ones
-    var index = 0, mainElements = [];
-    var l0=0,l1=0,l2=0,staticCounter=0;
-    player.anim.traverse(function(el) {
-        if (el.isStatic()) {
-            staticCounter++;
-        }
-        if (index === 0) {
-            if(el.isStatic()) {
-                el.layerIndex = 0;
-                el.ctx = player.canvasLayerContexts[0];
-                l0++;
-            } else {
-                index = 1;
-                mainElements.push(el);
-                el.layerIndex = 1;
-                el.ctx = player.canvasLayerContexts[1];
-                l1++;
-            }
-        } else {
-            mainElements.push(el);
-            el.layerIndex = 1;
-            l1++;
-            el.ctx = player.canvasLayerContexts[1];
-        }
-    });
-    var el = mainElements.pop();
-    while (el.isStatic()) {
-        l2++;
-        l1--;
-        el.layerIndex = 2;
-        el.ctx = player.canvasLayerContexts[2];
-        el = mainElements.pop();
-    }
-
-    console.log('layer context count: [',l0,l1,l2,'], static elements:', staticCounter);
-};
+}
 
 var __nextFrame = engine.getRequestFrameFunc(),
     __stopAnim  = engine.getCancelFrameFunc();
@@ -748,27 +706,8 @@ Player.prototype._prepare = function(elm) {
     this.id = assign_data.id;
     this.wrapper = assign_data.wrapper;
     this.canvas = assign_data.canvas;
-    this.canvasLayers = [this.canvas];
-    var layer1Canvas = engine.addCanvasOverlay('layer1', this.canvas);
-    layer1Canvas.style.position = 'absolute';
-    layer1Canvas.style.zIndex = 1;
-    this.canvasLayers.push(layer1Canvas);
-    var layer2Canvas = engine.addCanvasOverlay('layer2', this.canvas);
-    layer2Canvas.style.position = 'absolute';
-    layer2Canvas.style.zIndex = 2;
-    this.canvasLayers.push(layer2Canvas);
     if (!engine.checkPlayerCanvas(this.canvas)) throw new PlayerError(Errors.P.CANVAS_NOT_VERIFIED);
     this.ctx = engine.getContext(this.canvas, '2d');
-    this.ctx._anm_player = this;
-    this.canvasLayerContexts = [this.ctx];
-    var ctx1 = this.canvasLayers[1].getContext('2d');
-    ctx1._anm_player = this;
-    this.canvasLayerContexts.push(ctx1);
-    var ctx2 = this.canvasLayers[2].getContext('2d');
-    ctx2._anm_player = this;
-    this.canvasLayerContexts.push(ctx2);
-
-
     this.state = Player.createState(this);
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
 
@@ -972,7 +911,7 @@ Player.prototype.drawAt = function(time) {
     ctx_props.factor = this.factor();
 
     anim.__informEnabled = false;
-    Render.at(time, 0, this.canvasLayerContexts, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
+    Render.at(time, 0, this.ctx, this.anim, this.width, this.height, this.zoom, this.ribbonsColor, u_before, u_after);
     return this;
 };
 
@@ -1440,7 +1379,6 @@ Player.prototype._reset = function() {
     state.duration = undefined;
     this.fire(C.S_CHANGE_STATE, C.NOTHING);
     if (this.controls) this.controls.reset();
-    this.ribbonsRendered = false;
     this.ctx.clearRect(0, 0, this.width * engine.PX_RATIO,
                              this.height * engine.PX_RATIO);
     /*this.stop();*/
@@ -1467,7 +1405,7 @@ Player.prototype._resize = function(width, height) {
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
         new_size = cur_size;
-    }
+    };
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];
@@ -1477,7 +1415,6 @@ Player.prototype._resize = function(width, height) {
         ctx_props.factor = this.factor();
     }
     if (this.controls) this.controls.handleAreaChange();
-    this.ribbonsRendered = false;
     this.forceRedraw();
     return new_size;
 };

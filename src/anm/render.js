@@ -50,7 +50,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     }
     pl_state.__redraws++;
 
-    r_at(time, dt, player.canvasLayerContexts, anim,
+    r_at(time, dt, ctx, anim,
            player.width, player.height, player.zoom, player.ribbonsColor,
            before_render, after_render);
 
@@ -70,48 +70,35 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
     });
 }
 
-function r_at(time, dt, contexts, anim, width, height, zoom, rib_color, before, after) {
-    contexts[1].save();
-    var i,
-        ratio = engine.PX_RATIO;
-    if (ratio !== 1) {
-        for (i = 0; i < contexts.length; i++) {
-            contexts[i].scale(ratio, ratio);
-        }
-    }
+function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
+    ctx.save();
+    var ratio = engine.PX_RATIO;
+    if (ratio !== 1) ctx.scale(ratio, ratio);
     width = width | 0;
     height = height | 0;
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
     if (!size_differs) {
         try {
-            contexts[1].clearRect(0, 0, anim.width,
+            ctx.clearRect(0, 0, anim.width,
                                 anim.height);
             if (before) before(time, ctx);
-            if (zoom != 1) {
-                for (i = 0; i < contexts.length; i++) {
-                    contexts[i].scale(zoom, zoom);
-                }
-            }
+            if (zoom != 1) ctx.scale(zoom, zoom);
             anim.render(ctx, time, dt);
             if (after) after(time, ctx);
-        } finally { contexts[1].restore(); }
+        } finally { ctx.restore(); }
     } else {
-        r_with_ribbons(contexts[1], width, height,
+        r_with_ribbons(ctx, width, height,
                             anim.width, anim.height,
                             rib_color,
             function(_scale) {
                 try {
-                  contexts[1].clearRect(0, 0, anim.width, anim.height);
-                  if (before) before(time, contexts[1]);
-                  if (zoom != 1) {
-                      for (i = 0; i < contexts.length; i++) {
-                          contexts[i].scale(zoom, zoom);
-                      }
-                  }
-                  anim.render(contexts[1], time, dt);
-                  if (after) after(time, contexts[1]);
-              } finally { contexts[1].restore(); }
+                  ctx.clearRect(0, 0, anim.width, anim.height);
+                  if (before) before(time, ctx);
+                  if (zoom != 1) ctx.scale(zoom, zoom);
+                  anim.render(ctx, time, dt);
+                  if (after) after(time, ctx);
+                } finally { ctx.restore(); }
             });
     }
 }

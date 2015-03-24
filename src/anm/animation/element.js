@@ -820,10 +820,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // exactly the same way as it treated the global time of `12`.
     var ltime = this.ltime(gtime);
     drawMe = this.__preRender(gtime, ltime, ctx);
-
-    if (this.shown && this.layerIndex !== 1) {
-        drawMe = false;
-    }
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
     // FIXME: masks have no animation set to something, but should to (see masks tests)
@@ -834,11 +830,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
                  this.visible; // modifiers should be applied even if element isn't visible
     }
     if (drawMe) {
-        if(this.ctx) {
-            //mask children do not have their own layer context,
-            //so they use whatever they're given
-            ctx = this.ctx;
-        }
         ctx.save();
         try {
             // update global time with new local time (it may've been
@@ -2280,7 +2271,7 @@ Element.prototype._addChild = function(elm) {
     this.children.push(elm); /* or add elem.id? */
     if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
-    //this._static &= elm.isStatic();
+    this._static &= elm.isStatic();
 };
 
 Element.prototype._stateStr = function() {
