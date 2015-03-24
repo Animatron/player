@@ -538,4 +538,45 @@ Animation.prototype.loadFonts = function(player) {
 
 };
 
+var getStaticsWithChildren = function(anim) {
+    var statics = [];
+
+    function countChildren(el) {
+        var count = 0;
+        if (el.children.length) {
+            count += el.children.length;
+            for (var i = 0; i < el.children.length; i++) {
+                count+=countChildren(el.children[i]);
+            }
+        }
+        return count;
+    }
+
+    function f(el){
+        if (el.isStatic()) {
+            var count = countChildren(el);
+            if (count>0) {
+                statics.push(el);
+            }
+        } else if(el.children && el.children.length) {
+            for(var i=0;i<el.children.length;i++) {
+                f(el.children[i]);
+            }
+        }
+    }
+
+    for (var i = 0; i < anim.tree.length; i++) {
+        f(anim.tree[i]);
+    }
+
+    return statics;
+};
+
+Animation.prototype.prerenderStatics = function() {
+    var statics = getStaticsWithChildren(this);
+    for (var i = 0; i < statics.length; i++) {
+        statics[i].prerender();
+    }
+};
+
 module.exports = Animation;

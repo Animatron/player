@@ -366,6 +366,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         if (!remotes.length) {
             player.fire(C.S_LOAD, result);
             if (!player.handleEvents) player.stop();
+            player.anim.prerenderStatics();
             if (callback) callback.call(player, result);
             // player may appear already playing something if autoPlay or a similar time-jump
             // flag was set from some different source of options (async, for example),
@@ -390,6 +391,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.fire(C.S_LOAD, result);
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
+                        player.anim.prerenderStatics();
                         if (callback) callback.call(player, result);
                         // player may appear already playing something if autoPlay or a similar time-jump
                         // flag was set from some different source of options (async, for example),

@@ -776,6 +776,18 @@ Element.prototype.invTransform = function(ctx) {
     return inv_matrix;
 };
 
+
+Element.prototype.prerender = function() {
+    var bounds = this.bounds(),
+        cvs = engine.createCanvas(bounds.width, bounds.height),
+        ctx = cvs.getContext('2d');
+
+    this.initState();
+    this.render(ctx, this.gband[0], 0);
+    this._prerender = cvs;
+    this.prerendered = true;
+};
+
 /**
  * @method render
  * @chainable
@@ -829,7 +841,11 @@ Element.prototype.render = function(ctx, gtime, dt) {
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     }
-    if (drawMe) {
+    if (this.prerendered) {
+        var bounds = this.bounds();
+        ctx.drawImage(this._prerender, bounds[0], bounds[1],
+           bounds[2], bounds[3], 0, 0, bounds[2], bounds[3]);
+    } else if (drawMe) {
         ctx.save();
         try {
             // update global time with new local time (it may've been
@@ -2026,7 +2042,7 @@ Element.prototype.invalidateVisuals = function() {
  */
 Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
-        (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
+        (t_cmp(this.lastBoundsSavedAt, ltime) === 0)) return this.$bounds;
 
     var result = this.myBounds().clone();
     if (this.children.length) {
