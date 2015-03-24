@@ -1440,22 +1440,22 @@ Player.prototype._disableInfo = function() {
 };
 
 Player.prototype.__subscribePlayingEvents = function(anim) {
-    if (this.__anim_handlers[anim.id]) return;
+    if (this.__anim_handlers && this.__anim_handlers[anim.id]) return;
     var handlers = {};
     handlers[C.A_START] = this.on(C.S_PLAY,  function() { anim.fire(C.A_START); });
     handlers[C.A_PAUSE] = this.on(C.S_PAUSE, function() { anim.fire(C.A_PAUSE); });
     handlers[C.A_STOP]  = this.on(C.S_STOP,  function() { anim.fire(C.A_STOP);  });
     if (!this.__anim_handlers) this.__anim_handlers = {};
-    this.__anim_events[anim.id] = handlers;
+    this.__anim_handlers[anim.id] = handlers;
 };
 Player.prototype.__unsubscribePlayingEvents = function(anim) {
-    if (!this.__anim_events) return;
-    var handlers = this.__anim_events[anim.id];
+    if (!this.__anim_handlers) return;
+    var handlers = this.__anim_handlers[anim.id];
     if (!handlers) return;
     this.unbind(C.S_PLAY,  handlers[C.A_START]);
     this.unbind(C.S_PAUSE, handlers[C.A_PAUSE]);
     this.unbind(C.S_STOP,  handlers[C.STOP]);
-    this.__anim_events[anim.id] = null;
+    this.__anim_handlers[anim.id] = null;
 };
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
