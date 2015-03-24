@@ -390,6 +390,7 @@ Import.leaf = function(type, src, parent/*, anim*/) {
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
+        trg.type = C.ET_PATH;
         trg.$fill = Import.fill(src[1]);
         trg.$stroke = Import.stroke(src[2]);
         trg.$shadow = Import.shadow(src[3]);
