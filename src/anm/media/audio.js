@@ -321,7 +321,7 @@ Audio.prototype.toggleMute = function() {
     }
 };
 /** @private @method connect */
-Audio.prototype.connect = function(element) {
+Audio.prototype.connect = function(element, anim) {
     var me = this;
     element.on(C.X_START, function() {
         me.play.apply(me, arguments);
@@ -332,8 +332,8 @@ Audio.prototype.connect = function(element) {
     var stop = function() {
         me.stop();
     };
-    element.on(C.S_STOP, stop);
-    element.on(C.S_PAUSE, stop);
+    anim.on(C.A_STOP, stop);
+    anim.on(C.A_PAUSE, stop);
 };
 /**
  * @method clone

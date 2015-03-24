@@ -36,8 +36,8 @@ Video.prototype.connect = function(element) {
     });
     var stop = function() { me.stop(); };
     element.on(C.X_STOP, stop);
-    element.on(C.S_STOP, stop);
-    element.on(C.S_PAUSE, stop);
+    element.on(C.A_STOP, stop);
+    element.on(C.A_PAUSE, stop);
 };
 /** @private @method load */
 Video.prototype.load = function(elm, player) {

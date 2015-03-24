@@ -69,7 +69,7 @@ Controls.prototype.update = function(parent) {
 Controls.prototype.subscribeEvents = function() {
     var me=this;
 
-    me.player.on(C.S_STATE_CHANGE, function(state) {
+    me.player.on(C.S_CHANGE_STATE, function(state) {
         me.state.happens = state;
         me.state.changed = true;
     });

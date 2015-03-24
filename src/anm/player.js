@@ -347,6 +347,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
 
     var whenDone = function(result) {
         var anim = player.anim;
+        player.__subscribePlayingEvents(anim);
         if (player.handleEvents) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(anim);
@@ -402,6 +403,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     /* TODO: configure canvas using clips bounds? */
 
     if (player.anim) {
+        player.__unsubscribePlayingEvents(player.anim);
         player.__unsubscribeDynamicEvents(player.anim);
         player.anim.traverse(function(elm) {
             elm.removeMaskCanvases();
@@ -1437,6 +1439,24 @@ Player.prototype._disableInfo = function() {
     this.controls.disableInfo();
 };
 
+Player.prototype.__subscribePlayingEvents = function(anim) {
+    if (this.__anim_handlers && this.__anim_handlers[anim.id]) return;
+    var handlers = {};
+    handlers[C.A_START] = this.on(C.S_PLAY,  function() { anim.fire(C.A_START); });
+    handlers[C.A_PAUSE] = this.on(C.S_PAUSE, function() { anim.fire(C.A_PAUSE); });
+    handlers[C.A_STOP]  = this.on(C.S_STOP,  function() { anim.fire(C.A_STOP);  });
+    if (!this.__anim_handlers) this.__anim_handlers = {};
+    this.__anim_handlers[anim.id] = handlers;
+};
+Player.prototype.__unsubscribePlayingEvents = function(anim) {
+    if (!this.__anim_handlers) return;
+    var handlers = this.__anim_handlers[anim.id];
+    if (!handlers) return;
+    this.unbind(C.S_PLAY,  handlers[C.A_START]);
+    this.unbind(C.S_PAUSE, handlers[C.A_PAUSE]);
+    this.unbind(C.S_STOP,  handlers[C.STOP]);
+    this.__anim_handlers[anim.id] = null;
+};
 Player.prototype.__subscribeDynamicEvents = function(anim) {
     if (global_opts.setTabindex) {
         engine.setTabIndex(this.canvas, this.__instanceNum);

@@ -382,19 +382,19 @@ Import.branch = function(type, src, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent/*, anim*/) {
+Import.leaf = function(type, src, parent, anim) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg);
+        trg.$audio.connect(trg, anim);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
-        trg.$video.connect(trg);
+        trg.$video.connect(trg, anim);
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
@@ -861,7 +861,7 @@ var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
-        elm = Import.leaf(Import._type(el), el);
+        elm = Import.leaf(Import._type(el), el/*, anim*/);
 
     elm.alpha = src[5];
     elm.disabled = true;

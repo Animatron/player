@@ -128,7 +128,14 @@ registerEvent('X_STOP', 'bandstop');
 // * Animation or Element error
 registerEvent('X_ERROR', 'error');
 
+// * animation start/stop
+registerEvent('A_START', 'animationstart');
+registerEvent('A_STOP', 'animationstop');
+registerEvent('A_PAUSE', 'animationpause');
+
 // * playing (player state)
+
+registerEvent('S_CHANGE_STATE', 'statechange');
 registerEvent('S_PLAY', 'play');
 registerEvent('S_PAUSE', 'pause');
 registerEvent('S_STOP', 'stop');
@@ -139,7 +146,6 @@ registerEvent('S_LOAD', 'load');
 registerEvent('S_RES_LOAD', 'loadresources');
 registerEvent('S_ERROR', 'error'); // is not intersecting with X_ERROR, so it is safe
                                    // they have same name
-
 
 module.exports = {
   registerEvent: registerEvent,
