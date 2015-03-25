@@ -68,6 +68,7 @@ function Animation() {
     this.speed = 1.0;
     this.repeat = false;
     this.meta = {};
+    this.hasScripting = false;
     //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];

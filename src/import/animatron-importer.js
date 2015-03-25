@@ -358,6 +358,7 @@ Import.branch = function(type, src, all, anim) {
         }
 
         if (lsrc[9]) { // scripting
+            anim.hasScripting = true;
             var code = lsrc[9];
             var script_ctx = createScriptContext(ltrg);
 
