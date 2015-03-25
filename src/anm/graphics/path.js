@@ -7,7 +7,8 @@ var segments = require('./segments.js'),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
     CSeg = segments.CSeg,
-    Crossings = segments.Crossings;
+    Crossings = segments.Crossings,
+    engine = require('engine');
 
 var Brush = require('./brush.js');
 
@@ -60,6 +61,10 @@ function Path(val) {
         this.parse(val);
     } else if (is.arr(val)) {
         this.segs = val;
+    }
+
+    if (engine.Path2D) {
+        this.path2d = new Path2D(Path.toSVGString(this));
     }
 
     this.cached_hits = {};
@@ -190,6 +195,24 @@ Path.prototype.close = function() {
  * @return {anm.Path} itself
  */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
+    if (this.path2d) {
+        if (shadow) {
+            shadow.apply(ctx);
+        }
+        if (fill) {
+            fill.apply(ctx);
+            ctx.fill(this.path2d);
+        } else if (stroke) {
+            stroke.apply(ctx);
+            ctx.fill(this.path2d);
+        }
+
+        if (shadow) {
+            Brush.clearShadow(ctx);
+        }
+
+        return;
+    }
     ctx.beginPath();
     // unrolled for speed
     var segments = this.segs;
