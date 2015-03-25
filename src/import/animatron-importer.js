@@ -362,7 +362,9 @@ Import.branch = function(type, src, all, anim) {
             var code = lsrc[9];
             var script_ctx = createScriptContext(ltrg);
 
-            eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
+            try {
+                eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
+            } catch(e) { _reportError(e); }
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
