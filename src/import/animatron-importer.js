@@ -357,14 +357,12 @@ Import.branch = function(type, src, all, anim) {
             }
         }
 
-        if (lsrc[8]) { // scripting
+        if (lsrc[9]) { // scripting
             anim.hasScripting = true;
-            var code = lsrc[8];
+            var code = lsrc[9];
             var script_ctx = createScriptContext(ltrg);
 
-            eval('(function(script) {'
-                + code +
-            '})').call(ltrg, script_ctx);
+            eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
