@@ -104,8 +104,7 @@ registerEvent('S_PLAYER_DETACH', 'detach');
 
 // NB: All of the events must have different values, or the flow will be broken
 // FIXME: allow grouping events, i.e. value may a group_marker + name of an event
-//        also, allow events to belong to several groups, it may replace a tests like
-//        XT_MOUSE or XT_CONTROL
+//        also, allow events to belong to several groups
 
 // * mouse
 registerEvent('X_MCLICK', 'mouseclick');
@@ -147,7 +146,33 @@ registerEvent('S_RES_LOAD', 'loadresources');
 registerEvent('S_ERROR', 'error'); // is not intersecting with X_ERROR, so it is safe
                                    // they have same name
 
+function isMouseEvent(type) { return (type.indexOf('mouse') === 0); }
+function isKeyboardEvent(type) { return (type.indexOf('key') === 0); }
+function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardEvent(type); }
+
+var m_and_k = {
+    'mouseclick': 1,
+    'mousedoubleclick': 2,
+    'mouseup': 4,
+    'mousedown': 8,
+    'mousemove': 16,
+    'mouseover': 32,
+    'mouseout': 64,
+    'keypress': 128,
+    'keyup': 256,
+    'keydown': 512
+};
+
+function EventState() { this.reset(); }
+EventState.prototype.reset = function() { this.state = 0; }
+EventState.prototype.save = function(type) { this.state = this.state | m_and_k[type]; }
+EventState.prototype.check = function(type) { return this.state & m_and_k[type]; }
+
 module.exports = {
-  registerEvent: registerEvent,
-  provideEvents: provideEvents
+    mouse: isMouseEvent,
+    keyboard: isKeyboardEvent,
+    mouseOrKeyboard: isMouseOrKeyboardEvent,
+    registerEvent: registerEvent,
+    provideEvents: provideEvents,
+    EventState: EventState
 };

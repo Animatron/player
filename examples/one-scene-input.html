@@ -14,8 +14,8 @@
     <link rel="shortcut icon" type="image/x-icon" href="../favicon.ico" />
     <link rel="stylesheet" href="./demo.css" type="text/css" />
 
-    <script src="../dist/player.js" type="text/javascript"></script>
-    <script src="../src/module/scripting.js" type="text/javascript"></script>
+    <!-- <script src="../dist/player.js" type="text/javascript"></script> -->
+    <script src="https://player-dev.animatron.com/latest/bundle/animatron.min.js" type="text/javascript"></script>
     <script src="../src/import/animatron-importer.js" type="text/javascript"></script>
 
     <!-- <script src="../dist/bundle/animatron.js" type="text/javascript"></script> -->
@@ -53,8 +53,7 @@
           return anm.createPlayer('anm-player', { /*audioEnabled: false,*/
                                                   loadingMode: anm.constants.LM_ONPLAY,
                                                   ribbonsColor: 'rgba(255,0,0,0.01)',
-                                                  controlsEnabled: false,
-                                                  handleEvents: true
+                                                  controlsEnabled: false
                                                   /*forceSceneSize: true*/
                                                   /*controlsEnabled: false, autoPlay: true*/ });
       }

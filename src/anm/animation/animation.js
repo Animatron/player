@@ -11,7 +11,8 @@ var Element = require('./element.js'),
     Clip = Element,
     Brush = require('../graphics/brush.js');
 
-var provideEvents = require('../events.js').provideEvents,
+var events = require('../events.js'),
+    provideEvents = events.provideEvents,
     errors = require('../errors.js'),
     ErrLoc = require('../loc.js').Errors;
 
@@ -67,6 +68,7 @@ function Animation() {
     this.speed = 1.0;
     this.repeat = false;
     this.meta = {};
+    this.hasScripting = false;
     //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];
@@ -313,9 +315,8 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
-function __isMouseEvent(type) { return type.indexOf('mouse') >= 0; }
 Animation.prototype.handle__x = function(type, evt) {
-    if (__isMouseEvent(type)) {
+    if (events.mouseOrKeyboard(type)) {
         var pos = evt.pos;
         this.each(function(child) {
             child.inside(pos, function(elm) { // filter elements

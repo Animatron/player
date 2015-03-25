@@ -9,7 +9,9 @@ var engine = require('engine');
 
 var C = require('../constants.js');
 
-var provideEvents = require('../events.js').provideEvents;
+var events = require('../events.js'),
+    provideEvents = events.provideEvents,
+    EventState = events.EventState;
 
 var Transform = require('../../vendor/transform.js');
 
@@ -150,9 +152,9 @@ function Element(name, draw, onframe) {
      * @param {Function} handler event handler
      */
     this.on = function(type, handler) {
-        if (type & C.XT_CONTROL) {
+        /* if (events.mouseOrKeyboard(type)) {
             return this.m_on.call(me, type, handler);
-        } else return default_on.call(me, type, handler);
+        } else */ return default_on.call(me, type, handler);
         // return this; // FIXME: make chainable
     };
 
@@ -328,7 +330,7 @@ Element.prototype.__resetTimeFlags = function() {
 };
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
-    this.__evt_st = 0; // events state
+    this.__evt_st = new EventState(); // event state
     this.__evtCache = [];
     return this;
 };
@@ -1524,7 +1526,7 @@ Element.prototype._max_tpos = function() {
 Element.prototype.m_on = function(type, handler) {
     this.modify(new Modifier(
         function(t) { /* FIXME: handlers must have priority? */
-            if (this.__evt_st & type) {
+            if (this.__evt_st.check(type)) {
                 var evts = this.evts[type];
                 for (var i = 0, el = evts.length; i < el; i++) {
                     if (handler.call(this, evts[i], t) === false) return false;
@@ -2447,7 +2449,7 @@ Element.prototype.__loadEvents = function() {
         for (var ei = 0; ei < cache_len; ei++) {
             edata = cache[ei];
             type = edata[0];
-            this.__evt_st |= type;
+            this.__evt_st.save(type);
             evts = this.evts;
             if (!evts[type]) evts[type] = [];
             evts[type].push(edata[1]);

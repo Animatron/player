@@ -98,11 +98,8 @@ var Files = {
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
            MODULES: { _ALL_: [ //'audio-export.js',
-                               //'scripting.js',
-                               'video.js',
                                'shapes.js' ],
                       // AUDIO_EXPORT: 'audio-export.js',
-                      SCRIPTING: 'scripting.js',
                       SHAPES: 'shapes.js' }, },
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
@@ -114,8 +111,7 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.SCRIPTING,
-                                                              Files.Ext.MODULES.SHAPES ])) }
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.SHAPES ])) }
 ];
 
 var Tests = {
