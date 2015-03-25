@@ -851,7 +851,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             bctx.drawImage(mcvs, 0, 0);
 
             ctx.drawImage(bcvs,
-                0, 0, Math.floor(width * scale), Math.floor(height * scale),
+                0, 0, width * scale, height * scale,
                 x, y, width, height);
 
             mctx.restore();
@@ -1870,7 +1870,7 @@ Element.prototype.offset = function() {
     return this.matrix.transformPoint(pt);
 }
 Element.prototype.global = function(pt) {
-    return this.matrix.adaptPoint(pt);
+    return this.matrix.transformPointInverse(pt);
 } */
 /**
  * @method invalidate
@@ -1930,9 +1930,9 @@ Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
 
-    var result = this.myBounds().clone();
+    var result = this.myBounds();
     if (this.children.length) {
-        // FIXME: test if bounds are not empty
+        result = result.clone();
         this.each(function(child) {
             result.add(child.bounds(ltime));
         });
@@ -2006,11 +2006,11 @@ Element.prototype.adapt = function(pts) {
         var matrix = this.matrix; // should we store inverted matrix and
                                   // use inv_matrix.transformPoint instead?
         for (var i = 0, il = pts.length; i < il; i++) {
-            trg.push(matrix.adaptPoint(pts[i].x, pts[i].y));
+            trg.push(matrix.transformPointInverse(pts[i].x, pts[i].y));
         }
         return trg;
     } else {
-        return this.matrix.adaptPoint(pts.x, pts.y);
+        return this.matrix.transformPointInverse(pts.x, pts.y);
     }
 };
 
@@ -2031,10 +2031,37 @@ Element.prototype.adapt = function(pts) {
 */
 Element.prototype.adaptBounds = function(bounds) {
     var matrix = this.matrix;
-    var tl = matrix.adaptPoint(bounds.x, bounds.y),
-        tr = matrix.adaptPoint(bounds.x + bounds.width, bounds.y),
-        br = matrix.adaptPoint(bounds.x + bounds.width, bounds.y + bounds.height),
-        bl = matrix.adaptPoint(bounds.x, bounds.y + bounds.height);
+    var tl = matrix.transformPoint(bounds.x, bounds.y),
+        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
+};
+
+/**
+* @method inverseAdaptBounds
+*
+* Adapt bounds to parent's coordinate space. Bounds are passed as an object
+* `{ x: 100, y: 100, width: 200, height: 150 }`.
+*
+* @param {Object} bounds bounds to adapt
+* @param {Number} bounds.x
+* @param {Number} bounds.y
+* @param {Number} bounds.width
+* @param {Number} bounds.height
+*
+* @return {Object} transformed bounds
+*/
+Element.prototype.inverseAdaptBounds = function(bounds) {
+    var matrix = this.matrix;
+    var tl = matrix.transformPointInverse(bounds.x, bounds.y),
+        tr = matrix.transformPointInverse(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPointInverse(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPointInverse(bounds.x, bounds.y + bounds.height);
     var minX = Math.min(tl.x, tr.x, bl.x, br.x),
         minY = Math.min(tl.y, tr.y, bl.y, br.y),
         maxX = Math.max(tl.x, tr.x, bl.x, br.x),
