@@ -203,16 +203,14 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
             fill.apply(ctx);
             ctx.fill(this.path2d);
         }
-        if (stroke) {
-            stroke.apply(ctx);
-            ctx.stroke(this.path2d);
-        }
-
         if (shadow) {
             Brush.clearShadow(ctx);
         }
-
-        return;
+        if (stroke) {
+            stroke.apply(ctx);
+            ctx.stroke(this.path2d);
+        }        
+        return this;
     }
     ctx.beginPath();
     // unrolled for speed
@@ -227,6 +225,8 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     if (fill) { fill.apply(ctx); ctx.fill(); }
     if (shadow) { Brush.clearShadow(ctx); }
     if (stroke) { stroke.apply(ctx); ctx.stroke(); }
+
+    return this;
 };
 /**
  * @method parse
