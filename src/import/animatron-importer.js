@@ -33,6 +33,7 @@ var C = anm.constants,
     Audio = anm.Audio,
     Video = anm.Video,
     is = anm.utils.is,
+    roundTo = anm.utils.roundTo,
     $log = anm.log;
     //test = anm._valcheck
 
@@ -534,8 +535,8 @@ Import._pathReadPoint = function(stream, target, base) {
     var b_x = base ? base[0] : (target.length ? target[target.length - 2] : 0);
     var b_y = base ? base[1] : (target.length ? target[target.length - 1] : 0);
 
-    target.push(b_x + x / 1000.0);
-    target.push(b_y + y / 1000.0);
+    target.push(roundTo(b_x + x / 1000.0, 2));
+    target.push(roundTo(b_y + y / 1000.0, 2));
     return target;
 };
 
