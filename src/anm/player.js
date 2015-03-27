@@ -349,6 +349,8 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
         var anim = player.anim;
         player.__subscribePlayingEvents(anim);
         if (player.handleEvents || anim.hasScripting) {
+            if (anim.hasScripting && player.info) player._disableInfo();
+            if (anim.hasScripting && player.controls) player._disableControls();
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(anim);
         }
