@@ -209,7 +209,7 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
         if (stroke) {
             stroke.apply(ctx);
             ctx.stroke(this.path2d);
-        }        
+        }
         return this;
     }
     ctx.beginPath();
@@ -526,74 +526,11 @@ Path.prototype.reset = function() {
 
 Path.prototype.dispose = function() { };
 
-// visits every chunk of path in string-form and calls
-// visitor function, so visitor function gets
-// chunk marker and positions sequentially
-// data argument will be also passed to visitor if specified
-Path.visitStrPath = function(path, visitor, data) {
-    var cur_pos = 0;
-    while (true) {
-        var marker = path[cur_pos];
-        if (marker === 'Z') {
-            visitor(marker, [], data);
-            return;
-        }
-        var pos_data = null;
-        if ((marker === 'M') || (marker === 'L')) {
-            pos_data = collectPositions(path, cur_pos, 2);
-        } else if (marker === 'C') {
-            pos_data = collectPositions(path, cur_pos, 6);
-        }
-        cur_pos += pos_data[0];
-        var positions = pos_data[1];
-        visitor(marker, positions, data);
-    }
-};
-
 Path.toSVGString = function(path) {
     var buffer = [];
     path.visit(encodeVisitor, buffer);
     buffer.push('Z');
     return buffer.join(' ');
-};
-
-// parses `count` positions from path (string form),
-// starting at `start`, returns a length of parsed data and
-// positions array
-var collectPositions = function(path, start, count) {
-    var pos = start + 1;
-    var positions = [];
-    var got = 0;
-    while (got != count) {
-        var posstr = utils.collect_to(path, pos, ' ');
-        pos += posstr.length + 1; got++;
-        positions.push(parseFloat(posstr));
-    }
-    return [pos - start, positions];
-};
-
-// visitor to parse a string path into Path object
-var parserVisitor = function(marker, positions, path) {
-    if (marker === 'M') {
-        path.add(new MSeg(positions));
-    } else if (marker === 'L') {
-        path.add(new LSeg(positions));
-    } else if (marker === 'C') {
-        path.add(new CSeg(positions));
-    }
-};
-
-// visitor to apply string path to context
-var strApplyVisitor = function(marker, positions, ctx) {
-    if (marker === 'M') {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === 'L') {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === 'C') {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
-    }
 };
 
 var encodeVisitor = function(segment, buffer) {
@@ -604,20 +541,38 @@ var encodeVisitor = function(segment, buffer) {
 Path.parse = function(path, target) {
     target = target || new Path();
     target.segs = [];
-    Path.visitStrPath(path, parserVisitor, target);
+    var segPaths = path.match(/[a-z][^a-z]*/ig);
+    for (var i = 0; i < segPaths.length; i++) {
+        var seg = Path.parseSegment(segPaths[i]);
+        if (seg) {
+            target.segs.push(seg);
+        }
+    }
     target.str = path;
     return target;
 };
-/**
- * @static @method parseAndAppy
- *
- * Parses a path in string form and immediately applies it to context
- *
- * @param {Context2D} ctx context to apply to
- * @param {String} path SVG representation of a path
- */
-Path.parseAndApply = function(ctx, path) {
-    Path.visitStrPath(path, strApplyVisitor, ctx);
+
+Path.parseSegment = function(segment) {
+    segment = segment.toUpperCase();
+    var values = segment.substring(1).trim()
+        .replace(/,/g, ' ')
+        .split(' ').map(function(n){
+            return parseFloat(n);
+        });
+    switch(segment[0]) {
+        case 'M':{
+            return new MSeg(values);
+        }
+        case 'L':{
+            return new LSeg(values);
+        }
+        case 'C':{
+            return new CSeg(values);
+        }
+        default: {
+            return null;
+        }
+    }
 };
 
 module.exports = Path;
