@@ -202,9 +202,10 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
         if (fill) {
             fill.apply(ctx);
             ctx.fill(this.path2d);
-        } else if (stroke) {
+        }
+        if (stroke) {
             stroke.apply(ctx);
-            ctx.fill(this.path2d);
+            ctx.stroke(this.path2d);
         }
 
         if (shadow) {
