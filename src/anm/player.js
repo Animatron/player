@@ -168,7 +168,7 @@ Player.EMPTY_STROKE_WIDTH = 3;
  *       bgColor: undefined,
  *       ribbonsColor: undefined,
  *       audioEnabled: true,
- *       inifiniteDuration: false,
+ *       infiniteDuration: false,
  *       drawStill: false,
  *       controlsEnabled: undefined, // undefined means 'auto'
  *       infoEnabled: undefined, // undefined means 'auto'
@@ -513,7 +513,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.time = Player.NO_TIME;
     state.speed = (speed || 1) * (player.speed || 1) * (anim.speed || 1);
     state.stop = (typeof stopAfter !== 'undefined') ? stopAfter : state.stop;
-    state.duration = player.inifiniteDuration ? Infinity
+    state.duration = player.infiniteDuration ? Infinity
                      : (anim.duration || (anim.isEmpty() ? 0
                                                            : Animation.DEFAULT_DURATION));
 
@@ -1517,8 +1517,8 @@ Player.prototype.__beforeFrame = function(anim) {
             if (state.happens !== C.PLAYING) return false;
             if (((state.stop !== Player.NO_TIME) &&
                  (time >= (state.from + state.stop))) ||
-                 (is.finite(state.duration) &&
-                    (time > (state.duration + Player.PEFF)))) {
+                (is.finite(state.duration) &&
+                 (time > (state.duration + Player.PEFF)))) {
                 player.fire(C.S_COMPLETE);
                 state.time = 0;
                 anim.reset();
