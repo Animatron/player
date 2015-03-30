@@ -1178,6 +1178,16 @@ Player.prototype.subscribeEvents = function(canvas) {
 };
 
 /**
+ * @method mute
+ *
+ * Disable sound
+ */
+Player.prototype.mute = function() {
+    if (this.muted) return;
+    this.toggleMute();
+};
+
+/**
  * @method toggleMute
  *
  * Disable or enable sound
