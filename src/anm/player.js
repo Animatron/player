@@ -533,12 +533,12 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.happens = C.PLAYING;
 
-    state.__firstReq = Render.loop(player.ctx,
-                                   player, anim,
-                                   player.__beforeFrame(anim),
-                                   player.__afterFrame(anim),
-                                   player.__userBeforeRender,
-                                   player.__userAfterRender);
+    state.__lastReq = Render.loop(player.ctx,
+                                  player, anim,
+                                  player.__beforeFrame(anim),
+                                  player.__afterFrame(anim),
+                                  player.__userBeforeRender,
+                                  player.__userAfterRender);
 
     player.fire(C.S_CHANGE_STATE, C.PLAYING);
     player.fire(C.S_PLAY, state.from);
