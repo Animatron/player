@@ -524,10 +524,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
     state.__rsec = 0;
     state.__prevt = 0;
 
-    // this flags actually stops the animation,
-    // __stopAnim is called just for safety reasons :)
-    state.__supressFrames = false;
-
     if (state.happens === C.STOPPED && !player.repeating) {
         player.reportStats();
     }
@@ -537,12 +533,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     state.happens = C.PLAYING;
 
-    // FIXME: W3C says to call stopAnim (cancelAnimationFrame) with ID
-    //        of the last call of nextFrame (requestAnimationFrame),
-    //        not the first one, but some Mozilla / HTML5tutorials examples use ID
-    //        of the first call. Anyway, __supressFrames stops our animation in fact,
-    //        __stopAnim is called "to ensure", may be it's not a good way to ensure,
-    //       though...
     state.__firstReq = Render.loop(player.ctx,
                                    player, anim,
                                    player.__beforeFrame(anim),
@@ -583,10 +573,7 @@ Player.prototype.stop = function() {
 
     if ((state.happens === C.PLAYING) ||
         (state.happens === C.PAUSED)) {
-        // this flags actually stops the animation,
-        // __stopAnim is called just for safety reasons :)
-        state.__supressFrames = true;
-        __stopAnim(state.__firstReq);
+        __stopAnim(state.__lastReq);
     }
 
     state.time = Player.NO_TIME;
@@ -641,10 +628,7 @@ Player.prototype.pause = function() {
     }
 
     if (state.happens === C.PLAYING) {
-        // this flags actually stops the animation,
-        // __stopAnim is called just for safety reasons :)
-        state.__supressFrames = true;
-        __stopAnim(state.__firstReq);
+        __stopAnim(state.__lastReq);
     }
 
     if (state.time > state.duration) {

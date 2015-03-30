@@ -63,11 +63,9 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
         if (!after(time)) return;
     }
 
-    if (pl_state.__supressFrames) return;
-
-    return nextFrame(function() {
+    return (pl_state.__lastReq = nextFrame(function() {
         r_loop(ctx, player, anim, before, after, before_render, after_render);
-    });
+    }));
 }
 
 function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
