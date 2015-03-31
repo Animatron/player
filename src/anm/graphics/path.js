@@ -8,7 +8,8 @@ var segments = require('./segments.js'),
     LSeg = segments.LSeg,
     CSeg = segments.CSeg,
     Crossings = segments.Crossings,
-    engine = require('engine');
+    engine = require('engine'),
+    useP2D = !!engine.Path2D;
 
 var Brush = require('./brush.js');
 
@@ -59,14 +60,10 @@ function Path(val) {
 
     if (is.str(val)) {
         this.parse(val);
+        this.updatePath2D(val);
     } else if (is.arr(val)) {
         this.segs = val;
     }
-
-    if (engine.Path2D) {
-        this.path2d = new Path2D(Path.toSVGString(this));
-    }
-
     this.cached_hits = {};
 }
 
@@ -120,6 +117,7 @@ Path.prototype.length = function() {
  */
 Path.prototype.add = function(seg) {
     this.segs.push(seg);
+    this._p2dCurrent = false;
     return this;
 };
 /**
@@ -195,7 +193,8 @@ Path.prototype.close = function() {
  * @return {anm.Path} itself
  */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
-    if (this.path2d) {
+    if (engine.path2d) {
+        this.updatePath2D();
         if (shadow) {
             shadow.apply(ctx);
         }
@@ -339,11 +338,11 @@ Path.prototype.pointAt = function(t) {
         p = seg.last();
     }
 
-    if (!(start === p)) {
+    if (start !== p) {
         crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
     }
 
-    return ((crossings & mask) != 0);
+    return ((crossings & mask) !== 0);
 };
 /**
  * @method tangentAt
@@ -525,6 +524,13 @@ Path.prototype.reset = function() {
 };
 
 Path.prototype.dispose = function() { };
+
+Path.prototype.updatePath2D = function(str) {
+    if (!useP2D || this._p2dCurrent) return;
+    str = str || Path.toSVGString(this);
+    this.path2d = new engine.Path2D(str);
+    this._p2dCurrent = true;
+};
 
 Path.toSVGString = function(path) {
     var buffer = [];
