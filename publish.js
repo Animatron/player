@@ -140,7 +140,7 @@
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
                     var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'));
-                    if (anm.interop.playerjs) {
+                    if (anm.interop && anm.interop.playerjs) {
                         anm.interop.playerjs.setPlayer(player);
                     }
             });
