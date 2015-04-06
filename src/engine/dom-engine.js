@@ -1038,6 +1038,9 @@ $DE.addMessageListener = function(listener) {
 };
 
 $DE.postToContentWindow = function(message) {
+    if (!iframe) {
+        return;
+    }
     iframe.contentWindow.postMessage(JSON.stringify(message));
 };
 
