@@ -781,6 +781,64 @@ task('push-go', [], { async: true }, function(_version, _bucket) {
     });
 });
 
+// invalidate ==================================================================
+desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
+task('invalidate', [], { async: true }, function(version) {
+    version = version || 'latest';
+    _print('Ready to get credentials.');
+
+    var creds = [];
+    try {
+        creds = jake.cat(_loc('.s3'));
+    } catch(e) {
+        _print('No .s3 file which should contain credentials to upload with was found');
+        _print(FAILED_MARKER);
+        throw e;
+    }
+
+    creds = creds.split(/\s+/);
+
+
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
+    var distributionId = creds[3];
+    if (!distributionId) {
+        _print('CloudFront Distribution ID not found in .s3');
+        _print(FAILED_MARKER);
+        return;
+    }
+    _print('Got credentials. Creating an invalidation.');
+
+    var paths = [
+        '/%VERSION%/bundle/animatron.js',
+        '/%VERSION%/bundle/animatron.min.js',
+        '/%VERSION%/player.js',
+        '/%VERSION%/player.min.js',
+        '/%VERSION%/publish.js',
+        '/%VERSION%/BUILD'
+    ];
+
+
+    var cloudFront = new AWS.CloudFront();
+    var items = paths.map(function(path) { return path.replace('%VERSION%', version)});
+    var params = {
+        DistributionId: distributionId,
+        InvalidationBatch: {
+            CallerReference: '',
+            Paths: {
+                Quantity: items.length,
+                Items: items
+            }
+        }
+    };
+    cloudFront.createInvalidation(params, function(err, res){
+            if(err) throw err;
+            _print('Invalidation '+res.Invalidation.Id + ' created successfully');
+            complete();
+    });
+
+});
+
 // trig-prod ===================================================================
 
 /*desc(_dfit_nl(['Triggers deployment to Production server',
