@@ -139,6 +139,9 @@ var fireEvent = function(event, data, isGlobal) {
 };
 
 var bindPlayerEvents = function(player) {
+    if (!engine.isInIframe()) {
+        return;
+    }
     player.on(C.S_LOAD, function(){
         fireEvent('ready', {
             src: engine.getIframeSrc(),
