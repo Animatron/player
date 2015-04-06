@@ -30,10 +30,11 @@ var adapter = {
 
     setVolume: function(message) {
         var volume = message.value;
+        player.volume(volume/100);
     },
 
     getVolume: function() {
-        return 100;
+        return player.volume()*100;
     },
 
     seekTo: function(message) {

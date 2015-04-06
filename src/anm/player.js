@@ -380,6 +380,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
+                        player._updateAudioVolumes();
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback.call(player, result);
@@ -443,7 +444,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     return player;
-}
+};
 
 var __nextFrame = engine.getRequestFrameFunc(),
     __stopAnim  = engine.getCancelFrameFunc();
@@ -737,7 +738,7 @@ Player.prototype._addOpts = function(opts) {
                         opts.muteErrors : this.muteErrors;
 
     if (is.defined(opts.mode)) { this.mode(opts.mode); }
-}
+};
 Player.prototype._checkOpts = function() {
     if (!this.canvas) return;
 
@@ -929,7 +930,7 @@ Player.prototype.factor = function() {
         return Math.min(this.width / this.anim.width,
                         this.height / this.anim.height);
     }
-}
+};
 /**
  * @method factorData
  *
@@ -951,8 +952,8 @@ Player.prototype.factorData = function() {
         anim_rect: result[1],
         ribbon_one: result[2] || null,
         ribbon_two: result[3] || null
-    }
-}
+    };
+};
 /**
  * @method thumbnail
  *
@@ -1200,6 +1201,29 @@ Player.prototype.toggleMute = function() {
     });
 };
 
+/**
+ * @method volume
+ *
+ * Get/set audio volume
+ */
+Player.prototype.volume = function(vol) {
+    if (typeof vol === 'undefined') {
+        return this.globalAudioVolume;
+    }
+    this.globalAudioVolume = vol;
+    this._updateAudioVolumes();
+};
+
+Player.prototype._updateAudioVolumes = function() {
+    if (this.anim) {
+        this.anim.traverse(function(el) {
+            if (el.$audio) {
+                el.$audio.setVolume(this.globalAudioVolume);
+            }
+        });
+    }
+};
+
 Player.prototype._drawEmpty = function() {
     var ctx = this.ctx,
         w = this.width,
@@ -1379,7 +1403,7 @@ Player.prototype._resize = function(width, height) {
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
         new_size = cur_size;
-    };
+    }
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];
@@ -1537,7 +1561,7 @@ Player.prototype.__onerror = function() {
     return function(err) {
         return me.__onerror_f(err);
     };
-}
+};
 
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
