@@ -16,7 +16,6 @@
 //    python markdown: ?
 //    orderly: 1.1.0
 //    jsonschema: 0.3.2
-//    aws2js: 0.8.3
 
 var fs = require('fs')/*,
     path = require('path')*/;
@@ -570,7 +569,7 @@ desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
                    '{jake push-version[,rls]} will push there a current version from VERSION file.',
                'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
-                    '`aws2js` and `walk` node.js modules.']));
+                    '`aws-sdk` and `walk` node.js modules.']));
 task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
@@ -636,11 +635,24 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
 
         _print('Got credentials. Making a request.');
 
-        var s3 = require('aws2js').load('s3', creds[1], creds[2]);
+        var AWS = require('aws-sdk');
+        AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
 
-        s3.setBucket(trg_bucket);
+        var s3 = new AWS.S3();
 
-        s3.putFile('/VERSIONS', _loc(VERSIONS_FILE), 'public-read', jsonHeaders, function(err, res) {
+        var params = {
+            'Bucket': trg_bucket,
+            'ACL': 'public-read',
+            'ContentType': 'text/plain',
+            'Key': '/VERSIONS'
+        };
+        if (trg_bucket === Bucket.Development.NAME) {
+            params.CacheControl = 'max-age=300';
+        }
+
+        params.Body = fs.readFileSync(VERSIONS_FILE);
+
+        s3.putObject(params, function(err, res) {
             if (err) { _print(FAILED_MARKER); throw err; }
             _print(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
 
@@ -648,13 +660,13 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
 
             var on_complete = function(src, dst, gzipped) {
               return function(err,res) {
-                if (gzipped) jake.rmRf(gzipped);
-                if (err) { _print(FAILED_MARKER); throw err; }
-                _print(src + ' -> S3 as ' + dst);
-                files_count--;
-                if (!files_count) { _print(DONE_MARKER); complete(); }
-              }
-            }
+                    if (gzipped) jake.rmRf(gzipped);
+                    if (err) { _print(FAILED_MARKER); throw err; }
+                    _print(src + ' -> S3 as ' + dst);
+                    files_count--;
+                    if (!files_count) { _print(DONE_MARKER); complete(); }
+                };
+            };
 
             // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
             function compress(src, cb) {
@@ -675,14 +687,19 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
                     dst = file[1],
                     gzip_it = file[2],
                     headers = file[3];
+
+                params.ContentType = headers['content-type'];
+                params.Key = dst;
                 if (gzip_it) {
                     compress(src, function(gzipped) {
-                      s3.putFile(dst, gzipped, 'public-read',
-                        headers, on_complete(src, dst, gzipped));
+                        params.Body = fs.readFileSync(gzipped);
+                        params.ContentEncoding = 'gzip';
+                        s3.putObject(params, on_complete(src, dst, gzipped));
                     });
                 } else {
-                    s3.putFile(dst, src, 'public-read',
-                      headers, on_complete(src, dst));
+                    delete params.ContentEncoding;
+                    params.Body = fs.readFileSync(src);
+                    s3.putObject(params, on_complete(src, dst));
                 }
             });
         });
@@ -698,7 +715,7 @@ desc(_dfit_nl(['Pushes publish.js` script to the S3.',
                    '{jake push-go[,rls]}, {jake push-go[latest,rls]}',
                'Affects: Only changes S3.',
                'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
-                    '`aws2js` node.js module.']));
+                    '`aws-sdk` node.js module.']));
 task('push-go', [], { async: true }, function(_version, _bucket) {
 
     var trg_bucket = Bucket.Development.NAME;
@@ -727,30 +744,97 @@ task('push-go', [], { async: true }, function(_version, _bucket) {
 
     _print('Got credentials. Making a request.');
 
-    var s3 = require('aws2js').load('s3', creds[1], creds[2]);
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
 
-    s3.setBucket(trg_bucket);
+    var s3 = new AWS.S3();
+
 
     var PUBLISHJS_LOCAL_PATH = _loc('publish.js'),
         PUBLISHJS_REMOTE_PATH = '/' + trg_version + '/publish.js';
     var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
         FAVICON_REMOTE_PATH = '/favicon.ico';
 
+    var params = {
+        'Bucket': trg_bucket,
+        'ACL': 'public-read',
+        'ContentType': 'text/javascript',
+        'Key': PUBLISHJS_REMOTE_PATH
+    };
 
-    s3.putFile(PUBLISHJS_REMOTE_PATH, PUBLISHJS_LOCAL_PATH, 'public-read', { 'content-type': 'text/javascript' }, function(err, res) {
+    params.Body = fs.readFileSync(PUBLISHJS_LOCAL_PATH);
 
+    s3.putObject(params, function(err, res) {
         if (err) { _print(FAILED_MARKER); throw err; }
         _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
 
-        s3.putFile(FAVICON_REMOTE_PATH, FAVICON_LOCAL_PATH, 'public-read', { 'content-type': 'image/x-icon' }, function(err, res) {
+        params.Key = FAVICON_REMOTE_PATH;
+        params.Body = fs.readFileSync(FAVICON_LOCAL_PATH);
+        params.ContentType = 'image/x-icon';
 
+        s3.putObject(params, function(err, res){
             if (err) { _print(FAILED_MARKER); throw err; }
             _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
 
             complete();
-
         });
+    });
+});
 
+// invalidate ==================================================================
+desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
+task('invalidate', [], { async: true }, function(version) {
+    version = version || 'latest';
+    _print('Ready to get credentials.');
+
+    var creds = [];
+    try {
+        creds = jake.cat(_loc('.s3'));
+    } catch(e) {
+        _print('No .s3 file which should contain credentials to upload with was found');
+        _print(FAILED_MARKER);
+        throw e;
+    }
+
+    creds = creds.split(/\s+/);
+
+
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
+    var distributionId = creds[3];
+    if (!distributionId) {
+        _print('CloudFront Distribution ID not found in .s3');
+        _print(FAILED_MARKER);
+        return;
+    }
+    _print('Got credentials. Creating an invalidation.');
+
+    var paths = [
+        '/%VERSION%/bundle/animatron.js',
+        '/%VERSION%/bundle/animatron.min.js',
+        '/%VERSION%/player.js',
+        '/%VERSION%/player.min.js',
+        '/%VERSION%/publish.js',
+        '/%VERSION%/BUILD'
+    ];
+
+
+    var cloudFront = new AWS.CloudFront();
+    var items = paths.map(function(path) { return path.replace('%VERSION%', version)});
+    var params = {
+        DistributionId: distributionId,
+        InvalidationBatch: {
+            CallerReference: '',
+            Paths: {
+                Quantity: items.length,
+                Items: items
+            }
+        }
+    };
+    cloudFront.createInvalidation(params, function(err, res){
+            if(err) throw err;
+            _print('Invalidation '+res.Invalidation.Id + ' created successfully');
+            complete();
     });
 
 });

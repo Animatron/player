@@ -68,12 +68,9 @@ function provideEvents(subj, events) {
     })(events);
     subj.prototype.unbind = function(event, idx) {
         if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) throw errors.system('Event ' + event +
-                                                 ' not provided by ' + this);
+        if (!this.provides(event)) return;
         if (this.handlers[event][idx]) {
             this.handlers[event].splice(idx, 1);
-        } else {
-            throw errors.system('No such handler ' + idx + ' for event ' + event);
         }
     };
     subj.prototype.disposeHandlers = function() {

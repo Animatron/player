@@ -1,6 +1,6 @@
 {
   "name": "animatron-player",
-  "version": "1.3",
+  "version": "1.3.0",
   "description": "JavaScript Player engine for Animatron",
   "keywords": [
     "html5",
@@ -29,7 +29,7 @@
       "email": "skavish@gmail.com"
     },
     {
-      "name": "Yuri Opryshko",
+      "name": "Yuriy Opryshko",
       "email": "mcm6987@gmail.com"
     },
     {
@@ -55,7 +55,7 @@
     "docco": "latest"
   },
   "optionalDependencies": {
-    "aws2js": "latest",
+    "aws-sdk": "latest",
     "walk": "latest",
     "orderly": "latest",
     "jsonschema": "latest",
