@@ -1010,5 +1010,36 @@ $DE.onDocumentHiddenChange = function(cb){
 
 $DE.Path2D = global.Path2D;
 
+var iframe = document.getElementById('#iframe');
+
+$DE.isInIframe = function() {
+    return global.self !== global.top;
+};
+
+$DE.getIframeOrigin = function() {
+    if (!iframe) {
+        return null;
+    }
+    return iframe.src.split('/', 3).join('/');
+};
+
+$DE.getIframeSrc = function() {
+    if (!iframe) {
+        return null;
+    }
+    return iframe.src;
+};
+
+$DE.addMessageListener = function(listener) {
+    if (!global.addEventListener) {
+        return;
+    }
+    global.addEventListener('message', listener, false);
+};
+
+$DE.postToContentWindow = function(message) {
+    iframe.contentWindow.postMessage(JSON.stringify(message));
+};
+
 module.exports = $DE;
 return $DE;

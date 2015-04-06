@@ -392,14 +392,16 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         }
                     }
                 }
-            ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
-                player.controls.loadingProgress = progress;
-                player.controls.loadingErrors = errors;
-            } : null);
+            ], function(url, factor, progress, errors) {
+                player.fire(C.S_LOADING_PROGRESS, factor);
+                if(player.controlsEnabled && player.controls){
+                    player.controls.loadingProgress = progress;
+                    player.controls.loadingErrors = errors;
+                }
+            });
             // actually start loading remote resources
             anim._loadRemoteResources(player);
         }
-
     };
 
     /* TODO: configure canvas using clips bounds? */
@@ -665,7 +667,7 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS ]);
 Player.prototype._prepare = function(elm) {
     if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
@@ -1172,6 +1174,16 @@ Player.prototype.mute = function() {
 };
 
 /**
+ * @method unmute
+ *
+ * Enable sound
+ */
+Player.prototype.unmute = function() {
+    if(!this.muted) return;
+    this.toggleMute();
+};
+
+/**
  * @method toggleMute
  *
  * Disable or enable sound
@@ -1296,30 +1308,6 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.font = '12px sans-serif';
     ctx.fillText(text || StrLoc.LOADING, 20, 25);
     ctx.restore();
-};
-
-Player.prototype._drawLoadingProgress = function() {
-    // Temporarily, do nothing.
-    // Later we will show a line at the top, may be
-
-    /* if (this.controls) return;
-    var theme = Controls.THEME;
-    Controls._runLoadingAnimation(this.ctx, function(ctx) {
-        var w = ctx.canvas.clientWidth,
-            h = ctx.canvas.clientHeight;
-        // FIXME: render only changed circles
-        ctx.clearRect(0, 0, w, h);
-        //Controls._drawBack(ctx, theme, w, h);
-        Controls._drawLoadingProgress(ctx, w, h,
-                                      (((Date.now() / 100) % 60) / 60),
-                                      theme.radius.loader,
-                                      theme.colors.progress.left, theme.colors.progress.passed);
-    }); */
-};
-
-Player.prototype._stopDrawingLoadingCircles = function() {
-    if (this.controls) return;
-    this._drawEmpty();
 };
 
 Player.prototype._drawErrorSplash = function(e) {
