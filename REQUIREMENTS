@@ -7,7 +7,7 @@ node.js 0.8.9+
   docco? 0.6.2+
   orderly? 1.1.0+
   jsonschema? 0.3.2+
-  aws2js? 0.8.3+
+  aws-sdk?
   walk? 2.2.1+
 Python?
   markdown? ?
@@ -29,13 +29,13 @@ jake push-go[latest]
 jake push-go[,rls]
 jake push-go[latest,rls]
   .s3 file
-  npm install aws2js
+  npm install aws-sdk
 jake push-version
 jake push-version[latest]
 jake push-version[,rls]
 jake push-version[latest,rls]
   .s3 file
-  npm install aws2js
+  npm install aws-sdk
   npm install walk
   npm install uglify-js
 jake docs
