@@ -360,7 +360,7 @@ Import.branch = function(type, src, all, anim) {
         if (lsrc[9]) { // scripting
             anim.hasScripting = true;
             var code = lsrc[9];
-            var script_ctx = createScriptContext(ltrg);
+            var script_ctx = scriptingContextFor(ltrg);
 
             try {
                 eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
@@ -1045,7 +1045,7 @@ ValueCache.prototype.hash = function(str) {
 // Script helpers
 // -----------------------------------------------------------------------------
 
-var createScriptContext = function(element) {
+var scriptingContextFor = function(element) {
     return {
         jump: function(t) {
             // FIXME
@@ -1055,7 +1055,8 @@ var createScriptContext = function(element) {
                 last_player.stop();
                 last_player.play(t);
             }
-        }
+        },
+        anim: element.anim
     }
 }
 

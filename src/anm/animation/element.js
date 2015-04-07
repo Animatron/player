@@ -1115,6 +1115,25 @@ Element.prototype.bounce = function(nrep) {
 };
 
 /**
+ * @method jump
+ * @chainable
+ *
+ * Jump to local time. Element must be alive for this to work: its band should include both the time
+ * when jump performed and the time to where jump is performed. Time is specified as `0` if
+ * element should jump to the start of its band.
+ *
+ * See also: {@link anm.Element#band band()}.
+ *
+ * @param {Number} t target time for a jump
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.jump = function(loc_t) {
+    this.t = loc_t;
+    return this;
+};
+
+/**
  * @method modify
  * @chainable
  *

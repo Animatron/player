@@ -413,9 +413,8 @@ Animation.prototype._loadRemoteResources = function(player) {
 /**
  * @method find
  *
- * Searches for {@link anm.Element elements} by name inside another
- * {@link anm.Element element} or inside the whole Animation itself, if no other
- * element was provided.
+ * Searches for an {@link anm.Element element} by name through another {@link anm.Element element}'s
+ * children, or through all the elements in the Animation itself, if no other element was provided.
  *
  * NB: `find` method will be improved soon to support special syntax of searching,
  * so you will be able to search almost everything
@@ -423,10 +422,29 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @param {String} name Name of the element(s) to find
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
+ * @return {anm.Element} First found element
+ */
+Animation.prototype.find = function(selector, where) {
+    return this.findAll(selector, where)[0]; // FIXME: overhead, search for the first one and exit
+};
+
+/**
+ * @method findAll
+ *
+ * Searches for {@link anm.Element elements} by name through another {@link anm.Element element}'s
+ * children, or through all the elements in the Animation itself, if no other element was provided.
+ *
+ * NB: `findAll` method will be improved soon to support special syntax of searching,
+ * so you will be able to search almost everything
+ *
+ * @param {String} name Name of the element(s) to find
+ * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
+ *
  * @return {Array} An array of found elements
  */
-Animation.prototype.find = function(name, where) {
+Animation.prototype.findAll = function(selector, where) {
     where = where || this;
+    var name = selector;
     var found = [];
     if (where.name == name) found.push(name);
     where.traverse(function(elm)  {
