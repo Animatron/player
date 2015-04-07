@@ -33,6 +33,7 @@ var C = anm.constants,
     Audio = anm.Audio,
     Video = anm.Video,
     is = anm.utils.is,
+    roundTo = anm.utils.roundTo,
     $log = anm.log;
     //test = anm._valcheck
 
@@ -457,18 +458,18 @@ Import._pathDecode = function(src) {
 
     var val = Import._path_cache.get(encoded);
     if (val) {
-        return [].concat(val.segs);
+        return val;
     } else {
         val = Import._decodeBinaryPath(encoded);
         if (!val) return null;
         Import._path_cache.put(encoded, val);
     }
 
-    return val.segs;
+    return val;
 };
 
 Import._decodeBinaryPath = function(encoded) {
-    var path = new Path();
+    var path = '';
     if (encoded) {
         encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
         try {
@@ -476,36 +477,32 @@ Import._decodeBinaryPath = function(encoded) {
             var s = new BitStream(decoded);
             var base = [0, 0];
             if (s) {
-                var _do = true;
-                while (_do) {
+                var hasBits = true;
+                while (hasBits) {
                     var type = s.readBits(2), p;
                     switch (type) {
                         case 0:
-                            p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, base);
                             base = p;
-
-                            path.add(new MSeg(p));
+                            path += ' M ' + p.join(',');
                             break;
                         case 1:
-                            p = Import._pathReadPoint(s, [], base);
+                            p = Import._pathReadPoint(s, base);
                             base = p;
-
-                            path.add(new LSeg(p));
+                            path += ' L ' + p.join(',');
                             break;
                         case 2:
-                            p = Import._pathReadPoint(s, [], base);
-                            Import._pathReadPoint(s, p);
-                            Import._pathReadPoint(s, p);
-                            base = [p[p.length - 2], p[p.length - 1]];
-
-                            path.add(new CSeg(p));
-                            break;
-                        case 3:
-                            _do = false;
+                            var cStr = ' C';
+                            p = base;
+                            for (var i = 0; i < 3; i++) {
+                                p = Import._pathReadPoint(s, p);
+                                cStr += ' ' + p.join(',');
+                            }
+                            base = p;
+                            path += cStr;
                             break;
                         default:
-                            _do = false;
-                            _reportError('Unknown type "' + type + ' for path "' + encoded + '"');
+                            hasBits = false;
                             break;
                     }
                 }
@@ -522,7 +519,8 @@ Import._decodeBinaryPath = function(encoded) {
     return path;
 };
 
-Import._pathReadPoint = function(stream, target, base) {
+Import._pathReadPoint = function(stream, base) {
+    base = base || [0,0];
     var l = stream.readBits(5);
     if (l <= 0) {
         throw new Error('Failed to decode path, wrong length (<= 0)');
@@ -531,12 +529,7 @@ Import._pathReadPoint = function(stream, target, base) {
     var x = stream.readSBits(l);
     var y = stream.readSBits(l);
 
-    var b_x = base ? base[0] : (target.length ? target[target.length - 2] : 0);
-    var b_y = base ? base[1] : (target.length ? target[target.length - 1] : 0);
-
-    target.push(b_x + x / 1000.0);
-    target.push(b_y + y / 1000.0);
-    return target;
+    return [roundTo(base[0] + x / 1000.0, 2), roundTo(base[1] + y / 1000.0, 2)];
 };
 
 /** text **/

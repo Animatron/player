@@ -1008,5 +1008,7 @@ $DE.onDocumentHiddenChange = function(cb){
     onDocumentHiddenChange = cb;
 };
 
+$DE.Path2D = global.Path2D;
+
 module.exports = $DE;
 return $DE;

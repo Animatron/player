@@ -182,13 +182,13 @@ Controls.prototype.render = function(gtime) {
         state.changed = false;
     } else if (s === C.PAUSED) {
         drawBack(ctx, theme, w, h);
-        drawPlay(ctx, theme, w, h, this.focused);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
             drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
             drawVolumeBtn(ctx, w, h, player.muted);
         }
+        drawPlay(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if (s === C.NOTHING) {
         drawNoAnimation(ctx, theme, w, h, this.focused);
