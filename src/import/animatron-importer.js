@@ -1042,21 +1042,27 @@ ValueCache.prototype.hash = function(str) {
     return hash;
 };
 
-// Script helpers
+// Scripting helpers
 // -----------------------------------------------------------------------------
 
+function jump(t) {
+    // FIXME
+    var players = anm.player_manager.instances;
+    var last_player = players[players.length - 1];
+    if (last_player) {
+        last_player.stop();
+        last_player.play(t);
+    }
+}
+
 var scriptingContextFor = function(element) {
+    var anim = element.anim;
     return {
-        jump: function(t) {
-            // FIXME
-            var players = anm.player_manager.instances;
-            var last_player = players[players.length - 1];
-            if (last_player) {
-                last_player.stop();
-                last_player.play(t);
-            }
-        },
-        anim: element.anim
+        jump: jump,
+        anim: anim,
+        toScene: function(name) {
+            jump(anim.find(name).gband[0])
+        }
     }
 }
 
