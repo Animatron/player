@@ -667,7 +667,7 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR, C.S_LOADING_PROGRESS ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE ]);
 Player.prototype._prepare = function(elm) {
     if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;

@@ -15,16 +15,21 @@ var fit_rects = require('./utils.js').fit_rects;
 
 var Render = {}; // means "Render", render loop + system modifiers & painters
 
-// functions below, the ones named in a way like `__r_*` are the real functions
+// functions below, the ones named in a way like `r_*` are the real functions
 // acting under their aliases `Render.*`; it is done this way because probably
 // the separate function which is not an object propertly, will be a bit faster to
 // access during animation loop
+
+//time counters to emit S_TIME_UPDATE every second or so
+var timeCounters = {}, TIME_UPDATE_TIME = 0.5;
 
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
 // when the first time must occur and it will chain its own calls automatically)
 function r_loop(ctx, player, anim, before, after, before_render, after_render) {
-
+    if (typeof timeCounters[player.id] === 'undefined') {
+        timeCounters[player.id] = 0;
+    }
     var pl_state = player.state;
 
     if (pl_state.happens !== C.PLAYING) return;
@@ -61,6 +66,13 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     if (after) {
         if (!after(time)) return;
+    }
+
+    //increase the counter and fire the event if necessary
+    timeCounters[player.id] += dt;
+    if (timeCounters[player.id] >= TIME_UPDATE_TIME) {
+        player.fire(C.S_TIME_UPDATE, time);
+        timeCounters[player.id] = 0;
     }
 
     return (pl_state.__lastReq = nextFrame(function() {

@@ -12,7 +12,7 @@ var adapter = {
         this.pause();
     },
 
-    isPaused: function() {
+    getPaused: function() {
         return this.state.happens === C.PAUSED;
     },
 
@@ -37,7 +37,11 @@ var adapter = {
         return player.volume()*100;
     },
 
-    seekTo: function(message) {
+    getDuration: function() {
+        return player.state.duration;
+    },
+
+    setCurrentTime: function(message) {
         var time = message.value;
         this.pause().play(time);
     },
@@ -101,11 +105,9 @@ for (var m in adapter) {
 }
 
 var origin = engine.getIframeOrigin();
-console.log('my origin is', origin);
 
 var messageListener = function(evt) {
     var message = JSON.parse(evt.data);
-    console.log('got message', evt);
     if (evt.origin === origin && message.context === 'player.js') {
         if (adapter[message.method] && player) {
             var result = adapter[message.method].call(player, message);
@@ -125,7 +127,6 @@ if (engine.isInIframe()) {
 }
 
 var fireEvent = function(event, data, isGlobal) {
-    console.log('firing event', event);
     var message = {
         context: 'player.js',
         version: playerJsVersion,
@@ -164,7 +165,6 @@ var bindPlayerEvents = function(player) {
 
     player.on(C.S_PLAY, function(){
         fireEvent('play');
-        fireEvent('timeupdate', player.state.time);
     });
 
     player.on(C.S_PAUSE, function(){
@@ -173,6 +173,10 @@ var bindPlayerEvents = function(player) {
 
     player.on(C.S_COMPLETE, function(){
         fireEvent('ended');
+    });
+
+    player.on(C.S_TIME_UPDATE, function(time) {
+        fireEvent('timeupdate', {seconds: time, duration: player.state.duration});
     });
 };
 
