@@ -1041,7 +1041,6 @@ $DE.postToContentWindow = function(message) {
     if (!iframe) {
         return;
     }
-    console.log('sending message', message);
     iframe.top.postMessage(JSON.stringify(message), origin);
 };
 
