@@ -1017,7 +1017,7 @@ $DE.isInIframe = function() {
 
 var iframe = $DE.isInIframe() ? global : null;
 
-var origin = iframe ? iframe.location.href.split('/', 3).join('/') : null;
+var origin = iframe ? iframe.document.referrer.split('/', 3).join('/') : "*";
 
 $DE.getIframeOrigin = function() {
     return origin;
@@ -1041,7 +1041,8 @@ $DE.postToContentWindow = function(message) {
     if (!iframe) {
         return;
     }
-    iframe.top.postMessage(JSON.stringify(message), '*');
+    console.log('sending message', message);
+    iframe.top.postMessage(JSON.stringify(message), origin);
 };
 
 module.exports = $DE;

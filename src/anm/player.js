@@ -469,7 +469,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     if (state.happens === C.PLAYING) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
-        else throw errors.player(ErrLoc.P.ALREADY_PLAYING, player);
     }
 
     if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {

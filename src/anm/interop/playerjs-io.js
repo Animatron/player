@@ -62,6 +62,7 @@ var adapter = {
             return;
         }
         listeners[event].push(listener);
+        return {};
     },
 
     removeEventListener: function(message) {
@@ -75,7 +76,7 @@ var adapter = {
         } else {
             var index = listeners[event].indexOf(listener);
             if (index !== -1) {
-                listeners.event.splice(index, 1);
+                listeners[event].splice(index, 1);
             }
         }
     }
@@ -83,7 +84,7 @@ var adapter = {
 
 var listeners = {
     'progress': [],
-//    'timeupdate': [],
+    'timeupdate': [],
     'play': [],
     'pause': [],
     'ended': []
@@ -100,9 +101,11 @@ for (var m in adapter) {
 }
 
 var origin = engine.getIframeOrigin();
+console.log('my origin is', origin);
 
 var messageListener = function(evt) {
     var message = JSON.parse(evt.data);
+    console.log('got message', evt);
     if (evt.origin === origin && message.context === 'player.js') {
         if (adapter[message.method] && player) {
             var result = adapter[message.method].call(player, message);
@@ -117,7 +120,12 @@ var messageListener = function(evt) {
     }
 };
 
+if (engine.isInIframe()) {
+    engine.addMessageListener(messageListener);
+}
+
 var fireEvent = function(event, data, isGlobal) {
+    console.log('firing event', event);
     var message = {
         context: 'player.js',
         version: playerJsVersion,
@@ -156,6 +164,7 @@ var bindPlayerEvents = function(player) {
 
     player.on(C.S_PLAY, function(){
         fireEvent('play');
+        fireEvent('timeupdate', player.state.time);
     });
 
     player.on(C.S_PAUSE, function(){
