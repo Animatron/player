@@ -227,6 +227,20 @@ Animation.prototype.jump = function(t) {
     });
 };
 
+/**
+ * @method jumpTo
+ *
+ * Jump to the given start time of the element found with passed selector (uses
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ *
+ * @param {String} selector
+ */
+Animation.prototype.jumpTo = function(selector) {
+    var elm = anim.find(selector);
+    if (!elm) return;
+    this.jump(elm.gband[0]);
+};
+
 // TODO: test
 /**
  * @method getFittingDuration

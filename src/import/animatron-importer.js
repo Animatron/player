@@ -361,10 +361,8 @@ Import.branch = function(type, src, all, anim) {
         if (lsrc[9]) { // scripting
             anim.hasScripting = true;
             var code = lsrc[9];
-            var script_ctx = scriptingContextFor(ltrg);
-
             try {
-                eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
+                eval('(function() { ' + code + '})').call(ltrg);
             } catch(e) { _reportError(e); }
         }
 
@@ -1034,19 +1032,6 @@ ValueCache.prototype.hash = function(str) {
     }
     return hash;
 };
-
-// Scripting helpers
-// -----------------------------------------------------------------------------
-
-var scriptingContextFor = function(element) {
-    return {
-        jump: function(t) { anim.jump(t); },
-        anim: anim,
-        toScene: function(name) {
-            jump(anim.find(name).gband[0])
-        }
-    }
-}
 
 // Finish the importer
 // -----------------------------------------------------------------------------
