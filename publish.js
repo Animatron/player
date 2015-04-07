@@ -139,7 +139,8 @@
 
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                    anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'));
+                    anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'),
+                    window.actions ? window.actions : null);
             });
         } catch (e) {
             if(window.console) console.error(e);
