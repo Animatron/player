@@ -663,6 +663,21 @@ Player.prototype.pause = function() {
 };
 
 /**
+ * @method jump
+ * @chainable
+ *
+ * Jump to the given time in Animation and continue playing. Stops a player and starts to play from
+ * this time.
+ *
+ * @param {Number} time
+ */
+Player.prototype.jump = function(t) {
+    this.stop();
+    this.play(t);
+    return this;
+}
+
+/**
  * @method onerror
  *
  * Set a callback to be called on every error happened

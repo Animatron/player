@@ -110,6 +110,15 @@ function iter(a) {
     });
 }
 
+function keys(obj, f) { // same as each?
+    // TODO: grep -r ./src -e "var .* in" -> use everywhere
+    if (Object.keys) {
+        var ids = Object.keys(obj);
+        for (var i = 0; i < ids.length; i++) f(ids[i], obj[ids[i]]);
+    } else {
+        for (var id in obj) f(id, obj[id]);
+    }
+}
 
 function fmt_time(time) {
     if (!is.finite(time)) return '∞';
@@ -262,5 +271,6 @@ module.exports = {
     fit_rects: fit_rects,
     is: is,
     iter: iter,
+    keys: keys,
     removeElement: removeElement
 };

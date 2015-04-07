@@ -1045,20 +1045,9 @@ ValueCache.prototype.hash = function(str) {
 // Scripting helpers
 // -----------------------------------------------------------------------------
 
-function jump(t) {
-    // FIXME
-    var players = anm.player_manager.instances;
-    var last_player = players[players.length - 1];
-    if (last_player) {
-        last_player.stop();
-        last_player.play(t);
-    }
-}
-
 var scriptingContextFor = function(element) {
-    var anim = element.anim;
     return {
-        jump: jump,
+        jump: function(t) { anim.jump(t); },
         anim: anim,
         toScene: function(name) {
             jump(anim.find(name).gband[0])
