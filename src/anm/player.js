@@ -626,7 +626,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw errors.player(ErrLoc.P.PAUSING_WHEN_STOPPED, player);
+        return;
     }
 
     if (state.happens === C.PLAYING) {
@@ -801,7 +801,6 @@ Player.prototype._postInit = function() {
  * @param {Number} val `C.M_*` constant
  */
 Player.prototype.mode = function(val) {
-    if (!is.defined(val)) { throw errors.player("Please define a mode to set", this); }
     this.infiniteDuration = (val & C.M_INFINITE_DURATION) || undefined;
     this.handleEvents = (val & C.M_HANDLE_EVENTS) || undefined;
     this.controlsEnabled = (val & C.M_CONTROLS_ENABLED) || undefined;
