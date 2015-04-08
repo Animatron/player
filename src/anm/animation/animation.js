@@ -355,9 +355,6 @@ Animation.prototype._register = function(elm) {
 
     var me = this;
 
-    //if (!this.__err_handlers) this.__err_handlers = {};
-    //this.__err_handlers[elm.id] = elm.on(C.X_ERROR, function(err) { me.fire(C.X_ERROR, err); });
-
     elm.each(function(child) {
         me._register(child);
     });
@@ -380,7 +377,6 @@ Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree 
       }
     }
     delete this.hash[elm.id];
-    elm.unbind(C.X_ERROR, this.__err_handlers[elm.id]);
     elm.registered = false;
     elm.anim = null;
     //elm.parent = null;
