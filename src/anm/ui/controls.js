@@ -273,8 +273,8 @@ Controls.prototype.handleAreaChange = function() {
 Controls.prototype.handleMouseMove = function(evt) {
     this.state.mouseInteracted = true;
     var pos = engine.getEventPosition(evt, this.canvas);
-    this.state.mpos.x = pos[0];
-    this.state.mpos.y = pos[1];
+    this.state.mpos.x = pos.x;
+    this.state.mpos.y = pos.y;
     if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
         //if we are in the state where the playhead is accessible,
         //let's check if the mouse was there.
