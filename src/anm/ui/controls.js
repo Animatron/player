@@ -238,12 +238,7 @@ Controls.prototype.react = function() {
                 //a good idea.
                 time = p.anim.duration;
             }
-            if (s === C.PLAYING) {
-              p.pause()
-               .play(time);
-            } else {
-              p.play(time).pause();
-            }
+            p.seek(time);
             this.state.time = time;
             return;
         } else if(coords.x > w-btnWidth) { //mute button?

@@ -649,6 +649,18 @@ Player.prototype.pause = function() {
 };
 
 /**
+ * @method seek
+ * @param {Number} time to set the playhead at
+ **/
+Player.prototype.seek = function(time) {
+    if (this.state.happens === C.PAUSED) {
+        return this.play(time).pause();
+    } else {
+        return this.pause().play(time);
+    }
+};
+
+/**
  * @method onerror
  *
  * Set a callback to be called on every error happened
