@@ -118,7 +118,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'infiniteDuration': undefined, // undefined means 'auto'
                                  'drawStill': undefined, // undefined means 'auto',
                                  'audioEnabled': true,
-                                 'audioGlobalVolume': 1.0,
+                                 'volume': 1.0,
                                  'imagesEnabled': true,
                                  'videoEnabled': true,
                                  'shadowsEnabled': true,
@@ -650,6 +650,7 @@ Player.prototype.pause = function() {
 
 /**
  * @method seek
+ * @chainable
  * @param {Number} time to set the playhead at
  **/
 Player.prototype.seek = function(time) {
@@ -725,8 +726,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
-    this.audioGlobalVolume = is.defined(opts.audioGlobalVolume) ?
-                        opts.audioGlobalVolume : this.audioGlobalVolume;
+    this.globalVolume = is.defined(opts.volume) ?
+                        opts.volume : this.globalVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
     this.videoEnabled = is.defined(opts.videoEnabled) ?
@@ -1218,9 +1219,9 @@ Player.prototype.toggleMute = function() {
  */
 Player.prototype.volume = function(vol) {
     if (typeof vol === 'undefined') {
-        return this.audioGlobalVolume;
+        return this.globalVolume;
     }
-    this.audioGlobalVolume = vol;
+    this.globalVolume = vol;
     this._updateAudioVolumes();
 };
 
@@ -1228,7 +1229,7 @@ Player.prototype._updateAudioVolumes = function() {
     if (this.anim) {
         this.anim.traverse(function(el) {
             if (el.$audio) {
-                el.$audio.setVolume(this.audioGlobalVolume);
+                el.$audio.setVolume(this.globalVolume);
             }
         });
     }

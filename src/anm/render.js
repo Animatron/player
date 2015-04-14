@@ -21,7 +21,7 @@ var Render = {}; // means "Render", render loop + system modifiers & painters
 // access during animation loop
 
 //time counters to emit S_TIME_UPDATE every second or so
-var timeCounters = {}, TIME_UPDATE_TIME = 0.5;
+var timeCounters = {}, TIME_UPDATE_DELTA = 1;
 
 // draws current state of animation on canvas and postpones to call itself for
 // the next time period (so to start animation, you just need to call it once
@@ -70,7 +70,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 
     //increase the counter and fire the event if necessary
     timeCounters[player.id] += dt;
-    if (timeCounters[player.id] >= TIME_UPDATE_TIME) {
+    if (timeCounters[player.id] >= TIME_UPDATE_DELTA) {
         player.fire(C.S_TIME_UPDATE, time);
         timeCounters[player.id] = 0;
     }
