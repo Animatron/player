@@ -325,8 +325,10 @@ Animation.prototype.handle__x = function(type, evt) {
                 elm.fire(type, evt);
             });
         });
+        return false;
     }
-}
+    return true;
+};
 
 /**
  * @method addToTree
