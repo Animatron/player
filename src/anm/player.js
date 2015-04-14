@@ -713,8 +713,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
-    this.globalAudioVolume = is.defined(opts.globalAudioVolume) ?
-                        opts.globalAudioVolume : this.globalAudioVolume;
+    this.audioGlobalVolume = is.defined(opts.audioGlobalVolume) ?
+                        opts.audioGlobalVolume : this.audioGlobalVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
     this.videoEnabled = is.defined(opts.videoEnabled) ?
@@ -1206,9 +1206,9 @@ Player.prototype.toggleMute = function() {
  */
 Player.prototype.volume = function(vol) {
     if (typeof vol === 'undefined') {
-        return this.globalAudioVolume;
+        return this.audioGlobalVolume;
     }
-    this.globalAudioVolume = vol;
+    this.audioGlobalVolume = vol;
     this._updateAudioVolumes();
 };
 
@@ -1216,7 +1216,7 @@ Player.prototype._updateAudioVolumes = function() {
     if (this.anim) {
         this.anim.traverse(function(el) {
             if (el.$audio) {
-                el.$audio.setVolume(this.globalAudioVolume);
+                el.$audio.setVolume(this.audioGlobalVolume);
             }
         });
     }

@@ -128,7 +128,7 @@ Audio.prototype.load = function(elm, player) {
 
                   if (me.canPlay && window.chrome) {
                     el.volume = 0;
-                    el.currentTime = end;
+                    el.currentTime = buffered.end(0);
                     el.play();
                     el.pause();
                   }
