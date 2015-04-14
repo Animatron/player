@@ -110,8 +110,8 @@ function iter(a) {
     });
 }
 
-function keys(obj, f) { // same as each?
-    // TODO: grep -r ./src -e "var .* in" -> use everywhere
+function keys(obj, f) {
+    // TODO: grep -r ./src -e "var .* in" -> use everywhere?
     if (Object.keys) {
         var ids = Object.keys(obj);
         for (var i = 0; i < ids.length; i++) f(ids[i], obj[ids[i]]);

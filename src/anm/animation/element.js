@@ -1122,7 +1122,7 @@ Element.prototype.bounce = function(nrep) {
  * when jump performed and the time to where jump is performed. Time is specified as `0` if
  * element should jump to the start of its band.
  *
- * See also: {@link anm.Element#band band()}.
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#freeze freeze()}, {@link anm.Element#unfreeze unfreeze()}
  *
  * @param {Number} t target time for a jump
  *
@@ -1132,6 +1132,47 @@ Element.prototype.jump = function(loc_t) {
     this.t = loc_t;
     return this;
 };
+
+/**
+ * @method freeze
+ * @chainable
+ *
+ * Pause at current time (so element will be visible, but won't be tweened).
+ * Will pause _only_ for the time where element is "alive", i.e. if current time is
+ * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
+ * will be fired in any case.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#jump jump()}, {@link anm.Element#unfreeze unfreeze()}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.freeze = function() {
+    if (this.freezed) return this;
+    this.freezed = true;
+    this.__m_freeze = function(t) {
+        if (!this.freezed) return;
+        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
+        else (this.pausedAt = t);
+    };
+    this.modify(this.__m_freeze);
+    return this;
+}
+
+/**
+ * @method unfreeze
+ * @chainable
+ *
+ * Unpause after a call to {@link anm.Element#freeze freeze()}.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#jump jump()}, {@link anm.Element#freeze freeze()}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.unfreeze = function() {
+    this.freezed = false;
+    if (this.__m_freeze) this.unmodify(this.__m_freeze);
+    return this;
+}
 
 /**
  * @method modify
