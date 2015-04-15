@@ -118,7 +118,7 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'infiniteDuration': undefined, // undefined means 'auto'
                                  'drawStill': undefined, // undefined means 'auto',
                                  'audioEnabled': true,
-                                 'audioGlobalVolume': 1.0,
+                                 'volume': 1.0,
                                  'imagesEnabled': true,
                                  'videoEnabled': true,
                                  'shadowsEnabled': true,
@@ -380,6 +380,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
+                        player._updateAudioVolumes();
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback.call(player, result);
@@ -392,14 +393,16 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         }
                     }
                 }
-            ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
-                player.controls.loadingProgress = progress;
-                player.controls.loadingErrors = errors;
-            } : null);
+            ], function(url, factor, progress, errors) {
+                player.fire(C.S_LOADING_PROGRESS, factor);
+                if(player.controlsEnabled && player.controls){
+                    player.controls.loadingProgress = progress;
+                    player.controls.loadingErrors = errors;
+                }
+            });
             // actually start loading remote resources
             anim._loadRemoteResources(player);
         }
-
     };
 
     /* TODO: configure canvas using clips bounds? */
@@ -441,7 +444,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     }
 
     return player;
-}
+};
 
 var __nextFrame = engine.getRequestFrameFunc(),
     __stopAnim  = engine.getCancelFrameFunc();
@@ -466,7 +469,6 @@ Player.prototype.play = function(from, speed, stopAfter) {
 
     if (state.happens === C.PLAYING) {
         if (player.infiniteDuration) return; // it's ok to skip this call if it's some dynamic animation (FIXME?)
-        else throw errors.player(ErrLoc.P.ALREADY_PLAYING, player);
     }
 
     if ((player.loadingMode === C.LM_ONPLAY) && !player._lastReceivedAnimationId) {
@@ -624,7 +626,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        throw errors.player(ErrLoc.P.PAUSING_WHEN_STOPPED, player);
+        return;
     }
 
     if (state.happens === C.PLAYING) {
@@ -647,6 +649,19 @@ Player.prototype.pause = function() {
 };
 
 /**
+ * @method seek
+ * @chainable
+ * @param {Number} time to set the playhead at
+ **/
+Player.prototype.seek = function(time) {
+    if (this.state.happens === C.PAUSED) {
+        return this.play(time).pause();
+    } else {
+        return this.pause().play(time);
+    }
+};
+
+/**
  * @method onerror
  *
  * Set a callback to be called on every error happened
@@ -665,7 +680,7 @@ Player.prototype.onerror = function(callback) {
 
 provideEvents(Player, [ C.S_IMPORT, C.S_CHANGE_STATE, C.S_LOAD, C.S_RES_LOAD,
                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                        C.S_ERROR ]);
+                        C.S_ERROR, C.S_LOADING_PROGRESS, C.S_TIME_UPDATE ]);
 Player.prototype._prepare = function(elm) {
     if (!elm) throw errors.player(ErrLoc.P.NO_WRAPPER_PASSED, this);
     var wrapper_id, wrapper;
@@ -711,8 +726,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.loadingMode : this.loadingMode;
     this.audioEnabled = is.defined(opts.audioEnabled) ?
                         opts.audioEnabled : this.audioEnabled;
-    this.globalAudioVolume = is.defined(opts.globalAudioVolume) ?
-                        opts.globalAudioVolume : this.globalAudioVolume;
+    this.globalVolume = is.defined(opts.volume) ?
+                        opts.volume : this.globalVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
     this.videoEnabled = is.defined(opts.videoEnabled) ?
@@ -735,7 +750,7 @@ Player.prototype._addOpts = function(opts) {
                         opts.muteErrors : this.muteErrors;
 
     if (is.defined(opts.mode)) { this.mode(opts.mode); }
-}
+};
 Player.prototype._checkOpts = function() {
     if (!this.canvas) return;
 
@@ -799,7 +814,6 @@ Player.prototype._postInit = function() {
  * @param {Number} val `C.M_*` constant
  */
 Player.prototype.mode = function(val) {
-    if (!is.defined(val)) { throw errors.player("Please define a mode to set", this); }
     this.infiniteDuration = (val & C.M_INFINITE_DURATION) || undefined;
     this.handleEvents = (val & C.M_HANDLE_EVENTS) || undefined;
     this.controlsEnabled = (val & C.M_CONTROLS_ENABLED) || undefined;
@@ -927,7 +941,7 @@ Player.prototype.factor = function() {
         return Math.min(this.width / this.anim.width,
                         this.height / this.anim.height);
     }
-}
+};
 /**
  * @method factorData
  *
@@ -949,8 +963,8 @@ Player.prototype.factorData = function() {
         anim_rect: result[1],
         ribbon_one: result[2] || null,
         ribbon_two: result[3] || null
-    }
-}
+    };
+};
 /**
  * @method thumbnail
  *
@@ -1172,6 +1186,16 @@ Player.prototype.mute = function() {
 };
 
 /**
+ * @method unmute
+ *
+ * Enable sound
+ */
+Player.prototype.unmute = function() {
+    if(!this.muted) return;
+    this.toggleMute();
+};
+
+/**
  * @method toggleMute
  *
  * Disable or enable sound
@@ -1186,6 +1210,29 @@ Player.prototype.toggleMute = function() {
             el.$audio.toggleMute();
         }
     });
+};
+
+/**
+ * @method volume
+ *
+ * Get/set audio volume
+ */
+Player.prototype.volume = function(vol) {
+    if (typeof vol === 'undefined') {
+        return this.globalVolume;
+    }
+    this.globalVolume = vol;
+    this._updateAudioVolumes();
+};
+
+Player.prototype._updateAudioVolumes = function() {
+    if (this.anim) {
+        this.anim.traverse(function(el) {
+            if (el.$audio) {
+                el.$audio.setVolume(this.globalVolume);
+            }
+        });
+    }
 };
 
 Player.prototype._drawEmpty = function() {
@@ -1298,30 +1345,6 @@ Player.prototype._drawLoadingSplash = function(text) {
     ctx.restore();
 };
 
-Player.prototype._drawLoadingProgress = function() {
-    // Temporarily, do nothing.
-    // Later we will show a line at the top, may be
-
-    /* if (this.controls) return;
-    var theme = Controls.THEME;
-    Controls._runLoadingAnimation(this.ctx, function(ctx) {
-        var w = ctx.canvas.clientWidth,
-            h = ctx.canvas.clientHeight;
-        // FIXME: render only changed circles
-        ctx.clearRect(0, 0, w, h);
-        //Controls._drawBack(ctx, theme, w, h);
-        Controls._drawLoadingProgress(ctx, w, h,
-                                      (((Date.now() / 100) % 60) / 60),
-                                      theme.radius.loader,
-                                      theme.colors.progress.left, theme.colors.progress.passed);
-    }); */
-};
-
-Player.prototype._stopDrawingLoadingCircles = function() {
-    if (this.controls) return;
-    this._drawEmpty();
-};
-
 Player.prototype._drawErrorSplash = function(e) {
     if (!this.canvas || !this.ctx) return;
     if (this.controls) {
@@ -1391,7 +1414,7 @@ Player.prototype._resize = function(width, height) {
     if (cur_size && (cur_size[0] === new_size[0]) && (cur_size[1] === new_size[1])) return;
     if (!new_size[0] || !new_size[1]) {
         new_size = cur_size;
-    };
+    }
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];
@@ -1549,7 +1572,7 @@ Player.prototype.__onerror = function() {
     return function(err) {
         return me.__onerror_f(err);
     };
-}
+};
 
 // Called when any error happens during player initialization or animation
 // Player should mute all non-system errors by default, and if it got a system error, it may show
