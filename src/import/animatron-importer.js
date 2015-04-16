@@ -1025,11 +1025,11 @@ ValueCache.prototype.get = function(str) {
 };
 
 ValueCache.prototype.hash = function(str) {
-    var hash = 0, i, char;
+    var hash = 0, i, ch;
     if (str.length === 0) return hash;
     for (i = 0, l = str.length; i < l; i++) {
-        char  = str.charCodeAt(i);
-        hash  = ((hash<<5)-hash)+char;
+        ch  = str.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+ch;
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
