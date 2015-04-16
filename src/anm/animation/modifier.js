@@ -96,6 +96,46 @@ function Modifier(func, type) {
         return func;
     };
     /**
+     * @method start
+     * @chainable
+     *
+     * Set or get a starting time for this modifier to take effect. If {@link anm.Modifier#stop stop()}
+     * was never called for this modifier, sets stop time to `Infinity`.
+     *
+     * See also {@link anm.Modifier#stop stop()}, {@link anm.Modifier#band band()}.
+     * Opposite to {@link anm.Modifier#time time()} method.
+     *
+     * @param {Number} start start time, in seconds, relative to element's band
+     *
+     * @return {anm.Modifier|Number} itself, or a start time
+     */
+    func.start = function(start) {
+        if (!is.defined(start)) return this.$band[0];
+        if (this.$band) this.$band = [ start, this.$band[1] ];
+        else this.$band = [ start, Infinity ];
+        return this;
+    }
+    /**
+     * @method stop
+     * @chainable
+     *
+     * Set or get a time for this modifier to stop taking effect. If {@link anm.Modifier#start start()}
+     * was never called for this modifier, sets start time to `0`.
+     *
+     * See also {@link anm.Modifier#start start()}, {@link anm.Modifier#band band()}.
+     * Opposite to {@link anm.Modifier#time time()} method.
+     *
+     * @param {Number} stop stop time, in seconds, relative to element's band
+     *
+     * @return {anm.Modifier|Number} itself, or a stop time
+     */
+    func.stop = function(stop) {
+        if (!is.defined(stop)) return this.$band[1];
+        if (this.$band) this.$band = [ this.$band[0], stop ];
+        else this.$band = [ 0, stop ];
+        return this;
+    }
+    /**
      * @method time
      * @chainable
      *
@@ -139,7 +179,16 @@ function Modifier(func, type) {
         this.$easing = convertEasing(f, data, this.relative || this.is_tween);
         return this;
     };
-
+    /**
+     * @method data
+     * @chainable
+     *
+     * Set or get data for this tween, it will be passed to every call.
+     *
+     * @param {Object} data data
+     *
+     * @return {anm.Modifier|Object} itself, or current data value
+     */
     func.data = function(data) {
         if (!is.defined(data)) return this.$data;
         this.$data = data;
