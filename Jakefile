@@ -692,13 +692,14 @@ task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, functio
                 params.Key = dst;
                 if (gzip_it) {
                     compress(src, function(gzipped) {
-                        params.Body = fs.readFileSync(gzipped);
+                        params.Body = fs.createReadStream(gzipped);
                         params.ContentEncoding = 'gzip';
+                        console.log(src,dst,params.Body.length);
                         s3.putObject(params, on_complete(src, dst, gzipped));
                     });
                 } else {
                     delete params.ContentEncoding;
-                    params.Body = fs.readFileSync(src);
+                    params.Body = fs.createReadStream(src);
                     s3.putObject(params, on_complete(src, dst));
                 }
             });
@@ -838,92 +839,6 @@ task('invalidate', [], { async: true }, function(version) {
     });
 
 });
-
-// trig-prod ===================================================================
-
-/*desc(_dfit_nl(['Triggers deployment to Production server',
-                 'using `production` annotated tag. (Reversed for future use)']));*/
-task('trig-prod', [], { async: true }, function() {
-    // just applies a tag `production`, so TeamCity will build it and run sequentially:
-    // jake test
-    // jake _push-version[,rls]
-    // jake _push-version[latest,rls]
-    // jake _push-go[,rls]
-    // jake _push-go[latest,rls]
-
-    jake.exec([
-          [ Binaries.GIT,
-            'tag',
-            '-a', '-f',
-            PRODUCTION_TAG,
-            '-m',
-            '"PRODUCTION"' ].join(' ')
-      ], EXEC_OPTS, function() {
-
-      jake.exec([
-          [ Binaries.GIT,
-            'push', '-f',
-            'origin',
-            PRODUCTION_TAG ].join(' ')
-      ], EXEC_OPTS, function() {
-
-        _print(DONE_MARKER);
-
-        complete();
-
-      });
-
-    });
-
-});
-
-// trig-dev ====================================================================
-
-/*desc(_dfit_nl(['Triggers deployment to Development server',
-                 'using `development` annotated tag. (Reversed for future use)']));*/
-task('trig-dev', [], { async: true }, function() {
-    // just applies a tag `development`, so TeamCity will build it and run sequentially:
-    // jake test
-    // jake _push-version
-    // jake _push-version[latest]
-    // jake _push-go
-    // jake _push-go[latest]
-
-    jake.exec([
-          [ Binaries.GIT,
-            'tag',
-            '-a', '-f',
-            DEVELOPMENT_TAG,
-            '-m',
-            '"DEVELOPMENT"' ].join(' ')
-      ], EXEC_OPTS, function() {
-
-      jake.exec([
-          [ Binaries.GIT,
-            'push', '-f',
-            'origin',
-            DEVELOPMENT_TAG ].join(' ')
-      ], EXEC_OPTS, function() {
-
-        _print(DONE_MARKER);
-
-        complete();
-
-      });
-
-    });
-});
-
-//desc('See `trig-prod`.');
-task('trigger-production', ['trig-prod'], {}, function() {});
-
-//desc('See `trig-dev`.');
-task('trigger-development', ['trig-dev'], {}, function() {});
-
-/*desc('Run JSHint');
-task('hint', function() {
-    // TODO
-});*/
 
 // SUBTASKS ====================================================================
 
@@ -1155,25 +1070,6 @@ task('_minify', { async: true }, function() {
     Bundles.forEach(function(bundle) {
         minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
-    /*
-    _print('.. Engines');
-
-    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
-    });
-
-    _print('.. Modules');
-
-    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
-    });
-
-    _print('.. Importers');
-
-    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
-    });
-    */
 });
 
 // _build-file =================================================================
@@ -1191,7 +1087,7 @@ task('_build-file', { async: true }, function() {
       ].join(' ')
     ], EXEC_OPTS);
     _getCommintHash.on('stdout', function(COMMIT_INFO) {
-        var BUILD_TIME = _extended_build_time(),
+        var BUILD_TIME = _extended_build_time();
             COMMIT_INFO = COMMIT_INFO.toString();
 
         _print('Build time:');
@@ -1377,8 +1273,3 @@ function _versionize(src) {
     jake.echo(new_content + '\n', src);
     _print('v -> ' + src);
 }
-
-// TODO
-/* function _check_npm_packages(list) {
-
-} */
