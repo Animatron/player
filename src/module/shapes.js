@@ -25,8 +25,9 @@ var Path = anm.Path,
 // case 'rect': elm.rect(0, 0, size.x, size.y); break;
 // case 'oval': elm.oval(0, 0, size.x, size.y); break;
 // case 'triangle': elm.triangle(0, 0, size.x, size.y); break;
-//
-E.prototype.dot = function(x, y) {
+
+E.prototype.dot = function() {
+    var x = 0, y = 0;
     var me = this;
     this.paint(function(ctx) {
         ctx.beginPath();
@@ -34,34 +35,46 @@ E.prototype.dot = function(x, y) {
         ctx.closePath();
         me.applyBrushes(ctx);
     });
+    return this;
 }
 
-E.prototype.rect = function(x, y, width, height) {
+E.prototype.rect = function(width, height) {
     // FIXME: or use painter instead, but specify Element.type
     //if (this.$path) { this.$path.reset(); }
     //var path = this.$path || (new Path());
     //this.invalidate();
+    var x = 0, y = 0,
+        width = width,
+        height = height || width;
     var path = new Path();
     path.add(new MSeg([ x, y ]));
     path.add(new LSeg([ x + width, y ]));
     path.add(new LSeg([ x + width, y + height]));
     path.add(new LSeg([ x, y + height]));
     path.add(new LSeg([ x, y ]));
-    return this.path(path);
+    this.path(path);
+    return this;
 }
 
-E.prototype.oval = function(x, y, width, height) {
+E.prototype.oval = function(width, height) {
     var me = this;
+    var x = 0, y = 0,
+        xradius = width / 2,
+        yradius = height ? (height / 2) : xradius;
     this.paint(function(ctx) {
         if (!ctx.ellipse) return;
         ctx.beginPath();
-        ctx.ellipse(x, y, width / 2, height / 2, 0 /* rotation */, 0 /* start */, 2*Math.PI /* end */, false /* clockwise */);
+        ctx.ellipse(x, y, xradius, yradius, 0 /* rotation */, 0 /* start */, 2*Math.PI /* end */, false /* clockwise */);
         ctx.closePath();
         me.applyBrushes(ctx);
     });
+    return this;
 }
 
-E.prototype.triangle = function(x, y, width, height) {
+E.prototype.triangle = function(width, height) {
+    var x = 0, y = 0,
+        width = width,
+        height = height || width;
     var rx = (width / 2),
         ry = (height / 2);
     var path = new Path();
@@ -69,5 +82,6 @@ E.prototype.triangle = function(x, y, width, height) {
     path.add(new LSeg([ x + width, y + height ]));
     path.add(new LSeg([ x, y + height ]));
     path.add(new LSeg([ x + rx, y ]));
-    return this.path(path);
+    this.path(path);
+    return this;
 }

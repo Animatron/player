@@ -150,25 +150,23 @@ C.PC_BEVEL = 'bevel';
 
 // Easings constants
 
-C.E_PATH = 'PATH'; // Path
-C.E_FUNC = 'FUNC'; // Function
-C.E_CSEG = 'CSEG'; // Segment
-C.E_STDF = 'STDF'; // Standard function from editor
+C.E_PATH = 'path'; // Path
+C.E_FUNC = 'function'; // Function
+C.E_CSEG = 'segment'; // Segment
+C.E_STDF = 'standard'; // Standard function from editor
 
 // Tween constants
 
-C.T_TRANSLATE   = 'TRANSLATE';
-C.T_SCALE       = 'SCALE';
-C.T_ROTATE      = 'ROTATE';
-C.T_ROT_TO_PATH = 'ROT_TO_PATH';
-C.T_ALPHA       = 'ALPHA';
-C.T_SHEAR       = 'SHEAR';
-C.T_FILL        = 'FILL';
-C.T_STROKE      = 'STROKE';
-C.T_VOLUME = 'VOLUME';
-C.T_SHADOW = 'SHADOW';
-
-
+C.T_TRANSLATE   = 'translate';
+C.T_SCALE       = 'scale';
+C.T_ROTATE      = 'rotate';
+C.T_ROT_TO_PATH = 'rotatetopath';
+C.T_ALPHA       = 'alpha';
+C.T_SHEAR       = 'shear';
+C.T_FILL        = 'fill';
+C.T_STROKE      = 'stroke';
+C.T_VOLUME      = 'volume';
+C.T_SHADOW      = 'shadow';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';

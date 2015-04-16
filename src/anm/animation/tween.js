@@ -35,12 +35,11 @@ var errors = require('../errors.js');
  *
  * Examples:
  *
- * TODO: examples with strings instead of constants
- *
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]))`
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2))`
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(function(t) { return 1 - t; }))`
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(anm.C.E_IN))`
+ * * `elm.tween(new Tween('rotate').from(0).to(Math.PI / 2))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2)`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing(function(t) { return 1 - t; }))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing('in'))`
  */
 function Tween(tween_type, data) {
     if (!tween_type) throw errors.element('Tween type is required to be specified or function passed');
@@ -54,7 +53,10 @@ function Tween(tween_type, data) {
     func.is_tween = true;
     var mod = Modifier(func, C.MOD_TWEEN);
     mod.$data = data;
-    // FIXME: value should be an array i.e. for scale tween, use object like { sx: <num>, sy: <num> } instead
+    mod.values = function(_from, to) {
+                   if (!is.defined(_from) && this.$data) return this.$data;
+                   this.$data = [ _from, to ];
+               };
     mod.from = function(val) {
                    if (!is.defined(val) && this.$data) return this.$data[0];
                    if (!this.$data) this.$data = [];
@@ -75,8 +77,7 @@ var data_block_fn = function() {
     throw errors.element("Data should be passed to tween in a constructor or using from()/to() methods");
 };
 
-// TODO: add function to add every tween type in easy way, may be separate module?
-// .tween(new anm.Tween(C.T_TRANSLATE, [[0, 0], [100, 100]]).band(0, Infinity)) does not work
+Tween._$ = function(tween_type) { return new Tween(tween_type); }
 
 // tween order
 Tween.TWEENS_PRIORITY = {};
@@ -84,9 +85,10 @@ Tween.TWEENS_COUNT = 0;
 
 var Tweens = {};
 
-Tween.addTween = function(id, func) {
-    Tweens[id] = func;
-    Tween.TWEENS_PRIORITY[id] = Tween.TWEENS_COUNT++;
+Tween.addTween = function(tween_type, func) {
+    Tweens[tween_type] = func;
+    Tween[tween_type] = function() { return new Tween(tween_type); };
+    Tween.TWEENS_PRIORITY[tween_type] = Tween.TWEENS_COUNT++;
 };
 
 Tween.addTween(C.T_TRANSLATE, function(data) {

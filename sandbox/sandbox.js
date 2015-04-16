@@ -18,16 +18,21 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
 
-    window.elm = anm.Element._$;
-    window.E = anm.Element;
-    window.C = anm.constants;
+    var width = 420, height = 250;
+
+    var element = anm.Element._$;
+    var Tween = anm.Tween, tween = anm.Tween._$;
+    var animation =
+
+    window.element = anm.Element._$;
+    window.Tween = anm.Tween;
+    window.tween = anm.Tween._$;
 
     this.player = anm.createPlayer('player', {
-        mode: anm.constants.M_SANDBOX,
         muteErrors: true,
-        width: 400,
-        height: 250,
-        bgColor: '#fff'
+        controlsEnabled: false,
+        width: width,
+        height: height
     });
 
     //this.player.mode = anm.C.M_SANDBOX;
@@ -97,6 +102,7 @@ function sandbox() {
     };
 
     function onerror(e) {
+        cleanCanvas();
         ensureToCancelTimeouts();
         wereErrors = true;
         var e2;
@@ -125,6 +131,11 @@ function sandbox() {
             clearTimeout(timeout[0]);
         }
         curTimeouts = [];
+    }
+
+    function cleanCanvas() {
+        var cvs = document.getElementById('player-cvs');
+        if (cvs) cvs.getContext('2d').clearRect(0, 0, cvs.width, cvs.height );
     }
 
     function refreshFromStart() {
@@ -156,8 +167,7 @@ function sandbox() {
                 //console.log('sheduled next refresh to ', rate - from, 'ms (#', nextTimeout, ')');
             }
         };
-        _refresher(startAt || 0, sequenceId, timeoutId)(
-            (_player.mode != C.M_PREVIEW) && (_player.mode != C.M_SANDBOX));
+        _refresher(startAt || 0, sequenceId, timeoutId)(/* play once or not */!_player.handleEvents);
     }
 
     if (localStorage) {
@@ -206,29 +216,6 @@ function sandbox() {
     }
 
     window.change_mode = change_mode;
-
-}
-
-function show_csheet(csheetElmId, overlayElmId) {
-    var csheetElm = document.getElementById(csheetElmId);
-    var overlayElm = document.getElementById(overlayElmId);
-
-    csheetElm.style.display = 'block';
-    overlayElm.style.display = 'block';
-
-    csheetElm.onclick = function() {
-        return hide_csheet(csheetElmId, overlayElmId);
-    }
-
-    return false;
-}
-
-function hide_csheet(csheetElmId, overlayElmId) {
-    var csheetElm = document.getElementById(csheetElmId);
-    var overlayElm = document.getElementById(overlayElmId);
-
-    csheetElm.style.display = 'none';
-    overlayElm.style.display = 'none';
 
 }
 
