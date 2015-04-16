@@ -840,6 +840,93 @@ task('invalidate', [], { async: true }, function(version) {
 
 });
 
+task('deploy', ['dist-min'], {async: true}, function(version, bucket) {
+    var s3bucket = 'player-dev.animatron.com',
+        isProd = bucket === 'prod';
+    if (isProd) {
+        s3bucket = 'player.animatron.com';
+    }
+
+    var credentials;
+    try {
+        credentials = jake.cat('./.s3').split(' ');
+    } catch (e) {
+        console.error('Credential file not found.\nAborting.');
+        complete();
+        return;
+    }
+
+    var localPrefix = './dist/',
+        remotePrefix = version + '/',
+        files = [
+            'BUILD',
+            'player.js',
+            'player.min.js',
+            'bundle/animatron.js',
+            'bundle/animatron.min.js'
+        ];
+
+    console.log('Starting deployment of version', version, 'to', s3bucket);
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+    /*
+    AWS.config.update({
+        'httpOptions': {
+            proxy: 'http://localhost:8888'
+        },
+        sslEnabled: false
+    });
+    */
+    var s3 = new AWS.S3();
+    var async = require('async'),
+        zlib = require('zlib'),
+        fs = require('fs');
+    async.each(files, function(file, done) {
+        var key = remotePrefix + file;
+        var isJs = file.substring(file.length-3) === '.js';
+        var params = {
+            'Bucket': s3bucket,
+            'ACL': 'public-read',
+            'ContentType': isJs ? 'text/javascript' : 'text/plain',
+            'Key': key
+        };
+        if (!isProd) {
+            params.CacheControl = 'max-age=300';
+        }
+        var body = jake.cat(localPrefix + file);
+        if (isJs) {
+            params.ContentEncoding = 'gzip';
+            body = zlib.gzipSync(body);
+        }
+        params.Body = body;
+        s3.putObject(params, function(err, data) {
+            if (err) {
+                done(err);
+            } else {
+                console.log(key, 'uploaded to S3 successfully');
+                done();
+            }
+        });
+    }, function(err) {
+        if (err) {
+            console.log('Deployment failed:', err.message);
+        } else {
+            console.log('Deployment complete.');
+            if (isProd) {
+                //invalidate files after production deployment
+                var invalidate = jake.Task('invalidate');
+                invalidate.addListener('complete', function(){
+                    complete();
+                });
+                invalidate.invoke();
+                return;
+            }
+        }
+        complete();
+    });
+});
+
+
 // SUBTASKS ====================================================================
 
 // _prepare ====================================================================

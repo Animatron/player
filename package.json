@@ -48,6 +48,7 @@
     "uglify-js": "latest"
   },
   "devDependencies": {
+    "async": "latest",
     "jake": "latest",
     "uglify-js": "latest",
     "phantomjs": "latest",
