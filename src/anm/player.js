@@ -378,7 +378,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
-                        player._updateAudioVolumes();
+                        player._updateMediaVolumes();
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback.call(player, result);
@@ -1219,14 +1219,15 @@ Player.prototype.volume = function(vol) {
         return this.globalVolume;
     }
     this.globalVolume = vol;
-    this._updateAudioVolumes();
+    this._updateMediaVolumes();
 };
 
-Player.prototype._updateAudioVolumes = function() {
-    if (this.anim) {
-        this.anim.traverse(function(el) {
+Player.prototype._updateMediaVolumes = function() {
+    var me=this;
+    if (me.anim) {
+        me.anim.traverse(function(el) {
             if (el.$audio) {
-                el.$audio.setVolume(this.globalVolume);
+                el.$audio.setVolume(me.globalVolume);
             }
         });
     }
