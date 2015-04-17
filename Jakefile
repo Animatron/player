@@ -11,7 +11,6 @@
 //    jake: 0.5.14
 //    phantomjs: 1.7.0
 //    jasmine-node: 1.7.1
-//    uglify-js: 2.2.5
 //    docco: 0.6.2
 //    python markdown: ?
 //    orderly: 1.1.0
@@ -42,7 +41,7 @@ var VERSION_FILE = 'VERSION',
 var COPYRIGHT_YEAR = 2015;
 var COPYRIGHT_COMMENT =
 [ '/*',
-  ' * Copyright (c) 2011-' + COPYRIGHT_YEAR + ' by Animatron.',
+  ' * Copyright © 2011-' + COPYRIGHT_YEAR + ' by Animatron.',
   ' * All rights are reserved.',
   ' * ',
   ' * Animatron Player is licensed under the MIT License.',
@@ -56,7 +55,6 @@ var NODE_GLOBAL = false,
 
 var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
-    UGLIFYJS: NODE_GLOBAL ? 'uglifyjs' : (LOCAL_NODE_DIR + '/uglify-js/bin/uglifyjs'),
     JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
     JSDUCK: 'jsduck',
     PHANTOMJS: 'phantomjs',
@@ -64,8 +62,8 @@ var Binaries = {
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
     GIT: 'git',
-    GZIP: 'gzip',
-    BROWSERIFY: 'browserify'
+    BROWSERIFY: 'browserify',
+    CLOSURECOMPILER: 'java -jar ' + LOCAL_NODE_DIR + '/google-closure-compiler/compiler.jar'
 };
 
 var Dirs = {
@@ -188,7 +186,6 @@ function _extended_build_time() { var now = new Date();
 
 desc(_dfit_nl(['Get full distribution in the /dist directory.',
                'Exactly the same as calling {jake dist}.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('default', ['dist'], function() {});
 
@@ -206,7 +203,6 @@ task('clean', function() {
 desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist>.',
                'Depends on: <_prepare>, <_organize>, <_build-file>.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('build', ['_prepare', '_organize', '_bundles', '_build-file'], function() {});
 
@@ -215,7 +211,6 @@ task('build', ['_prepare', '_organize', '_bundles', '_build-file'], function() {
 desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist-min>.',
                'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('build-min', ['_prepare', '_organize', '_bundles', '_versionize', '_minify', '_build-file'], function() {});
 
@@ -226,7 +221,6 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'distribution for this version, including '+
                   'all required files — sources and bundles.',
                'Coherently calls <clean> and <build>.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist', ['clean', 'build'], function() {});
 
@@ -237,7 +231,6 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'distribution for this version, including '+
                   'all required files — sources and bundles.',
                'Coherently calls <clean> and <build>.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist-min', ['clean', 'build-min'], function() {});
 
@@ -1082,10 +1075,6 @@ desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
 task('_minify', { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
 
-    _print('Using ' + (NODE_GLOBAL ? 'global'
-                               : 'local (at '+LOCAL_NODE_DIR+')')
-                + ' node.js binaries');
-
     var BUILD_TIME = _build_time();
 
     // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
@@ -1097,12 +1086,10 @@ task('_minify', { async: true }, function() {
           return;
         }
         jake.exec([
-          [ Binaries.UGLIFYJS,
-            '--ascii',
-            '--compress warnings=false',
-            '--screw-ie8', // since April 2014
-            '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
-            '--output', dst,
+          [ Binaries.CLOSURECOMPILER,
+            '--compilation_level SIMPLE_OPTIMIZATIONS',
+            '--js', src,
+            '--js_output_file', dst,
             src
           ].join(' ')
         ], EXEC_OPTS, function() { cb(dst); });
@@ -1206,9 +1193,9 @@ task('_build-file', { async: true }, function() {
 });
 
 task('browserify', {'async': true}, function(){
-  _print('browserifying...');
+  console.log('Creating Browserify bundle.');
   jake.exec('browserify src/main.js -o dist/player.js', function() {
-    _print('created dist/player.js');
+    console.log('dist/player.js created successfully');
     complete();
   });
 });
