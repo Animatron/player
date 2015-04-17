@@ -101,7 +101,7 @@ var Files = {
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
-}
+};
 
 var Bundles = [
     { name: 'Animatron',
@@ -138,7 +138,6 @@ var Docs = {
 var Bucket = {
     Release: { ALIAS: 'rls', NAME: 'player.animatron.com' },
     Development: { ALIAS: 'dev', NAME: 'player-dev.animatron.com' },
-    Old: { ALIAS: 'old', NAME: 'animatron-player' }
 };
 
 var Validation = {
@@ -202,17 +201,17 @@ task('clean', function() {
 
 desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_organize>, <_build-file>.',
+               'Depends on: <_prepare>, <_build-file>.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_organize', '_bundles', '_build-file'], function() {});
+task('build', ['_prepare', '_bundles', '_build-file'], function() {});
 
 // build-min ===================================================================
 
 desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist-min>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
+               'Depends on: <_prepare>, <_bundles>, <_minify>, <_build-file>.',
                'Produces: /dist directory.']));
-task('build-min', ['_prepare', '_organize', '_bundles', '_versionize', '_minify', '_build-file'], function() {});
+task('build-min', ['_prepare', '_bundles', '_minify', '_build-file'], function() {});
 
 // dist ========================================================================
 
@@ -833,13 +832,51 @@ task('invalidate', [], { async: true }, function(version) {
 
 });
 
-task('deploy', ['dist-min'], {async: true}, function(version, bucket) {
+task('deploy-publishjs', {async: true}, function(bucket){
     var s3bucket = 'player-dev.animatron.com',
         isProd = bucket === 'prod';
     if (isProd) {
         s3bucket = 'player.animatron.com';
     }
+    console.log('Starting deployment of publish.js to', s3bucket);
+    var credentials;
+    try {
+        credentials = jake.cat('./.s3').split(' ');
+    } catch (e) {
+        console.error('Credential file not found.\nAborting.');
+        complete();
+        return;
+    }
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+    var s3 = new AWS.S3();
+    var params = {
+        'Bucket': s3bucket,
+        'ACL': 'public-read',
+        'ContentType': 'text/javascript',
+        'Key': 'publish.js',
+        'Body': jake.cat('./publish.js')
+    };
+    if (!isProd) {
+        params.CacheControl = 'max-age=300';
+    }
+    s3.putObject(params, function(err) {
+        if (err) {
+            console.log('Deployment failed:', err.message);
+        } else {
+            console.log('Deployment of publish.js complete.');
+        }
+        complete();
+    });
+});
 
+task('deploy', ['dist-min'], function(version, bucket) {
+    var s3bucket = 'player-dev.animatron.com',
+        isProd = bucket === 'prod';
+    if (isProd) {
+        s3bucket = 'player.animatron.com';
+    }
+    console.log('Starting deployment of version', version, 'to', s3bucket);
     var credentials;
     try {
         credentials = jake.cat('./.s3').split(' ');
@@ -859,17 +896,8 @@ task('deploy', ['dist-min'], {async: true}, function(version, bucket) {
             'bundle/animatron.min.js'
         ];
 
-    console.log('Starting deployment of version', version, 'to', s3bucket);
     var AWS = require('aws-sdk');
     AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
-    /*
-    AWS.config.update({
-        'httpOptions': {
-            proxy: 'http://localhost:8888'
-        },
-        sslEnabled: false
-    });
-    */
     var s3 = new AWS.S3();
     var async = require('async'),
         zlib = require('zlib'),
@@ -956,118 +984,6 @@ task('_bundles', ['browserify'], function() {
 
     _print(DONE_MARKER);
 });
-
-// _bundle =====================================================================
-
-desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder, '+
-               'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
-task('_bundle', function(param) {
-    if (!param) throw new Error('This task requires a concrete bundle name to be specified');
-    var BUILD_TIME = _build_time();
-    var bundle;
-    Bundles.forEach(function(b) {
-        if (b.name == param) { bundle = b; }
-    });
-    if (!bundle) throw new Error('Bundle with name ' + param + ' was not found');
-    var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
-    jake.mkdirP(_loc(targetDir));
-    _print('Package bundle \'' + bundle.name + '\'');
-    var targetFile = targetDir + '/' + bundle.file + '.js';
-    _print('.. (c) > ' + targetFile);
-    jake.echo(COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
-                               .concat('\n\n\n'),
-              _loc(targetFile));
-    bundle.includes.forEach(function(bundleFile) {
-            jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n\n',
-                      _loc(targetFile));
-            _print('.. ' + bundleFile + ' > ' + targetFile);
-        });
-});
-
-// _organize ===================================================================
-
-desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
-task('_organize', function() {
-    return;
-    _print('Copy files to ' + Dirs.DIST + '..');
-
-    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.INIT),
-             _loc(Dirs.DIST + '/' + Files.Main.INIT));
-    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.PLAYER),
-             _loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.VENDOR));
-    Files.Ext.VENDOR.forEach(function(vendorFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.VENDOR + '/' + vendorFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.VENDOR));
-    });
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.ENGINES));
-    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.ENGINES + '/' + engineFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.ENGINES));
-    });
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.MODULES));
-    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.MODULES + '/' + moduleFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.MODULES));
-    });
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
-    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
-    });
-
-    _print(DONE_MARKER);
-});
-
-// _versionize =================================================================
-
-desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
-task('_versionize', function() {
-    return;
-    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
-
-    _print('.. Main files');
-
-    _versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    _versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-
-    _print('.. Engines');
-
-    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
-    });
-
-    _print('.. Modules');
-
-    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
-    });
-
-    _print('.. Importers');
-
-    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
-    });
-
-    _print('.. Bundles');
-
-    Bundles.forEach(function(bundle) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
-    });
-
-    _print('..Docs');
-
-    _versionize(_loc(Files.Doc.README));
-    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.EMBEDDING));
-    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
-
-    _print(DONE_MARKER);
-});
-
 // _minify =====================================================================
 
 desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
