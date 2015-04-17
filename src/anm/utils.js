@@ -12,7 +12,7 @@ is.defined = function(v) {
 is.finite = global.isFinite;
 is.nan = global.isNaN;
 is.arr = Array.isArray;
-is.int = function(n) {
+is.integer = function(n) {
     return is.num(n) && Math.floor(n) == n;
 };
 is.num = function(n) {
