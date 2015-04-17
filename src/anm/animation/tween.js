@@ -36,7 +36,7 @@ var errors = require('../errors.js');
  *
  * Examples:
  *
- * * `elm.rotate(0, Math.PI)`
+ * * `// elm.rotate(0, Math.PI): Not yet implemented, should take the whole element band`
  * * `elm.tween(new Tween('rotate', [0, Math.PI]))`
  * * `elm.tween(new Tween('rotate').from(0).to(Math.PI / 2))`
  * * `elm.tween(Tween.rotate().values(0, Math.PI / 2))`*
@@ -49,6 +49,8 @@ var errors = require('../errors.js');
  * * `elm.tween(Tween.translate().data('M0 0 100 100'))`
  * * `elm.tween(Tween.rotatetopath())`
  */
+Tween.DEFAULT_FROM = function(_from, prev) { return is.defined(prev) ? [ _from,   prev[1] ] : [ _from, null ]; };
+Tween.DEFAULT_TO   = function(to,    prev) { return is.defined(to)   ? [ prev[0], to ]      : [  null,   to ]; };
 function Tween(tween_type, data) {
     if (!tween_type) throw errors.element('Tween type is required to be specified or function passed');
     // mod_f — modifier function which is called on every frame and time passed there
@@ -106,14 +108,20 @@ Tween.addTween = function(tween_type, definition) {
     Tween.TWEENS_PRIORITY[tween_type] = Tween.TWEENS_COUNT++;
 };
 
-Tween.addTween(C.T_TRANSLATE, function(t) {
-    var path = this.$data,
-        p = path.pointAt(t);
-    if (!p) return;
-    this.x = p[0];
-    this.y = p[1];
-    // we should null the moving path, if it was empty
-    this.$mpath = (path.length() > 0) ? path : null;
+Tween.addTween(C.T_TRANSLATE, {
+    modifier: function(t) {
+        var path = this.$data,
+            p = path.pointAt(t);
+        if (!p) return;
+        this.x = p[0];
+        this.y = p[1];
+        // we should null the moving path, if it was empty
+        this.$mpath = (path.length() > 0) ? path : null;
+    },
+    from: function(_from, path) {
+        return path ? path.line(_from[0], _from[1]) : new Path().move(_from[0], _from[1]) },
+    to: function(to, path) {
+        return path ? path.line(to[0], to[1]) : new Path().move(to[0], to[1]) }
 });
 
 Tween.addTween(C.T_SCALE, function(t) {
