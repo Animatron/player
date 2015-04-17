@@ -202,10 +202,10 @@ function fit_rects(pw, ph, aw, ah) {
     var xw = pw / aw,
         xh = ph / ah;
     var factor = Math.min(xw, xh);
-    var hcoord = Math.ceil((pw - aw * factor) / 2),
-        vcoord = Math.ceil((ph - ah * factor) / 2),
-        awf = Math.floor(aw * factor),
-        ahf = Math.floor(ah * factor);
+    var hcoord = Math.floor((pw - aw * factor) / 2),
+        vcoord = Math.floor((ph - ah * factor) / 2),
+        awf = Math.round(aw * factor),
+        ahf = Math.round(ah * factor);
     if ((xw != 1) || (xh != 1)) {
         var anim_rect = [ hcoord, vcoord, awf, ahf ];
         if (hcoord !== 0) {

@@ -134,8 +134,6 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                };
 
 Player.EMPTY_BG = 'rgba(0,0,0,.05)';
-Player.EMPTY_STROKE = 'rgba(50,158,192,.5)';
-Player.EMPTY_STROKE_WIDTH = 3;
 
 // ### Playing Control API
 /* ----------------------- */
@@ -997,7 +995,6 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
           ctx = player.ctx;
       ctx.save();
       ctx.clearRect(0, 0, player.width * ratio, player.height * ratio);
-      player._drawEmpty();
       ctx.restore();
     }
     var thumb = new Sheet(url);
@@ -1243,15 +1240,8 @@ Player.prototype._drawEmpty = function() {
     ctx.save();
 
     var ratio = engine.PX_RATIO;
-    // FIXME: somehow scaling context by ratio here makes all look bad
-
-    // background
     ctx.fillStyle = Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
-    ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
-    ctx.strokeRect(0, 0, w * ratio, h * ratio);
-
     ctx.restore();
 };
 
