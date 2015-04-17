@@ -208,7 +208,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         }
         if (this.bgfill) {
             if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
-            ctx.fillStyle = this.bgfill.apply(ctx);
+            this.bgfill.apply(ctx);
             ctx.fillRect(0, 0, this.width, this.height);
         }
         this.each(function(child) {

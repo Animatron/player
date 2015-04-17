@@ -55,13 +55,13 @@ Sheet.prototype.load = function(player_id, callback, errback) {
     if (this._image) throw new Error('Already loaded'); // just skip loading?
     var me = this;
     if (!me.src) {
-        $log.error('Empty source URL for image');
+        log.error('Empty source URL for image');
         me.ready = true; me.wasError = true;
         if (errback) errback.call(me, 'Empty source');
         return;
     }
     resMan.loadOrGet(player_id, me.src,
-        function(notify_success, notify_error) { // loader
+        function(notify_success, notify_error, notify_progress) { // loader
             var src = me.src;
             if (https) {
                 src = src.replace('http:', 'https:');

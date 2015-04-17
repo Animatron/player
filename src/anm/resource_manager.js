@@ -62,18 +62,22 @@ function ResourceManager() {
     this._errors = {};
     this._waiting = {};
     this._subscriptions = {};
+    this._onprogress = {}; // optional loading progress listeners
     this._url_to_subjects = {};
 }
 
-ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
+ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onprogress) {
     if (!subject_id) throw new Error('Subject ID is empty');
     if (this._subscriptions[subject_id]) throw new Error('This subject (\'' + subject_id + '\') is already subscribed to ' +
                                                          'a bunch of resources, please group them in one.');
+
     var filteredUrls = [];
     rmLog('subscribing ' + callbacks.length + ' to ' + urls.length + ' urls: ' + urls);
+    var test = {}; // FIXME: a very dirty way to test if urls duplicate, needs to be optimized
     for (var i = 0; i < urls.length; i++){
-        // there should be no empty urls
-        if (urls[i]) {
+        // there should be no empty urls and duplicates
+        if (urls[i] && !test[urls[i]]) {
+            test[urls[i]] = true;
             filteredUrls.push(urls[i]);
             if (!this._url_to_subjects[urls[i]]) {
                 this._url_to_subjects[urls[i]] = [];
@@ -81,24 +85,49 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
             this._url_to_subjects[urls[i]].push(subject_id);
         }
     }
+    rmLog('filtered from ' + urls.length + ' to ' + filteredUrls.length);
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
-    this.check(); // all the urls might be already available
+    if (onprogress) {
+        this._onprogress[subject_id] = (function(f_urls) {
+            var summary = {};
+            var count = f_urls.length,
+                per_url = 1 / count;
+            var sum = 0,
+                err = 0;
+            return function(url, factor) {
+                // incoming factor value should be in range 0..1 for this particular url,
+                // where 0 is not-even-started to load, and 1 is complete loading
+                var prev = summary[url] || 0;
+                if (factor !== -1) { // -1 means error
+                    sum += (factor - prev) * per_url;
+                    summary[url] = factor;
+                } else {
+                    sum -= prev;
+                    err += prev;
+                }
+                onprogress(url, factor, sum, err);
+            };
+        })(filteredUrls);
+    }
 };
 
 ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
     var me = this;
     if (!subject_id) throw new Error('Subject ID is empty');
     if (!url) throw new Error('Given URL is empty');
+    var progress_f = me._onprogress[subject_id];
     rmLog('request to load ' + url);
     if (me._cache[url]) {
         rmLog('> already received, trigerring success');
         var result = me._cache[url];
         if (onComplete) onComplete(result);
         me.trigger(url, result); // TODO: is it needed?
+        if (progress_f) progress_f(url, 1);
     } else if (me._errors[url]) {
         rmLog('> failed to load before, notifying with error');
         if (onError) onError(me._errors[url]);
+        if (progress_f) progress_f(url, -1);
     } else if (!me._waiting[subject_id] ||
                !(me._waiting[subject_id] && me._waiting[subject_id][url])) {
         rmLog('> not cached, requesting');
@@ -109,18 +138,24 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
             rmLog('file at ' + url + ' succeeded to load, triggering success');
             me.trigger(url, result);
             if (onComplete) onComplete(result);
+            if (progress_f) progress_f(url, 1);
             me.check();
         }, function(err) {
             rmLog('file at ' + url + ' failed to load, triggering error');
             me.error(url, err);
             if (onError) onError(err);
+            if (progress_f) progress_f(url, -1);
             me.check();
-        });
+        }, progress_f ? function(factor) {
+            progress_f(url, factor);
+        } : function() {});
     } else /*if (me._waiting[subject_id] && me._waiting[subject_id][url])*/ { // already waiting
         rmLog('> someone is already waiting for it, subscribing');
-        me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
-            if (res[0]) { onComplete(res[0]); }
-            else { onError(res[0]); }
+        var new_id = subject_id + (new Date()).getTime() + Math.random();
+        me._onprogress[new_id] = me._onprogress[subject_id];
+        me.subscribe(new_id, [ url ], function(res) {
+            if (res[0]) { onComplete(res[0]); if (progress_f) progress_f(url, 1); }
+            else { onError(res[0]); if (progress_f) progress_f(url, -1);}
         });
 
     }

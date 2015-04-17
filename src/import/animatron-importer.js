@@ -31,6 +31,7 @@ var C = anm.constants,
     LSeg = anm.LSeg,
     CSeg = anm.CSeg,
     Audio = anm.Audio,
+    Video = anm.Video,
     is = anm.utils.is,
     $log = anm.log;
     //test = anm._valcheck
@@ -382,7 +383,11 @@ Import.leaf = function(type, src, parent/*, anim*/) {
         trg.$audio = Import.audio(src);
         trg.$audio.connect(trg);
     }
-    else if (type == TYPE_VIDEO) {}
+    else if (type == TYPE_VIDEO) {
+        trg.type = C.ET_VIDEO;
+        trg.$video = Import.video(src);
+        trg.$video.connect(trg);
+    }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
         trg.$fill = Import.fill(src[1]);
@@ -754,8 +759,9 @@ Import.stroke = function(src) {
     } else if (is.arr(src[1])) {
         if (is.arr(src[1][0])) {
             fill = Import.grad(src[1]);
+        } else {
+            fill = Import.pattern(src[1]);
         }
-        fill = Import.pattern(src[1]);
     }
     return Brush.stroke(fill, // paint
                         src[0], // width
@@ -871,6 +877,12 @@ Import.audio = function(src) {
     audio.offset = src[2];
     audio.master = src[3];
     return audio;
+};
+
+Import.video = function(src) {
+    var video = new Video(src[1]);
+    video.offset = src[2];
+    return video;
 };
 
 // BitStream

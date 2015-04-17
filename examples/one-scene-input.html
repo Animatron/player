@@ -33,6 +33,13 @@
         body > canvas:last-child {
             top: 300px;
         }
+
+        body > video {
+            position: absolute;
+            top: 0;
+            right: 0;
+            opacity: 0.8;
+        }
     </style>
 
     <script type="text/javascript">
@@ -70,9 +77,9 @@
       }
 
       function start() {
-          if (!window.__anm_conf) window.__anm_conf = {};
-          window.__anm_conf.logImport = true;
-          window.__anm_conf.logResMan = true;
+          anm.conf.logImport = true;
+          anm.conf.logResMan = true;
+          anm.conf.logLevel = 255;
 
           document.getElementById('scene-input').value = DEFAULT_SCENE;
 

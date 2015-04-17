@@ -119,10 +119,11 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                  'height': undefined,
                                  //'fps': undefined,
                                  'infiniteDuration': undefined, // undefined means 'auto'
-                                 'drawStill': undefined, // undefined means 'auto'
+                                 'drawStill': undefined, // undefined means 'auto',
                                  'audioEnabled': true,
                                  'audioGlobalVolume': 1.0,
                                  'imagesEnabled': true,
+                                 'videoEnabled': true,
                                  'shadowsEnabled': true,
                                  'handleEvents': undefined, // undefined means 'auto'
                                  'controlsEnabled': undefined, // undefined means 'auto'
@@ -377,8 +378,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             state.happens = C.RES_LOADING;
             player.fire(C.S_CHANGE_STATE, C.RES_LOADING);
             player.fire(C.S_RES_LOAD, remotes);
-            // actually start loading remote resources
-            anim._loadRemoteResources(player);
             // subscribe to wait until remote resources will be ready or failed
             resourceManager.subscribe(player.id, remotes, [ player.__defAsyncSafe(
                 function(res_results, err_count) {
@@ -401,7 +400,12 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         }
                     }
                 }
-            ) ]);
+            ) ], (player.controlsEnabled && player.controls) ? function(url, factor, progress, errors) {
+                player.controls.loadingProgress = progress;
+                player.controls.loadingErrors = errors;
+            } : null);
+            // actually start loading remote resources
+            anim._loadRemoteResources(player);
         }
 
     };
@@ -735,6 +739,8 @@ Player.prototype._addOpts = function(opts) {
                         opts.globalAudioVolume : this.globalAudioVolume;
     this.imagesEnabled = is.defined(opts.imagesEnabled) ?
                         opts.imagesEnabled : this.imagesEnabled;
+    this.videoEnabled = is.defined(opts.videoEnabled) ?
+                        opts.videoEnabled : this.videoEnabled;
     this.shadowsEnabled = is.defined(opts.shadowsEnabled) ?
                         opts.shadowsEnabled : this.shadowsEnabled;
     this.controlsEnabled = is.defined(opts.controlsEnabled) ?

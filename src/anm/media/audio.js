@@ -1,40 +1,12 @@
-var C = require('../constants.js'),
-    engine = require('engine'),
-    ResMan = require('../resource_manager.js'),
-    conf = require('../conf.js'),
-    log = require('../log.js');
+var conf = require('../conf.js'),
+    log = require('../log.js'),
+    utils = require('../utils.js');
 
-// workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
-function syncStream(node){
-  var buf8 = new Uint8Array(node.buf);
-  buf8.indexOf = Array.prototype.indexOf;
-  var i=node.sync, b=buf8;
-  while(1) {
-      node.retry++;
-      i=b.indexOf(0xFF,i); if(i==-1 || (b[i+1] & 0xE0 == 0xE0 )) break;
-      i++;
-  }
-  if(i!=-1) {
-      var tmp=node.buf.slice(i); //carefull there it returns copy
-      delete(node.buf); node.buf=null;
-      node.buf=tmp;
-      node.sync=i;
-      return true;
-  }
-  return false;
-}
+var C = require('../constants.js');
 
-function audioErrProxy(src, pass_to) {
-  return function(err) {
-    // e_.MEDIA_ERR_ABORTED=1
-    // e_.MEDIA_ERR_NETWORK=2
-    // e_.MEDIA_ERR_DECODE=3
-    // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
-    // e_.MEDIA_ERR_ENCRYPTED=5
-    pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
-                      err.currentTarget.error.code));
-  };
-}
+var engine = require('engine');
+
+var ResMan = require('../resource_manager.js');
 
 var testAudio = engine.createAudio(),
     oggSupported =  !!(testAudio.canPlayType && testAudio.canPlayType('audio/ogg;').replace(/no/, ''));
@@ -55,7 +27,7 @@ function getAudioContext() {
       return null;
     }
 
-    if(global.anmAudioContext) {
+    if (global.anmAudioContext) {
         return global.anmAudioContext;
     }
 
@@ -74,7 +46,7 @@ var audioContext = getAudioContext();
  */
 function Audio(url) {
     this.url = url + audioExt;
-    this.loaded = false;
+    this.ready = false;
     this.playing = false;
     this.canPlay = false;
     this.volume = 1;
@@ -84,7 +56,7 @@ function Audio(url) {
 Audio.prototype.load = function(player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
-      function(notify_success, notify_error) { // loader
+      function(notify_success, notify_error, notify_progress) { // loader
           var url = me.url;
           if (engine.isHttps) {
               url = url.replace('http:', 'https:');
@@ -137,10 +109,18 @@ Audio.prototype.load = function(player) {
             var progressListener = function(e) {
               var buffered = el.buffered;
               if (buffered.length == 1) {
-                  if (el.readyState === 4) {
-                    el.removeEventListener("progress", progressListener, false);
-                    el.removeEventListener("canplay", canPlayListener, false);
+                  // 0 == HAVE_NOTHING
+                  // 1 == HAVE_METADATA
+                  // 2 == HAVE_CURRENT_DATA
+                  // 3 == HAVE_FUTURE_DATA
+                  // 4 == HAVE_ENOUGH_DATA
+                  if (el.readyState === 4 || el.readyState === 3) {
+                    engine.unsubscribeElementEvents(el,
+                        { 'progress': progressAndLoadingListener,
+                          'loadedmetadata': loadingListener,
+                          'canplay': canPlayListener });
                     notify_success(el);
+                    notify_progress(1);
                     return;
                   }
 
@@ -155,7 +135,26 @@ Audio.prototype.load = function(player) {
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
                 notify_success(el);
+                notify_progress(1);
               }
+            };
+
+            var loadingListener = function(e) {
+                var ranges = [];
+                for (var i = 0; i < el.buffered.length; i++) {
+                    ranges.push([ el.buffered.start(i),
+                                  el.buffered.end(i) ]);
+                }
+
+                for (i = 0, progress = 0; i < el.buffered.length; i ++) {
+                    progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                }
+
+                notify_progress(progress);
+            };
+
+            var progressAndLoadingListener = function(e) {
+                progressListener(e); loadingListener(e);
             };
 
             var canPlayListener = function(e) {
@@ -163,38 +162,43 @@ Audio.prototype.load = function(player) {
               progressListener(e);
             };
 
-            el.addEventListener("progress", progressListener, false);
-            el.addEventListener("canplay", canPlayListener, false);
-            el.addEventListener("error", audioErrProxy(url, notify_error), false);
+            engine.subscribeElementEvents(el,
+                { 'progress': progressAndLoadingListener,
+                  'loadedmetadata': loadingListener,
+                  'canplay': canPlayListener,
+                  'error': audioErrProxy(url, notify_error) });
 
             var addSource = function(audio, url, type) {
                 var src = engine.createSource();
+                src.addEventListener("error", notify_error, false);
                 src.type = type;
                 src.src = url;
-                src.addEventListener("error", notify_error, false);
                 audio.appendChild(src);
             };
 
             try {
               engine.appendToBody(el);
               addSource(el, url, audioType);
-            } catch(e) { notify_error(e); }
+            } catch(e) {
+                notify_error(e);
+            }
           }
       },
       function(audio) { // oncomplete
           me.audio = audio;
-          me.loaded = true;
+          me.ready = true;
           if (player.muted) {
               me.mute();
           }
 
       },
-      function(err) { log.error(err ? (err.message || err) : 'Unknown error');
-                      /* throw err; */ });
+      function(err) {
+          log.error(err ? (err.message || err) : 'Unknown error');
+      });
 };
 /** @private @method play */
 Audio.prototype.play = function(ltime, duration) {
-    if (!this.loaded || this.playing) {
+    if (!this.ready || this.playing) {
       return false;
     }
 
@@ -328,5 +332,48 @@ Audio.prototype.connect = function(element) {
     element.on(C.S_STOP, stop);
     element.on(C.S_PAUSE, stop);
 };
+/**
+ * @method clone
+ *
+ * @return {anm.Audio}
+ */
+Audio.prototype.clone = function() {
+    var clone = new Audio('');
+    clone.url = this.url;
+    clone.offset = this.offset;
+    return clone;
+};
+
+// workaround, see http://stackoverflow.com/questions/10365335/decodeaudiodata-returning-a-null-error
+function syncStream(node){
+  var buf8 = new Uint8Array(node.buf);
+  buf8.indexOf = Array.prototype.indexOf;
+  var i=node.sync, b=buf8;
+  while(1) {
+      node.retry++;
+      i=b.indexOf(0xFF,i); if(i==-1 || (b[i+1] & 0xE0 == 0xE0 )) break;
+      i++;
+  }
+  if(i!=-1) {
+      var tmp=node.buf.slice(i); //carefull there it returns copy
+      delete(node.buf); node.buf=null;
+      node.buf=tmp;
+      node.sync=i;
+      return true;
+  }
+  return false;
+}
+
+function audioErrProxy(src, pass_to) {
+  return function(err) {
+    // e_.MEDIA_ERR_ABORTED=1
+    // e_.MEDIA_ERR_NETWORK=2
+    // e_.MEDIA_ERR_DECODE=3
+    // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
+    // e_.MEDIA_ERR_ENCRYPTED=5
+    pass_to(new Error('Failed to load audio file from ' + src + ' with error code: ' +
+                      err.currentTarget.error.code));
+  };
+}
 
 module.exports = Audio;

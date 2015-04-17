@@ -196,7 +196,8 @@ Controls.prototype.render = function(gtime) {
         state.changed = false;
     } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
         drawBack(ctx, theme, w, h);
-        drawLoadingProgress(ctx, w, h, ((gtime / 100  % 60) / 60));
+        drawLoadingProgress(ctx, w, h, ((gtime / 100  % 60) / 60),
+                            this.loadingProgress, this.loadingErrors);
     } else if (s === C.ERROR) {
         drawBack(ctx, theme, w, h);
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
@@ -534,7 +535,7 @@ var drawVolumeBtn = function(ctx, w, h, muted) {
 };
 
 //draw the loader
-var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
+var drawLoadingProgress = function(ctx, w, h, hilite_pos, factor, errorFactor) {
     var cx = w / 2,
         cy = h / 2,
         segment = Math.ceil(90 * hilite_pos),
@@ -554,6 +555,28 @@ var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
     ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
     ctx.stroke();
     ctx.closePath();
+
+    // draw loading progress at the bottom
+    if (factor || errorFactor) {
+        ctx.translate(-cx, cy - theme.loading.factorLineWidth); // bottom right corner - 2px
+        ctx.strokeStyle = theme.loading.factorBackColor;
+        ctx.lineWidth = theme.loading.factorLineWidth;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(w, 0);
+        ctx.stroke();
+        ctx.strokeStyle = theme.loading.factorDoneColor;
+        ctx.beginPath();
+        ctx.moveTo(0, 0);
+        ctx.lineTo(w * factor, 0);
+        ctx.stroke();
+        if (errorFactor) {
+            ctx.strokeStyle = theme.loading.factorErrorColor;
+            ctx.moveTo(w * factor, 0);
+            ctx.lineTo(w * errorFactor, 0);
+            ctx.stroke();
+        }
+    }
 };
 
 var drawNoAnimation = function(ctx, theme, w, h, focused) {

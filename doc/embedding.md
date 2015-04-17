@@ -257,6 +257,7 @@ URL | `IFRAME`/`div` | JS Object | Default | Description
 - | `anm-draw-still` | `drawStill` | `true` | show an animation's single frame or a thumbnail (if its source is set) while animation wasn't started or in process of loading
 - | `anm-images` | `imagesEnabled` | `true` | enable all remote images used in animation (if they are disabled, special mark will be shown)
 `s`/`audio` | `anm-audio` | `audioEnabled` | `true` | enable all sounds used in animation (if disabled, they even will not load)
+- | `anm-video` | `videoEnabled` | `true` | enable all remote video files used in animation (if they are disabled, special mark will be shown)
 - | `anm-shadows` | `shadowsEnabled` | `true` | enable shadows in animation (they often consume CPU)
 - | `anm-scene-size` | `forceSceneSize` | `false` | always override user-specified Player size with a size of a scene, so when scene loaded, Player will resize itself, if sizes don't match
 `me`/`errors` | `anm-mute-errors` | `muteErrors` | `false` | do not stop playing if some errors happened during the playing process, just log them
