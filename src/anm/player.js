@@ -1580,7 +1580,7 @@ Player.prototype.__onerror = function() {
 Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;
-      doMute = doMute && !(err instanceof SystemError);
+      doMute = doMute && !(err instanceof errors.SystemError);
 
   try {
       if (player.state) player.state.happens = C.ERROR;
