@@ -19,25 +19,24 @@ jake dist
   // none
 jake dist-min
 jake build-min
-  npm install uglify-js
+  npm install google-closure-compiler
 jake test
-  npm install uglify-js
+  npm install google-closure-compiler
   npm install phantomjs
   npm install jasmine-node
-jake push-go
-jake push-go[latest]
-jake push-go[,rls]
-jake push-go[latest,rls]
+jake deploy-publishjs
+jake deploy-publishjs[latest]
+jake deploy-publishjs[,prod]
+jake deploy-publishjs[latest,prod]
   .s3 file
-  npm install aws2js
-jake push-version
-jake push-version[latest]
-jake push-version[,rls]
-jake push-version[latest,rls]
+  npm install aws2sdk
+jake deploy
+jake deploy[latest]
+jake deploy[,prod]
+jake deploy[latest,prod]
   .s3 file
-  npm install aws2js
-  npm install walk
-  npm install uglify-js
+  npm install aws-sdk
+  npm install google-closure-compiler
 jake docs
   npm install docco
   easy_install markdown
@@ -45,6 +44,3 @@ jake anm-scene-valid
   npm install orderly
   npm install jsonschema
 jake -T
-jake trig-prod
-jake trig-dev
-  [nothing]

@@ -586,7 +586,7 @@ task('invalidate', [], { async: true }, function(version) {
 
 
     var cloudFront = new AWS.CloudFront();
-    var items = paths.map(function(path) { return path.replace('%VERSION%', version)});
+    var items = paths.map(function(path) { return path.replace('%VERSION%', version);});
     var params = {
         DistributionId: distributionId,
         InvalidationBatch: {
@@ -605,13 +605,14 @@ task('invalidate', [], { async: true }, function(version) {
 
 });
 
-task('deploy-publishjs', {async: true}, function(bucket){
+task('deploy-publishjs', {async: true}, function(version, bucket){
+    version = version || VERSION;
     var s3bucket = 'player-dev.animatron.com',
         isProd = bucket === 'prod';
     if (isProd) {
         s3bucket = 'player.animatron.com';
     }
-    console.log('Starting deployment of publish.js to', s3bucket);
+    console.log('Starting deployment of publish.js version', version, 'to', s3bucket);
     var credentials;
     try {
         credentials = jake.cat('./.s3').split(' ');
@@ -627,7 +628,7 @@ task('deploy-publishjs', {async: true}, function(bucket){
         'Bucket': s3bucket,
         'ACL': 'public-read',
         'ContentType': 'text/javascript',
-        'Key': 'publish.js',
+        'Key': version + '/publish.js',
         'Body': jake.cat('./publish.js')
     };
     if (!isProd) {
@@ -644,6 +645,7 @@ task('deploy-publishjs', {async: true}, function(bucket){
 });
 
 task('deploy', ['dist-min'], function(version, bucket) {
+    version = version || VERSION;
     var s3bucket = 'player-dev.animatron.com',
         isProd = bucket === 'prod';
     if (isProd) {
@@ -851,7 +853,7 @@ task('_build-file', { async: true }, function() {
     ], EXEC_OPTS);
     _getCommintHash.on('stdout', function(COMMIT_INFO) {
         var BUILD_TIME = _extended_build_time();
-            COMMIT_INFO = COMMIT_INFO.toString();
+        COMMIT_INFO = COMMIT_INFO.toString();
 
         _print('Build time:');
         _print(BUILD_TIME);
