@@ -4,8 +4,7 @@ var utils = require('../utils.js'),
 var C = require('../constants.js'),
     Strings = require('../loc.js').Strings;
 
-var engine = require('engine'),
-    InfoBlock = require('./infoblock.js');
+var engine = require('engine');
 
 //fade modes
 var FADE_NONE = 0,
