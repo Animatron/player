@@ -1,6 +1,6 @@
 {
   "name": "animatron-player",
-  "version": "1.3",
+  "version": "1.3.0",
   "description": "JavaScript Player engine for Animatron",
   "keywords": [
     "html5",
@@ -29,8 +29,9 @@
       "email": "skavish@gmail.com"
     },
     {
-      "name": "Yuri Opryshko",
-      "email": "mcm6987@gmail.com"
+      "name": "Yuriy Opryshko",
+      "email": "mcm6987@gmail.com",
+      "url": "http://localhost"
     },
     {
       "name": "Nikita Dudnik",
@@ -44,22 +45,21 @@
     "examples": "examples"
   },
   "dependencies": {
-    "jake": "latest",
-    "uglify-js": "latest"
+    "jake": "latest"
   },
   "devDependencies": {
-    "jake": "latest",
-    "uglify-js": "latest",
-    "phantomjs": "latest",
-    "jasmine-node": "latest",
-    "docco": "latest"
+    "async": "latest",
+    "aws-sdk": "latest",
+    "google-closure-compiler": "latest"
   },
   "optionalDependencies": {
-    "aws2js": "latest",
+    "phantomjs": "latest",
+    "docco": "latest",
     "walk": "latest",
     "orderly": "latest",
     "jsonschema": "latest",
-    "markdown": "latest"
+    "markdown": "latest",
+    "jasmine-node": "latest"
   },
   "scripts": {
     "test": "jake test"

@@ -63,11 +63,9 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
         if (!after(time)) return;
     }
 
-    if (pl_state.__supressFrames) return;
-
-    return nextFrame(function() {
+    return (pl_state.__lastReq = nextFrame(function() {
         r_loop(ctx, player, anim, before, after, before_render, after_render);
-    });
+    }));
 }
 
 function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
@@ -79,26 +77,24 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
     if (!size_differs) {
-        try {
-            ctx.clearRect(0, 0, anim.width,
-                                anim.height);
-            if (before) before(time, ctx);
-            if (zoom != 1) ctx.scale(zoom, zoom);
-            anim.render(ctx, time, dt);
-            if (after) after(time, ctx);
-        } finally { ctx.restore(); }
+        ctx.clearRect(0, 0, anim.width,
+                            anim.height);
+        if (before) before(time, ctx);
+        if (zoom != 1) ctx.scale(zoom, zoom);
+        anim.render(ctx, time, dt);
+        if (after) after(time, ctx);
+        ctx.restore();
     } else {
         r_with_ribbons(ctx, width, height,
                             anim.width, anim.height,
                             rib_color,
             function(_scale) {
-                try {
-                  ctx.clearRect(0, 0, anim.width, anim.height);
-                  if (before) before(time, ctx);
-                  if (zoom != 1) ctx.scale(zoom, zoom);
-                  anim.render(ctx, time, dt);
-                  if (after) after(time, ctx);
-                } finally { ctx.restore(); }
+                ctx.clearRect(0, 0, anim.width, anim.height);
+                if (before) before(time, ctx);
+                if (zoom != 1) ctx.scale(zoom, zoom);
+                anim.render(ctx, time, dt);
+                if (after) after(time, ctx);
+                ctx.restore();
             });
     }
 }
@@ -163,12 +159,31 @@ Render.p_applyAComp = new Painter(function(ctx) { this.applyAComp(ctx); }, C.PNT
 
 // TODO: also move into Element class
 
+Render.p_drawBounds = new Painter(function(ctx, bounds) {
+    var my_bounds = this.myBounds();
+    if (!my_bounds || this.isEmpty()) return;
+    var stokeStyle = this.isEmpty() ? '#f00' : '#600';
+    var width = my_bounds.width, height = my_bounds.height;
+    ctx.save();
+    ctx.beginPath();
+    ctx.lineWidth = 1.0;
+    ctx.strokeStyle = stokeStyle;
+    ctx.moveTo(0, 0);
+    ctx.lineTo(width, 0);
+    ctx.lineTo(width, height);
+    ctx.lineTo(0, height);
+    ctx.lineTo(0, 0);
+    ctx.closePath();
+    ctx.stroke();
+    ctx.restore();
+}, C.PNT_DEBUG);
+
 Render.p_drawPivot = new Painter(function(ctx, pivot) {
     if (!(pivot = pivot || this.$pivot)) return;
     var my_bounds = this.myBounds();
     var stokeStyle = this.isEmpty() ? '#600' : '#f00';
     ctx.save();
-    if (bounds) {
+    if (my_bounds) {
         ctx.translate(pivot[0] * my_bounds.width,
                       pivot[1] * my_bounds.height);
     }

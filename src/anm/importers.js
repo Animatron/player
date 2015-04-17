@@ -1,9 +1,11 @@
+var errors = require('./errors.js');
+
 // Importers
 // -----------------------------------------------------------------------------
 var importers = {};
 
 importers.register = function(alias, conf) {
-  if (importers[alias]) throw new Error('Importer ' + alias + ' is already registered!');
+  if (importers[alias]) throw errors.system('Importer ' + alias + ' is already registered!');
   importers[alias] = conf;
 };
 

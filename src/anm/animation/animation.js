@@ -1,31 +1,35 @@
-var C = require('../constants.js'),
-    engine = require('engine'),
-    Element = require('./element.js'),
-    Clip = Element,
-    Brush = require('../graphics/brush.js'),
-    provideEvents = require('../events.js').provideEvents,
-    AnimationError = require('../errors.js').AnimationError,
-    Errors = require('../loc.js').Errors,
-    ResMan = require('../resource_manager.js'),
-    FontDetector = require('../../vendor/font_detector.js'),
-    utils = require('../utils.js'),
+var utils = require('../utils.js'),
     is = utils.is,
-    iter = utils.iter;
+    iter = utils.iter,
+    C = require('../constants.js');
+
+var engine = require('engine'),
+    ResMan = require('../resource_manager.js'),
+    FontDetector = require('../../vendor/font_detector.js');
+
+var Element = require('./element.js'),
+    Clip = Element,
+    Brush = require('../graphics/brush.js');
+
+var events = require('../events.js'),
+    provideEvents = events.provideEvents,
+    errors = require('../errors.js'),
+    ErrLoc = require('../loc.js').Errors;
 
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
 var DOM_TO_EVT_MAP = {
-  'mouseup':   C.X_MUP,
-  'mousedown': C.X_MDOWN,
-  'mousemove': C.X_MMOVE,
-  'mouseover': C.X_MOVER,
-  'mouseout':  C.X_MOUT,
-  'click':     C.X_MCLICK,
-  'dblclick':  C.X_MDCLICK,
-  'keyup':     C.X_KUP,
-  'keydown':   C.X_KDOWN,
-  'keypress':  C.X_KPRESS
+    'click':     C.X_MCLICK,
+    'dblclick':  C.X_MDCLICK,
+    'mouseup':   C.X_MUP,
+    'mousedown': C.X_MDOWN,
+    'mousemove': C.X_MMOVE,
+    'mouseover': C.X_MOVER,
+    'mouseout':  C.X_MOUT,
+    'keypress':  C.X_KPRESS,
+    'keyup':     C.X_KUP,
+    'keydown':   C.X_KDOWN
 };
 
 // Animation
@@ -64,6 +68,7 @@ function Animation() {
     this.speed = 1.0;
     this.repeat = false;
     this.meta = {};
+    this.hasScripting = false;
     //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];
@@ -72,16 +77,10 @@ function Animation() {
 
 Animation.DEFAULT_DURATION = 10;
 
-// mouse/keyboard events are assigned in L.loadAnimation
-/* TODO: move them into animation */
-provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
+                           C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                            C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                           C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                           C.X_DRAW,
-                           // player events
-                           C.S_CHANGE_STATE,
-                           C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                           C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                           C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 /**
  * @method add
  * @chainable
@@ -130,8 +129,7 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
  * @param {anm.Element} element
  */
 Animation.prototype.remove = function(elm) {
-    // error will be thrown in _unregister method
-    //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
+    // error will be thrown in _unregister method if element is not registered
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -152,8 +150,16 @@ Animation.prototype.remove = function(elm) {
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    for (var elmId in this.hash) {
-        visitor(this.hash[elmId], data);
+    if (Object.keys) {
+        var hash = this.hash;
+        var ids = Object.keys(hash);
+        for (var i = 0; i < ids.length; i++) {
+            visitor(hash[ids[i]], data);
+        }
+    } else {
+        for (var elmId in this.hash) {
+            visitor(this.hash[elmId], data);
+        }
     }
     return this;
 };
@@ -202,27 +208,18 @@ Animation.prototype.iter = function(func, rfunc) {
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
     var zoom = this.zoom;
-    try {
-        if (zoom != 1) {
-            ctx.scale(zoom, zoom);
-        }
-        if (this.bgfill) {
-            if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
-            this.bgfill.apply(ctx);
-            ctx.fillRect(0, 0, this.width, this.height);
-        }
-        this.each(function(child) {
-            child.render(ctx, time, dt);
-        });
-    } finally { ctx.restore(); }
-    this.fire(C.X_DRAW,ctx);
-};
-
-Animation.prototype.handle__x = function(type, evt) {
-    this.traverse(function(elm) {
-        elm.fire(type, evt);
+    if (zoom != 1) {
+        ctx.scale(zoom, zoom);
+    }
+    if (this.bgfill) {
+        if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
+        this.bgfill.apply(ctx);
+        ctx.fillRect(0, 0, this.width, this.height);
+    }
+    this.each(function(child) {
+        child.render(ctx, time, dt);
     });
-    return true;
+    ctx.restore();
 };
 
 // TODO: test
@@ -318,6 +315,21 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
+Animation.prototype.handle__x = function(type, evt) {
+    if (events.mouseOrKeyboard(type)) {
+        var pos = evt.pos;
+        this.each(function(child) {
+            child.inside(pos, function(elm) { // filter elements
+                return elm.subscribedTo(type);
+            }, function(elm, local_pos) { // point is inside
+                elm.fire(type, evt);
+            });
+        });
+        return false;
+    }
+    return true;
+};
+
 /**
  * @method addToTree
  * @private
@@ -325,9 +337,7 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
  * @param {anm.Element} element
  */
 Animation.prototype.addToTree = function(elm) {
-    if (!elm.children) {
-        throw new AnimationError('It appears that it is not a clip object or element that you pass');
-    }
+    if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
@@ -340,11 +350,13 @@ Animation.prototype.addToTree = function(elm) {
     }
 }*/
 Animation.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new AnimationError(Errors.A.ELEMENT_IS_REGISTERED);
+    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
     elm.registered = true;
     elm.anim = this;
     this.hash[elm.id] = elm;
+
     var me = this;
+
     elm.each(function(child) {
         me._register(child);
     });
@@ -355,7 +367,7 @@ Animation.prototype._unregister_no_rm = function(elm) {
 };
 
 Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
-    if (!elm.registered) throw new AnimationError(Errors.A.ELEMENT_IS_NOT_REGISTERED);
+    if (!elm.registered) throw errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED, this);
     var me = this;
     elm.each(function(child) {
         me._unregister(child);

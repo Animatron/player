@@ -12,7 +12,7 @@ is.defined = function(v) {
 is.finite = global.isFinite;
 is.nan = global.isNaN;
 is.arr = Array.isArray;
-is.int = function(n) {
+is.integer = function(n) {
     return is.num(n) && Math.floor(n) == n;
 };
 is.num = function(n) {
@@ -191,18 +191,6 @@ function strf(str, subst) {
     });
 }
 
-// collects all characters from string
-// before specified char, starting from start
-function collect_to(str, start, ch) {
-    var result = '';
-    for (var i = start; str[i] !== ch; i++) {
-        if (i === str.length) throw new SystemError('Reached end of string');
-        result += str[i];
-    }
-    return result;
-}
-
-
 function guid() {
    return Math.random().toString(36).substring(2, 10) +
           Math.random().toString(36).substring(2, 10);
@@ -257,7 +245,6 @@ module.exports = {
     obj_clone: obj_clone,
     mrg_obj: mrg_obj,
     strf: strf,
-    collect_to: collect_to,
     guid: guid,
     fit_rects: fit_rects,
     is: is,

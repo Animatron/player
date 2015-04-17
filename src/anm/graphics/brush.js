@@ -1,10 +1,14 @@
-var Color = require('./color.js'),
-    C = require('../constants.js'),
-    conf = require('../conf.js'),
+var C = require('../constants.js');
+
+var conf = require('../conf.js'),
     utils = require('../utils.js'),
-    is = utils.is,
-    engine = require('engine'),
-    AnimationError = require('../errors.js').AnimationError;
+    is = utils.is;
+
+var engine = require('engine');
+
+var errors = require('../errors.js');
+
+var Color = require('./color.js');
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -350,8 +354,8 @@ Brush.value = function(value, target) {
                     brush[key] = value[key];
                 }
             }
-        } else throw new AnimationError('Unknown type of brush');
-    } else throw new AnimationError('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
+        } else throw errors.element('Unknown type of brush');
+    } else throw errors.element('Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values');
 };
 
 Brush.grad = function(stops, bounds, dir) {
