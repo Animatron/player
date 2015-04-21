@@ -216,14 +216,14 @@ Animation.prototype.render = function(ctx, time, dt) {
 /**
  * @method jump
  *
- * Jump to the given time in animation. Currently calls a {@link anm.Player#jump player.jump} for
+ * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
  * every Player where this animation was loaded inside.
  *
  * @param {Number} time
  */
 Animation.prototype.jump = function(t) {
     utils.keys(this.targets, function(id, player) {
-        if (player) player.jump(t);
+        if (player) player.seek(t);
     });
 };
 
@@ -365,8 +365,10 @@ Animation.prototype.handle__x = function(type, evt) {
                 elm.fire(type, evt);
             });
         });
+        return false;
     }
-}
+    return true;
+};
 
 /**
  * @method addToTree

@@ -11,7 +11,6 @@
 //    jake: 0.5.14
 //    phantomjs: 1.7.0
 //    jasmine-node: 1.7.1
-//    uglify-js: 2.2.5
 //    docco: 0.6.2
 //    python markdown: ?
 //    orderly: 1.1.0
@@ -42,7 +41,7 @@ var VERSION_FILE = 'VERSION',
 var COPYRIGHT_YEAR = 2015;
 var COPYRIGHT_COMMENT =
 [ '/*',
-  ' * Copyright (c) 2011-' + COPYRIGHT_YEAR + ' by Animatron.',
+  ' * Copyright © 2011-' + COPYRIGHT_YEAR + ' by Animatron.',
   ' * All rights are reserved.',
   ' * ',
   ' * Animatron Player is licensed under the MIT License.',
@@ -56,7 +55,6 @@ var NODE_GLOBAL = false,
 
 var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
-    UGLIFYJS: NODE_GLOBAL ? 'uglifyjs' : (LOCAL_NODE_DIR + '/uglify-js/bin/uglifyjs'),
     JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
     JSDUCK: 'jsduck',
     PHANTOMJS: 'phantomjs',
@@ -64,8 +62,8 @@ var Binaries = {
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
     GIT: 'git',
-    GZIP: 'gzip',
-    BROWSERIFY: 'browserify'
+    BROWSERIFY: 'browserify',
+    CLOSURECOMPILER: 'java -jar ' + LOCAL_NODE_DIR + '/google-closure-compiler/compiler.jar'
 };
 
 var Dirs = {
@@ -103,7 +101,7 @@ var Files = {
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
-}
+};
 
 var Bundles = [
     { name: 'Animatron',
@@ -140,7 +138,6 @@ var Docs = {
 var Bucket = {
     Release: { ALIAS: 'rls', NAME: 'player.animatron.com' },
     Development: { ALIAS: 'dev', NAME: 'player-dev.animatron.com' },
-    Old: { ALIAS: 'old', NAME: 'animatron-player' }
 };
 
 var Validation = {
@@ -188,7 +185,6 @@ function _extended_build_time() { var now = new Date();
 
 desc(_dfit_nl(['Get full distribution in the /dist directory.',
                'Exactly the same as calling {jake dist}.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('default', ['dist'], function() {});
 
@@ -205,19 +201,17 @@ task('clean', function() {
 
 desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist>.',
-               'Depends on: <_prepare>, <_organize>, <_build-file>.',
-               'Requires: `uglifyjs`.',
+               'Depends on: <_prepare>, <_build-file>.',
                'Produces: /dist directory.']));
-task('build', ['_prepare', '_organize', '_bundles', '_build-file'], function() {});
+task('build', ['_prepare', '_bundles', '_build-file'], function() {});
 
 // build-min ===================================================================
 
 desc(_dfit_nl(['Build process (with no prior cleaning).',
                'Called by <dist-min>.',
-               'Depends on: <_prepare>, <_bundles>, <_organize>, <_versionize>, <_minify>, <_build-file>.',
-               'Requires: `uglifyjs`.',
+               'Depends on: <_prepare>, <_bundles>, <_minify>, <_build-file>.',
                'Produces: /dist directory.']));
-task('build-min', ['_prepare', '_organize', '_bundles', '_versionize', '_minify', '_build-file'], function() {});
+task('build-min', ['_prepare', '_bundles', '_minify', '_build-file'], function() {});
 
 // dist ========================================================================
 
@@ -226,7 +220,6 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'distribution for this version, including '+
                   'all required files — sources and bundles.',
                'Coherently calls <clean> and <build>.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist', ['clean', 'build'], function() {});
 
@@ -237,7 +230,6 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                   'distribution for this version, including '+
                   'all required files — sources and bundles.',
                'Coherently calls <clean> and <build>.',
-               'Requires: `uglifyjs`.',
                'Produces: /dist directory.']));
 task('dist-min', ['clean', 'build-min'], function() {});
 
@@ -555,232 +547,6 @@ task('rm-version', { async: true }, function(param) {
 
 });
 
-// push-version ================================================================
-
-desc(_dfit_nl(['Builds and pushes current state, among with VERSIONS file '+
-                   'to S3 at the path of `<VERSION>/` or `latest/`. '+
-                   'No git switching to tag or anything smarter than just build and push to directory. '+
-                   'To assign a version to a `HEAD` '+
-                   'use {jake version[<version>]}, then you are safe to push.',
-               'Usage: {jake push-version} to push current version from VERSION file. '+
-                   'To push to `latest/`, use {jake push-version[latest]}. It is also '+
-                   'possible to select a bucket: so {jake push-version[latest,rls]} will '+
-                   'push latest version to the release bucket (`dev` is default) and '+
-                   '{jake push-version[,rls]} will push there a current version from VERSION file.',
-               'Affects: Only changes S3, no touch to VERSION or VERSIONS or git stuff.',
-               'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
-                    '`aws-sdk` and `walk` node.js modules.']));
-task('push-version', [/*'test',*/'dist-min','push-go'], { async: true }, function(_version, _bucket) {
-
-    var trg_bucket = Bucket.Development.NAME;
-    if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
-    if (_bucket == Bucket.Release.ALIAS) trg_bucket = Bucket.Release.NAME;
-    if (_bucket == Bucket.Old.ALIAS) trg_bucket = Bucket.Old.NAME;
-
-    _print('Selected bucket: ' + trg_bucket);
-
-    var trg_dir = (_version || VERSION);
-
-    _print('Collecting file paths to upload');
-
-    var jsonHeaders = { 'content-type': 'text/json' }, // for VERSIONS file, used below
-        jsHeaders = { 'content-type': 'text/javascript' }, // application/x-javascript
-        gzippedJsHeaders = { 'content-type': 'text/javascript',
-                             'content-encoding': 'gzip' },
-        plainTextHeaders = { 'content-type': 'text/plain' };
-
-    if (trg_bucket === Bucket.Development.NAME) {
-        jsonHeaders['cache-control'] = 'max-age=300';
-        jsHeaders['cache-control'] = 'max-age=300';
-        gzippedJsHeaders['cache-control'] = 'max-age=300';
-        plainTextHeaders['cache-control'] = 'max-age=300';
-    }
-
-    var walk    = require('walk');
-
-    var files   = [];
-
-    var walker  = walk.walk(_loc(Dirs.DIST), { followLinks: false });
-
-    walker.on('file', function(root, stat, next) {
-        var gzip_it = (stat.name.indexOf('.js') > 0) &&
-                      (stat.name !== BUILD_FILE_NAME);
-        files.push([ root + '/' + stat.name, // source
-                     trg_dir +
-                     root.substring(root.indexOf(Dirs.DIST) +
-                                    Dirs.DIST.length) + '/'
-                     + stat.name, // destination
-                     gzip_it, // is this file should be gzipped or not
-                     // destination headers, all files except BUILD are javascript files
-                     gzip_it ? gzippedJsHeaders
-                             : ((stat.name !== BUILD_FILE_NAME) ? jsHeaders
-                                                                : plainTextHeaders)
-                   ]);
-        next();
-    });
-
-    walker.on('end', function() {
-        _print('Got list of files to put to S3');
-
-        var creds = [];
-        try {
-            creds = jake.cat(_loc('.s3'));
-        } catch(e) {
-            _print('No .s3 file which should contain credentials to upload with was found');
-            _print(FAILED_MARKER);
-            throw e;
-        }
-
-        creds = creds.split(/\s+/);
-
-        _print('Got credentials. Making a request.');
-
-        var AWS = require('aws-sdk');
-        AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
-
-        var s3 = new AWS.S3();
-
-        var params = {
-            'Bucket': trg_bucket,
-            'ACL': 'public-read',
-            'ContentType': 'text/plain',
-            'Key': '/VERSIONS'
-        };
-        if (trg_bucket === Bucket.Development.NAME) {
-            params.CacheControl = 'max-age=300';
-        }
-
-        params.Body = fs.readFileSync(VERSIONS_FILE);
-
-        s3.putObject(params, function(err, res) {
-            if (err) { _print(FAILED_MARKER); throw err; }
-            _print(_loc(VERSIONS_FILE) + ' -> s3 as /VERSIONS');
-
-            var files_count = files.length;
-
-            var on_complete = function(src, dst, gzipped) {
-              return function(err,res) {
-                    if (gzipped) jake.rmRf(gzipped);
-                    if (err) { _print(FAILED_MARKER); throw err; }
-                    _print(src + ' -> S3 as ' + dst);
-                    files_count--;
-                    if (!files_count) { _print(DONE_MARKER); complete(); }
-                };
-            };
-
-            // TODO: use Jake new Rules technique for that (http://jakejs.com/#rules)
-            function compress(src, cb) {
-                var dst = src + '.gz';
-                jake.exec([
-                  [ Binaries.GZIP,
-                    '-9',
-                    '-c',
-                    src, '>', dst
-                  ].join(' ') ], EXEC_OPTS, function() {
-                     cb(dst);
-                  });
-                _print('gzip <- ' + src);
-            }
-
-            files.forEach(function(file) {
-                var src = file[0],
-                    dst = file[1],
-                    gzip_it = file[2],
-                    headers = file[3];
-
-                params.ContentType = headers['content-type'];
-                params.Key = dst;
-                if (gzip_it) {
-                    compress(src, function(gzipped) {
-                        params.Body = fs.readFileSync(gzipped);
-                        params.ContentEncoding = 'gzip';
-                        s3.putObject(params, on_complete(src, dst, gzipped));
-                    });
-                } else {
-                    delete params.ContentEncoding;
-                    params.Body = fs.readFileSync(src);
-                    s3.putObject(params, on_complete(src, dst));
-                }
-            });
-        });
-    });
-
-});
-
-// push-go =====================================================================
-
-desc(_dfit_nl(['Pushes publish.js` script to the S3.',
-               'Usage: {jake push-go} to push to `dev` bucket under current version. '+
-                   'To push to another bucket or version, pass it as a param: '+
-                   '{jake push-go[,rls]}, {jake push-go[latest,rls]}',
-               'Affects: Only changes S3.',
-               'Requires: `.s3` file with crendetials in form {user access-id secret}. '+
-                    '`aws-sdk` node.js module.']));
-task('push-go', [], { async: true }, function(_version, _bucket) {
-
-    var trg_bucket = Bucket.Development.NAME;
-    if (_bucket == Bucket.Development.ALIAS) trg_bucket = Bucket.Development.NAME;
-    if (_bucket == Bucket.Release.ALIAS) trg_bucket = Bucket.Release.NAME;
-    if (_bucket == Bucket.Old.ALIAS) trg_bucket = Bucket.Old.NAME;
-
-    _print('Selected bucket: ' + trg_bucket);
-
-    var trg_version = (_version || VERSION);
-
-    _print('Version: ' + trg_version);
-
-    _print('Ready to get credentials.');
-
-    var creds = [];
-    try {
-        creds = jake.cat(_loc('.s3'));
-    } catch(e) {
-        _print('No .s3 file which should contain credentials to upload with was found');
-        _print(FAILED_MARKER);
-        throw e;
-    }
-
-    creds = creds.split(/\s+/);
-
-    _print('Got credentials. Making a request.');
-
-    var AWS = require('aws-sdk');
-    AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
-
-    var s3 = new AWS.S3();
-
-
-    var PUBLISHJS_LOCAL_PATH = _loc('publish.js'),
-        PUBLISHJS_REMOTE_PATH = '/' + trg_version + '/publish.js';
-    var FAVICON_LOCAL_PATH = _loc('res/favicon.ico'),
-        FAVICON_REMOTE_PATH = '/favicon.ico';
-
-    var params = {
-        'Bucket': trg_bucket,
-        'ACL': 'public-read',
-        'ContentType': 'text/javascript',
-        'Key': PUBLISHJS_REMOTE_PATH
-    };
-
-    params.Body = fs.readFileSync(PUBLISHJS_LOCAL_PATH);
-
-    s3.putObject(params, function(err, res) {
-        if (err) { _print(FAILED_MARKER); throw err; }
-        _print(PUBLISHJS_LOCAL_PATH + ' -> s3 as ' + PUBLISHJS_REMOTE_PATH);
-
-        params.Key = FAVICON_REMOTE_PATH;
-        params.Body = fs.readFileSync(FAVICON_LOCAL_PATH);
-        params.ContentType = 'image/x-icon';
-
-        s3.putObject(params, function(err, res){
-            if (err) { _print(FAILED_MARKER); throw err; }
-            _print(FAVICON_LOCAL_PATH + ' -> s3 as ' + FAVICON_REMOTE_PATH);
-
-            complete();
-        });
-    });
-});
-
 // invalidate ==================================================================
 desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
 task('invalidate', [], { async: true }, function(version) {
@@ -820,7 +586,7 @@ task('invalidate', [], { async: true }, function(version) {
 
 
     var cloudFront = new AWS.CloudFront();
-    var items = paths.map(function(path) { return path.replace('%VERSION%', version)});
+    var items = paths.map(function(path) { return path.replace('%VERSION%', version);});
     var params = {
         DistributionId: distributionId,
         InvalidationBatch: {
@@ -839,91 +605,123 @@ task('invalidate', [], { async: true }, function(version) {
 
 });
 
-// trig-prod ===================================================================
-
-/*desc(_dfit_nl(['Triggers deployment to Production server',
-                 'using `production` annotated tag. (Reversed for future use)']));*/
-task('trig-prod', [], { async: true }, function() {
-    // just applies a tag `production`, so TeamCity will build it and run sequentially:
-    // jake test
-    // jake _push-version[,rls]
-    // jake _push-version[latest,rls]
-    // jake _push-go[,rls]
-    // jake _push-go[latest,rls]
-
-    jake.exec([
-          [ Binaries.GIT,
-            'tag',
-            '-a', '-f',
-            PRODUCTION_TAG,
-            '-m',
-            '"PRODUCTION"' ].join(' ')
-      ], EXEC_OPTS, function() {
-
-      jake.exec([
-          [ Binaries.GIT,
-            'push', '-f',
-            'origin',
-            PRODUCTION_TAG ].join(' ')
-      ], EXEC_OPTS, function() {
-
-        _print(DONE_MARKER);
-
+task('deploy-publishjs', {async: true}, function(version, bucket){
+    version = version || VERSION;
+    var s3bucket = 'player-dev.animatron.com',
+        isProd = bucket === 'prod';
+    if (isProd) {
+        s3bucket = 'player.animatron.com';
+    }
+    console.log('Starting deployment of publish.js version', version, 'to', s3bucket);
+    var credentials;
+    try {
+        credentials = jake.cat('./.s3').split(' ');
+    } catch (e) {
+        console.error('Credential file not found.\nAborting.');
         complete();
-
-      });
-
-    });
-
-});
-
-// trig-dev ====================================================================
-
-/*desc(_dfit_nl(['Triggers deployment to Development server',
-                 'using `development` annotated tag. (Reversed for future use)']));*/
-task('trig-dev', [], { async: true }, function() {
-    // just applies a tag `development`, so TeamCity will build it and run sequentially:
-    // jake test
-    // jake _push-version
-    // jake _push-version[latest]
-    // jake _push-go
-    // jake _push-go[latest]
-
-    jake.exec([
-          [ Binaries.GIT,
-            'tag',
-            '-a', '-f',
-            DEVELOPMENT_TAG,
-            '-m',
-            '"DEVELOPMENT"' ].join(' ')
-      ], EXEC_OPTS, function() {
-
-      jake.exec([
-          [ Binaries.GIT,
-            'push', '-f',
-            'origin',
-            DEVELOPMENT_TAG ].join(' ')
-      ], EXEC_OPTS, function() {
-
-        _print(DONE_MARKER);
-
+        return;
+    }
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+    var s3 = new AWS.S3();
+    var params = {
+        'Bucket': s3bucket,
+        'ACL': 'public-read',
+        'ContentType': 'text/javascript',
+        'Key': version + '/publish.js',
+        'Body': jake.cat('./publish.js')
+    };
+    if (!isProd) {
+        params.CacheControl = 'max-age=300';
+    }
+    s3.putObject(params, function(err) {
+        if (err) {
+            console.log('Deployment failed:', err.message);
+        } else {
+            console.log('Deployment of publish.js complete.');
+        }
         complete();
-
-      });
-
     });
 });
 
-//desc('See `trig-prod`.');
-task('trigger-production', ['trig-prod'], {}, function() {});
+task('deploy', ['dist-min'], function(version, bucket) {
+    version = version || VERSION;
+    var s3bucket = 'player-dev.animatron.com',
+        isProd = bucket === 'prod';
+    if (isProd) {
+        s3bucket = 'player.animatron.com';
+    }
+    console.log('Starting deployment of version', version, 'to', s3bucket);
+    var credentials;
+    try {
+        credentials = jake.cat('./.s3').split(' ');
+    } catch (e) {
+        console.error('Credential file not found.\nAborting.');
+        complete();
+        return;
+    }
 
-//desc('See `trig-dev`.');
-task('trigger-development', ['trig-dev'], {}, function() {});
+    var localPrefix = './dist/',
+        remotePrefix = version + '/',
+        files = [
+            'BUILD',
+            'player.js',
+            'player.min.js',
+            'bundle/animatron.js',
+            'bundle/animatron.min.js'
+        ];
 
-/*desc('Run JSHint');
-task('hint', function() {
-    // TODO
-});*/
+    var AWS = require('aws-sdk');
+    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+    var s3 = new AWS.S3();
+    var async = require('async'),
+        zlib = require('zlib'),
+        fs = require('fs');
+    async.each(files, function(file, done) {
+        var key = remotePrefix + file;
+        var isJs = file.substring(file.length-3) === '.js';
+        var params = {
+            'Bucket': s3bucket,
+            'ACL': 'public-read',
+            'ContentType': isJs ? 'text/javascript' : 'text/plain',
+            'Key': key
+        };
+        if (!isProd) {
+            params.CacheControl = 'max-age=300';
+        }
+        var body = jake.cat(localPrefix + file);
+        if (isJs) {
+            params.ContentEncoding = 'gzip';
+            body = zlib.gzipSync(body);
+        }
+        params.Body = body;
+        s3.putObject(params, function(err, data) {
+            if (err) {
+                done(err);
+            } else {
+                console.log(key, 'uploaded to S3 successfully');
+                done();
+            }
+        });
+    }, function(err) {
+        if (err) {
+            console.log('Deployment failed:', err.message);
+        } else {
+            console.log('Deployment complete.');
+            if (isProd) {
+                //invalidate files after production deployment
+                var invalidate = jake.Task('invalidate');
+                invalidate.addListener('complete', function(){
+                    complete();
+                });
+                invalidate.invoke();
+                return;
+            }
+        }
+        complete();
+    });
+});
+
 
 // SUBTASKS ====================================================================
 
@@ -961,128 +759,12 @@ task('_bundles', ['browserify'], function() {
 
     _print(DONE_MARKER);
 });
-
-// _bundle =====================================================================
-
-desc(_dfit(['Internal. Create a single bundle file and put it into '+Dirs.DIST+'/'+SubDirs.BUNDLES+' folder, '+
-               'bundle is provided as a parameter, e.g.: {jake _bundle[animatron]}']));
-task('_bundle', function(param) {
-    if (!param) throw new Error('This task requires a concrete bundle name to be specified');
-    var BUILD_TIME = _build_time();
-    var bundle;
-    Bundles.forEach(function(b) {
-        if (b.name == param) { bundle = b; }
-    });
-    if (!bundle) throw new Error('Bundle with name ' + param + ' was not found');
-    var targetDir = Dirs.DIST + '/' + SubDirs.BUNDLES;
-    jake.mkdirP(_loc(targetDir));
-    _print('Package bundle \'' + bundle.name + '\'');
-    var targetFile = targetDir + '/' + bundle.file + '.js';
-    _print('.. (c) > ' + targetFile);
-    jake.echo(COPYRIGHT_COMMENT.replace(/@BUILD_TIME/g, BUILD_TIME)
-                               .concat('\n\n\n'),
-              _loc(targetFile));
-    bundle.includes.forEach(function(bundleFile) {
-            jake.echo(jake.cat(_loc(bundleFile)).trim() + '\n\n',
-                      _loc(targetFile));
-            _print('.. ' + bundleFile + ' > ' + targetFile);
-        });
-});
-
-// _organize ===================================================================
-
-desc(_dfit(['Internal. Copy source files to '+Dirs.DIST+' folder']));
-task('_organize', function() {
-    return;
-    _print('Copy files to ' + Dirs.DIST + '..');
-
-    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.INIT),
-             _loc(Dirs.DIST + '/' + Files.Main.INIT));
-    jake.cpR(_loc(Dirs.SRC  + '/' + Files.Main.PLAYER),
-             _loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.VENDOR));
-    Files.Ext.VENDOR.forEach(function(vendorFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.VENDOR + '/' + vendorFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.VENDOR));
-    });
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.ENGINES));
-    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.ENGINES + '/' + engineFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.ENGINES));
-    });
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.MODULES));
-    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.MODULES + '/' + moduleFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.MODULES));
-    });
-
-    jake.mkdirP(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
-    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        jake.cpR(_loc(Dirs.SRC  + '/' + SubDirs.IMPORTERS + '/' + importerFile),
-                 _loc(Dirs.DIST + '/' + SubDirs.IMPORTERS));
-    });
-
-    _print(DONE_MARKER);
-});
-
-// _versionize =================================================================
-
-desc(_dfit(['Internal. Inject version in all '+Dirs.DIST+' files']));
-task('_versionize', function() {
-    return;
-    _print('Set proper VERSION to all player-originated files (including bundles) in ' + Dirs.DIST + '..');
-
-    _print('.. Main files');
-
-    _versionize(_loc(Dirs.DIST + '/' + Files.Main.INIT));
-    _versionize(_loc(Dirs.DIST + '/' + Files.Main.PLAYER));
-
-    _print('.. Engines');
-
-    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
-    });
-
-    _print('.. Modules');
-
-    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
-    });
-
-    _print('.. Importers');
-
-    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
-    });
-
-    _print('.. Bundles');
-
-    Bundles.forEach(function(bundle) {
-        _versionize(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
-    });
-
-    _print('..Docs');
-
-    _versionize(_loc(Files.Doc.README));
-    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.EMBEDDING));
-    _versionize(_loc(Dirs.DOCS + '/' + Files.Doc.SCRIPTING));
-
-    _print(DONE_MARKER);
-});
-
 // _minify =====================================================================
 
 desc(_dfit(['Internal. Create a minified copy of all the sources and bundles '+
                'from '+Dirs.DIST+' folder and append a .min suffix to them']));
 task('_minify', { async: true }, function() {
     _print('Minify all the files and put them in ' + Dirs.DIST + ' folder');
-
-    _print('Using ' + (NODE_GLOBAL ? 'global'
-                               : 'local (at '+LOCAL_NODE_DIR+')')
-                + ' node.js binaries');
 
     var BUILD_TIME = _build_time();
 
@@ -1095,12 +777,10 @@ task('_minify', { async: true }, function() {
           return;
         }
         jake.exec([
-          [ Binaries.UGLIFYJS,
-            '--ascii',
-            '--compress warnings=false',
-            '--screw-ie8', // since April 2014
-            '--comments', '\'' + MINIFY_KEEP_COPYRIGHTS + '\'',
-            '--output', dst,
+          [ Binaries.CLOSURECOMPILER,
+            '--compilation_level SIMPLE_OPTIMIZATIONS',
+            '--js', src,
+            '--js_output_file', dst,
             src
           ].join(' ')
         ], EXEC_OPTS, function() { cb(dst); });
@@ -1155,25 +835,6 @@ task('_minify', { async: true }, function() {
     Bundles.forEach(function(bundle) {
         minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.BUNDLES + '/' + bundle.file + '.js'));
     });
-    /*
-    _print('.. Engines');
-
-    Files.Ext.ENGINES._ALL_.forEach(function(engineFile) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.ENGINES + '/' + engineFile));
-    });
-
-    _print('.. Modules');
-
-    Files.Ext.MODULES._ALL_.forEach(function(moduleFile) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.MODULES + '/' + moduleFile));
-    });
-
-    _print('.. Importers');
-
-    Files.Ext.IMPORTERS._ALL_.forEach(function(importerFile) {
-        minifyInQueueWithCopyright(_loc(Dirs.DIST + '/' + SubDirs.IMPORTERS + '/' + importerFile));
-    });
-    */
 });
 
 // _build-file =================================================================
@@ -1191,8 +852,8 @@ task('_build-file', { async: true }, function() {
       ].join(' ')
     ], EXEC_OPTS);
     _getCommintHash.on('stdout', function(COMMIT_INFO) {
-        var BUILD_TIME = _extended_build_time(),
-            COMMIT_INFO = COMMIT_INFO.toString();
+        var BUILD_TIME = _extended_build_time();
+        COMMIT_INFO = COMMIT_INFO.toString();
 
         _print('Build time:');
         _print(BUILD_TIME);
@@ -1223,9 +884,9 @@ task('_build-file', { async: true }, function() {
 });
 
 task('browserify', {'async': true}, function(){
-  _print('browserifying...');
+  console.log('Creating Browserify bundle.');
   jake.exec('browserify src/main.js -o dist/player.js', function() {
-    _print('created dist/player.js');
+    console.log('dist/player.js created successfully');
     complete();
   });
 });
@@ -1377,8 +1038,3 @@ function _versionize(src) {
     jake.echo(new_content + '\n', src);
     _print('v -> ' + src);
 }
-
-// TODO
-/* function _check_npm_packages(list) {
-
-} */

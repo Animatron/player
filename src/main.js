@@ -65,6 +65,10 @@ var anm = {
     LSeg: segments.LSeg,
     CSeg: segments.CSeg,
 
+    interop: {
+        playerjs: require('./anm/interop/playerjs-io.js')
+    },
+
     createPlayer: function(elm, opts) {
         if (!engine.canvasSupported) {
           document.getElementById(elm).innerHTML = anm.loc.Errors.S.SAD_SMILEY_HTML;

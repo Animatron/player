@@ -1,14 +1,12 @@
 node.js 0.8.9+
   npm 1.2.8+
   jake 0.5.14+
-  uglify-js 2.2.5+
   phantomjs 1.7.0+
   jasmine-node 1.7.1+
   docco? 0.6.2+
   orderly? 1.1.0+
   jsonschema? 0.3.2+
-  aws-sdk?
-  walk? 2.2.1+
+  aws2sdk?
 Python?
   markdown? ?
 
@@ -19,25 +17,24 @@ jake dist
   // none
 jake dist-min
 jake build-min
-  npm install uglify-js
+  npm install google-closure-compiler
 jake test
-  npm install uglify-js
+  npm install google-closure-compiler
   npm install phantomjs
   npm install jasmine-node
-jake push-go
-jake push-go[latest]
-jake push-go[,rls]
-jake push-go[latest,rls]
+jake deploy-publishjs
+jake deploy-publishjs[latest]
+jake deploy-publishjs[,prod]
+jake deploy-publishjs[latest,prod]
+  .s3 file
+  npm install aws2sdk
+jake deploy
+jake deploy[latest]
+jake deploy[,prod]
+jake deploy[latest,prod]
   .s3 file
   npm install aws-sdk
-jake push-version
-jake push-version[latest]
-jake push-version[,rls]
-jake push-version[latest,rls]
-  .s3 file
-  npm install aws-sdk
-  npm install walk
-  npm install uglify-js
+  npm install google-closure-compiler
 jake docs
   npm install docco
   easy_install markdown
@@ -45,6 +42,3 @@ jake anm-scene-valid
   npm install orderly
   npm install jsonschema
 jake -T
-jake trig-prod
-jake trig-dev
-  [nothing]
