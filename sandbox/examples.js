@@ -2,16 +2,18 @@ var defaultCode = [
   '// feel free to change,',
   '// just leave `return` on its place',
   '',
-  'return elm()',
+  'return element()',
   '    .add(',
-  '        elm(\'blue-rect\').rect([140, 25], [70, 70])',
-  '                        .fill(\'#009\')',
-  '                        .stroke(\'#f00\', 3)',
-  '                        .rotate([0, 10], [0, Math.PI / 2]))',
+  '        element(\'blue-rect\').rect(70)',
+  '                            .move(140, 25)',
+  '                            .fill(\'#009\')',
+  '                            .stroke(\'#f00\', 3)',
+  '                            .tween(Tween.rotate().band(0, 10).values(0, Math.PI / 2)))',
   '    .add(',
-  '        elm(\'red-rect\').rect([115, 90], [60, 60])',
-  '                       .fill(\'#f00\'))',
-  '    .rotate([0, 10], [0, Math.PI]);'
+  '        element(\'red-rect\').rect(60)',
+  '                           .move(115, 90)',
+  '                           .fill(\'#f00\'))',
+  '    .tween(Tween.rotate().band(0, 10).values(0, Math.PI));'
 ].join('\n');
 
 var examples = [];
