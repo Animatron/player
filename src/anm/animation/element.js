@@ -525,8 +525,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
 
     // FIXME: checkJump is performed before, may be it should store its values inside here?
     if (is.num(elm.__appliedAt)) {
-      elm._t   = elm.__appliedAt;
-      elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+        elm._t   = elm.__appliedAt;
+        elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
     }
     // FIXME: elm.t and elm.dt both should store real time for this moment.
     //        modifier may have its own time, though, but not painter, so painters probably

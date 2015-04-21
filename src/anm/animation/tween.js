@@ -53,14 +53,15 @@ Tween.DEFAULT_FROM = function(_from, prev) { return is.defined(prev) ? [ _from, 
 Tween.DEFAULT_TO   = function(to,    prev) { return is.defined(to)   ? [ prev[0], to ]      : [  null,   to ]; };
 function Tween(tween_type, data) {
     if (!tween_type) throw errors.element('Tween type is required to be specified or function passed');
+    var me = this;
+    // tween_f — tween function reacts on every data update and changes the modifier function
     // mod_f — modifier function which is called on every frame and time passed there
     // from_f — is an optional function which returns proper this.$data for a tween using new given start value and previous this.$data value
     // to_f — is an optional function which returns proper this.$data for a tween using new given end value and previous this.$data value
     // last two default to create an array like [ from, to ] in this.$data
     var tween_f, mod_f, from_f, to_f;
-    var mod_wrapper = { }; // FIXME: we should finally use Tween/Modifier instances instead of larding functions with methods
     // we update `modifier.$tween` function with the result of calling `tween_f(new_data)`, each time when tween data was changed using `from`/`to`/`values` methods
-    var mod_f = function(t, dt, duration) { if (mod_wrapper.v.$tween) mod_wrapper.v.$tween.call(this, t, dt, duration); };
+    var mod_f = function(t, dt, duration) { if (me.$tween) me.$tween.call(this, t, dt, duration); };
     if (is.fun(tween_type)) {
         tween_f = tween_type;
     } else {
@@ -169,7 +170,7 @@ var _Tweens = {};
 
 Tween.addTween = function(tween_type, definition) {
     _Tweens[tween_type] = is.fun(definition) ? { func: definition } : definition;
-    Tween[tween_type] = function() { return new Tween(tween_type); };
+    Tween[tween_type] = function(data) { return new Tween(tween_type, data); };
     Tween.TWEENS_PRIORITY[tween_type] = Tween.TWEENS_COUNT++;
 };
 

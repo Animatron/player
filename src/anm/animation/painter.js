@@ -11,8 +11,6 @@ Painter.LAST_PNT = C.PNT_DEBUG;
 Painter.ALL_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER, C.PNT_DEBUG ];
 Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
 
-// See description above for Modifier constructor for details, same technique
-
 /**
  * @class anm.Painter
  *
@@ -43,10 +41,9 @@ Painter.NODBG_PAINTERS = [ C.PNT_SYSTEM, C.PNT_USER ];
  * @return {anm.Painter} painter instance
  */
 function Painter(func, type) {
-    func.id = guid();
-    func.type = type || C.PNT_USER;
-    func[C.MARKERS.PAINTER_MARKER] = true;
-    return func;
+    this.id = guid();
+    this.func = func;
+    this.type = type || C.PNT_USER;
 }
 
 
