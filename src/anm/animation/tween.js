@@ -58,19 +58,21 @@ function Tween(tween_type, data) {
     // to_f — is an optional function which returns proper this.$data for a tween using new given end value and previous this.$data value
     // last two default to create an array like [ from, to ] in this.$data
     var tween_f, mod_f, from_f, to_f;
+    var mod_wrapper = { }; // FIXME: we should finally use Tween/Modifier instances instead of larding functions with methods
+    // we update `modifier.$tween` function with the result of calling `tween_f(new_data)`, each time when tween data was changed using `from`/`to`/`values` methods
+    var mod_f = function(t, dt, duration) { if (mod_wrapper.v.$tween) mod_wrapper.v.$tween.call(this, t, dt, duration); };
     if (is.fun(tween_type)) {
-        mod_f = tween_type;
+        tween_f = tween_type;
     } else {
         var tween_def = _Tweens[tween_type];
         tween_f = tween_def.func;
-        // we update `modifier.$tween` function each time when tween data was changed with `from`/`to`/`values` methods
-        mod_f = function(t, dt, duration) { if (this.$tween) this.$tween.call(this, t, dt, duration); };
         mod_f.tween = tween_type;
         from_f = tween_def.from;
         to_f = tween_def.to;
     }
     mod_f.is_tween = true;
     var mod = Modifier(mod_f, C.MOD_TWEEN);
+    mod_wrapper.v = mod;
     mod.$data = data;
     if (is.defined(data)) mod.$tween = tween_f(data);
     from_f = from_f || function(_from, prev) { return is.defined(prev) ? [ _from, prev[1] ] : [ _from, null ]; };
@@ -84,7 +86,7 @@ function Tween(tween_type, data) {
      * for translate tween), use {@link anm.Modifier#data data(value)} method. To set values separately, use
      * {@link anm.Tween#from from()} and {@link anm.Tween#to to()} methods.
      *
-     * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Modifier#data data()}.
+     * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Tween#data data()}.
      *
      * @param {Any} from start value
      * @param {Any} to end value
@@ -106,7 +108,7 @@ function Tween(tween_type, data) {
      * for translate tween), use {@link anm.Modifier#data data(value)} method. To set end value, use
      * {@link anm.Tween#to to()} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
      *
-     * See also: {@link anm.Tween#to to()}, {@link anm.Tween#values values()}, {@link anm.Modifier#data data()}.
+     * See also: {@link anm.Tween#to to()}, {@link anm.Tween#values values()}, {@link anm.Tween#data data()}.
      *
      * @param {Any} from start value
      *
@@ -126,7 +128,7 @@ function Tween(tween_type, data) {
      * for translate tween), use {@link anm.Modifier#data data(value)} method. To set start value, use
      * {@link anm.Tween#from from()} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
      *
-     * See also: {@link anm.Tween#from from()}, {@link anm.Tween#values values()}, {@link anm.Modifier#data data()}.
+     * See also: {@link anm.Tween#from from()}, {@link anm.Tween#values values()}, {@link anm.Tween#data data()}.
      *
      * @param {Any} to end value
      *
@@ -137,10 +139,23 @@ function Tween(tween_type, data) {
                    this.$tween = tween_f(this.$data);
                    return this;
                };
-    /* // used from modifier
-     * mod.data = function(data) {
-        this.$data = data; return this;
-    } */
+    // overrides modifier function
+    /**
+     * @method data
+     * @chainable
+     *
+     * Set or get data for this tween, i.e. path for a translate tween.
+     *
+     * @param {Any} data data
+     *
+     * @return {anm.Tween|Any} itself, or current data value
+     */
+    mod.data = function(data) {
+        if (!is.defined(data)) return this.$data;
+        this.$data = data;
+        this.$tween = tween_f(data);
+        return this;
+    };
     return mod;
 }
 

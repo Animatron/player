@@ -179,21 +179,6 @@ function Modifier(func, type) {
         this.$easing = convertEasing(f, data, this.relative || this.is_tween);
         return this;
     };
-    /**
-     * @method data
-     * @chainable
-     *
-     * Set or get data for this tween, it will be passed to every call.
-     *
-     * @param {Object} data data
-     *
-     * @return {anm.Modifier|Object} itself, or current data value
-     */
-    func.data = function(data) {
-        if (!is.defined(data)) return this.$data;
-        this.$data = data;
-        return this;
-    };
     return func;
 }
 
