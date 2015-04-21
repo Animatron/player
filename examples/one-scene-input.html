@@ -76,18 +76,13 @@
           var importer = anm.importers.create('animatron');
           player.detach();
           player = createPlayer();
-<<<<<<< HEAD
           player.load(project, importer, function(anim) {
               logEvent(anim, 'ForScript',  'mouseclick');
               logEvent(anim, 'ForScript1', 'mouseclick');
               logEvent(anim, 'ForScript2', 'mouseclick');
               logEvent(anim, 'ForScript3', 'mouseclick');
           });
-
           player.play();
-=======
-          player.load(project, importer);
->>>>>>> develop
       }
 
       function start() {
