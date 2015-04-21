@@ -69,6 +69,7 @@ function Animation() {
     this.repeat = false;
     this.meta = {};
     this.hasScripting = false;
+    this.targets = {}; // Player instances where this animation was loaded, by ID
     //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];
@@ -150,17 +151,7 @@ Animation.prototype.remove = function(elm) {
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    if (Object.keys) {
-        var hash = this.hash;
-        var ids = Object.keys(hash);
-        for (var i = 0; i < ids.length; i++) {
-            visitor(hash[ids[i]], data);
-        }
-    } else {
-        for (var elmId in this.hash) {
-            visitor(this.hash[elmId], data);
-        }
-    }
+    utils.keys(this.hash, function(key, elm) { visitor(elm, data); });
     return this;
 };
 
@@ -222,6 +213,34 @@ Animation.prototype.render = function(ctx, time, dt) {
     ctx.restore();
 };
 
+/**
+ * @method jump
+ *
+ * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
+ * every Player where this animation was loaded inside.
+ *
+ * @param {Number} time
+ */
+Animation.prototype.jump = function(t) {
+    utils.keys(this.targets, function(id, player) {
+        if (player) player.seek(t);
+    });
+};
+
+/**
+ * @method jumpTo
+ *
+ * Jump to the given start time of the element found with passed selector (uses
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ *
+ * @param {String} selector
+ */
+Animation.prototype.jumpTo = function(selector) {
+    var elm = anim.find(selector);
+    if (!elm) return;
+    this.jump(elm.gband[0]);
+};
+
 // TODO: test
 /**
  * @method getFittingDuration
@@ -255,13 +274,34 @@ Animation.prototype.reset = function() {
 };
 
 /**
+ * @method playedIn
+ * @param {anm.Player} player the Player where animation was loaded to
+ * @chainable
+ *
+ * See also {@link anm.Animation#dispose animation.dispose}.
+ *
+ * Remembers that this Animation is loaded in this Player instance, so
+ * passes calls, like time jump requests, to it. Called automatically
+ * when Animation was loaded into some Player.
+ */
+Animation.prototype.playedIn = function(player) {
+    this.targets[player.id] = player;
+    return this;
+}
+
+/**
  * @method dispose
+ * @param {anm.Player} [player] the Player which disposes this animation.
  * @chainable
  *
  * Remove every possible allocated data to either never use this animation again or
- * start using it from scratch as if it never was used before.
+ * start using it from scratch as if it never was used before. If Player instance was
+ * passed, Animation also forgets it was played in this Player, so different calls,
+ * like time jumps, fired from the Animation won't be passed to it. Called automatically
+ * when Animation needs to be detached from some Player.
  */
-Animation.prototype.dispose = function() {
+Animation.prototype.dispose = function(player) {
+    if (player) this.targets[player.id] = null;
     this.disposeHandlers();
     var me = this;
     /* FIXME: unregistering removes from tree, ensure it is safe */
@@ -411,9 +451,8 @@ Animation.prototype._loadRemoteResources = function(player) {
 /**
  * @method find
  *
- * Searches for {@link anm.Element elements} by name inside another
- * {@link anm.Element element} or inside the whole Animation itself, if no other
- * element was provided.
+ * Searches for an {@link anm.Element element} by name through another {@link anm.Element element}'s
+ * children, or through all the elements in the Animation itself, if no other element was provided.
  *
  * NB: `find` method will be improved soon to support special syntax of searching,
  * so you will be able to search almost everything
@@ -421,10 +460,29 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @param {String} name Name of the element(s) to find
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
+ * @return {anm.Element} First found element
+ */
+Animation.prototype.find = function(selector, where) {
+    return this.findAll(selector, where)[0]; // FIXME: overhead, search for the first one and exit
+};
+
+/**
+ * @method findAll
+ *
+ * Searches for {@link anm.Element elements} by name through another {@link anm.Element element}'s
+ * children, or through all the elements in the Animation itself, if no other element was provided.
+ *
+ * NB: `findAll` method will be improved soon to support special syntax of searching,
+ * so you will be able to search almost everything
+ *
+ * @param {String} name Name of the element(s) to find
+ * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
+ *
  * @return {Array} An array of found elements
  */
-Animation.prototype.find = function(name, where) {
+Animation.prototype.findAll = function(selector, where) {
     where = where || this;
+    var name = selector;
     var found = [];
     if (where.name == name) found.push(name);
     where.traverse(function(elm)  {

@@ -14,7 +14,7 @@
    loop = (boolean) loop animation instead of stoping at the end
    animation = JSON object of animatron movie (currently not used)
 */
-(function(){
+(function() {
     var inIFrame = (window.self !== window.top);
 
     var utils = {
@@ -139,7 +139,7 @@
 
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                    var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'));
+                    var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'), window.actions);
                     if (anm.interop && anm.interop.playerjs) {
                         anm.interop.playerjs.setPlayer(player);
                     }

@@ -1,14 +1,12 @@
 node.js 0.8.9+
   npm 1.2.8+
   jake 0.5.14+
-  uglify-js 2.2.5+
   phantomjs 1.7.0+
   jasmine-node 1.7.1+
   docco? 0.6.2+
   orderly? 1.1.0+
   jsonschema? 0.3.2+
-  aws2js? 0.8.3+
-  walk? 2.2.1+
+  aws2sdk?
 Python?
   markdown? ?
 

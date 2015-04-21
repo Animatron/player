@@ -479,7 +479,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         if (!loadArgs) throw errors.player(ErrLoc.P.NO_LOAD_CALL_BEFORE_PLAY, player);
         var loadCallback = loadArgs[3];
         var afterLoad = function() {
-            if (loadCallback) loadCallback.call(player, arguments);
+            if (loadCallback) loadCallback.apply(player, arguments);
             player._postponedLoad = null;
             player._playLock = false;
             player._lastReceivedAnimationId = player.anim.id;
@@ -649,6 +649,10 @@ Player.prototype.pause = function() {
 /**
  * @method seek
  * @chainable
+ *
+ * Jump to the given time in Animation and continue playing. Stops a player and starts to play from
+ * this time.
+ *
  * @param {Number} time to set the playhead at
  **/
 Player.prototype.seek = function(time) {

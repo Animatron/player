@@ -14,10 +14,28 @@ var Animation = require('./animation/animation.js');
 
 var Loader = {};
 
+Loader.loadAnimation = function(player, anim, callback) {
+    if (player.anim) player.anim.dispose(player);
+    anim.playedIn(player);
+    // add debug rendering
+    if (player.debug && !global_opts.liveDebug) {
+        anim.traverse(function(e) {e.addDebugRender();});
+    }
+    if (!anim.width || !anim.height) {
+        anim.width = player.width;
+        anim.height = player.height;
+    } else if (player.forceAnimationSize) {
+        player._resize(anim.width, anim.height);
+    }
+    // assign
+    player.anim = anim;
+    if (callback) callback.call(player, anim);
+};
+
 Loader.loadFromUrl = function(player, url, importer, callback) {
     if (!JSON) throw errors.system(ErrLoc.S.NO_JSON_PARSER, player);
 
-    mporter = importer || anm.importers.create('animatron');
+    importer = importer || anm.importers.create('animatron');
 
     var url_with_params = url.split('?');
         url = url_with_params[0];
@@ -55,23 +73,6 @@ Loader.loadFromObj = function(player, object, importer, callback) {
     var anim = importer.load(object);
     player.fire(C.S_IMPORT, importer, anim, object);
     Loader.loadAnimation(player, anim, callback);
-};
-
-Loader.loadAnimation = function(player, anim, callback) {
-    if (player.anim) player.anim.dispose();
-    // add debug rendering
-    if (player.debug && !global_opts.liveDebug) {
-        anim.traverse(function(e) {e.addDebugRender();});
-    }
-    if (!anim.width || !anim.height) {
-        anim.width = player.width;
-        anim.height = player.height;
-    } else if (player.forceAnimationSize) {
-        player._resize(anim.width, anim.height);
-    }
-    // assign
-    player.anim = anim;
-    if (callback) callback.call(player, anim);
 };
 
 Loader.loadElements = function(player, elms, callback) {
