@@ -57,12 +57,14 @@ function Tween(tween_type, data) {
     // from_f — is an optional function which returns proper this.$data for a tween using new given start value and previous this.$data value
     // to_f — is an optional function which returns proper this.$data for a tween using new given end value and previous this.$data value
     // last two default to create an array like [ from, to ] in this.$data
-    var mod_f, from_f, to_f;
+    var tween_f, mod_f, from_f, to_f;
     if (is.fun(tween_type)) {
         mod_f = tween_type;
     } else {
         var tween_def = _Tweens[tween_type];
-        mod_f = tween_def.modifier;
+        tween_f = tween_def.func;
+        // we update `modifier.$tween` function each time when tween data was updated with `from`/`to`/`values` methods
+        mod_f = function(t, dt, duration) { if (this.$tween) this.$tween.call(this, t, dt, duration); };
         mod_f.tween = tween_type;
         from_f = tween_def.from;
         to_f = tween_def.to;
@@ -70,21 +72,25 @@ function Tween(tween_type, data) {
     mod_f.is_tween = true;
     var mod = Modifier(mod_f, C.MOD_TWEEN);
     mod.$data = data;
+    if (is.defined(data)) mod.$tween = tween_f(data);
     from_f = from_f || function(_from, prev) { return is.defined(prev) ? [ _from, prev[1] ] : [ _from, null ]; };
     to_f = to_f || function(to, prev) { return is.defined(prev) ? [ prev[0], to ] : [ null, to ]; };
     mod.values = function(_from, to) {
                    if (!is.defined(_from) && this.$data) return this.$data;
                    this.$data = to_f(to, from_f(_from, null));
+                   this.$tween = tween_f(this.$data);
                    return this;
                };
     mod.from = function(val) {
                    if (!is.defined(val) && this.$data) return this.$data[0];
                    this.$data = from_f(val, this.$data);
+                   this.$tween = tween_f(this.$data);
                    return this;
                };
     mod.to   = function(val) {
                    if (!is.defined(val) && this.$data) return this.$data[1];
                    this.$data = to_f(val, this.$data);
+                   this.$tween = tween_f(this.$data);
                    return this;
                };
     /* // used from modifier
@@ -103,7 +109,7 @@ Tween.TWEENS_COUNT = 0;
 var _Tweens = {};
 
 Tween.addTween = function(tween_type, definition) {
-    _Tweens[tween_type] = is.fun(definition) ? { modifier: definition } : definition;
+    _Tweens[tween_type] = is.fun(definition) ? { func: definition } : definition;
     Tween[tween_type] = function() { return new Tween(tween_type); };
     Tween.TWEENS_PRIORITY[tween_type] = Tween.TWEENS_COUNT++;
 };
@@ -111,14 +117,15 @@ Tween.addTween = function(tween_type, definition) {
 function nop() {};
 
 Tween.addTween(C.T_TRANSLATE, {
-    modifier: function(t) {
-        var path = this.$data,
-            p = path.pointAt(t);
-        if (!p) return;
-        this.x = p[0];
-        this.y = p[1];
-        // we should null the moving path, if it was empty
-        this.$mpath = (path.length() > 0) ? path : null;
+    func: function(path) {
+        return function(t) {
+            var p = path.pointAt(t);
+            if (!p) return;
+            this.x = p[0];
+            this.y = p[1];
+            // we should null the moving path, if it was empty
+            this.$mpath = (path.length() > 0) ? path : null;
+        }
     },
     from: function(_from, path) {
         return path ? path.line(_from[0], _from[1]) : new Path().move(_from[0], _from[1]) },
@@ -126,67 +133,77 @@ Tween.addTween(C.T_TRANSLATE, {
         return path ? path.line(to[0], to[1]) : new Path().move(to[0], to[1]) }
 });
 
-Tween.addTween(C.T_SCALE, function(t) {
-    var _from = this.$data[0],
-        to = this.$data[1];
-    this.sx = _from[0] * (1.0 - t) + to[0] * t;
-    this.sy = _from[1] * (1.0 - t) + to[1] * t;
+Tween.addTween(C.T_SCALE, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
+        this.sx = _from[0] * (1.0 - t) + to[0] * t;
+        this.sy = _from[1] * (1.0 - t) + to[1] * t;
+    }
 });
 
-Tween.addTween(C.T_ROTATE, function(t) {
-    var _from = this.$data[0],
-        to = this.$data[1];
-    this.angle = _from * (1.0 - t) + to * t;
+Tween.addTween(C.T_ROTATE, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
+        this.angle = _from * (1.0 - t) + to * t;
+    }
 });
 
 Tween.addTween(C.T_ROT_TO_PATH, {
-    modifier: function(t) {
-        var path = this.$mpath;
-        if (path) this.angle = path.tangentAt(t);
+    func: function() {
+        return function(t) {
+            var path = this.$mpath;
+            if (path) this.angle = path.tangentAt(t);
+        }
     },
     from: nop, to: nop
 });
 
-Tween.addTween(C.T_ALPHA, function(t) {
-    var _from = this.$data[0],
-        to = this.$data[1];
-    return function(_from, to) {
+Tween.addTween(C.T_ALPHA, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
         this.alpha = _from * (1.0 - t) + to * t;
     };
 });
 
-Tween.addTween(C.T_SHEAR, function(t) {
-    var _from = this.$data[0],
-        to = this.$data[1];
-    this.hx = _from[0] * (1.0 - t) + to[0] * t;
-    this.hy = _from[1] * (1.0 - t) + to[1] * t;
+Tween.addTween(C.T_SHEAR, function(values) {
+    var _from = values[0],
+        to = values[1];
+    return function(t) {
+        this.hx = _from[0] * (1.0 - t) + to[0] * t;
+        this.hy = _from[1] * (1.0 - t) + to[1] * t;
+    }
 });
 
-Tween.addTween(C.T_FILL, function(data) {
-    var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-    return function(t, dt, duration) {
+Tween.addTween(C.T_FILL, function(values) {
+    var interp_func = Brush.interpolateBrushes(values[0], values[1]);
+    return function(t) {
         this.$fill = interp_func(t);
     };
 });
 
-Tween.addTween(C.T_STROKE, function(data) {
-    var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-    return function (t, dt, duration) {
+Tween.addTween(C.T_STROKE, function(values) {
+    var interp_func = Brush.interpolateBrushes(values[0], values[1]);
+    return function(t) {
         this.$stroke = interp_func(t);
     };
 });
 
-Tween.addTween(C.T_SHADOW, function(data) {
-    var interp_func = Brush.interpolateBrushes(data[0], data[1]);
-    return function (t, dt, duration) {
+Tween.addTween(C.T_SHADOW, function(values) {
+    var interp_func = Brush.interpolateBrushes(values[0], values[1]);
+    return function(t) {
         this.$shadow = interp_func(t);
     };
 });
 
-Tween.addTween(C.T_VOLUME, function(data) {
+Tween.addTween(C.T_VOLUME, function(values) {
+    var _from = values[0],
+        to = values[1];
     return function(t) {
         if (!this.$audio.ready) return;
-        var volume = data[0] * (1.0 - t) + data[1] * t;
+        var volume = _from * (1.0 - t) + to * t;
         this.$audio.setVolume(volume);
     };
 });

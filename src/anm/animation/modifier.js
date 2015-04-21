@@ -54,11 +54,6 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
  * @return {anm.Modifier} modifier instance
  */
 function Modifier(func, type) {
-    if (func[C.MARKERS.MODIFIER_MARKER]) {
-        // we store data in a function, so if this function is already a modifier, we re-wrap it
-        // FIXME: why not we store a Modifier class instance? API won't change if we do
-        func = function(t, dt, duration) { func.call(this, t, dt, duration); }
-    }
     func.id = guid();
     func.type = type || C.MOD_USER;
     func.$data = null;
