@@ -1147,10 +1147,10 @@ Element.prototype.jump = function(loc_t) {
  * @return {anm.Element} itself
  */
 Element.prototype.freeze = function() {
-    if (this.freezed) return this;
-    this.freezed = true;
+    if (this.frozen) return this;
+    this.frozen = true;
     this.__m_freeze = function(t) {
-        if (!this.freezed) return;
+        if (!this.frozen) return;
         if (is.defined(this.pausedAt)) this.t = this.pausedAt;
         else (this.pausedAt = t);
     };
@@ -1169,7 +1169,7 @@ Element.prototype.freeze = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.unfreeze = function() {
-    this.freezed = false;
+    this.frozen = false;
     if (this.__m_freeze) this.unmodify(this.__m_freeze);
     return this;
 }
