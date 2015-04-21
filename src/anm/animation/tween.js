@@ -61,7 +61,7 @@ function Tween(tween_type, data) {
     if (is.fun(tween_type)) {
         mod_f = tween_type;
     } else {
-        var tween_def = Tweens[tween_type];
+        var tween_def = _Tweens[tween_type];
         mod_f = tween_def.modifier;
         mod_f.tween = tween_type;
         from_f = tween_def.from;
@@ -103,10 +103,12 @@ Tween.TWEENS_COUNT = 0;
 var _Tweens = {};
 
 Tween.addTween = function(tween_type, definition) {
-    _Tweens[tween_type] = definition;
+    _Tweens[tween_type] = is.fun(definition) ? { modifier: definition } : definition;
     Tween[tween_type] = function() { return new Tween(tween_type); };
     Tween.TWEENS_PRIORITY[tween_type] = Tween.TWEENS_COUNT++;
 };
+
+function nop() {};
 
 Tween.addTween(C.T_TRANSLATE, {
     modifier: function(t) {
@@ -137,9 +139,12 @@ Tween.addTween(C.T_ROTATE, function(t) {
     this.angle = _from * (1.0 - t) + to * t;
 });
 
-Tween.addTween(C.T_ROT_TO_PATH, function(t) {
-    var path = this.$mpath;
-    if (path) this.angle = path.tangentAt(t);
+Tween.addTween(C.T_ROT_TO_PATH, {
+    modifier: function(t) {
+        var path = this.$mpath;
+        if (path) this.angle = path.tangentAt(t);
+    },
+    from: nop, to: nop
 });
 
 Tween.addTween(C.T_ALPHA, function(t) {

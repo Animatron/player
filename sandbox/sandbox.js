@@ -22,7 +22,6 @@ function sandbox() {
 
     var element = anm.Element._$;
     var Tween = anm.Tween, tween = anm.Tween._$;
-    var animation =
 
     window.element = anm.Element._$;
     window.Tween = anm.Tween;
