@@ -134,8 +134,6 @@ Player.DEFAULT_CONFIGURATION = { 'debug': false,
                                };
 
 Player.EMPTY_BG = 'rgba(0,0,0,.05)';
-Player.EMPTY_STROKE = 'rgba(50,158,192,.5)';
-Player.EMPTY_STROKE_WIDTH = 3;
 
 // ### Playing Control API
 /* ----------------------- */
@@ -380,7 +378,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                         player.state.happens = C.LOADING;
                         player.fire(C.S_CHANGE_STATE, C.LOADING);
                         player.fire(C.S_LOAD, result);
-                        player._updateAudioVolumes();
+                        player._updateMediaVolumes();
                         if (!player.handleEvents) player.stop();
                         player._callPostpones();
                         if (callback) callback.call(player, result);
@@ -481,7 +479,7 @@ Player.prototype.play = function(from, speed, stopAfter) {
         if (!loadArgs) throw errors.player(ErrLoc.P.NO_LOAD_CALL_BEFORE_PLAY, player);
         var loadCallback = loadArgs[3];
         var afterLoad = function() {
-            if (loadCallback) loadCallback.call(player, arguments);
+            if (loadCallback) loadCallback.apply(player, arguments);
             player._postponedLoad = null;
             player._playLock = false;
             player._lastReceivedAnimationId = player.anim.id;
@@ -651,6 +649,10 @@ Player.prototype.pause = function() {
 /**
  * @method seek
  * @chainable
+ *
+ * Jump to the given time in Animation and continue playing. Stops a player and starts to play from
+ * this time.
+ *
  * @param {Number} time to set the playhead at
  **/
 Player.prototype.seek = function(time) {
@@ -997,7 +999,6 @@ Player.prototype.thumbnail = function(url, target_width, target_height) {
           ctx = player.ctx;
       ctx.save();
       ctx.clearRect(0, 0, player.width * ratio, player.height * ratio);
-      player._drawEmpty();
       ctx.restore();
     }
     var thumb = new Sheet(url);
@@ -1222,14 +1223,15 @@ Player.prototype.volume = function(vol) {
         return this.globalVolume;
     }
     this.globalVolume = vol;
-    this._updateAudioVolumes();
+    this._updateMediaVolumes();
 };
 
-Player.prototype._updateAudioVolumes = function() {
-    if (this.anim) {
-        this.anim.traverse(function(el) {
+Player.prototype._updateMediaVolumes = function() {
+    var me=this;
+    if (me.anim) {
+        me.anim.traverse(function(el) {
             if (el.$audio) {
-                el.$audio.setVolume(this.globalVolume);
+                el.$audio.setVolume(me.globalVolume);
             }
         });
     }
@@ -1243,15 +1245,8 @@ Player.prototype._drawEmpty = function() {
     ctx.save();
 
     var ratio = engine.PX_RATIO;
-    // FIXME: somehow scaling context by ratio here makes all look bad
-
-    // background
     ctx.fillStyle = Player.EMPTY_BG;
     ctx.fillRect(0, 0, w * ratio, h * ratio);
-    ctx.strokeStyle = Player.EMPTY_STROKE;
-    ctx.lineWidth = Player.EMPTY_STROKE_WIDTH;
-    ctx.strokeRect(0, 0, w * ratio, h * ratio);
-
     ctx.restore();
 };
 
@@ -1580,7 +1575,7 @@ Player.prototype.__onerror = function() {
 Player.prototype.__onerror_f = function(err) {
   var player = this;
   var doMute = player.muteErrors;
-      doMute = doMute && !(err instanceof SystemError);
+      doMute = doMute && !(err instanceof errors.SystemError);
 
   try {
       if (player.state) player.state.happens = C.ERROR;

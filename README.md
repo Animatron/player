@@ -220,43 +220,49 @@ Here's the contents of the `jake -T` call, which describes each existing task:
                                # Affects: (if removes a version) VERSION, VERSIONS f
                                #     iles and removes a git tag.
 
-    jake push-version          # Builds and pushes current state, among with VERSION
+    jake deploy                # Builds and pushes current state, among with VERSION
                                #     S file to S3 at the path of `<VERSION>/` or `la
                                #     test/`. No git switching to tag or anything sma
                                #     rter than just build and push to directory. To
                                #     assign a version to a `HEAD` use {jake version[
                                #     <version>]}, then you are safe to push.
-                               # Usage: {jake push-version} to push current version
+                               # Usage: {jake deploy} to push current version
                                #     from VERSION file. To push to `latest/`, use {j
-                               #     ake push-version[latest]}. It is also possible
-                               #     to select a bucket: so {jake push-version[lates
-                               #     t,rls]} will push latest version to the release
+                               #     ake push-deploy[latest]}. It is also possible
+                               #     to select a bucket: so {jake deploy[lates
+                               #     t,prod]} will push latest version to the release
                                #     bucket (`dev` is default) and {jake push-versi
-                               #     on[,rls]} will push there a current version fro
+                               #     on[,prod]} will push there a current version fro
                                #     m VERSION file.
                                # Affects: Only changes S3, no touch to VERSION or VE
                                #     RSIONS or git stuff.
-                               # Requires: `.s3` file with crendetials in form {user
-                               #     access-id secret}. `aws2js` and `walk` node.js
-                               #     modules.
+                               # Requires: `.s3` file with credentials in form {user
+                               #     access-id secret}. `aws-sdk` node.js
+                               #     module.
 
-    jake push-go               # Pushes `go` page and `publish.js` script to the S3.
-                               # Usage: {jake push-go} to push to `dev` bucket under
-                               #     current version. To push to another bucket or
-                               #     version, pass it as a param: {jake push-go[,rls
-                               #     ]}, {jake push-go[latest,rls]}
+    jake deploy-publishjs      # Pushes `publish.js` script to the S3.
+                               # Usage: {jake deploy-publishjs} to push to `dev` bucket
+                               #     under current version. To push to another bucket
+                               #     or version, pass it as a param:
+                               #     {jake deploy-publishjs[,prod]},
+                               #     {jake deploy-publishjs[latest,prod]}
                                # Affects: Only changes S3.
-                               # Requires: `.s3` file with crendetials in form {user
-                               #     access-id secret}. `aws2js` node.js module.
+                               # Requires: `.s3` file with credentials in form {user
+                               #     access-id secret}. `aws-sdk` node.js module.
+
+    jake invalidate            # Creates a CloudFront invalidation to refresh the cache
+                               # after production deployment. Called automatically by
+                               # `jake deploy[*,prod]`.
+                               #
+                               # Affects: CloudFront cache is reset for the
+                               #     deployed files.
+                               # Requires: `.s3` with credentials and distribution ID
+                               #     in form {user access-id secred distributionId},
+                               #     `aws-sdk` node module
 
     jake _prepare              # Internal. Create dist folder
     jake _bundles              # Internal. Create bundles from existing sources and
                                #     put them into dist/bundle folder
-    jake _bundle               # Internal. Create a single bundle file and put it in
-                               #     to dist/bundle folder, bundle is provided as a
-                               #     parameter, e.g.: {jake _bundle[animatron]}
-    jake _organize             # Internal. Copy source files to dist folder
-    jake _versionize           # Internal. Inject version in all dist files
     jake _minify               # Internal. Create a minified copy of all the sources
                                #     and bundles from dist folder and append a .min
                                #     suffix to them

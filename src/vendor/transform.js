@@ -112,7 +112,7 @@ Transform.prototype.transformPoint = function(x, y) {
            y: (x * this.m[1] + y * this.m[3] + this.m[5]) };
 };
 
-Transform.prototype.adaptPoint = function(x, y) {
+Transform.prototype.transformPointInverse = function(x, y) {
   var t0 = (this.m[0] !== 0) ? (x / this.m[0]) : 0,
       t1 = (this.m[1] !== 0) ? (x / this.m[1]) : 0,
       t2 = (this.m[2] !== 0) ? (y / this.m[2]) : 0,

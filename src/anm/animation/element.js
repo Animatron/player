@@ -1115,6 +1115,66 @@ Element.prototype.bounce = function(nrep) {
 };
 
 /**
+ * @method jump
+ * @chainable
+ *
+ * Jump to local time. Element must be alive for this to work: its band should include both the time
+ * when jump performed and the time to where jump is performed. Time is specified as `0` if
+ * element should jump to the start of its band.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#freeze freeze()}, {@link anm.Element#unfreeze unfreeze()}
+ *
+ * @param {Number} t target time for a jump
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.jump = function(loc_t) {
+    this.t = loc_t;
+    return this;
+};
+
+/**
+ * @method freeze
+ * @chainable
+ *
+ * Pause at current time (so element will be visible, but won't be tweened).
+ * Will pause _only_ for the time where element is "alive", i.e. if current time is
+ * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
+ * will be fired in any case.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#jump jump()}, {@link anm.Element#unfreeze unfreeze()}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.freeze = function() {
+    if (this.frozen) return this;
+    this.frozen = true;
+    this.__m_freeze = function(t) {
+        if (!this.frozen) return;
+        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
+        else (this.pausedAt = t);
+    };
+    this.modify(this.__m_freeze);
+    return this;
+}
+
+/**
+ * @method unfreeze
+ * @chainable
+ *
+ * Unpause after a call to {@link anm.Element#freeze freeze()}.
+ *
+ * See also: {@link anm.Element#band band()}, {@link anm.Element#jump jump()}, {@link anm.Element#freeze freeze()}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.unfreeze = function() {
+    this.frozen = false;
+    if (this.__m_freeze) this.unmodify(this.__m_freeze);
+    return this;
+}
+
+/**
  * @method modify
  * @chainable
  *
@@ -1870,7 +1930,7 @@ Element.prototype.offset = function() {
     return this.matrix.transformPoint(pt);
 }
 Element.prototype.global = function(pt) {
-    return this.matrix.adaptPoint(pt);
+    return this.matrix.transformPointInverse(pt);
 } */
 /**
  * @method invalidate
@@ -1930,9 +1990,9 @@ Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &&
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
 
-    var result = this.myBounds().clone();
+    var result = this.myBounds();
     if (this.children.length) {
-        // FIXME: test if bounds are not empty
+        result = result.clone();
         this.each(function(child) {
             result.add(child.bounds(ltime));
         });
@@ -2006,11 +2066,11 @@ Element.prototype.adapt = function(pts) {
         var matrix = this.matrix; // should we store inverted matrix and
                                   // use inv_matrix.transformPoint instead?
         for (var i = 0, il = pts.length; i < il; i++) {
-            trg.push(matrix.adaptPoint(pts[i].x, pts[i].y));
+            trg.push(matrix.transformPointInverse(pts[i].x, pts[i].y));
         }
         return trg;
     } else {
-        return this.matrix.adaptPoint(pts.x, pts.y);
+        return this.matrix.transformPointInverse(pts.x, pts.y);
     }
 };
 
@@ -2031,10 +2091,37 @@ Element.prototype.adapt = function(pts) {
 */
 Element.prototype.adaptBounds = function(bounds) {
     var matrix = this.matrix;
-    var tl = matrix.adaptPoint(bounds.x, bounds.y),
-        tr = matrix.adaptPoint(bounds.x + bounds.width, bounds.y),
-        br = matrix.adaptPoint(bounds.x + bounds.width, bounds.y + bounds.height),
-        bl = matrix.adaptPoint(bounds.x, bounds.y + bounds.height);
+    var tl = matrix.transformPoint(bounds.x, bounds.y),
+        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
+};
+
+/**
+* @method inverseAdaptBounds
+*
+* Adapt bounds to parent's coordinate space. Bounds are passed as an object
+* `{ x: 100, y: 100, width: 200, height: 150 }`.
+*
+* @param {Object} bounds bounds to adapt
+* @param {Number} bounds.x
+* @param {Number} bounds.y
+* @param {Number} bounds.width
+* @param {Number} bounds.height
+*
+* @return {Object} transformed bounds
+*/
+Element.prototype.inverseAdaptBounds = function(bounds) {
+    var matrix = this.matrix;
+    var tl = matrix.transformPointInverse(bounds.x, bounds.y),
+        tr = matrix.transformPointInverse(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPointInverse(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPointInverse(bounds.x, bounds.y + bounds.height);
     var minX = Math.min(tl.x, tr.x, bl.x, br.x),
         minY = Math.min(tl.y, tr.y, bl.y, br.y),
         maxX = Math.max(tl.x, tr.x, bl.x, br.x),

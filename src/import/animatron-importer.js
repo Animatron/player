@@ -361,10 +361,8 @@ Import.branch = function(type, src, all, anim) {
         if (lsrc[9]) { // scripting
             anim.hasScripting = true;
             var code = lsrc[9];
-            var script_ctx = createScriptContext(ltrg);
-
             try {
-                eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
+                eval('(function() { ' + code + '})').call(ltrg);
             } catch(e) { _reportError(e); }
         }
 
@@ -1025,32 +1023,15 @@ ValueCache.prototype.get = function(str) {
 };
 
 ValueCache.prototype.hash = function(str) {
-    var hash = 0, i, char;
+    var hash = 0, i, ch;
     if (str.length === 0) return hash;
     for (i = 0, l = str.length; i < l; i++) {
-        char  = str.charCodeAt(i);
-        hash  = ((hash<<5)-hash)+char;
+        ch  = str.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+ch;
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
 };
-
-// Script helpers
-// -----------------------------------------------------------------------------
-
-var createScriptContext = function(element) {
-    return {
-        jump: function(t) {
-            // FIXME
-            var players = anm.player_manager.instances;
-            var last_player = players[players.length - 1];
-            if (last_player) {
-                last_player.stop();
-                last_player.play(t);
-            }
-        }
-    }
-}
 
 // Finish the importer
 // -----------------------------------------------------------------------------
