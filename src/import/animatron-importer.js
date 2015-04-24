@@ -384,17 +384,24 @@ Import.branch = function(type, src, all, anim) {
 // -> Element
 Import.leaf = function(type, src, parent, anim) {
     var trg = new Element();
-         if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
+    var hasUrl = !!src[1];
+    if (type == TYPE_IMAGE) {
+      if(hasUrl) trg.$image = Import.sheet(src);
+    }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
-        trg.type = C.ET_AUDIO;
-        trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg, anim);
+        if (hasUrl) {
+            trg.type = C.ET_AUDIO;
+            trg.$audio = Import.audio(src);
+            trg.$audio.connect(trg, anim);
+        }
     }
     else if (type == TYPE_VIDEO) {
-        trg.type = C.ET_VIDEO;
-        trg.$video = Import.video(src);
-        trg.$video.connect(trg, anim);
+        if (hasUrl) {
+            trg.type = C.ET_VIDEO;
+            trg.$video = Import.video(src);
+            trg.$video.connect(trg, anim);
+        }
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
