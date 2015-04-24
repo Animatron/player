@@ -711,11 +711,11 @@ task('deploy', ['dist-min'], function(version, bucket) {
                 console.log('Deployment complete.');
                 if (isProd) {
                     //invalidate files after production deployment
-                    var invalidate = jake.Task('invalidate');
+                    var invalidate = jake.Task['invalidate'];
                     invalidate.addListener('complete', function(){
                         complete();
                     });
-                    invalidate.invoke();
+                    invalidate.invoke(version);
                     return;
                 }
             }
