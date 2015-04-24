@@ -62,12 +62,22 @@ E.prototype.oval = function(x, y, width, height) {
 }
 
 E.prototype.triangle = function(x, y, width, height) {
-    var rx = (width / 2),
-        ry = (height / 2);
+
+    // FIXME: now it's a radius, but not a value of a side
+    var rx = width;
+    var ry = height;
+
+    var x0 = rx * Math.cos(Math.PI / 4) + x;
+    var y0 = ry * Math.sin(Math.PI / 4) + y;
+    var x1 = rx * Math.cos((3./2)*Math.PI) + x;
+    var y1 = ry * Math.sin((3./2)*Math.PI) + y;
+    var x2 = rx * Math.cos((3./4)*Math.PI) + x;
+    var y2 = ry * Math.sin((3./4)*Math.PI) + y;
+
     var path = new Path();
-    path.add(new MSeg([ x + rx, y ]));
-    path.add(new LSeg([ x + width, y + height ]));
-    path.add(new LSeg([ x, y + height ]));
-    path.add(new LSeg([ x + rx, y ]));
+    path.add(new MSeg([ x0, y0 ]));
+    path.add(new LSeg([ x1, y1 ]));
+    path.add(new LSeg([ x2, y2 ]));
+    path.add(new LSeg([ x0, y0 ]));
     return this.path(path);
 }

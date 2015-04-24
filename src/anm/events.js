@@ -1,10 +1,14 @@
 var C = require('./constants.js');
 
-var errors = require('./errors.js');
-
 // Events
 // -----------------------------------------------------------------------------
-function registerEvent(id, name) { C[id] = name; }
+C.__enmap = {};
+
+function registerEvent(id, name, value) {
+    C[id] = value;
+    C.__enmap[value] = name;
+}
+
 
 // TODO: use EventEmitter
 // FIXME: all errors below were AnimErr instances
@@ -29,52 +33,48 @@ function provideEvents(subj, events) {
         };
     })(events);
     subj.prototype.on = function(event, handler) {
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) throw errors.system('Event \'' + event +
-                                                 '\' is not provided by ' + this);
-        if (!handler) return;
+        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
+                                                     '\' not provided by ' + this);
+        if (!handler) throw new Error('You are trying to assign ' +
+                                        'undefined handler for event ' + event);
         this.handlers[event].push(handler);
         // FIXME: make it chainable, use handler instance to unbind, instead of index
         return (this.handlers[event].length - 1);
     };
-    subj.prototype.subscribedTo = function(event) {
-        return this.handlers && this.handlers[event] && this.handlers[event].length;
-    };
-    subj.prototype.fire = function(event/*, evt_args*/) {
+    subj.prototype.fire = function(event/*, args*/) {
+        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) throw new Error('Event \'' + C.__enmap[event] +
+                                                     '\' not provided by ' + this);
         if (this.disabled) return;
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) throw errors.system('Event \'' + event +
-                                                 '\' is not provided by ' + this);
+        var evt_args = Array.prototype.slice.call(arguments, 1);
         if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
-        if (this['handle_'+event] || this.handlers[event].length) {
-            var evt_args = new Array(arguments.length - 1);
-            for (var i = 1; i < arguments.length; i++) {
-                evt_args[i - 1] = arguments[i];
-            }
-            if (this['handle_'+event]) this['handle_'+event].apply(this, evt_args);
-            var _hdls = this.handlers[event];
-            for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
-                _hdls[hi].apply(this, evt_args);
-            }
+        var name = C.__enmap[event];
+        if (this['handle_'+name]) this['handle_'+name].apply(this, evt_args);
+        var _hdls = this.handlers[event];
+        for (var hi = 0, hl = _hdls.length; hi < hl; hi++) {
+            _hdls[hi].apply(this, evt_args);
         }
-
     };
     subj.prototype.provides = (function(evts) {
         return function(event) {
-            if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+            if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
             if (!event) return evts;
             return this.handlers.hasOwnProperty(event);
         };
     })(events);
     subj.prototype.unbind = function(event, idx) {
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
-        if (!this.provides(event)) return;
+        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.provides(event)) throw new Error('Event ' + event +
+                                                     ' not provided by ' + this);
         if (this.handlers[event][idx]) {
             this.handlers[event].splice(idx, 1);
+        } else {
+            throw new Error('No such handler ' + idx + ' for event ' + event);
         }
     };
     subj.prototype.disposeHandlers = function() {
-        if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
+        if (!this.handlers) throw new Error('Instance is not initialized with handlers, call __initHandlers in its constructor');
         var _hdls = this.handlers;
         for (var evt in _hdls) {
             if (_hdls.hasOwnProperty(evt)) _hdls[evt] = [];
@@ -93,83 +93,60 @@ function provideEvents(subj, events) {
     }
 }
 
-registerEvent('S_NEW_PLAYER', 'new');
-registerEvent('S_PLAYER_DETACH', 'detach');
+registerEvent('S_NEW_PLAYER', 'new_player', 'new_player');
+registerEvent('S_PLAYER_DETACH', 'player_detach', 'player_detach');
 
 // ### Events
 /* ---------- */
 
 // NB: All of the events must have different values, or the flow will be broken
 // FIXME: allow grouping events, i.e. value may a group_marker + name of an event
-//        also, allow events to belong to several groups
+//        also, allow events to belong to several groups, it may replace a tests like
+//        XT_MOUSE or XT_CONTROL or isPlayerEvent
 
 // * mouse
-registerEvent('X_MCLICK', 'mouseclick');
-registerEvent('X_MDCLICK', 'mousedoubleclick');
-registerEvent('X_MUP', 'mouseup');
-registerEvent('X_MDOWN', 'mousedown');
-registerEvent('X_MMOVE', 'mousemove');
-registerEvent('X_MOVER', 'mouseover');
-registerEvent('X_MOUT', 'mouseout');
+registerEvent('X_MCLICK', 'mclick', 1);
+registerEvent('X_MDCLICK', 'mdclick', 2);
+registerEvent('X_MUP', 'mup', 4);
+registerEvent('X_MDOWN', 'mdown', 8);
+registerEvent('X_MMOVE', 'mmove', 16);
+registerEvent('X_MOVER', 'mover', 32);
+registerEvent('X_MOUT', 'mout', 64);
+
+registerEvent('XT_MOUSE', 'mouse',
+  (C.X_MCLICK | C.X_MDCLICK | C.X_MUP | C.X_MDOWN | C.X_MMOVE | C.X_MOVER | C.X_MOUT));
 
 // * keyboard
-registerEvent('X_KPRESS', 'keypress');
-registerEvent('X_KUP', 'keyup');
-registerEvent('X_KDOWN', 'keydown');
+registerEvent('X_KPRESS', 'kpress', 128);
+registerEvent('X_KUP', 'kup', 256);
+registerEvent('X_KDOWN', 'kdown', 1024);
+
+registerEvent('XT_KEYBOARD', 'keyboard',
+  (C.X_KPRESS | C.X_KUP | C.X_KDOWN));
+
+// * controllers
+registerEvent('XT_CONTROL', 'control', (C.XT_KEYBOARD | C.XT_MOUSE));
+
+// * draw
+registerEvent('X_DRAW', 'draw', 'draw');
 
 // * bands
-registerEvent('X_START', 'bandstart');
-registerEvent('X_STOP', 'bandstop');
-
-// * Animation or Element error
-registerEvent('X_ERROR', 'error');
-
-// * animation start/stop
-registerEvent('A_START', 'animationstart');
-registerEvent('A_STOP', 'animationstop');
-registerEvent('A_PAUSE', 'animationpause');
+registerEvent('X_START', 'start', 'x_start');
+registerEvent('X_STOP', 'stop', 'x_stop');
 
 // * playing (player state)
+registerEvent('S_PLAY', 'play', 'play');
+registerEvent('S_PAUSE', 'pause', 'pause');
+registerEvent('S_STOP', 'stop', 'stop');
+registerEvent('S_COMPLETE', 'complete', 'complete');
+registerEvent('S_REPEAT', 'repeat', 'repeat');
+registerEvent('S_IMPORT', 'import', 'import');
+registerEvent('S_LOAD', 'load', 'load');
+registerEvent('S_RES_LOAD', 'res_load', 'res_load');
+registerEvent('S_ERROR', 'error', 'error');
 
-registerEvent('S_CHANGE_STATE', 'statechange');
-registerEvent('S_PLAY', 'play');
-registerEvent('S_PAUSE', 'pause');
-registerEvent('S_STOP', 'stop');
-registerEvent('S_COMPLETE', 'complete');
-registerEvent('S_REPEAT', 'repeat');
-registerEvent('S_IMPORT', 'import');
-registerEvent('S_LOAD', 'load');
-registerEvent('S_RES_LOAD', 'loadresources');
-registerEvent('S_ERROR', 'error'); // is not intersecting with X_ERROR, so it is safe
-                                   // they have same name
-
-function isMouseEvent(type) { return (type.indexOf('mouse') === 0); }
-function isKeyboardEvent(type) { return (type.indexOf('key') === 0); }
-function isMouseOrKeyboardEvent(type) { return isMouseEvent(type) || isKeyboardEvent(type); }
-
-var m_and_k = {
-    'mouseclick': 1,
-    'mousedoubleclick': 2,
-    'mouseup': 4,
-    'mousedown': 8,
-    'mousemove': 16,
-    'mouseover': 32,
-    'mouseout': 64,
-    'keypress': 128,
-    'keyup': 256,
-    'keydown': 512
-};
-
-function EventState() { this.reset(); }
-EventState.prototype.reset = function() { this.state = 0; }
-EventState.prototype.save = function(type) { this.state = this.state | m_and_k[type]; }
-EventState.prototype.check = function(type) { return this.state & m_and_k[type]; }
 
 module.exports = {
-    mouse: isMouseEvent,
-    keyboard: isKeyboardEvent,
-    mouseOrKeyboard: isMouseOrKeyboardEvent,
-    registerEvent: registerEvent,
-    provideEvents: provideEvents,
-    EventState: EventState
+  registerEvent: registerEvent,
+  provideEvents: provideEvents
 };

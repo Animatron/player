@@ -33,7 +33,6 @@ var C = anm.constants,
     Audio = anm.Audio,
     Video = anm.Video,
     is = anm.utils.is,
-    roundTo = anm.utils.roundTo,
     $log = anm.log;
     //test = anm._valcheck
 
@@ -68,6 +67,7 @@ Import._type = function(src) {
  */
 // -> Animation
 Import.project = function(prj) {
+    //if (window && console && window.__anm_conf && window.__anm_conf.logImport) $log.debug(prj);
     if (anm.conf.logImport) $log.debug(prj);
     cur_import_id = anm.utils.guid();
     anm.lastImportedProject = prj;
@@ -358,16 +358,6 @@ Import.branch = function(type, src, all, anim) {
             }
         }
 
-        if (lsrc[9]) { // scripting
-            anim.hasScripting = true;
-            var code = lsrc[9];
-            var script_ctx = createScriptContext(ltrg);
-
-            try {
-                eval('(function(script) {' + code + '})').call(ltrg, script_ctx);
-            } catch(e) { _reportError(e); }
-        }
-
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
         // TODO temporary implementation, use custom renderer for that!
@@ -384,19 +374,19 @@ Import.branch = function(type, src, all, anim) {
 
 /** leaf **/
 // -> Element
-Import.leaf = function(type, src, parent, anim) {
+Import.leaf = function(type, src, parent/*, anim*/) {
     var trg = new Element();
          if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
         trg.$audio = Import.audio(src);
-        trg.$audio.connect(trg, anim);
+        trg.$audio.connect(trg);
     }
     else if (type == TYPE_VIDEO) {
         trg.type = C.ET_VIDEO;
         trg.$video = Import.video(src);
-        trg.$video.connect(trg, anim);
+        trg.$video.connect(trg);
     }
     else { trg.$path  = Import.path(src);  }
     if (trg.$path || trg.$text) {
@@ -458,18 +448,18 @@ Import._pathDecode = function(src) {
 
     var val = Import._path_cache.get(encoded);
     if (val) {
-        return val;
+        return [].concat(val.segs);
     } else {
         val = Import._decodeBinaryPath(encoded);
         if (!val) return null;
         Import._path_cache.put(encoded, val);
     }
 
-    return val;
+    return val.segs;
 };
 
 Import._decodeBinaryPath = function(encoded) {
-    var path = '';
+    var path = new Path();
     if (encoded) {
         encoded = encoded.replace(/\s/g, ''); // TODO: avoid this by not formatting base64 while exporting
         try {
@@ -477,32 +467,36 @@ Import._decodeBinaryPath = function(encoded) {
             var s = new BitStream(decoded);
             var base = [0, 0];
             if (s) {
-                var hasBits = true;
-                while (hasBits) {
+                var _do = true;
+                while (_do) {
                     var type = s.readBits(2), p;
                     switch (type) {
                         case 0:
-                            p = Import._pathReadPoint(s, base);
+                            p = Import._pathReadPoint(s, [], base);
                             base = p;
-                            path += ' M ' + p.join(',');
+
+                            path.add(new MSeg(p));
                             break;
                         case 1:
-                            p = Import._pathReadPoint(s, base);
+                            p = Import._pathReadPoint(s, [], base);
                             base = p;
-                            path += ' L ' + p.join(',');
+
+                            path.add(new LSeg(p));
                             break;
                         case 2:
-                            var cStr = ' C';
-                            p = base;
-                            for (var i = 0; i < 3; i++) {
-                                p = Import._pathReadPoint(s, p);
-                                cStr += ' ' + p.join(',');
-                            }
-                            base = p;
-                            path += cStr;
+                            p = Import._pathReadPoint(s, [], base);
+                            Import._pathReadPoint(s, p);
+                            Import._pathReadPoint(s, p);
+                            base = [p[p.length - 2], p[p.length - 1]];
+
+                            path.add(new CSeg(p));
+                            break;
+                        case 3:
+                            _do = false;
                             break;
                         default:
-                            hasBits = false;
+                            _do = false;
+                            _reportError('Unknown type "' + type + ' for path "' + encoded + '"');
                             break;
                     }
                 }
@@ -519,8 +513,7 @@ Import._decodeBinaryPath = function(encoded) {
     return path;
 };
 
-Import._pathReadPoint = function(stream, base) {
-    base = base || [0,0];
+Import._pathReadPoint = function(stream, target, base) {
     var l = stream.readBits(5);
     if (l <= 0) {
         throw new Error('Failed to decode path, wrong length (<= 0)');
@@ -529,7 +522,12 @@ Import._pathReadPoint = function(stream, base) {
     var x = stream.readSBits(l);
     var y = stream.readSBits(l);
 
-    return [roundTo(base[0] + x / 1000.0, 2), roundTo(base[1] + y / 1000.0, 2)];
+    var b_x = base ? base[0] : (target.length ? target[target.length - 2] : 0);
+    var b_y = base ? base[1] : (target.length ? target[target.length - 1] : 0);
+
+    target.push(b_x + x / 1000.0);
+    target.push(b_y + y / 1000.0);
+    return target;
 };
 
 /** text **/
@@ -682,8 +680,8 @@ Import.tweendata = function(type, src) {
         return [Import.shadow(src[0]), Import.shadow(src[1])];
     }
     if (type === C.T_VOLUME) {
-        if (src.length == 2) return src;
-        if (src.length == 1) return [ src[0], src[0] ];
+      if (src.length == 2) return src;
+      if (src.length == 1) return [ src[0], src[0] ];
     }
 
 };
@@ -855,7 +853,7 @@ var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
-        elm = Import.leaf(Import._type(el), el/*, anim*/);
+        elm = Import.leaf(Import._type(el), el);
 
     elm.alpha = src[5];
     elm.disabled = true;
@@ -1025,32 +1023,15 @@ ValueCache.prototype.get = function(str) {
 };
 
 ValueCache.prototype.hash = function(str) {
-    var hash = 0, i, ch;
+    var hash = 0, i, char;
     if (str.length === 0) return hash;
     for (i = 0, l = str.length; i < l; i++) {
-        ch  = str.charCodeAt(i);
-        hash  = ((hash<<5)-hash)+ch;
+        char  = str.charCodeAt(i);
+        hash  = ((hash<<5)-hash)+char;
         hash |= 0; // Convert to 32bit integer
     }
     return hash;
 };
-
-// Script helpers
-// -----------------------------------------------------------------------------
-
-var createScriptContext = function(element) {
-    return {
-        jump: function(t) {
-            // FIXME
-            var players = anm.player_manager.instances;
-            var last_player = players[players.length - 1];
-            if (last_player) {
-                last_player.stop();
-                last_player.play(t);
-            }
-        }
-    }
-}
 
 // Finish the importer
 // -----------------------------------------------------------------------------

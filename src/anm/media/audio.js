@@ -4,8 +4,6 @@ var conf = require('../conf.js'),
 
 var C = require('../constants.js');
 
-var errors = require('../errors.js');
-
 var engine = require('engine');
 
 var ResMan = require('../resource_manager.js');
@@ -55,7 +53,7 @@ function Audio(url) {
     this.audio = null;
 }
 /** @private @method load */
-Audio.prototype.load = function(elm, player) {
+Audio.prototype.load = function(player) {
     var me = this;
     ResMan.loadOrGet(player.id, me.url,
       function(notify_success, notify_error, notify_progress) { // loader
@@ -196,7 +194,6 @@ Audio.prototype.load = function(elm, player) {
       },
       function(err) {
           log.error(err ? (err.message || err) : 'Unknown error');
-          throw errors.element(err ? err.message : 'Unknown', elm);
       });
 };
 /** @private @method play */
@@ -321,7 +318,7 @@ Audio.prototype.toggleMute = function() {
     }
 };
 /** @private @method connect */
-Audio.prototype.connect = function(element, anim) {
+Audio.prototype.connect = function(element) {
     var me = this;
     element.on(C.X_START, function() {
         me.play.apply(me, arguments);
@@ -332,8 +329,8 @@ Audio.prototype.connect = function(element, anim) {
     var stop = function() {
         me.stop();
     };
-    anim.on(C.A_STOP, stop);
-    anim.on(C.A_PAUSE, stop);
+    element.on(C.S_STOP, stop);
+    element.on(C.S_PAUSE, stop);
 };
 /**
  * @method clone

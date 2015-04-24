@@ -1,11 +1,9 @@
-var errors = require('./errors.js');
-
 // Modules
 // -----------------------------------------------------------------------------
 var modules = {};
 
 modules.register = function(alias, conf) {
-  if (modules[alias]) throw errors.system('Module ' + alias + ' is already registered!');
+  if (modules[alias]) throw new Error('Module ' + alias + ' is already registered!');
   modules[alias] = conf;
 };
 

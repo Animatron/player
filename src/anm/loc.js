@@ -52,7 +52,6 @@ Errors.P.INIT_AFTER_LOAD = 'Initialization was called after loading a animation'
 Errors.P.SNAPSHOT_LOADING_FAILED = 'Snapshot failed to load ({0})';
 Errors.P.IMPORTER_CONSTRUCTOR_PASSED = 'You\'ve passed importer constructor to snapshot loader, but not an instance! ' +
                                        'Probably you used anm.importers.get instead of anm.importers.create.';
-Errors.A.OBJECT_IS_NOT_ELEMENT = 'It appears that you\'ve passed not an instance of anm.Element';
 Errors.A.ELEMENT_IS_REGISTERED = 'This element is already registered in animation';
 Errors.A.ELEMENT_IS_NOT_REGISTERED = 'There is no such element registered in animation';
 Errors.A.UNSAFE_TO_REMOVE = 'Unsafe to remove, please use iterator-based looping (with returning false from iterating function) to remove safely';
