@@ -11,15 +11,18 @@ var errors = require('../errors.js');
  * @class anm.Tween
  * @extends anm.Modifier
  *
- * Tween, under the hood, is a pre-defined {@link anm.Modifier Modifier}.
- * It changes element state (position. rotation, ...) over the time, but in
- * this case you may choose from a prepared recipe without writing a function on
- * your own.
+ * Tween, under the hood, is an alias to {@link anm.Modifier Modifier}
+ * and extends it with several special methods.
  *
- * For example, scale Tween is a Modifier with this code:
+ * Tween is a function that changes element state (position. rotation, ...) over the time,
+ * but what is different to Modifier is that in this case you may choose from a prepared
+ * recipe without a need in writing a function on your own.
+ *
+ * For example, Scale Tween is a Modifier with a code like this:
  *
  * ```
- * var data = [ [ 0.5, 0.5 ], [ 1.0, 2.0 ] ];
+ * var data = [ [ 0.5, 0.5 ],   // horizontal and vertical proportions to start from
+ *              [ 1.0, 2.0 ] ]; // horizontal and vertical proportions to end with
  * function(t) {
  *     this.sx = data[0][0] * (1.0 - t) + data[1][0] * t;
  *     this.sy = data[0][1] * (1.0 - t) + data[1][1] * t;
@@ -29,6 +32,12 @@ var errors = require('../errors.js');
  * To add a tween to some element, you just need to know its type and provide
  * both start-value and end-value, so it will automatically interpolate one to
  * another. Some tweens do not require these values or require only one value.
+ *
+ * You can not create a Tween with a constructor, though, you either should choose
+ * from the predefined ones or to register a new Tween type with {@link anm.Tween#register register()}
+ * method.
+ *
+ * TODO the list of the tweens
  *
  * Also see {@link anm.Element#translate translate(from, to)}, {@link anm.Element#scale scale(from, to)},
  * {@link anm.Element#rotate rotate(from, to)}, {@link anm.Element#scale scale(from, to)}, {@link anm.Element#skew skew(from, to)},
@@ -49,8 +58,16 @@ var errors = require('../errors.js');
  * * `elm.tween(Tween.translate().data('M0 0 100 100'))`
  * * `elm.tween(Tween.rotatetopath())`
  */
+var Tween = Modifier;
+
 Tween.DEFAULT_FROM = function(_from, prev) { return is.defined(prev) ? [ _from,   prev[1] ] : [ _from, null ]; };
 Tween.DEFAULT_TO   = function(to,    prev) { return is.defined(to)   ? [ prev[0], to ]      : [  null,   to ]; };
+
+function createTween(type, data) {
+    var mod = new Modifier(); // mod.func will be set to `null`
+}
+
+
 function Tween(tween_type, data) {
     if (!tween_type) throw errors.element('Tween type is required to be specified or function passed');
     var me = this;
