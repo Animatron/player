@@ -318,7 +318,7 @@ $DE.createTextMeasurer = function() {
         //buff.style.textAlign = text.align;
         //buff.style.verticalAlign = text.baseline || 'bottom';
         buff.style.whiteSpace = 'pre';
-        if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
+        if (anm.utils.is.arr(lines)) {
             var maxWidth = 0, height = 0;
             for (var i = 0, ilen = lines.length; i < ilen; i++) {
                 buff.textContent = lines[i] || " ";
@@ -327,7 +327,7 @@ $DE.createTextMeasurer = function() {
             }
             return [ maxWidth, height ];
         } else {
-            buff.textContent = text.lines.toString() || "";
+            buff.textContent = lines.toString() || "";
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
