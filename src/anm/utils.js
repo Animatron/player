@@ -44,7 +44,7 @@ is.painter = function(v) {
     return v instanceof Painter;
 };
 is.tween = function(v) {
-    return v instanceof Tween;
+    return v instanceof Modifier && v.is_tween;
 };
 
 is.equal = function(x, y) {
