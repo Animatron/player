@@ -64,11 +64,12 @@ var Tween = Modifier;
 function createTween(type, data) {
     var mod = new Modifier(null, C.MOD_TWEEN); // mod.func will be set to `null` first
     var def = Registry[type];
-    mod.t_func = def.func; // == function(data) { return function(t) { ... data ... }; }
+    mod.def = def;
     mod.func = function(t, dt, duration) { if (mod.$tween) mod.$tween.call(this, t, dt, duration); };
     mod.is_tween = true;
-    mod.$data = data;
+    mod.$value = data;
     if (is.defined(data)) mod.$tween = def.func(data);
+    return mod;
 }
 
 // tween type priority depends on the order the types were registered
@@ -94,10 +95,10 @@ Tween._$ = createTween;
  *
  * Set or get values for this tween. Useful only if tween uses two values to operate, one to start from,
  * and one to end with, i.e. rotate tween or scale tween. To set a single value for a tween (say, path
- * for translate tween), use {@link anm.Modifier#data data(value)} method. To set values separately, use
+ * for translate tween), use {@link anm.Tween#value value()} method. To set values separately, use
  * {@link anm.Tween#from from()} and {@link anm.Tween#to to()} methods.
  *
- * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Tween#data data()}.
+ * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Tween#value value()}.
  *
  * @param {Any} from start value
  * @param {Any} to end value
@@ -105,9 +106,31 @@ Tween._$ = createTween;
  * @return {anm.Tween|Any} itself, or current values if no arguments were passed
  */
 Tween.prototype.values = function(_from, to) {
-    if (!is.defined(_from) && this.$data) return this.$data;
-    this.$data = to_f(to, from_f(_from, null));
-    this.$tween = tween_f(this.$data);
+    if (!is.defined(_from) && this.$value) return this.$value;
+    this.$value = this.def.to(to, this.def.from(_from, null));
+    this.$tween = this.def.func(this.$value);
+    return this;
+};
+
+/**
+ * @method value
+ * @chainable
+ *
+ * Set or get value for this tween. Useful only if tween uses one value to operate, like path for
+ * translate tween. To set both starting and final value for a tween (say, for rotate tween),
+ * use {@link anm.Tween#values values()} method. To set values separately, use {@link anm.Tween#from from()}
+ * and {@link anm.Tween#to to()} methods.
+ *
+ * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Tween#values values()}.
+ *
+ * @param {Any} value a new value to set
+ *
+ * @return {anm.Tween|Any} itself, or current value if no arguments were passed
+ */
+Tween.prototype.value = function(val) {
+    if (!is.defined(val) && this.$value) return this.$value;
+    this.$value = val;
+    this.$tween = this.def.func(this.$value);
     return this;
 };
 
@@ -120,15 +143,15 @@ Tween.prototype.values = function(_from, to) {
  * for translate tween), use {@link anm.Modifier#data data(value)} method. To set end value, use
  * {@link anm.Tween#to to()} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
  *
- * See also: {@link anm.Tween#to to()}, {@link anm.Tween#values values()}, {@link anm.Tween#data data()}.
+ * See also: {@link anm.Tween#to to()}, {@link anm.Tween#values values()}, {@link anm.Tween#value value()}.
  *
- * @param {Any} from start value
+ * @param {Any} from start value to set
  *
  * @return {anm.Tween} itself
  */
- Tween.prototype = function(val) {
-    this.$data = from_f(val, this.$data);
-    this.$tween = tween_f(this.$data);
+ Tween.prototype.from = function(val) {
+    this.$value = this.def.from(val, this.$value);
+    this.$tween = this.def.func(this.$value);
     return this;
 };
 
@@ -141,33 +164,15 @@ Tween.prototype.values = function(_from, to) {
  * for translate tween), use {@link anm.Modifier#data data(value)} method. To set start value, use
  * {@link anm.Tween#from from()} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
  *
- * See also: {@link anm.Tween#from from()}, {@link anm.Tween#values values()}, {@link anm.Tween#data data()}.
+ * See also: {@link anm.Tween#from from()}, {@link anm.Tween#values values()}, {@link anm.Tween#value value()}.
  *
- * @param {Any} to end value
+ * @param {Any} to end value to set
  *
  * @return {anm.Tween} itself
  */
-Tween.prototype.to   = function(val) {
-    this.$data = to_f(val, this.$data);
-    this.$tween = tween_f(this.$data);
-    return this;
-};
-
-/**
- * @method data
- * @chainable
- *
- * Set or get data for this tween, i.e. path for a translate tween.
- *
- * @param {Any} data data
- *
- * @return {anm.Tween|Any} itself, or current data value
- */
-Tween.prototype.data = function(data) {
-    // overrides modifier function
-    if (!is.defined(data)) return this.$data;
-    this.$data = data;
-    this.$tween = tween_f(data);
+Tween.prototype.to = function(val) {
+    this.$value = this.def.to(val, this.$value);
+    this.$tween = this.def.func(this.$value);
     return this;
 };
 
@@ -263,6 +268,14 @@ Tween.register(C.T_VOLUME, function(values) {
         var volume = _from * (1.0 - t) + to * t;
         this.$audio.setVolume(volume);
     };
+});
+
+Tween.register(C.T_DISPLAY, {
+    func: function(value) {
+        return function(t) { this.visible = value; }
+    },
+    from: function(_from, prev) { return _from; },
+    to: function(to, prev) { return to; }
 });
 
 

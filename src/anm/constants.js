@@ -161,6 +161,7 @@ C.T_FILL        = 'fill';
 C.T_STROKE      = 'stroke';
 C.T_VOLUME      = 'volume';
 C.T_SHADOW      = 'shadow';
+C.T_DISPLAY     = 'display';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';
