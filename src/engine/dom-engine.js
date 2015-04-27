@@ -318,7 +318,7 @@ $DE.createTextMeasurer = function() {
         //buff.style.textAlign = text.align;
         //buff.style.verticalAlign = text.baseline || 'bottom';
         buff.style.whiteSpace = 'pre';
-        if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
+        if (anm.utils.is.arr(lines)) {
             var maxWidth = 0, height = 0;
             for (var i = 0, ilen = lines.length; i < ilen; i++) {
                 buff.textContent = lines[i] || " ";
@@ -327,7 +327,7 @@ $DE.createTextMeasurer = function() {
             }
             return [ maxWidth, height ];
         } else {
-            buff.textContent = text.lines.toString() || "";
+            buff.textContent = lines.toString() || "";
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
@@ -759,6 +759,17 @@ $DE._saveCanvasPos = function(cvs) {
     var props = $DE.getAnmProps(cvs);
     props.offset_left = ol || props.usr_x;
     props.offset_top  = ot || props.usr_y;
+};
+
+$DE.setWrapperSize = function(wrapper, width, height) {
+    var _w = width | 0, // to int
+        _h = height | 0; // to int
+    var props = $DE.getAnmProps(wrapper);
+    props.width = _w;
+    props.height = _h;
+    if (!wrapper.style.width) { (props.inst_rule || wrapper).style.width  = _w + 'px'; }
+    if (!wrapper.style.height) { (props.inst_rule || wrapper).style.height = _h + 'px'; }
+    return [ _w, _h ];
 };
 
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
