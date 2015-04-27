@@ -38,7 +38,19 @@ var errors = require('../errors.js');
  * from the predefined ones or to register a new Tween type with {@link anm.Tween#register register()}
  * method.
  *
- * TODO the list of the tweens
+ * Tweens ready to use:
+ *
+ * * `'translate'` — value is a path to follow;
+ * * `'scale'` — values are start scale (one value or two values if horz/vert differ) and end scale (the same);
+ * * `'rotate'` — values are start angle and end angle;
+ * * `'rotatetopath'` — orient to path used in `'translate'`, no special value;
+ * * `'alpha'` — values are start and end opacity;
+ * * `'shear'` — values are start shear (one value or two values if horz/vert differ) and end shear (the same);
+ * * `'fill'` — values are start color or {@link anm.Brush Brush} instance and end color or Brush;
+ * * `'stroke'` — values are start color or {@link anm.Brush Brush} instance and end color or Brush;
+ * * `'shadow'` — values are start color or {@link anm.Brush Brush} instance and end color or Brush;
+ * * `'volume'` — values are start volume and end volume;
+ * * `'display'` — value is a boolean if element should be visible or not;
  *
  * Also see {@link anm.Element#translate translate(from, to)}, {@link anm.Element#scale scale(from, to)},
  * {@link anm.Element#rotate rotate(from, to)}, {@link anm.Element#scale scale(from, to)}, {@link anm.Element#skew skew(from, to)},
@@ -47,28 +59,29 @@ var errors = require('../errors.js');
  * Examples:
  *
  * * `// elm.rotate(0, Math.PI): Not yet implemented, should take the whole element band`
- * * `elm.tween(new Tween('rotate', [0, Math.PI]))`
- * * `elm.tween(new Tween('rotate').from(0).to(Math.PI / 2))`
- * * `elm.tween(Tween.rotate().values(0, Math.PI / 2))`*
- * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2))`
- * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2)`
- * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).start(0).stop(2)`
- * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing(function(t) { return 1 - t; }))`
- * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing('in'))`
- * * `elm.tween(Tween.translate().from(0, 0).to(100, 100))`
- * * `elm.tween(Tween.translate().data('M0 0 100 100'))`
- * * `elm.tween(Tween.rotatetopath())`
+ * * `elm.modify(Tween._$(rotate', [0, Math.PI]))`
+ * * `elm.modify(Tween._$('rotate').from(0).to(Math.PI / 2))`
+ * * `elm.modify(Tween.rotate().values(0, Math.PI / 2))`*
+ * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2))`
+ * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2)`
+ * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2).start(0).stop(2)`
+ * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing(function(t) { return 1 - t; }))`
+ * * `elm.modify(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing('in'))`
+ * * `elm.modify(Tween.translate().from(0, 0).to(100, 100))`
+ * * `elm.modify(Tween.translate().value('M0 0 100 100'))`
+ * * `elm.modify(Tween.translate().value(new Path().move(0, 0).line(100, 100)))`
+ * * `elm.modify(Tween.rotatetopath())`
+ * * `elm.modify(Tween['rotatetopath']())`
  */
 var Tween = Modifier;
 
-function createTween(type, data) {
+function createTween(type, value) {
     var mod = new Modifier(null, C.MOD_TWEEN); // mod.func will be set to `null` first
     var def = Registry[type];
     mod.def = def;
     mod.func = function(t, dt, duration) { if (mod.$tween) mod.$tween.call(this, t, dt, duration); };
     mod.is_tween = true;
-    mod.$value = data;
-    if (is.defined(data)) mod.$tween = def.func(data);
+    mod.value(value);
     return mod;
 }
 
@@ -84,7 +97,7 @@ Tween.register = function(type, definition) {
     definition.from = definition.from || Tween.DEFAULT_FROM;
     definition.to   = definition.to   || Tween.DEFAULT_TO;
     Registry[type] = definition;
-    Tween[type] = function(data) { return createTween(type, data); };
+    Tween[type] = function(value) { return createTween(type, value); };
 }
 
 Tween._$ = createTween;
@@ -195,12 +208,22 @@ Tween.register(C.T_TRANSLATE, {
         return path ? path.line(to[0], to[1]) : new Path().move(to[0], to[1]) }
 });
 
-Tween.register(C.T_SCALE, function(values) {
-    var _from = values[0],
-        to = values[1];
-    return function(t) {
-        this.sx = _from[0] * (1.0 - t) + to[0] * t;
-        this.sy = _from[1] * (1.0 - t) + to[1] * t;
+Tween.register(C.T_SCALE, {
+    func: function(values) {
+        var _from = values[0],
+            to = values[1];
+        return function(t) {
+            this.sx = _from[0] * (1.0 - t) + to[0] * t;
+            this.sy = _from[1] * (1.0 - t) + to[1] * t;
+        }
+    },
+    from: function(_from, both) {
+        _from = (_from.length) ? _from : [ _from, _from ];
+        return both ? [ _from, both[1] ] : [ _from, [ 1, 1 ] ];
+    },
+    to: function(to, both) {
+        to = (to.length) ? to : [ to, to ];
+        return both ? [ both[0], to ] : [ [ 1, 1 ], to ];
     }
 });
 
@@ -230,12 +253,22 @@ Tween.register(C.T_ALPHA, function(values) {
     };
 });
 
-Tween.register(C.T_SHEAR, function(values) {
-    var _from = values[0],
-        to = values[1];
-    return function(t) {
-        this.hx = _from[0] * (1.0 - t) + to[0] * t;
-        this.hy = _from[1] * (1.0 - t) + to[1] * t;
+Tween.register(C.T_SHEAR, {
+    func: function(values) {
+        var _from = values[0],
+            to = values[1];
+        return function(t) {
+            this.hx = _from[0] * (1.0 - t) + to[0] * t;
+            this.hy = _from[1] * (1.0 - t) + to[1] * t;
+        }
+    },
+    from: function(_from, both) {
+        _from = (_from.length) ? _from : [ _from, _from ];
+        return both ? [ _from, both[1] ] : [ _from, [ 1, 1 ] ];
+    },
+    to: function(to, both) {
+        to = (to.length) ? to : [ to, to ];
+        return both ? [ both[0], to ] : [ [ 1, 1 ], to ];
     }
 });
 

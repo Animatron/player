@@ -8,12 +8,12 @@ var defaultCode = [
   '                            .move(140, 25)',
   '                            .fill(\'#009\')',
   '                            .stroke(\'#f00\', 3)',
-  '                            .tween(Tween.rotate().band(0, 10).values(0, Math.PI / 2)))',
+  '                            .modify(Tween.rotate().band(0, 10).values(0, Math.PI / 2)))',
   '    .add(',
   '        element(\'red-rect\').rect(60)',
   '                           .move(115, 90)',
   '                           .fill(\'#f00\'))',
-  '    .tween(Tween.rotate().band(0, 10).values(0, Math.PI));'
+  '    .modify(Tween.rotate().band(0, 10).from(0).to(Math.PI));'
 ].join('\n');
 
 var examples = [];

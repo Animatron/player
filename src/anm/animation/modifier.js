@@ -28,6 +28,7 @@ Modifier.NOEVT_MODIFIERS = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER ];
  * * `elm.modify(function(t) { this.x += 1 / t; })`
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; }))` — modifier with a band equal to element's band
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).band(0, 2))` — modifier with its own band, relative to element's band
+ * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).start(0).stop(2))` — modifier with its own band, relative to element's band*
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).easing('inout'))` — modifier using pre-defined easing
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).easing('path', new anm.Path().move(10, 10).line(20, 20)))` — modifier using pre-defined path-based easing
  * * `elm.modify(new Modifier(function(t) { this.x += 1 / t; })).easing(fuction(t) { return 1 - t; }))` — modifier with custom time-easing function
