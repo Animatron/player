@@ -272,6 +272,7 @@ Import.branch = function(type, src, all, anim) {
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
         var ltrg = Import.node(nsrc, all, trg, anim);
+        if (!ltrg) continue;
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -384,7 +385,14 @@ Import.branch = function(type, src, all, anim) {
 // -> Element
 Import.leaf = function(type, src, parent, anim) {
     var trg = new Element();
-         if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
+    var hasUrl = !!src[1];
+    if (!hasUrl &&
+        (type === TYPE_IMAGE || TYPE_AUDIO || TYPE_VIDEO)) {
+        return null;
+    }
+    if (type == TYPE_IMAGE) {
+        trg.$image = Import.sheet(src);
+    }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
@@ -854,17 +862,18 @@ var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
         elm = Import.leaf(Import._type(el), el/*, anim*/);
-
-    elm.alpha = src[5];
-    elm.disabled = true;
-    Import.root.add(elm);
-    return {
-        elm: elm,
-        repeat: repeats[src[1]],
-        w: src[2],
-        h: src[3],
-        bounds: src[4]
-    };
+    if (elm) {
+        elm.alpha = src[5];
+        elm.disabled = true;
+        Import.root.add(elm);
+        return {
+            elm: elm,
+            repeat: repeats[src[1]],
+            w: src[2],
+            h: src[3],
+            bounds: src[4]
+        };
+    }
 };
 
 /** pathval **/

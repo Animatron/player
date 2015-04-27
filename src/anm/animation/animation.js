@@ -356,7 +356,7 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
 };
 
 Animation.prototype.handle__x = function(type, evt) {
-    if (events.mouseOrKeyboard(type)) {
+    if (events.mouse(type)) {
         var pos = evt.pos;
         this.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
