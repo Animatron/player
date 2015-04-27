@@ -1410,6 +1410,7 @@ Player.prototype._resize = function(width, height) {
     if (!new_size[0] || !new_size[1]) {
         new_size = cur_size;
     }
+    engine.setWrapperSize(this.wrapper, new_size[0], new_size[1]);
     engine.setCanvasSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];

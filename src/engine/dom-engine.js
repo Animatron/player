@@ -761,6 +761,17 @@ $DE._saveCanvasPos = function(cvs) {
     props.offset_top  = ot || props.usr_y;
 };
 
+$DE.setWrapperSize = function(wrapper, width, height) {
+    var _w = width | 0, // to int
+        _h = height | 0; // to int
+    var props = $DE.getAnmProps(wrapper);
+    props.width = _w;
+    props.height = _h;
+    if (!wrapper.style.width) { (props.inst_rule || wrapper).style.width  = _w + 'px'; }
+    if (!wrapper.style.height) { (props.inst_rule || wrapper).style.height = _h + 'px'; }
+    return [ _w, _h ];
+};
+
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     // conf should be: [ x, y, w, h ], all in percentage relative to parent
     // style may contain _class attr
