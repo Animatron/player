@@ -90,7 +90,7 @@ function Modifier(func, type) {
     }
     if (!is.defined(stop)) { stop = Infinity; }
     this.$band = [ start, stop ];
-    return func;
+    return this;
 };
 /**
  * @method start
@@ -211,6 +211,21 @@ Modifier.prototype.clone = function() {
     clone.$relative = this.$relative;
     clone.is_tween = this.is_tween;
     return clone;
+};
+/**
+ * @method apply
+ *
+ * Run this modifier with given time, delta-t and duration
+ *
+ * @param {anm.Element} elm element to be a context of a call
+ * @param {Number} t local modifier time
+ * @param {Number} [dt] difference in time to a previous call
+ * @param {Number} [duration] duration of the Element's or Modifier's band
+ *
+ * @return {Any} result of the call
+ */
+Modifier.prototype.apply = function(elm, t, dt, duration) {
+    return this.func.call(elm, t, dt, duration);
 };
 
 var convertEasing = function(easing, data, relative) {

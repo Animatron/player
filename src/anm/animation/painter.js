@@ -46,5 +46,19 @@ function Painter(func, type) {
     this.type = type || C.PNT_USER;
 }
 
+/**
+ * @method apply
+ *
+ * Run this painter with given 2D-context and time
+ *
+ * @param {anm.Element} elm element to be a context of a call
+ * @param {CanvasContext} ctx context to draw onto
+ * @param {Number} t local painter time
+ *
+ * @return {Any} result of the call
+ */
+ Painter.prototype.apply = function(elm, ctx) {
+    return this.func.call(elm, ctx);
+};
 
 module.exports = Painter;

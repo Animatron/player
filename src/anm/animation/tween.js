@@ -83,7 +83,7 @@ function createTween(type, value) {
     mod.def = def;
     mod.func = function(t, dt, duration) { if (mod.$tween) mod.$tween.call(this, t, dt, duration); };
     mod.is_tween = true;
-    mod.value(value);
+    if (is.defined(value)) mod.value(value);
     return mod;
 }
 

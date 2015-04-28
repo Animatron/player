@@ -560,7 +560,7 @@ Element.prototype.modifiers = function(ltime, dt, types) {
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
                 //                                         // time,      dt, duration
-                if ((lbtime === false) || (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false)) {
+                if ((lbtime === false) || (modifier.apply(elm, lbtime[0], dt, lbtime[1]) === false)) {
                     elm.__mafter(ltime, elm.__modifying, false);
                     elm.__modifying = null;
                     return false; // exit the method
@@ -608,7 +608,7 @@ Element.prototype.painters = function(ctx, types) {
         if (typed_painters) {
             for (var j = 0, jl = typed_painters.length; j < jl; j++) {
                 painter = typed_painters[j];
-                painter.call(elm, ctx);
+                painter.apply(elm, ctx);
             }
         }
 
