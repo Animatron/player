@@ -1,10 +1,6 @@
 var C = require('./constants.js'),
     SystemError = require('./errors.js').SystemError;
 
-var Modifier = require('./animation/modifier.js'),
-    Painter = require('./animation/painter.js'),
-    Tween = require('./animation/tween.js');
-
 var is = {};
 
 // FIXME: rename all to full-names
@@ -38,13 +34,13 @@ is.not_empty = function(obj) {
 };
 
 is.modifier = function(v) {
-    return v instanceof Modifier;
+    return (v instanceof anm.Modifier);
 };
 is.painter = function(v) {
-    return v instanceof Painter;
+    return (v instanceof anm.Painter);
 };
 is.tween = function(v) {
-    return v instanceof Modifier && v.is_tween;
+    return is.modifier(v) && v.is_tween;
 };
 
 is.equal = function(x, y) {

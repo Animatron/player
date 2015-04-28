@@ -31,6 +31,7 @@ var Element = require('./anm/animation/element.js'),
 // Public Namespace
 // -----------------------------------------------------------------------------
 var anm = {
+
     global: global,
     constants: constants,
     C: constants, // for backwards compatibility
@@ -50,20 +51,24 @@ var anm = {
     Animation: require('./anm/animation/animation.js'),
     Element: Element,
     Clip: Element,
+
     Path: require('./anm/graphics/path.js'),
-    Text: require('./anm/graphics/text.js'),
-    Sheet: Sheet,
-    Image: Sheet,
-    Modifier: require('./anm/animation/modifier.js'),
-    Painter: require('./anm/animation/painter.js'),
-    Brush: require('./anm/graphics/brush.js'),
-    Color: require('./anm/graphics/color.js'),
-    Tween: require('./anm/animation/tween.js'),
-    Audio: require('./anm/media/audio.js'),
-    Video: require('./anm/media/video.js'),
     MSeg: segments.MSeg,
     LSeg: segments.LSeg,
     CSeg: segments.CSeg,
+    Text: require('./anm/graphics/text.js'),
+    Sheet: Sheet,
+    Image: Sheet,
+
+    Modifier: require('./anm/animation/modifier.js'),
+    Tween: require('./anm/animation/tween.js'),
+    Painter: require('./anm/animation/painter.js'),
+
+    Brush: require('./anm/graphics/brush.js'),
+    Color: require('./anm/graphics/color.js'),
+
+    Audio: require('./anm/media/audio.js'),
+    Video: require('./anm/media/video.js'),
 
     interop: {
         playerjs: require('./anm/interop/playerjs-io.js')

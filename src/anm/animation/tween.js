@@ -1,9 +1,11 @@
 var C = require('../constants.js');
-var is = require('../utils.js').is;
 
 var Modifier = require('./modifier.js');
 var Brush = require('../graphics/brush.js');
 var Path = require('../graphics/path.js');
+
+var utils = require('../utils.js');
+var is = utils.is;
 
 var errors = require('../errors.js');
 
