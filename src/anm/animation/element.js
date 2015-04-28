@@ -2373,13 +2373,13 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     // gets element local time (relative to its local band) and
     // returns modifier local time (relative to its local band)
 
-    // TODO: move to modifier class?
+    // TODO: move to Modifier class?
 
     var elm = this,
         elm_duration = elm.lband[1] - elm.lband[0], // duration of the element's local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
-        mod_relative = modifier.relative, // is modifier time or band relative to elm duration or not
+        mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not
         mod_is_tween = modifier.is_tween; // should time be passed in relative time or not
 
     var res_time,

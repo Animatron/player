@@ -57,7 +57,7 @@ function Painter(func, type) {
  *
  * @return {Any} result of the call
  */
- Painter.prototype.apply = function(elm, ctx) {
+Painter.prototype.apply = function(elm, ctx) {
     return this.func.call(elm, ctx);
 };
 
