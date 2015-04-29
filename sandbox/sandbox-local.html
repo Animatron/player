@@ -15,14 +15,17 @@
     <link rel="stylesheet" href="./vendor/Tangle-0.1.0/TangleKit/TangleKit.css" type="text/css" />
     <link rel="stylesheet" href="./sandbox.css" type="text/css" />
 
-    <script src="../src/engine/dom-engine.js" type="text/javascript"></script>
-    <script src="../src/vendor/matrix.js" type="text/javascript"></script>
-    <script src="../src/anm.js" type="text/javascript"></script>
-    <script src="../src/player.js" type="text/javascript"></script>
-    <script src="../src/module/shapes.js" type="text/javascript"></script>
-    <!-- <script src="../src/module/collisions.js" type="text/javascript"></script> -->
-    <!-- <script src="../dist/bundle/hardcore.js" type="text/javascript"></script> -->
-    <!-- <script src="../dist/bundle/full/hardcore.js" type="text/javascript"></script> -->
+    <!--
+    <script src="http://player-dev.animatron.com/latest/bundle/animatron.js" type="text/javascript"></script>
+    -->
+
+    <!-- -->
+    <script src="../dist/player.js" type="text/javascript"></script>
+    <!-- -->
+
+    <!--
+    <script src="../dist/bundle/animatron.js" type="text/javascript"></script>
+    -->
 
     <script src="./vendor/codemirror-3.16/lib/codemirror.js"></script>
     <script src="./vendor/codemirror-3.16/mode/javascript/javascript.js"></script>
@@ -44,20 +47,17 @@
 
     <div id="left-pane">
 
-      <pre class="locked">#player</pre>
+      <pre class="locked">div#player</pre>
 
-      <div id="player"></div>
+      <div id="player-wrapper"><div id="player"></div></div>
 
       <div><p id="refresh-calc">Current refresh period: <span data-var="secPeriod" class="TKAdjustableNumber" data-max="60"> seconds</span>.<br/>Animation will be reloaded <span data-var="perMinute"> times</span> per minute</p>
-      <p id="debug-options"><span>Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></span> /
+      <p id="debug-options"><span>Enable debug:&nbsp;<input type="checkbox" id="enable-debug"></input></span>
                             <span>Log errors:&nbsp;<input type="checkbox" id="log-errors"></input></span></p>
-
       <p id="switch-mode-l">Switch mode:&nbsp;</p>
       <form id="switch-mode">
-         <input type="radio" value="M_SANDBOX" checked="checked" name="mode" onclick="change_mode(this);" />&nbsp;<span>SANDBOX</span>
-         <input type="radio" value="M_PREVIEW" name="mode" onclick="change_mode(this);" />&nbsp;<span>PREVIEW</span>
-         <input type="radio" value="M_DYNAMIC" name="mode" onclick="change_mode(this);" />&nbsp;<span>DYNAMIC</span>
-         <input type="radio" value="M_VIDEO" name="mode" onclick="change_mode(this);" />&nbsp;<span>VIDEO</span>
+         <input type="radio" value="M_SANDBOX" checked="checked" name="mode" onclick="change_mode(this);" />&nbsp;<span>non-interactive</span>
+         <input type="radio" value="M_DYNAMIC" name="mode" onclick="change_mode(this);" />&nbsp;<span>interactive</span>
          <!-- FIXME: not works <input type="radio" value="M_VIDEO" name="mode" onclick="change_mode(this);" />&nbsp;<span>video</span> -->
       <form></div>
 
@@ -71,58 +71,23 @@
 
     <div id="right-pane">
 
-            <pre class="locked">var elm = anm.Element._$, E = anm.Element; C = anm.constants;
-
+            <pre class="locked">var element = anm.Element._$;
+var Tween = anm.Tween, tween = anm.Tween._$;
 var animation = (function() {</pre>
 
       <textarea id="animation-source"> </textarea> <!-- source editor -->
 
-      <pre class="locked">})();
-
-createPlayer("player").load(animation).play();</pre>
+      <pre class="locked">})(); createPlayer("player").load(animation).play();</pre>
 
       <p>
-        <a id="csheet-link" href="#"
-           onclick="return show_csheet('csheet', 'csheet-overlay');">{ Show Cheat Sheet }</a>
-        <a id="api-link" href="http://github.com/Animatron/player/blob/master/doc/API.md#files">[ API reference ]</a></p>
+        <a id="player-page-link" href="http://animatron.com/player">[ Player Home ]</a>
+        <a id="api-link" href="http://animatron.github.io/player/doc/api/index.html">[ API reference ]</a></p>
 
-
-    </div>
-
-    <!-- cheat sheet -->
-
-    <div id="csheet-overlay" style="display: none;">&nbsp;</div>
-    <div id="csheet" style="display: none;">
-      <dl>
-        <dt>elm() =&gt; Element</dt>
-        <dd>Create new <code>Element</code> instance. <code>Element</code> gives shortcut methods to modify it. The <code>Element</code> may be easily added to the <code>Animation</code></dd>
-        <dt>.add(Element) =&gt; Element.</dt>
-        <dd>Add child element. Example: <code>elm().add(b().rect([5,6],[20,30]))</code></dd>
-        <dt>.fill(clr: String) =&gt; Element</dt>
-        <dd>Change fill of the current element. Example: <code>.fill(&quot;#FF6CBB&quot;)</code> or <code>.fill(&quot;rgb(12, 16, 32)&quot;)</code></dd>
-        <dt>.stroke(clr: String) =&gt; Element</dt>
-        <dd>Change stroke of the current element. Example: <code>.stroke(&quot;#FF6CBB&quot;)</code> or <code>.stroke(&quot;rgb(12, 16, 32)&quot;)</code></dd>
-        <dt>.rect(pt: Array[2,Integer], wh: Array[2,Integer]) =&gt; Element</dt>
-        <dd>Make current element a rectangle, given a point and width/height. Example: <code>.rect([20, 20], [60, 60])</code></dd>
-        <dt>.circle(pt: Array[2,Integer], radius: Integer) =&gt; Element</dt>
-        <dd>Make current element a circle, given a point and radius. Example: <code>.circle([20, 20], 60)</code></dd>
-        <dt>.path(path: String) =&gt; Element</dt>
-        <dd>Make current element to be formed with given path. Path string is in SVG-like format, i.e. <code>&quot;M0.0 10.0 L20.0 20.0 C10.0 20.0 15.0 30.0 10.0 9.0 Z&quot;</code></dd>
-        <dt>.image(src: String) =&gt; Element</dt>
-        <dd>Make current element an image, parameter is the URL of the image (be accurate with remote images)</dd>
-        <dt>.rotate(band: Array[2,Float], values: Array[2,Float]) =&gt; Element</dt>
-        <dd>Rotate this element in given time-band. Values are start and end angle in radians. Example: <code>.rotate([0, 5], [0, Math.PI / 2])</code></dd>
-        <dt>.paint(Function(ctx: Context)) => Element</dt>
-        <dd>Paint this element directly to 2D context, using the given function. These function are stacked, so if you call this method twice on the same element with different functions, these functions will be callled sequentially in the same order.</dt>
-        <dt>.modify(Function(Float, Float, Any)[, Any]) => Element</dt>
-        <dd>Modify this element position, scale, alpha and/or rotation using the given function.
-          <code>this</code> in the given function will refer to the element state that is allowed to change (try changing <code>this.x</code>, for example), first function parameter is current animation position in 0..1 range, second is its duration.</dd>
-      </dl>
     </div>
 
     <!-- copyright -->
 
-    <div id="copyright"><span>© 2011-2013 by Animatron</span></div>
+    <div id="copyright"><span>© 2011-2015 by Animatron</span></div>
 
   </body>
 
