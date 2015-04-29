@@ -1,0 +1,296 @@
+/*
+ * Copyright (c) 2011-2014 by Animatron.
+ * All rights are reserved.
+ *
+ * Animatron player is licensed under the MIT License, see LICENSE.
+ */
+
+html {
+	height: 100%;
+}
+
+body {
+	font-family: sans-serif;
+	margin: 2%;
+	margin-bottom: 10px;
+	height: 88%;
+}
+
+h1 {
+	border-bottom-width: 3px;
+	border-bottom-style: solid;
+	margin-right: 2%;
+	margin-bottom: 0.7em;
+	padding-bottom: 3px;
+	font-size: 1.55em;
+}
+
+@media screen and (max-width: 1024px) {
+	h1 {
+		font-size: 1.3em;
+	}
+}
+
+pre {
+	padding: 5px;
+	margin: 0;
+}
+
+#player-wrapper {
+	margin: 0;
+	margin-top: 10px;
+	margin-bottom: 20px;
+	border-width: 1px;
+	border-style: solid;
+}
+
+textarea, .CodeMirror {
+	height: auto;
+	margin-bottom: 10px;
+	border-width: 1px;
+	border-style: solid;
+	min-height: 75%;
+	border-left-width: 3px;
+}
+
+.CodeMirror-scroll {
+	overflow-x: auto; overflow-y: hidden;
+}
+
+.CodeMirror-linenumber {
+	font-size: .7em;
+	margin: 1px;
+	padding-top: 2px;
+}
+
+.CodeMirror-gutters {
+	padding-right: 5px;
+	margin-right: 10px;
+	border: none;
+	left: -20px;
+}
+
+.CodeMirror-lines {
+	padding: 5px;
+}
+
+#player {
+	/*width: 400px;
+	  height: 300px;*/
+}
+
+#left-pane {
+	float: left;
+	margin-bottom: 5em;
+	width: 32%;
+}
+
+#right-pane {
+	float: left;
+	margin-left: 30px;
+	margin-bottom: 10px;
+	height: 98%;
+	width: 64%;
+}
+
+select#examples-list {
+	width: 100%;
+}
+
+@media screen and (min-width: 400px) and (max-width: 780px) {
+	#left-pane {
+		max-width: 100%;
+		min-width: 80%;
+	}
+
+	#right-pane {
+		display: none;
+	}
+}
+
+@media screen and (min-width: 720px) and (max-width: 865px) {
+	#right-pane {
+		font-size: 0.8em;
+	}
+}
+
+#right-pane p {
+	margin-bottom: 0;
+}
+
+#left-pane pre.locked, #right-pane pre.locked {
+	/*font-weight: bold;*/
+	margin-bottom: 10px;
+	height: 3.5em;
+	line-height: 1.3em;
+}
+select#examples-list {
+	margin: 0;
+	margin-top: 15px;
+	border-width: 1px;
+	border-style: solid;
+	font-family: monospace;
+	font-size: 12px;
+}
+
+select#examples-list:focus {
+	outline: none;
+}
+
+#copyright {
+	font-size: 0.8em;
+	position: fixed;
+	bottom: 5px;
+	right: 5px;
+}
+
+#errors {
+	font-family: monospace;
+	padding: 5px;
+	border-width: 2px;
+	border-style: solid;
+	margin: 12px 0 0 0;
+	max-width: 386px; /* 400 - 5*2 - 2*2 */
+}
+
+#refresh-calc, #debug-options, #switch-mode-l, #switch-mode {
+	font-size: .8em;
+}
+
+#debug-options {
+	margin-bottom: 4px;
+}
+
+#switch-mode-l {
+	float: left;
+	margin-top: 2px;
+	margin-bottom: 2px;
+}
+
+#player-page-link, #api-link {
+	font-size: .8em;
+	margin-right: 10px;
+}
+
+/* colors, when CodeEditor is not focused */
+
+body {
+	background-color: #fefefe;
+	color: #333;
+}
+
+h1 {
+	border-color: #ccc;
+	color: #333;
+}
+
+#player, textarea, .CodeMirror {
+	border-color: #ddd;
+	color: #8a8a8a;
+}
+
+.CodeMirror-linenumber {
+	color: #ccc;
+}
+
+.CodeMirror-gutters {
+	background: #fcfcfc;
+}
+
+#left-pane pre.locked {
+	color: #336;
+	background-color: #ddf;
+}
+
+#right-pane pre.locked {
+    color: #363;
+	background-color: #dfd;
+}
+
+select#examples-list {
+	border-color: #ccc;
+	color: #333;
+}
+
+#copyright {
+	color: #666;
+}
+
+#errors {
+	border-color: #600;
+	color: #600;
+	background-color: #fee;
+}
+
+#player-page-link, #api-link {
+	color: #006;
+}
+
+a#player-page-link:hover, a#api-link:hover {
+    background-color: #eee;
+}
+
+/* colors, when CodeEditor is focused */
+
+body.blur {
+	background-color: #fefefe;
+	color: #999;
+}
+
+body.blur h1 {
+	border-color: #eee;
+	color: #666;
+}
+
+body.blur #player-wrapper,
+body.blur textarea,
+body.blur .CodeMirror {
+	border-color: #eee;
+	color: #9a9a9a;
+}
+
+body.blur .CodeMirror-linenumber {
+	color: #dedede;
+}
+
+body.blur .CodeMirror-gutters {
+	background: #fcfcfc;
+}
+
+body.blur #left-pane pre.locked {
+	color: #88b;
+	background-color: #fafaff;
+}
+
+body.blur #right-pane pre.locked {
+    color: #8b8;
+	background-color: #f6fff6;
+}
+
+body.blur select#examples-list {
+	border-color: #eee;
+	color: #999;
+}
+
+body.blur #copyright {
+	color: #999;
+}
+
+body.blur #errors {
+	border-color: #600;
+	color: #600;
+	background-color: #fee;
+}
+
+body.blur #csheet-link {
+	color: #f66;
+}
+
+body.blur #api-link {
+	color: #99f;
+}
+
+body.blur a#csheet-link:hover,
+body.blur a#api-link:hover {
+    background-color: #eee;
+}
