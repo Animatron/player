@@ -18,14 +18,37 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
 
+    var widthVal = document.getElementById('val-width');
+    var heightVal = document.getElementById('val-height');
+    var durationVal = document.getElementById('val-duration');
+
     var width = 420, height = 250;
 
-    var element = anm.Element._$;
-    var Tween = anm.Tween, tween = anm.Tween._$;
+    var ctx = {
+        width: width,
+        height: height,
+        duration: Math.round(DEFAULT_REFRESH_RATE / 1000),
+        element: anm.Element._$,
+        Tween: anm.Tween,
+        Path: anm.Path,
+        Color: anm.Color
+    }
 
-    window.element = anm.Element._$;
-    window.Tween = anm.Tween;
-    window.tween = anm.Tween._$;
+    function applyCtx(userCode, ctx) {
+        return 'var width=' + ctx.width + ',height=' + ctx.height + ';' +
+               'var duration=' + ctx.duration + ';' +
+               'var element=ctx.element,Tween=ctx.Tween,Path=ctx.Path,Color=ctx.Color;'
+               + userCode;
+    }
+
+    function updateDuration(val) {
+        ctx.duration = val;
+        durationVal.innerText = val;
+    }
+
+    widthVal.innerText = width;
+    heightVal.innerText = height;
+    updateDuration(ctx.duration);
 
     this.player = anm.createPlayer('player', {
         muteErrors: true,
@@ -76,9 +99,9 @@ function sandbox() {
         wereErrors = false;
 
     function makeSafe(code) {
-        return ['(function(){',
+        return ['(function(ctx){',
                 '  '+code,
-                '})();'].join('\n');
+                '});'].join('\n');
     }
 
     function playFrom(from, rate) {
@@ -87,8 +110,8 @@ function sandbox() {
             _player.stop();
             var userCode = s.cm.getValue();
             if (localStorage) save_current_code(userCode);
-            var safeCode = makeSafe(userCode);
-            var anim = eval(safeCode);
+            var safeCode = makeSafe(applyCtx(userCode, ctx));
+            var anim = (function() { return eval(safeCode)(ctx); })();
             if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
                 throw new Error('No animation was returned from code');
             }
@@ -201,10 +224,12 @@ function sandbox() {
         },
         update: function () {
             this.perMinute = Math.floor((60 / this.secPeriod) * 100) / 100;
+            updateDuration(Math.floor(this.secPeriod));
             runSequence(this.secPeriod * 1000, 0);
         }
     };
 
+    updateDuration(Math.floor(refreshRate / 1000));
     runSequence(refreshRate, 0);
 
     new Tangle(this.tangleElm, tangleModel);
