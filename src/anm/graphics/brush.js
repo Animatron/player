@@ -65,8 +65,8 @@ var Color = require('./color.js');
  * * `var brush = Brush.fill(Brush.rgrad({0: "#000", 0.5: "#ccc"}, [0.5, 0.5]));`
  * * `var brush = Brush.shadow('rgb(10, 20, 40)', 3, 0, 0);`
  *
- * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill()}, {@link anm.Element#stroke Element.stroke()},
- * {@link anm.Element#shadow Element.shadow()}
+ * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill}, {@link anm.Element#stroke Element.stroke},
+ * {@link anm.Element#shadow Element.shadow}
  *
  */
 function Brush(value) {
@@ -241,7 +241,7 @@ Brush.prototype.clone = function()  {
  *
  * Create a Fill-Brush
  *
- * See {@link anm.Element#fill Element.fill()}
+ * See {@link anm.Element#fill Element.fill}
  *
  * Examples:
  *
@@ -274,7 +274,7 @@ Brush.fill = function(value) {
  *
  * Create a Stroke-Brush
  *
- * See {@link anm.Element#stroke Element.stroke()}
+ * See {@link anm.Element#stroke Element.stroke}
  *
  * Examples:
  *
@@ -306,7 +306,7 @@ Brush.stroke = function(color, width, cap, join, mitter) {
  *
  * Create a Shadow-Brush
  *
- * See {@link anm.Element#shadow Element.shadow()}
+ * See {@link anm.Element#shadow Element.shadow}
  *
  * Examples:
  *
@@ -422,13 +422,13 @@ Brush.clearShadow = function(ctx) {
  * NB: if you re-use the returned function, be aware that it shares and updates
  * the same instance between the calls.
  *
- * See {@link anm.Color#interpolate Color.interpolate()}
+ * See {@link anm.Color#interpolate Color.interpolate}
  *
  * @param {anm.Brush} from initial state of interpolation
  * @param {anm.Brush} to final state of interpolation
  * @return {Function} function that takes t and returns interpolation result
- * @param {Number} return.t distance between initial and final state, as `0..1`
- * @param {anm.Brush} return.return a brush value as a result of interpolation
+ * @return {Number} return.t distance between initial and final state, as `0..1`
+ * @return {anm.Brush} return.return a brush value as a result of interpolation
  */
 Brush.interpolateBrushes = function(from, to) {
     var equal = is.equal(from, to);
