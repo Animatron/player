@@ -33,24 +33,36 @@ var Element = require('./anm/animation/element.js'),
 var anm = {
 
     global: global,
+
     constants: constants,
     C: constants, // for backwards compatibility
-    modules: require('./anm/modules.js'),
-    importers: require('./anm/importers.js'),
-    conf: require('./anm/conf.js'),
-    log: require('./anm/log.js'),
-    engine: engine,
-    events: require('./anm/events.js'),
-    resource_manager: require('./anm/resource_manager.js'),
-    player_manager: require('./anm/player_manager.js'),
     loc: require('./anm/loc.js'),
     errors: require('./anm/errors.js'),
+
     utils: require('./anm/utils.js'),
+    conf: require('./anm/conf.js'),
+    log: require('./anm/log.js'),
+
+    modules: require('./anm/modules.js'),
+    importers: require('./anm/importers.js'),
+    engine: engine,
+
+    events: require('./anm/events.js'),
+
+    resource_manager: require('./anm/resource_manager.js'),
+    player_manager: require('./anm/player_manager.js'),
 
     Player: Player,
     Animation: require('./anm/animation/animation.js'),
     Element: Element,
     Clip: Element,
+
+    Modifier: require('./anm/animation/modifier.js'),
+    Tween: require('./anm/animation/tween.js'),
+    Painter: require('./anm/animation/painter.js'),
+
+    Brush: require('./anm/graphics/brush.js'),
+    Color: require('./anm/graphics/color.js'),
 
     Path: require('./anm/graphics/path.js'),
     MSeg: segments.MSeg,
@@ -59,13 +71,7 @@ var anm = {
     Text: require('./anm/graphics/text.js'),
     Sheet: Sheet,
     Image: Sheet,
-
-    Modifier: require('./anm/animation/modifier.js'),
-    Tween: require('./anm/animation/tween.js'),
-    Painter: require('./anm/animation/painter.js'),
-
-    Brush: require('./anm/graphics/brush.js'),
-    Color: require('./anm/graphics/color.js'),
+    shapes: require('./anm/graphics/shapes.js'),
 
     Audio: require('./anm/media/audio.js'),
     Video: require('./anm/media/video.js'),

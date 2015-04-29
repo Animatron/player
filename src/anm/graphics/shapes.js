@@ -7,26 +7,13 @@
  * @VERSION
  */
 
-// TODO: element.rect
-// TODO: element.ellipse
-// TODO: element.arc
-// and so on
+var Element = require('../animation/element.js');
 
-anm.modules.register('shapes', {});
+var Path = require('./path.js'),
+    segments = require('./segments.js'),
+    MSeg = segments.MSeg, LSeg = segments.LSeg, CSeg = segments.CSeg;
 
-var E = anm.Element;
-
-var C = anm.C;
-
-var Path = anm.Path,
-    MSeg = anm.MSeg, LSeg = anm.LSeg, CSeg = anm.CSeg;
-
-// case 'dot':  elm.dot(0, 0); break;
-// case 'rect': elm.rect(0, 0, size.x, size.y); break;
-// case 'oval': elm.oval(0, 0, size.x, size.y); break;
-// case 'triangle': elm.triangle(0, 0, size.x, size.y); break;
-
-E.prototype.dot = function() {
+Element.prototype.dot = function() {
     var x = 0, y = 0;
     var me = this;
     this.paint(function(ctx) {
@@ -38,7 +25,7 @@ E.prototype.dot = function() {
     return this;
 }
 
-E.prototype.rect = function(width, height) {
+Element.prototype.rect = function(width, height) {
     // FIXME: or use painter instead, but specify Element.type
     //if (this.$path) { this.$path.reset(); }
     //var path = this.$path || (new Path());
@@ -56,7 +43,7 @@ E.prototype.rect = function(width, height) {
     return this;
 }
 
-E.prototype.oval = function(width, height) {
+Element.prototype.oval = function(width, height) {
     var me = this;
     var x = 0, y = 0,
         xradius = width / 2,
@@ -71,7 +58,7 @@ E.prototype.oval = function(width, height) {
     return this;
 }
 
-E.prototype.triangle = function(width, height) {
+Element.prototype.triangle = function(width, height) {
     var x = 0, y = 0,
         width = width,
         height = height || width;
@@ -85,3 +72,5 @@ E.prototype.triangle = function(width, height) {
     this.path(path);
     return this;
 }
+
+module.exports = {};
