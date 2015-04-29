@@ -181,7 +181,7 @@ function sandbox() {
     }
 
     this.selectElm.onchange = function() {
-        s.cm.setValue(examples[this.selectedIndex][1]);
+        s.cm.setValue(examples[this.selectedIndex][2]);
         wereErrors = false;
         refreshFromStart();
     }
@@ -233,12 +233,14 @@ function store_examples() {
 function store_example(i) {
     var ekey = '_example'+i,
         vkey = ekey+'__v',
+        nkey = ekey+'__n',
         ver = localStorage.getItem(vkey);
     if ((typeof ver === 'undefined') ||
         (ver === null) ||
         (ver < examples[i][0])) {
         localStorage.setItem(vkey, examples[i][0]);
-        localStorage.setItem(ekey, examples[i][1]);
+        localStorage.setItem(nkey, examples[i][1]);
+        localStorage.setItem(ekey, examples[i][2]);
     }
     localStorage.setItem('_examples_count', examples.length);
 }
@@ -251,13 +253,16 @@ function load_examples() {
     for (var i = 0; i < count; i++) {
         var ekey = '_example'+i,
             vkey = ekey+'__v',
-            ver = localStorage.getItem(vkey);
+            nkey = ekey+'__n',
+            ver = localStorage.getItem(vkey),
+            name = localStorage.getItem(nkey)
         if ((typeof ver !== 'undefined') &&
             (ver !== null) &&
             ((i >= elen) ||
              (ver > examples[i][0]))) {
             examples[i] = [
                 ver,
+                name,
                 localStorage.getItem(ekey)
             ];
         }
@@ -294,11 +299,14 @@ function list_examples(selectElm) {
     selectElm.innerHTML = '';
     var elen = examples.length;
     //selectElm.setAttribute('size', elen);
+    var optElm; var version, name;
     for (var i = 0; i < elen; i++) {
-        var optElm = document.createElement('option');
+        optElm = document.createElement('option');
+        version = examples[i][0];
+        name    = examples[i][1];
         optElm.setAttribute('value', i);
-        optElm.innerHTML = i + ': [v' + examples[i][0] + '] : ' +
-                           examples[i][1].substring(0, 45).split('\n').join('↵');
+        optElm.innerHTML = /*'Example ' + (i + 1) + ': ' + */ name +
+            ((version > 0) ? ' (version ' + version + ')' : '');
         selectElm.appendChild(optElm);
     }
 }
