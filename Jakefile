@@ -550,9 +550,8 @@ task('rm-version', { async: true }, function(param) {
 // invalidate ==================================================================
 desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
 task('invalidate', [], { async: true }, function(version) {
-    version = version || 'latest';
-    _print('Ready to get credentials.');
-
+    version = version || VERSION;
+    console.log('Creating invalidation for version', version);
     var creds = [];
     try {
         creds = jake.cat(_loc('.s3'));
@@ -561,10 +560,7 @@ task('invalidate', [], { async: true }, function(version) {
         _print(FAILED_MARKER);
         throw e;
     }
-
     creds = creds.split(/\s+/);
-
-
     var AWS = require('aws-sdk');
     AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
     var distributionId = creds[3];
@@ -573,8 +569,6 @@ task('invalidate', [], { async: true }, function(version) {
         _print(FAILED_MARKER);
         return;
     }
-    _print('Got credentials. Creating an invalidation.');
-
     var paths = [
         '/%VERSION%/bundle/animatron.js',
         '/%VERSION%/bundle/animatron.min.js',
@@ -636,7 +630,7 @@ task('deploy-publishjs', {async: true}, function(version, bucket){
     }
     s3.putObject(params, function(err) {
         if (err) {
-            console.log('Deployment failed:', err.message);
+            console.error('Deployment failed:', err.message);
         } else {
             console.log('Deployment of publish.js complete.');
         }
@@ -711,7 +705,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
                 console.log('Deployment complete.');
                 if (isProd) {
                     //invalidate files after production deployment
-                    var invalidate = jake.Task['invalidate'];
+                    var invalidate = jake.Task.invalidate;
                     invalidate.addListener('complete', function(){
                         complete();
                     });
@@ -728,7 +722,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
     } else {
         var git = jake.createExec('git symbolic-ref --short HEAD');
         git.on('stdout', function(branch) {
-            if (branch !== 'master') {
+            if (branch.toString().trim() !== 'master') {
                 console.error('You have to be on the master branch to deploy to production');
                 console.log('Deployment aborted.');
                 complete();
