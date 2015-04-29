@@ -94,10 +94,8 @@ var Files = {
                                  'animatron-intact-importer.js' ],
                         ANM: 'animatron-importer.js',
                         ANM_INTACT: 'animatron-intact-importer.js' },
-           MODULES: { _ALL_: [ //'audio-export.js',
-                               'shapes.js' ],
-                      // AUDIO_EXPORT: 'audio-export.js',
-                      SHAPES: 'shapes.js' }, },
+           MODULES: { _ALL_: [ /* 'audio-export.js' */ ]
+                      /* AUDIO_EXPORT: 'audio-export.js' */ }, },
     Doc: { README: 'README.md',
            EMBEDDING: 'embedding.md',
            SCRIPTING: 'scripting.md' }
@@ -108,7 +106,7 @@ var Bundles = [
       file: 'animatron',
       includes: _in_dir(Dirs.DIST,      [Files.Main.PLAYER])
         .concat(_in_dir(Dirs.SRC + '/' + SubDirs.IMPORTERS, [ Files.Ext.IMPORTERS.ANM ])) // animatron-importer.js
-        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ Files.Ext.MODULES.SHAPES ])) }
+        .concat(_in_dir(Dirs.SRC + '/' + SubDirs.MODULES,   [ ])) }
 ];
 
 var Tests = {
