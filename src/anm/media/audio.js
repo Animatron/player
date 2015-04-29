@@ -189,6 +189,10 @@ Audio.prototype.load = function(elm, player) {
       function(audio) { // oncomplete
           me.audio = audio;
           me.ready = true;
+          if (me.shouldPlayWhenReady) {
+              me.play(me.shouldPlayParams.ltime, me.shouldPlayParams.duration);
+              me.shouldPlayWhenReady = false;
+          }
           if (player.muted) {
               me.mute();
           }
@@ -201,8 +205,17 @@ Audio.prototype.load = function(elm, player) {
 };
 /** @private @method play */
 Audio.prototype.play = function(ltime, duration) {
-    if (!this.ready || this.playing) {
+    if (this.playing) {
       return false;
+    }
+
+    if (!this.ready) {
+        this.shouldPlayWhenReady = true;
+        this.shouldPlayParams = {
+            ltime: ltime,
+            duration: duration
+        };
+        return;
     }
 
     this.playing = true;
