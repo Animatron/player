@@ -20,28 +20,31 @@ var examples = [];
 examples.push([ 0 /*version*/, defaultCode ]);
 
 examples.push([ 0 /*version*/, [
-  'var circles = [ [ 10, 15, 30 ],',
-  '                [ 70, 30, 50 ],',
-  '                [ 60, 40, 14 ] ];',
+  '//                  x,   y,   r',
   '',
-  'var o = elm();',
+  'var circles = [ [  20,  20,  50 ],',
+  '                [  70,  30,  70 ],',
+  '                [  60, 120,  14 ],',
+  '                [ 140, 110,  20 ],',
+  '                [ 160, 160, 200 ] ];',
+  '',
+  'var o = element();',
   '',
   'for (var i = 0, clen = circles.length; i < clen; i++) {',
   '    var cx = circles[i][0],',
   '        cy = circles[i][1],',
   '        cr = circles[i][2];',
-  '    o.add(elm().oval([cx, cy], cr)',
-  '               .stroke(\'#333\', 2).fill(\'#366\')',
-  '               .alpha([1.3, 3], [1, .4])',
-  '               .modify(function(t, duration) {',
-  '                   this.x = 150;',
-  '                   this.y = 20;',
-  '                   this.sx = 1 / t;',
-  '                   this.sy = 1 / t;',
-  '               }));',
+  '    o.add(element().move(cx, cy)',
+  '                   .oval(cr)',
+  '                   .stroke(\'#333\', 2).fill(\'#366\')',
+  '                   .modify(Tween.alpha().band(1.3, 3).values(1, .4))',
+  '                   .modify(function(t, duration) {',
+  '                       this.sx = 1 / t;',
+  '                       this.sy = 1 / t;',
+  '                    }));',
   '}',
   '',
-  'return o.rotate([0, 3], [0, Math.PI / 2]);'
+  'return o.modify(Tween.rotate().band(0, 3).from(Math.PI / 4).to(-(0.15 * Math.PI)));'
 ].join('\n') ]);
 
 examples.push([ 0, [
