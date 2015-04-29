@@ -525,8 +525,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
 
     // FIXME: checkJump is performed before, may be it should store its values inside here?
     if (is.num(elm.__appliedAt)) {
-      elm._t   = elm.__appliedAt;
-      elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+        elm._t   = elm.__appliedAt;
+        elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
     }
     // FIXME: elm.t and elm.dt both should store real time for this moment.
     //        modifier may have its own time, though, but not painter, so painters probably
@@ -560,7 +560,7 @@ Element.prototype.modifiers = function(ltime, dt, types) {
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
                 //                                         // time,      dt, duration
-                if ((lbtime === false) || (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false)) {
+                if ((lbtime === false) || (modifier.apply(elm, lbtime[0], dt, lbtime[1]) === false)) {
                     elm.__mafter(ltime, elm.__modifying, false);
                     elm.__modifying = null;
                     return false; // exit the method
@@ -608,7 +608,7 @@ Element.prototype.painters = function(ctx, types) {
         if (typed_painters) {
             for (var j = 0, jl = typed_painters.length; j < jl; j++) {
                 painter = typed_painters[j];
-                painter.call(elm, ctx);
+                painter.apply(elm, ctx);
             }
         }
 
@@ -2373,13 +2373,13 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     // gets element local time (relative to its local band) and
     // returns modifier local time (relative to its local band)
 
-    // TODO: move to modifier class?
+    // TODO: move to Modifier class?
 
     var elm = this,
         elm_duration = elm.lband[1] - elm.lband[0], // duration of the element's local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
-        mod_relative = modifier.relative, // is modifier time or band relative to elm duration or not
+        mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not
         mod_is_tween = modifier.is_tween; // should time be passed in relative time or not
 
     var res_time,

@@ -33,14 +33,14 @@ is.not_empty = function(obj) {
     else return (Object.getOwnPropertyNames(obj).length > 0);
 };
 
-is.modifier = function(f) {
-    return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
+is.modifier = function(v) {
+    return (v instanceof anm.Modifier);
 };
-is.painter = function(f) {
-    return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
+is.painter = function(v) {
+    return (v instanceof anm.Painter);
 };
-is.tween = function(f) {
-    return f.is_tween && is.modifier(f);
+is.tween = function(v) {
+    return is.modifier(v) && v.is_tween;
 };
 
 is.equal = function(x, y) {
