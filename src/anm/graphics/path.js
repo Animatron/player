@@ -193,7 +193,7 @@ Path.prototype.close = function() {
  * @return {anm.Path} itself
  */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
-    if (engine.path2d) {
+    if (useP2D) {
         this.updatePath2D();
         if (shadow) {
             shadow.apply(ctx);
