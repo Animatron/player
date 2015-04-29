@@ -47,30 +47,35 @@ Bounds.prototype.load = function(other) {
     this.y = other.y;
     this.width = other.width;
     this.height = other.height;
-}
+};
 <span id='anm-Bounds-method-loadDiag'>/**
 </span> * @private @method loadDiag
  */
 Bounds.prototype.loadDiag = function(x1, y1, x2, y2) {
+    var t;
     if (x2 &lt; x1) {
-        var t = x1; x1 = x2; x2 = t;
+        t = x1;
+        x1 = x2;
+        x2 = t;
     }
     if (y2 &lt; y1) {
-        var t = y1; y1 = y2; y2 = t;
+        t = y1;
+        y1 = y2;
+        y2 = t;
     }
     this.x = x1;
     this.y = y1;
     this.width = x2 - x1;
     this.height = y2 - y1;
-}
+};
 <span id='anm-Bounds-method-minX'>/** @method minX get minimum X value */
-</span>Bounds.prototype.minX = function() { return this.x; }
+</span>Bounds.prototype.minX = function() { return this.x; };
 <span id='anm-Bounds-method-minY'>/** @method minY get minimum Y value */
-</span>Bounds.prototype.minY = function() { return this.y; }
+</span>Bounds.prototype.minY = function() { return this.y; };
 <span id='anm-Bounds-method-maxX'>/** @method maxX get maximum X value */
-</span>Bounds.prototype.maxX = function() { return this.x + this.width; }
+</span>Bounds.prototype.maxX = function() { return this.x + this.width; };
 <span id='anm-Bounds-method-maxY'>/** @method maxY get maximum Y value */
-</span>Bounds.prototype.maxY = function() { return this.y + this.height; }
+</span>Bounds.prototype.maxY = function() { return this.y + this.height; };
 <span id='anm-Bounds-method-add'>/**
 </span> * @method add
  *
@@ -88,7 +93,7 @@ Bounds.prototype.add = function(other) {
     } else {
         this.load(other);
     }
-}
+};
 <span id='anm-Bounds-method-addPoint'>/**
 </span> * @method addPoint
  *
@@ -103,7 +108,7 @@ Bounds.prototype.addPoint = function(pt) {
                   Math.min(this.minY(), pt.y),
                   Math.max(this.maxX(), pt.x),
                   Math.max(this.maxY(), pt.y));
-}
+};
 <span id='anm-Bounds-method-toPoints'>/**
 </span> * @method toPoints
  *
@@ -118,7 +123,7 @@ Bounds.prototype.toPoints = function() {
         { x: this.x + this.width, y: this.y + this.height },
         { x: this.x, y: this.y + this.height }
     ];
-}
+};
 <span id='anm-Bounds-method-exist'>/**
 </span> * @method exist
  *
@@ -129,6 +134,21 @@ Bounds.prototype.toPoints = function() {
 Bounds.prototype.exist = function() {
     // if one of the values is NaN, then the whole bounds are invalid?
     return !is.nan(this.x);
+};
+<span id='anm-Bounds-method-inside'>/**
+</span> * @method inside
+ *
+ * Is given point inside
+ *
+ * @param {Object} pt
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean}
+ */
+Bounds.prototype.inside = function(pt) {
+    if (!this.exist()) return false;
+    return (pt.x &gt;= this.x) &amp;&amp; ((pt.x - this.x) &lt;= this.width) &amp;&amp;
+           (pt.y &gt;= this.y) &amp;&amp; ((pt.y - this.y) &lt;= this.height);
 }
 <span id='anm-Bounds-method-clone'>/**
 </span> * @method clone
@@ -140,7 +160,8 @@ Bounds.prototype.exist = function() {
 Bounds.prototype.clone = function() {
     return new Bounds(this.x, this.y,
                       this.width, this.height);
-}
+};
+
 Bounds.NONE = new Bounds(NaN, NaN, NaN, NaN);
 
 module.exports = Bounds;

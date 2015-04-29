@@ -15,34 +15,38 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">var C = require(&#39;../constants.js&#39;),
-    engine = require(&#39;engine&#39;),
-    Element = require(&#39;./element.js&#39;),
-    Clip = Element,
-    Brush = require(&#39;../graphics/brush.js&#39;),
-    provideEvents = require(&#39;../events.js&#39;).provideEvents,
-    AnimationError = require(&#39;../errors.js&#39;).AnimationError,
-    Errors = require(&#39;../loc.js&#39;).Errors,
-    ResMan = require(&#39;../resource_manager.js&#39;),
-    FontDetector = require(&#39;../../vendor/font_detector.js&#39;),
-    utils = require(&#39;../utils.js&#39;),
+  <pre class="prettyprint lang-js">var utils = require(&#39;../utils.js&#39;),
     is = utils.is,
-    iter = utils.iter;
+    iter = utils.iter,
+    C = require(&#39;../constants.js&#39;);
+
+var engine = require(&#39;engine&#39;),
+    ResMan = require(&#39;../resource_manager.js&#39;),
+    FontDetector = require(&#39;../../vendor/font_detector.js&#39;);
+
+var Element = require(&#39;./element.js&#39;),
+    Clip = Element,
+    Brush = require(&#39;../graphics/brush.js&#39;);
+
+var events = require(&#39;../events.js&#39;),
+    provideEvents = events.provideEvents,
+    errors = require(&#39;../errors.js&#39;),
+    ErrLoc = require(&#39;../loc.js&#39;).Errors;
 
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
 var DOM_TO_EVT_MAP = {
-  &#39;mouseup&#39;:   C.X_MUP,
-  &#39;mousedown&#39;: C.X_MDOWN,
-  &#39;mousemove&#39;: C.X_MMOVE,
-  &#39;mouseover&#39;: C.X_MOVER,
-  &#39;mouseout&#39;:  C.X_MOUT,
-  &#39;click&#39;:     C.X_MCLICK,
-  &#39;dblclick&#39;:  C.X_MDCLICK,
-  &#39;keyup&#39;:     C.X_KUP,
-  &#39;keydown&#39;:   C.X_KDOWN,
-  &#39;keypress&#39;:  C.X_KPRESS
+    &#39;click&#39;:     C.X_MCLICK,
+    &#39;dblclick&#39;:  C.X_MDCLICK,
+    &#39;mouseup&#39;:   C.X_MUP,
+    &#39;mousedown&#39;: C.X_MDOWN,
+    &#39;mousemove&#39;: C.X_MMOVE,
+    &#39;mouseover&#39;: C.X_MOVER,
+    &#39;mouseout&#39;:  C.X_MOUT,
+    &#39;keypress&#39;:  C.X_KPRESS,
+    &#39;keyup&#39;:     C.X_KUP,
+    &#39;keydown&#39;:   C.X_KDOWN
 };
 
 // Animation
@@ -57,11 +61,11 @@ var DOM_TO_EVT_MAP = {
  * repeat option. It also may render itself to any context with {@link anm.Animation#render}
  * method.
  *
- * Use {@link anm.Animation#add()} to add elements to an animation.
+ * Use {@link anm.Animation#add} to add elements to an animation.
  *
- * Use {@link anm.Animation#find()} / {@link anm.Animation#findById()} to search for elements in the animation.
+ * Use {@link anm.Animation#find} / {@link anm.Animation#findById} to search for elements in the animation.
  *
- * Use {@link anm.Animation#each()} / {@link anm.Animation#traverse()} to loop through all direct child elements
+ * Use {@link anm.Animation#each} / {@link anm.Animation#traverse} to loop through all direct child elements
  * or through the whole tree of children, correspondingly.
  *
  * See {@link anm.Element Element} for detailed description of the basic &quot;brick&quot; of any animation.
@@ -81,6 +85,8 @@ function Animation() {
     this.speed = 1.0;
     this.repeat = false;
     this.meta = {};
+    this.hasScripting = false;
+    this.targets = {}; // Player instances where this animation was loaded, by ID
     //this.fps = undefined;
     this.__informEnabled = true;
     this._laters = [];
@@ -89,16 +95,10 @@ function Animation() {
 
 Animation.DEFAULT_DURATION = 10;
 
-// mouse/keyboard events are assigned in L.loadAnimation
-/* TODO: move them into animation */
-provideEvents(Animation, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
+provideEvents(Animation, [ C.A_START, C.A_PAUSE, C.A_STOP,
+                           C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                            C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                           C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                           C.X_DRAW,
-                           // player events
-                           C.S_CHANGE_STATE,
-                           C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                           C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                           C.X_KPRESS, C.X_KUP, C.X_KDOWN, C.X_ERROR ]);
 <span id='anm-Animation-method-add'>/**
 </span> * @method add
  * @chainable
@@ -136,8 +136,8 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
         this.addToTree(arg1);
     }
     return this;
-}
-/* addS allowed to add static element before, such as image, may be return it in some form? */
+};
+
 <span id='anm-Animation-method-remove'>/**
 </span> * @method remove
  * @chainable
@@ -147,8 +147,7 @@ Animation.prototype.add = function(arg1, arg2, arg3) {
  * @param {anm.Element} element
  */
 Animation.prototype.remove = function(elm) {
-    // error will be thrown in _unregister method
-    //if (!this.hash[elm.id]) throw new AnimErr(Errors.A.ELEMENT_IS_NOT_REGISTERED);
+    // error will be thrown in _unregister method if element is not registered
     if (elm.parent) {
         // it will unregister element inside
         elm.parent.remove(elm);
@@ -156,18 +155,8 @@ Animation.prototype.remove = function(elm) {
         this._unregister(elm);
     }
     return this;
-}
-// &gt; Animation.prototype.clear % ()
-/* Animation.prototype.clear = function() {
-    this.hash = {};
-    this.tree = [];
-    this.duration = 0;
-    var hash = this.hash;
-    this.hash = {};
-    for (var elmId in hash) {
-        hash[elm.id]._unbind(); // unsafe, because calls unregistering
-    }
-} */
+};
+
 <span id='anm-Animation-method-traverse'>/**
 </span> * @method traverse
  * @chainable
@@ -178,13 +167,11 @@ Animation.prototype.remove = function(elm) {
  * @param {anm.Element} visitor.element
  * @param {Object} [data]
  */
-// visitElems
 Animation.prototype.traverse = function(visitor, data) {
-    for (var elmId in this.hash) {
-        visitor(this.hash[elmId], data);
-    }
+    utils.keys(this.hash, function(key, elm) { visitor(elm, data); });
     return this;
-}
+};
+
 <span id='anm-Animation-method-each'>/**
 </span> * @method each
  * @chainable
@@ -200,7 +187,8 @@ Animation.prototype.each = function(visitor, data) {
         visitor(this.tree[i], data);
     }
     return this;
-}
+};
+
 <span id='anm-Animation-method-iter'>/**
 </span> * @method iter
  * @chainable
@@ -214,7 +202,8 @@ Animation.prototype.each = function(visitor, data) {
 Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
     return this;
-}
+};
+
 <span id='anm-Animation-method-render'>/**
 </span> * @method render
  *
@@ -227,27 +216,48 @@ Animation.prototype.iter = function(func, rfunc) {
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
     var zoom = this.zoom;
-    try {
-        if (zoom != 1) {
-            ctx.scale(zoom, zoom);
-        }
-        if (this.bgfill) {
-            if (!this.bgfill instanceof Brush) this.bgfill = Brush.fill(this.bgfill);
-            ctx.fillStyle = this.bgfill.apply(ctx);
-            ctx.fillRect(0, 0, this.width, this.height);
-        }
-        this.each(function(child) {
-            child.render(ctx, time, dt);
-        });
-    } finally { ctx.restore(); }
-    this.fire(C.X_DRAW,ctx);
-}
-Animation.prototype.handle__x = function(type, evt) {
-    this.traverse(function(elm) {
-        elm.fire(type, evt);
+    if (zoom != 1) {
+        ctx.scale(zoom, zoom);
+    }
+    if (this.bgfill) {
+        if (!(this.bgfill instanceof Brush)) this.bgfill = Brush.fill(this.bgfill);
+        this.bgfill.apply(ctx);
+        ctx.fillRect(0, 0, this.width, this.height);
+    }
+    this.each(function(child) {
+        child.render(ctx, time, dt);
     });
-    return true;
-}
+    ctx.restore();
+};
+
+<span id='anm-Animation-method-jump'>/**
+</span> * @method jump
+ *
+ * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
+ * every Player where this animation was loaded inside.
+ *
+ * @param {Number} time
+ */
+Animation.prototype.jump = function(t) {
+    utils.keys(this.targets, function(id, player) {
+        if (player) player.seek(t);
+    });
+};
+
+<span id='anm-Animation-method-jumpTo'>/**
+</span> * @method jumpTo
+ *
+ * Jump to the given start time of the element found with passed selector (uses
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ *
+ * @param {String} selector
+ */
+Animation.prototype.jumpTo = function(selector) {
+    var elm = anim.find(selector);
+    if (!elm) return;
+    this.jump(elm.gband[0]);
+};
+
 // TODO: test
 <span id='anm-Animation-method-getFittingDuration'>/**
 </span> * @method getFittingDuration
@@ -264,7 +274,8 @@ Animation.prototype.getFittingDuration = function() {
         if (elm_tpos &gt; max_pos) max_pos = elm_tpos;
     });
     return max_pos;
-}
+};
+
 <span id='anm-Animation-method-reset'>/**
 </span> * @method reset
  * @chainable
@@ -277,15 +288,37 @@ Animation.prototype.reset = function() {
         child.reset();
     });
     return this;
+};
+
+<span id='anm-Animation-method-playedIn'>/**
+</span> * @method playedIn
+ * @param {anm.Player} player the Player where animation was loaded to
+ * @chainable
+ *
+ * See also {@link anm.Animation#dispose animation.dispose}.
+ *
+ * Remembers that this Animation is loaded in this Player instance, so
+ * passes calls, like time jump requests, to it. Called automatically
+ * when Animation was loaded into some Player.
+ */
+Animation.prototype.playedIn = function(player) {
+    this.targets[player.id] = player;
+    return this;
 }
+
 <span id='anm-Animation-method-dispose'>/**
 </span> * @method dispose
+ * @param {anm.Player} [player] the Player which disposes this animation.
  * @chainable
  *
  * Remove every possible allocated data to either never use this animation again or
- * start using it from scratch as if it never was used before.
+ * start using it from scratch as if it never was used before. If Player instance was
+ * passed, Animation also forgets it was played in this Player, so different calls,
+ * like time jumps, fired from the Animation won&#39;t be passed to it. Called automatically
+ * when Animation needs to be detached from some Player.
  */
-Animation.prototype.dispose = function() {
+Animation.prototype.dispose = function(player) {
+    if (player) this.targets[player.id] = null;
     this.disposeHandlers();
     var me = this;
     /* FIXME: unregistering removes from tree, ensure it is safe */
@@ -295,7 +328,8 @@ Animation.prototype.dispose = function() {
         return false;
     });
     return this;
-}
+};
+
 <span id='anm-Animation-method-isEmpty'>/**
 </span> * @method isEmpty
  *
@@ -304,8 +338,9 @@ Animation.prototype.dispose = function() {
  * @return {Boolean} `true` if no Elements, `false` if there are some.
  */
 Animation.prototype.isEmpty = function() {
-    return this.tree.length == 0;
-}
+    return this.tree.length === 0;
+};
+
 <span id='anm-Animation-method-toString'>/**
 </span> * @method toString
  *
@@ -315,7 +350,8 @@ Animation.prototype.isEmpty = function() {
  */
 Animation.prototype.toString = function() {
     return &quot;[ Animation &quot;+(this.name ? &quot;&#39;&quot;+this.name+&quot;&#39;&quot; : &quot;&quot;)+&quot;]&quot;;
-}
+};
+
 <span id='anm-Animation-method-subscribeEvents'>/**
 </span> * @method subscribeEvents
  * @private
@@ -324,7 +360,8 @@ Animation.prototype.toString = function() {
  */
 Animation.prototype.subscribeEvents = function(canvas) {
     engine.subscribeAnimationToEvents(canvas, this, DOM_TO_EVT_MAP);
-}
+};
+
 <span id='anm-Animation-method-unsubscribeEvents'>/**
 </span> * @method unsubscribeEvents
  * @private
@@ -333,7 +370,23 @@ Animation.prototype.subscribeEvents = function(canvas) {
  */
 Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
-}
+};
+
+Animation.prototype.handle__x = function(type, evt) {
+    if (events.mouse(type)) {
+        var pos = evt.pos;
+        this.each(function(child) {
+            child.inside(pos, function(elm) { // filter elements
+                return elm.subscribedTo(type);
+            }, function(elm, local_pos) { // point is inside
+                elm.fire(type, evt);
+            });
+        });
+        return false;
+    }
+    return true;
+};
+
 <span id='anm-Animation-method-addToTree'>/**
 </span> * @method addToTree
  * @private
@@ -341,13 +394,12 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
  * @param {anm.Element} element
  */
 Animation.prototype.addToTree = function(elm) {
-    if (!elm.children) {
-        throw new AnimationError(&#39;It appears that it is not a clip object or element that you pass&#39;);
-    }
+    if (!elm.children) throw errors.animation(ErrLoc.A.OBJECT_IS_NOT_ELEMENT, this);
     this._register(elm);
     /*if (elm.children) this._addElems(elm.children);*/
     this.tree.push(elm);
-}
+};
+
 /*Animation.prototype._addElems = function(elems) {
     for (var ei = 0; ei &lt; elems.length; ei++) {
         var _elm = elems[ei];
@@ -355,20 +407,24 @@ Animation.prototype.addToTree = function(elm) {
     }
 }*/
 Animation.prototype._register = function(elm) {
-    if (this.hash[elm.id]) throw new AnimationError(Errors.A.ELEMENT_IS_REGISTERED);
+    if (this.hash[elm.id]) throw errors.animation(ErrLoc.A.ELEMENT_IS_REGISTERED, this);
     elm.registered = true;
     elm.anim = this;
     this.hash[elm.id] = elm;
+
     var me = this;
+
     elm.each(function(child) {
         me._register(child);
     });
-}
+};
+
 Animation.prototype._unregister_no_rm = function(elm) {
     this._unregister(elm, true);
-}
+};
+
 Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree is optional and false by default
-    if (!elm.registered) throw new AnimationError(Errors.A.ELEMENT_IS_NOT_REGISTERED);
+    if (!elm.registered) throw errors.animation(ErrLoc.A.ELEMENT_IS_NOT_REGISTERED, this);
     var me = this;
     elm.each(function(child) {
         me._unregister(child);
@@ -383,7 +439,8 @@ Animation.prototype._unregister = function(elm, save_in_tree) { // save_in_tree 
     elm.registered = false;
     elm.anim = null;
     //elm.parent = null;
-}
+};
+
 Animation.prototype._collectRemoteResources = function(player) {
     var remotes = [],
         anim = this;
@@ -396,7 +453,8 @@ Animation.prototype._collectRemoteResources = function(player) {
         remotes = remotes.concat(this.fonts.map(function(f){return f.url;}));
     }
     return remotes;
-}
+};
+
 Animation.prototype._loadRemoteResources = function(player) {
     var anim = this;
     this.traverse(function(elm) {
@@ -405,13 +463,13 @@ Animation.prototype._loadRemoteResources = function(player) {
         }
     });
     anim.loadFonts(player);
-}
+};
+
 <span id='anm-Animation-method-find'>/**
 </span> * @method find
  *
- * Searches for {@link anm.Element elements} by name inside another
- * {@link anm.Element element} or inside the whole Animation itself, if no other
- * element was provided.
+ * Searches for an {@link anm.Element element} by name through another {@link anm.Element element}&#39;s
+ * children, or through all the elements in the Animation itself, if no other element was provided.
  *
  * NB: `find` method will be improved soon to support special syntax of searching,
  * so you will be able to search almost everything
@@ -419,17 +477,37 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @param {String} name Name of the element(s) to find
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
+ * @return {anm.Element} First found element
+ */
+Animation.prototype.find = function(selector, where) {
+    return this.findAll(selector, where)[0]; // FIXME: overhead, search for the first one and exit
+};
+
+<span id='anm-Animation-method-findAll'>/**
+</span> * @method findAll
+ *
+ * Searches for {@link anm.Element elements} by name through another {@link anm.Element element}&#39;s
+ * children, or through all the elements in the Animation itself, if no other element was provided.
+ *
+ * NB: `findAll` method will be improved soon to support special syntax of searching,
+ * so you will be able to search almost everything
+ *
+ * @param {String} name Name of the element(s) to find
+ * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
+ *
  * @return {Array} An array of found elements
  */
-Animation.prototype.find = function(name, where) {
-    var where = where || this;
+Animation.prototype.findAll = function(selector, where) {
+    where = where || this;
+    var name = selector;
     var found = [];
     if (where.name == name) found.push(name);
     where.traverse(function(elm)  {
         if (elm.name == name) found.push(elm);
     });
     return found;
-}
+};
+
 <span id='anm-Animation-method-findById'>/**
 </span> * @method findById
  *
@@ -443,7 +521,8 @@ Animation.prototype.find = function(name, where) {
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
-}
+};
+
 /*
  * @method invokeAllLaters
  * @private
@@ -451,24 +530,28 @@ Animation.prototype.findById = function(id) {
 Animation.prototype.invokeAllLaters = function() {
     for (var i = 0; i &lt; this._laters.length; i++) {
         this._laters[i].call(this);
-    };
-}
+    }
+};
+
 /*
  * @method clearAllLaters
  * @private
  */
 Animation.prototype.clearAllLaters = function() {
     this._laters = [];
-}
+};
+
 /*
  * @method invokeLater
  * @private
  */
 Animation.prototype.invokeLater = function(f) {
     this._laters.push(f);
-}
+};
 
-var FONT_LOAD_TIMEOUT = 10000; //in ms
+var FONT_LOAD_TIMEOUT = 10000, //in ms
+    https = engine.isHttps;
+
 /*
  * @method loadFonts
  * @private
@@ -483,51 +566,61 @@ Animation.prototype.loadFonts = function(player) {
         css = &#39;&#39;,
         fontsToLoad = [],
         detector = new FontDetector();
-    style.type = &#39;text/css&#39;;
 
     for (var i = 0; i &lt; fonts.length; i++) {
         var font = fonts[i];
-        if (!font.url || !font.face || detector.detect(font.face)) {
-            //no font name or url || font already available
+        if (!font.url || !font.face) {
+            //no font name or url
             continue;
         }
+        var url = font.url, woff = font.woff;
+        if (https) {
+            //convert the URLs to https
+            url = url.replace(&#39;http:&#39;, &#39;https:&#39;);
+            if (woff) {
+                woff = woff.replace(&#39;http:&#39;, &#39;https:&#39;);
+            }
+        }
         fontsToLoad.push(font);
-        css += &#39;@font-face {&#39; +
-            &#39;font-family: &quot;&#39; + font.face + &#39;&quot;; &#39; +
-            &#39;src:&#39; +  (font.woff ? &#39;url(&quot;&#39;+font.woff+&#39;&quot;) format(&quot;woff&quot;), &#39; : &#39;&#39;) +
-            &#39;url(&quot;&#39;+font.url+&#39;&quot;);&#39; +
-            (font.style ? &#39;style: &#39; + font.style +&#39;; &#39; : &#39;&#39;) +
-            (font.weight ? &#39;weight: &#39; + font.weight + &#39;; &#39; : &#39;&#39;) +
+        css += &#39;@font-face {\n&#39; +
+            &#39;font-family: &quot;&#39; + font.face + &#39;&quot;;\n&#39; +
+            &#39;src:&#39; +  (woff ? &#39; url(&quot;&#39;+woff+&#39;&quot;) format(&quot;woff&quot;),\n&#39; : &#39;&#39;) +
+            &#39; url(&quot;&#39;+url+&#39;&quot;) format(&quot;truetype&quot;);\n&#39; +
+            (font.style ? &#39;font-style: &#39; + font.style +&#39;;\n&#39; : &#39;&#39;) +
+            (font.weight ? &#39;font-weight: &#39; + font.weight + &#39;;\n&#39; : &#39;&#39;) +
             &#39;}\n&#39;;
     }
 
-    if (fontsToLoad.length == 0) {
+    if (fontsToLoad.length === 0) {
         return;
-    };
+    }
 
     style.innerHTML = css;
     document.head.appendChild(style); // FIXME: should use engine
 
-    for (var i = 0; i &lt; fontsToLoad.length; i++) {
-        // FIXME: should not require a player (probably)
-        ResMan.loadOrGet(player.id, fontsToLoad[i].url, function(success) {
-            var face = fontsToLoad[i].face,
-                interval = 100,
+    var getLoader = function(i) {
+            var face = fontsToLoad[i].face;
+            return function(success) {
+                var interval = 100,
                 counter = 0,
                 intervalId,
                 checkLoaded = function() {
                     counter += interval;
                     var loaded = detector.detect(face);
                     if (loaded || counter &gt; FONT_LOAD_TIMEOUT) {
-                    // after 10 seconds, we&#39;ll just assume the font has been loaded
-                    // and carry on. this should help when the font could not be
-                    // reached for whatever reason.
+                        // after 10 seconds, we&#39;ll just assume the font has been loaded
+                        // and carry on. this should help when the font could not be
+                        // reached for whatever reason.
                         clearInterval(intervalId);
                         success();
                     }
                 };
-            intervalId = setInterval(checkLoaded, interval)
-        });
+                intervalId = setInterval(checkLoaded, interval);
+            };
+    };
+
+    for (i = 0; i &lt; fontsToLoad.length; i++) {
+        ResMan.loadOrGet(player.id, fontsToLoad[i].url, getLoader(i));
     }
 
 };

@@ -65,6 +65,8 @@ var conf = require(&#39;./conf.js&#39;),
     log = require(&#39;./log.js&#39;),
     is = require(&#39;./utils.js&#39;).is;
 
+var errors = require(&#39;./errors.js&#39;);
+
 function rmLog(str) {
   if (conf.logResMan) {
     log.debug(str);
@@ -79,17 +81,22 @@ function ResourceManager() {
     this._errors = {};
     this._waiting = {};
     this._subscriptions = {};
+    this._onprogress = {}; // optional loading progress listeners
     this._url_to_subjects = {};
 }
-ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
-    if (!subject_id) throw new Error(&#39;Subject ID is empty&#39;);
-    if (this._subscriptions[subject_id]) throw new Error(&#39;This subject (\&#39;&#39; + subject_id + &#39;\&#39;) is already subscribed to &#39; +
-                                                         &#39;a bunch of resources, please group them in one.&#39;);
+
+ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks, onprogress) {
+    if (!subject_id) throw errors.system(&#39;Subject ID is empty&#39;);
+    if (this._subscriptions[subject_id]) throw errors.system(&#39;This subject (\&#39;&#39; + subject_id + &#39;\&#39;) is already subscribed to &#39; +
+                                                             &#39;a bunch of resources, please group them in one.&#39;);
+
     var filteredUrls = [];
     rmLog(&#39;subscribing &#39; + callbacks.length + &#39; to &#39; + urls.length + &#39; urls: &#39; + urls);
+    var test = {}; // FIXME: a very dirty way to test if urls duplicate, needs to be optimized
     for (var i = 0; i &lt; urls.length; i++){
-        // there should be no empty urls
-        if (urls[i]) {
+        // there should be no empty urls and duplicates
+        if (urls[i] &amp;&amp; !test[urls[i]]) {
+            test[urls[i]] = true;
             filteredUrls.push(urls[i]);
             if (!this._url_to_subjects[urls[i]]) {
                 this._url_to_subjects[urls[i]] = [];
@@ -97,22 +104,49 @@ ResourceManager.prototype.subscribe = function(subject_id, urls, callbacks) {
             this._url_to_subjects[urls[i]].push(subject_id);
         }
     }
+    rmLog(&#39;filtered from &#39; + urls.length + &#39; to &#39; + filteredUrls.length);
     this._subscriptions[subject_id] = [ filteredUrls,
                                         is.arr(callbacks) ? callbacks : [ callbacks ] ];
-}
+    if (onprogress) {
+        this._onprogress[subject_id] = (function(f_urls) {
+            var summary = {};
+            var count = f_urls.length,
+                per_url = 1 / count;
+            var sum = 0,
+                err = 0;
+            return function(url, factor) {
+                // incoming factor value should be in range 0..1 for this particular url,
+                // where 0 is not-even-started to load, and 1 is complete loading
+                var prev = summary[url] || 0;
+                if (factor !== -1) { // -1 means error
+                    sum += (factor - prev) * per_url;
+                    summary[url] = factor;
+                } else {
+                    sum -= prev;
+                    err += prev;
+                }
+                onprogress(url, factor, sum, err);
+            };
+        })(filteredUrls);
+    }
+};
+
 ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComplete, onError) {
     var me = this;
-    if (!subject_id) throw new Error(&#39;Subject ID is empty&#39;);
-    if (!url) throw new Error(&#39;Given URL is empty&#39;);
+    if (!subject_id) throw errors.system(&#39;Subject ID is empty&#39;);
+    if (!url) throw errors.system(&#39;Given URL is empty&#39;);
+    var progress_f = me._onprogress[subject_id];
     rmLog(&#39;request to load &#39; + url);
     if (me._cache[url]) {
         rmLog(&#39;&gt; already received, trigerring success&#39;);
         var result = me._cache[url];
         if (onComplete) onComplete(result);
         me.trigger(url, result); // TODO: is it needed?
+        if (progress_f) progress_f(url, 1);
     } else if (me._errors[url]) {
         rmLog(&#39;&gt; failed to load before, notifying with error&#39;);
         if (onError) onError(me._errors[url]);
+        if (progress_f) progress_f(url, -1);
     } else if (!me._waiting[subject_id] ||
                !(me._waiting[subject_id] &amp;&amp; me._waiting[subject_id][url])) {
         rmLog(&#39;&gt; not cached, requesting&#39;);
@@ -123,22 +157,29 @@ ResourceManager.prototype.loadOrGet = function(subject_id, url, loader, onComple
             rmLog(&#39;file at &#39; + url + &#39; succeeded to load, triggering success&#39;);
             me.trigger(url, result);
             if (onComplete) onComplete(result);
+            if (progress_f) progress_f(url, 1);
             me.check();
         }, function(err) {
             rmLog(&#39;file at &#39; + url + &#39; failed to load, triggering error&#39;);
             me.error(url, err);
             if (onError) onError(err);
+            if (progress_f) progress_f(url, -1);
             me.check();
-        });
+        }, progress_f ? function(factor) {
+            progress_f(url, factor);
+        } : function() {});
     } else /*if (me._waiting[subject_id] &amp;&amp; me._waiting[subject_id][url])*/ { // already waiting
         rmLog(&#39;&gt; someone is already waiting for it, subscribing&#39;);
-        me.subscribe(subject_id + (new Date()).getTime() + Math.random(), [ url ], function(res) {
-            if (res[0]) { onComplete(res[0]); }
-            else { onError(res[0]); };
+        var new_id = subject_id + (new Date()).getTime() + Math.random();
+        me._onprogress[new_id] = me._onprogress[subject_id];
+        me.subscribe(new_id, [ url ], function(res) {
+            if (res[0]) { onComplete(res[0]); if (progress_f) progress_f(url, 1); }
+            else { onError(res[0]); if (progress_f) progress_f(url, -1);}
         });
 
     }
-}
+};
+
 ResourceManager.prototype.trigger = function(url, value) {
     if (this._cache[url] || this._errors[url]) { this.check(); return; }
     rmLog(&#39;triggering success for url &#39; + url);
@@ -150,7 +191,8 @@ ResourceManager.prototype.trigger = function(url, value) {
     } }
     this._cache[url] = value;
     //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
-}
+};
+
 ResourceManager.prototype.error = function(url, err) {
     if (this._cache[url] || this._errors[url]) { this.check(); return; }
     rmLog(&#39;triggering error for url &#39; + url);
@@ -162,10 +204,12 @@ ResourceManager.prototype.error = function(url, err) {
     } }
     this._errors[url] = err;
     //this.check(); FIXME: .loadOrGet() calls .check() itself in this case, after the onError
-}
+};
+
 ResourceManager.prototype.has = function(url) {
     return (typeof this._cache[url] !== &#39;undefined&#39;);
-}
+};
+
 // call this only if you are sure you want to force this check —
 // this method is called automatically when every new incoming url is triggered
 // as complete or failed
@@ -180,18 +224,18 @@ ResourceManager.prototype.check = function() {
         var urls = subscriptions[subject_id][0],
             callbacks = subscriptions[subject_id][1],
             error_count = 0,
-            success_count = 0;
-        for (var u = 0, ul = urls.length; u &lt; ul; u++) {
+            success_count = 0, u;
+        for (u = 0, ul = urls.length; u &lt; ul; u++) {
             if (errors[urls[u]]) error_count++;
             if (cache[urls[u]]) success_count++;
         }
-        rmLog(&#39;success: &#39; + success_count + &#39;, errors: &#39; + error_count + &#39;, ready: &#39;
-                          + ((success_count + error_count) === urls.length));
+        rmLog(&#39;success: &#39; + success_count + &#39;, errors: &#39; + error_count +
+            &#39;, ready: &#39; + ((success_count + error_count) === urls.length));
         if ((success_count + error_count) === urls.length) {
             var ready = [];
-            for (var u = 0, ul = urls.length; u &lt; ul; u++) {
+            for (u = 0, ul = urls.length; u &lt; ul; u++) {
                 ready.push(cache[urls[u]] || errors[urls[u]]);
-            };
+            }
             rmLog(&#39;notifying subscribers that &#39; + urls + &#39; are all ready&#39;);
             for (var k = 0, kl = callbacks.length; k &lt; kl; k++) {
                 //callbacks[k].call(subscriber, ready, error_count);
@@ -202,13 +246,14 @@ ResourceManager.prototype.check = function() {
         }
     }
     if (to_remove) { for (var i = 0, il = to_remove.length; i &lt; il; i++) {
-        rmLog(&#39;removing notified subscribers for subject \&#39;&#39;
-          + to_remove[i] + &#39;\&#39; from queue&#39;);
+        rmLog(&#39;removing notified subscribers for subject \&#39;&#39; +
+            to_remove[i] + &#39;\&#39; from queue&#39;);
         delete subscriptions[to_remove[i]];
     } }
-}
+};
+
 ResourceManager.prototype.cancel = function(subject_id) {
-    if (!subject_id) throw new Error(&#39;Subject ID is empty&#39;);
+    if (!subject_id) throw errors.system(&#39;Subject ID is empty&#39;);
     if (this._waiting[subject_id]) {
         var urls = this._subscriptions[subject_id][0];
         if (urls) { for (var u = 0, ul = urls.length; u &lt; ul; u++) {
@@ -217,14 +262,15 @@ ResourceManager.prototype.cancel = function(subject_id) {
     }
     // clear _url_to_subjects ?
     delete this._subscriptions[subject_id];
-}
+};
+
 ResourceManager.prototype.clear = function() {
     this._cache = {};
     this._errors = {};
     this._waiting = {};
     this._loaders = {};
     this._subscriptions = {};
-}
+};
 
 module.exports = new ResourceManager();
 </pre>

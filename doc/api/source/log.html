@@ -16,17 +16,33 @@
 </head>
 <body onload="prettyPrint(); highlight();">
   <pre class="prettyprint lang-js">var conf = require(&#39;./conf.js&#39;),
-    C = require(&#39;./constants.js&#39;)
+    C = require(&#39;./constants.js&#39;);
 
 var nop = function() {};
-var console = global.console || {
-    log: nop, info: nop, warn: nop, error: nop
-};
+var c = global.console || {log: nop, info: nop, warn: nop, error: nop},
+    anmConsole;
+if (global.console) {
+    anmConsole = {
+        log: c.debug || c.log,
+        info: c.info || c.log,
+        warn: c.warn || c.log,
+        error: c.error || c.log
+    };
+    if (!c.log.apply) {
+        //in ie9, console.log isn&#39;t a real Function object and does not have .apply()
+        //we will have to remedy this using Function.prototype.bind()
+        anmConsole.log = Function.prototype.bind.call(anmConsole.log, c);
+        anmConsole.info = Function.prototype.bind.call(anmConsole.info, c);
+        anmConsole.warn = Function.prototype.bind.call(anmConsole.warn, c);
+        anmConsole.error = Function.prototype.bind.call(anmConsole.log, c);
+    }
+}
+
 var log = {
-    debug: function() { if (conf.logLevel &amp; C.L_DEBUG) (console.debug || console.log).apply(console, arguments); },
-    info:  function() { if (conf.logLevel &amp; C.L_INFO)  (console.info  || console.log).apply(console, arguments); },
-    warn:  function() { if (conf.logLevel &amp; C.L_WARN)  (console.warn  || console.log).apply(console, arguments); },
-    error: function() { if (conf.logLevel &amp; C.L_ERROR) (console.error || console.log).apply(console, arguments); },
+    debug: function() { if (conf.logLevel &amp; C.L_DEBUG) anmConsole.log.apply(c, arguments); },
+    info:  function() { if (conf.logLevel &amp; C.L_INFO)  anmConsole.info.apply(c, arguments); },
+    warn:  function() { if (conf.logLevel &amp; C.L_WARN)  anmConsole.warn.apply(c, arguments); },
+    error: function() { if (conf.logLevel &amp; C.L_ERROR) anmConsole.error.apply(c, arguments); }
 };
 
 module.exports = log;

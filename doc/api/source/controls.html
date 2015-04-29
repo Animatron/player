@@ -15,13 +15,14 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">var provideEvents = require(&#39;../events.js&#39;).provideEvents,
-    C = require(&#39;../constants.js&#39;),
-    engine = require(&#39;engine&#39;),
-    InfoBlock = require(&#39;./infoblock.js&#39;),
-    Strings = require(&#39;../loc.js&#39;).Strings,
-    utils = require(&#39;../utils.js&#39;),
+  <pre class="prettyprint lang-js">var utils = require(&#39;../utils.js&#39;),
     is = utils.is;
+
+var C = require(&#39;../constants.js&#39;),
+    Strings = require(&#39;../loc.js&#39;).Strings;
+
+var engine = require(&#39;engine&#39;),
+    InfoBlock = require(&#39;./infoblock.js&#39;);
 
 //fade modes
 var FADE_NONE = 0,
@@ -41,7 +42,7 @@ function Controls(player) {
     this.bounds = [];
     this.theme = null;
     this.info = null;
-    this._initHandlers(); /* TODO: make automatic */
+
     this.state = {
         happens: C.NOTHING,
         mpos: {x: 0, y: 0},
@@ -60,7 +61,6 @@ var theme = Controls.DEFAULT_THEME = require(&#39;./controls_theme.json&#39;);
 Controls.THEME = Controls.DEFAULT_THEME;
 
 Controls.LAST_ID = 0;
-provideEvents(Controls, [C.X_DRAW]);
 Controls.prototype.update = function(parent) {
     var cvs = this.canvas;
     if (!cvs) {
@@ -81,13 +81,12 @@ Controls.prototype.update = function(parent) {
     }
     this.handleAreaChange();
     if (this.info) this.info.update(parent);
-    BACK_GRAD = null; // invalidate back gradient
 };
 
 Controls.prototype.subscribeEvents = function() {
     var me=this;
 
-    me.player.on(C.S_STATE_CHANGE, function(state) {
+    me.player.on(C.S_CHANGE_STATE, function(state) {
         me.state.happens = state;
         me.state.changed = true;
     });
@@ -135,9 +134,9 @@ Controls.prototype.checkFade = function(dt) {
         fadeModifier = true;
         state.fadeTimer -= dt;
         if (fadeMode === FADE_IN) {
-            alpha = Math.min(1, 1-state.fadeTimer/theme.fadeTimes.in);
+            alpha = Math.min(1, 1-state.fadeTimer/theme.fadeTimes.fadein);
         } else { // FADE_OUT
-            alpha = Math.max(0, state.fadeTimer/theme.fadeTimes.out);
+            alpha = Math.max(0, state.fadeTimer/theme.fadeTimes.fadeout);
         }
         state.alpha = alpha;
 
@@ -153,7 +152,7 @@ Controls.prototype.checkFade = function(dt) {
 Controls.prototype.render = function(gtime) {
     this.checkMouseTimeout(gtime);
 
-    var dt = gtime-this.state.gtime;
+    var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
 
@@ -200,20 +199,19 @@ Controls.prototype.render = function(gtime) {
         state.changed = false;
     } else if (s === C.PAUSED) {
         drawBack(ctx, theme, w, h);
-        drawPlay(ctx, theme, w, h, this.focused);
         if (duration) {
             drawProgress(ctx, theme, w, h, progress);
             drawTinyPlay(ctx, w, h);
             drawTime(ctx, theme, w, h, time, duration, progress, coords);
             drawVolumeBtn(ctx, w, h, player.muted);
         }
+        drawPlay(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if (s === C.NOTHING) {
         drawNoAnimation(ctx, theme, w, h, this.focused);
         state.changed = false;
     } else if ((s === C.LOADING) || (s === C.RES_LOADING)) {
-        drawBack(ctx, theme, w, h);
-        drawLoadingProgress(ctx, w, h, ((gtime / 100  % 60) / 60));
+        drawLoadingProgress(ctx, w, h, this.loadingProgress, this.loadingErrors);
     } else if (s === C.ERROR) {
         drawBack(ctx, theme, w, h);
         drawError(ctx, theme, w, h, player.__lastError, this.focused);
@@ -221,11 +219,10 @@ Controls.prototype.render = function(gtime) {
     }
 
     ctx.restore();
-    this.fire(C.X_DRAW);
 
     if (this.info) {
-      if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
-      else { this._infoShown = false; }
+        if (s !== C.NOTHING) { this._infoShown = true; this.info.render(); }
+        else { this._infoShown = false; }
     }
     //we might have a non-changing state like STOPPED, but it will still
     //need to be redrawn when fading in/out, so we apply our fade modifier
@@ -251,12 +248,14 @@ Controls.prototype.react = function() {
     //and mute buttons reside
     if (Controls.isInProgressArea(coords, w, h)) {
         if (coords.x &gt; btnWidth &amp;&amp; coords.x &lt; w-btnWidth) {
-            time = Math.round(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth));
-            if (s === C.PLAYING) {
-              p.pause().play(time);
-            } else {
-              p.play(time).pause();
+            time = utils.roundTo(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
+            if (time &gt; p.anim.duration) {
+                //when the animation is something like 3.8 seconds long,
+                //the rounding will exceed the duration, which is not
+                //a good idea.
+                time = p.anim.duration;
             }
+            p.seek(time);
             this.state.time = time;
             return;
         } else if(coords.x &gt; w-btnWidth) { //mute button?
@@ -286,8 +285,8 @@ Controls.prototype.handleAreaChange = function() {
 Controls.prototype.handleMouseMove = function(evt) {
     this.state.mouseInteracted = true;
     var pos = engine.getEventPosition(evt, this.canvas);
-    this.state.mpos.x = pos[0];
-    this.state.mpos.y = pos[1];
+    this.state.mpos.x = pos.x;
+    this.state.mpos.y = pos.y;
     if (this.state.happens === C.PLAYING || this.state.happens === C.PAUSED) {
         //if we are in the state where the playhead is accessible,
         //let&#39;s check if the mouse was there.
@@ -333,7 +332,7 @@ Controls.prototype.hide = function() {
     this.state.fadeMode = FADE_OUT;
     //we substract the current fadeTimer value so that if the controls only
     //showed halfway, they will fade out from the exact alpha they were in
-    this.state.fadeTimer = theme.fadeTimes.out - this.state.fadeTimer;
+    this.state.fadeTimer = theme.fadeTimes.fadeout - this.state.fadeTimer;
     this.state.changed = true;
 };
 
@@ -344,7 +343,7 @@ Controls.prototype.show = function() {
         return;
     }
     this.state.fadeMode = FADE_IN;
-    this.state.fadeTimer = theme.fadeTimes.in - this.state.fadeTimer;
+    this.state.fadeTimer = theme.fadeTimes.fadein - this.state.fadeTimer;
     this.state.changed = true;
 };
 
@@ -543,27 +542,31 @@ var drawVolumeBtn = function(ctx, w, h, muted) {
     ctx.restore();
 };
 
-//draw the loader
-var drawLoadingProgress = function(ctx, w, h, hilite_pos) {
-    var cx = w / 2,
-        cy = h / 2,
-        segment = Math.ceil(90 * hilite_pos),
-        twoPi = 2 * Math.PI,
-        segmentPos = twoPi/90*segment;
-        segmentAngle = twoPi/8;
+// draw loading progress at the bottom
+var drawLoadingProgress = function(ctx, w, h, factor, errorFactor) {
 
-    ctx.translate(cx, cy);
-    ctx.strokeStyle = theme.loading.inactiveColor;
-    ctx.lineWidth = 2;
+    if (!factor &amp;&amp; !errorFactor) return;
+
+    // draw loading progress at the bottom
+
+    ctx.translate(0, h - theme.loading.factorLineWidth);
+    ctx.strokeStyle = theme.loading.factorBackColor;
+    ctx.lineWidth = theme.loading.factorLineWidth;
     ctx.beginPath();
-    ctx.arc(0, 0, 36, 0, twoPi);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w, 0);
     ctx.stroke();
-    ctx.closePath();
+    ctx.strokeStyle = theme.loading.factorDoneColor;
     ctx.beginPath();
-    ctx.strokeStyle = theme.loading.activeColor;
-    ctx.arc(0,0,36,segmentPos, segmentPos + segmentAngle);
+    ctx.moveTo(0, 0);
+    ctx.lineTo(w * factor, 0);
     ctx.stroke();
-    ctx.closePath();
+    if (errorFactor) {
+        ctx.strokeStyle = theme.loading.factorErrorColor;
+        ctx.moveTo(w * factor, 0);
+        ctx.lineTo(w * errorFactor, 0);
+        ctx.stroke();
+    }
 };
 
 var drawNoAnimation = function(ctx, theme, w, h, focused) {
@@ -607,11 +610,7 @@ var drawTime = function(ctx, theme, w, h, time, duration, progress, coords) {
     ctx.strokeStyle = &#39;transparent&#39;;
     ctx.clearRect(0, h-40, w, 20);
     var x = Math.min(Math.max(1, progressPos-17), w-35), r=3, y=h-40, rw=34, rh=20;
-    ctx.moveTo(x+r, y);
-    ctx.arcTo(x+rw, y,   x+rw, y+rh, r);
-    ctx.arcTo(x+rw, y+rh, x,   y+rh, r);
-    ctx.arcTo(x,   y+rh, x,   y,   r);
-    ctx.arcTo(x,   y,   x+rw, y,   r);
+    drawRoundedRect(ctx,x,y,rw,rh,r);
     ctx.moveTo(x+rw/2-3, y+rh);
     ctx.lineTo(x+rw/2, y+rh+3);
     ctx.lineTo(x+rw/2+3, y+rh);
@@ -628,6 +627,21 @@ var drawText = function(ctx, theme, x, y, size, text, color, align) {
     ctx.fillStyle = color || theme.font.color;
     ctx.fillText(text, x, y);
     ctx.restore();
+};
+
+var drawRoundedRect = function(ctx, x, y, w, h, radius)
+{
+  var r = x + w;
+  var b = y + h;
+  ctx.moveTo(x+radius, y);
+  ctx.lineTo(r-radius, y);
+  ctx.quadraticCurveTo(r, y, r, y+radius);
+  ctx.lineTo(r, y+h-radius);
+  ctx.quadraticCurveTo(r, b, r-radius, b);
+  ctx.lineTo(x+radius, b);
+  ctx.quadraticCurveTo(x, b, x, b-radius);
+  ctx.lineTo(x, y+radius);
+  ctx.quadraticCurveTo(x, y, x+radius, y);
 };
 
 module.exports = Controls;

@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+  <title>The source code</title>
+  <link href="../resources/prettify/prettify.css" type="text/css" rel="stylesheet" />
+  <script type="text/javascript" src="../resources/prettify/prettify.js"></script>
+  <style type="text/css">
+    .highlight { display: block; background-color: #ddd; }
+  </style>
+  <script type="text/javascript">
+    function highlight() {
+      document.getElementById(location.hash.replace(/#/, "")).className = "highlight";
+    }
+  </script>
+</head>
+<body onload="prettyPrint(); highlight();">
+  <pre class="prettyprint lang-js">var engine = require(&#39;engine&#39;),
+    C = require(&#39;../constants.js&#39;);
+
+var playerJsVersion = &#39;0.0.10&#39;;
+
+var adapter = {
+    play: function() {
+        this.play();
+    },
+
+    pause: function() {
+        this.pause();
+    },
+
+    getPaused: function() {
+        return this.state.happens === C.PAUSED;
+    },
+
+    mute: function() {
+        this.mute();
+    },
+
+    unmute: function() {
+        this.unmute();
+    },
+
+    isMuted: function() {
+        return this.muted;
+    },
+
+    setVolume: function(message) {
+        var volume = message.value;
+        player.volume(volume/100);
+    },
+
+    getVolume: function() {
+        return player.volume()*100;
+    },
+
+    getDuration: function() {
+        return player.state.duration;
+    },
+
+    setCurrentTime: function(message) {
+        var time = message.value;
+        this.pause().play(time);
+    },
+
+    getCurrentTime: function() {
+        return this.state.time;
+    },
+
+    setLoop: function(message) {
+        var loop = message.value;
+        this.repeat = loop;
+    },
+
+    getLoop: function() {
+        return this.repeat;
+    },
+
+    addEventListener: function(message) {
+        var event = message.value,
+            listener = message.listener;
+        if (!listeners[event] || listeners[event].indexOf(listener) !== -1) {
+            return;
+        }
+        listeners[event].push(listener);
+        return {};
+    },
+
+    removeEventListener: function(message) {
+        var event = message.value,
+            listener = message.listener;
+        if (!listeners[event]) {
+            return;
+        }
+        if (!listener) {
+            listeners[event] = [];
+        } else {
+            var index = listeners[event].indexOf(listener);
+            if (index !== -1) {
+                listeners[event].splice(index, 1);
+            }
+        }
+    }
+};
+
+var listeners = {
+    &#39;progress&#39;: [],
+    &#39;timeupdate&#39;: [],
+    &#39;play&#39;: [],
+    &#39;pause&#39;: [],
+    &#39;ended&#39;: []
+};
+
+var supportedEvents = [&#39;ready&#39;];
+for (var e in listeners) {
+    supportedEvents.push(e);
+}
+
+var supportedMethods = [];
+for (var m in adapter) {
+    supportedMethods.push(m);
+}
+
+var origin = engine.getIframeOrigin();
+
+var messageListener = function(evt) {
+    var message = JSON.parse(evt.data);
+    if (evt.origin === origin &amp;&amp; message.context === &#39;player.js&#39;) {
+        if (adapter[message.method] &amp;&amp; player) {
+            var result = adapter[message.method].call(player, message);
+            engine.postToContentWindow({
+                context: &#39;player.js&#39;,
+                version: playerJsVersion,
+                event: message.method,
+                listener: message.listener,
+                value: result
+            });
+        }
+    }
+};
+
+if (engine.isInIframe()) {
+    engine.addMessageListener(messageListener);
+}
+
+var fireEvent = function(event, data, isGlobal) {
+    var message = {
+        context: &#39;player.js&#39;,
+        version: playerJsVersion,
+        event: event,
+        value: data || {}
+    };
+    if (isGlobal) {
+        engine.postToContentWindow(message);
+    } else {
+        if (!listeners[event] || listeners[event].length === 0) {
+            return;
+        }
+        for (var i = 0; i &lt; listeners[event].length; i++) {
+            message.listener = listeners[event][i];
+            engine.postToContentWindow(message);
+        }
+    }
+
+};
+
+var bindPlayerEvents = function(player) {
+    if (!engine.isInIframe()) {
+        return;
+    }
+    player.on(C.S_LOAD, function(){
+        fireEvent(&#39;ready&#39;, {
+            src: engine.getIframeSrc(),
+            events: supportedEvents,
+            methods: supportedMethods
+        }, true);
+    });
+
+    player.on(C.S_LOADING_PROGRESS, function(progress) {
+        fireEvent(&#39;progress&#39;, {percent: progress*100});
+    });
+
+    player.on(C.S_PLAY, function(){
+        fireEvent(&#39;play&#39;);
+    });
+
+    player.on(C.S_PAUSE, function(){
+        fireEvent(&#39;pause&#39;);
+    });
+
+    player.on(C.S_COMPLETE, function(){
+        fireEvent(&#39;ended&#39;);
+    });
+
+    player.on(C.S_TIME_UPDATE, function(time) {
+        fireEvent(&#39;timeupdate&#39;, {seconds: time, duration: player.state.duration});
+    });
+};
+
+
+var player;
+module.exports = {
+    setPlayer: function(p) {
+        player = p;
+        bindPlayerEvents(p);
+    }
+};
+</pre>
+</body>
+</html>

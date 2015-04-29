@@ -26,7 +26,9 @@ var engine = require(&#39;engine&#39;);
 
 var C = require(&#39;../constants.js&#39;);
 
-var provideEvents = require(&#39;../events.js&#39;).provideEvents;
+var events = require(&#39;../events.js&#39;),
+    provideEvents = events.provideEvents,
+    EventState = events.EventState;
 
 var Transform = require(&#39;../../vendor/transform.js&#39;);
 
@@ -40,8 +42,8 @@ var Modifier = require(&#39;./modifier.js&#39;),
     Painter = require(&#39;./painter.js&#39;),
     Bands = require(&#39;./band.js&#39;);
 
-var AnimationError = require(&#39;../errors.js&#39;).AnimationError,
-    Errors = require(&#39;../loc.js&#39;).Errors;
+var errors = require(&#39;../errors.js&#39;),
+    ErrLoc = require(&#39;../loc.js&#39;).Errors;
 
 // Internal Constants
 // -----------------------------------------------------------------------------
@@ -60,16 +62,6 @@ function t_cmp(t0, t1) {
     return 0;
 }
 
-var isPlayerEvent = function(type) {
-    // FIXME: make some marker to group types of events
-    return ((type == C.S_CHANGE_STATE) ||
-            (type == C.S_PLAY)  || (type == C.S_PAUSE)    ||
-            (type == C.S_STOP)  || (type == C.S_REPEAT)   ||
-            (type == C.S_LOAD)  || (type == C.S_RES_LOAD) ||
-            (type == C.S_ERROR) || (type == C.S_IMPORT)   ||
-            (type == C.S_COMPLETE));
-};
-
 Element.DEFAULT_PVT = [ 0.5, 0.5 ];
 Element.DEFAULT_REG = [ 0.0, 0.0 ];
 
@@ -81,37 +73,37 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  *
  * There are also some setter-like methods, and if a name of some setter matches
  * to the according property it sets, a `$` symbol is appended to a property name: like
- * the method {@link anm.Element#fill .fill()} and the property {@link anm.Element#$fill .$fill}`. This way allows us not only
+ * the method {@link anm.Element#fill .fill} and the property {@link anm.Element#$fill .$fill}. This way allows us not only
  * to avoid name-clashed, but also serves as an additional mark for user that a value of this
  * property is easier to construct with a corresponding helper method, rather than,
  * for example, creating a special {@link anm.Brush Brush} object for a `fill`.
  *
- * See {@link anm.Element#add add()} and {@link anm.Element#remove remove()} methods for documentation
+ * See {@link anm.Element#add add} and {@link anm.Element#remove remove} methods for documentation
  * on adding and removing children elements.
  *
- * See {@link anm.Element#each each()} and {@link anm.Element#traverse traverse()} method for documentation
+ * See {@link anm.Element#each each} and {@link anm.Element#traverse traverse} method for documentation
  * on iteration over children elements.
  *
- * See {@link anm.Element#path path()}, {@link anm.Element#text text()} and {@link anm.Element#image image()}
+ * See {@link anm.Element#path path}, {@link anm.Element#text text} and {@link anm.Element#image image}
  * for documentation on changing the type of the element and the way it draws itself.
  *
- * See {@link anm.Element#rect rect()}, {@link anm.Element#oval oval()} and other shape-related methods
+ * See {@link anm.Element#rect rect}, {@link anm.Element#oval oval} and other shape-related methods
  * for documentation on changing element&#39;s shape.
  *
- * See {@link anm.Element#fill fill()}, {@link anm.Element#stroke stroke()} and
- * {@link anm.Element#shadow shadow()} methods for documentation on changing appearance of the element.
+ * See {@link anm.Element#fill fill}, {@link anm.Element#stroke stroke} and
+ * {@link anm.Element#shadow shadow} methods for documentation on changing appearance of the element.
  * (Fill/Shadow only apply if element is `path`, `shape` or `text`).
  *
- * See {@link anm.Element#band band()} for documentation on how to set element&#39;s lifetime relatively to its parent.
+ * See {@link anm.Element#band band} for documentation on how to set element&#39;s lifetime relatively to its parent.
  *
- * See {@link anm.Element#repeat repeat()}, {@link anm.Element#once once()}, {@link anm.Element#stay stay()},
- * {@link anm.Element#loop loop()}, {@link anm.Element#bounce bounce()} for documentation on how to make this element
+ * See {@link anm.Element#repeat repeat}, {@link anm.Element#once once}, {@link anm.Element#stay stay},
+ * {@link anm.Element#loop loop}, {@link anm.Element#bounce bounce} for documentation on how to make this element
  * self-repeat or to stay in its last state inside the parent&#39;s lifetime.
  *
- * See {@link anm.Tween Tween} and {@link anm.Element#tween tween()} method for documentation on adding tweens.
+ * See {@link anm.Tween Tween} and {@link anm.Element#tween tween} method for documentation on adding tweens.
  *
- * See {@link anm.Modifier Modifier} in pair with {@link anm.Element#modify modify()} method and {@link anm.Painter Painter}
- * in pair with {@link anm.Element#modify paint()} method for documentation on
+ * See {@link anm.Modifier Modifier} in pair with {@link anm.Element#modify modify} method and {@link anm.Painter Painter}
+ * in pair with {@link anm.Element#modify paint} method for documentation on
  * a custom drawing or positioning the element in time.
  *
  * @constructor
@@ -177,9 +169,9 @@ function Element(name, draw, onframe) {
      * @param {Function} handler event handler
      */
     this.on = function(type, handler) {
-        if (type &amp; C.XT_CONTROL) {
+        /* if (events.mouseOrKeyboard(type)) {
             return this.m_on.call(me, type, handler);
-        } else return default_on.call(me, type, handler);
+        } else */ return default_on.call(me, type, handler);
         // return this; // FIXME: make chainable
     };
 
@@ -187,37 +179,33 @@ function Element(name, draw, onframe) {
     this.addSysPainters();
     if (global_opts.liveDebug) this.addDebugRender();
 }
-Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); }
+Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); };
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
 provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
                          C.X_MMOVE, C.X_MOVER, C.X_MOUT,
-                         C.X_KPRESS, C.X_KUP, C.X_KDOWN,
-                         C.X_DRAW, C.X_START, C.X_STOP,
-                         // player events
-                         C.S_CHANGE_STATE,
-                         C.S_PLAY, C.S_PAUSE, C.S_STOP, C.S_COMPLETE, C.S_REPEAT,
-                         C.S_IMPORT, C.S_LOAD, C.S_RES_LOAD, C.S_ERROR ]);
+                         C.X_START, C.X_STOP ]);
 <span id='anm-Element-method-is'>/**
 </span> * @method is
  *
  * Check, if this element represents {@link anm.Path Path}, {@link anm.Text Text},
  * {@link anm.Sheet Sheet}, or it&#39;s empty
  *
- * @param {anm.C.ET_*} type to check for
+ * @param {String} type to check for: `&#39;empty&#39;`, `&#39;path&#39;`, `&#39;text&#39;`, `&#39;image&#39;`, `&#39;audio&#39;`, `&#39;video&#39;`...
  * @return {Boolean}
  */
 Element.prototype.is = function(type) {
     return this.type == type;
-}
+};
+
 Element.prototype.initState = function() {
 
 <span id='anm-Element-property-x'>    /** @property {Number} x position on the X axis, relatively to parent */
 </span><span id='anm-Element-property-y'>    /** @property {Number} y position on the Y axis, relatively to parent */
 </span><span id='anm-Element-property-angle'>    /** @property {Number} angle rotation angle, in radians, relative to parent */
 </span><span id='anm-Element-property-sx'>    /** @property {Number} sx scale over X axis, relatively to parent */
-</span><span id='anm-Element-property-sx'>    /** @property {Number} sx scale over Y axis, relatively to parent */
+</span><span id='anm-Element-property-sy'>    /** @property {Number} sy scale over Y axis, relatively to parent */
 </span><span id='anm-Element-property-hx'>    /** @property {Number} hx skew over X axis, relatively to parent */
 </span><span id='anm-Element-property-hy'>    /** @property {Number} hy skew over Y axis, relatively to parent */
 </span><span id='anm-Element-property-alpha'>    /** @property {Number} alpha opacity, relative to parent */
@@ -234,7 +222,7 @@ Element.prototype.initState = function() {
                                // cur local time (t) or 0..1 time (rt) or by key (t have highest priority),
                                // if both are null — stays as defined
 
-    if (this.matrix) { this.matrix.reset() }
+    if (this.matrix) { this.matrix.reset(); }
     else { this.matrix = new Transform(); }
 
     // previous state
@@ -263,7 +251,7 @@ Element.prototype.initState = function() {
                                 // cur local time (t) and 0..1 time (rt) and,
                                 // if it was ever applied, the last applied key
 
-    if (this._matrix) { this._matrix.reset() }
+    if (this._matrix) { this._matrix.reset(); }
     else { this._matrix = new Transform(); }
 
 <span id='anm-Element-property-S-reg'>    /** @property {Array[Number]} $reg registration point (X and Y position) @readonly */
@@ -273,7 +261,8 @@ Element.prototype.initState = function() {
     this.$pivot = Element.DEFAULT_PVT; // pivot (relative to dimensions)
 
     return this;
-}
+};
+
 Element.prototype.resetState = Element.prototype.initState;
 Element.prototype.initVisuals = function() {
 
@@ -309,10 +298,12 @@ Element.prototype.initVisuals = function() {
     this.lastBoundsSavedAt = null; // time, when bounds were saved last time
     this.$my_bounds = null; // Element bounds on its own, cached
 
-    this.audio = null;
+    this.$audio = null;
+    this.$video = null;
 
     return this;
-}
+};
+
 Element.prototype.resetVisuals = Element.prototype.initVisuals;
 Element.prototype.initTime = function() {
 
@@ -345,7 +336,8 @@ Element.prototype.initTime = function() {
     this.__resetTimeFlags();
 
     return this;
-}
+};
+
 Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.__resetTimeFlags = function() {
     this.__lastJump = null; // a time of last jump in time
@@ -355,10 +347,11 @@ Element.prototype.__resetTimeFlags = function() {
 };
 Element.prototype.initEvents = function() {
     this.evts = {}; // events cache
-    this.__evt_st = 0; // events state
+    this.__evt_st = new EventState(); // event state
     this.__evtCache = [];
     return this;
-}
+};
+
 Element.prototype.resetEvents = Element.prototype.initEvents;
 <span id='anm-Element-method-path'>/**
 </span> * @method path
@@ -379,10 +372,11 @@ Element.prototype.path = function(value) {
     if (value) {
         this.invalidate();
         this.type = C.ET_PATH;
-        this.$path = is.str(value) ? new Path(value) : path;
+        this.$path = is.str(value) ? new Path(value) : value;
         return this;
     } else return this.$path;
-}
+};
+
 <span id='anm-Element-method-text'>/**
 </span> * @method text
  * @chainable
@@ -407,12 +401,13 @@ Element.prototype.text = function(value) {
         this.$text = (is.str(value) || is.arr(value)) ? new Text(value) : value;
         return this;
     } else return this.$text;
-}
+};
+
 <span id='anm-Element-method-image'>/**
 </span> * @method image
  * @chainable
  *
- * Set this element to be an {@link anm.Image Image/Sheet} or get current image.
+ * Set this element to be an {@link anm.Sheet Image/Sheet} or get current image.
  *
  * Examples:
  *
@@ -435,7 +430,8 @@ Element.prototype.image = function(value, callback) {
         this.$image = (is.str(value)) ? new Image(value, callback) : value;
         return this;
     } else return this.$image;
-}
+};
+
 <span id='anm-Element-method-fill'>/**
 </span> * @method fill
  * @chainable
@@ -462,7 +458,8 @@ Element.prototype.fill = function(value) {
         this.$fill = (value instanceof Brush) ? value : Brush.fill(value);
         return this;
     } else return this.$fill;
-}
+};
+
 <span id='anm-Element-method-noFill'>/**
 </span> * @method noFill
  * @chainable
@@ -474,7 +471,8 @@ Element.prototype.fill = function(value) {
 Element.prototype.noFill = function() {
     this.$fill = Color.TRANSPARENT;
     return this;
-}
+};
+
 <span id='anm-Element-method-stroke'>/**
 </span>* @method stroke
 * @chainable
@@ -503,11 +501,12 @@ Element.prototype.stroke = function(value, width) {
             this.$stroke = value;
             if (is.defined(width)) this.$stroke.width = width;
         } else {
-            this.$stroke = (value instanceof Brush) ? value : Brush.stroke(value, width);
+            this.$stroke = Brush.stroke(value, width);
         }
         return this;
     } else return this.$stroke;
-}
+};
+
 <span id='anm-Element-method-noStroke'>/**
 </span> * @method noStroke
  * @chainable
@@ -519,7 +518,8 @@ Element.prototype.stroke = function(value, width) {
 Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
-}
+};
+
 <span id='anm-Element-method-modifiers'>/**
 </span> * @private @method modifiers
  *
@@ -535,15 +535,15 @@ Element.prototype.noStroke = function() {
 Element.prototype.modifiers = function(ltime, dt, types) {
     var elm = this;
     var order = types || Modifier.ALL_MODIFIERS;
-    var dt = dt || 0;
+    dt = dt || 0;
 
     // copy current state as previous one
     elm.applyPrevState(elm);
 
     // FIXME: checkJump is performed before, may be it should store its values inside here?
     if (is.num(elm.__appliedAt)) {
-      elm._t   = elm.__appliedAt;
-      elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+        elm._t   = elm.__appliedAt;
+        elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
     }
     // FIXME: elm.t and elm.dt both should store real time for this moment.
     //        modifier may have its own time, though, but not painter, so painters probably
@@ -577,7 +577,7 @@ Element.prototype.modifiers = function(ltime, dt, types) {
                 // modifier will return false if it is required to skip all next modifiers,
                 // returning false from our function means the same
                 //                                         // time,      dt, duration
-                if ((lbtime === false) || (modifier.call(elm, lbtime[0], dt, lbtime[1]) === false)) {
+                if ((lbtime === false) || (modifier.apply(elm, lbtime[0], dt, lbtime[1]) === false)) {
                     elm.__mafter(ltime, elm.__modifying, false);
                     elm.__modifying = null;
                     return false; // exit the method
@@ -598,7 +598,8 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     elm.resetEvents();
 
     return true;
-}
+};
+
 <span id='anm-Element-method-painters'>/**
 </span> * @private @method painters
  *
@@ -624,7 +625,7 @@ Element.prototype.painters = function(ctx, types) {
         if (typed_painters) {
             for (var j = 0, jl = typed_painters.length; j &lt; jl; j++) {
                 painter = typed_painters[j];
-                painter.call(elm, ctx);
+                painter.apply(elm, ctx);
             }
         }
 
@@ -632,7 +633,8 @@ Element.prototype.painters = function(ctx, types) {
     } // for each type
 
     elm.__painting = null;
-}
+};
+
 <span id='anm-Element-method-forAllModifiers'>/**
 </span> * @private @method forAllModifiers
  *
@@ -657,9 +659,10 @@ Element.prototype.forAllModifiers = function(f) {
         }
 
     }
-}
-<span id='anm-Element-method-forAllModifiers'>/**
-</span>* @private @method forAllModifiers
+};
+
+<span id='anm-Element-method-forAllPainters'>/**
+</span>* @private @method forAllPainters
 *
 * Iterate over all of the painters and call given function
 *
@@ -680,65 +683,14 @@ Element.prototype.forAllPainters = function(f) {
             }
         }
     }
-}
-<span id='anm-Element-method-adapt'>/**
-</span> * @method adapt
- *
- * Adapt a point or several ones to element&#39;s local coordinate space (relatively to
- * parent&#39;s space). Points are passed as an object `{ x: 100, y: 100 }` or an array
- * `[ { x: 100, y: 100}, { x: 200.5, y: 150 } ]` and returned in the same format.
- *
- * @param {Object|[Object]} pt one or several points to adapt
- * @param {Number} pt.x
- * @param {Number} pt.y
- *
- * @return {Object|[Object]} transformed point or several points
- */
-Element.prototype.adapt = function(pts) {
-    if (is.arr(pts)) {
-        var trg = [];
-        var matrix = this.matrix;
-        for (var i = 0, il = pts.length; i &lt; il; i++) {
-            trg.push(matrix.transformPoint(pts[i].x, pts[i].y));
-        }
-        return trg;
-    } else {
-        return this.matrix.transformPoint(pts.x, pts.y);
-    }
-}
-<span id='anm-Element-method-adapt'>/**
-</span>* @method adapt
-*
-* Adapt bounds to element&#39;s local coordinate space (relatively to
-* parent&#39;s space). Bounds are passed as an object
-* `{ x: 100, y: 100, width: 200, height: 150 }`.
-*
-* @param {Object} bounds bounds to adapt
-* @param {Number} bounds.x
-* @param {Number} bounds.y
-* @param {Number} bounds.width
-* @param {Number} bounds.height
-*
-* @return {Object} transformed bounds
-*/
-Element.prototype.adaptBounds = function(bounds) {
-    var matrix = this.matrix;
-    var tl = matrix.transformPoint(bounds.x, bounds.y),
-        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
-        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
-        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
-    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
-        minY = Math.min(tl.y, tr.y, bl.y, br.y),
-        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
-        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
-    return new Bounds(minX, minY, maxX - minX, maxY - minY);
-}
+};
+
 <span id='anm-Element-method-draw'>/**
 </span> * @method draw
  *
  * Draw element over some context, without applying transformations, even if element
  * has some, since they depend on time. To draw element along with applying
- * transformations in one call, use {@link anm.Element#render render()} method.
+ * transformations in one call, use {@link anm.Element#render render} method.
  *
  * @param {Context2D} ctx context, where element should be drawn
  */
@@ -755,7 +707,8 @@ Element.prototype.transform = function(ctx) {
     ctx.globalAlpha *= this.alpha;
     this.matrix.apply(ctx);
     return this.matrix;
-}
+};
+
 <span id='anm-Element-method-invTransform'>/**
 </span> * @private @method invTransform
  *
@@ -768,7 +721,8 @@ Element.prototype.invTransform = function(ctx) {
     ctx.globalAlpha *= this.alpha;
     inv_matrix.apply(ctx);
     return inv_matrix;
-}
+};
+
 <span id='anm-Element-method-render'>/**
 </span> * @method render
  * @chainable
@@ -818,120 +772,117 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // FIXME: masks have no animation set to something, but should to (see masks tests)
     if (this.anim &amp;&amp; this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
-        drawMe = this.fits(ltime)
-                 &amp;&amp; this.modifiers(ltime, dt)
-                 &amp;&amp; this.visible; // modifiers should be applied even if element isn&#39;t visible
+        drawMe = this.fits(ltime) &amp;&amp;
+                 this.modifiers(ltime, dt) &amp;&amp;
+                 this.visible; // modifiers should be applied even if element isn&#39;t visible
     }
     if (drawMe) {
         ctx.save();
-        try {
-            // update global time with new local time (it may&#39;ve been
-            // changed if there were jumps or something), so children will
-            // get the proper value
-            gtime = this.gtime(ltime);
-            if (!this.$mask) {
-                // draw directly to context, if has no mask
-                this.transform(ctx);
-                this.painters(ctx);
-                this.each(function(child) {
-                    child.render(ctx, gtime, dt);
-                });
-            } else {
-                // FIXME: the complete mask process should be a Painter.
+        // update global time with new local time (it may&#39;ve been
+        // changed if there were jumps or something), so children will
+        // get the proper value
+        gtime = this.gtime(ltime);
+        if (!this.$mask) {
+            // draw directly to context, if has no mask
+            this.transform(ctx);
+            this.painters(ctx);
+            this.each(function(child) {
+                child.render(ctx, gtime, dt);
+            });
+        } else {
+            // FIXME: the complete mask process should be a Painter.
 
-                var mask = this.$mask;
+            var mask = this.$mask;
 
-                // FIXME: move this chain completely into one method, or,
-                //        which is even better, make all these checks to be modifiers
-                // FIXME: call modifiers once for one moment of time. If there are several
-                //        masked elements, they will be called that number of times
-                if (!(mask.fits(ltime)
-                      &amp;&amp; mask.modifiers(ltime, dt)
-                      &amp;&amp; mask.visible)) return;
-                      // what should happen if mask doesn&#39;t fit in time?
+            // FIXME: move this chain completely into one method, or,
+            //        which is even better, make all these checks to be modifiers
+            // FIXME: call modifiers once for one moment of time. If there are several
+            //        masked elements, they will be called that number of times
+            if (!(mask.fits(ltime) &amp;&amp;
+                  mask.modifiers(ltime, dt) &amp;&amp;
+                  mask.visible)) return;
+                  // what should happen if mask doesn&#39;t fit in time?
 
-                mask.ensureHasMaskCanvas();
-                var mcvs = mask.__maskCvs,
-                    mctx = mask.__maskCtx,
-                    bcvs = mask.__backCvs,
-                    bctx = mask.__backCtx;
+            mask.ensureHasMaskCanvas();
+            var mcvs = mask.__maskCvs,
+                mctx = mask.__maskCtx,
+                bcvs = mask.__backCvs,
+                bctx = mask.__backCtx;
 
-                // FIXME: test if bounds are not empty
-                var bounds_pts = mask.bounds(ltime).toPoints();
+            // FIXME: test if bounds are not empty
+            var bounds_pts = mask.bounds(ltime).toPoints();
 
-                var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
-                    maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
+            var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
+                maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
 
-                var pt;
-                for (var i = 0, il = bounds_pts.length; i &lt; il; i++) {
-                    pt = bounds_pts[i];
-                    if (pt.x &lt; minX) minX = pt.x;
-                    if (pt.y &lt; minY) minY = pt.y;
-                    if (pt.x &gt; maxX) maxX = pt.x;
-                    if (pt.y &gt; maxY) maxY = pt.y;
-                }
-
-                var ratio  = engine.PX_RATIO,
-                    x = minX, y = minY,
-                    width  = Math.round(maxX - minX),
-                    height = Math.round(maxY - minY);
-
-                var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
-
-                if ((last_cvs_size[0] &lt; width) ||
-                    (last_cvs_size[1] &lt; height)) {
-                    // mcvs/bcvs both always have the same size, so we save/check only one of them
-                    this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
-                    engine.setCanvasSize(bcvs, width, height);
-                } else {
-                    this._maskCvsSize = last_cvs_size;
-                }
-
-                var scale = ratio;  // multiple by global scale when it&#39;s known
-
-                bctx.clearRect(0, 0, width*scale, height*scale);
-                mctx.clearRect(0, 0, width*scale, height*scale);
-
-                bctx.save();
-                mctx.save();
-
-                bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-                mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
-
-                this.transform(bctx);
-                this.painters(bctx);
-                this.each(function(child) {
-                    child.render(bctx, gtime, dt);
-                });
-
-                mask.transform(mctx);
-                mask.painters(mctx);
-                mask.each(function(child) {
-                    child.render(mctx, gtime, dt);
-                });
-
-                bctx.globalCompositeOperation = &#39;destination-in&#39;;
-                bctx.setTransform(1, 0, 0, 1, 0, 0);
-                bctx.drawImage(mcvs, 0, 0);
-
-                ctx.drawImage(bcvs,
-                    0, 0, width * scale, height * scale,
-                    x, y, width, height);
-
-                mctx.restore();
-                bctx.restore();
+            var pt;
+            for (var i = 0, il = bounds_pts.length; i &lt; il; i++) {
+                pt = bounds_pts[i];
+                if (pt.x &lt; minX) minX = pt.x;
+                if (pt.y &lt; minY) minY = pt.y;
+                if (pt.x &gt; maxX) maxX = pt.x;
+                if (pt.y &gt; maxY) maxY = pt.y;
             }
-        } catch(e) { log.error(e); }
-          finally { ctx.restore(); }
+
+            var ratio  = engine.PX_RATIO,
+                x = minX, y = minY,
+                width  = Math.round(maxX - minX),
+                height = Math.round(maxY - minY);
+
+            var last_cvs_size = this._maskCvsSize || engine.getCanvasSize(mcvs);
+
+            if ((last_cvs_size[0] &lt; width) ||
+                (last_cvs_size[1] &lt; height)) {
+                // mcvs/bcvs both always have the same size, so we save/check only one of them
+                this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
+                engine.setCanvasSize(bcvs, width, height);
+            } else {
+                this._maskCvsSize = last_cvs_size;
+            }
+
+            var scale = ratio;  // multiple by global scale when it&#39;s known
+
+            bctx.clearRect(0, 0, width*scale, height*scale);
+            mctx.clearRect(0, 0, width*scale, height*scale);
+
+            bctx.save();
+            mctx.save();
+
+            bctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+            mctx.setTransform(scale, 0, 0, scale, -x*scale, -y*scale);
+
+            this.transform(bctx);
+            this.painters(bctx);
+            this.each(function(child) {
+                child.render(bctx, gtime, dt);
+            });
+
+            mask.transform(mctx);
+            mask.painters(mctx);
+            mask.each(function(child) {
+                child.render(mctx, gtime, dt);
+            });
+
+            bctx.globalCompositeOperation = &#39;destination-in&#39;;
+            bctx.setTransform(1, 0, 0, 1, 0, 0);
+            bctx.drawImage(mcvs, 0, 0);
+
+            ctx.drawImage(bcvs,
+                0, 0, Math.floor(width * scale), Math.floor(height * scale),
+                x, y, width, height);
+
+            mctx.restore();
+            bctx.restore();
+        }
+        ctx.restore();
     }
-    // immediately when drawn, element becomes shown,
-    // it is reasonable
+    // immediately after being drawn, element is shown, it is reasonable
     this.shown = drawMe;
     this.__postRender();
     this.rendering = false;
-    if (drawMe) this.fire(C.X_DRAW,ctx);
     return this;
-}
+};
+
 <span id='anm-Element-method-pivot'>/**
 </span> * @method pivot
  * @chainable
@@ -946,7 +897,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 Element.prototype.pivot = function(x, y) {
     this.$pivot = [ x, y ];
     return this;
-}
+};
+
 <span id='anm-Element-method-reg'>/**
 </span> * @method reg
  * @chainable
@@ -961,7 +913,8 @@ Element.prototype.pivot = function(x, y) {
 Element.prototype.reg = function(x, y) {
     this.$reg = [ x, y ];
     return this;
-}
+};
+
 <span id='anm-Element-method-move'>/**
 </span> * @method move
  * @chainable
@@ -982,7 +935,8 @@ Element.prototype.move = function(x, y) {
     this.x = x;
     this.y = y;
     return this;
-}
+};
+
 <span id='anm-Element-method-rotate'>/**
 </span> * @method rotate
  * @chainable
@@ -1001,7 +955,8 @@ Element.prototype.move = function(x, y) {
 Element.prototype.rotate = function(angle) {
     this.angle = angle;
     return this;
-}
+};
+
 <span id='anm-Element-method-rotateInDeg'>/**
 </span> * @method rotateInDeg
  * @chainable
@@ -1019,7 +974,8 @@ Element.prototype.rotate = function(angle) {
  */
 Element.prototype.rotateInDeg = function(angle) {
     return this.rotate(angle / 180 * Math.PI);
-}
+};
+
 <span id='anm-Element-method-scale'>/**
 </span> * @method scale
  * @chainable
@@ -1040,7 +996,8 @@ Element.prototype.scale = function(sx, sy) {
     this.sx = sx;
     this.sy = sy;
     return this;
-}
+};
+
 <span id='anm-Element-method-skew'>/**
 </span> * @method skew
  * @chainable
@@ -1061,7 +1018,8 @@ Element.prototype.skew = function(hx, hy) {
     this.hx = hx;
     this.hy = hy;
     return this;
-}
+};
+
 <span id='anm-Element-method-repeat'>/**
 </span>* @method repeat
 * @chainable
@@ -1081,11 +1039,11 @@ Element.prototype.skew = function(hx, hy) {
 * except the case when a parent of a parent has narrower band.
 *
 * NB: by default, element&#39;s band is `[0, Infinity]`, in seconds, relative to parent&#39;s band.
-* To change it, use {@link anm.Element#band band()} method.
+* To change it, use {@link anm.Element#band band} method.
 *
-* See also: {@link anm.Element#band band()}, {@link anm.Element#once once()},
-*           {@link anm.Element#stay stay()}, {@link anm.Element#loop loop()},
-*           {@link anm.Element#bounce bounce()}
+* See also: {@link anm.Element#band band}, {@link anm.Element#once once},
+*           {@link anm.Element#stay stay}, {@link anm.Element#loop loop},
+*           {@link anm.Element#bounce bounce}
 *
 * @param {anm.C.R_*} mode repeat mode, one of the listed above
 * @param {Number} nrep number of times to repeat or `Infinity` by default
@@ -1096,7 +1054,8 @@ Element.prototype.repeat = function(mode, nrep) {
     this.mode = mode;
     this.nrep = is.num(nrep) ? nrep : Infinity;
     return this;
-}
+};
+
 <span id='anm-Element-method-once'>/**
 </span> * @method once
  * @chainable
@@ -1106,7 +1065,7 @@ Element.prototype.repeat = function(mode, nrep) {
  * when it element &quot;dies&quot; just after its lifetime is finished. In another words,
  * disable any looping/repeating.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @return {anm.Element} itself
  */
@@ -1114,7 +1073,8 @@ Element.prototype.once = function() {
     this.mode = C.R_ONCE;
     this.nrep = Infinity;
     return this;
-}
+};
+
 <span id='anm-Element-method-stay'>/**
 </span> * @method stay
  * @chainable
@@ -1122,7 +1082,7 @@ Element.prototype.once = function() {
  * Repeat this element once inside its own band, but freeze its last frame until
  * parents&#39; band will finish, or forever.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @return {anm.Element} itself
  */
@@ -1130,7 +1090,8 @@ Element.prototype.stay = function() {
     this.mode = C.R_STAY;
     this.nrep = Infinity;
     return this;
-}
+};
+
 <span id='anm-Element-method-loop'>/**
 </span> * @method loop
  * @chainable
@@ -1138,7 +1099,7 @@ Element.prototype.stay = function() {
  * Loop this element using its own band until its parent&#39;s band will finish, or
  * until specified number of times to repeat will be reached, or forever.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @param {Number} [nrep] number of times to repeat or `Infinity` by default
  *
@@ -1148,7 +1109,8 @@ Element.prototype.loop = function(nrep) {
     this.mode = C.R_LOOP;
     this.nrep = is.num(nrep) ? nrep : Infinity;
     return this;
-}
+};
+
 <span id='anm-Element-method-bounce'>/**
 </span> * @method bounce
  * @chainable
@@ -1157,7 +1119,7 @@ Element.prototype.loop = function(nrep) {
  * its parent&#39;s band will finish, or until specified number of times to repeat
  * will be reached, or forever.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @param {Number} [nrep] number of times to repeat or `Infinity` by default
  *
@@ -1167,7 +1129,68 @@ Element.prototype.bounce = function(nrep) {
     this.mode = C.R_BOUNCE;
     this.nrep = is.num(nrep) ? nrep : Infinity;
     return this;
+};
+
+<span id='anm-Element-method-jump'>/**
+</span> * @method jump
+ * @chainable
+ *
+ * Jump to local time. Element must be alive for this to work: its band should include both the time
+ * when jump performed and the time to where jump is performed. Time is specified as `0` if
+ * element should jump to the start of its band.
+ *
+ * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
+ *
+ * @param {Number} t target time for a jump
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.jump = function(loc_t) {
+    this.t = loc_t;
+    return this;
+};
+
+<span id='anm-Element-method-freeze'>/**
+</span> * @method freeze
+ * @chainable
+ *
+ * Pause at current time (so element will be visible, but won&#39;t be tweened).
+ * Will pause _only_ for the time where element is &quot;alive&quot;, i.e. if current time is
+ * outside of its band, element won&#39;t render instead. Also, no band `START`/`STOP` events
+ * will be fired in any case.
+ *
+ * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#unfreeze unfreeze}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.freeze = function() {
+    if (this.frozen) return this;
+    this.frozen = true;
+    this.__m_freeze = function(t) {
+        if (!this.frozen) return;
+        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
+        else (this.pausedAt = t);
+    };
+    this.modify(this.__m_freeze);
+    return this;
 }
+
+<span id='anm-Element-method-unfreeze'>/**
+</span> * @method unfreeze
+ * @chainable
+ *
+ * Unpause after a call to {@link anm.Element#freeze freeze}.
+ *
+ * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#freeze freeze}.
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.unfreeze = function() {
+    this.frozen = false;
+    if (this.__m_freeze) this.unmodify(this.__m_freeze);
+    return this;
+}
+
 <span id='anm-Element-method-modify'>/**
 </span> * @method modify
  * @chainable
@@ -1194,23 +1217,24 @@ Element.prototype.modify = function(band, modifier) {
     //           nor painters, they should be accessible through this.t / this.dt
     if (!is.arr(band)) { modifier = band;
                         band = null; }
-    if (!modifier) throw new AnimationError(&#39;No modifier was passed to .modify() method&#39;);
+    if (!modifier) throw errors.element(&#39;No modifier was passed to .modify() method&#39;, this);
     if (!is.modifier(modifier) &amp;&amp; is.fun(modifier)) {
         modifier = new Modifier(modifier, C.MOD_USER);
     } else if (!is.modifier(modifier)) {
-        throw new AnimationError(&#39;Modifier should be either a function or a Modifier instance&#39;);
+        throw errors.element(&#39;Modifier should be either a function or a Modifier instance&#39;, this);
     }
-    if (!modifier.type) throw new AnimationError(&#39;Modifier should have a type defined&#39;);
+    if (!modifier.type) throw errors.element(&#39;Modifier should have a type defined&#39;, this);
     if (band) modifier.$band = band;
     if (modifier.__applied_to &amp;&amp;
-        modifier.__applied_to[this.id]) throw new AnimationError(&#39;This modifier is already applied to this Element&#39;);
+        modifier.__applied_to[this.id]) throw errors.element(&#39;This modifier is already applied to this Element&#39;, this);
     if (!this.$modifiers[modifier.type]) this.$modifiers[modifier.type] = [];
     this.$modifiers[modifier.type].push(modifier);
     this.__modifiers_hash[modifier.id] = modifier;
     if (!modifier.__applied_to) modifier.__applied_to = {};
     modifier.__applied_to[this.id] = this.$modifiers[modifier.type].length; // the index in the array by type + 1 (so 0 means not applied)
     return this;
-}
+};
+
 <span id='anm-Element-method-removeModifier'>/**
 </span> * @method removeModifier
  * @chainable
@@ -1224,15 +1248,16 @@ Element.prototype.modify = function(band, modifier) {
 Element.prototype.removeModifier = function(modifier) {
     // FIXME!!!: do not pass time, dt and duration neither to modifiers
     //           nor painters, they should be accessible through this.t / this.dt
-    if (!is.modifier(modifier)) throw new AnimationError(&#39;Please pass Modifier instance to removeModifier&#39;);
-    if (!this.__modifiers_hash[modifier.id]) throw new AnimationError(&#39;Modifier wasn\&#39;t applied to this element&#39;);
-    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw new AnimationError(Errors.A.MODIFIER_NOT_ATTACHED);
-    //if (this.__modifying) throw new AnimErr(&quot;Can&#39;t remove modifiers while modifying&quot;);
-    delete this.__modifiers_hash[modifier.id];
-    delete this.$modifiers[modifier.type].splice(modifier.__applied_to[this.id] - 1, 1); // delete by index
-    delete modifier.__applied_to[this.id];
+    if (!is.modifier(modifier)) throw errors.element(&#39;Please pass Modifier instance to removeModifier&#39;, this);
+    if (!this.__modifiers_hash[modifier.id]) throw errors.element(&#39;Modifier wasn\&#39;t applied to this element&#39;, this);
+    if (!modifier.__applied_to || !modifier.__applied_to[this.id]) throw errors.element(ErrLoc.A.MODIFIER_NOT_ATTACHED, this);
+    //if (this.__modifying) throw errors.element(&quot;Can&#39;t remove modifiers while modifying&quot;);
+    utils.removeElement(this.__modifiers_hash, modifier.id);
+    utils.removeElement(this.$modifiers[modifier.type], modifier);
+    utils.removeElement(modifier.__applied_to, this.id);
     return this;
-}
+};
+
 <span id='anm-Element-method-paint'>/**
 </span> * @method paint
  * @chainable
@@ -1252,22 +1277,23 @@ Element.prototype.removeModifier = function(modifier) {
  * @return {anm.Element} itself
  */
 Element.prototype.paint = function(painter) {
-    if (!painter) throw new AnimationError(&#39;No painter was passed to .paint() method&#39;);
+    if (!painter) throw errors.element(&#39;No painter was passed to .paint() method&#39;, this);
     if (!is.painter(painter) &amp;&amp; is.fun(painter)) {
         painter = new Painter(painter, C.MOD_USER);
     } else if (!is.painter(painter)) {
-        throw new AnimationError(&#39;Painter should be either a function or a Painter instance&#39;);
+        throw errors.element(&#39;Painter should be either a function or a Painter instance&#39;, this);
     }
-    if (!painter.type) throw new AnimationError(&#39;Painter should have a type defined&#39;);
+    if (!painter.type) throw errors.element(&#39;Painter should have a type defined&#39;, this);
     if (painter.__applied_to &amp;&amp;
-        painter.__applied_to[this.id]) throw new AnimationError(&#39;This painter is already applied to this Element&#39;);
+        painter.__applied_to[this.id]) throw errors.element(&#39;This painter is already applied to this Element&#39;, this);
     if (!this.$painters[painter.type]) this.$painters[painter.type] = [];
     this.$painters[painter.type].push(painter);
     this.__painters_hash[painter.id] = painter;
     if (!painter.__applied_to) painter.__applied_to = {};
     painter.__applied_to[this.id] = this.$painters[painter.type].length; // the index in the array by type + 1 (so 0 means not applied)
     return this;
-}
+};
+
 <span id='anm-Element-method-removePainter'>/**
 </span> * @method removePainter
  * @chainable
@@ -1279,15 +1305,16 @@ Element.prototype.paint = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.removePainter = function(painter) {
-    if (!is.painter(painter)) throw new AnimationError(&#39;Please pass Painter instance to removePainter&#39;);
-    if (!this.__painters_hash[painter.id]) throw new AnimationError(&#39;Painter wasn\&#39;t applied to this element&#39;);
-    if (!painter.__applied_to || !painter.__applied_to[this.id]) throw new AnimErr(Errors.A.PAINTER_NOT_ATTACHED);
-    //if (this.__modifying) throw new AnimErr(&quot;Can&#39;t remove modifiers while modifying&quot;);
-    delete this.__painters_hash[painter.id];
-    delete this.$painters[painter.type].splice(painter.__applied_to[this.id] - 1, 1); // delete by index
-    delete painter.__applied_to[this.id];
+    if (!is.painter(painter)) throw errors.element(&#39;Please pass Painter instance to removePainter&#39;, this);
+    if (!this.__painters_hash[painter.id]) throw errors.element(&#39;Painter wasn\&#39;t applied to this element&#39;, this);
+    if (!painter.__applied_to || !painter.__applied_to[this.id]) throw errors.element(ErrLoc.A.PAINTER_NOT_ATTACHED, this);
+    //if (this.__modifying) throw errors.element(&quot;Can&#39;t remove modifiers while modifying&quot;, this);
+    utils.removeElement(this.__painters_hash, painter.id);
+    utils.removeElement(this.$painters[painter.type], painter);
+    utils.removeElement(painter.__applied_to, this.id);
     return this;
-}
+};
+
 <span id='anm-Element-method-tween'>/**
 </span> * @method tween
  * @chainable
@@ -1307,11 +1334,12 @@ Element.prototype.removePainter = function(painter) {
  * @return {anm.Element} itself
  */
 Element.prototype.tween = function(tween) {
-    if (!is.tween(tween)) throw new AnimationError(&#39;Please pass Tween instance to .tween() method&#39;);
+    if (!is.tween(tween)) throw errors.element(&#39;Please pass Tween instance to .tween() method&#39;, this);
     // tweens are always receiving time as relative time
     // is.finite(duration) &amp;&amp; duration ? (t / duration) : 0
     return this.modify(tween);
-}
+};
+
 <span id='anm-Element-method-removeTween'>/**
 </span>* @method removeTween
 * @chainable
@@ -1323,9 +1351,10 @@ Element.prototype.tween = function(tween) {
 * @return {anm.Element} itself
 */
 Element.prototype.removeTween = function(tween) {
-    if (!is.tween(tween)) throw new AnimationError(&#39;Please pass Tween instance to .removeTween() method&#39;);
+    if (!is.tween(tween)) throw errors.element(&#39;Please pass Tween instance to .removeTween() method&#39;, this);
     return this.removeModifier(tween);
-}
+};
+
 <span id='anm-Element-method-add'>/**
 </span>* @method add
 * @chainable
@@ -1355,7 +1384,8 @@ Element.prototype.add = function(arg1, arg2, arg3) {
     }
     this.invalidate();
     return this;
-}
+};
+
 <span id='anm-Element-method-remove'>/**
 </span> * @method remove
  * @chainable
@@ -1367,26 +1397,29 @@ Element.prototype.add = function(arg1, arg2, arg3) {
  * @return {anm.Element} parent, itself
  */
 Element.prototype.remove = function(elm) {
-    if (!elm) throw new AnimationError(Errors.A.NO_ELEMENT_TO_REMOVE);
-    if (this.__safeDetach(elm) == 0) throw new AnimationError(Errors.A.NO_ELEMENT);
+    if (!elm) throw errors.element(ErrLoc.A.NO_ELEMENT_TO_REMOVE);
+    if (this.__safeDetach(elm) === 0) throw errors.element(ErrLoc.A.NO_ELEMENT);
     this.invalidate();
     return this;
-}
+};
+
 Element.prototype._unbind = function() {
     if (this.parent.__unsafeToRemove ||
-        this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
+        this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE);
     this.parent = null;
     if (this.anim) this.anim._unregister(this);
     // this.anim should be null after unregistering
-}
+};
+
 <span id='anm-Element-method-detach'>/**
 </span> * @private @method detach
  *
  * Detach element from parent, a part of removing process
  */
 Element.prototype.detach = function() {
-    if (this.parent.__safeDetach(this) == 0) throw new AnimationError(Errors.A.ELEMENT_NOT_ATTACHED);
-}
+    if (this.parent.__safeDetach(this) === 0) throw errors.element(ErrLoc.A.ELEMENT_NOT_ATTACHED, this);
+};
+
 <span id='anm-Element-method-makeBandFit'>/**
 </span> * @private @method makeBandFit
  *
@@ -1396,7 +1429,8 @@ Element.prototype.makeBandFit = function() {
     var wband = this.findWrapBand();
     this.gband = wband;
     this.lband[1] = wband[1] - wband[0];
-}
+};
+
 <span id='anm-Element-method-fits'>/**
 </span> * @private @method fits
  *
@@ -1411,7 +1445,8 @@ Element.prototype.fits = function(ltime) {
     // method or `ltime` method for more details.
     if (ltime &lt; 0) return false;
     return t_cmp(ltime, this.lband[1] - this.lband[0]) &lt;= 0;
-}
+};
+
 <span id='anm-Element-method-gtime'>/**
 </span> * @method gtime
  *
@@ -1423,7 +1458,8 @@ Element.prototype.fits = function(ltime) {
  */
 Element.prototype.gtime = function(ltime) {
     return this.gband[0] + ltime;
-}
+};
+
 <span id='anm-Element-method-ltime'>/**
 </span> * @method ltime
  *
@@ -1448,20 +1484,8 @@ Element.prototype.ltime = function(gtime) {
     return this.__checkJump(
         Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
     );
-}
-<span id='anm-Element-method-handlePlayerEvent'>/**
-</span> * @private @method handlePlayerEvent
- *
- * Pass player event to this element.
- *
- * @param {C.S_*} event
- * @param {Function} handler
- * @param {anm.Player} handler.player
- */
-Element.prototype.handlePlayerEvent = function(event, handler) {
-    if (!isPlayerEvent(event)) throw new Error(&#39;This method is intended to assign only player-related handles&#39;);
-    this.on(event, handler);
-}
+};
+
 <span id='anm-Element-method-inform'>/**
 </span> * @private @method inform
  *
@@ -1498,9 +1522,10 @@ Element.prototype.inform = function(ltime) {
                 this.__firedStop = true;
                 // TODO: handle STOP event by changing band to end at given time?
             }
-        };
-    };
-}
+        }
+    }
+};
+
 <span id='anm-Element-method-band'>/**
 </span> * @method band
  * @chainable
@@ -1522,7 +1547,7 @@ Element.prototype.inform = function(ltime) {
 Element.prototype.band = function(start, stop) {
     if (!is.defined(start)) return this.lband;
     // FIXME: array bands should not pass
-    // if (is.arr(start)) throw new AnimErr(&#39;Band is specified with two numbers, not an array&#39;);
+    // if (is.arr(start)) throw errors.element(&#39;Band is specified with two numbers, not an array&#39;, this);
     if (is.arr(start)) {
         start = start[0];
         stop = start[1];
@@ -1535,39 +1560,35 @@ Element.prototype.band = function(start, stop) {
     }
     // Bands.recalc(this)
     return this;
-}
-<span id='anm-Element-method-band'>/**
-</span> * @method band
+};
+
+<span id='anm-Element-method-duration'>/**
+</span> * @method duration
  * @chainable
  *
- * Set a time-band of an element (relatively to parent element or an {@link anm.Animation Animation},
- * or {@link anm.Scene Scene}, if this element happened to be a direct child of one). Time-band
- * of an Element is its lifetime, an Element gets its birth and dies at specified time, accordingly.
- * If it has repeat-mode, it resets its local time and starts living again. Time-band is specified in
- * seconds relatively to parent element&#39;s time-band.
+ * Get or set duration of an element&#39;s band
  *
- * For example, if parent is in a root of animation and has a band of `[ 1.5, 6 ]`, and its child has a
- * band of `[ 3.5, 7 ]`, then this child appears at `5` (`1.5 + 3.5`) seconds of global time and hides at
- * `6` seconds of global time, since its band outlives the parent band, so it was cut.
+ * See {@link anm.Element#band band} method.
  *
- * @param {Number} start start time of a band
- * @param {Number} stop stop time of a band
+ * @param {Number} [value] desired duration
  *
- * @return {anm.Element} itself
+ * @return {anm.Element|Number} itself or current duration value
  */
 Element.prototype.duration = function(value) {
     if (!is.defined(value)) return this.lband[1] - this.lband[0];
     this.gband = [ this.gband[0], this.gband[0] + value ];
     this.lband = [ this.lband[0], this.lband[0] + value ];
     return this;
-}
+};
+
 /* TODO: duration cut with global band */
 /* Element.prototype.rel_duration = function() {
     return
 } */
 Element.prototype._max_tpos = function() {
     return (this.gband[1] &gt;= 0) ? this.gband[1] : 0;
-}
+};
+
 /* Element.prototype.neg_duration = function() {
     return (this.xdata.lband[0] &lt; 0)
             ? ((this.xdata.lband[1] &lt; 0) ? Math.abs(this.xdata.lband[0] + this.xdata.lband[1]) : Math.abs(this.xdata.lband[0]))
@@ -1582,14 +1603,15 @@ Element.prototype._max_tpos = function() {
 Element.prototype.m_on = function(type, handler) {
     this.modify(new Modifier(
         function(t) { /* FIXME: handlers must have priority? */
-            if (this.__evt_st &amp; type) {
+            if (this.__evt_st.check(type)) {
                 var evts = this.evts[type];
                 for (var i = 0, el = evts.length; i &lt; el; i++) {
                     if (handler.call(this, evts[i], t) === false) return false;
                 }
             }
         }, C.MOD_EVENT));
-}
+};
+
 /*Element.prototype.posAtStart = function(ctx) {
     var s = this.state;
     ctx.translate(s.lx, s.ly);
@@ -1607,7 +1629,8 @@ Element.prototype.findWrapBand = function() {
         //result = Bands.expand(result, elm.findWrapBand());
     });
     return (result[0] !== Infinity) ? result : null;
-}
+};
+
 <span id='anm-Element-method-dispose'>/**
 </span> * @private @method dispose
  *
@@ -1619,13 +1642,16 @@ Element.prototype.dispose = function() {
     this.each(function(child) {
         child.dispose();
     });
-}
+};
+
 Element.prototype.disposeVisuals = function() {
     if (this.$path)  this.$path.dispose();
     if (this.$text)  this.$text.dispose();
     if (this.$image) this.$image.dispose();
+    if (this.$video) this.$video.dispose();
     if (this.$mpath) this.$mpath.dispose();
-}
+};
+
 <span id='anm-Element-method-reset'>/**
 </span>* @private @method reset
 *
@@ -1645,13 +1671,14 @@ Element.prototype.reset = function() {
     this.each(function(elm) {
         elm.reset();
     });
-}
+};
+
 <span id='anm-Element-method-each'>/**
 </span> * @method each
  * @chainable
  *
  * Iterate over element&#39;s children with given function. No sub-children though,
- * see {@link anm.Element#traverse .traverse()} for it.
+ * see {@link anm.Element#traverse .traverse} for it.
  *
  * @param {Function} f function to call
  * @param {anm.Element} f.elm child element
@@ -1663,16 +1690,17 @@ Element.prototype.each = function(func) {
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei &lt; el; ei++) {
         func(children[ei]);
-    };
+    }
     this.__unsafeToRemove = false;
     return this;
-}
+};
+
 <span id='anm-Element-method-traverse'>/**
 </span> * @method traverse
  * @chainable
  *
  * Iterate over element&#39;s children including all the levels of sub-children with
- * given function (see {@link anm.Element#each .each()} method to iterate over
+ * given function (see {@link anm.Element#each .each} method to iterate over
  * only element&#39;s own children).
  *
  * @param {Function} f function to call
@@ -1687,10 +1715,11 @@ Element.prototype.traverse = function(func) {
         var elem = children[ei];
         func(elem);
         elem.traverse(func);
-    };
+    }
     this.__unsafeToRemove = false;
     return this;
-}
+};
+
 <span id='anm-Element-method-iter'>/**
 </span> * @method iter
  * @chainable
@@ -1711,7 +1740,8 @@ Element.prototype.iter = function(func, rfunc) {
     iter(this.children).each(func, rfunc);
     this.__unsafeToRemove = false;
     return this;
-}
+};
+
 <span id='anm-Element-method-hasChildren'>/**
 </span> * @method hasChildren
  *
@@ -1721,7 +1751,8 @@ Element.prototype.iter = function(func, rfunc) {
  */
 Element.prototype.hasChildren = function() {
     return this.children.length &gt; 0;
-}
+};
+
 Element.prototype.deepIterateChildren = function(func, rfunc) {
     this.__unsafeToRemove = true;
     iter(this.children).each(function(elem) {
@@ -1729,7 +1760,8 @@ Element.prototype.deepIterateChildren = function(func, rfunc) {
         return func(elem);
     }, rfunc);
     this.__unsafeToRemove = false;
-}
+};
+
 Element.prototype.__performDetach = function() {
     var children = this.children;
     iter(this.__detachQueue).each(function(elm) {
@@ -1739,7 +1771,8 @@ Element.prototype.__performDetach = function() {
         }
     });
     this.__detachQueue = [];
-}
+};
+
 <span id='anm-Element-method-clear'>/**
 </span> * @method clear
  * @chainable
@@ -1749,7 +1782,7 @@ Element.prototype.__performDetach = function() {
  * @return {anm.Element} itself
  */
 Element.prototype.clear = function() {
-    if (this.__unsafeToRemove) throw new AnimErr(Errors.A.UNSAFE_TO_REMOVE);
+    if (this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE, this);
     if (!this.rendering) {
         var children = this.children;
         this.children = [];
@@ -1758,7 +1791,8 @@ Element.prototype.clear = function() {
         this.__detachQueue = this.__detachQueue.concat(this.children);
     }
     return this;
-}
+};
+
 <span id='anm-Element-method-lock'>/**
 </span> * @private @method lock
  *
@@ -1768,7 +1802,8 @@ Element.prototype.lock = function() {
     this.__jumpLock = true; // disable jumps in time
     this.__state = this.extractState();
     this.__pstate = this.extractPrevState(); // FIXME: remove previous state
-}
+};
+
 <span id='anm-Element-method-unlock'>/**
 </span> * @private @method unlock
  *
@@ -1782,7 +1817,8 @@ Element.prototype.unlock = function(collect_res) { // collect_res flag is option
     this.__pstate = null; // FIXME: remove previous state
     this.__jumpLock = false;
     return result;
-}
+};
+
 // FIXME: rename and merge get/set into .state() &amp; .prev_state() ?
 <span id='anm-Element-method-extractState'>/**
 </span> * @method extractState
@@ -1800,8 +1836,9 @@ Element.prototype.extractState = function() {
       angle: this.angle,
       alpha: this.alpha,
       t: this.t, rt: this.rt, key: this.key
-    }
-}
+    };
+};
+
 Element.prototype.extractPrevState = function() {
     // see .initState() for values definition
     return {
@@ -1811,8 +1848,9 @@ Element.prototype.extractPrevState = function() {
       angle: this._angle,
       alpha: this._alpha,
       t: this._t, rt: this._rt, key: this._key
-    }
-}
+    };
+};
+
 <span id='anm-Element-method-applyState'>/**
 </span> * @method applyState
  *
@@ -1838,7 +1876,8 @@ Element.prototype.applyState = function(s) {
     this.angle = s.angle;
     this.alpha = s.alpha;
     this.t = s.t; this.rt = s.rt; this.key = s.key;
-}
+};
+
 Element.prototype.applyPrevState = function(s) {
     this._x = s.x; this._y = s.y;
     this._sx = s.sx; this._sy = s.sy;
@@ -1846,7 +1885,8 @@ Element.prototype.applyPrevState = function(s) {
     this._angle = s.angle;
     this._alpha = s.alpha;
     this._t = s.t; this._rt = s.rt; this._key = s.key;
-}
+};
+
 <span id='anm-Element-method-stateAt'>/**
 </span> * @method stateAt
  *
@@ -1863,7 +1903,8 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
     return this.unlock(/* success =&gt; return previous state */
               this.modifiers(t, 0, Element.NOEVT_MODIFIERS) // returns true if succeeded
            );
-}
+};
+
 <span id='anm-Element-method-pos'>/**
 </span> * @method pos
  * @chainable
@@ -1878,7 +1919,8 @@ Element.prototype.stateAt = function(t) { /* FIXME: test */
 Element.prototype.pos = function(x, y) {
     if (is.defined(x)) return this.move(x, y);
     return { x: this.x, y: this.y };
-}
+};
+
 <span id='anm-Element-method-offset'>/**
 </span> * @method offset
  *
@@ -1899,12 +1941,13 @@ Element.prototype.offset = function() {
         p = p.parent;
     }
     return [ xsum, ysum ];
-}
+};
+
 /*Element.prototype.local = function(pt) {
-    this.matrix.transformPoint();
+    return this.matrix.transformPoint(pt);
 }
 Element.prototype.global = function(pt) {
-    this.matrix.transformPoint();
+    return this.matrix.transformPointInverse(pt);
 } */
 <span id='anm-Element-method-invalidate'>/**
 </span> * @method invalidate
@@ -1925,7 +1968,8 @@ Element.prototype.invalidate = function() {
     this.lastBoundsSavedAt = null;
     if (this.parent) this.parent.invalidate();
     return this;
-}
+};
+
 <span id='anm-Element-method-invalidateVisuals'>/**
 </span>* @method invalidateVisuals
 * @chainable
@@ -1941,9 +1985,10 @@ Element.prototype.invalidate = function() {
 */
 Element.prototype.invalidateVisuals = function() {
     //TODO: replace with this[&#39;$&#39; + this.type].invalidate() ?
-    var subj = this.$path || this.$text || this.$image;
+    var subj = this.$path || this.$text || this.$image || this.$video;
     if (subj) subj.invalidate();
-}
+};
+
 <span id='anm-Element-method-bounds'>/**
 </span> * @method bounds
  *
@@ -1962,9 +2007,9 @@ Element.prototype.bounds = function(ltime) {
     if (is.defined(this.lastBoundsSavedAt) &amp;&amp;
         (t_cmp(this.lastBoundsSavedAt, ltime) == 0)) return this.$bounds;
 
-    var result = this.myBounds().clone();
+    var result = this.myBounds();
     if (this.children.length) {
-        // FIXME: test if bounds are not empty
+        result = result.clone();
         this.each(function(child) {
             result.add(child.bounds(ltime));
         });
@@ -1973,7 +2018,8 @@ Element.prototype.bounds = function(ltime) {
 
     this.lastBoundsSavedAt = ltime;
     return (this.$bounds = result);
-}
+};
+
 <span id='anm-Element-method-myBounds'>/**
 </span> * @method myBounds
  *
@@ -1984,10 +2030,122 @@ Element.prototype.bounds = function(ltime) {
  */
 Element.prototype.myBounds = function() {
     if (this.$my_bounds) return this.$my_bounds;
-    var subj = this.$path || this.$text || this.$image;
+    var subj = this.$path || this.$text || this.$image || this.$video;
     if (subj) { return (this.$my_bounds = subj.bounds()); }
     else return (this.$my_bounds = Bounds.NONE);
-}
+};
+
+<span id='anm-Element-method-inside'>/**
+</span> * @method inside
+ *
+ * Test if a point given in global coordinate space is located inside the element&#39;s bounds
+ * or one of its children and calls given function for found elements
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @param {Function} fn function to call for matched elements
+ * @param {anm.Element} fn.elm element matched with the point
+ * @param {Number} fn.pt point adapted to child coordinate space
+ * @param {Function} filter function to filter elements before checking bounds, since it&#39;s quite a slow operation
+ * @param {anm.Element} filter.elm element to check
+ */
+Element.prototype.inside = function(pt, filter, fn) {
+    var passed_filter = !filter || filter(this);
+    if (!passed_filter &amp;&amp; !this.hasChildren()) return;
+    var local_pt = this.adapt(pt);
+    if (passed_filter &amp;&amp; this.myBounds().inside(local_pt)) {
+        var subj = this.$path || this.$text || this.$image || this.$video;
+        if (subj &amp;&amp; subj.inside(local_pt)) fn(this, local_pt);
+    } else {
+        this.each(function(elm) {
+            elm.inside(local_pt, filter, fn);
+        });
+    }
+};
+
+<span id='anm-Element-method-adapt'>/**
+</span> * @method adapt
+ *
+ * Adapt a point or several ones to element&#39;s local coordinate space (relatively to
+ * parent&#39;s space). Points are passed as an object `{ x: 100, y: 100 }` or an array
+ * `[ { x: 100, y: 100 }, { x: 200.5, y: 150 } ]` and returned in the same format.
+ *
+ * @param {Object|[Object]} pt one or several points to adapt
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ *
+ * @return {Object|[Object]} transformed point or several points
+ */
+Element.prototype.adapt = function(pts) {
+    if (is.arr(pts)) {
+        var trg = [];
+        var matrix = this.matrix; // should we store inverted matrix and
+                                  // use inv_matrix.transformPoint instead?
+        for (var i = 0, il = pts.length; i &lt; il; i++) {
+            trg.push(matrix.transformPointInverse(pts[i].x, pts[i].y));
+        }
+        return trg;
+    } else {
+        return this.matrix.transformPointInverse(pts.x, pts.y);
+    }
+};
+
+<span id='anm-Element-method-adaptBounds'>/**
+</span>* @method adaptBounds
+*
+* Adapt bounds to element&#39;s local coordinate space (relatively to
+* parent&#39;s space). Bounds are passed as an object
+* `{ x: 100, y: 100, width: 200, height: 150 }`.
+*
+* @param {Object} bounds bounds to adapt
+* @param {Number} bounds.x
+* @param {Number} bounds.y
+* @param {Number} bounds.width
+* @param {Number} bounds.height
+*
+* @return {Object} transformed bounds
+*/
+Element.prototype.adaptBounds = function(bounds) {
+    var matrix = this.matrix;
+    var tl = matrix.transformPoint(bounds.x, bounds.y),
+        tr = matrix.transformPoint(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPoint(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPoint(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
+};
+
+<span id='anm-Element-method-inverseAdaptBounds'>/**
+</span>* @method inverseAdaptBounds
+*
+* Adapt bounds to parent&#39;s coordinate space. Bounds are passed as an object
+* `{ x: 100, y: 100, width: 200, height: 150 }`.
+*
+* @param {Object} bounds bounds to adapt
+* @param {Number} bounds.x
+* @param {Number} bounds.y
+* @param {Number} bounds.width
+* @param {Number} bounds.height
+*
+* @return {Object} transformed bounds
+*/
+Element.prototype.inverseAdaptBounds = function(bounds) {
+    var matrix = this.matrix;
+    var tl = matrix.transformPointInverse(bounds.x, bounds.y),
+        tr = matrix.transformPointInverse(bounds.x + bounds.width, bounds.y),
+        br = matrix.transformPointInverse(bounds.x + bounds.width, bounds.y + bounds.height),
+        bl = matrix.transformPointInverse(bounds.x, bounds.y + bounds.height);
+    var minX = Math.min(tl.x, tr.x, bl.x, br.x),
+        minY = Math.min(tl.y, tr.y, bl.y, br.y),
+        maxX = Math.max(tl.x, tr.x, bl.x, br.x),
+        maxY = Math.max(tl.y, tr.y, bl.y, br.y);
+    return new Bounds(minX, minY, maxX - minX, maxY - minY);
+};
+
 <span id='anm-Element-method-isEmpty'>/**
 </span> * @method isEmpty
  *
@@ -1997,10 +2155,11 @@ Element.prototype.myBounds = function() {
  */
 Element.prototype.isEmpty = function() {
     var my_bounds = this.myBounds();
-    return (my_bounds.width == 0) &amp;&amp; (my_bounds.height == 0);
-}
+    return (my_bounds.width === 0) &amp;&amp; (my_bounds.height === 0);
+};
+
 Element.prototype.applyVisuals = function(ctx) {
-    var subj = this.$path || this.$text || this.$image;
+    var subj = this.$path || this.$text || this.$image || this.$video;
     if (!subj) return;
 
     // save/restore is performed inside .apply method
@@ -2008,10 +2167,19 @@ Element.prototype.applyVisuals = function(ctx) {
     //        so user will be able to use brushes with
     //        his own painters
     subj.apply(ctx, this.$fill, this.$stroke, this.$shadow);
+};
+
+Element.prototype.applyBrushes = function(ctx) {
+    if (this.$shadow) { this.$shadow.apply(ctx); }
+    if (this.$fill) { this.$fill.apply(ctx); ctx.fill(); }
+    if (this.$shadow) { Brush.clearShadow(ctx); }
+    if (this.$stroke) { this.$stroke.apply(ctx); ctx.stroke(); }
 }
+
 Element.prototype.applyAComp = function(ctx) {
     if (this.composite_op) ctx.globalCompositeOperation = C.AC_NAMES[this.composite_op];
-}
+};
+
 <span id='anm-Element-method-mask'>/**
 </span> * @method mask
  *
@@ -2028,7 +2196,8 @@ Element.prototype.mask = function(elm) {
     if (!elm) return this.$mask;
     this.$mask = elm;
     return this;
-}
+};
+
 <span id='anm-Element-method-noMask'>/**
 </span> * @method noMask
  *
@@ -2039,7 +2208,8 @@ Element.prototype.mask = function(elm) {
 Element.prototype.noMask = function() {
     this.$mask = null;
     return this;
-}
+};
+
 // @private
 Element.prototype.ensureHasMaskCanvas = function(lvl) {
     if (this.__maskCvs &amp;&amp; this.__backCvs) return;
@@ -2047,19 +2217,22 @@ Element.prototype.ensureHasMaskCanvas = function(lvl) {
     this.__maskCtx = engine.getContext(this.__maskCvs, &#39;2d&#39;);
     this.__backCvs = engine.createCanvas(1, 1);
     this.__backCtx = engine.getContext(this.__backCvs, &#39;2d&#39;);
-}
+};
+
 // @private
 Element.prototype.removeMaskCanvases = function() {
     if (this.__maskCvs) engine.disposeElement(this.__maskCvs);
     if (this.__backCvs) engine.disposeElement(this.__backCvs);
     this.__maskCtx = null;
     this.__backCtx = null;
-}
+};
+
 Element.prototype.data = function(val) {
     if (!is.defined(val)) return this.$data;
     this.$data = val;
     return this;
-}
+};
+
 Element.prototype.toString = function() {
     var buf = [ &#39;[ Element &#39; ];
     buf.push(&#39;\&#39;&#39; + (this.name || this.id) + &#39;\&#39; &#39;);
@@ -2075,7 +2248,8 @@ Element.prototype.toString = function() {
     }*/
     buf.push(&#39;]&#39;);
     return buf.join(&quot;&quot;);
-}
+};
+
 <span id='anm-Element-method-find'>/**
 </span> * @method find
  *
@@ -2091,7 +2265,8 @@ Element.prototype.toString = function() {
  */
 Element.prototype.find = function(name) {
     this.anim.find(name, this);
-}
+};
+
 <span id='anm-Element-method-clone'>/**
 </span> * @method clone
  *
@@ -2118,7 +2293,8 @@ Element.prototype.clone = function() {
     // FIXME: What else?
     clone.__u_data = this.__u_data;
     return clone;
-}
+};
+
 <span id='anm-Element-method-shallow'>/**
 </span> * @method shallow
  *
@@ -2147,7 +2323,8 @@ Element.prototype.shallow = function() {
     });
     clone.__u_data = utils.obj_clone(this.__u_data);
     return clone;
-}
+};
+
 <span id='anm-Element-method-asClip'>/**
 </span> * @method asClip
  * @chainable
@@ -2175,26 +2352,30 @@ Element.prototype.asClip = function(band, mode, nrep) {
     this.clip_mode = mode;
     this.clip_nrep = nrep;
     return this;
-}
+};
+
 Element.prototype._addChild = function(elm) {
-    //if (elm.parent) throw new AnimationError(&#39;This element already has parent, clone it before adding&#39;);
+    //if (elm.parent) throw errors.element(&#39;This element already has parent, clone it before adding&#39;, this);
     elm.parent = this;
     elm.level = this.level + 1;
     this.children.push(elm); /* or add elem.id? */
     if (this.anim) this.anim._register(elm); /* TODO: rollback parent and child? */
     Bands.recalc(this);
-}
+};
+
 Element.prototype._stateStr = function() {
     return &quot;x: &quot; + this.x + &quot; y: &quot; + this.y + &#39;\n&#39; +
            &quot;sx: &quot; + this.sx + &quot; sy: &quot; + this.sy + &#39;\n&#39; +
            &quot;angle: &quot; + this.angle + &quot; alpha: &quot; + this.alpha + &#39;\n&#39; +
            &quot;p: &quot; + this.p + &quot; t: &quot; + this.t + &quot; key: &quot; + this.key + &#39;\n&#39;;
-}
+};
+
 Element.prototype.__mbefore = function(t, type) {
     /*if (type === C.MOD_EVENT) {
         this.__loadEvtsFromCache();
     }*/
-}
+};
+
 Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === C.MOD_USER)) {
         this.__lmatrix = Element._getIMatrixOf(this.bstate, this.state);
@@ -2202,19 +2383,20 @@ Element.prototype.__mafter = function(t, type, result) {
     /*if (!result || (type === C.MOD_EVENT)) {
         this.__clearEvtState();
     }*/
-}
+};
+
 Element.prototype.__adaptModTime = function(modifier, ltime) {
 
     // gets element local time (relative to its local band) and
     // returns modifier local time (relative to its local band)
 
-    // TODO: move to modifier class?
+    // TODO: move to Modifier class?
 
     var elm = this,
         elm_duration = elm.lband[1] - elm.lband[0], // duration of the element&#39;s local band
         mod_easing = modifier.$easing, // modifier easing
         mod_time = modifier.$band || modifier.$time, // time (or band) of the modifier, if set
-        mod_relative = modifier.relative, // is modifier time or band relative to elm duration or not
+        mod_relative = modifier.$relative, // is modifier time or band relative to elm duration or not
         mod_is_tween = modifier.is_tween; // should time be passed in relative time or not
 
     var res_time,
@@ -2227,7 +2409,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     }
 
     // modifier takes the whole element time
-    if (mod_time == null) {
+    if (mod_time === null) {
 
         res_time = ltime;
         res_duration = elm_duration;
@@ -2250,13 +2432,13 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
             mod_duration = mod_band[1] - mod_band[0];
         }
 
-        res_time = res_time = ltime - mod_band[0];
+        res_time = ltime - mod_band[0];
         res_duration = mod_duration;
         if (t_cmp(res_time, 0) &lt; 0) return null;
         if (t_cmp(res_time, res_duration) &gt; 0) return null;
 
     // modifier is assigned to trigger at some specific time moment
-  } else if (is.num(mod_time)) {
+    } else if (is.num(mod_time)) {
 
         if (modifier.__wasCalled &amp;&amp; modifier.__wasCalled[elm.id]) return null;
         var tpos = mod_relative ? (mod_time * elm_duration) : mod_time;
@@ -2285,7 +2467,7 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
             res_time = t_adjust(res_time) / t_adjust(res_duration);
             res_duration = t_adjust(res_duration);
         } else {
-            res_time = 0;
+            // if band duration is infinite, time value is left as it was
         }
     } else {
         res_time = t_adjust(res_time);
@@ -2296,9 +2478,10 @@ Element.prototype.__adaptModTime = function(modifier, ltime) {
     return !mod_easing ? [ res_time, res_duration ]
                        : [ mod_easing(res_time, res_duration),
                            res_duration ];
-}
-Element.prototype.__pbefore = function(ctx, type) { }
-Element.prototype.__pafter = function(ctx, type) { }
+};
+
+Element.prototype.__pbefore = function(ctx, type) { };
+Element.prototype.__pafter = function(ctx, type) { };
 Element.prototype.__checkJump = function(at) {
     // FIXME: test if jumping do not fails with floating points problems
     if (this.tf) return this.tf(at);
@@ -2308,15 +2491,13 @@ Element.prototype.__checkJump = function(at) {
     // directly or relatively or with key,
     // get its absolute local value
     t = (is.defined(this.p)) ? this.p : null;
-    t = ((t === null) &amp;&amp; (this.t !== null) &amp;&amp; is.finite(duration))
-        ? this.t * duration
-        : t;
-    t = ((t === null) &amp;&amp; (is.defined(this.key)))
-        ? this.keys[this.key]
-        : t;
+    t = ((t === null) &amp;&amp; (this.t !== null) &amp;&amp; is.finite(duration)) ?
+        this.t * duration : t;
+    t = ((t === null) &amp;&amp; (is.defined(this.key))) ?
+        this.keys[this.key] : t;
     if (t !== null) {
         if ((t &lt; 0) || (t &gt; duration)) {
-            throw new AnimationError(&#39;failed to calculate jump&#39;);
+            throw errors.element(&#39;Failed to calculate jump&#39;, this);
         }
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
@@ -2334,9 +2515,9 @@ Element.prototype.__checkJump = function(at) {
     // just set it to actual local time
     t = (t !== null) ? t : at;
     if (is.defined(this.__lastJump)) {
-       /* return (jump_pos + (t - jumped_at)) */
-       return (is.finite(this.__lastJump[1])
-                      ? this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
+        /* return (jump_pos + (t - jumped_at)) */
+        return (is.finite(this.__lastJump[1]) ?
+            this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
        // overflow will be checked in fits() method,
        // or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
@@ -2348,20 +2529,21 @@ Element.prototype.__checkJump = function(at) {
     return t;
 }
 Element.prototype.handle__x = function(type, evt) {
-    if (!isPlayerEvent(type)
-        &amp;&amp; (type != C.X_START)
-        &amp;&amp; (type != C.X_STOP)) {
+    if ((type != C.X_START) &amp;&amp;
+        (type != C.X_STOP)) {
       if (this.shown) {
-        this.__saveEvt(type, evt);
+          this.__saveEvt(type, evt);
       } else {
-        return false;
+          return false;
       }
     }
     return true;
-}
+};
+
 Element.prototype.__saveEvt = function(type, evt) {
     this.__evtCache.push([type, evt]);
-}
+};
+
 Element.prototype.__loadEvents = function() {
     var cache = this.__evtCache;
     var cache_len = cache.length;
@@ -2371,21 +2553,23 @@ Element.prototype.__loadEvents = function() {
         for (var ei = 0; ei &lt; cache_len; ei++) {
             edata = cache[ei];
             type = edata[0];
-            this.__evt_st |= type;
+            this.__evt_st.save(type);
             evts = this.evts;
             if (!evts[type]) evts[type] = [];
             evts[type].push(edata[1]);
         }
         this.__evtCache = [];
     }
-}
+};
+
 Element.prototype.__preRender = function(gtime, ltime, ctx) {
     var cr = this.__frameProcessors;
     for (var i = 0, cl = cr.length; i &lt; cl; i++) {
         if (cr[i].call(this, gtime, ltime, ctx) === false) return false;
     }
     return true;
-}
+};
+
 Element.prototype.__safeDetach = function(what, _cnt) {
     var pos = -1, found = _cnt || 0;
     var children = this.children;
@@ -2393,7 +2577,7 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         if (this.rendering || what.rendering) {
             this.__detachQueue.push(what/*pos*/);
         } else {
-            if (this.__unsafeToRemove) throw new AnimationError(Errors.A.UNSAFE_TO_REMOVE);
+            if (this.__unsafeToRemove) throw errors.element(ErrLoc.A.UNSAFE_TO_REMOVE, this);
             what._unbind();
             children.splice(pos, 1);
         }
@@ -2404,45 +2588,59 @@ Element.prototype.__safeDetach = function(what, _cnt) {
         });
         return found;
     }
-}
+};
+
 Element.prototype.__postRender = function() {
     // clear detach-queue
     this.__performDetach();
-}
+};
+
 Element.prototype._hasRemoteResources = function(anim, player) {
     if (player.imagesEnabled &amp;&amp; this.$image) return true;
     if (this.is(C.ET_AUDIO) &amp;&amp; player.audioEnabled) return true;
+    if (this.is(C.ET_VIDEO) &amp;&amp; player.videoEnabled) return true;
 
     return false;
-}
+};
+
 Element.prototype._collectRemoteResources = function(anim, player) {
     var resources = [];
 
     if (player.imagesEnabled &amp;&amp; this.$image) {
         resources.push(this.$image.src);
     }
+
     if (player.audioEnabled &amp;&amp; this.is(C.ET_AUDIO)) {
-        resources.push(this.audio.url);
+        resources.push(this.$audio.url);
+    }
+
+    if (player.videoEnabled &amp;&amp; this.is(C.ET_VIDEO)) {
+        resources.push(this.$video.url);
     }
 
     return resources;
-}
+};
 
 Element.prototype._loadRemoteResources = function(anim, player) {
     if (player.imagesEnabled &amp;&amp; this.$image) {
-        this.$image.load(player.id);
+        this.$image.load(this, player.id);
     }
     if (this.is(C.ET_AUDIO) &amp;&amp; player.audioEnabled) {
-        this.audio.load(player);
+        this.$audio.load(this, player);
     }
-}
+    if (this.is(C.ET_VIDEO) &amp;&amp; player.videoEnabled) {
+        this.$video.load(this, player);
+    }
+};
+
 Element.mergeStates = function(src1, src2, trg) {
     trg.x  = src1.x  + src2.x;  trg.y  = src1.y  + src2.y;
     trg.sx = src1.sx * src2.sx; trg.sy = src1.sy * src2.sy;
     trg.hx = src1.hx + src2.hx; trg.hy = src1.hy + src2.hy;
     trg.angle = src1.angle + src2.angle;
     trg.alpha = src1.alpha + src2.alpha;
-}
+};
+
 Element.transferState = function(src, trg) {
     trg.x = src.x; trg.y = src.y;
     trg.sx = src.sx; trg.sy = src.sy;
@@ -2451,7 +2649,8 @@ Element.transferState = function(src, trg) {
     trg.alpha = src.alpha;
     trg.$reg = [].concat(src.$reg);
     trg.$pivot = [].concat(src.$pivot);
-}
+};
+
 Element.transferVisuals = function(src, trg) {
     trg.$fill = Brush.clone(src.$fill);
     trg.$stroke = Brush.clone(src.$stroke);
@@ -2459,18 +2658,21 @@ Element.transferVisuals = function(src, trg) {
     trg.$path = src.$path ? src.$path.clone() : null;
     trg.$text = src.$text ? src.$text.clone() : null;
     trg.$image = src.$image ? src.$image.clone() : null;
+    trg.$audio = src.$audio ? src.$audio.clone() : null;
+    trg.$video = src.$video ? src.$video.clone() : null;
     trg.$mask = src.$mask ? src.$mask : null;
     trg.$mpath = src.$mpath ? src.$mpath.clone() : null;
     trg.composite_op = src.composite_op;
-    trg.audio = src.audio ? src.audio.clone() : null;
-}
+};
+
 Element.transferTime = function(src, trg) {
     trg.mode = src.mode; trg.nrep = src.nrep;
     trg.lband = [].concat(src.lband);
     trg.gband = [].concat(src.gband);
     trg.keys = [].concat(src.keys);
     trg.tf = src.tf;
-}
+};
+
 // TODO: rename to matrixOf ?
 Element.getMatrixOf = function(elm, m) {
     var t = (m ? (m.reset(), m)
@@ -2484,49 +2686,50 @@ Element.getMatrixOf = function(elm, m) {
     var pivot = elm.$pivot;
     if ((pivot[0] === 0) &amp;&amp; (pivot[1] === 0)) return t;
     var my_bounds = elm.myBounds();
-    if (!my_bounds) return t;
-    t.translate(pivot[0] * my_bounds.width,
-                pivot[1] * my_bounds.height);
+    if (!my_bounds || (my_bounds === Bounds.NONE)) return t;
+    t.translate(-(pivot[0] * (my_bounds.width || 0)),
+                -(pivot[1] * (my_bounds.height || 0)));
 
     return t;
-}
+};
+
 Element.getIMatrixOf = function(elm, m) {
     var t = Element.getMatrixOf(elm, m);
     t.invert();
     return t;
-}
+};
+
 Element.checkRepeatMode = function(time, band, mode, nrep) {
     if (!is.finite(band[1])) return time - band[0];
+    var durtn, ffits, fits, t;
     switch (mode) {
         case C.R_ONCE:
             return time - band[0];
         case C.R_STAY:
-            return (t_cmp(time, band[1]) &lt;= 0)
-                   ? time - band[0]
-                   : band[1] - band[0];
+            return (t_cmp(time, band[1]) &lt;= 0) ?
+                time - band[0] : band[1] - band[0];
         case C.R_LOOP: {
-                var durtn = band[1] -
-                            band[0];
+                durtn = band[1] - band[0];
                 if (durtn &lt; 0) return -1;
-                var ffits = (time - band[0]) / durtn,
-                    fits = Math.floor(ffits);
+                ffits = (time - band[0]) / durtn;
+                fits = Math.floor(ffits);
                 if ((fits &lt; 0) || (ffits &gt; nrep)) return -1;
-                var t = (time - band[0]) - (fits * durtn);
+                t = (time - band[0]) - (fits * durtn);
                 return t;
             }
         case C.R_BOUNCE: {
-                var durtn = band[1] -
-                            band[0];
+                durtn = band[1] - band[0];
                 if (durtn &lt; 0) return -1;
-                var ffits = (time - band[0]) / durtn,
-                    fits = Math.floor(ffits);
+                ffits = (time - band[0]) / durtn;
+                fits = Math.floor(ffits);
                 if ((fits &lt; 0) || (ffits &gt; nrep)) return -1;
-                var t = (time - band[0]) - (fits * durtn),
-                    t = ((fits % 2) === 0) ? t : (durtn - t);
+                t = (time - band[0]) - (fits * durtn);
+                t = ((fits % 2) === 0) ? t : (durtn - t);
                 return t;
             }
     }
-}
+};
+
 /* TODO: add createFromImgUrl?
  Element.imgFromURL = function(url) {
     return new Sheet(url);
@@ -2537,17 +2740,20 @@ Element.prototype.addSysModifiers = function() {
     // Render.m_checkBand
     // Render.m_saveReg
     // Render.m_applyPos
-}
+};
+
 Element.prototype.addSysPainters = function() {
     this.paint(Render.p_applyAComp);
     this.paint(Render.p_drawVisuals);
-}
+};
+
 Element.prototype.addDebugRender = function() {
     this.paint(Render.p_drawPivot);
+    this.paint(Render.p_drawBounds);
     this.paint(Render.p_drawReg);
     this.paint(Render.p_drawName);
     this.paint(Render.p_drawMPath);
-}
+};
 
 module.exports = Element;
 </pre>

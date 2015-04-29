@@ -15,12 +15,14 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">// Importers
+  <pre class="prettyprint lang-js">var errors = require(&#39;./errors.js&#39;);
+
+// Importers
 // -----------------------------------------------------------------------------
 var importers = {};
 
 importers.register = function(alias, conf) {
-  if (importers[alias]) throw new Error(&#39;Importer &#39; + alias + &#39; is already registered!&#39;);
+  if (importers[alias]) throw errors.system(&#39;Importer &#39; + alias + &#39; is already registered!&#39;);
   importers[alias] = conf;
 };
 

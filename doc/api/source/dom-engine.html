@@ -115,46 +115,50 @@ var $DE = {};
 // canvasSupported -&gt; bool
 
 // Framing
+// shim adopted from https://gist.github.com/paulirish/1579671
+var requestAnimationFrame = global.requestAnimationFrame,
+    cancelAnimationFrame = global.cancelAnimationFrame;
+var lastTime = 0;
+    var vendors = [&#39;ms&#39;, &#39;moz&#39;, &#39;webkit&#39;, &#39;o&#39;];
+    for(var x = 0; x &lt; vendors.length &amp;&amp; !global.requestAnimationFrame; ++x) {
+        requestAnimationFrame = global[vendors[x]+&#39;RequestAnimationFrame&#39;];
+        cancelAnimationFrame = global[vendors[x]+&#39;CancelAnimationFrame&#39;] ||
+                                   global[vendors[x]+&#39;CancelRequestAnimationFrame&#39;];
+    }
 
-$DE.__frameFunc = null;
-$DE.__cancelFunc = null;
-$DE.getRequestFrameFunc = function() {
-    if ($DE.__frameFunc) return $DE.__frameFunc;
-    return ($DE.__frameFunc =
-                (window.requestAnimationFrame ||
-                 window.webkitRequestAnimationFrame ||
-                 window.mozRequestAnimationFrame ||
-                 window.oRequestAnimationFrame ||
-                 window.msRequestAnimationFrame ||
-                 window.__anm__frameGen ||
-                 function(callback){
-                   return window.setTimeout(callback, 1000 / 60);
-                 })) };
-$DE.getCancelFrameFunc = function() {
-    if ($DE.__cancelFunc) return $DE.__cancelFunc;
-    return ($DE.__cancelFunc =
-                (window.cancelAnimationFrame ||
-                 window.webkitCancelAnimationFrame ||
-                 window.mozCancelAnimationFrame ||
-                 window.oCancelAnimationFrame ||
-                 window.msCancelAnimationFrame ||
-                 window.__anm__frameRem ||
-                 function(id){
-                   return window.clearTimeout(id);
-                 })) };
-/*$DE.stopAnim = function(reqId) {
-    $DE.getCancelFrameFunc()(reqId);
-}*/
+    if (!requestAnimationFrame) {
+        requestAnimationFrame = function(callback, element) {
+            var currTime = new Date().getTime();
+            var timeToCall = Math.max(0, 16 - (currTime - lastTime));
+            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+              timeToCall);
+            lastTime = currTime + timeToCall;
+            return id;
+        };
+    }
+    if (!cancelAnimationFrame) {
+        cancelAnimationFrame = function(id) {
+            clearTimeout(id);
+        };
+    }
+
+$DE.getRequestFrameFunc = function(){ return requestAnimationFrame; };
+$DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 // Global things
 
 $DE.PX_RATIO = window.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
-    var req = new window.XMLHttpRequest();
+    var req;
+    if (isIE9) {
+        req = new window.XDomainRequest();
+    } else {
+        req = new window.XMLHttpRequest();
+    }
 
     if (!req) {
-      throw new Error(&#39;Failed to create XMLHttp instance&#39;); // SysErr
+        throw new Error(&#39;Failed to create XMLHttp instance&#39;); // SysErr
     }
 
     var whenDone = function() {
@@ -172,16 +176,23 @@ $DE.ajax = function(url, callback, errback, method, headers) {
     };
 
     req.onreadystatechange = whenDone;
+    if (isIE9) {
+        req.onload = function(){ callback(req); };
+        req.onerror = function() {
+            if(errback) errback(new Error(&#39;XDomainRequest Error&#39;), req);
+        };
+    }
     req.open(method || &#39;GET&#39;, url, true);
 
-    if (headers) {
+    if (headers &amp;&amp; !isIE9) {
         for (var header in headers) {
             req.setRequestHeader(header, headers[header]);
         }
     }
 
     req.send(null);
-}
+};
+
 $DE.getCookie = function(name) {
     // from http://www.codelib.net/javascript/cookies.html
     var s = $doc.cookie, i;
@@ -194,7 +205,8 @@ $DE.getCookie = function(name) {
     return null;
     /*var val=RegExp(&quot;(\\b|;)&quot;+name+&quot;[^;\\b]+&quot;).exec($doc.cookie);
     return val ? unescape(val[0].replace(/^[^=]+./,&quot;&quot;)) : null;*/
-}
+};
+
 $DE.onDocReady = function(callback) {
     //check if the document isn&#39;t already ready (sorry for the wording)
     if ($doc.readyState === &#39;complete&#39;) {
@@ -208,14 +220,16 @@ $DE.onDocReady = function(callback) {
             callback();
         }, false);
     } else if ($doc.attachEvent) {
-        listener = $doc.attachEvent(&#39;onreadystatechange&#39;, function() {
+        listener = function() {
             if ($doc.readyState === &#39;complete&#39;) {
                 $doc.detachEvent(&#39;onreadystatechange&#39;, listener);
                 callback();
             }
-        });
+        };
+        $doc.attachEvent(&#39;onreadystatechange&#39;, listener);
     }
-}
+};
+
 
 $DE.__stylesTag = null;
 // FIXME: move these constants to anm.js
@@ -253,14 +267,13 @@ $DE.styling = {
         rule.style.backgroundColor = &#39;rgba(0, 0, 0, 0)&#39;;
         rule.style.opacity = 1;
     },
-    infoInstance: function(rule, desc) { },
-}
+    infoInstance: function(rule, desc) { }
+};
 
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === &quot;complete&quot;)) return;
     var stylesTag = $DE.createStyle();
-    stylesTag.type = &#39;text/css&#39;;
 
     // TODO: inject as first element?
     var head = $doc.getElementsByTagName(&quot;head&quot;)[0];
@@ -271,7 +284,8 @@ $DE.ensureGlobalStylesInjected = function() {
     // head.insertBefore(stylesTag, head.firstChild);
 
     $DE.__stylesTag = stylesTag;
-}
+};
+
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
     var styles = $DE.__stylesTag.sheet,
         rules = styles.cssRules || styles.rules;
@@ -293,7 +307,7 @@ $DE.injectElementStyles = function(elm, general_class, instance_class) {
     props.gen_rule  = elm_rules[0];
     props.inst_rule = elm_rules[1];
     return elm_rules;
-}
+};
 
 $DE.__textBuf = null;
 $DE.createTextMeasurer = function() {
@@ -317,11 +331,11 @@ $DE.createTextMeasurer = function() {
     return function(text, lines_arg) {
         var has_arg = (typeof lines_arg !== &#39;undefined&#39;);
         var lines = has_arg ? lines_arg : text.lines;
-        buff.style.font = text.font;
+        buff.style.font = text.$font;
         //buff.style.textAlign = text.align;
         //buff.style.verticalAlign = text.baseline || &#39;bottom&#39;;
         buff.style.whiteSpace = &#39;pre&#39;;
-        if (Array.isArray(text.lines)) { // FIXME: replace with anm.is.arr()
+        if (anm.utils.is.arr(lines)) {
             var maxWidth = 0, height = 0;
             for (var i = 0, ilen = lines.length; i &lt; ilen; i++) {
                 buff.textContent = lines[i] || &quot; &quot;;
@@ -330,21 +344,21 @@ $DE.createTextMeasurer = function() {
             }
             return [ maxWidth, height ];
         } else {
-            buff.textContent = text.lines.toString() || &quot;&quot;;
+            buff.textContent = lines.toString() || &quot;&quot;;
             return [ buff.offsetWidth,
                      buff.offsetHeight ];
         }
         // TODO: test if lines were changed, and if not,
         //       use cached value
 
-    }
-}
+    };
+};
 
 // Elements
 
 $DE.getElementById = function(id) {
     return $doc.getElementById(id);
-}
+};
 /* FIXME: replace with elm.getBoundingClientRect();
    see http://stackoverflow.com/questions/8070639/find-elements-position-in-browser-scroll */
 // returns position on a screen, _including_ scroll
@@ -358,38 +372,38 @@ $DE.findElementPosition = function(elm) {
     do {
         curleft += elm.offsetLeft;
         curtop += elm.offsetTop;
-    } while (elm = elm.offsetParent);
+    } while ((elm = elm.offsetParent));
     return [ curleft, curtop ];
-}
+};
+
 $DE.findScrollAwarePosition = function(elm) {
+    var curleft = 0,
+        curtop = 0;
+
     if (elm.getBoundingClientRect) {
-        var curleft = 0,
-            curtop = 0;
         var rect = elm.getBoundingClientRect();
         do {
-            curleft += ((elm !== $doc.body)
-                        ? elm.scrollLeft
+            curleft += ((elm !== $doc.body) ?
+                        elm.scrollLeft
                         : $doc.documentElement.scrollLeft);
-            curtop += ((elm !== $doc.body)
-                        ? elm.scrollTop
+            curtop += ((elm !== $doc.body) ?
+                        elm.scrollTop
                         : $doc.documentElement.scrollTop);
-        } while (elm = elm.offsetParent);
+        } while ((elm = elm.offsetParent));
         return [ rect.left - curleft, rect.top - curtop ];
     }
     //var bound = elm.getBoundingClientRect();
     //return [ bound.left, bound.top ];
-    var curleft = 0,
-        curtop = 0;
     do {
-        curleft += elm.offsetLeft - ((elm !== $doc.body)
-                                     ? elm.scrollLeft
+        curleft += elm.offsetLeft - ((elm !== $doc.body) ?
+                                     elm.scrollLeft
                                      : $doc.documentElement.scrollLeft);
-        curtop += elm.offsetTop - ((elm !== $doc.body)
-                                     ? elm.scrollTop
+        curtop += elm.offsetTop - ((elm !== $doc.body) ?
+                                     elm.scrollTop
                                      : $doc.documentElement.scrollTop);
-    } while (elm = elm.offsetParent);
+    } while ((elm = elm.offsetParent));
     return [ curleft, curtop ];
-}
+};
 /*$DE.getElementBounds = function(elm) {
     var rect = elm.getBoundingClientRect();
     return [ rect.left, rect.top, rect.width, rect.height, $DE.PX_RATIO ];
@@ -398,9 +412,9 @@ $DE.moveElementTo = function(elm, x, y) {
     var props = $DE.hasAnmProps(elm);
     ((props &amp;&amp; props.inst_rule) || elm).style.left = (x === 0) ? &#39;0&#39; : (x + &#39;px&#39;);
     ((props &amp;&amp; props.inst_rule) || elm).style.top  = (y === 0) ? &#39;0&#39; : (y + &#39;px&#39;);
-}
+};
 
-$DE.__trashBin;
+$DE.__trashBin = null;
 $DE.disposeElement = function(elm) {
     var trashBin = $DE.__trashBin;
     if (!trashBin) {
@@ -412,22 +426,26 @@ $DE.disposeElement = function(elm) {
     }
     trashBin.appendChild(elm);
     trashBin.innerHTML = &#39;&#39;;
-}
+};
+
 $DE.detachElement = function(parent, child) {
     (parent || child.parentNode).removeChild(child);
-}
+};
+
 $DE.showElement = function(elm) {
     var props = $DE.hasAnmProps(elm);
     ((props &amp;&amp; props.inst_rule) || elm).style.visibility = &#39;visible&#39;;
-}
+};
+
 $DE.hideElement = function(elm) {
     var props = $DE.hasAnmProps(elm);
     ((props &amp;&amp; props.inst_rule) || elm).style.visibility = &#39;hidden&#39;;
-}
+};
+
 $DE.clearChildren = function(elm) {
     // much faster than innerHTML = &#39;&#39;;
     while (elm.firstChild) { elm.removeChild(elm.firstChild); }
-}
+};
 
 // Creating &amp; Modifying Canvas
 
@@ -436,7 +454,8 @@ $DE.createCanvas = function(width, height, bg, ratio) {
     $DE.setCanvasSize(cvs, width, height, ratio);
     if (bg) $DE.setCanvasBackground(cvs, bg);
     return cvs;
-}
+};
+
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     if (!wrapper) throw new Error(&#39;Element passed to anm.Player initializer does not exists.&#39;);
 
@@ -445,9 +464,8 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     }
 
     var canvasWasPassed = (wrapper.tagName == &#39;canvas&#39;) || (wrapper.tagName == &#39;CANVAS&#39;);
-    if (canvasWasPassed &amp;&amp; console) {
-        (console.warn || console.log).call(console,
-                     &#39;NB: A &lt;canvas&gt; tag was passed to the anm.Player as an element to attach to. This is &#39; +
+    if (canvasWasPassed &amp;&amp; window.console) {
+        console.warn(&#39;NB: A &lt;canvas&gt; tag was passed to the anm.Player as an element to attach to. This is &#39; +
                      &#39;not a recommended way since version 1.2; this &lt;canvas&gt; will be moved inside &#39; +
                      &#39;a &lt;div&gt;-wrapper because of it, so it may break document flow and/or CSS styles. &#39; +
                      &#39;Please pass any container such as &lt;div&gt; to a Player instead of &lt;canvas&gt; to fix it.&#39;);
@@ -504,23 +522,29 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     return { wrapper: wrapper,
              canvas: canvas,
              id: id };
-}
+};
+
 $DE.playerAttachedTo = function(elm, player) {
-    if ($DE.hasAnmProps(elm)) { var props = $DE.getAnmProps(elm);
-                                if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR); };
+    if ($DE.hasAnmProps(elm)) {
+        var props = $DE.getAnmProps(elm);
+        if (props.wrapper) return props.wrapper.hasAttribute(MARKER_ATTR);
+    }
     return elm.hasAttribute(MARKER_ATTR);
-}
+};
+
 $DE.findPotentialPlayers = function() {
     return $doc.querySelectorAll(&#39;[&#39; + AUTO_MARKER_ATTR + &#39;]&#39;);
-}
+};
 
 $DE.hasAnmProps = function(elm) {
     return elm.__anm;
-}
+};
+
 $DE.getAnmProps = function(elm) {
     if (!elm.__anm) elm.__anm = {};
     return elm.__anm;
-}
+};
+
 $DE.clearAnmProps = function(elm) {
     if (!elm || !elm.__anm) return;
     var __anm = elm.__anm;
@@ -541,7 +565,7 @@ $DE.clearAnmProps = function(elm) {
     if (__anm.gen_class  &amp;&amp; elm.classList) elm.classList.remove(__anm.gen_class);
     if (__anm.inst_class &amp;&amp; elm.classList) elm.classList.remove(__anm.inst_class);
     delete elm.__anm;
-}
+};
 
 $DE.detachPlayer = function(player) {
     var canvas = player.canvas,
@@ -568,10 +592,12 @@ $DE.detachPlayer = function(player) {
     //FIXME: should remove stylesTag when last player was deleted from page
     //$DE.detachElement(null, $DE.__stylesTag);
     //$DE.__stylesTag = null;
-}
+};
+
 $DE.getContext = function(cvs, type) {
     return cvs.getContext(type);
-}
+};
+
 $DE.extractUserOptions = function(elm) {
 
     function __boolAttr(val) {
@@ -609,9 +635,9 @@ $DE.extractUserOptions = function(elm) {
              &#39;autoPlay&#39;: __boolAttr(elm.getAttribute(&#39;anm-autoplay&#39;) || elm.getAttribute(&#39;anm-auto-play&#39;)),
              &#39;bgColor&#39;: elm.getAttribute(&#39;anm-bgcolor&#39;) || elm.getAttribute(&#39;anm-bg-color&#39;),
              &#39;ribbonsColor&#39;: elm.getAttribute(&#39;anm-ribbons&#39;) || elm.getAttribute(&#39;anm-ribcolor&#39;) || elm.getAttribute(&#39;anm-rib-color&#39;),
-             &#39;drawStill&#39;: __boolAttr(elm.getAttribute(&#39;anm-draw-still&#39;)
-                                     || elm.getAttribute(&#39;anm-draw-thumbnail&#39;)
-                                     || elm.getAttribute(&#39;anm-draw-thumb&#39;)),
+             &#39;drawStill&#39;: __boolAttr(elm.getAttribute(&#39;anm-draw-still&#39;) ||
+                              elm.getAttribute(&#39;anm-draw-thumbnail&#39;) ||
+                              elm.getAttribute(&#39;anm-draw-thumb&#39;)),
              &#39;imagesEnabled&#39;: __boolAttr(elm.getAttribute(&#39;anm-images&#39;) || elm.getAttribute(&#39;anm-images-enabled&#39;)),
              &#39;shadowsEnabled&#39;: __boolAttr(elm.getAttribute(&#39;anm-shadows&#39;) || elm.getAttribute(&#39;anm-shadows-enabled&#39;)),
              &#39;audioEnabled&#39;: __boolAttr(elm.getAttribute(&#39;anm-audio&#39;) || elm.getAttribute(&#39;anm-audio-enabled&#39;)),
@@ -625,26 +651,31 @@ $DE.extractUserOptions = function(elm) {
              &#39;loadingMode&#39;: elm.getAttribute(&#39;anm-loading-mode&#39;),
              &#39;thumbnail&#39;: elm.getAttribute(&#39;anm-thumbnail&#39;)
            };
-}
+};
+
 $DE.checkPlayerCanvas = function(cvs) {
     return true;
-}
+};
+
 $DE.hasUrlToLoad = function(elm) {
     return {
         url: elm.getAttribute(URL_ATTR) || elm.getAttribute(SNAPSHOT_URL_ATTR),
         importer_id: elm.getAttribute(IMPORTER_ATTR)
-    }
-}
+    };
+};
+
 $DE.setTabIndex = function(cvs, idx) {
     cvs.setAttribute(&#39;tabindex&#39;, idx);
-}
+};
+
 $DE.getCanvasParameters = function(cvs) {
     // if canvas size was not initialized by player, will return null
     if (!$DE.hasAnmProps(cvs)) return null;
     var props = $DE.getAnmProps(cvs);
     if (!props.width || !props.height) return null;
     return [ props.width, props.height, $DE.PX_RATIO ];
-}
+};
+
 $DE.getCanvasSize = function(cvs) {
     if (cvs.getBoundingClientRect) {
        var rect = cvs.getBoundingClientRect();
@@ -654,10 +685,12 @@ $DE.getCanvasSize = function(cvs) {
              cvs.getAttribute(&#39;clientWidth&#39;) || cvs.clientWidth,
              /* cvs.getAttribute(&#39;offsetHeight&#39;) || cvs.offsetHeight || */
              cvs.getAttribute(&#39;clientHeight&#39;) || cvs.clientHeight ];
-}
+};
+
 $DE.getCanvasPosition = function(cvs) {
     return $DE.findScrollAwarePosition(cvs);
-}
+};
+
 $DE.getCanvasBounds = function(cvs/*, parent*/) {
     //var parent = parent || cvs.parentNode;
     var params = $DE.getCanvasParameters(cvs);
@@ -668,10 +701,11 @@ $DE.getCanvasBounds = function(cvs/*, parent*/) {
     // left+width/top+height, but I think it&#39;s better to return values
     // not required to sum up/subtract in this case.
     return [ pos[0], pos[1], params[0], params[1], params[2] ];
-}
+};
+
 $DE.setCanvasSize = function(cvs, width, height, ratio) {
     //$log.debug(&#39;request to resize canvas &#39; + (cvs.id || cvs) + &#39; to &#39; + width + &#39; &#39; + height);
-    var ratio = ratio || $DE.PX_RATIO;
+    ratio = ratio || $DE.PX_RATIO;
     var _w = width | 0, // to int
         _h = height | 0; // to int
     //$log.debug(&#39;resizing &#39; + (cvs.id || cvs) + &#39; to &#39; + _w + &#39; &#39; + _h);
@@ -685,17 +719,20 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     cvs.setAttribute(&#39;height&#39;, _h * (ratio || 1));
     $DE._saveCanvasPos(cvs);
     return [ _w, _h ];
-}
+};
+
 $DE.setCanvasPosition = function(cvs, x, y) {
     var props = $DE.getAnmProps(cvs);
     props.usr_x = x;
     props.usr_y = y;
     // TODO: actually move canvas
     $DE._saveCanvasPos(cvs);
-}
+};
+
 $DE.setCanvasBackground = function(cvs, bg) {
     ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
-}
+};
+
 $DE._saveCanvasPos = function(cvs) {
     // FIXME: use getBoundingClientRect?
     var gcs = ($doc.defaultView &amp;&amp;
@@ -726,7 +763,7 @@ $DE._saveCanvasPos = function(cvs) {
         do {
             ol += elm.offsetLeft;
             ot += elm.offsetTop;
-        } while (elm = elm.offsetParent)
+        } while ((elm = elm.offsetParent));
     }
 
     ol += cpl + cbl + htol;
@@ -739,7 +776,19 @@ $DE._saveCanvasPos = function(cvs) {
     var props = $DE.getAnmProps(cvs);
     props.offset_left = ol || props.usr_x;
     props.offset_top  = ot || props.usr_y;
-}
+};
+
+$DE.setWrapperSize = function(wrapper, width, height) {
+    var _w = width | 0, // to int
+        _h = height | 0; // to int
+    var props = $DE.getAnmProps(wrapper);
+    props.width = _w;
+    props.height = _h;
+    if (!wrapper.style.width) { (props.inst_rule || wrapper).style.width  = _w + &#39;px&#39;; }
+    if (!wrapper.style.height) { (props.inst_rule || wrapper).style.height = _h + &#39;px&#39;; }
+    return [ _w, _h ];
+};
+
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     // conf should be: [ x, y, w, h ], all in percentage relative to parent
     // style may contain _class attr
@@ -769,18 +818,20 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     if (!p_props.overlays) p_props.overlays = [];
     p_props.overlays.push(cvs);
     return cvs;
-}
+};
+
 $DE.updateCanvasOverlays = function(player_cvs) {
     var p_props = $DE.getAnmProps(player_cvs);
     var overlays = p_props.overlays;
     if (overlays) { for (var i = 0, il = overlays.length; i &lt; il; i++) {
         $DE.updateOverlay(player_cvs, overlays[i], p_props);
     } }
-}
+};
+
 $DE.updateOverlay = function(player_cvs, overlay, p_props) {
-    var p_props = p_props || $DE.getAnmProps(player_cvs);
+    p_props = p_props || $DE.getAnmProps(player_cvs);
     $DE.setCanvasSize(overlay, p_props.width, p_props.height);
-}
+};
 
 // Controls &amp; Info
 
@@ -790,51 +841,58 @@ $DE.registerAsControlsElement = function(elm, player) {
                                 $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || &#39;no-id&#39;));
     $DE.styling.controlsGeneral(rules[0]);
     $DE.styling.controlsInstance(rules[1]);
-}
+};
+
 $DE.registerAsInfoElement = function(elm, player) {
     var rules = $DE.injectElementStyles(elm,
                                 $DE.INFO_CLASS,
                                 $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || &#39;no-id&#39;));
     $DE.styling.infoGeneral(rules[0]);
     $DE.styling.infoInstance(rules[1]);
-}
+};
 
 // Events
 
 $DE.getEventPosition = function(evt, elm) {
-    /*if (elm &amp;&amp; (elm.__rOffsetLeft || elm.__rOffsetTop)) return [ evt.pageX - elm.__rOffsetLeft,
-                                                                 evt.pageY - elm.__rOffsetTop ];
-    else */ if (elm) {
+    if (elm) {
         var shift = $DE.findElementPosition(elm); // $DE.findScrollAwarePosition(elm);
-        return [ evt.x - shift[0], evt.y - shift[1] ];
-    } else return [ evt.x, evt.y ];
+        return { x: evt.clientX - shift[0], y: evt.clientY - shift[1] };
+    } else return { x: evt.x, y: evt.y };
+};
+
+$DE.subscribeElementEvents = function(elm, handlers) {
+    for (var type in handlers) {
+        elm.addEventListener(type, handlers[type], false);
+    }
 }
+
+$DE.unsubscribeElementEvents = function(elm, handlers) {
+    for (var type in handlers) {
+        elm.removeEventListener(type, handlers[type], false);
+    }
+}
+
 $DE.subscribeWindowEvents = function(handlers) {
-    for (var type in handlers) {
-        window.addEventListener(type, handlers[type], false);
-    }
-}
-$DE.subscribeCanvasEvents = function(cvs, handlers) {
-    for (var type in handlers) {
-        cvs.addEventListener(type, handlers[type], false);
-    }
-}
-$DE.unsubscribeCanvasEvents = function(cvs, handlers) {
-    for (var type in handlers) {
-        cvs.removeEventListener(type, handlers[type]);
-    }
-}
+    $DE.subscribeElementEvents(window, handlers);
+};
+
+$DE.subscribeCanvasEvents = $DE.subscribeElementEvents;
+$DE.unsubscribeCanvasEvents = $DE.unsubscribeElementEvents;
+
 $DE.keyEvent = function(e) {
-    return { key: ((e.keyCode != null) ? e.keyCode : e.which),
+    return { key: ((e.keyCode !== null) ? e.keyCode : e.which),
              ch: e.charCode };
-}
+};
+
 $DE.mouseEvent = function(e, cvs) {
     return { pos: $DE.getEventPosition(e, cvs) };
-}
+};
+
 $DE.preventDefault = function(evt) {
     evt.stopPropagation();
     evt.preventDefault();
-}
+};
+
 var _kevt = $DE.keyEvent,
     _mevt = $DE.mouseEvent;
 $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
@@ -846,21 +904,20 @@ $DE.subscribeAnimationToEvents = function(cvs, anim, map) {
     if (!cvs.__anm.handlers)   cvs.__anm.handlers = {};
     if (!cvs.__anm.subscribed) cvs.__anm.subscribed = {};
     var handlers = cvs.__anm.subscribed[anim.id] || {
-      mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
-      mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
-      mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
-      mouseover: function(evt) { anim.fire(map.mouseover, _mevt(evt, cvs)); },
-      mouseout:  function(evt) { anim.fire(map.mouseout,  _mevt(evt, cvs)); },
-      click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
-      dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
-      keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
-      keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); },
-      keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); }
+        click:     function(evt) { anim.fire(map.click,     _mevt(evt, cvs)); },
+        dblclick:  function(evt) { anim.fire(map.dblclick,  _mevt(evt, cvs)); },
+        mouseup:   function(evt) { anim.fire(map.mouseup,   _mevt(evt, cvs)); },
+        mousedown: function(evt) { anim.fire(map.mousedown, _mevt(evt, cvs)); },
+        mousemove: function(evt) { anim.fire(map.mousemove, _mevt(evt, cvs)); },
+        keypress:  function(evt) { anim.fire(map.keypress,  _kevt(evt)); },
+        keyup:     function(evt) { anim.fire(map.keyup,     _kevt(evt)); },
+        keydown:   function(evt) { anim.fire(map.keydown,   _kevt(evt)); }
     };
     cvs.__anm.handlers[anim.id] = handlers;
     cvs.__anm.subscribed[anim.id] = true;
     $DE.subscribeCanvasEvents(cvs, handlers);
-}
+};
+
 $DE.unsubscribeAnimationFromEvents = function(cvs, anim) {
     if (!cvs.__anm.handlers   ||
         !cvs.__anm.subscribed ||
@@ -868,7 +925,8 @@ $DE.unsubscribeAnimationFromEvents = function(cvs, anim) {
     var handlers = cvs.__anm.handlers[anim.id];
     if (!handlers) return;
     $DE.unsubscribeCanvasEvents(cvs, handlers);
-}
+};
+
 $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
     if (!wrapper.classList) return;
     var C = anm.constants;
@@ -884,10 +942,10 @@ $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
             case C.ERROR:   css_classes = [&#39;anm-state-error&#39;]; break;
         }
         if (css_classes.length) {
-            var classList = wrapper.classList;
+            var classList = wrapper.classList, i, il;
             if (player.__prev_classes &amp;&amp; player.__prev_classes.length) {
                 var prev_classes = player.__prev_classes;
-                for (var i = 0, il = prev_classes.length; i &lt; il; i++) {
+                for (i = 0, il = prev_classes.length; i &lt; il; i++) {
                     classList.remove(prev_classes[i]);
                 }
             } else {
@@ -895,7 +953,7 @@ $DE.subscribeWrapperToStateChanges = function(wrapper, player) {
                     classList.remove(&#39;anm-state-nothing&#39;);
                 }
             }
-            for (var i = 0, il = css_classes.length; i &lt; il; i++) {
+            for (i = 0, il = css_classes.length; i &lt; il; i++) {
                 classList.add(css_classes[i]);
             }
             player.__prev_classes = css_classes;
@@ -916,24 +974,103 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-    return document.createElement(&#39;style&#39;);
+    var style = document.createElement(&#39;style&#39;);
+    style.type = &#39;text/css&#39;;
+    return style;
 };
 
 $DE.createAudio = function() {
     return document.createElement(&#39;audio&#39;);
-}
+};
+
+$DE.createVideo = function() {
+    return document.createElement(&#39;video&#39;);
+};
 
 $DE.createSource = function() {
     return document.createElement(&#39;source&#39;);
-}
+};
 
 $DE.appendToBody = function(element) {
     document.body.appendChild(element);
-}
+};
 
 var testCanvas = document.createElement(&#39;canvas&#39;);
 $DE.canvasSupported = !!(testCanvas.getContext &amp;&amp; testCanvas.getContext(&#39;2d&#39;));
 
+var https = window.location &amp;&amp; window.location.protocol === &#39;https:&#39;;
+$DE.isHttps = https;
+
+var local = window.location &amp;&amp; window.location.protocol === &#39;file:&#39;;
+$DE.isLocal = local;
+
+var isIE9 = navigator.userAgent.indexOf(&#39;MSIE 9.0&#39;) !== -1;
+$DE.isIE9 = isIE9;
+
+var hidden, visibilityChange;
+if (typeof document.hidden !== &quot;undefined&quot;) { // Opera 12.10 and Firefox 18 and later support
+  hidden = &quot;hidden&quot;;
+  visibilityChange = &quot;visibilitychange&quot;;
+} else if (typeof document.mozHidden !== &quot;undefined&quot;) {
+  hidden = &quot;mozHidden&quot;;
+  visibilityChange = &quot;mozvisibilitychange&quot;;
+} else if (typeof document.msHidden !== &quot;undefined&quot;) {
+  hidden = &quot;msHidden&quot;;
+  visibilityChange = &quot;msvisibilitychange&quot;;
+} else if (typeof document.webkitHidden !== &quot;undefined&quot;) {
+  hidden = &quot;webkitHidden&quot;;
+  visibilityChange = &quot;webkitvisibilitychange&quot;;
+}
+
+if (typeof document[hidden] !== &#39;undefined&#39; ||
+    typeof document.addEventListener !== &#39;undefined&#39;) {
+        document.addEventListener(visibilityChange,
+            function() {
+                if (onDocumentHiddenChange) {
+                    onDocumentHiddenChange(document[hidden]);
+                }
+            }, false);
+}
+var onDocumentHiddenChange = null;
+$DE.onDocumentHiddenChange = function(cb){
+    onDocumentHiddenChange = cb;
+};
+
+$DE.Path2D = global.Path2D;
+
+
+$DE.isInIframe = function() {
+    return global.self !== global.top;
+};
+
+var iframe = $DE.isInIframe() ? global : null;
+
+var origin = iframe ? iframe.document.referrer.split(&#39;/&#39;, 3).join(&#39;/&#39;) : &quot;*&quot;;
+
+$DE.getIframeOrigin = function() {
+    return origin;
+};
+
+$DE.getIframeSrc = function() {
+    if (!iframe) {
+        return null;
+    }
+    return iframe.location.href;
+};
+
+$DE.addMessageListener = function(listener) {
+    if (!global.addEventListener) {
+        return;
+    }
+    global.addEventListener(&#39;message&#39;, listener, false);
+};
+
+$DE.postToContentWindow = function(message) {
+    if (!iframe) {
+        return;
+    }
+    iframe.top.postMessage(JSON.stringify(message), origin);
+};
 
 module.exports = $DE;
 return $DE;

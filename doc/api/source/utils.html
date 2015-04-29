@@ -22,39 +22,77 @@ var is = {};
 
 // FIXME: rename all to full-names
 is.defined = function(v) {
-  return !((typeof v === &#39;undefined&#39;)
-   || (v === null)
-   || (v === undefined));
+  return !((typeof v === &#39;undefined&#39;) ||
+    (v === null) ||
+    (v === undefined));
 };
 is.finite = global.isFinite;
 is.nan = global.isNaN;
 is.arr = Array.isArray;
+is.integer = function(n) {
+    return is.num(n) &amp;&amp; Math.floor(n) == n;
+};
 is.num = function(n) {
-  n = global.parseFloat(n);
-  return !is.nan(n) &amp;&amp; is.finite(n);
+    n = global.parseFloat(n);
+    return !is.nan(n) &amp;&amp; is.finite(n);
 };
 is.fun = function(f) {
-  return typeof f === &#39;function&#39;;
+    return typeof f === &#39;function&#39;;
 };
 is.obj = function(o) {
-  return typeof o === &#39;object&#39;;
+    return typeof o === &#39;object&#39;;
 };
 is.str = function(s) {
-  return typeof s === &#39;string&#39;;
+    return typeof s === &#39;string&#39;;
 };
 is.not_empty = function(obj) {
     if (Object.keys) return (Object.keys(obj).length &gt; 0);
     else return (Object.getOwnPropertyNames(obj).length &gt; 0);
 };
 
-is.modifier = function(f) {
-  return f.hasOwnProperty(C.MARKERS.MODIFIER_MARKER);
+is.modifier = function(v) {
+    return (v instanceof anm.Modifier);
 };
-is.painter = function(f) {
-  return f.hasOwnProperty(C.MARKERS.PAINTER_MARKER);
+is.painter = function(v) {
+    return (v instanceof anm.Painter);
 };
-is.tween = function(f) {
-  return f.is_tween &amp;&amp; is.modifier(f);
+is.tween = function(v) {
+    return is.modifier(v) &amp;&amp; v.is_tween;
+};
+
+is.equal = function(x, y) {
+    if (x === y) return true;
+    // if both x and y are null or undefined and exactly the same
+
+    if (!(x instanceof Object) || !(y instanceof Object)) return false;
+    // if they are not strictly equal, they both need to be Objects
+
+    if (x.constructor !== y.constructor) return false;
+    // they must have the exact same prototype chain, the closest we can do is
+    // test their constructor.
+
+    for (var p in x) {
+        if (!x.hasOwnProperty(p)) continue;
+        // other properties were tested using x.constructor === y.constructor
+
+        if (!y.hasOwnProperty(p)) return false;
+        // allows to compare x[p] and y[p] when set to undefined
+
+        if (x[p] === y[p]) continue;
+        // if they have the same strict value or identity then they are equal
+
+        if (typeof( x[p]) !== &quot;object&quot;) return false;
+        // Numbers, Strings, Functions, Booleans must be strictly equal
+
+        if (!is.equal( x[p],  y[p])) return false;
+        // Objects and Arrays must be tested recursively
+    }
+
+    for (p in y) {
+        if ( y.hasOwnProperty(p) &amp;&amp; ! x.hasOwnProperty(p)) return false;
+        // allows x[p] to be set to undefined
+    }
+    return true;
 };
 
 // Iterator
@@ -89,18 +127,27 @@ function iter(a) {
     });
 }
 
+function keys(obj, f) {
+    // TODO: grep -r ./src -e &quot;var .* in&quot; -&gt; use everywhere?
+    if (Object.keys) {
+        var ids = Object.keys(obj);
+        for (var i = 0; i &lt; ids.length; i++) f(ids[i], obj[ids[i]]);
+    } else {
+        for (var id in obj) f(id, obj[id]);
+    }
+}
 
 function fmt_time(time) {
-  if (!is.finite(time)) return &#39;∞&#39;;
-  var absTime = Math.abs(time),
-      h = Math.floor(absTime / 3600),
-      m = Math.floor((absTime - (h * 3600)) / 60),
-      s = Math.floor(absTime - (h * 3600) - (m * 60));
+    if (!is.finite(time)) return &#39;∞&#39;;
+    var absTime = Math.abs(time),
+        h = Math.floor(absTime / 3600),
+        m = Math.floor((absTime - (h * 3600)) / 60),
+        s = Math.floor(absTime - (h * 3600) - (m * 60));
 
-  return ((time &lt; 0) ? &#39;-&#39; : &#39;&#39;) +
-          ((h &gt; 0)  ? (((h &lt; 10) ? (&#39;0&#39; + h) : h) + &#39;:&#39;) : &#39;&#39;) +
-          ((m &lt; 10) ? (&#39;0&#39; + m) : m) + &#39;:&#39; +
-          ((s &lt; 10) ? (&#39;0&#39; + s) : s)
+    return ((time &lt; 0) ? &#39;-&#39; : &#39;&#39;) +
+            ((h &gt; 0)  ? (((h &lt; 10) ? (&#39;0&#39; + h) : h) + &#39;:&#39;) : &#39;&#39;) +
+            ((m &lt; 10) ? (&#39;0&#39; + m) : m) + &#39;:&#39; +
+            ((s &lt; 10) ? (&#39;0&#39; + s) : s)
 }
 
 function ell_text(text, max_len) {
@@ -108,8 +155,8 @@ function ell_text(text, max_len) {
     var len = text.length;
     if (len &lt;= max_len) return text;
     var semilen = Math.floor(len / 2) - 2;
-    return text.slice(0, semilen) + &#39;...&#39;
-         + text.slice(len - semilen);
+    return text.slice(0, semilen) + &#39;...&#39; +
+         text.slice(len - semilen);
 }
 
 // ### Internal Helpers
@@ -165,24 +212,10 @@ function mrg_obj(src, backup, trg) {
 function strf(str, subst) {
     var args = subst;
     return str.replace(/{(\d+)}/g, function(match, number) {
-      return is.defined(args[number])
-        ? args[number]
-        : match
-      ;
+      return is.defined(args[number]) ?
+        args[number] : match;
     });
 }
-
-// collects all characters from string
-// before specified char, starting from start
-function collect_to(str, start, ch) {
-    var result = &#39;&#39;;
-    for (var i = start; str[i] !== ch; i++) {
-        if (i === str.length) throw new SystemError(&#39;Reached end of string&#39;);
-        result += str[i];
-    }
-    return result;
-}
-
 
 function guid() {
    return Math.random().toString(36).substring(2, 10) +
@@ -195,22 +228,35 @@ function fit_rects(pw, ph, aw, ah) {
     var xw = pw / aw,
         xh = ph / ah;
     var factor = Math.min(xw, xh);
-    var hcoord = (pw - aw * factor) / 2,
-        vcoord = (ph - ah * factor) / 2;
+    var hcoord = Math.floor((pw - aw * factor) / 2),
+        vcoord = Math.floor((ph - ah * factor) / 2),
+        awf = Math.round(aw * factor),
+        ahf = Math.round(ah * factor);
     if ((xw != 1) || (xh != 1)) {
-        var anim_rect = [ hcoord, vcoord, aw * factor, ah * factor ];
+        var anim_rect = [ hcoord, vcoord, awf, ahf ];
         if (hcoord !== 0) {
             return [ factor,
                      anim_rect,
                      [ 0, 0, hcoord, ph ],
-                     [ hcoord + (aw * factor), 0, hcoord, ph ] ];
+                     [ hcoord + awf, 0, hcoord, ph ] ];
         } else if (vcoord !== 0) {
             return [ factor,
                      anim_rect,
                      [ 0, 0, aw, vcoord ],
-                     [ 0, vcoord + (ah * factor), aw, vcoord ] ];
+                     [ 0, vcoord + awf, aw, vcoord ] ];
         } else return [ factor, anim_rect ];
     } else return [ 1, [ 0, 0, aw, ah ] ];
+}
+
+function removeElement(obj, element) {
+    if (is.arr(obj)) {
+        var index = array.indexOf(element);
+        if (index &gt; -1) {
+            array.splice(index, 1);
+        }
+    } else {
+        obj[element] = null;
+    }
 }
 
 // TODO: add array cloning
@@ -225,11 +271,12 @@ module.exports = {
     obj_clone: obj_clone,
     mrg_obj: mrg_obj,
     strf: strf,
-    collect_to: collect_to,
     guid: guid,
     fit_rects: fit_rects,
     is: is,
-    iter: iter
+    iter: iter,
+    keys: keys,
+    removeElement: removeElement
 };
 </pre>
 </body>

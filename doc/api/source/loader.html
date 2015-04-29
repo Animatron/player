@@ -16,19 +16,43 @@
 </head>
 <body onload="prettyPrint(); highlight();">
   <pre class="prettyprint lang-js">var utils = require(&#39;./utils.js&#39;),
-    SystemError = require(&#39;./errors.js&#39;).SystemError,
-    PlayerError = require(&#39;./errors.js&#39;).PlayerError,
-    engine = require(&#39;engine&#39;),
-    global_opts = require(&#39;./global_opts.js&#39;),
-    C = require(&#39;./constants.js&#39;),
     is = utils.is;
+
+var loc = require(&#39;./loc.js&#39;),
+    ErrLoc = loc.Errors,
+    errors = require(&#39;./errors.js&#39;);
+
+var C = require(&#39;./constants.js&#39;),
+    global_opts = require(&#39;./global_opts.js&#39;);
+
+var engine = require(&#39;engine&#39;);
+
+var Animation = require(&#39;./animation/animation.js&#39;);
 
 var Loader = {};
 
-Loader.loadFromUrl = function(player, url, importer, callback) {
-    if (!JSON) throw new SystemError(Errors.S.NO_JSON_PARSER);
+Loader.loadAnimation = function(player, anim, callback) {
+    if (player.anim) player.anim.dispose(player);
+    anim.playedIn(player);
+    // add debug rendering
+    if (player.debug &amp;&amp; !global_opts.liveDebug) {
+        anim.traverse(function(e) {e.addDebugRender();});
+    }
+    if (!anim.width || !anim.height) {
+        anim.width = player.width;
+        anim.height = player.height;
+    } else if (player.forceAnimationSize) {
+        player._resize(anim.width, anim.height);
+    }
+    // assign
+    player.anim = anim;
+    if (callback) callback.call(player, anim);
+};
 
-    mporter = importer || anm.importers.create(&#39;animatron&#39;);
+Loader.loadFromUrl = function(player, url, importer, callback) {
+    if (!JSON) throw errors.system(ErrLoc.S.NO_JSON_PARSER, player);
+
+    importer = importer || anm.importers.create(&#39;animatron&#39;);
 
     var url_with_params = url.split(&#39;?&#39;);
         url = url_with_params[0];
@@ -41,10 +65,10 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
         player._checkOpts();
     }
 
-    var failure = player.__defAsyncSafe(function(err) {
-        throw new SystemError(utils.strf(Errors.P.SNAPSHOT_LOADING_FAILED,
-                               [ (err ? (err.message || err) : &#39;¿Por qué?&#39;) ]));
-    });
+    var failure = function(err) {
+        throw errors.system(utils.strf(ErrLoc.P.SNAPSHOT_LOADING_FAILED,
+                            [ (err ? (err.message || err) : &#39;¿Por qué?&#39;) ]));
+    };
 
     var success = function(req) {
         try {
@@ -62,26 +86,10 @@ Loader.loadFromUrl = function(player, url, importer, callback) {
 };
 
 Loader.loadFromObj = function(player, object, importer, callback) {
-    if (!importer) throw new PlayerError(Errors.P.NO_IMPORTER_TO_LOAD_WITH);
+    if (!importer) throw errors.player(ErrLoc.P.NO_IMPORTER_TO_LOAD_WITH, player);
     var anim = importer.load(object);
     player.fire(C.S_IMPORT, importer, anim, object);
     Loader.loadAnimation(player, anim, callback);
-};
-
-Loader.loadAnimation = function(player, anim, callback) {
-    if (player.anim) player.anim.dispose();
-    // add debug rendering
-    if (player.debug &amp;&amp; !global_opts.liveDebug)
-        anim.visitElems(function(e) {e.addDebugRender();}); /* FIXME: ensure not to add twice */
-    if (!anim.width || !anim.height) {
-        anim.width = player.width;
-        anim.height = player.height;
-    } else if (player.forceAnimationSize) {
-        player._resize(anim.width, anim.height);
-    }
-    // assign
-    player.anim = anim;
-    if (callback) callback.call(player, anim);
 };
 
 Loader.loadElements = function(player, elms, callback) {

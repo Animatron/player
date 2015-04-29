@@ -20,10 +20,13 @@
 var utils = require(&#39;../utils.js&#39;),
     is = utils.is;
 
-var segments = require(&#39;./segments.js&#39;)
+var segments = require(&#39;./segments.js&#39;),
     MSeg = segments.MSeg,
     LSeg = segments.LSeg,
-    CSeg = segments.CSeg;
+    CSeg = segments.CSeg,
+    Crossings = segments.Crossings,
+    engine = require(&#39;engine&#39;),
+    useP2D = !!engine.Path2D;
 
 var Brush = require(&#39;./brush.js&#39;);
 
@@ -60,7 +63,7 @@ var Bounds = require(&#39;./bounds.js&#39;);
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9);`
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9).close();`
  *
- * See: {@link anm.Element#path Element.path()}, {@link anm.Element#translate_path Element.translate_path()}
+ * See: {@link anm.Element#path Element.path}, {@link anm.Element#translate_path Element.translate_path}
  *
  * @constructor
  *
@@ -74,9 +77,11 @@ function Path(val) {
 
     if (is.str(val)) {
         this.parse(val);
+        this.updatePath2D(val);
     } else if (is.arr(val)) {
         this.segs = val;
     }
+    this.cached_hits = {};
 }
 
 <span id='anm-Path-method-visit'>/**
@@ -98,7 +103,7 @@ Path.prototype.visit = function(visitor, data) {
         visitor(segments[si], data);
     }
     return this;
-}
+};
 <span id='anm-Path-method-length'>/**
 </span> * @method length
  *
@@ -107,14 +112,16 @@ Path.prototype.visit = function(visitor, data) {
  * @return {Number} path length
  */
 Path.prototype.length = function() {
+    if (is.defined(this.cached_len)) return this.cached_len;
     var sum = 0;
     var p = this.start();
     this.visit(function(segment) {
         sum += segment.length(p);
         p = segment.last();
     });
+    this.cached_len = sum;
     return sum;
-}
+};
 <span id='anm-Path-method-add'>/**
 </span> * @method add
  * @chainable
@@ -127,8 +134,9 @@ Path.prototype.length = function() {
  */
 Path.prototype.add = function(seg) {
     this.segs.push(seg);
+    this._p2dCurrent = false;
     return this;
-}
+};
 <span id='anm-Path-method-move'>/**
 </span> * @method move
  * @chainable
@@ -142,7 +150,7 @@ Path.prototype.add = function(seg) {
  */
 Path.prototype.move = function(x, y) {
     return this.add(new MSeg([x, y]));
-}
+};
 <span id='anm-Path-method-line'>/**
 </span> * @method line
  * @chainable
@@ -156,7 +164,7 @@ Path.prototype.move = function(x, y) {
  */
 Path.prototype.line = function(x, y) {
     return this.add(new LSeg([x, y]));
-}
+};
 <span id='anm-Path-method-curve'>/**
 </span> * @method curve
  * @chainable
@@ -174,7 +182,7 @@ Path.prototype.line = function(x, y) {
  */
 Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
     return this.add(new CSeg([x1, y1, x2, y2, x3, y3]));
-}
+};
 <span id='anm-Path-method-close'>/**
 </span> * @method close
  * @chainable
@@ -186,7 +194,7 @@ Path.prototype.curve = function(x1, y1, x2, y2, x3, y3) {
 Path.prototype.close = function() {
     this.closed = true;
     return this;
-}
+};
 <span id='anm-Path-method-apply'>/**
 </span> * @method apply
  *
@@ -202,6 +210,24 @@ Path.prototype.close = function() {
  * @return {anm.Path} itself
  */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
+    if (useP2D) {
+        this.updatePath2D();
+        if (shadow) {
+            shadow.apply(ctx);
+        }
+        if (fill) {
+            fill.apply(ctx);
+            ctx.fill(this.path2d);
+        }
+        if (shadow) {
+            Brush.clearShadow(ctx);
+        }
+        if (stroke) {
+            stroke.apply(ctx);
+            ctx.stroke(this.path2d);
+        }
+        return this;
+    }
     ctx.beginPath();
     // unrolled for speed
     var segments = this.segs;
@@ -215,7 +241,9 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
     if (fill) { fill.apply(ctx); ctx.fill(); }
     if (shadow) { Brush.clearShadow(ctx); }
     if (stroke) { stroke.apply(ctx); ctx.stroke(); }
-}
+
+    return this;
+};
 <span id='anm-Path-method-parse'>/**
 </span> * @method parse
  * @chainable
@@ -229,7 +257,7 @@ Path.prototype.apply = function(ctx, fill, stroke, shadow) {
 Path.prototype.parse = function(str) {
     if (str) Path.parse(str, this);
     return this;
-}
+};
 <span id='anm-Path-method-hitAt'>/**
 </span> * @method hitAt
  *
@@ -240,21 +268,24 @@ Path.prototype.parse = function(str) {
  * @return {Object} hit data
  */
 Path.prototype.hitAt = function(t) {
+    if (is.defined(this.cached_hits[t])) return this.cached_hits[t];
+
     var plen = this.length(); // path length in pixels
-    if (plen == 0) return null;
+    if (plen === 0) return null;
     if (t &lt; 0 || t &gt; 1.0) return null;
 
     var startp = this.start(); // start point of segment
+    var cache_t = utils.roundTo(t, 3); // t for caching could be rounded
 
-    if (t === 0) return {
-          &#39;seg&#39;: this.segs[0], &#39;start&#39;: startp, &#39;slen&#39;: 0.0, &#39;segt&#39;: 0.0
-        };
+    if (t === 0) return (this.cached_hits[cache_t] = {
+        &#39;seg&#39;: this.segs[0], &#39;start&#39;: startp, &#39;slen&#39;: 0.0, &#39;segt&#39;: 0.0
+    });
 
     /*var endp = this.end();
       if (t == 1) return func ? func(startp, endp) : endp;*/
 
     var nsegs = this.segs.length; // number of segments
-    if (nsegs == 0) return null;
+    if (nsegs === 0) return null;
 
     var distance = t * plen;
     var p = startp;
@@ -266,9 +297,9 @@ Path.prototype.hitAt = function(t) {
         if (distance &lt;= (length + slen)) {
             // inside current segment
             var segdist = distance - length;
-            return {
-                &#39;seg&#39;: seg, &#39;start&#39;: p, &#39;slen&#39;: slen, &#39;segt&#39;: (slen != 0) ? (segdist / slen) : 0
-            };
+            return (this.cached_hits[cache_t] = {
+                &#39;seg&#39;: seg, &#39;start&#39;: p, &#39;slen&#39;: slen, &#39;segt&#39;: (slen != 0) ? seg.findT(p, segdist) : 0
+            });
         }
         length += slen;
         // end point of segment
@@ -280,7 +311,7 @@ Path.prototype.hitAt = function(t) {
         &#39;seg&#39;: lseg, &#39;start&#39;: p, &#39;slen&#39;: lseg.length(p), &#39;segt&#39;: 1.0
       };*/
     return null;
-}
+};
 <span id='anm-Path-method-pointAt'>/**
 </span> * @method pointAt
  *
@@ -293,7 +324,43 @@ Path.prototype.pointAt = function(t) {
     var hit = this.hitAt(t);
     if (!hit) return this.start();
     return hit.seg.atT(hit.start, hit.segt);
-}
+};
+<span id='anm-Path-method-inside'>/**
+</span> * @method inside
+ *
+ * Checks if point is inside the path. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `path.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+ Path.prototype.inside = function(pt) {
+    var x = pt.x, y = pt.y;
+
+    var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;
+    var nsegs = this.segs.length; // number of segments
+
+    if (nsegs &lt; 2) return false;
+
+    var startp = this.start(); // start point of segment
+    var p = startp;
+
+    var crossings = 0;
+    for (var si = 0; si &lt; nsegs; si++) {
+        var seg = this.segs[si];
+        crossings += seg.crossings(p, x, y);
+        p = seg.last();
+    }
+
+    if (start !== p) {
+        crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
+    }
+
+    return ((crossings &amp; mask) !== 0);
+};
 <span id='anm-Path-method-tangentAt'>/**
 </span> * @method tangentAt
  *
@@ -306,7 +373,7 @@ Path.prototype.tangentAt = function(t) {
     var hit = this.hitAt(t);
     if (!hit) return 0;
     return hit.seg.tangentAt(hit.start, hit.segt);
-}
+};
 <span id='anm-Path-method-start'>/**
 </span> * @method start
  *
@@ -318,7 +385,7 @@ Path.prototype.start = function() {
     if (this.segs.length &lt; 1) return null;
     return [ this.segs[0].pts[0],   // first-x
              this.segs[0].pts[1] ]; // first-y
-}
+};
 <span id='anm-Path-method-end'>/**
 </span> * @method end
  *
@@ -329,7 +396,7 @@ Path.prototype.start = function() {
 Path.prototype.end = function() {
     if (this.segs.length &lt; 1) return null;
     return this.segs[this.segs.length - 1].last();
-}
+};
 <span id='anm-Path-method-bounds'>/**
 </span> * @method bounds
  *
@@ -345,19 +412,19 @@ Path.prototype.bounds = function() {
         minY = this.segs[0].pts[1], maxY = this.segs[0].pts[1];
     this.visit(function(segment) {
         var pts = segment.pts,
-            pnum = pts.length;
-        for (var pi = 0; pi &lt; pnum; pi+=2) {
+            pnum = pts.length, pi;
+        for (pi = 0; pi &lt; pnum; pi+=2) {
             minX = Math.min(minX, pts[pi]);
             maxX = Math.max(maxX, pts[pi]);
         }
-        for (var pi = 1; pi &lt; pnum; pi+=2) {
+        for (pi = 1; pi &lt; pnum; pi+=2) {
             minY = Math.min(minY, pts[pi]);
             maxY = Math.max(maxY, pts[pi]);
         }
     });
     return (this.$bounds = new Bounds(minX, minY,
                                       maxX - minX, maxY - minY));
-}
+};
 /* TODO: rename to `modify`? */
 Path.prototype.vpoints = function(func) {
     this.visit(function(segment) {
@@ -371,7 +438,7 @@ Path.prototype.vpoints = function(func) {
             }
         }
     });
-}
+};
 <span id='anm-Path-method-shift'>/**
 </span> * @method shift
  * @chainable
@@ -405,7 +472,7 @@ Path.prototype.zoom = function(vals) {
                  y * vals[1] ];
     });
     return this;
-}
+};
 <span id='anm-Path-method-normalize'>/**
 </span> * @method normalize
  *
@@ -429,17 +496,19 @@ Path.prototype.normalize = function() {
                  y - min_y - hh];
         });
     return [ hw, hh ];
-}
+};
+
 Path.prototype.getPoints = function() {
     var points = [];
     this.visit(function(seg) {
         points = points.concat(seg.pts);
     });
     return points;
-}
+};
+
 Path.prototype.toString = function() {
     return &quot;[ Path &#39;&quot; + Path.toSVGString(this) + &quot;&#39; ]&quot;;
-}
+};
 <span id='anm-Path-method-clone'>/**
 </span> * @method clone
  *
@@ -454,109 +523,80 @@ Path.prototype.clone = function() {
     });
     clone.closed = this.closed;
     return _clone;
-}
+};
 <span id='anm-Path-method-invalidate'>/**
 </span> * @method invalidate
  *
  * Invalidate bounds of this path
  */
 Path.prototype.invalidate = function() {
+    this.cached_len = undefined;
+    this.cached_hits = {};
     this.$bounds = null;
-}
+};
+
 Path.prototype.reset = function() {
     this.segs = [];
     this.closed = false;
-}
-Path.prototype.dispose = function() { }
+};
 
-// visits every chunk of path in string-form and calls
-// visitor function, so visitor function gets
-// chunk marker and positions sequentially
-// data argument will be also passed to visitor if specified
-Path.visitStrPath = function(path, visitor, data) {
-    var cur_pos = 0;
-    while (true) {
-        var marker = path[cur_pos];
-        if (marker === &#39;Z&#39;) {
-            visitor(marker, [], data);
-            return;
-        }
-        var pos_data = null;
-        if ((marker === &#39;M&#39;) || (marker === &#39;L&#39;)) {
-            pos_data = collectPositions(path, cur_pos, 2);
-        } else if (marker === &#39;C&#39;) {
-            pos_data = collectPositions(path, cur_pos, 6);
-        }
-        cur_pos += pos_data[0];
-        var positions = pos_data[1];
-        visitor(marker, positions, data);
-    }
-}
+Path.prototype.dispose = function() { };
+
+Path.prototype.updatePath2D = function(str) {
+    if (!useP2D || this._p2dCurrent) return;
+    str = str || Path.toSVGString(this);
+    this.path2d = new engine.Path2D(str);
+    this._p2dCurrent = true;
+};
+
 Path.toSVGString = function(path) {
     var buffer = [];
     path.visit(encodeVisitor, buffer);
     buffer.push(&#39;Z&#39;);
     return buffer.join(&#39; &#39;);
-}
-// parses `count` positions from path (string form),
-// starting at `start`, returns a length of parsed data and
-// positions array
-var collectPositions = function(path, start, count) {
-    var pos = start + 1;
-    var positions = [];
-    var got = 0;
-    while (got != count) {
-        var posstr = utils.collect_to(path, pos, &#39; &#39;);
-        pos += posstr.length + 1; got++;
-        positions.push(parseFloat(posstr));
-    }
-    return [pos - start, positions];
-}
-// visitor to parse a string path into Path object
-var parserVisitor = function(marker, positions, path) {
-    if (marker === &#39;M&#39;) {
-        path.add(new MSeg(positions));
-    } else if (marker === &#39;L&#39;) {
-        path.add(new LSeg(positions));
-    } else if (marker === &#39;C&#39;) {
-        path.add(new CSeg(positions));
-    }
-}
-// visitor to apply string path to context
-var strApplyVisitor = function(marker, positions, ctx) {
-    if (marker === &#39;M&#39;) {
-        ctx.moveTo(positions[0], positions[1]);
-    } else if (marker === &#39;L&#39;) {
-        ctx.lineTo(positions[0], positions[1]);
-    } else if (marker === &#39;C&#39;) {
-        ctx.bezierCurveTo(positions[0], positions[1],
-                          positions[2], positions[3],
-                          positions[4], positions[5]);
-    }
 };
+
 var encodeVisitor = function(segment, buffer) {
     buffer.push(segment.toString());
-}
+};
 
 // converts path given in string form to array of segments
 Path.parse = function(path, target) {
-    var target = target || new Path();
+    target = target || new Path();
     target.segs = [];
-    Path.visitStrPath(path, parserVisitor, target);
+    var segPaths = path.match(/[a-z][^a-z]*/ig);
+    for (var i = 0; i &lt; segPaths.length; i++) {
+        var seg = Path.parseSegment(segPaths[i]);
+        if (seg) {
+            target.segs.push(seg);
+        }
+    }
     target.str = path;
     return target;
-}
-<span id='anm-Path-static-method-parseAndAppy'>/**
-</span> * @static @method parseAndAppy
- *
- * Parses a path in string form and immediately applies it to context
- *
- * @param {Context2D} ctx context to apply to
- * @param {String} path SVG representation of a path
- */
-Path.parseAndApply = function(ctx, path) {
-    Path.visitStrPath(path, strApplyVisitor, ctx);
-}
+};
+
+Path.parseSegment = function(segment) {
+    segment = segment.toUpperCase();
+    var values = segment.substring(1).trim()
+        .replace(/,/g, &#39; &#39;)
+        .split(&#39; &#39;).map(function(n){
+            return parseFloat(n);
+        });
+    switch(segment[0]) {
+        case &#39;M&#39;:{
+            return new MSeg(values);
+        }
+        case &#39;L&#39;:{
+            return new LSeg(values);
+        }
+        case &#39;C&#39;:{
+            return new CSeg(values);
+        }
+        default: {
+            return null;
+        }
+    }
+};
 
 module.exports = Path;
 </pre>

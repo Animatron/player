@@ -15,20 +15,51 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">function __errorAs(name) {
-  return function (message) {
-      if (Error.captureStackTrace) Error.captureStackTrace(this, this);
-      var err = new Error(message || &#39;&#39;);
-      err.name = name;
-      return err;
-  };
+  <pre class="prettyprint lang-js">var C = require(&#39;./constants.js&#39;);
+
+function __errorAs(name) {
+    return function (message) {
+        if (Error.captureStackTrace) Error.captureStackTrace(this, this);
+        var err = new Error(message || &#39;&#39;);
+        err.name = name;
+        return err;
+    };
 }
 
+var SystemError = __errorAs(&#39;SystemError&#39;),
+    PlayerError = __errorAs(&#39;PlayerError&#39;),
+    AnimationError = __errorAs(&#39;AnimationError&#39;);
+
 module.exports = {
-  SystemError:__errorAs(&#39;SystemError&#39;),
-  PlayerError: __errorAs(&#39;PlayerError&#39;),
-  AnimationError: __errorAs(&#39;AnimationError&#39;)
-}
+
+    system: function(text, player) {
+        var err = new SystemError(text);
+        if (player) player.fire(C.S_ERROR, err);
+        return err;
+    },
+    player: function(text, player) {
+        var err = new PlayerError(text);
+        if (player) player.fire(C.S_ERROR, err);
+        return err;
+    },
+    animation: function(text, anim) {
+        var err = new AnimationError(text);
+        if (anim) anim.fire(C.X_ERROR, err);
+        return err;
+    },
+    element: function(text, elm) {
+        var err = new AnimationError(text);
+        if (elm &amp;&amp; elm.anim) {
+            elm.anim.fire(C.X_ERROR, err);
+        }
+        return err;
+    },
+
+    SystemError: SystemError,
+    PlayerError: PlayerError,
+    AnimationError: AnimationError
+
+};
 </pre>
 </body>
 </html>

@@ -24,38 +24,197 @@
  * @VERSION
  */
 
-  // This module is just a stub template for the moment
+var conf = require(&#39;../conf.js&#39;),
+    log = require(&#39;../log.js&#39;);
 
-var C = anm.constants,
-    E = anm.Element;
+var C = require(&#39;../constants.js&#39;);
 
-C.ET_VIDEO = &#39;video&#39;;
+var errors = require(&#39;../errors.js&#39;);
 
-var m_ctx = {};
+var engine = require(&#39;engine&#39;);
 
-var prev_initVisuals = E.prototype.initVisuals;
-E.prototype.initVisuals = function() {
-    prev_initVisuals.apply(this, arguments);
-    this.video = null;
+var ResMan = require(&#39;../resource_manager.js&#39;);
+
+var Bounds = require(&#39;../graphics/bounds.js&#39;);
+
+<span id='anm-Video'>/**
+</span> * @class anm.Video
+ */
+function Video(url) {
+    this.url = url;
+    this.ready = false;
+    this.playing = false;
+}
+<span id='anm-Video-method-connect'>/** @private @method connect */
+</span>Video.prototype.connect = function(element, anim) {
+    var me = this;
+    element.on(C.X_START, function() {
+        me.play.apply(me, arguments);
+    });
+    var stop = function() { me.stop(); };
+    element.on(C.X_STOP, stop);
+    anim.on(C.A_STOP, stop);
+    anim.on(C.A_PAUSE, stop);
+};
+<span id='anm-Video-method-load'>/** @private @method load */
+</span>Video.prototype.load = function(elm, player) {
+
+    var me = this;
+    ResMan.loadOrGet(player.id, me.url,
+        function(notify_success, notify_error, notify_progress) { // loader
+            var url = me.url;
+            if (engine.isHttps) { url = url.replace(&#39;http:&#39;, &#39;https:&#39;); }
+
+            var el = engine.createVideo();
+            el.setAttribute(&quot;preload&quot;, &quot;auto&quot;);
+            el.style.display = &#39;none&#39;;
+
+            var progressListener = function(e) {
+                var buffered = el.buffered;
+                if (buffered.length == 1) {
+                    // 0 == HAVE_NOTHING
+                    // 1 == HAVE_METADATA
+                    // 2 == HAVE_CURRENT_DATA
+                    // 3 == HAVE_FUTURE_DATA
+                    // 4 == HAVE_ENOUGH_DATA
+                    if (el.readyState === 4) {
+                        engine.unsubscribeElementEvents(el,
+                            { &#39;progress&#39;: progressAndLoadingListener,
+                              &#39;loadedmetadata&#39;: loadingListener,
+                              &#39;canplay&#39;: canPlayListener });
+                        notify_success(el);
+                        notify_progress(1);
+                        return;
+                    }
+                }
+            };
+
+            var loadingListener = function(e) {
+                var ranges = [];
+                for (var i = 0; i &lt; el.buffered.length; i++) {
+                    ranges.push([ el.buffered.start(i),
+                                  el.buffered.end(i) ]);
+                }
+
+                for (var i = 0, progress = 0; i &lt; el.buffered.length; i ++) {
+                    progress += (1 / el.duration) * (ranges[i][1] - ranges[i][0]);
+                }
+
+                notify_progress(progress);
+            }
+
+            var progressAndLoadingListener = function(e) {
+                progressListener(e); loadingListener(e);
+            }
+
+            var canPlayListener = function(e) {
+                me.canPlay = true;
+                progressListener(e);
+            };
+
+            engine.subscribeElementEvents(el,
+                { &#39;progress&#39;: progressAndLoadingListener,
+                  &#39;loadedmetadata&#39;: loadingListener,
+                  &#39;canplay&#39;: canPlayListener,
+                  &#39;error&#39;: videoErrProxy(url, notify_error) });
+
+            var addSource = function(video, url, type) {
+                var src = engine.createSource();
+                src.addEventListener(&quot;error&quot;, notify_error, false);
+                src.type = &#39;video/&#39; + type;
+                src.src = url;
+                video.appendChild(src);
+            };
+
+            try {
+                engine.appendToBody(el);
+                addSource(el, url, &#39;mp4&#39;);
+            } catch(e) { notify_error(e); }
+
+        },
+        function(video) { // oncomplete
+            me.video = video;
+            me.ready = true;
+        },
+        function(err) { log.error(err ? (err.message || err) : &#39;Unknown error&#39;);
+                        throw errors.element(err ? err.message : &#39;Unknown&#39;, elm);
+                        /* throw err; */
+        });
+};
+<span id='anm-Video-method-apply'>/** @private @method apply */
+</span>Video.prototype.apply = function(ctx) {
+    ctx.drawImage(this.video, 0, 0);
+};
+Video.prototype.bounds = function() {
+    if (this.$bounds) return this.$bounds;
+    if (!this.video) return Bounds.NONE;
+    var bounds = new Bounds(0, 0,
+                            this.video.width,
+                            this.video.height);
+    return (this.$bounds = bounds);
+};
+<span id='anm-Video-method-inside'>/**
+</span> * @method inside
+ *
+ * Checks if point is inside the shape. _Does no test for bounds_, the point is
+ * assumed to be already inside of the bounds, so check `video.bounds().inside(pt)`
+ * before calling this method manually.
+ *
+ * @param {Object} pt point to check
+ * @param {Number} pt.x
+ * @param {Number} pt.y
+ * @return {Boolean} is point inside
+ */
+ Video.prototype.inside = function(pt) {
+    return true; // if point is inside of the bounds, point is considered to be
+                 // inside the video shape
+};
+<span id='anm-Video-method-play'>/** @private @method play */
+</span>Video.prototype.play = function(ltime, duration) {
+    if (!this.ready || this.playing) {
+       return false;
+    }
+
+    this.playing = true;
+    var current_time = (this.offset || 0) + ltime;
+
+    this.video.currentTime = current_time;
+    this.video.play();
+}
+<span id='anm-Video-method-stop'>/** @private @method stop */
+</span>Video.prototype.stop = function() {
+    if (!this.playing) return;
+    this.video.pause();
+    this.playing = false;
+};
+Video.prototype.invalidate = function() {
+    this.$bounds = null;
+};
+Video.prototype.dispose = function() {};
+<span id='anm-Video-method-clone'>/**
+</span> * @method clone
+ *
+ * @return {anm.Video}
+ */
+Video.prototype.clone = function() {
+    var clone = new Video(this.url);
+    clone.offset = this.offset;
+    return clone;
+};
+
+function videoErrProxy(src, pass_to) {
+  return function(err) {
+    // e_.MEDIA_ERR_ABORTED=1
+    // e_.MEDIA_ERR_NETWORK=2
+    // e_.MEDIA_ERR_DECODE=3
+    // e_.MEDIA_ERR_SRC_NOT_SUPPORTED=4
+    // e_.MEDIA_ERR_ENCRYPTED=5
+    pass_to(new Error(&#39;Failed to load video file from &#39; + src + &#39; with error code: &#39; +
+                      err.currentTarget.error.code));
+  };
 }
 
-var prev_transferVisuals = E.transferVisuals;
-E.transferVisuals = function(src, trg) {
-    prev_transferVisuals(src, trg);
-    trg.video = src.video ? src.video.clone() : null;
-}
-
-var prev_dimen = E.prototype.dimen;
-E.prototype.dimen = function() {
-    return prev_dimen.apply(this, arguments) || (this.video &amp;&amp; this.video.dimen());
-}
-
-var prev_bounds = E.prototype.bounds;
-E.prototype.bounds = function() {
-    return prev_bounds.apply(this, arguments) || (this.video &amp;&amp; this.video.bounds());
-}
-
-anm.modules.register(&#39;video&#39;, m_ctx);
+module.exports = Video;
 </pre>
 </body>
 </html>

@@ -15,12 +15,14 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">// Modules
+  <pre class="prettyprint lang-js">var errors = require(&#39;./errors.js&#39;);
+
+// Modules
 // -----------------------------------------------------------------------------
 var modules = {};
 
 modules.register = function(alias, conf) {
-  if (modules[alias]) throw new Error(&#39;Module &#39; + alias + &#39; is already registered!&#39;);
+  if (modules[alias]) throw errors.system(&#39;Module &#39; + alias + &#39; is already registered!&#39;);
   modules[alias] = conf;
 };
 

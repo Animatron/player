@@ -15,13 +15,17 @@
   </script>
 </head>
 <body onload="prettyPrint(); highlight();">
-  <pre class="prettyprint lang-js">var Color = require(&#39;./color.js&#39;),
-    C = require(&#39;../constants.js&#39;),
-    conf = require(&#39;../conf.js&#39;),
+  <pre class="prettyprint lang-js">var C = require(&#39;../constants.js&#39;);
+
+var conf = require(&#39;../conf.js&#39;),
     utils = require(&#39;../utils.js&#39;),
-    is = utils.is,
-    engine = require(&#39;engine&#39;),
-    AnimationError = require(&#39;../errors.js&#39;).AnimationError;
+    is = utils.is;
+
+var engine = require(&#39;engine&#39;);
+
+var errors = require(&#39;../errors.js&#39;);
+
+var Color = require(&#39;./color.js&#39;);
 
 // Brush
 // -----------------------------------------------------------------------------
@@ -78,8 +82,8 @@
  * * `var brush = Brush.fill(Brush.rgrad({0: &quot;#000&quot;, 0.5: &quot;#ccc&quot;}, [0.5, 0.5]));`
  * * `var brush = Brush.shadow(&#39;rgb(10, 20, 40)&#39;, 3, 0, 0);`
  *
- * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill()}, {@link anm.Element#stroke Element.stroke()},
- * {@link anm.Element#shadow Element.shadow()}
+ * See: {@link anm.Color Color}, {@link anm.Element#fill Element.fill}, {@link anm.Element#stroke Element.stroke},
+ * {@link anm.Element#shadow Element.shadow}
  *
  */
 function Brush(value) {
@@ -119,7 +123,7 @@ Brush.prototype.apply = function(ctx) {
         // FIXME: this could be a slow operation to perform
         var props = engine.getAnmProps(ctx);
         if (props.skip_shadows) return;
-        var ratio = engine.PX_RATIO;
+        var ratio = (engine.PX_RATIO * (props.factor || 1));
         ctx.shadowColor = style;
         ctx.shadowBlur = (this.blurRadius * ratio) || 0;
         ctx.shadowOffsetX = (this.offsetX * ratio) || 0;
@@ -162,11 +166,11 @@ Brush.prototype.adapt = function(ctx) {
             stops = src.stops,
             dir = src.dir || [ [0.5, 0], [0.5, 1] ],
             r = src.r || 1.0;
-            bounds = src.bounds || [0, 0, 100, 100];
+            bounds = src.bounds || [0, 0, 1, 1];
         var grad;
         if (is.defined(src.r)) {
-            grad = bounds
-                ? ctx.createRadialGradient(
+            grad = bounds ?
+                ctx.createRadialGradient(
                                 bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
                                 bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
                                 Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
@@ -177,8 +181,8 @@ Brush.prototype.adapt = function(ctx) {
                                dir[0][0], dir[0][1], r[0],  // x0, y0, r0
                                dir[1][0], dir[1][1], r[1]); // x1, y1, r1
         } else {
-            grad = bounds
-                ? ctx.createLinearGradient(
+            grad = bounds ?
+                ctx.createLinearGradient(
                                 bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
                                 bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
                                 bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
@@ -192,6 +196,19 @@ Brush.prototype.adapt = function(ctx) {
             grad.addColorStop(stop[0], Color.adapt(stop[1]));
         }
         return grad;
+    }
+    if (this.pattern) {
+        var elm = this.pattern.elm,
+            fill;
+        var canvas = engine.createCanvas(this.pattern.w, this.pattern.h, null, 1);
+        var cctx = canvas.getContext(&#39;2d&#39;);
+        elm.pivot(0,0);
+        elm.disabled = false;
+        elm.render(cctx, 0, 0);
+        elm.disabled = true;
+        fill = canvas;
+
+        return ctx.createPattern(fill, this.pattern.repeat);
     }
     return null;
 };
@@ -218,7 +235,10 @@ Brush.prototype.clone = function()  {
         for (i = 0; i &lt; src_grad.stops.length; i++) {
             trg_grad.stops[i] = [].concat(src_grad.stops[i]);
         }
-        trg_grad.dir = [].concat(src_grad.dir);
+        trg_grad.dir = [];
+        for (i = 0; i &lt; src_grad.dir.length; i++) {
+            trg_grad.dir[i] = [].concat(src_grad.dir[i]);
+        }
         if (src_grad.r) trg_grad.r = [].concat(src_grad.r);
         trg.grad = trg_grad;
     }
@@ -238,7 +258,7 @@ Brush.prototype.clone = function()  {
  *
  * Create a Fill-Brush
  *
- * See {@link anm.Element#fill Element.fill()}
+ * See {@link anm.Element#fill Element.fill}
  *
  * Examples:
  *
@@ -253,8 +273,13 @@ Brush.prototype.clone = function()  {
 Brush.fill = function(value) {
     var brush = new Brush();
     brush.type = C.BT_FILL;
-    if (is.obj(value) &amp;&amp; value.stops) {
-        brush.grad = value;
+    if (is.obj(value)) {
+        if (value.stops) {
+            brush.grad = value;
+        } else if (value.elm) {
+            brush.pattern = value;
+        }
+
     } else {
         brush.color = value;
     }
@@ -266,7 +291,7 @@ Brush.fill = function(value) {
  *
  * Create a Stroke-Brush
  *
- * See {@link anm.Element#stroke Element.stroke()}
+ * See {@link anm.Element#stroke Element.stroke}
  *
  * Examples:
  *
@@ -284,7 +309,7 @@ Brush.fill = function(value) {
  * @return {anm.Brush}
  */
 Brush.stroke = function(color, width, cap, join, mitter) {
-    var brush = Brush.fill(color);
+    var brush = (color &amp;&amp; (color instanceof Brush)) ? color.clone() : Brush.fill(color);
     brush.type = C.BT_STROKE;
     brush.width = width || 0;
     brush.cap = cap || Brush.DEFAULT_CAP;
@@ -298,7 +323,7 @@ Brush.stroke = function(color, width, cap, join, mitter) {
  *
  * Create a Shadow-Brush
  *
- * See {@link anm.Element#shadow Element.shadow()}
+ * See {@link anm.Element#shadow Element.shadow}
  *
  * Examples:
  *
@@ -346,8 +371,8 @@ Brush.value = function(value, target) {
                     brush[key] = value[key];
                 }
             }
-        } else throw new AnimationError(&#39;Unknown type of brush&#39;);
-    } else throw new AnimationError(&#39;Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values&#39;);
+        } else throw errors.element(&#39;Unknown type of brush&#39;);
+    } else throw errors.element(&#39;Use Brush.fill, Brush.stroke or Brush.shadow to create brush from values&#39;);
 };
 
 Brush.grad = function(stops, bounds, dir) {
@@ -414,23 +439,37 @@ Brush.clearShadow = function(ctx) {
  * NB: if you re-use the returned function, be aware that it shares and updates
  * the same instance between the calls.
  *
- * See {@link anm.Color#interpolate Color.interpolate()}
+ * See {@link anm.Color#interpolate Color.interpolate}
  *
  * @param {anm.Brush} from initial state of interpolation
  * @param {anm.Brush} to final state of interpolation
  * @return {Function} function that takes t and returns interpolation result
- * @param {Number} return.t distance between initial and final state, as `0..1`
- * @param {anm.Brush} return.return a brush value as a result of interpolation
+ * @return {Number} return.t distance between initial and final state, as `0..1`
+ * @return {anm.Brush} return.return a brush value as a result of interpolation
  */
 Brush.interpolateBrushes = function(from, to) {
+    var equal = is.equal(from, to);
     from = (from instanceof Brush) ? from : Brush.value(from);
-    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!from._converted) { from.convertColorsToRgba(); }
+    if (equal) {
+        //if the values are the same, we can just skip the interpolating
+        //and return the first value
+        return function() {
+            return from;
+        };
+    }
+
+    to   = (to   instanceof Brush) ? to   : Brush.value(to);
     if (!to._converted)   { to.convertColorsToRgba();   }
     var result = from.clone();
     return function(t) {
         if (is.defined(from.width) &amp;&amp; is.defined(to.width)) { // from.type &amp;&amp; to.type == C.BT_STROKE
             result.width = utils.interpolateFloat(from.width, to.width, t);
+        }
+        if (from.type === C.BT_SHADOW) {
+            result.offsetX = utils.interpolateFloat(from.offsetX, to.offsetX, t);
+            result.offsetY = utils.interpolateFloat(from.offsetY, to.offsetY, t);
+            result.blurRadius = utils.interpolateFloat(from.blurRadius, to.blurRadius, t);
         }
         if (from.color) {
             result.grad = null;
@@ -442,8 +481,8 @@ Brush.interpolateBrushes = function(from, to) {
             // direction
             for (i = 0; i &lt; fromg.dir.length; i++) {
                 if (!trgg.dir[i]) trgg.dir[i] = [];
-                trgg.dir[0] = utils.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
-                trgg.dir[1] = utils.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
+                trgg.dir[i][0] = utils.interpolateFloat(fromg.dir[i][0], tog.dir[i][0], t);
+                trgg.dir[i][1] = utils.interpolateFloat(fromg.dir[i][1], tog.dir[i][1], t);
             }
             // stops
             if (!trgg.stops ||
@@ -451,7 +490,7 @@ Brush.interpolateBrushes = function(from, to) {
             for (i = 0; i &lt; fromg.stops.length; i++) {
                 if (!trgg.stops[i]) trgg.stops[i] = [];
                 trgg.stops[i][0] = utils.interpolateFloat(fromg.stops[i][0], tog.stops[i][0], t);
-                trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1]), t);
+                trgg.stops[i][1] = Color.toRgbaStr(Color.interpolate(fromg.stops[i][1], tog.stops[i][1], t));
             }
             // radius
             if (fromg.r) {
