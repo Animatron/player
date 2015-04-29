@@ -56,9 +56,8 @@
                             <span>Log errors:&nbsp;<input type="checkbox" id="log-errors"></input></span></p>
       <p id="switch-mode-l">Switch mode:&nbsp;</p>
       <form id="switch-mode">
-         <input type="radio" value="M_SANDBOX" checked="checked" name="mode" onclick="change_mode(this);" />&nbsp;<span>non-interactive</span>
-         <input type="radio" value="M_DYNAMIC" name="mode" onclick="change_mode(this);" />&nbsp;<span>interactive</span>
-         <!-- FIXME: not works <input type="radio" value="M_VIDEO" name="mode" onclick="change_mode(this);" />&nbsp;<span>video</span> -->
+         <input type="radio" value="no-events" checked="checked" name="mode" onclick="change_mode(this);" />&nbsp;<span>non-interactive</span>
+         <input type="radio" value="with-events" name="mode" onclick="change_mode(this);" />&nbsp;<span>interactive</span>
       <form></div>
 
       <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->

@@ -166,7 +166,10 @@ function sandbox() {
                 //console.log('sheduled next refresh to ', rate - from, 'ms (#', nextTimeout, ')');
             }
         };
-        _refresher(startAt || 0, sequenceId, timeoutId)(/* play once or not */!_player.handleEvents);
+        _refresher(startAt || 0, sequenceId, timeoutId)
+                  ( /* play once or not */
+                    (_player.handleEvents === true) ||
+                    (_player.infiniteDuration === true));
     }
 
     if (localStorage) {
@@ -208,8 +211,9 @@ function sandbox() {
 
     function change_mode(radio) {
       if (_player) {
-        _player.mode = C[radio.value];
-        _player._updateMode();
+        _player.handleEvents = (radio.value === 'with-events');
+        _player.infiniteDuration = (radio.value === 'with-events');
+        _player._checkOpts();
         refreshFromStart();
       }
     }
