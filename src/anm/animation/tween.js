@@ -37,7 +37,7 @@ var errors = require('../errors.js');
  * another. Some tweens do not require these values or require only one value.
  *
  * You can not create a Tween with a constructor, though, you either should choose
- * from the predefined ones or to register a new Tween type with {@link anm.Tween#register register()}
+ * from the predefined ones or to register a new Tween type with {@link anm.Tween#static-method-register register}
  * method.
  *
  * Tweens ready to use:
@@ -56,7 +56,7 @@ var errors = require('../errors.js');
  *
  * Also see {@link anm.Element#translate translate(from, to)}, {@link anm.Element#scale scale(from, to)},
  * {@link anm.Element#rotate rotate(from, to)}, {@link anm.Element#scale scale(from, to)}, {@link anm.Element#skew skew(from, to)},
- * {@link anm.Element#alpha alpha(from, to)}, {@link anm.Element#color color()}
+ * {@link anm.Element#alpha alpha(from, to)}, {@link anm.Element#color color}
  *
  * Examples:
  *
@@ -110,10 +110,10 @@ Tween._$ = createTween;
  *
  * Set or get values for this tween. Useful only if tween uses two values to operate, one to start from,
  * and one to end with, i.e. rotate tween or scale tween. To set a single value for a tween (say, path
- * for translate tween), use {@link anm.Tween#value value()} method. To set values separately, use
- * {@link anm.Tween#from from()} and {@link anm.Tween#to to()} methods.
+ * for translate tween), use {@link anm.Tween#value value} method. To set values separately, use
+ * {@link anm.Tween#from from} and {@link anm.Tween#to to} methods.
  *
- * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Tween#value value()}.
+ * See also: {@link anm.Tween#from from}, {@link anm.Tween#to to}, {@link anm.Tween#value value}.
  *
  * @param {Any} from start value
  * @param {Any} to end value
@@ -133,10 +133,10 @@ Tween.prototype.values = function(_from, to) {
  *
  * Set or get value for this tween. Useful only if tween uses one value to operate, like path for
  * translate tween. To set both starting and final value for a tween (say, for rotate tween),
- * use {@link anm.Tween#values values()} method. To set values separately, use {@link anm.Tween#from from()}
- * and {@link anm.Tween#to to()} methods.
+ * use {@link anm.Tween#values values} method. To set values separately, use {@link anm.Tween#from from}
+ * and {@link anm.Tween#to to} methods.
  *
- * See also: {@link anm.Tween#from from()}, {@link anm.Tween#to to()}, {@link anm.Tween#values values()}.
+ * See also: {@link anm.Tween#from from}, {@link anm.Tween#to to}, {@link anm.Tween#values values}.
  *
  * @param {Any} value a new value to set
  *
@@ -156,9 +156,9 @@ Tween.prototype.value = function(val) {
  * Set value to start from for this tween. Useful only if tween uses two values to operate, one to start from,
  * and one to end with, i.e. rotate tween or scale tween. To set a single value for a tween (say, path
  * for translate tween), use {@link anm.Modifier#data data(value)} method. To set end value, use
- * {@link anm.Tween#to to()} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
+ * {@link anm.Tween#to to} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
  *
- * See also: {@link anm.Tween#to to()}, {@link anm.Tween#values values()}, {@link anm.Tween#value value()}.
+ * See also: {@link anm.Tween#to to}, {@link anm.Tween#values values}, {@link anm.Tween#value value}.
  *
  * @param {Any} from start value to set
  *
@@ -177,9 +177,9 @@ Tween.prototype.value = function(val) {
  * Set value to end with for this tween. Useful only if tween uses two values to operate, one to start from,
  * and one to end with, i.e. rotate tween or scale tween. To set a single value for a tween (say, path
  * for translate tween), use {@link anm.Modifier#data data(value)} method. To set start value, use
- * {@link anm.Tween#from from()} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
+ * {@link anm.Tween#from from} method. To set them both at one time, use {@link anm.Tween#values values(from, to)}.
  *
- * See also: {@link anm.Tween#from from()}, {@link anm.Tween#values values()}, {@link anm.Tween#value value()}.
+ * See also: {@link anm.Tween#from from}, {@link anm.Tween#values values}, {@link anm.Tween#value value}.
  *
  * @param {Any} to end value to set
  *

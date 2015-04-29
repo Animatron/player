@@ -4,7 +4,7 @@
 
 /**
  * @class anm.InfoBlock
- * @deprectated
+ * @deprecated
  */
 function InfoBlock(player, theme) {
 

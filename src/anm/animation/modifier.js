@@ -228,6 +228,17 @@ Modifier.prototype.apply = function(elm, t, dt, duration) {
     return this.func.call(elm, t, dt, duration);
 };
 
+/**
+ * @private @method data
+ *
+ * Set modifier data.
+ *
+ * @param {Any} data
+ */
+Modifier.prototype.data = function(data) {
+    this.$data = data;
+};
+
 var convertEasing = function(easing, data, relative) {
     if (!easing) return null;
     var f;

@@ -56,37 +56,37 @@ Element.DEFAULT_REG = [ 0.0, 0.0 ];
  *
  * There are also some setter-like methods, and if a name of some setter matches
  * to the according property it sets, a `$` symbol is appended to a property name: like
- * the method {@link anm.Element#fill .fill()} and the property {@link anm.Element#$fill .$fill}. This way allows us not only
+ * the method {@link anm.Element#fill .fill} and the property {@link anm.Element#$fill .$fill}. This way allows us not only
  * to avoid name-clashed, but also serves as an additional mark for user that a value of this
  * property is easier to construct with a corresponding helper method, rather than,
  * for example, creating a special {@link anm.Brush Brush} object for a `fill`.
  *
- * See {@link anm.Element#add add()} and {@link anm.Element#remove remove()} methods for documentation
+ * See {@link anm.Element#add add} and {@link anm.Element#remove remove} methods for documentation
  * on adding and removing children elements.
  *
- * See {@link anm.Element#each each()} and {@link anm.Element#traverse traverse()} method for documentation
+ * See {@link anm.Element#each each} and {@link anm.Element#traverse traverse} method for documentation
  * on iteration over children elements.
  *
- * See {@link anm.Element#path path()}, {@link anm.Element#text text()} and {@link anm.Element#image image()}
+ * See {@link anm.Element#path path}, {@link anm.Element#text text} and {@link anm.Element#image image}
  * for documentation on changing the type of the element and the way it draws itself.
  *
- * See {@link anm.Element#rect rect()}, {@link anm.Element#oval oval()} and other shape-related methods
+ * See {@link anm.Element#rect rect}, {@link anm.Element#oval oval} and other shape-related methods
  * for documentation on changing element's shape.
  *
- * See {@link anm.Element#fill fill()}, {@link anm.Element#stroke stroke()} and
- * {@link anm.Element#shadow shadow()} methods for documentation on changing appearance of the element.
+ * See {@link anm.Element#fill fill}, {@link anm.Element#stroke stroke} and
+ * {@link anm.Element#shadow shadow} methods for documentation on changing appearance of the element.
  * (Fill/Shadow only apply if element is `path`, `shape` or `text`).
  *
- * See {@link anm.Element#band band()} for documentation on how to set element's lifetime relatively to its parent.
+ * See {@link anm.Element#band band} for documentation on how to set element's lifetime relatively to its parent.
  *
- * See {@link anm.Element#repeat repeat()}, {@link anm.Element#once once()}, {@link anm.Element#stay stay()},
- * {@link anm.Element#loop loop()}, {@link anm.Element#bounce bounce()} for documentation on how to make this element
+ * See {@link anm.Element#repeat repeat}, {@link anm.Element#once once}, {@link anm.Element#stay stay},
+ * {@link anm.Element#loop loop}, {@link anm.Element#bounce bounce} for documentation on how to make this element
  * self-repeat or to stay in its last state inside the parent's lifetime.
  *
- * See {@link anm.Tween Tween} and {@link anm.Element#tween tween()} method for documentation on adding tweens.
+ * See {@link anm.Tween Tween} and {@link anm.Element#tween tween} method for documentation on adding tweens.
  *
- * See {@link anm.Modifier Modifier} in pair with {@link anm.Element#modify modify()} method and {@link anm.Painter Painter}
- * in pair with {@link anm.Element#modify paint()} method for documentation on
+ * See {@link anm.Modifier Modifier} in pair with {@link anm.Element#modify modify} method and {@link anm.Painter Painter}
+ * in pair with {@link anm.Element#modify paint} method for documentation on
  * a custom drawing or positioning the element in time.
  *
  * @constructor
@@ -175,7 +175,7 @@ provideEvents(Element, [ C.X_MCLICK, C.X_MDCLICK, C.X_MUP, C.X_MDOWN,
  * Check, if this element represents {@link anm.Path Path}, {@link anm.Text Text},
  * {@link anm.Sheet Sheet}, or it's empty
  *
- * @param {anm.C.ET_*} type to check for
+ * @param {String} type to check for: `'empty'`, `'path'`, `'text'`, `'image'`, `'audio'`, `'video'`...
  * @return {Boolean}
  */
 Element.prototype.is = function(type) {
@@ -188,7 +188,7 @@ Element.prototype.initState = function() {
     /** @property {Number} y position on the Y axis, relatively to parent */
     /** @property {Number} angle rotation angle, in radians, relative to parent */
     /** @property {Number} sx scale over X axis, relatively to parent */
-    /** @property {Number} sx scale over Y axis, relatively to parent */
+    /** @property {Number} sy scale over Y axis, relatively to parent */
     /** @property {Number} hx skew over X axis, relatively to parent */
     /** @property {Number} hy skew over Y axis, relatively to parent */
     /** @property {Number} alpha opacity, relative to parent */
@@ -390,7 +390,7 @@ Element.prototype.text = function(value) {
  * @method image
  * @chainable
  *
- * Set this element to be an {@link anm.Image Image/Sheet} or get current image.
+ * Set this element to be an {@link anm.Sheet Image/Sheet} or get current image.
  *
  * Examples:
  *
@@ -645,7 +645,7 @@ Element.prototype.forAllModifiers = function(f) {
 };
 
 /**
-* @private @method forAllModifiers
+* @private @method forAllPainters
 *
 * Iterate over all of the painters and call given function
 *
@@ -673,7 +673,7 @@ Element.prototype.forAllPainters = function(f) {
  *
  * Draw element over some context, without applying transformations, even if element
  * has some, since they depend on time. To draw element along with applying
- * transformations in one call, use {@link anm.Element#render render()} method.
+ * transformations in one call, use {@link anm.Element#render render} method.
  *
  * @param {Context2D} ctx context, where element should be drawn
  */
@@ -1022,11 +1022,11 @@ Element.prototype.skew = function(hx, hy) {
 * except the case when a parent of a parent has narrower band.
 *
 * NB: by default, element's band is `[0, Infinity]`, in seconds, relative to parent's band.
-* To change it, use {@link anm.Element#band band()} method.
+* To change it, use {@link anm.Element#band band} method.
 *
-* See also: {@link anm.Element#band band()}, {@link anm.Element#once once()},
-*           {@link anm.Element#stay stay()}, {@link anm.Element#loop loop()},
-*           {@link anm.Element#bounce bounce()}
+* See also: {@link anm.Element#band band}, {@link anm.Element#once once},
+*           {@link anm.Element#stay stay}, {@link anm.Element#loop loop},
+*           {@link anm.Element#bounce bounce}
 *
 * @param {anm.C.R_*} mode repeat mode, one of the listed above
 * @param {Number} nrep number of times to repeat or `Infinity` by default
@@ -1048,7 +1048,7 @@ Element.prototype.repeat = function(mode, nrep) {
  * when it element "dies" just after its lifetime is finished. In another words,
  * disable any looping/repeating.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @return {anm.Element} itself
  */
@@ -1065,7 +1065,7 @@ Element.prototype.once = function() {
  * Repeat this element once inside its own band, but freeze its last frame until
  * parents' band will finish, or forever.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @return {anm.Element} itself
  */
@@ -1082,7 +1082,7 @@ Element.prototype.stay = function() {
  * Loop this element using its own band until its parent's band will finish, or
  * until specified number of times to repeat will be reached, or forever.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @param {Number} [nrep] number of times to repeat or `Infinity` by default
  *
@@ -1102,7 +1102,7 @@ Element.prototype.loop = function(nrep) {
  * its parent's band will finish, or until specified number of times to repeat
  * will be reached, or forever.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#repeat repeat()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#repeat repeat}.
  *
  * @param {Number} [nrep] number of times to repeat or `Infinity` by default
  *
@@ -1122,7 +1122,7 @@ Element.prototype.bounce = function(nrep) {
  * when jump performed and the time to where jump is performed. Time is specified as `0` if
  * element should jump to the start of its band.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#freeze freeze()}, {@link anm.Element#unfreeze unfreeze()}
+ * See also: {@link anm.Element#band band}, {@link anm.Element#freeze freeze}, {@link anm.Element#unfreeze unfreeze}
  *
  * @param {Number} t target time for a jump
  *
@@ -1142,7 +1142,7 @@ Element.prototype.jump = function(loc_t) {
  * outside of its band, element won't render instead. Also, no band `START`/`STOP` events
  * will be fired in any case.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#jump jump()}, {@link anm.Element#unfreeze unfreeze()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#unfreeze unfreeze}.
  *
  * @return {anm.Element} itself
  */
@@ -1162,9 +1162,9 @@ Element.prototype.freeze = function() {
  * @method unfreeze
  * @chainable
  *
- * Unpause after a call to {@link anm.Element#freeze freeze()}.
+ * Unpause after a call to {@link anm.Element#freeze freeze}.
  *
- * See also: {@link anm.Element#band band()}, {@link anm.Element#jump jump()}, {@link anm.Element#freeze freeze()}.
+ * See also: {@link anm.Element#band band}, {@link anm.Element#jump jump}, {@link anm.Element#freeze freeze}.
  *
  * @return {anm.Element} itself
  */
@@ -1551,7 +1551,7 @@ Element.prototype.band = function(start, stop) {
  *
  * Get or set duration of an element's band
  *
- * See {@link anm.Element#band band()} method.
+ * See {@link anm.Element#band band} method.
  *
  * @param {Number} [value] desired duration
  *
@@ -1661,7 +1661,7 @@ Element.prototype.reset = function() {
  * @chainable
  *
  * Iterate over element's children with given function. No sub-children though,
- * see {@link anm.Element#traverse .traverse()} for it.
+ * see {@link anm.Element#traverse .traverse} for it.
  *
  * @param {Function} f function to call
  * @param {anm.Element} f.elm child element
@@ -1683,7 +1683,7 @@ Element.prototype.each = function(func) {
  * @chainable
  *
  * Iterate over element's children including all the levels of sub-children with
- * given function (see {@link anm.Element#each .each()} method to iterate over
+ * given function (see {@link anm.Element#each .each} method to iterate over
  * only element's own children).
  *
  * @param {Function} f function to call
