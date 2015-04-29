@@ -639,8 +639,8 @@ Import.sheet = function(src) {
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
     if (type === null) return null;
-    var tween = new Tween(type, Import.tweendata(type, src[3]))
-                          .band(Import.band(src[1])),
+    var tween = Tween[type](Import.tweendata(type, src[3]))
+                           .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
     if (easing) tween.easing(easing);
     return tween;
