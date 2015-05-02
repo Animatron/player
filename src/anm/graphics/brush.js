@@ -148,7 +148,7 @@ Brush.prototype.adapt = function(ctx) {
         var src = this.grad,
             stops = src.stops,
             dir = src.dir || [ [0.5, 0], [0.5, 1] ],
-            r = src.r || 1.0;
+            r = src.r || [ 1.0, 1.0 ];
             bounds = src.bounds || [0, 0, 1, 1];
         var grad;
         if (is.defined(src.r)) {
@@ -156,10 +156,10 @@ Brush.prototype.adapt = function(ctx) {
                 ctx.createRadialGradient(
                                 bounds[0] + dir[0][0] * bounds[2], // b.x + x0 * b.width
                                 bounds[1] + dir[0][1] * bounds[3], // b.y + y0 * b.height
-                                Math.max(bounds[2], bounds[3]) * r[0], // max(width, height) * r0
+                                Math.max(bounds[2], bounds[3]) * r[0], // max(b.width, b.height) * r0
                                 bounds[0] + dir[1][0] * bounds[2], // b.x + x1 * b.width
                                 bounds[1] + dir[1][1] * bounds[3], // b.y + y1 * b.height
-                                Math.max(bounds[2], bounds[3]) * r[1]) // max(width, height) * r1
+                                Math.max(bounds[2], bounds[3]) * r[1]) // max(b.width, b.height) * r1
                 : ctx.createRadialGradient(
                                dir[0][0], dir[0][1], r[0],  // x0, y0, r0
                                dir[1][0], dir[1][1], r[1]); // x1, y1, r1
@@ -361,26 +361,26 @@ Brush.value = function(value, target) {
 Brush.grad = function(stops, bounds, dir) {
     var new_stops = [];
     for (var prop in stops) {
-        new_stops.push([prop, stops[prop]]);
+        new_stops.push([parseFloat(prop), stops[prop]]);
     }
-    return { grad: {
-        stops: stops,
+    return {
+        stops: new_stops,
         bounds: bounds,
         dir: dir
-    } };
+    };
 };
 
 Brush.rgrad = function(stops, r, bounds, dir) {
     var new_stops = [];
     for (var prop in stops) {
-        new_stops.push([prop, stops[prop]]);
+        new_stops.push([parseFloat(prop), stops[prop]]);
     }
-    return { grad: {
-        r: r,
-        stops: stops,
+    return {
+        r: r || [ 1.0, 1.0 ],
+        stops: new_stops,
         bounds: bounds,
         dir: dir
-    } };
+    };
 };
 
 Brush.qfill = function(ctx, color) {

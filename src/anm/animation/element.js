@@ -463,7 +463,7 @@ Element.prototype.noFill = function() {
 * Set stroke for this element
 *
 * Examples:
-
+*
 * * `elm.stroke("#ffaa0b", 2)`
 * * `elm.stroke("rgb(255,170,11)", 4)`
 * * `elm.stroke("rgb(255,170,11,0.8)", 5)`
@@ -501,6 +501,35 @@ Element.prototype.stroke = function(value, width) {
 Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
+};
+
+/**
+* @method shadow
+* @chainable
+*
+* Set shadow for this element
+*
+* Examples:
+
+* * `elm.shadow("#ffaa0b", 3)`
+* * `elm.shadow("rgb(255,170,11)", 3, 5, 5)`
+* * `var brush = elm.shadow()`
+*
+* @param {String|anm.Brush} [color] color of the shadow
+* @param {Number} [radius] radius of the shadow
+* @param {Number} [x] x offset of the shadow
+* @param {Number} [y] y offset of the shadow
+* @return {anm.Brush|anm.Element}
+*/
+Element.prototype.shadow = function(value, radius, x, y) {
+    if (value) {
+        if (value instanceof Brush) {
+            this.$shadow = value;
+        } else {
+            this.$shadow = Brush.shadow(value, radius, x, y);
+        }
+        return this;
+    } else return this.$shadow;
 };
 
 /**

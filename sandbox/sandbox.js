@@ -5,7 +5,7 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-var DEFAULT_REFRESH_RATE = 3000;
+var DEFAULT_REFRESH_RATE = 5000;
 
 var _player = null;
 

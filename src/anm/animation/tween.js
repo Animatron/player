@@ -164,8 +164,8 @@ Tween.prototype.value = function(val) {
  *
  * @return {anm.Tween} itself
  */
- Tween.prototype.from = function(val) {
-    this.$value = this.def.from(val, this.$value);
+ Tween.prototype.from = function(val, val2) {
+    this.$value = this.def.from(!is.defined(val2) ? val : [ val, val2 ], this.$value);
     this.$tween = this.def.func(this.$value);
     return this;
 };
@@ -185,8 +185,8 @@ Tween.prototype.value = function(val) {
  *
  * @return {anm.Tween} itself
  */
-Tween.prototype.to = function(val) {
-    this.$value = this.def.to(val, this.$value);
+Tween.prototype.to = function(val, val2) {
+    this.$value = this.def.to(!is.defined(val2) ? val : [ val, val2 ], this.$value);
     this.$tween = this.def.func(this.$value);
     return this;
 };
