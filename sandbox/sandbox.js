@@ -5,7 +5,7 @@
  * Animatron player is licensed under the MIT License, see LICENSE.
  */
 
-var DEFAULT_REFRESH_RATE = 3000;
+var DEFAULT_REFRESH_RATE = 5000;
 
 var _player = null;
 
@@ -31,13 +31,14 @@ function sandbox() {
         element: anm.Element._$,
         Tween: anm.Tween,
         Path: anm.Path,
-        Color: anm.Color
+        Color: anm.Color,
+        Brush: anm.Brush
     }
 
     function applyCtx(userCode, ctx) {
         return 'var width=' + ctx.width + ',height=' + ctx.height + ';' +
                'var duration=' + ctx.duration + ';' +
-               'var element=ctx.element,Tween=ctx.Tween,Path=ctx.Path,Color=ctx.Color;'
+               'var element=ctx.element,Tween=ctx.Tween,Path=ctx.Path,Color=ctx.Color,Brush=ctx.Brush;'
                + userCode;
     }
 

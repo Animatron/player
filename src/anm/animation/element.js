@@ -430,7 +430,7 @@ Element.prototype.image = function(value, callback) {
  * * `elm.fill("hsla(120,50,100%,0.8)")`
  * * `elm.fill(anm.Color.rgb(1.0,0.6,0.1))`
  * * `elm.fill(anm.Color.hsla(Math.PI/3,50,1.0))`
- * * `elm.fill(anm.Brush.grad({0: "#000", 0.5: "#ccc"}))`
+ * * `elm.fill(anm.Brush.gradient().stops({0: "#000", 0.5: "#ccc"}))`
  * * `var brush = elm.fill()`
  *
  * @param {String|anm.Brush} [color]
@@ -463,7 +463,7 @@ Element.prototype.noFill = function() {
 * Set stroke for this element
 *
 * Examples:
-
+*
 * * `elm.stroke("#ffaa0b", 2)`
 * * `elm.stroke("rgb(255,170,11)", 4)`
 * * `elm.stroke("rgb(255,170,11,0.8)", 5)`
@@ -471,7 +471,7 @@ Element.prototype.noFill = function() {
 * * `elm.stroke("hsla(120,50,100%,0.8)", 1)`
 * * `elm.stroke(anm.Color.rgb(1.0,0.6,0.1), 2)`
 * * `elm.stroke(anm.Color.hsla(Math.PI/3,50,1.0), 5)`
-* * `elm.stroke(anm.Brush.grad({0: "#000", 0.5: "#ccc"}), 10)`
+* * `elm.stroke(anm.Brush.gradient().stops({0: "#000", 0.5: "#ccc"}), 10)`
 * * `var brush = elm.stroke()`
 *
 * @param {String|anm.Brush} [color] color of the stroke
@@ -501,6 +501,35 @@ Element.prototype.stroke = function(value, width) {
 Element.prototype.noStroke = function() {
     this.$stroke = null;
     return this;
+};
+
+/**
+* @method shadow
+* @chainable
+*
+* Set shadow for this element
+*
+* Examples:
+
+* * `elm.shadow("#ffaa0b", 3)`
+* * `elm.shadow("rgb(255,170,11)", 3, 5, 5)`
+* * `var brush = elm.shadow()`
+*
+* @param {String|anm.Brush} [color] color of the shadow
+* @param {Number} [radius] radius of the shadow
+* @param {Number} [x] x offset of the shadow
+* @param {Number} [y] y offset of the shadow
+* @return {anm.Brush|anm.Element}
+*/
+Element.prototype.shadow = function(value, radius, x, y) {
+    if (value) {
+        if (value instanceof Brush) {
+            this.$shadow = value;
+        } else {
+            this.$shadow = Brush.shadow(value, radius, x, y);
+        }
+        return this;
+    } else return this.$shadow;
 };
 
 /**
