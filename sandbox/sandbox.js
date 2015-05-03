@@ -31,7 +31,8 @@ function sandbox() {
         element: anm.Element._$,
         Tween: anm.Tween,
         Path: anm.Path,
-        Color: anm.Color
+        Color: anm.Color,
+        Brush: anm.Brush
     }
 
     function applyCtx(userCode, ctx) {

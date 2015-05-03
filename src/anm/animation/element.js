@@ -430,7 +430,7 @@ Element.prototype.image = function(value, callback) {
  * * `elm.fill("hsla(120,50,100%,0.8)")`
  * * `elm.fill(anm.Color.rgb(1.0,0.6,0.1))`
  * * `elm.fill(anm.Color.hsla(Math.PI/3,50,1.0))`
- * * `elm.fill(anm.Brush.grad({0: "#000", 0.5: "#ccc"}))`
+ * * `elm.fill(anm.Brush.gradient().stops({0: "#000", 0.5: "#ccc"}))`
  * * `var brush = elm.fill()`
  *
  * @param {String|anm.Brush} [color]
@@ -471,7 +471,7 @@ Element.prototype.noFill = function() {
 * * `elm.stroke("hsla(120,50,100%,0.8)", 1)`
 * * `elm.stroke(anm.Color.rgb(1.0,0.6,0.1), 2)`
 * * `elm.stroke(anm.Color.hsla(Math.PI/3,50,1.0), 5)`
-* * `elm.stroke(anm.Brush.grad({0: "#000", 0.5: "#ccc"}), 10)`
+* * `elm.stroke(anm.Brush.gradient().stops({0: "#000", 0.5: "#ccc"}), 10)`
 * * `var brush = elm.stroke()`
 *
 * @param {String|anm.Brush} [color] color of the stroke
