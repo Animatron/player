@@ -252,10 +252,10 @@ Brush.fill = function(value) {
     var brush = new Brush();
     brush.type = C.BT_FILL;
     if (is.obj(value)) {
-        if (value.stops) {
-            brush.grad = value;
-        } else if (value instanceof Gradient) {
+        if (value instanceof Gradient) {
             brush.grad = value.get();
+        } else if (value.stops) {
+            brush.grad = value;
         } else if (value.elm) {
             brush.pattern = value;
         }

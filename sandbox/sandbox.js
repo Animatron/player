@@ -38,7 +38,7 @@ function sandbox() {
     function applyCtx(userCode, ctx) {
         return 'var width=' + ctx.width + ',height=' + ctx.height + ';' +
                'var duration=' + ctx.duration + ';' +
-               'var element=ctx.element,Tween=ctx.Tween,Path=ctx.Path,Color=ctx.Color;'
+               'var element=ctx.element,Tween=ctx.Tween,Path=ctx.Path,Color=ctx.Color,Brush=ctx.Brush;'
                + userCode;
     }
 
