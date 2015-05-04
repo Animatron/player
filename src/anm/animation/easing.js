@@ -79,10 +79,10 @@ registerSegEasing('backout',    [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // 
 registerSegEasing('backinout',  [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
 var Standard = [
-    function(t) { return Functions.default(t); }, // Default
-    function(t) { return Functions.in(t); },  // In
-    function(t) { return Functions.out(t); }, // Out
-    function(t) { return Functions.inout(t); }, // InOut
+    function(t) { return Functions['default'](t); }, // Default
+    function(t) { return Functions['in'](t); },  // In
+    function(t) { return Functions['out'](t); }, // Out
+    function(t) { return Functions['inout'](t); }, // InOut
     function(t) { return t*t; },    // 4    In Quad
     function(t) { return t*(2-t); },// 5    Out Quad
     function(t) {                   // 6    In/Out Quad
