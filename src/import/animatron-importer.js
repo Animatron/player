@@ -93,8 +93,10 @@ Import.project = function(prj) {
     var node_res;
     var traverseFunc = function(elm) {
         var e_gband_before = elm.gband;
-        elm.gband = [ last_scene_band[1] + e_gband_before[0],
-        last_scene_band[1] + e_gband_before[1] ];
+        elm.gband = [
+            last_scene_band[1] + e_gband_before[0],
+            last_scene_band[1] + e_gband_before[1]
+        ];
     };
 
     for (var i = 0, il = scenes_ids.length; i < il; i++) {
@@ -164,14 +166,14 @@ Import.fonts = function(prj) {
  */
 // -> Object
 Import.anim = function(prj, trg) {
-    var _a = prj.anim;
-    trg.fps = _a.framerate;
-    trg.width = _a.dimension ? Math.floor(_a.dimension[0]) : undefined;
-    trg.height = _a.dimension ? Math.floor(_a.dimension[1]): undefined;
-    trg.bgfill = _a.background ? Import.fill(_a.background) : undefined;
-    trg.zoom = _a.zoom || 1.0;
-    trg.speed = _a.speed || 1.0;
-    if (_a.loop && ((_a.loop === true) || (_a.loop === 'true'))) trg.repeat = true;
+    var a = prj.anim;
+    trg.fps = a.framerate;
+    trg.width = a.dimension ? Math.floor(a.dimension[0]) : undefined;
+    trg.height = a.dimension ? Math.floor(a.dimension[1]): undefined;
+    trg.bgfill = a.background ? Import.fill(a.background) : undefined;
+    trg.zoom = a.zoom || 1.0;
+    trg.speed = a.speed || 1.0;
+    if (a.loop && ((a.loop === true) || (a.loop === 'true'))) trg.repeat = true;
 };
 
 var TYPE_UNKNOWN =  0,
@@ -272,6 +274,7 @@ Import.branch = function(type, src, all, anim) {
         // if there is a branch under the node, it will be a wrapper
         // if it is a leaf, it will be the element itself
         var ltrg = Import.node(nsrc, all, trg, anim);
+        if (!ltrg) continue;
         if (!ltrg.name) { ltrg.name = lsrc[1]; }
 
         // apply bands, pivot and registration point
@@ -384,7 +387,14 @@ Import.branch = function(type, src, all, anim) {
 // -> Element
 Import.leaf = function(type, src, parent, anim) {
     var trg = new Element();
-         if (type == TYPE_IMAGE) { trg.$image = Import.sheet(src); }
+    var hasUrl = !!src[1];
+    if (!hasUrl &&
+        (type === TYPE_IMAGE || type === TYPE_AUDIO || type === TYPE_VIDEO)) {
+        return null;
+    }
+    if (type == TYPE_IMAGE) {
+        trg.$image = Import.sheet(src);
+    }
     else if (type == TYPE_TEXT)  { trg.$text  = Import.text(src);  }
     else if (type == TYPE_AUDIO) {
         trg.type = C.ET_AUDIO;
@@ -631,8 +641,8 @@ Import.sheet = function(src) {
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
     if (type === null) return null;
-    var tween = new Tween(type, Import.tweendata(type, src[3]))
-                          .band(Import.band(src[1])),
+    var tween = Tween[type](Import.tweendata(type, src[3]))
+                           .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
     if (easing) tween.easing(easing);
     return tween;
@@ -854,17 +864,18 @@ var repeats = ['no-repeat', 'repeat', 'repeat-x', 'repeat-y'];
 Import.pattern = function(src) {
     var el = anm.lastImportedProject.anim.elements[src[0]],
         elm = Import.leaf(Import._type(el), el/*, anim*/);
-
-    elm.alpha = src[5];
-    elm.disabled = true;
-    Import.root.add(elm);
-    return {
-        elm: elm,
-        repeat: repeats[src[1]],
-        w: src[2],
-        h: src[3],
-        bounds: src[4]
-    };
+    if (elm) {
+        elm.alpha = src[5];
+        elm.disabled = true;
+        Import.root.add(elm);
+        return {
+            elm: elm,
+            repeat: repeats[src[1]],
+            w: src[2],
+            h: src[3],
+            bounds: src[4]
+        };
+    }
 };
 
 /** pathval **/

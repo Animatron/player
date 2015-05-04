@@ -7,7 +7,7 @@ var C = require('../constants.js');
  *
  * See {@link anm.LSeg LSeg}, {@link anm.CSeg CSeg}, {@link anm.Path Path};
  *
- * @constuctor
+ * @constructor
  *
  * @param {Array[Number]} pts point to initialize with, in format `[x, y]`
  */
@@ -147,7 +147,7 @@ MSeg.prototype.clone = function() {
  *
  * See {@link anm.MSeg MSeg}, {@link anm.CSeg CSeg}, {@link anm.Path Path};
  *
- * @constuctor
+ * @constructor
  *
  * @param {Array[Number]} pts points to initialize with, in format `[x, y]`
  */
@@ -302,7 +302,7 @@ LSeg.prototype.clone = function() {
  *
  * See {@link anm.MSeg MSeg}, {@link anm.LSeg LSeg}, {@link anm.Path Path};
  *
- * @constuctor
+ * @constructor
  *
  * @param {Array[Number]} pts points to initialize with, in format `[x, y, x, y, ...]`
  */

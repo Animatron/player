@@ -46,7 +46,7 @@ var Bounds = require('./bounds.js');
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9);`
  * * `var path = new Path().move(0, 0).line(20, 20).curve(10, 20, 15, 30, 10, 9).close();`
  *
- * See: {@link anm.Element#path Element.path()}, {@link anm.Element#translate_path Element.translate_path()}
+ * See: {@link anm.Element#path Element.path}, {@link anm.Element#translate_path Element.translate_path}
  *
  * @constructor
  *
@@ -193,7 +193,7 @@ Path.prototype.close = function() {
  * @return {anm.Path} itself
  */
 Path.prototype.apply = function(ctx, fill, stroke, shadow) {
-    if (engine.path2d) {
+    if (useP2D) {
         this.updatePath2D();
         if (shadow) {
             shadow.apply(ctx);
