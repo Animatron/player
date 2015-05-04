@@ -17,10 +17,12 @@ function sandbox() {
     this.tangleElm = document.getElementById('refresh-calc');
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
+    this.jsonUrlElm = document.getElementById('json-url');
 
     var widthVal = document.getElementById('val-width');
     var heightVal = document.getElementById('val-height');
     var durationVal = document.getElementById('val-duration');
+    var jsonUrlVal = document.getElementById('val-json-url');
 
     var width = 420, height = 250;
 
@@ -99,10 +101,10 @@ function sandbox() {
         lastSequence = -1,
         wereErrors = false;
 
-    function makeSafe(code) {
-        return ['(function(ctx){',
+    function makeSafe(code, arg_name) {
+        return ['(function('+arg_name+'){',
                 '  '+code,
-                '});'].join('\n');
+                '})'].join('\n');
     }
 
     function playFrom(from, rate) {
@@ -111,12 +113,17 @@ function sandbox() {
             _player.stop();
             var userCode = s.cm.getValue();
             if (localStorage) save_current_code(userCode);
-            var safeCode = makeSafe(applyCtx(userCode, ctx));
-            var anim = (function() { return eval(safeCode)(ctx); })();
-            if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
-                throw new Error('No animation was returned from code');
+            var safeCode = makeSafe(applyCtx(userCode, ctx), 'ctx');
+            if (!s.jsonUrlElm) {
+                var anim = (function() { return eval(safeCode)(ctx); })();
+                if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
+                    throw new Error('No animation was returned from code');
+                }
+                _player.load(anim, rate / 1000);
+            } else {
+                var callback = (function(animation) { eval(safeCode)(ctx); });
+                _player.load(s.jsonUrlElm.value, anm.importers.get('animatron'), callback)
             }
-            _player.load(anim, rate / 1000);
             _player.play(from / 1000);
             lastPlay = Date.now() - from;
         } catch(e) {
@@ -217,6 +224,13 @@ function sandbox() {
 
     this.logErrorsElm.onchange = function() {
         logErrors = !logErrors;
+    }
+
+    if (this.jsonUrlElm) {
+        this.jsonUrlElm.onchange = function() {
+            jsonUrlVal.innerText = this.jsonUrlElm.value;
+            refreshFromStart();
+        }
     }
 
     var tangleModel = {
