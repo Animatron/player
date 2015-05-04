@@ -1336,10 +1336,10 @@ Element.prototype.removePainter = function(painter) {
  *
  * Examples:
  *
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]))`
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2))`
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(function(t) { return 1 - t; }))`
- * * `elm.tween(new Tween(C.T_ROTATE, [0, Math.PI / 2]).band(0, 2).easing(anm.C.E_IN))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).start(0).stop(2))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing(function(t) { return 1 - t; }))`
+ * * `elm.tween(Tween.rotate().from(0).to(Math.PI / 2).band(0, 2).easing('in'))`
  *
  * @param {anm.Tween} tween tween to apply
  *
