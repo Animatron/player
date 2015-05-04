@@ -463,7 +463,29 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @return {anm.Element} First found element
  */
 Animation.prototype.find = function(selector, where) {
-    return this.findAll(selector, where)[0]; // FIXME: overhead, search for the first one and exit
+    if (selector[0] === '/') {
+        var path = selector.slice(1).split('/');
+        var nextName = null,
+            nextElms = where ? where.children : this.tree,
+            target = null;
+        while (nextName = path.pop()) { // FIXME: nextName could be ''
+            for (var i = 0, l = nextElms.length; i < l; i++) {
+                if (nextElms[i].name === nextName) {
+                    target = nextElms[i];
+                    nextElms = target.children;
+                    break;
+                }
+            }
+        }
+        return target;
+    } else {
+        var nextElms = where ? where.children : this.tree;
+        var found = null;
+        for (var i = 0, l = nextElms.length; i < l; i++) {
+            if (nextElms[i].name === selector) return nextElms[i];
+            if (found = this.find(selector, nextElms[i])) return found;
+        }
+    };
 };
 
 /**
