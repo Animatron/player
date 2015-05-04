@@ -485,6 +485,7 @@ Animation.prototype.find = function(selector, where) {
             if (nextElms[i].name === selector) return nextElms[i];
             if (found = this.find(selector, nextElms[i])) return found;
         }
+        return found;
     };
 };
 
