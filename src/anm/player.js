@@ -422,7 +422,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player._loadTarget = C.LT_ELEMENTS;
             Loader.loadElements(player, object, whenDone);
         } else if (is.str(object)) { // URL
-            var controls = player.controls;
             player._loadTarget = C.LT_URL;
             player._loadSrc = object;
             Loader.loadFromUrl(player, object, importer, whenDone);
