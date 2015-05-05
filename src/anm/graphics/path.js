@@ -338,7 +338,7 @@ Path.prototype.pointAt = function(t) {
         p = seg.last();
     }
 
-    if (start !== p) {
+    if (startp !== p) {
         crossings += Crossings.line(x, y, p[0], p[1], startp[0], startp[1]);
     }
 
