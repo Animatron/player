@@ -615,7 +615,7 @@ Player.prototype.pause = function() {
     if ((player.state.happens === C.RES_LOADING) &&
         (player.loadingMode === C.LM_ONREQUEST)) {
         player._postpone('pause', arguments);
-        return;
+        return player;
     }
 
     player._ensureHasState();
@@ -623,7 +623,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        return;
+        return player;
     }
 
     if (state.happens === C.PLAYING) {

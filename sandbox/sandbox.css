@@ -153,7 +153,7 @@ select#examples-list:focus {
 	max-width: 386px; /* 400 - 5*2 - 2*2 */
 }
 
-#refresh-calc, #debug-options, #switch-mode-l, #switch-mode, #set-url {
+#refresh-calc, #debug-options, #switch-mode-l, #switch-mode, #set-json {
 	font-size: .8em;
 }
 

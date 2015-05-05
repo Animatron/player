@@ -20,7 +20,8 @@
     -->
 
     <!-- -->
-    <script src="../dist/bundle/animatron.js" type="text/javascript"></script>
+    <script src="../dist/player.js" type="text/javascript"></script>
+    <script src="../src/import/animatron-importer.js" type="text/javascript"></script>
     <!-- -->
 
     <!--
@@ -55,8 +56,7 @@
 
       <div id="errors" style="display: none;">&nbsp;</div> <!-- errors -->
 
-      <p id="set-url">JSON URL: <input type="text" id="json-url"></input></p>
-      <p><input id="load-button" type="Button" value="Load" /></p>
+      <p id="set-json">JSON: <input type="text" id="json-code"></input></p>
 
     </div>
 
@@ -70,7 +70,7 @@ var callback = function(animation) {</pre>
 
       <textarea id="animation-source"> </textarea> <!-- source editor -->
 
-      <pre class="locked">}; createPlayer("player").load(<span id="val-json-url">""</span>, anm.importers.get('animatron'), callback).play();</pre>
+      <pre class="locked">}; createPlayer("player").load(&lt;JSON&gt;, anm.importers.get('animatron'), callback).play();</pre>
 
       <p>
         <a id="player-page-link" href="http://animatron.com/player">[ Player Home ]</a>

@@ -15,12 +15,10 @@ function sandbox() {
     this.errorsElm = document.getElementById('errors');
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
-    this.jsonUrlElm = document.getElementById('json-url');
-    this.loadButton = document.getElementById('load-button');
+    this.jsonCodeElm = document.getElementById('json-code');
 
     var widthVal = document.getElementById('val-width');
     var heightVal = document.getElementById('val-height');
-    var jsonUrlVal = document.getElementById('val-json-url');
 
     var width = 420, height = 250;
 
@@ -53,8 +51,7 @@ function sandbox() {
 
     _player = this.player;
 
-    var lastCode = '';
-    if (localStorage) lastCode = load_last_code();
+    var lastCode = load_last_code();
 
     var logErrors = false;
 
@@ -66,6 +63,7 @@ function sandbox() {
                 matchBrackets: true,
                 wrapLines: true/*,
                 autofocus: true*/ });
+    this.cm.setValue(lastCode);
     this.cm.setSize(null, '66%');
     this.cm.on('focus', function() {
         document.body.className = 'blur';
@@ -75,9 +73,8 @@ function sandbox() {
     });
     this.cm.on('change', function() {
         wereErrors = false;
+        loadAndPlay();
     });
-
-    this.loadButton.addEventListener('click', loadAndPlay);
 
     var s = this;
 
@@ -90,18 +87,19 @@ function sandbox() {
     }
 
     function loadAndPlay() {
-        if (!s.jsonUrlElm.value) throw new Error('Snapshot URL is not specified');
+        if (!s.jsonCodeElm.value) throw new Error('JSON is not specified');
         s.errorsElm.style.display = 'none';
         try {
             _player.stop();
             var userCode = s.cm.getValue();
-            if (localStorage) save_current_code(userCode);
+            save_current_json(s.jsonCodeElm.value);
+            save_current_code(userCode);
             var safeCode = makeSafe(applyCtx(userCode, ctx), 'ctx');
             var callback = (function(animation) {
                                 eval(safeCode)(ctx);
                                 _player.play();
                             });
-            _player.load(s.jsonUrlElm.value, anm.importers.create('animatron'), callback);
+            _player.load(JSON.parse(s.jsonCodeElm.value), anm.importers.create('animatron'), callback);
         } catch(e) {
             onerror(e);
         }
@@ -141,10 +139,12 @@ function sandbox() {
         logErrors = !logErrors;
     }
 
-    this.jsonUrlElm.onchange = function() {
-        jsonUrlVal.innerText = s.jsonUrlElm.value;
+    this.jsonCodeElm.onchange = function() {
         loadAndPlay();
     }
+
+    this.jsonCodeElm.value = load_last_json();
+    loadAndPlay();
 
     function change_mode(radio) {
       if (_player) {
@@ -159,12 +159,10 @@ function sandbox() {
 
 }
 
-function save_current_code(code) {
-    if (!localStorage) throw new Error('Local storage support required');
-    localStorage.setItem('_current_code', code);
-}
+function save_current_code(code) { localStorage.setItem('_i_current_code', code); }
 
-function load_last_code() {
-    if (!localStorage) throw new Error('Local storage support required');
-    return localStorage.getItem('_current_code') || '';
-}
+function load_last_code() { return localStorage.getItem('_i_current_code') || ''; }
+
+function save_current_json(json) { localStorage.setItem('_i_current_json', json); }
+
+function load_last_json() { return localStorage.getItem('_i_current_json') || ''; }
