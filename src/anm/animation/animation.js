@@ -236,7 +236,7 @@ Animation.prototype.jump = function(t) {
  * @param {String} selector
  */
 Animation.prototype.jumpTo = function(selector) {
-    var elm = anim.find(selector);
+    var elm = this.find(selector);
     if (!elm) return;
     this.jump(elm.gband[0]);
 };
