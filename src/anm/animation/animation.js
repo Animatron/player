@@ -374,7 +374,7 @@ Animation.prototype.handle__x = function(type, evt) {
                         // mouse moved over this element first time
                         anim.__lastOverElm = elm;
                         elm.fire('mouseover', evt);
-                        elm.fire(type,evt);
+                        elm.fire(type, evt);
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
                             elm.fire(type, evt);
@@ -383,7 +383,7 @@ Animation.prototype.handle__x = function(type, evt) {
                             anim.__lastOverElm.fire('mouseout', evt);
                             anim.__lastOverElm = elm;
                             elm.fire('mouseover', evt);
-                            elm.fire(type,evt);
+                            elm.fire(type, evt);
                         }
                     }
                 }
