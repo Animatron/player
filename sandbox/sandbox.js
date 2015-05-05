@@ -63,8 +63,7 @@ function sandbox() {
 
     _player = this.player;
 
-    var lastCode = '';
-    if (localStorage) lastCode = load_last_code();
+    var lastCode = load_last_code();
 
     var logErrors = false;
 
@@ -110,7 +109,7 @@ function sandbox() {
         try {
             _player.stop();
             var userCode = s.cm.getValue();
-            if (localStorage) save_current_code(userCode);
+            save_current_code(userCode);
             var safeCode = makeSafe(applyCtx(userCode, ctx));
             var anim = (function() { return eval(safeCode)(ctx); })();
             if (!anim || (!(anim instanceof anm.Animation) && !(anim instanceof anm.Element))) {
@@ -196,13 +195,11 @@ function sandbox() {
                     (_player.infiniteDuration === true));
     }
 
-    if (localStorage) {
-        setTimeout(function() {
-            store_examples(); // store current examples, it will skip if their versions match
-            load_examples(); // load new examples, it will skip the ones with matching versions
-            list_examples(s.selectElm); // list the examples in select element
-        }, 1);
-    }
+    setTimeout(function() {
+        store_examples(); // store current examples, it will skip if their versions match
+        load_examples(); // load new examples, it will skip the ones with matching versions
+        list_examples(s.selectElm); // list the examples in select element
+    }, 1);
 
     this.selectElm.onchange = function() {
         s.cm.setValue(examples[this.selectedIndex][2]);
@@ -302,22 +299,18 @@ function save_example(code) {
 }
 
 function save_current_code(code) {
-    if (!localStorage) throw new Error('Local storage support required');
     localStorage.setItem('_current_code', code);
 }
 
 function load_last_code() {
-    if (!localStorage) throw new Error('Local storage support required');
     return localStorage.getItem('_current_code') || '';
 }
 
 function save_refresh_rate(rate) {
-    if (!localStorage) throw new Error('Local storage support required');
     localStorage.setItem('_current_rate', rate);
 }
 
 function load_refresh_rate() {
-    if (!localStorage) throw new Error('Local storage support required');
     return localStorage.getItem('_current_rate') || DEFAULT_REFRESH_RATE;
 }
 

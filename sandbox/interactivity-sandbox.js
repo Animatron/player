@@ -51,8 +51,7 @@ function sandbox() {
 
     _player = this.player;
 
-    var lastCode = '';
-    if (localStorage) lastCode = load_last_code();
+    var lastCode = load_last_code();
 
     var logErrors = false;
 
@@ -93,10 +92,8 @@ function sandbox() {
         try {
             _player.stop();
             var userCode = s.cm.getValue();
-            if (localStorage) {
-                save_current_json(s.jsonCodeElm.value);
-                save_current_code(userCode);
-            }
+            save_current_json(s.jsonCodeElm.value);
+            save_current_code(userCode);
             var safeCode = makeSafe(applyCtx(userCode, ctx), 'ctx');
             var callback = (function(animation) {
                                 eval(safeCode)(ctx);
@@ -146,10 +143,8 @@ function sandbox() {
         loadAndPlay();
     }
 
-    if (localStorage) {
-        this.jsonCodeElm.value = load_last_json();
-        loadAndPlay();
-    }
+    this.jsonCodeElm.value = load_last_json();
+    loadAndPlay();
 
     function change_mode(radio) {
       if (_player) {
@@ -164,22 +159,10 @@ function sandbox() {
 
 }
 
-function save_current_code(code) {
-    if (!localStorage) throw new Error('Local storage support required');
-    localStorage.setItem('_i_current_code', code);
-}
+function save_current_code(code) { localStorage.setItem('_i_current_code', code); }
 
-function load_last_code() {
-    if (!localStorage) throw new Error('Local storage support required');
-    return localStorage.getItem('_i_current_code') || '';
-}
+function load_last_code() { return localStorage.getItem('_i_current_code') || ''; }
 
-function save_current_json(json) {
-    if (!localStorage) throw new Error('Local storage support required');
-    localStorage.setItem('_i_current_json', json);
-}
+function save_current_json(json) { localStorage.setItem('_i_current_json', json); }
 
-function load_last_json() {
-    if (!localStorage) throw new Error('Local storage support required');
-    return localStorage.getItem('_i_current_json') || '';
-}
+function load_last_json() { return localStorage.getItem('_i_current_json') || ''; }
