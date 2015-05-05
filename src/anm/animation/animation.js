@@ -72,6 +72,7 @@ function Animation() {
     this.targets = {}; // Player instances where this animation was loaded, by ID
     //this.fps = undefined;
     this.__informEnabled = true;
+    this.__lastOverElm = null;
     this._laters = [];
     this._initHandlers(); // TODO: make automatic
 }
@@ -356,15 +357,43 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
 };
 
 Animation.prototype.handle__x = function(type, evt) {
+    var anim = this;
     if (events.mouse(type)) {
         var pos = evt.pos;
-        this.each(function(child) {
+        var foundTarget = false;
+        anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
                 return elm.subscribedTo(type);
             }, function(elm, local_pos) { // point is inside
-                elm.fire(type, evt);
+                foundTarget = true;
+                if (type !== 'mousemove') {
+                    elm.fire(type, evt);
+                } else { // type === 'mousemove'
+                    // check mouseover/mouseout
+                    if (!anim.__lastOverElm) {
+                        // mouse moved over this element first time
+                        anim.__lastOverElm = elm;
+                        elm.fire('mouseover', evt);
+                        elm.fire(type,evt);
+                    } else {
+                        if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
+                            elm.fire(type, evt);
+                        } else {
+                            // mouse moved over new element
+                            anim.__lastOverElm.fire('mouseout', evt);
+                            anim.__lastOverElm = elm;
+                            elm.fire('mouseover', evt);
+                            elm.fire(type,evt);
+                        }
+                    }
+                }
             });
         });
+        if ((type === 'mousemove') && !foundTarget && anim.__lastOverElm) {
+            var stillInside = false;
+            anim.__lastOverElm.inside(pos, function() { stillInside = true; });
+            if (!stillInside) anim.__lastOverElm.fire('mouseout', evt);
+        }
         return false;
     }
     return true;
