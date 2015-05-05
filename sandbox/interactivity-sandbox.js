@@ -15,12 +15,11 @@ function sandbox() {
     this.errorsElm = document.getElementById('errors');
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
-    this.jsonUrlElm = document.getElementById('json-url');
+    this.jsonCodeElm = document.getElementById('json-code');
     this.loadButton = document.getElementById('load-button');
 
     var widthVal = document.getElementById('val-width');
     var heightVal = document.getElementById('val-height');
-    var jsonUrlVal = document.getElementById('val-json-url');
 
     var width = 420, height = 250;
 
@@ -90,7 +89,7 @@ function sandbox() {
     }
 
     function loadAndPlay() {
-        if (!s.jsonUrlElm.value) throw new Error('Snapshot URL is not specified');
+        if (!s.jsonCodeElm.value) throw new Error('JSON is not specified');
         s.errorsElm.style.display = 'none';
         try {
             _player.stop();
@@ -101,7 +100,7 @@ function sandbox() {
                                 eval(safeCode)(ctx);
                                 _player.play();
                             });
-            _player.load(s.jsonUrlElm.value, anm.importers.create('animatron'), callback);
+            _player.load(JSON.parse(s.jsonCodeElm.value), anm.importers.create('animatron'), callback);
         } catch(e) {
             onerror(e);
         }
@@ -141,8 +140,7 @@ function sandbox() {
         logErrors = !logErrors;
     }
 
-    this.jsonUrlElm.onchange = function() {
-        jsonUrlVal.innerText = s.jsonUrlElm.value;
+    this.jsonCodeElm.onchange = function() {
         loadAndPlay();
     }
 
