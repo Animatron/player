@@ -16,7 +16,6 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
     this.jsonCodeElm = document.getElementById('json-code');
-    this.loadButton = document.getElementById('load-button');
 
     var widthVal = document.getElementById('val-width');
     var heightVal = document.getElementById('val-height');
@@ -65,6 +64,7 @@ function sandbox() {
                 matchBrackets: true,
                 wrapLines: true/*,
                 autofocus: true*/ });
+    this.cm.setValue(lastCode);
     this.cm.setSize(null, '66%');
     this.cm.on('focus', function() {
         document.body.className = 'blur';
@@ -74,9 +74,8 @@ function sandbox() {
     });
     this.cm.on('change', function() {
         wereErrors = false;
+        loadAndPlay();
     });
-
-    this.loadButton.addEventListener('click', loadAndPlay);
 
     var s = this;
 
@@ -94,7 +93,10 @@ function sandbox() {
         try {
             _player.stop();
             var userCode = s.cm.getValue();
-            if (localStorage) save_current_code(userCode);
+            if (localStorage) {
+                save_current_json(s.jsonCodeElm.value);
+                save_current_code(userCode);
+            }
             var safeCode = makeSafe(applyCtx(userCode, ctx), 'ctx');
             var callback = (function(animation) {
                                 eval(safeCode)(ctx);
@@ -144,6 +146,11 @@ function sandbox() {
         loadAndPlay();
     }
 
+    if (localStorage) {
+        this.jsonCodeElm.value = load_last_json();
+        loadAndPlay();
+    }
+
     function change_mode(radio) {
       if (_player) {
         _player.handleEvents = (radio.value === 'with-events');
@@ -159,10 +166,20 @@ function sandbox() {
 
 function save_current_code(code) {
     if (!localStorage) throw new Error('Local storage support required');
-    localStorage.setItem('_current_code', code);
+    localStorage.setItem('_i_current_code', code);
 }
 
 function load_last_code() {
     if (!localStorage) throw new Error('Local storage support required');
-    return localStorage.getItem('_current_code') || '';
+    return localStorage.getItem('_i_current_code') || '';
+}
+
+function save_current_json(json) {
+    if (!localStorage) throw new Error('Local storage support required');
+    localStorage.setItem('_i_current_json', json);
+}
+
+function load_last_json() {
+    if (!localStorage) throw new Error('Local storage support required');
+    return localStorage.getItem('_i_current_json') || '';
 }
