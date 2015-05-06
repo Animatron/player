@@ -52,6 +52,7 @@ var MINIFY_KEEP_COPYRIGHTS = '/WARRANTY|Free to use/';
 
 var NODE_GLOBAL = false,
     LOCAL_NODE_DIR = './node_modules';
+    JAVA_PATH = process.env.JAVA_BINARY || 'java';
 
 var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
@@ -63,7 +64,7 @@ var Binaries = {
     MARKDOWN: 'python -m markdown',
     GIT: 'git',
     BROWSERIFY: 'browserify',
-    CLOSURECOMPILER: 'java -jar ' + LOCAL_NODE_DIR + '/google-closure-compiler/compiler.jar'
+    CLOSURECOMPILER: JAVA_PATH + ' -jar ' + LOCAL_NODE_DIR + '/google-closure-compiler/compiler.jar'
 };
 
 var Dirs = {
