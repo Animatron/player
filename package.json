@@ -45,12 +45,11 @@
     "examples": "examples"
   },
   "dependencies": {
-    "jake": "latest"
-  },
-  "devDependencies": {
+    "jake": "latest",
     "async": "latest",
     "aws-sdk": "latest",
-    "google-closure-compiler": "latest"
+    "google-closure-compiler": "latest",
+    "browserify": "latest"
   },
   "optionalDependencies": {
     "phantomjs": "latest",
