@@ -389,7 +389,8 @@ Animation.prototype.handle__x = function(type, evt) {
                 }
             });
         });
-        if ((type === 'mousemove') && !foundTarget && anim.__lastOverElm) {
+        if ((type === 'mousemove') && !foundTarget &&
+            anim.__lastOverElm && anim.__lastOverElm.subscribedTo('mouseout')) {
             var stillInside = false;
             anim.__lastOverElm.inside(pos, function() { stillInside = true; });
             if (!stillInside) anim.__lastOverElm.fire('mouseout', evt);
