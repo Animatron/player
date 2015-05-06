@@ -52,6 +52,7 @@ var MINIFY_KEEP_COPYRIGHTS = '/WARRANTY|Free to use/';
 
 var NODE_GLOBAL = false,
     LOCAL_NODE_DIR = './node_modules';
+    JAVA_PATH = process.env.JAVA_BINARY || 'java';
 
 var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
@@ -63,7 +64,7 @@ var Binaries = {
     MARKDOWN: 'python -m markdown',
     GIT: 'git',
     BROWSERIFY: 'browserify',
-    CLOSURECOMPILER: 'java -jar ' + LOCAL_NODE_DIR + '/google-closure-compiler/compiler.jar'
+    CLOSURECOMPILER: JAVA_PATH + ' -jar ' + LOCAL_NODE_DIR + '/google-closure-compiler/compiler.jar'
 };
 
 var Dirs = {
@@ -550,21 +551,18 @@ desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
 task('invalidate', [], { async: true }, function(version) {
     version = version || VERSION;
     console.log('Creating invalidation for version', version);
-    var creds = [];
+    var credentials;
     try {
-        creds = jake.cat(_loc('.s3'));
-    } catch(e) {
-        _print('No .s3 file which should contain credentials to upload with was found');
-        _print(FAILED_MARKER);
-        throw e;
+        credentials = jake.cat('./.s3').split(' ');
+    } catch (e) {
+        fail('Credential file not found.\nAborting.');
+        return;
     }
-    creds = creds.split(/\s+/);
     var AWS = require('aws-sdk');
-    AWS.config.update({accessKeyId: creds[1], secretAccessKey: creds[2]});
-    var distributionId = creds[3];
+    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+    var distributionId = credentials[3];
     if (!distributionId) {
-        _print('CloudFront Distribution ID not found in .s3');
-        _print(FAILED_MARKER);
+        fail('CloudFront Distribution ID not found in .s3');
         return;
     }
     var paths = [
@@ -609,8 +607,7 @@ task('deploy-publishjs', {async: true}, function(version, bucket){
     try {
         credentials = jake.cat('./.s3').split(' ');
     } catch (e) {
-        console.error('Credential file not found.\nAborting.');
-        complete();
+        fail('Credential file not found.\nAborting.');
         return;
     }
     var AWS = require('aws-sdk');
@@ -628,11 +625,11 @@ task('deploy-publishjs', {async: true}, function(version, bucket){
     }
     s3.putObject(params, function(err) {
         if (err) {
-            console.error('Deployment failed:', err.message);
+            fail('Deployment failed:', err.message);
         } else {
             console.log('Deployment of publish.js complete.');
+            complete();
         }
-        complete();
     });
 });
 
@@ -643,14 +640,14 @@ task('deploy', ['dist-min'], function(version, bucket) {
     if (isProd) {
         s3bucket = 'player.animatron.com';
     }
+
     var doDeployment = function() {
         console.log('Starting deployment of version', version, 'to', s3bucket);
         var credentials;
         try {
             credentials = jake.cat('./.s3').split(' ');
         } catch (e) {
-            console.error('Credential file not found.\nAborting.');
-            complete();
+            fail('Credential file not found.\nAborting.');
             return;
         }
 
@@ -698,7 +695,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
             });
         }, function(err) {
             if (err) {
-                console.log('Deployment failed:', err.message);
+                fail('Deployment failed:', err.message);
             } else {
                 console.log('Deployment complete.');
                 if (isProd) {
@@ -709,9 +706,10 @@ task('deploy', ['dist-min'], function(version, bucket) {
                     });
                     invalidate.invoke(version);
                     return;
+                } else {
+                    complete();
                 }
             }
-            complete();
         });
     };
 
@@ -721,9 +719,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
         var git = jake.createExec('git symbolic-ref --short HEAD');
         git.on('stdout', function(branch) {
             if (branch.toString().trim() !== 'master') {
-                console.error('You have to be on the master branch to deploy to production');
-                console.log('Deployment aborted.');
-                complete();
+                fail('You have to be on the master branch to deploy to production');
             } else {
                 doDeployment();
             }
@@ -896,7 +892,12 @@ task('_build-file', { async: true }, function() {
 
 task('browserify', {'async': true}, function(){
   console.log('Creating Browserify bundle.');
-  jake.exec('browserify src/main.js -o dist/player.js', function() {
+  //check if the browserify binary exists
+  var browserifyPath = '/usr/local/bin/browserify';
+  if (!fs.existsSync(browserifyPath)) {
+      browserifyPath = './node_modules/browserify/bin/cmd.js';
+  }
+  jake.exec(browserifyPath + ' src/main.js -o dist/player.js', function() {
     console.log('dist/player.js created successfully');
     complete();
   });
