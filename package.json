@@ -49,16 +49,15 @@
     "async": "latest",
     "aws-sdk": "latest",
     "google-closure-compiler": "latest",
-    "browserify": "latest"
+    "browserify": "latest",
+    "jasmine": "latest"
   },
   "optionalDependencies": {
-    "phantomjs": "latest",
     "docco": "latest",
     "walk": "latest",
     "orderly": "latest",
     "jsonschema": "latest",
-    "markdown": "latest",
-    "jasmine-node": "latest"
+    "markdown": "latest"
   },
   "scripts": {
     "test": "jake test"
