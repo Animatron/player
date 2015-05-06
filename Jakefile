@@ -58,7 +58,7 @@ var Binaries = {
     JSHINT: NODE_GLOBAL ? 'jshint' : (LOCAL_NODE_DIR + '/jshint/bin/jshint'),
     JASMINE_NODE: NODE_GLOBAL ? 'jasmine-node' : (LOCAL_NODE_DIR + '/jasmine-node/bin/jasmine-node'),
     JSDUCK: 'jsduck',
-    PHANTOMJS: 'phantomjs',
+    JASMINE: 'jasmine',
     CAT: 'cat',
     MV: 'mv',
     MARKDOWN: 'python -m markdown',
@@ -232,31 +232,23 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                'Produces: /dist directory.']));
 task('dist-min', ['clean', 'build-min'], function() {});
 
+// test-deps ===================================================================
+
+desc(_dfit_nl(['Install test dependencies.',
+               'Usage: Just call {jake test}.']));
+task('test-deps', function() {
+
+});
+
 // test ========================================================================
 
-desc(_dfit_nl(['Run tests for the sources (not the distribution).',
-               'Usage: Among with {jake test} may be called with '+
-                  'providing separate spec or spec group, '+
-                  'in a way like: {jake test[01.player/*]} or, for concrete spec: '+
-                  '{jake test[01.player/06.errors]}.',
-               'Requires: `jasmine-node`, `phantomjs`.'])); // TODO: also test minified version
-task('test', { async: true }, function(param) {
+desc(_dfit_nl(['Run tests for the distribution.',
+               'Usage: Just call {jake test}.',
+               'Requires: `jasmine`.']));
+task('test', { async: true }, function() {
     _print('Running tests');
-    /* Usage:
-     *    run all specs: > jake test
-     *    run all specs: > jake test[*]
-     *    run testutils specs: > jake test[00.testutils\]
-     *    run all player's specs: > jake test[01.player/*]
-     *    run specific spec group: > jake test[04.builder/13.enable-disable]
-     */
-    var runTestsCmd = [ Binaries.PHANTOMJS,
-                        _loc(Tests.RUN_SCRIPT),
-                        _loc(Tests.PAGE_FOR_CLI),
-                        param || ''
-                      ].join(' ');
 
-    _print(runTestsCmd);
-    jake.exec(runTestsCmd, EXEC_OPTS,
+    jake.exec(Binaries.JASMINE, EXEC_OPTS,
               function() { _print('Tests finished successfully');
                            _print(DONE_MARKER);
                            complete(); });
@@ -328,28 +320,6 @@ task('docs', { async: true }, function() {
 //python -m markdown doc/scripting.md > doc/scripting.html
 //cat doc/_head.html doc/scripting.html doc/_foot.html > doc/scripting.tmp.html
 //mv doc/README.tmp.html doc/scripting.html
-});
-
-// anm-scene-valid =============================================================
-
-desc(_dfit_nl(['Validate Animatron scene JSON file.',
-               'Uses /src/import/animatron-project-VERSION.orderly '+
-                  'as validation scheme.',
-               'Usage: should be called with providing scene JSON file, '+
-                  'in a way like: {jake anm-scene-valid[src/some-scene.json]}.',
-               'Requires: `orderly` and `jsonschema` node.js modules']));
-task('anm-scene-valid', function(param) {
-  _print('Checking scene at: ' + _loc(param) + ' with ' + _loc(Validation.Schema.ANM_SCENE));
-
-  var orderly = require("orderly"),
-      jsonschema = require("jsonschema");
-
-  var _scheme = orderly.parse(jake.cat(_loc(Validation.Schema.ANM_SCENE)));
-  var _v = new jsonschema.Validator();
-
-  _print(_v.validate(JSON.parse(jake.cat(_loc(param))), _scheme));
-
-  _print(DONE_MARKER);
 });
 
 // version =====================================================================
@@ -595,7 +565,7 @@ task('invalidate', [], { async: true }, function(version) {
 
 });
 
-task('deploy-publishjs', {async: true}, function(version, bucket){
+task('deploy-publishjs', { async: true }, function(version, bucket) {
     version = version || VERSION;
     var s3bucket = 'player-dev.animatron.com',
         isProd = bucket === 'prod';
@@ -890,17 +860,17 @@ task('_build-file', { async: true }, function() {
     _getCommintHash.run();
 });
 
-task('browserify', {'async': true}, function(){
-  console.log('Creating Browserify bundle.');
-  //check if the browserify binary exists
-  var browserifyPath = '/usr/local/bin/browserify';
-  if (!fs.existsSync(browserifyPath)) {
-      browserifyPath = './node_modules/browserify/bin/cmd.js';
-  }
-  jake.exec(browserifyPath + ' src/main.js -o dist/player.js', function() {
-    console.log('dist/player.js created successfully');
-    complete();
-  });
+task('browserify', { 'async': true }, function() {
+    console.log('Creating Browserify bundle.');
+    //check if the browserify binary exists
+    var browserifyPath = '/usr/local/bin/browserify';
+    if (!fs.existsSync(browserifyPath)) {
+        browserifyPath = './node_modules/browserify/bin/cmd.js';
+    }
+    jake.exec(browserifyPath + ' src/main.js -o dist/player.js', function() {
+        console.log('dist/player.js created successfully');
+        complete();
+    });
 });
 
 // UTILS =======================================================================
