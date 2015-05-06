@@ -232,14 +232,6 @@ desc(_dfit_nl(['Clean previous build and create distribution files, '+
                'Produces: /dist directory.']));
 task('dist-min', ['clean', 'build-min'], function() {});
 
-// test-deps ===================================================================
-
-desc(_dfit_nl(['Install test dependencies.',
-               'Usage: Just call {jake test}.']));
-task('test-deps', function() {
-
-});
-
 // test ========================================================================
 
 desc(_dfit_nl(['Run tests for the distribution.',
