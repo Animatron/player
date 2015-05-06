@@ -891,6 +891,11 @@ task('_build-file', { async: true }, function() {
 
 task('browserify', {'async': true}, function(){
   console.log('Creating Browserify bundle.');
+  //check if the browserify binary exists
+  var browserifyPath = '/usr/local/bin/browserify';
+  if (!fs.existsSync(browserifyPath)) {
+      browserifyPath = './node_modules/browserify/bin/cmd.js';
+  }
   jake.exec('browserify src/main.js -o dist/player.js', function() {
     console.log('dist/player.js created successfully');
     complete();
