@@ -1,3 +1,8 @@
+if (typeof anm === 'undefined') {
+    // running from a server
+    require('../dist/player.js');
+}
+
 describe('search', function() {
 
     var element = anm.Element._$;
