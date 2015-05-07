@@ -2267,16 +2267,29 @@ Element.prototype.toString = function() {
  *
  * Find any element inside this element by its name.
  *
- * See also {@link anm.Animation#find animation.find}.
+ * See also {@link anm.Animation#find animation.find} for information on nice
+ * search abilities provided using special syntax.
  *
- * NB: `find` method will be improved soon to support special syntax of searching,
- * so you will be able to search almost everything.
- *
- * @param {String} name name of the element to search for
+ * @param {String} name name of the element to search for, or a selector
  * @return {anm.Element|Null} found element or `null`
  */
 Element.prototype.find = function(name) {
-    this.anim.find(name, this);
+    return this.anim.find(name, this);
+};
+
+/**
+ * @method find
+ *
+ * Find all the element inside this element matching to given name.
+ *
+ * See also {@link anm.Animation#findAll animation.findAll} for information on nice
+ * search abilities provided using special syntax.
+ *
+ * @param {String} name name of the element to search for, or a selector
+ * @return {[anm.Element]} found elements
+ */
+Element.prototype.findAll = function(name) {
+    return this.anim.findAll(name, this);
 };
 
 /**

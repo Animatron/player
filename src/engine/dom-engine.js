@@ -7,11 +7,16 @@
  * @VERSION
  */
 
+
 // DOM Engine
 // -----------------------------------------------------------------------------
 
-var $doc = window.document;
-    // DomEngine constants
+var $win = (typeof window !== 'undefined') ? window : {}
+var $doc = (typeof window !== 'undefined') ? window.document : {};
+var $nav = (typeof navigator !== 'undefined') ? navigator : {};
+var $glob = (typeof global !== 'undefined') ? global : {};
+
+// DomEngine constants
 
 var MARKER_ATTR = 'anm-player', // marks player existence on canvas element
     AUTO_MARKER_ATTR = 'anm-player-target', // marks that this element is a target for a player
@@ -99,21 +104,21 @@ var $DE = {};
 
 // Framing
 // shim adopted from https://gist.github.com/paulirish/1579671
-var requestAnimationFrame = global.requestAnimationFrame,
-    cancelAnimationFrame = global.cancelAnimationFrame;
+var requestAnimationFrame = $glob.requestAnimationFrame,
+    cancelAnimationFrame = $glob.cancelAnimationFrame;
 var lastTime = 0;
     var vendors = ['ms', 'moz', 'webkit', 'o'];
-    for(var x = 0; x < vendors.length && !global.requestAnimationFrame; ++x) {
-        requestAnimationFrame = global[vendors[x]+'RequestAnimationFrame'];
-        cancelAnimationFrame = global[vendors[x]+'CancelAnimationFrame'] ||
-                                   global[vendors[x]+'CancelRequestAnimationFrame'];
+    for(var x = 0; x < vendors.length && !$glob.requestAnimationFrame; ++x) {
+        requestAnimationFrame = $glob[vendors[x]+'RequestAnimationFrame'];
+        cancelAnimationFrame = $glob[vendors[x]+'CancelAnimationFrame'] ||
+                               $glob[vendors[x]+'CancelRequestAnimationFrame'];
     }
 
     if (!requestAnimationFrame) {
         requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+            var id = $win.setTimeout(function() { callback(currTime + timeToCall); },
               timeToCall);
             lastTime = currTime + timeToCall;
             return id;
@@ -130,14 +135,14 @@ $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 // Global things
 
-$DE.PX_RATIO = window.devicePixelRatio || 1;
+$DE.PX_RATIO = $win.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
     var req;
     if (isIE9) {
-        req = new window.XDomainRequest();
+        req = new $win.XDomainRequest();
     } else {
-        req = new window.XMLHttpRequest();
+        req = new $win.XMLHttpRequest();
     }
 
     if (!req) {
@@ -447,7 +452,7 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
     }
 
     var canvasWasPassed = (wrapper.tagName == 'canvas') || (wrapper.tagName == 'CANVAS');
-    if (canvasWasPassed && window.console) {
+    if (canvasWasPassed && $win.console) {
         console.warn('NB: A <canvas> tag was passed to the anm.Player as an element to attach to. This is ' +
                      'not a recommended way since version 1.2; this <canvas> will be moved inside ' +
                      'a <div>-wrapper because of it, so it may break document flow and/or CSS styles. ' +
@@ -782,7 +787,7 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
         w = conf[2], h = conf[3];
     var pconf = $DE.getCanvasSize(player_cvs),
         pw = pconf[0], ph = pconf[1];
-    var p_style = window.getComputedStyle ? window.getComputedStyle(player_cvs) : player_cvs.currentStyle;
+    var p_style = $win.getComputedStyle ? $win.getComputedStyle(player_cvs) : player_cvs.currentStyle;
     var x_shift = parseFloat(p_style.getPropertyValue('border-left-width')),
         y_shift = parseFloat(p_style.getPropertyValue('border-top-width'));
     var new_w = (w * pw),
@@ -856,7 +861,7 @@ $DE.unsubscribeElementEvents = function(elm, handlers) {
 }
 
 $DE.subscribeWindowEvents = function(handlers) {
-    $DE.subscribeElementEvents(window, handlers);
+    $DE.subscribeElementEvents($win, handlers);
 };
 
 $DE.subscribeCanvasEvents = $DE.subscribeElementEvents;
@@ -957,60 +962,60 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-    var style = document.createElement('style');
+    var style = $doc.createElement('style');
     style.type = 'text/css';
     return style;
 };
 
 $DE.createAudio = function() {
-    return document.createElement('audio');
+    return $doc.createElement('audio');
 };
 
 $DE.createVideo = function() {
-    return document.createElement('video');
+    return $doc.createElement('video');
 };
 
 $DE.createSource = function() {
-    return document.createElement('source');
+    return $doc.createElement('source');
 };
 
 $DE.appendToBody = function(element) {
-    document.body.appendChild(element);
+    $doc.body.appendChild(element);
 };
 
-var testCanvas = document.createElement('canvas');
+var testCanvas = $doc.createElement ? $doc.createElement('canvas') : {};
 $DE.canvasSupported = !!(testCanvas.getContext && testCanvas.getContext('2d'));
 
-var https = window.location && window.location.protocol === 'https:';
+var https = $win.location && $win.location.protocol === 'https:';
 $DE.isHttps = https;
 
-var local = window.location && window.location.protocol === 'file:';
+var local = $win.location && $win.location.protocol === 'file:';
 $DE.isLocal = local;
 
-var isIE9 = navigator.userAgent.indexOf('MSIE 9.0') !== -1;
+var isIE9 = $nav.userAgent && $nav.userAgent.indexOf('MSIE 9.0') !== -1;
 $DE.isIE9 = isIE9;
 
 var hidden, visibilityChange;
-if (typeof document.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
+if (typeof $doc.hidden !== "undefined") { // Opera 12.10 and Firefox 18 and later support
   hidden = "hidden";
   visibilityChange = "visibilitychange";
-} else if (typeof document.mozHidden !== "undefined") {
+} else if (typeof $doc.mozHidden !== "undefined") {
   hidden = "mozHidden";
   visibilityChange = "mozvisibilitychange";
-} else if (typeof document.msHidden !== "undefined") {
+} else if (typeof $doc.msHidden !== "undefined") {
   hidden = "msHidden";
   visibilityChange = "msvisibilitychange";
-} else if (typeof document.webkitHidden !== "undefined") {
+} else if (typeof $doc.webkitHidden !== "undefined") {
   hidden = "webkitHidden";
   visibilityChange = "webkitvisibilitychange";
 }
 
-if (typeof document[hidden] !== 'undefined' ||
-    typeof document.addEventListener !== 'undefined') {
-        document.addEventListener(visibilityChange,
+if (typeof $doc[hidden] !== 'undefined' ||
+    typeof $doc.addEventListener !== 'undefined') {
+        $doc.addEventListener(visibilityChange,
             function() {
                 if (onDocumentHiddenChange) {
-                    onDocumentHiddenChange(document[hidden]);
+                    onDocumentHiddenChange($doc[hidden]);
                 }
             }, false);
 }
@@ -1019,11 +1024,11 @@ $DE.onDocumentHiddenChange = function(cb){
     onDocumentHiddenChange = cb;
 };
 
-$DE.Path2D = global.Path2D;
+$DE.Path2D = $glob.Path2D;
 
 
 $DE.isInIframe = function() {
-    return global.self !== global.top;
+    return $glob.self !== $glob.top;
 };
 
 var iframe = $DE.isInIframe() ? global : null;
@@ -1042,10 +1047,10 @@ $DE.getIframeSrc = function() {
 };
 
 $DE.addMessageListener = function(listener) {
-    if (!global.addEventListener) {
+    if (!$glob.addEventListener) {
         return;
     }
-    global.addEventListener('message', listener, false);
+    $glob.addEventListener('message', listener, false);
 };
 
 $DE.postToContentWindow = function(message) {
