@@ -16,6 +16,7 @@ var events = require('../events.js'),
     errors = require('../errors.js'),
     ErrLoc = require('../loc.js').Errors;
 
+var Search = require('./search.js');
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
@@ -493,30 +494,7 @@ Animation.prototype._loadRemoteResources = function(player) {
  * @return {anm.Element} First found element
  */
 Animation.prototype.find = function(selector, where) {
-    if (selector[0] === '/') {
-        var path = selector.slice(1).split('/');
-        var nextName = null,
-            nextElms = where ? where.children : this.tree,
-            target = null;
-        while (nextName = path.pop()) { // FIXME: nextName could be ''
-            for (var i = 0, l = nextElms.length; i < l; i++) {
-                if (nextElms[i].name === nextName) {
-                    target = nextElms[i];
-                    nextElms = target.children;
-                    break;
-                }
-            }
-        }
-        return target;
-    } else {
-        var nextElms = where ? where.children : this.tree;
-        var found = null;
-        for (var i = 0, l = nextElms.length; i < l; i++) {
-            if (nextElms[i].name === selector) return nextElms[i];
-            if (found = this.find(selector, nextElms[i])) return found;
-        }
-        return found;
-    };
+    return Search.one(selector).over(where ? where.children : this.tree);
 };
 
 /**
@@ -534,14 +512,7 @@ Animation.prototype.find = function(selector, where) {
  * @return {Array} An array of found elements
  */
 Animation.prototype.findAll = function(selector, where) {
-    where = where || this;
-    var name = selector;
-    var found = [];
-    if (where.name == name) found.push(name);
-    where.traverse(function(elm)  {
-        if (elm.name == name) found.push(elm);
-    });
-    return found;
+    return Search.all(selector).over(where ? where.children : this.tree);
 };
 
 /**

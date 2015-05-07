@@ -94,7 +94,7 @@ describe('search', function() {
         expect(animation.findAll('foobar')[1].id).toEqual(searchForTwo.id);
 
         expect(rootElement.findAll('foobar')[0].id).toEqual(searchForOne.id);
-        expect(rootElement.findAll('foobar')[1].id).toEqual(searchForTwo.id);
+        expect(rootElement.findAll('foobar')[1]).not.toBeDefined();
     });
 
     describe('properly searches for an element by path, when', function() {
@@ -184,6 +184,7 @@ describe('search', function() {
 
         expect(rootElement.findAll('/sub-root/foobar')[0].id).toEqual(searchForOne.id);
         expect(rootElement.findAll('/sub-root/foobar')[1].id).toEqual(searchForTwo.id);
+        expect(rootElement.findAll('/sub-root/foobar')[2]).not.toBeDefined();
     });
 
     it('properly searches for an element or several elements by path, constructed using indexes', function() {
@@ -208,23 +209,23 @@ describe('search', function() {
         subRootElement.add(searchForTwo); // so it has index of 4 inside sub-root element
         subRootElement.add(element('index-5'));
 
-        expect(animation.find('/:0').id).toBeEqual(stubElement.id);
-        expect(animation.findAll('/:0')[0].id).toBeEqual(stubElement.id);
+        expect(animation.find('/:0').id).toEqual(stubElement.id);
+        expect(animation.findAll('/:0')[0].id).toEqual(stubElement.id);
 
-        expect(animation.find('/:1').id).toBeEqual(rootElement.id);
-        expect(animation.findAll('/:1')[0].id).toBeEqual(rootElement.id);
+        expect(animation.find('/:1').id).toEqual(rootElement.id);
+        expect(animation.findAll('/:1')[0].id).toEqual(rootElement.id);
 
         expect(animation.find('/:0/sub-root/foobar')).toBeNull();
         expect(animation.findAll('/:0/sub-root/foobar')).toBeEmpty();
 
-        expect(animation.find('/root/:1').name).toBeEqual('index-1');
-        expect(animation.findAll('/root/:1')[0].name).toBeEqual('index-1');
+        expect(animation.find('/root/:1').name).toEqual('index-1');
+        expect(animation.findAll('/root/:1')[0].name).toEqual('index-1');
 
-        expect(animation.find('/root/:3').name).toBeEqual('index-3');
-        expect(animation.findAll('/root/:3')[0].name).toBeEqual('index-3');
+        expect(animation.find('/root/:3').name).toEqual('index-3');
+        expect(animation.findAll('/root/:3')[0].name).toEqual('index-3');
 
-        expect(animation.find('/root/sub-root/:5').name).toBeEqual('index-5');
-        expect(animation.findAll('/root/sub-root/:5')[0].name).toBeEqual('index-5');
+        expect(animation.find('/root/sub-root/:5').name).toEqual('index-5');
+        expect(animation.findAll('/root/sub-root/:5')[0].name).toEqual('index-5');
 
         expect(animation.find('/:0/:5')).toBeNull();
         expect(animation.findAll('/:0/:5')).toBeEmpty();
@@ -232,55 +233,55 @@ describe('search', function() {
         expect(animation.find('/:0/:2/:5')).toBeNull();
         expect(animation.findAll('/:0/:2/:5')).toBeEmpty();
 
-        expect(animation.find('/:1/:2/:5').name).toBeEqual('index-5');
-        expect(animation.findAll('/:1/:2/:5')[0].name).toBeEqual('index-5');
+        expect(animation.find('/:1/:2/:5').name).toEqual('index-5');
+        expect(animation.findAll('/:1/:2/:5')[0].name).toEqual('index-5');
 
-        expect(subRootElement.name).toBeEqual('sub-root');
-        expect(animation.find('/root/:2').name).toBeEqual(subRootElement.name);
-        expect(animation.findAll('/root/:2')[0].name).toBeEqual(subRootElement.name);
+        expect(subRootElement.name).toEqual('sub-root');
+        expect(animation.find('/root/:2').name).toEqual(subRootElement.name);
+        expect(animation.findAll('/root/:2')[0].name).toEqual(subRootElement.name);
 
-        expect(animation.find('/root/sub-root/:1').id).toBeEqual(searchForOne.id);
-        expect(animation.find('/root/sub-root/:1').name).toBeEqual('foobar');
-        expect(animation.findAll('/root/sub-root/:1')[0].id).toBeEqual(searchForOne.id);
-        expect(animation.findAll('/root/sub-root/:1')[0].name).toBeEqual('foobar');
+        expect(animation.find('/root/sub-root/:1').id).toEqual(searchForOne.id);
+        expect(animation.find('/root/sub-root/:1').name).toEqual('foobar');
+        expect(animation.findAll('/root/sub-root/:1')[0].id).toEqual(searchForOne.id);
+        expect(animation.findAll('/root/sub-root/:1')[0].name).toEqual('foobar');
 
-        expect(animation.find('/root/sub-root/:4').id).toBeEqual(searchForTwo.id);
-        expect(animation.find('/root/sub-root/:4').name).toBeEqual('foobar');
-        expect(animation.findAll('/root/sub-root/:4')[0].id).toBeEqual(searchForTwo.id);
-        expect(animation.findAll('/root/sub-root/:4')[0].name).toBeEqual('foobar');
+        expect(animation.find('/root/sub-root/:4').id).toEqual(searchForTwo.id);
+        expect(animation.find('/root/sub-root/:4').name).toEqual('foobar');
+        expect(animation.findAll('/root/sub-root/:4')[0].id).toEqual(searchForTwo.id);
+        expect(animation.findAll('/root/sub-root/:4')[0].name).toEqual('foobar');
 
-        expect(animation.find('/:1/sub-root/:1').id).toBeEqual(searchForOne.id);
-        expect(animation.find('/:1/sub-root/:1').name).toBeEqual('foobar');
-        expect(animation.findAll('/:1/sub-root/:1')[0].id).toBeEqual(searchForOne.id);
-        expect(animation.findAll('/:1/sub-root/:1')[0].name).toBeEqual('foobar');
+        expect(animation.find('/:1/sub-root/:1').id).toEqual(searchForOne.id);
+        expect(animation.find('/:1/sub-root/:1').name).toEqual('foobar');
+        expect(animation.findAll('/:1/sub-root/:1')[0].id).toEqual(searchForOne.id);
+        expect(animation.findAll('/:1/sub-root/:1')[0].name).toEqual('foobar');
 
-        expect(animation.find('/:1/sub-root/:4').id).toBeEqual(searchForTwo.id);
-        expect(animation.find('/:1/sub-root/:4').name).toBeEqual('foobar');
-        expect(animation.findAll('/:1/sub-root/:4')[0].id).toBeEqual(searchForTwo.id);
-        expect(animation.findAll('/:1/sub-root/:4')[0].name).toBeEqual('foobar');
+        expect(animation.find('/:1/sub-root/:4').id).toEqual(searchForTwo.id);
+        expect(animation.find('/:1/sub-root/:4').name).toEqual('foobar');
+        expect(animation.findAll('/:1/sub-root/:4')[0].id).toEqual(searchForTwo.id);
+        expect(animation.findAll('/:1/sub-root/:4')[0].name).toEqual('foobar');
 
-        expect(animation.find('/:1/:2/:1').id).toBeEqual(searchForOne.id);
-        expect(animation.find('/:1/:2/:1').name).toBeEqual('foobar');
-        expect(animation.findAll('/:1/:2/:1')[0].id).toBeEqual(searchForOne.id);
-        expect(animation.findAll('/:1/:2/:1')[0].name).toBeEqual('foobar');
+        expect(animation.find('/:1/:2/:1').id).toEqual(searchForOne.id);
+        expect(animation.find('/:1/:2/:1').name).toEqual('foobar');
+        expect(animation.findAll('/:1/:2/:1')[0].id).toEqual(searchForOne.id);
+        expect(animation.findAll('/:1/:2/:1')[0].name).toEqual('foobar');
 
-        expect(animation.find('/:1/:2/:4').id).toBeEqual(searchForTwo.id);
-        expect(animation.find('/:1/:2/:4').name).toBeEqual('foobar');
-        expect(animation.findAll('/:1/:2/:4')[0].id).toBeEqual(searchForTwo.id);
-        expect(animation.findAll('/:1/:2/:4')[0].name).toBeEqual('foobar');
+        expect(animation.find('/:1/:2/:4').id).toEqual(searchForTwo.id);
+        expect(animation.find('/:1/:2/:4').name).toEqual('foobar');
+        expect(animation.findAll('/:1/:2/:4')[0].id).toEqual(searchForTwo.id);
+        expect(animation.findAll('/:1/:2/:4')[0].name).toEqual('foobar');
 
-        expect(rootElement.find('/:2/:1').id).toBeEqual(searchForOne.id);
-        expect(rootElement.find('/:2/:1').name).toBeEqual('foobar');
-        expect(rootElement.findAll('/:2/:1')[0].id).toBeEqual(searchForOne.id);
-        expect(rootElement.findAll('/:2/:1')[0].name).toBeEqual('foobar');
+        expect(rootElement.find('/:2/:1').id).toEqual(searchForOne.id);
+        expect(rootElement.find('/:2/:1').name).toEqual('foobar');
+        expect(rootElement.findAll('/:2/:1')[0].id).toEqual(searchForOne.id);
+        expect(rootElement.findAll('/:2/:1')[0].name).toEqual('foobar');
 
-        expect(rootElement.find('/:2/:4').id).toBeEqual(searchForTwo.id);
-        expect(rootElement.find('/:2/:4').name).toBeEqual('foobar');
-        expect(rootElement.findAll('/:2/:4')[0].id).toBeEqual(searchForTwo.id);
-        expect(rootElement.findAll('/:2/:4')[0].name).toBeEqual('foobar');
+        expect(rootElement.find('/:2/:4').id).toEqual(searchForTwo.id);
+        expect(rootElement.find('/:2/:4').name).toEqual('foobar');
+        expect(rootElement.findAll('/:2/:4')[0].id).toEqual(searchForTwo.id);
+        expect(rootElement.findAll('/:2/:4')[0].name).toEqual('foobar');
 
-        expect(subRootElement.find('/:5').name).toBeEqual('index-5');
-        expect(subRootElement.findAll('/:5')[0].name).toBeEqual('index-5');
+        expect(subRootElement.find('/:5').name).toEqual('index-5');
+        expect(subRootElement.findAll('/:5')[0].name).toEqual('index-5');
 
         expect(subRootElement.find('/:7')).toBeNull();
         expect(subRootElement.findAll('/:7')).toBeEmpty();
