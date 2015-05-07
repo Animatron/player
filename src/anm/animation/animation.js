@@ -485,10 +485,12 @@ Animation.prototype._loadRemoteResources = function(player) {
  * Searches for an {@link anm.Element element} by name through another {@link anm.Element element}'s
  * children, or through all the elements in the Animation itself, if no other element was provided.
  *
- * NB: `find` method will be improved soon to support special syntax of searching,
- * so you will be able to search almost everything
+ * You may specify just a name or a full path, if you start it from slash: `/root/sub-element/search-for`.
+ * This way search will ensure element is located exactly at this path and also will visit only the matching elements.
+ * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
+ * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
- * @param {String} name Name of the element(s) to find
+ * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
  * @return {anm.Element} First found element
@@ -503,10 +505,12 @@ Animation.prototype.find = function(selector, where) {
  * Searches for {@link anm.Element elements} by name through another {@link anm.Element element}'s
  * children, or through all the elements in the Animation itself, if no other element was provided.
  *
- * NB: `findAll` method will be improved soon to support special syntax of searching,
- * so you will be able to search almost everything
+ * You may specify just a name or a full path, if you start it from slash: `/root/sub-element/search-for`.
+ * This way search will ensure elements are located exactly at this path.
+ * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
+ * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
- * @param {String} name Name of the element(s) to find
+ * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
  * @return {Array} An array of found elements
