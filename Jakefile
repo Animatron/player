@@ -348,7 +348,7 @@ task('version', { async: true }, function(param) {
 
     var _vhash = _versions.read();
 
-    if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no any version data stored in ' + VERSIONS_FILE + ' file.'); }
+    if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no version data stored in ' + VERSIONS_FILE + ' file.'); }
 
     _print();
 
@@ -432,8 +432,7 @@ task('version', { async: true }, function(param) {
 
         });
         _getCommitData.on('error', function(msg) {
-            _print(FAILED_MARKER, msg);
-            throw new Error(msg);
+            fail(msg, 1);
         });
         _getCommitData.run();
 
@@ -517,13 +516,7 @@ desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
 task('invalidate', [], { async: true }, function(version) {
     version = version || VERSION;
     console.log('Creating invalidation for version', version);
-    var credentials;
-    try {
-        credentials = getCredentials();
-    } catch (e) {
-        fail(e.message, 1);
-        return;
-    }
+    var credentials = getCredentials();
     var AWS = require('aws-sdk');
     AWS.config.update({
         accessKeyId: credentials.key,
@@ -573,13 +566,7 @@ task('deploy-publishjs', { async: true }, function(version, bucket) {
         s3bucket = 'player.animatron.com';
     }
     console.log('Starting deployment of publish.js version', version, 'to', s3bucket);
-    var credentials;
-    try {
-        credentials = getCredentials();
-    } catch (e) {
-        fail(e.message, 1);
-        return;
-    }
+    var credentials = getCredentials();
     var AWS = require('aws-sdk');
     AWS.config.update({
         accessKeyId: credentials.key,
@@ -598,7 +585,7 @@ task('deploy-publishjs', { async: true }, function(version, bucket) {
     }
     s3.putObject(params, function(err) {
         if (err) {
-            fail('Deployment failed:', err.message);
+            fail('Deployment failed: ' +  err.message, 1);
         } else {
             console.log('Deployment of publish.js complete.');
             complete();
@@ -616,13 +603,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
 
     var doDeployment = function() {
         console.log('Starting deployment of version', version, 'to', s3bucket);
-        var credentials;
-        try {
-            credentials = getCredentials();
-        } catch (e) {
-            fail(e.message, 1);
-            return;
-        }
+        var credentials = getCredentials();
         var localPrefix = './dist/',
             remotePrefix = version + '/',
             files = [
@@ -671,7 +652,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
             });
         }, function(err) {
             if (err) {
-                fail('Deployment failed:', err.message);
+                fail('Deployment failed: ' +  err.message, 1);
             } else {
                 console.log('Deployment complete.');
                 if (isProd) {
@@ -689,13 +670,15 @@ task('deploy', ['dist-min'], function(version, bucket) {
         });
     };
 
-    if (!isProd) {
+    if (!isProd || isTeamCityBuild) {
+        //we can't check which branch TC is on, so we'll have to trust it is
+        //configured correctly
         doDeployment();
     } else {
         var git = jake.createExec('git symbolic-ref --short HEAD');
         git.on('stdout', function(branch) {
             if (branch.toString().trim() !== 'master') {
-                fail('You have to be on the master branch to deploy to production');
+                fail('You have to be on the master branch to deploy to production', 1);
             } else {
                 doDeployment();
             }
@@ -862,11 +845,9 @@ task('_build-file', { async: true }, function() {
 
         });
         getCommit.addListener('stderr', function(msg) {
-            _print(FAILED_MARKER, msg);
             fail(msg, 1);
         });
         getCommit.addListener('error', function(msg) {
-            _print(FAILED_MARKER, msg);
             fail(msg, 1);
         });
         getCommit.run();
@@ -902,7 +883,7 @@ function getCredentials() {
     } else {
         //get credentials from .s3
         if (!fs.existsSync('./.s3')) {
-            throw new Error('No credentials provided.');
+            fail('No credentials for deployment provided', 1);
         }
         var creds = fs.readFileSync('./.s3').toString().split(/\s+/);
         return (_credentials = {
