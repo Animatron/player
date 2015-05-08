@@ -526,7 +526,6 @@ task('invalidate', [], { async: true }, function(version) {
     var distributionId = credentials.distributionId;
     if (!distributionId) {
         fail('CloudFront Distribution ID not provided', 1);
-        return;
     }
     var paths = [
         '/%VERSION%/bundle/animatron.js',
