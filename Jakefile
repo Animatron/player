@@ -177,6 +177,10 @@ function _extended_build_time() { var now = new Date();
                                   return now.toISOString() + ' ' +
                                          now.getTime() + '\n' +
                                          now.toString(); }
+//there are some specifics when building from TC,
+//namely absence of the git repo on hand
+var isTeamCityBuild = !!process.env.TEAMCITY_BUILDCONF_NAME;
+
 
 // TASKS =======================================================================
 
@@ -344,7 +348,7 @@ task('version', { async: true }, function(param) {
 
     var _vhash = _versions.read();
 
-    if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no any version data stored in ' + VERSIONS_FILE + ' file.'); }
+    if (!_vhash) { _print(FAILED_MARKER); throw new Error('There is no version data stored in ' + VERSIONS_FILE + ' file.'); }
 
     _print();
 
@@ -428,8 +432,7 @@ task('version', { async: true }, function(param) {
 
         });
         _getCommitData.on('error', function(msg) {
-            _print(FAILED_MARKER, msg);
-            throw new Error(msg);
+            fail(msg, 1);
         });
         _getCommitData.run();
 
@@ -513,19 +516,16 @@ desc('Creates a CloudFront invalidation. Usage: jake invalidate[1.3]');
 task('invalidate', [], { async: true }, function(version) {
     version = version || VERSION;
     console.log('Creating invalidation for version', version);
-    var credentials;
-    try {
-        credentials = jake.cat('./.s3').split(' ');
-    } catch (e) {
-        fail('Credential file not found.\nAborting.');
-        return;
-    }
+    var credentials = getCredentials();
     var AWS = require('aws-sdk');
-    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
-    var distributionId = credentials[3];
+    AWS.config.update({
+        accessKeyId: credentials.key,
+        secretAccessKey: credentials.secret
+    });
+
+    var distributionId = credentials.distributionId;
     if (!distributionId) {
-        fail('CloudFront Distribution ID not found in .s3');
-        return;
+        fail('CloudFront Distribution ID not provided', 1);
     }
     var paths = [
         '/%VERSION%/bundle/animatron.js',
@@ -542,7 +542,7 @@ task('invalidate', [], { async: true }, function(version) {
     var params = {
         DistributionId: distributionId,
         InvalidationBatch: {
-            CallerReference: '',
+            CallerReference: new Date().getTime().toString(),
             Paths: {
                 Quantity: items.length,
                 Items: items
@@ -550,7 +550,7 @@ task('invalidate', [], { async: true }, function(version) {
         }
     };
     cloudFront.createInvalidation(params, function(err, res){
-            if(err) throw err;
+            if(err) fail(err, 1);
             _print('Invalidation '+res.Invalidation.Id + ' created successfully');
             complete();
     });
@@ -565,15 +565,12 @@ task('deploy-publishjs', { async: true }, function(version, bucket) {
         s3bucket = 'player.animatron.com';
     }
     console.log('Starting deployment of publish.js version', version, 'to', s3bucket);
-    var credentials;
-    try {
-        credentials = jake.cat('./.s3').split(' ');
-    } catch (e) {
-        fail('Credential file not found.\nAborting.');
-        return;
-    }
+    var credentials = getCredentials();
     var AWS = require('aws-sdk');
-    AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+    AWS.config.update({
+        accessKeyId: credentials.key,
+        secretAccessKey: credentials.secret
+    });
     var s3 = new AWS.S3();
     var params = {
         'Bucket': s3bucket,
@@ -587,7 +584,7 @@ task('deploy-publishjs', { async: true }, function(version, bucket) {
     }
     s3.putObject(params, function(err) {
         if (err) {
-            fail('Deployment failed:', err.message);
+            fail('Deployment failed: ' +  err.message, 1);
         } else {
             console.log('Deployment of publish.js complete.');
             complete();
@@ -605,14 +602,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
 
     var doDeployment = function() {
         console.log('Starting deployment of version', version, 'to', s3bucket);
-        var credentials;
-        try {
-            credentials = jake.cat('./.s3').split(' ');
-        } catch (e) {
-            fail('Credential file not found.\nAborting.');
-            return;
-        }
-
+        var credentials = getCredentials();
         var localPrefix = './dist/',
             remotePrefix = version + '/',
             files = [
@@ -624,7 +614,11 @@ task('deploy', ['dist-min'], function(version, bucket) {
             ];
 
         var AWS = require('aws-sdk');
-        AWS.config.update({accessKeyId: credentials[1], secretAccessKey: credentials[2]});
+        AWS.config.update({
+            accessKeyId: credentials.key,
+            secretAccessKey: credentials.secret
+        });
+
         var s3 = new AWS.S3();
         var async = require('async'),
             zlib = require('zlib'),
@@ -657,7 +651,7 @@ task('deploy', ['dist-min'], function(version, bucket) {
             });
         }, function(err) {
             if (err) {
-                fail('Deployment failed:', err.message);
+                fail('Deployment failed: ' +  err.message, 1);
             } else {
                 console.log('Deployment complete.');
                 if (isProd) {
@@ -675,13 +669,15 @@ task('deploy', ['dist-min'], function(version, bucket) {
         });
     };
 
-    if (!isProd) {
+    if (!isProd || isTeamCityBuild) {
+        //we can't check which branch TC is on, so we'll have to trust it is
+        //configured correctly
         doDeployment();
     } else {
         var git = jake.createExec('git symbolic-ref --short HEAD');
         git.on('stdout', function(branch) {
             if (branch.toString().trim() !== 'master') {
-                fail('You have to be on the master branch to deploy to production');
+                fail('You have to be on the master branch to deploy to production', 1);
             } else {
                 doDeployment();
             }
@@ -812,44 +808,49 @@ desc(_dfit(['Internal. Create a BUILD file informing about the time and commit o
 task('_build-file', { async: true }, function() {
     _print('Fill ' + BUILD_FILE + ' file with information about current build');
     _print();
+    var BUILD_TIME = _extended_build_time();
+    console.log('Build time:', BUILD_TIME);
 
-    var _getCommintHash = jake.createExec([
-      [ Binaries.GIT,
-        'log',
-        '-n', '1',
-        '--format=format:"' + BUILD_FORMAT + '"'
-      ].join(' ')
-    ], EXEC_OPTS);
-    _getCommintHash.on('stdout', function(COMMIT_INFO) {
-        var BUILD_TIME = _extended_build_time();
-        COMMIT_INFO = COMMIT_INFO.toString();
-
-        _print('Build time:');
-        _print(BUILD_TIME);
-        _print();
-        _print('Build commit:');
-        _print(COMMIT_INFO);
-        _print();
-
+    var updateBuildFile = function(commitInfo) {
         jake.rmRf(_loc(BUILD_FILE));
         _print('Updating ' + BUILD_FILE + ' file.\n');
-        jake.echo(BUILD_TIME + '\n'
-                  + VERSION + '\n'
-                  + COMMIT_INFO, _loc(BUILD_FILE));
+        jake.echo(BUILD_TIME + '\n' +
+                  VERSION + '\n' +
+                  commitInfo, _loc(BUILD_FILE));
 
         _print(DONE_MARKER);
 
         complete();
-    });
-    _getCommintHash.addListener('stderr', function(msg) {
-        _print(FAILED_MARKER, msg);
-        throw new Error(msg);
-    });
-    _getCommintHash.addListener('error', function(msg) {
-        _print(FAILED_MARKER, msg);
-        throw new Error(msg);
-    });
-    _getCommintHash.run();
+    };
+
+    if (isTeamCityBuild) {
+        var commitInfo = process.env.BUILD_VCS_NUMBER_Animatron_AnimatronPlayerDevelopment +
+            '\n' + 'Built by TeamCity. Build #' + process.env.BUILD_NUMBER;
+        console.log(commitInfo);
+        updateBuildFile(commitInfo);
+    } else {
+        var getCommit = jake.createExec([
+          [ Binaries.GIT,
+            'log',
+            '-n', '1',
+            '--format=format:"' + BUILD_FORMAT + '"'
+          ].join(' ')
+        ], EXEC_OPTS);
+        getCommit.on('stdout', function(commitInfo) {
+            commitInfo = commitInfo.toString();
+
+            console.log(commitInfo);
+            updateBuildFile(commitInfo);
+
+        });
+        getCommit.addListener('stderr', function(msg) {
+            fail(msg, 1);
+        });
+        getCommit.addListener('error', function(msg) {
+            fail(msg, 1);
+        });
+        getCommit.run();
+    }
 });
 
 task('browserify', { 'async': true }, function() {
@@ -866,6 +867,31 @@ task('browserify', { 'async': true }, function() {
 });
 
 // UTILS =======================================================================
+var _credentials = null;
+function getCredentials() {
+    if (_credentials) {
+        return _credentials;
+    }
+    if (process.env.S3_KEY) {
+        //get credentials from the environment
+        return (_credentials = {
+            key: process.env.S3_KEY,
+            secret: process.env.S3_SECRET,
+            distributionId: process.env.CF_DISTRIBUTION
+        });
+    } else {
+        //get credentials from .s3
+        if (!fs.existsSync('./.s3')) {
+            fail('No credentials for deployment provided', 1);
+        }
+        var creds = fs.readFileSync('./.s3').toString().split(/\s+/);
+        return (_credentials = {
+            key: creds[1],
+            secret: creds[2],
+            distributionId: creds[3]
+        });
+    }
+}
 
 function _in_dir(dir, files) {
     var res = [];
