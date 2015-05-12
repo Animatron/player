@@ -2065,7 +2065,7 @@ Element.prototype.myBounds = function() {
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
     if (!passed_filter && !this.hasChildren()) return;
-    var local_pt = this.adapt(pt);
+    var local_pt = this.adapt(pt.x, pt.y);
     if (passed_filter && this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
         if (subj && subj.inside(local_pt)) fn(this, local_pt);
@@ -2079,28 +2079,15 @@ Element.prototype.inside = function(pt, filter, fn) {
 /**
  * @method adapt
  *
- * Adapt a point or several ones to element's local coordinate space (relatively to
- * parent's space). Points are passed as an object `{ x: 100, y: 100 }` or an array
- * `[ { x: 100, y: 100 }, { x: 200.5, y: 150 } ]` and returned in the same format.
+ * Adapt a point to element's local coordinate space (relative to parent).
  *
- * @param {Object|[Object]} pt one or several points to adapt
- * @param {Number} pt.x
- * @param {Number} pt.y
+ * @param {Number} x
+ * @param {Number} y
  *
- * @return {Object|[Object]} transformed point or several points
+ * @return {Object} transformed point
  */
-Element.prototype.adapt = function(pts) {
-    if (is.arr(pts)) {
-        var trg = [];
-        var matrix = this.matrix; // should we store inverted matrix and
-                                  // use inv_matrix.transformPoint instead?
-        for (var i = 0, il = pts.length; i < il; i++) {
-            trg.push(matrix.transformPointInverse(pts[i].x, pts[i].y));
-        }
-        return trg;
-    } else {
-        return this.matrix.transformPointInverse(pts.x, pts.y);
-    }
+Element.prototype.adapt = function(x, y) {
+    return this.matrix.transformPointInverse(x, y);
 };
 
 /**
