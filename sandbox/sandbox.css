@@ -93,6 +93,14 @@ textarea, .CodeMirror {
 	width: 64%;
 }
 
+#interactivity #left-pane {
+	width: 35%;
+}
+
+#interactivity #right-pane {
+	width: 60%;
+}
+
 select#examples-list {
 	width: 100%;
 }
@@ -215,6 +223,14 @@ select#examples-list {
 
 input#json-url {
 	width: 70%;
+}
+
+textarea#json-code {
+	float: right;
+	width: 80%;
+	height: 40px;
+	font-size: 0.9em;
+	font-family: monospace;
 }
 
 #copyright {
