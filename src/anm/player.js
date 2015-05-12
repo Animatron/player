@@ -375,20 +375,22 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
-                        player.state.happens = C.LOADING;
-                        player.fire(C.S_CHANGE_STATE, C.LOADING);
-                        player.fire(C.S_LOAD, result);
-                        player._updateMediaVolumes();
-                        if (!player.handleEvents) player.stop();
-                        player._callPostpones();
-                        if (callback) callback.call(player, result);
-                        // player may appear already playing something if autoPlay or a similar time-jump
-                        // flag was set from some different source of options (async, for example),
-                        // then the rule (for the moment) is: last one wins
-                        if (player.autoPlay) {
-                            if (player.state.happens === C.PLAYING) player.stop();
-                            player.play();
-                        }
+                        utils.postpone(function(){
+                            player.state.happens = C.LOADING;
+                            player.fire(C.S_CHANGE_STATE, C.LOADING);
+                            player.fire(C.S_LOAD, result);
+                            player._updateMediaVolumes();
+                            if (!player.handleEvents) player.stop();
+                            player._callPostpones();
+                            if (callback) callback.call(player, result);
+                            // player may appear already playing something if autoPlay or a similar time-jump
+                            // flag was set from some different source of options (async, for example),
+                            // then the rule (for the moment) is: last one wins
+                            if (player.autoPlay) {
+                                if (player.state.happens === C.PLAYING) player.stop();
+                                player.play();
+                            }
+                        });
                     }
                 }
             ], function(url, factor, progress, errors) {

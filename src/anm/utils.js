@@ -130,7 +130,7 @@ function fmt_time(time) {
     return ((time < 0) ? '-' : '') +
             ((h > 0)  ? (((h < 10) ? ('0' + h) : h) + ':') : '') +
             ((m < 10) ? ('0' + m) : m) + ':' +
-            ((s < 10) ? ('0' + s) : s)
+            ((s < 10) ? ('0' + s) : s);
 }
 
 function ell_text(text, max_len) {
@@ -188,7 +188,7 @@ function mrg_obj(src, backup, trg) {
     if (!backup) return src;
     var res = trg || {};
     for (var prop in backup) {
-        res[prop] = is.defined(src[prop]) ? src[prop] : backup[prop]; };
+        res[prop] = is.defined(src[prop]) ? src[prop] : backup[prop]; }
     return res;
 }
 
@@ -242,6 +242,12 @@ function removeElement(obj, element) {
     }
 }
 
+function postpone(fn) {
+    //run the code after the event loop is done with whatever it is
+    //occupied with at the moment
+    setTimeout(fn, 0);
+}
+
 // TODO: add array cloning
 
 module.exports = {
@@ -259,5 +265,6 @@ module.exports = {
     is: is,
     iter: iter,
     keys: keys,
-    removeElement: removeElement
+    removeElement: removeElement,
+    postpone: postpone
 };
