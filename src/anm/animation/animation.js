@@ -232,13 +232,13 @@ Animation.prototype.jump = function(t) {
 /**
  * @method jumpTo
  *
- * Jump to the given start time of the element found with passed selector (uses
+ * Jump to the given start time of the element given or found with passed selector (uses
  * {@link anm.Animation#jumpTo animation.jumpTo} inside)
  *
- * @param {String} selector
+ * @param {String|anm.Element} selector
  */
 Animation.prototype.jumpTo = function(selector) {
-    var elm = this.find(selector);
+    var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
     this.jump(elm.gband[0]);
 };
