@@ -386,7 +386,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                             // player may appear already playing something if autoPlay or a similar time-jump
                             // flag was set from some different source of options (async, for example),
                             // then the rule (for the moment) is: last one wins
-                            if (player.autoPlay) {
+                            if (player.autoPlay || result.hasScripting) {
                                 if (player.state.happens === C.PLAYING) player.stop();
                                 player.play();
                             }
