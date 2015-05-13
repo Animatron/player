@@ -83,7 +83,7 @@ function r_loop(ctx, player, anim, before, after, before_render, after_render) {
 function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after) {
     ctx.save();
     var ratio = engine.PX_RATIO;
-    if (ratio !== 1) ctx.scale(ratio, ratio);
+    if (ratio !== 1) { ctx.scale(ratio, ratio); }
     width = width | 0;
     height = height | 0;
     var size_differs = (width  != anim.width) ||
@@ -93,7 +93,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
         if (before) before(time, ctx);
-        if (zoom != 1) ctx.scale(zoom, zoom);
+        if (zoom != 1) { ctx.scale(zoom, zoom); }
         anim.render(ctx, time, dt);
         if (after) after(time, ctx);
         ctx.restore();
@@ -146,8 +146,8 @@ function r_with_ribbons(ctx, anim, pw, ph, aw, ah, color, draw_f) {
         ctx.clip();
         ctx.translate(anim_rect[0], anim_rect[1]);
     }
-    anim.factor = anim.factor * factor; // anim.factor is always resetted in r_at
-    if (factor != 1) ctx.scale(factor, factor);
+    anim.factor = anim.factor * factor; // anim.factor is always reset in r_at
+    if (factor != 1) { ctx.scale(factor, factor); }
     draw_f(factor);
     ctx.restore();
 }
