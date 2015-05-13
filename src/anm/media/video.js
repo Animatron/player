@@ -148,7 +148,7 @@ Video.prototype.bounds = function() {
  * @param {Number} pt.y
  * @return {Boolean} is point inside
  */
- Video.prototype.inside = function(pt) {
+Video.prototype.inside = function(pt) {
     return true; // if point is inside of the bounds, point is considered to be
                  // inside the video shape
 };

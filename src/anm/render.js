@@ -88,6 +88,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
     height = height | 0;
     var size_differs = (width  != anim.width) ||
                        (height != anim.height);
+    anim.factor = 1 * (zoom || 1) * (anim.zoom || 1);
     if (!size_differs) {
         ctx.clearRect(0, 0, anim.width,
                             anim.height);
@@ -97,13 +98,14 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
         if (after) after(time, ctx);
         ctx.restore();
     } else {
-        r_with_ribbons(ctx, width, height,
-                            anim.width, anim.height,
-                            rib_color,
+        r_with_ribbons(ctx, anim,
+                       width, height,
+                       anim.width, anim.height,
+                       rib_color,
             function(_scale) {
                 ctx.clearRect(0, 0, anim.width, anim.height);
                 if (before) before(time, ctx);
-                if (zoom != 1) ctx.scale(zoom, zoom);
+                if (zoom != 1) { ctx.scale(zoom, zoom); }
                 anim.render(ctx, time, dt);
                 if (after) after(time, ctx);
                 ctx.restore();
@@ -111,7 +113,7 @@ function r_at(time, dt, ctx, anim, width, height, zoom, rib_color, before, after
     }
 }
 
-function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
+function r_with_ribbons(ctx, anim, pw, ph, aw, ah, color, draw_f) {
     // pw == player width, ph == player height
     // aw == anim width,   ah == anim height
     var f_rects   = fit_rects(pw, ph, aw, ah),
@@ -144,6 +146,7 @@ function r_with_ribbons(ctx, pw, ph, aw, ah, color, draw_f) {
         ctx.clip();
         ctx.translate(anim_rect[0], anim_rect[1]);
     }
+    anim.factor = anim.factor * factor; // anim.factor is always resetted in r_at
     if (factor != 1) ctx.scale(factor, factor);
     draw_f(factor);
     ctx.restore();

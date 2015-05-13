@@ -67,6 +67,7 @@ function Animation() {
     this.height = undefined;
     this.zoom = 1.0;
     this.speed = 1.0;
+    this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
     this.hasScripting = false;
@@ -232,13 +233,13 @@ Animation.prototype.jump = function(t) {
 /**
  * @method jumpTo
  *
- * Jump to the given start time of the element found with passed selector (uses
+ * Jump to the given start time of the element given or found with passed selector (uses
  * {@link anm.Animation#jumpTo animation.jumpTo} inside)
  *
- * @param {String} selector
+ * @param {String|anm.Element} selector
  */
 Animation.prototype.jumpTo = function(selector) {
-    var elm = this.find(selector);
+    var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
     this.jump(elm.gband[0]);
 };
@@ -360,7 +361,7 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
 Animation.prototype.handle__x = function(type, evt) {
     var anim = this;
     if (events.mouse(type)) {
-        var pos = evt.pos;
+        var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var foundTarget = false;
         anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
@@ -532,6 +533,27 @@ Animation.prototype.findAll = function(selector, where) {
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
+};
+
+/**
+ * @method adapt
+ *
+ * Adapt a point to animation's coordinate space. This has sense only during
+ * the the rendering cycle (i.e. in elements' handlers, painters or modifiers),
+ * since considers player zoom, animation zoom and other factors re-calculated
+ * before the actual rendering of every frame.
+ *
+ * For example, this method is used in animation' mouse handlers to get the point
+ * adapted to player & animation.
+ *
+ * @param {Number} x
+ * @param {Number} y
+ *
+ * @return {Object} transformed point
+ */
+Animation.prototype.adapt = function(x, y) {
+    return { x: x / this.factor,
+             y: y / this.factor };
 };
 
 /*

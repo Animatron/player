@@ -16,11 +16,12 @@ function sandbox() {
     this.debugElm = document.getElementById('enable-debug');
     this.logErrorsElm = document.getElementById('log-errors');
     this.jsonCodeElm = document.getElementById('json-code');
+    this.restartElm = document.getElementById('restart');
 
     var widthVal = document.getElementById('val-width');
     var heightVal = document.getElementById('val-height');
 
-    var width = 420, height = 250;
+    var width = 480, height = 270;
 
     var ctx = {
         width: width,
@@ -45,6 +46,8 @@ function sandbox() {
         muteErrors: true,
         controlsEnabled: false,
         infiniteDuration: true,
+        handleEvents: true,
+        //autoPlay: true,
         width: width,
         height: height
     });
@@ -132,7 +135,7 @@ function sandbox() {
 
     this.debugElm.onchange = function() {
         s.player.debug = !s.player.debug;
-        refreshFromCurrentMoment();
+        loadAndPlay();
     }
 
     this.logErrorsElm.onchange = function() {
@@ -146,16 +149,9 @@ function sandbox() {
     this.jsonCodeElm.value = load_last_json();
     loadAndPlay();
 
-    function change_mode(radio) {
-      if (_player) {
-        _player.handleEvents = (radio.value === 'with-events');
-        _player.infiniteDuration = (radio.value === 'with-events');
-        _player._checkOpts();
+    restartElm.addEventListener('click', function() {
         loadAndPlay();
-      }
-    }
-
-    window.change_mode = change_mode;
+    });
 
 }
 
