@@ -320,7 +320,7 @@ Path.prototype.pointAt = function(t) {
  * @param {Number} pt.y
  * @return {Boolean} is point inside
  */
- Path.prototype.inside = function(pt) {
+Path.prototype.inside = function(pt) {
     var x = pt.x, y = pt.y;
 
     var mask = /*(windingRule == WIND_NON_ZERO ?*/ -1 /*: 1)*/;

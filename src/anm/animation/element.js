@@ -314,8 +314,11 @@ Element.prototype.initTime = function() {
     this.tf = null; // time jumping function
 
     this.key = null;
-    this.t = null;
-    this.rt = null;
+    this.t = null; // user-defined
+    this.rt = null; // user-defined
+
+    this.cur_t = null; // system-defined
+    this.cur_rt = null; // system-defined
 
     this.__resetTimeFlags();
 
@@ -553,10 +556,13 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
+    elm.cur_t  = ltime;
+    elm.cur_rt = ltime / (elm.lband[1] - elm.lband[0]);
+
     // FIXME: checkJump is performed before, may be it should store its values inside here?
     if (is.num(elm.__appliedAt)) {
         elm._t   = elm.__appliedAt;
-        elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+        elm._rt  = elm.__appliedAt / (elm.lband[1] - elm.lband[0]);
     }
     // FIXME: elm.t and elm.dt both should store real time for this moment.
     //        modifier may have its own time, though, but not painter, so painters probably
@@ -1160,6 +1166,8 @@ Element.prototype.bounce = function(nrep) {
  */
 Element.prototype.jump = function(loc_t) {
     this.t = loc_t;
+    this.cur_t = null;
+    this.cur_rt = null;
     return this;
 };
 
@@ -1181,9 +1189,7 @@ Element.prototype.freeze = function() {
     this.frozen = true;
     this.__m_freeze = function(t) {
         if (!this.frozen) return;
-        if (is.defined(this.pausedAt)) {
-            this.t = this.pausedAt;
-        }
+        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
         else (this.pausedAt = t);
     };
     this.modify(this.__m_freeze);
@@ -1530,9 +1536,13 @@ Element.prototype.inform = function(ltime) {
         if (cmp >= 0) {
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
+                this.cur_t = null;
+                this.cur_rt = null;
                 this.traverse(function(elm) { // TODO: implement __fireDeep
                     if (!elm.__firedStop) {
                         elm.fire(C.X_STOP, ltime, duration);
+                        elm.cur_t = null;
+                        elm.cur_rt = null;
                         elm.__firedStop = true;
                     }
                 });

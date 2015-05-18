@@ -201,6 +201,7 @@ Animation.prototype.iter = function(func, rfunc) {
  */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
+    this.time = time;
     var zoom = this.zoom;
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -225,6 +226,9 @@ Animation.prototype.render = function(ctx, time, dt) {
  * @param {Number} time
  */
 Animation.prototype.jump = function(t) {
+    // this.traverse(function(elm) {
+    //     elm.resetTime();
+    // });
     utils.keys(this.targets, function(id, player) {
         if (player) player.seek(t);
     });
@@ -365,7 +369,8 @@ Animation.prototype.handle__x = function(type, evt) {
         var foundTarget = false;
         anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
-                return elm.subscribedTo(type);
+                return elm.subscribedTo(type) &&
+                       is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
                 foundTarget = true;
                 if (type !== 'mousemove') {
