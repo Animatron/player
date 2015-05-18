@@ -303,18 +303,19 @@ Element.prototype.initTime = function() {
     this.lband = [0, Element.DEFAULT_LEN]; // local band
     this.gband = [0, Element.DEFAULT_LEN]; // global band
 
-    /** @property {Number} t TODO (local time) */
+    /** @property {Number} t (local time) */
     /** @property {Number} dt TODO (a delta in local time from previous render) */
-    /** @property {Number} rt TODO (time position, relative to band) */
-    /** @property {String} key TODO (time position by a key name) */
-    /** @property {Object} keys TODO (a map of keys -> time) @readonly */
-    /** @property {Function} tf TODO (time function) */
+    /** @property {Number} rt (time position, relative to band duration) */
+    /** @property {String} key (time position by a key name) */
+    /** @property {Object} keys (a map of keys -> time) @readonly */
+    /** @property {Function} tf (time function) */
 
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
 
     this.key = null;
     this.t = null;
+    this.rt = null;
 
     this.__resetTimeFlags();
 
@@ -1180,7 +1181,9 @@ Element.prototype.freeze = function() {
     this.frozen = true;
     this.__m_freeze = function(t) {
         if (!this.frozen) return;
-        if (is.defined(this.pausedAt)) this.t = this.pausedAt;
+        if (is.defined(this.pausedAt)) {
+            this.t = this.pausedAt;
+        }
         else (this.pausedAt = t);
     };
     this.modify(this.__m_freeze);
@@ -1199,6 +1202,8 @@ Element.prototype.freeze = function() {
  */
 Element.prototype.unfreeze = function() {
     this.frozen = false;
+    this.t = null;
+    this.pausedAt = undefined;
     if (this.__m_freeze) this.unmodify(this.__m_freeze);
     return this;
 }
@@ -2503,8 +2508,9 @@ Element.prototype.__checkJump = function(at) {
     // directly or relatively or with key,
     // get its absolute local value
     t = (is.defined(this.p)) ? this.p : null;
-    t = ((t === null) && (this.t !== null) && is.finite(duration)) ?
-        this.t * duration : t;
+    t = ((t === null) && (this.t !== null)) ? this.t : t;
+    t = ((t === null) && (this.rt !== null) && is.finite(duration)) ?
+        this.rt * duration : t;
     t = ((t === null) && (is.defined(this.key))) ?
         this.keys[this.key] : t;
     if (t !== null) {
