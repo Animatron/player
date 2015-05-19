@@ -410,17 +410,10 @@ Animation.prototype.filterEvent = function(type, evt) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var targetFound = false;
         var moSubscriber = null; // mouse-out subscriber
-        if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
         anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
-                if (type === 'mouseclick') console.log('checking:', elm.name, ', parent:', elm.parent ? elm.parent.name : 'None');
-                if (type === 'mouseclick') {
-                    console.log(elm.name, ': anim.time', anim.time, '/ cur_t', elm.cur_t, '/ band',
-                                elm.lband[0], elm.lband[1], '/ fits', is.defined(elm.cur_t) && elm.fits(elm.cur_t));
-                }
                 return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
-                if (type === 'mouseclick') console.log('matched:', elm.name);
                 targetFound = true;
                 var subscriber = firstSubscriber(elm, type);
                 if (type !== 'mousemove') {

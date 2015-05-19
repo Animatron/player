@@ -324,7 +324,6 @@ Element.prototype.initTime = function() {
 
 Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.__resetTimeCache = function() {
-    console.log(this.name, 'reset time');
     this.cur_t = null; // system-defined
     this.cur_rt = null; // system-defined
 
@@ -557,7 +556,6 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
-    if (ltime === 10) console.log('set ltime to 10 / ', elm.name);
     elm.cur_t  = ltime;
     elm.cur_rt = ltime / (elm.lband[1] - elm.lband[0]);
 
@@ -792,8 +790,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // these values will be set to proper values in `.modifiers` call below,
     // only if `.fits` check was passed. if not, they both should be set to `null`,
     // this means system tried to render this element, but element missed the gap
-    // (so while animation flows, elements outside of time will always reset their time).
-    if (this.name === '2') console.log('reset time for', this.name);
+    // (so while animation flows, elements outside of time will always reset their time,
+    // even if no 'bandstop' event was fired for them — this could happen with sequences
+    // of jumps in time).
     this.cur_t  = null;
     this.cur_rt = null;
 
