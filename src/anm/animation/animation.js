@@ -388,7 +388,7 @@ Animation.prototype.filterEvent = function(type, evt) {
         var targetFound = false;
         var moSubscriber = null; // mouse-out subscriber
         if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
-        anim.each(function(child) {
+        anim.each(function(child) { // iterates over
             child.inside(pos, function(elm) { // filter elements
                 if (type === 'mouseclick') console.log('checking:', elm.name, ', parent:', elm.parent ? elm.parent.name : 'None');
                 if (type === 'mouseclick') {
@@ -402,13 +402,14 @@ Animation.prototype.filterEvent = function(type, evt) {
                 if (type !== 'mousemove') {
                     if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
+
                     // check mouseover/mouseout
                     if (!anim.__lastOverElm) {
                         // mouse moved over this element first time
                         anim.__lastOverElm = elm; // not a subscriber!
                         if (subscriber) {
                             subscriber.fire('mouseover', evt);
-                            subscriber.fire(type, evt); // fire mousemove next to mouseover
+                            subscriber.fire(type, evt); // fire this mousemove next to mouseover
                         }
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
@@ -423,13 +424,15 @@ Animation.prototype.filterEvent = function(type, evt) {
                             anim.__lastOverElm = elm; // not a subscriber!
                             if (subscriber) {
                                 subscriber.fire('mouseover', evt);
-                                subscriber.fire(type, evt); // fire mousemove next to mouseover
+                                subscriber.fire(type, evt); // fire this mousemove next to mouseover
                             }
                         }
                     }
+
                 }
-                return false; /* stop iteration, so first matched element exits the check */
+                return false; /* stop inner iteration, so first matched element exits the check */
             });
+            if (targetFound) return false; /* stop outer iteration, so first matched element exits the check */
         });
         if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
