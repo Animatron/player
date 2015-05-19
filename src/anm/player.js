@@ -886,7 +886,7 @@ Player.prototype.drawAt = function(time) {
                                                              // postpone this task and exit. postponed tasks
                                                              // will be called when all remote resources were
                                                              // finished loading
-    if ((time < 0) || (time > this.anim.duration)) {
+    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.duration))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,
