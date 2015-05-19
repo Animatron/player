@@ -324,6 +324,7 @@ Element.prototype.initTime = function() {
 
 Element.prototype.resetTime = Element.prototype.initTime;
 Element.prototype.__resetTimeCache = function() {
+    console.log(this.name, 'reset time');
     this.cur_t = null; // system-defined
     this.cur_rt = null; // system-defined
 
@@ -556,6 +557,7 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
+    if (ltime === 10) console.log('set ltime to 10 / ', elm.name);
     elm.cur_t  = ltime;
     elm.cur_rt = ltime / (elm.lband[1] - elm.lband[0]);
 
@@ -786,6 +788,15 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // then global time of `22` will be converted to `ltime == 2` again, so the element will treat it just
     // exactly the same way as it treated the global time of `12`.
     var ltime = this.ltime(gtime);
+
+    // these values will be set to proper values in `.modifiers` call below,
+    // only if `.fits` check was passed. if not, they both should be set to `null`,
+    // this means system tried to render this element, but element missed the gap
+    // (so while animation flows, elements outside of time will always reset their time).
+    if (this.name === '2') console.log('reset time for', this.name);
+    this.cur_t  = null;
+    this.cur_rt = null;
+
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
@@ -1727,7 +1738,8 @@ Element.prototype.each = function(func) {
  * see {@link anm.Element#traverse .traverse} to include them, or call `.each` for
  * every child, inside the passed function. The only difference with {@link anm.Element#each .each}
  * is that `.reverseEach` literally iterates over the children in the order _reverse_ to the
- * order of their addition—this could be useful helpful you need elements with higher z-index to be checked before.
+ * order of their addition—this could be helpful when you need elements with
+ * higher z-index to be visited before.
  *
  * @param {Function} f function to call
  * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
@@ -2110,11 +2122,15 @@ Element.prototype.myBounds = function() {
  *
  * Test if a point given in global coordinate space is located inside the element's bounds
  * or one of its children/sub-children and calls given function for found elements. If function
- * explicitly returns `false`, stops the iteration and exits. Also, visits the children in
- * reverse order, so function is called first for the elements with higher z-index (it means they
- * are closer to the one watching the animation) than the ones found later: it's safe to assume
- * first found element is the top one (_not_ considering the time band, which could be filtered
- * in a corresponding function).
+ * explicitly returns `false`, stops the iteration and exits.
+ *
+ * Also, visits the children in reverse order, so function is called first for the elements
+ * with higher z-index (it means they are "closer" to the one who watches the animation)
+ * than the ones found later: it's safe to assume first found element is the top one
+ * (_not_ considering the time band, which could be filtered or not in a corresponding function).
+ *
+ * If filter returned `false` for some element, it's children won't be checked. If point is
+ * inside of some element, it's children also won't be checked.
  *
  * NB: `.inside(...)` is NOT returning the result of a test. It only calls an `fn` callback if
  * test passed.
@@ -2132,16 +2148,15 @@ Element.prototype.myBounds = function() {
  */
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
-    if (!passed_filter && !this.hasChildren()) return false /* stop the check completely */;
+    if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
     var local_pt = this.adapt(pt.x, pt.y);
-    if (passed_filter && this.myBounds().inside(local_pt)) {
+    if (this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
         if (subj && subj.inside(local_pt)) return fn(this, local_pt);
-    } else {
-        this.reverseEach(function(elm) {
-            return elm.inside(local_pt, filter, fn);
-        });
     }
+    this.reverseEach(function(elm) {
+        return elm.inside(local_pt, filter, fn);
+    });
 };
 
 /**

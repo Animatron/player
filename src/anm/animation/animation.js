@@ -178,6 +178,28 @@ Animation.prototype.each = function(visitor, data) {
 };
 
 /**
+ * @method reverseEach
+ * @chainable
+ *
+ * Visit every root element (direct Animation child) in a tree. The only difference
+ * with {@link anm.Animation#each .each} is that `.reverseEach` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEach = function(visitor, data) {
+    var i = this.tree.length;
+    while (i--) {
+        if (visitor(this.tree[i], data) === false) break;
+    }
+    return this;
+};
+
+/**
  * @method iter
  * @chainable
  *
@@ -372,27 +394,29 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
-function firstSubscriber(elm, type) {
-    return elm.firstParent(function(parent) {
-        return parent.subscribedTo(type);
-    });
-}
-
 // this function is called for any event fired for this element, just before
 // passing it to the handlers; if this function returns `true` or nothing, the event is
 // then passed to all the handlers; if it returns `false`, handlers never get this event.
 Animation.prototype.filterEvent = function(type, evt) {
+
+    function firstSubscriber(elm, type) {
+        return elm.firstParent(function(parent) {
+            return parent.subscribedTo(type);
+        });
+    }
+
     var anim = this;
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var targetFound = false;
         var moSubscriber = null; // mouse-out subscriber
         if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
-        anim.each(function(child) { // iterates over
+        anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
                 if (type === 'mouseclick') console.log('checking:', elm.name, ', parent:', elm.parent ? elm.parent.name : 'None');
                 if (type === 'mouseclick') {
-                    console.log(elm.name, ': anim.time', anim.time, '/ cur_t', elm.cur_t, '/ band', elm.lband[0], elm.lband[1], '/ fits', elm.fits(elm.cur_t));
+                    console.log(elm.name, ': anim.time', anim.time, '/ cur_t', elm.cur_t, '/ band',
+                                elm.lband[0], elm.lband[1], '/ fits', is.defined(elm.cur_t) && elm.fits(elm.cur_t));
                 }
                 return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
