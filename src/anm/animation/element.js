@@ -317,16 +317,16 @@ Element.prototype.initTime = function() {
     this.t = null; // user-defined
     this.rt = null; // user-defined
 
-    this.cur_t = null; // system-defined
-    this.cur_rt = null; // system-defined
-
-    this.__resetTimeFlags();
+    this.__resetTimeCache();
 
     return this;
 };
 
 Element.prototype.resetTime = Element.prototype.initTime;
-Element.prototype.__resetTimeFlags = function() {
+Element.prototype.__resetTimeCache = function() {
+    this.cur_t = null; // system-defined
+    this.cur_rt = null; // system-defined
+
     this.__lastJump = null; // a time of last jump in time
     this.__jumpLock = false; // set to turn off jumping in time
     this.__firedStart = false; // fired start event
@@ -762,7 +762,8 @@ Element.prototype.invTransform = function(ctx) {
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
     this.rendering = true;
-    // context is saved even before decision, if we draw or not, for safety:
+
+    // context is saved before the actual decision, if we draw or not, for safety:
     // because context anyway may be changed with user functions,
     // like modifiers who return false (and we do not want to restrict
     // user to do that)
@@ -1166,8 +1167,6 @@ Element.prototype.bounce = function(nrep) {
  */
 Element.prototype.jump = function(loc_t) {
     this.t = loc_t;
-    this.cur_t = null;
-    this.cur_rt = null;
     return this;
 };
 
@@ -1536,13 +1535,9 @@ Element.prototype.inform = function(ltime) {
         if (cmp >= 0) {
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
-                this.cur_t = null;
-                this.cur_rt = null;
-                this.traverse(function(elm) { // TODO: implement __fireDeep
+                this.traverse(function(elm) {
                     if (!elm.__firedStop) {
                         elm.fire(C.X_STOP, ltime, duration);
-                        elm.cur_t = null;
-                        elm.cur_rt = null;
                         elm.__firedStop = true;
                     }
                 });
@@ -1688,7 +1683,7 @@ Element.prototype.reset = function() {
     // if positions were set before loading a scene, we don't need to reset them
     //this.resetState();
     this.resetEvents();
-    this.__resetTimeFlags();
+    this.__resetTimeCache();
     /*this.__clearEvtState();*/
     var elm = this;
     this.forAllModifiers(function(modifier) {
@@ -2588,7 +2583,11 @@ Element.prototype.__checkJump = function(at) {
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
             // were set:
-            // save jump time and return it
+            // save jump time (so every next call to __checkJump
+            // the time value will be aligned/shifted to a value of this jump)
+            // and return it; also, all time flags are reset to null, so if t was
+            // re-assigned one more time, we'll get here again and so re-write the
+            // last jump value
             this.__lastJump = [ at, t ];
             this.p = null;
             this.t = null;
@@ -2604,8 +2603,8 @@ Element.prototype.__checkJump = function(at) {
         /* return (jump_pos + (t - jumped_at)) */
         return (is.finite(this.__lastJump[1]) ?
             this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
-       // overflow will be checked in fits() method,
-       // or recalculated with loop/bounce mode
+       // overflow will be checked later (during render process)
+       // in fits() method, or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
        // it will be just ended there
        /* return ((this.__lastJump + t) > this.gband[1])
@@ -2620,6 +2619,7 @@ Element.prototype.filterEvent = function(type, evt) {
       if (this.shown) {
           this.__saveEvt(type, evt);
       } else {
+          if (type === C.X_STOP) this.__resetTimeCache();
           return false;
       }
     }
