@@ -25,7 +25,7 @@ function PlayerManager() {
 
 events.provideEvents(PlayerManager, [ C.S_NEW_PLAYER, C.S_PLAYER_DETACH ]);
 
-PlayerManager.prototype.handle__x = function(evt, player) {
+PlayerManager.prototype.filterEvent = function(evt, player) {
     if (evt == C.S_NEW_PLAYER) {
         this.hash[player.id] = player;
         this.instances.push(player);

@@ -1704,8 +1704,9 @@ Element.prototype.reset = function() {
  * @method each
  * @chainable
  *
- * Iterate over element's children with given function. No sub-children though,
- * see {@link anm.Element#traverse .traverse} for it.
+ * Iterate over element's children with given function. No sub-children, though,
+ * see {@link anm.Element#traverse .traverse} to include them, or call `.each` for
+ * every child, inside the passed function.
  *
  * @param {Function} f function to call
  * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
@@ -1721,6 +1722,51 @@ Element.prototype.each = function(func) {
     }
     this.__unsafeToRemove = false;
     return this;
+};
+
+/**
+ * @method reverseEach
+ * @chainable
+ *
+ * Iterate over element's children with given function. No sub-children, though,
+ * see {@link anm.Element#traverse .traverse} to include them, or call `.each` for
+ * every child, inside the passed function. The only difference with {@link anm.Element#each .each}
+ * is that `.reverseEach` literally iterates over the children in the order _reverse_ to the
+ * order of their addition—this could be useful helpful you need elements with higher z-index to be checked before.
+ *
+ * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {anm.Element} f.elm child element
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.reverseEach = function(func) {
+    var children = this.children;
+    this.__unsafeToRemove = true;
+    var ei = children.length;
+    while (ei--) {
+        if (func(children[ei]) === false) break;
+    }
+    this.__unsafeToRemove = false;
+    return this;
+};
+
+/**
+ * @method firstParent
+ *
+ * Find first parent which satisfies the filter. Starts with the element itself.
+ *
+ * @param {Function} filter filter to call
+ * @param {anm.Element} filter.element parent element
+ * @param {Boolean} filter.return if `false` was returned, keeps going to the top; if `true` was returned, returns matched element
+ *
+ * @return {anm.Element} matched parent or `null`, if no element was found
+ */
+Element.prototype.firstParent = function(filter) {
+    if (filter(this)) return this;
+    var p = this.parent;
+    while (p && !filter(p)) p = p.parent;
+    return p;
 };
 
 /**
@@ -2068,7 +2114,12 @@ Element.prototype.myBounds = function() {
  * @method inside
  *
  * Test if a point given in global coordinate space is located inside the element's bounds
- * or one of its children and calls given function for found elements.
+ * or one of its children/sub-children and calls given function for found elements. If function
+ * explicitly returns `false`, stops the iteration and exits. Also, visits the children in
+ * reverse order, so function is called first for the elements with higher z-index (it means they
+ * are closer to the one watching the animation) than the ones found later: it's safe to assume
+ * first found element is the top one (_not_ considering the time band, which could be filtered
+ * in a corresponding function).
  *
  * NB: `.inside(...)` is NOT returning the result of a test. It only calls an `fn` callback if
  * test passed.
@@ -2076,24 +2127,24 @@ Element.prototype.myBounds = function() {
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
+ * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
+ * @param {anm.Element} filter.elm element to check
+ * @param {Boolean} filter.return return `true` if this element should be checked, `false` if not
  * @param {Function} fn function to call for matched elements
  * @param {anm.Element} fn.elm element matched with the point
  * @param {Number} fn.pt point adapted to child coordinate space
  * @param {Boolean} fn.return return nothing or `true`, if iteration should keep going, return `false` if it should exit
- * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
- * @param {anm.Element} filter.elm element to check
- * @param {Boolean} filter.return return `true` if this element should be checked, `false` if not
  */
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
-    if (!passed_filter && !this.hasChildren()) return;
+    if (!passed_filter && !this.hasChildren()) return false /* stop the check completely */;
     var local_pt = this.adapt(pt.x, pt.y);
     if (passed_filter && this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
         if (subj && subj.inside(local_pt)) return fn(this, local_pt);
     } else {
-        this.each(function(elm) {
-            elm.inside(local_pt, filter, fn);
+        this.reverseEach(function(elm) {
+            return elm.inside(local_pt, filter, fn);
         });
     }
 };
@@ -2563,7 +2614,7 @@ Element.prototype.__checkJump = function(at) {
     }
     return t;
 }
-Element.prototype.handle__x = function(type, evt) {
+Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
         (type != C.X_STOP)) {
       if (this.shown) {

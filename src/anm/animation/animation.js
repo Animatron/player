@@ -372,11 +372,21 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
-Animation.prototype.handle__x = function(type, evt) {
+function firstSubscriber(elm, type) {
+    return elm.firstParent(function(parent) {
+        return parent.subscribedTo(type);
+    });
+}
+
+// this function is called for any event fired for this element, just before
+// passing it to the handlers; if this function returns `true` or nothing, the event is
+// then passed to all the handlers; if it returns `false`, handlers never get this event.
+Animation.prototype.filterEvent = function(type, evt) {
     var anim = this;
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
-        var foundTarget = false;
+        var targetFound = false;
+        var moSubscriber = null; // mouse-out subscriber
         if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
         anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
@@ -387,36 +397,46 @@ Animation.prototype.handle__x = function(type, evt) {
                 return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
                 if (type === 'mouseclick') console.log('matched:', elm.name);
-                foundTarget = true;
+                targetFound = true;
+                var subscriber = firstSubscriber(elm, type);
                 if (type !== 'mousemove') {
-                    elm.fire(type, evt);
+                    if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
                     // check mouseover/mouseout
                     if (!anim.__lastOverElm) {
                         // mouse moved over this element first time
-                        anim.__lastOverElm = elm;
-                        elm.fire('mouseover', evt);
-                        elm.fire(type, evt);
+                        anim.__lastOverElm = elm; // not a subscriber!
+                        if (subscriber) {
+                            subscriber.fire('mouseover', evt);
+                            subscriber.fire(type, evt); // fire mousemove next to mouseover
+                        }
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            elm.fire(type, evt);
+                            if (subscriber) subscriber.fire(type, evt);
                         } else {
                             // mouse moved over new element
-                            anim.__lastOverElm.fire('mouseout', evt);
-                            anim.__lastOverElm = elm;
-                            elm.fire('mouseover', evt);
-                            elm.fire(type, evt);
+                            if (anim.__lastOverElm) {
+                                if (moSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout')) {
+                                    moSubscriber.fire('mouseout', evt);
+                                }
+                            }
+                            anim.__lastOverElm = elm; // not a subscriber!
+                            if (subscriber) {
+                                subscriber.fire('mouseover', evt);
+                                subscriber.fire(type, evt); // fire mousemove next to mouseover
+                            }
                         }
                     }
                 }
                 return false; /* stop iteration, so first matched element exits the check */
             });
         });
-        if ((type === 'mousemove') && !foundTarget &&
-            anim.__lastOverElm && anim.__lastOverElm.subscribedTo('mouseout')) {
+        if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
             anim.__lastOverElm.inside(pos, function() { stillInside = true; });
-            if (!stillInside) anim.__lastOverElm.fire('mouseout', evt);
+            if (!stillInside && (moSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout'))) {
+                moSubscriber.fire('mouseout', evt);
+            }
         }
         return false; /* stop passing this event further to other handlers */
     }
