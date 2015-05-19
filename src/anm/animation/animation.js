@@ -411,7 +411,7 @@ Animation.prototype.filterEvent = function(type, evt) {
         var targetFound = false;
         var moSubscriber = null; // mouse-out subscriber
         if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
-        anim.each(function(child) {
+        anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
                 if (type === 'mouseclick') console.log('checking:', elm.name, ', parent:', elm.parent ? elm.parent.name : 'None');
                 if (type === 'mouseclick') {
