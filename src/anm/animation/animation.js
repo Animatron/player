@@ -254,9 +254,6 @@ Animation.prototype.render = function(ctx, time, dt) {
  * @param {Number} time
  */
 Animation.prototype.jump = function(t) {
-    // this.traverse(function(elm) {
-    //     elm.resetTime();
-    // });
     if (this.jumping) return;
     this.jumping = true;
     utils.keys(this.targets, function(id, player) {
@@ -306,6 +303,7 @@ Animation.prototype.getFittingDuration = function() {
  */
 Animation.prototype.reset = function() {
     this.__informEnabled = true;
+    this.time = null;
     this.each(function(child) {
         child.reset();
     });
@@ -410,6 +408,7 @@ Animation.prototype.filterEvent = function(type, evt) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var targetFound = false;
         var moSubscriber = null; // mouse-out subscriber
+        var clickEvent = (type === 'mouseclick') || (type === 'mousedoubleclick');
         anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
                 return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
@@ -419,7 +418,6 @@ Animation.prototype.filterEvent = function(type, evt) {
                 if (type !== 'mousemove') {
                     if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
-
                     // check mouseover/mouseout
                     if (!anim.__lastOverElm) {
                         // mouse moved over this element first time
@@ -447,9 +445,9 @@ Animation.prototype.filterEvent = function(type, evt) {
                     }
 
                 }
-                return false; /* stop inner iteration, so first matched element exits the check */
+                if (clickEvent) return false; /* stop inner iteration, so first matched element exits the check */
             });
-            if (targetFound) return false; /* stop outer iteration, so first matched element exits the check */
+            if (targetFound && clickEvent) return false; /* stop outer iteration, so first matched element exits the check */
         });
         if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
