@@ -151,10 +151,11 @@ Animation.prototype.remove = function(elm) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.element
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { visitor(elm, data); });
+    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
     return this;
 };
 
@@ -166,11 +167,12 @@ Animation.prototype.traverse = function(visitor, data) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        visitor(this.tree[i], data);
+        if (visitor(this.tree[i], data) === false) break;
     }
     return this;
 };
@@ -183,7 +185,10 @@ Animation.prototype.each = function(visitor, data) {
  *
  * @param {Function} iterator
  * @param {anm.Element} iterator.child
- * @param {Boolean} iterator.return `false`, if this element should be removed
+ * @param {Boolean} iterator.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Function} [remover]
+ * @param {anm.Element} remover.child
+ * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
@@ -221,7 +226,8 @@ Animation.prototype.render = function(ctx, time, dt) {
  * @method jump
  *
  * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
- * every Player where this animation was loaded inside.
+ * every Player where this animation was loaded inside. It will skip a jump, if it's already in process
+ * of jumping.
  *
  * @param {Number} time
  */
@@ -229,16 +235,20 @@ Animation.prototype.jump = function(t) {
     // this.traverse(function(elm) {
     //     elm.resetTime();
     // });
+    if (this.jumping) return;
+    this.jumping = true;
     utils.keys(this.targets, function(id, player) {
         if (player) player.seek(t);
     });
+    this.jumping = false;
 };
 
 /**
  * @method jumpTo
  *
  * Jump to the given start time of the element given or found with passed selector (uses
- * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it's already in process
+ * of jumping.
  *
  * @param {String|anm.Element} selector
  */
@@ -367,11 +377,17 @@ Animation.prototype.handle__x = function(type, evt) {
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var foundTarget = false;
+        if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
         anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
+                if (type === 'mouseclick') console.log('checking:', elm.name);
+                if ((type === 'mouseclick') && elm.subscribedTo(type)) {
+                    console.log(elm.name, ': anim.time', anim.time, '/ cur_t', elm.cur_t, '/ fits', elm.fits(elm.cur_t));
+                }
                 return elm.subscribedTo(type) &&
                        is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
+                if (type === 'mouseclick') console.log('matched:', elm.name);
                 foundTarget = true;
                 if (type !== 'mousemove') {
                     elm.fire(type, evt);
@@ -394,6 +410,7 @@ Animation.prototype.handle__x = function(type, evt) {
                         }
                     }
                 }
+                return false; /* stop iteration, so first matched element exits the check */
             });
         });
         if ((type === 'mousemove') && !foundTarget &&
@@ -402,9 +419,9 @@ Animation.prototype.handle__x = function(type, evt) {
             anim.__lastOverElm.inside(pos, function() { stillInside = true; });
             if (!stillInside) anim.__lastOverElm.fire('mouseout', evt);
         }
-        return false;
+        return false; /* stop passing this event further to other handlers */
     }
-    return true;
+    return true; /* keep passing this event further to other handlers */
 };
 
 /**

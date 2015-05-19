@@ -1708,6 +1708,7 @@ Element.prototype.reset = function() {
  * see {@link anm.Element#traverse .traverse} for it.
  *
  * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {anm.Element} f.elm child element
  *
  * @return {anm.Element} itself
@@ -1716,7 +1717,7 @@ Element.prototype.each = function(func) {
     var children = this.children;
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
-        func(children[ei]);
+        if (func(children[ei]) === false) break;
     }
     this.__unsafeToRemove = false;
     return this;
@@ -1731,6 +1732,7 @@ Element.prototype.each = function(func) {
  * only element's own children).
  *
  * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {anm.Element} f.elm child element
  *
  * @return {anm.Element} itself
@@ -1740,7 +1742,7 @@ Element.prototype.traverse = function(func) {
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         var elem = children[ei];
-        func(elem);
+        if (func(elem) === false) break;
         elem.traverse(func);
     }
     this.__unsafeToRemove = false;
@@ -2066,7 +2068,11 @@ Element.prototype.myBounds = function() {
  * @method inside
  *
  * Test if a point given in global coordinate space is located inside the element's bounds
- * or one of its children and calls given function for found elements
+ * or one of its children and calls given function for found elements.
+ *
+ * NB: Do NOT consider `.inside(...)`'s returned value as a positive result of the test for a
+ * point position—in case of positive check, `fn` is called. Return value of this function is
+ * has a special purpose for iteration.
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
@@ -2074,19 +2080,22 @@ Element.prototype.myBounds = function() {
  * @param {Function} fn function to call for matched elements
  * @param {anm.Element} fn.elm element matched with the point
  * @param {Number} fn.pt point adapted to child coordinate space
+ * @param {Boolean} fn.return return nothing or `true`, if iteration should keep going, return `false` if it should exit
  * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
  * @param {anm.Element} filter.elm element to check
+ * @param {Boolean} filter.return return `true` if this element should be checked, `false` if not
+ * @return {Boolean} _DO NOT USE_, see notice above for explanation :)
  */
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
-    if (!passed_filter && !this.hasChildren()) return;
+    if (!passed_filter && !this.hasChildren()) return /* continue */;
     var local_pt = this.adapt(pt.x, pt.y);
     if (passed_filter && this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        if (subj && subj.inside(local_pt)) fn(this, local_pt);
+        if (subj && subj.inside(local_pt)) return fn(this, local_pt);
     } else {
         this.each(function(elm) {
-            elm.inside(local_pt, filter, fn);
+            return elm.inside(local_pt, filter, fn);
         });
     }
 };
