@@ -97,7 +97,6 @@ var $DE = {};
 // mouseEvent(evt, canvas) -> Event//
 // preventDefault(evt) -> none
 
-// createStyle() -> Element
 // createStatImg() -> Image
 
 // canvasSupported -> bool
@@ -261,7 +260,7 @@ $DE.styling = {
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
-    var stylesTag = $DE.createStyle();
+    var stylesTag = document.createElement('style');
 
     // TODO: inject as first element?
     var head = $doc.getElementsByTagName("head")[0];
@@ -961,9 +960,16 @@ $DE.createStatImg = function() {
     return img;
 };
 
-$DE.createStyle = function() {
-    var style = $doc.createElement('style');
+$DE.getWebfontStyleObject = function() {
+    var style = document.getElementById('anm-webfonts');
+    if (style) {
+        return style;
+    }
+    style = $doc.createElement('style');
     style.type = 'text/css';
+    style.id = 'anm-webfonts';
+    style.innerHTML = '';
+    document.body.appendChild(style);
     return style;
 };
 
