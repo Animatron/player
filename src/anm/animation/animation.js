@@ -380,12 +380,11 @@ Animation.prototype.handle__x = function(type, evt) {
         if (type === 'mouseclick') console.log(':::: start checking for click at ', pos.x, pos.y);
         anim.each(function(child) {
             child.inside(pos, function(elm) { // filter elements
-                if (type === 'mouseclick') console.log('checking:', elm.name);
-                if ((type === 'mouseclick') && elm.subscribedTo(type)) {
-                    console.log(elm.name, ': anim.time', anim.time, '/ cur_t', elm.cur_t, '/ fits', elm.fits(elm.cur_t));
+                if (type === 'mouseclick') console.log('checking:', elm.name, ', parent:', elm.parent ? elm.parent.name : 'None');
+                if (type === 'mouseclick') {
+                    console.log(elm.name, ': anim.time', anim.time, '/ cur_t', elm.cur_t, '/ band', elm.lband[0], elm.lband[1], '/ fits', elm.fits(elm.cur_t));
                 }
-                return elm.subscribedTo(type) &&
-                       is.defined(elm.cur_t) && elm.fits(elm.cur_t);
+                return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
                 if (type === 'mouseclick') console.log('matched:', elm.name);
                 foundTarget = true;
