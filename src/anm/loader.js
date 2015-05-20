@@ -84,7 +84,7 @@ Loader.loadElements = function(player, elms, callback) {
 var optsFromUrlParams = function(params/* as object */) {
     function __boolParam(val) {
         if (!val) return false;
-        if (val === 0) return false;
+        if (val === 0 || val == '0') return false;
         if (val == 1) return true;
         if (val == 'false') return false;
         if (val == 'true') return true;
