@@ -50,6 +50,7 @@
     "aws-sdk": "latest",
     "google-closure-compiler": "latest",
     "browserify": "latest",
+    "proxyquire": "latest",
     "jasmine": "latest"
   },
   "optionalDependencies": {
