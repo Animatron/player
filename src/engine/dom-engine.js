@@ -261,16 +261,15 @@ $DE.styling = {
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
-    var stylesTag = $DE.createStyle();
+    var stylesTag = $doc.getElementById('anm-player-styles');
+    if (!stylesTag) {
+        $DE.createStyle();
+        stylesTag.id = 'anm-player-styles';
+        // TODO: inject as first element?
+        var head = $doc.getElementsByTagName("head")[0];
+        head.appendChild(stylesTag);
 
-    // TODO: inject as first element?
-    var head = $doc.getElementsByTagName("head")[0];
-    if (!head) throw new Error('anm.Player requires <head> tag to exist in the document to inject CSS there');
-    head.appendChild(stylesTag);
-    // TODO: inject as first element?
-    // var head = $doc.getElementsByTagName("head")[0];
-    // head.insertBefore(stylesTag, head.firstChild);
-
+    }
     $DE.__stylesTag = stylesTag;
 };
 
@@ -445,7 +444,7 @@ $DE.createCanvas = function(width, height, bg, ratio) {
 };
 
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
-    if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
+    if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exist.');
 
     if (anm.utils.is.str(wrapper)) {
         wrapper = $doc.getElementById(wrapper);
