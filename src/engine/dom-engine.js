@@ -263,7 +263,7 @@ $DE.ensureGlobalStylesInjected = function() {
     //if (!($doc.readyState === "complete")) return;
     var stylesTag = $doc.getElementById('anm-player-styles');
     if (!stylesTag) {
-        $DE.createStyle();
+        stylesTag = $DE.createStyle();
         stylesTag.id = 'anm-player-styles';
         // TODO: inject as first element?
         var head = $doc.getElementsByTagName("head")[0];
