@@ -230,48 +230,45 @@ $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 $DE.INFO_CLASS = 'anm-controls';
 $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 
-$DE.styling = {
-    wrapperGeneral: function(rule) {
-        rule.style.position = 'relative';
-    },
-    wrapperInstance: function(rule) { },
-    playerGeneral: function(rule) { },
-    playerInstance: function(rule, desc) { },
-    controlsGeneral: function(rule) {
-        rule.style.position = 'absolute';
-        rule.style.left = 0;
-        rule.style.top = 0;
-        rule.style.verticalAlign = 'top';
-        rule.style.zIndex = 100;
-        rule.style.cursor = 'pointer';
-        rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-    },
-    controlsInstance: function(rule, desc) { },
-    infoGeneral: function(rule) {
-        rule.style.position = 'relative';
-        rule.style.verticalAlign = 'top';
-        rule.style.zIndex = 110;
-        rule.style.cursor = 'pointer';
-        rule.style.backgroundColor = 'rgba(0, 0, 0, 0)';
-        rule.style.opacity = 1;
-    },
-    infoInstance: function(rule, desc) { }
-};
+$DE.WRAPPER_CSS = '{ position: relative; }';
+
+$DE.CONTROLS_CSS = '{ ' +
+    'position: absolute;' +
+    'left: 0;' +
+    'top: 0;' +
+    'vertical-align: top;' +
+    'z-index: 100;' +
+    'cursor: pointer;' +
+    'background-color: rgba(0,0,0,0);' +
+    ' }';
 
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === "complete")) return;
-    var stylesTag = $DE.createStyle();
+    var stylesTag = $doc.getElementById('anm-player-styles');
+    if (!stylesTag) {
+        stylesTag = $DE.createStyle();
+        stylesTag.id = 'anm-player-styles';
+        // TODO: inject as first element?
+        var head = $doc.getElementsByTagName("head")[0];
+        head.appendChild(stylesTag);
 
-    // TODO: inject as first element?
-    var head = $doc.getElementsByTagName("head")[0];
-    if (!head) throw new Error('anm.Player requires <head> tag to exist in the document to inject CSS there');
-    head.appendChild(stylesTag);
-    // TODO: inject as first element?
-    // var head = $doc.getElementsByTagName("head")[0];
-    // head.insertBefore(stylesTag, head.firstChild);
-
+    }
     $DE.__stylesTag = stylesTag;
+    $DE.addGeneralStyles();
+};
+
+$DE.addGeneralStyles = function() {
+    var styles = $DE.__stylesTag.sheet,
+        rules = styles.cssRules || styles.rules;
+    var insertRule = function(rule) {
+        (styles.insertRule || styles.addRule).call(styles, rule, rules.length);
+    };
+
+    var wrapperRule = '.' + $DE.WRAPPER_CLASS + $DE.WRAPPER_CSS;
+    insertRule(wrapperRule);
+    var controlsRule = '.' + $DE.CONTROLS_CLASS + $DE.CONTROLS_CSS;
+    insertRule(controlsRule);
 };
 
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
@@ -288,27 +285,21 @@ $DE.injectElementStyles = function(elm, general_class, instance_class) {
     var props = $DE.getAnmProps(elm);
     props.gen_class  = general_class;
     props.inst_class = instance_class;
-    var general_rule_idx  = (styles.insertRule || styles.addRule).call(styles, '.' +general_class + '{}', rules.length),
-        instance_rule_idx = (styles.insertRule || styles.addRule).call(styles, '.' +instance_class + '{}', rules.length);
-    var elm_rules = [ rules[general_rule_idx],
-                      rules[instance_rule_idx] ];
-    props.gen_rule  = elm_rules[0];
-    props.inst_rule = elm_rules[1];
-    return elm_rules;
 };
 
-$DE.__textBuf = null;
+$DE.__textBuf = $doc.getElementById('anm-text-measurer');
 $DE.createTextMeasurer = function() {
     var buff = $DE.__textBuf;
     if (!buff) {
-        /* FIXME: dispose buffer when text is removed from animation */
         $DE.onDocReady(function(){
           var div = $doc.createElement('div');
           var span = $doc.createElement('span');
+          span.id = 'anm-text-measurer';
           div.style.visibility = 'hidden';
           div.style.position = 'absolute';
           div.style.top = -10000 + 'px';
           div.style.left = -10000 + 'px';
+          div.id = 'anm-text-measurer-container';
           div.appendChild(span);
           $doc.body.appendChild(div);
           $DE.__textBuf = span;
@@ -421,13 +412,11 @@ $DE.detachElement = function(parent, child) {
 };
 
 $DE.showElement = function(elm) {
-    var props = $DE.hasAnmProps(elm);
-    ((props && props.inst_rule) || elm).style.visibility = 'visible';
+    elm.style.visibility = 'visible';
 };
 
 $DE.hideElement = function(elm) {
-    var props = $DE.hasAnmProps(elm);
-    ((props && props.inst_rule) || elm).style.visibility = 'hidden';
+    elm.style.visibility = 'hidden';
 };
 
 $DE.clearChildren = function(elm) {
@@ -445,7 +434,7 @@ $DE.createCanvas = function(width, height, bg, ratio) {
 };
 
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
-    if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exists.');
+    if (!wrapper) throw new Error('Element passed to anm.Player initializer does not exist.');
 
     if (anm.utils.is.str(wrapper)) {
         wrapper = $doc.getElementById(wrapper);
@@ -493,17 +482,12 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     $DE.ensureGlobalStylesInjected();
 
-    var wrapper_rules = $DE.injectElementStyles(wrapper,
-                                                $DE.WRAPPER_CLASS,
-                                                $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
-    var cvs_rules = $DE.injectElementStyles(canvas,
-                                            $DE.PLAYER_CLASS,
-                                            $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
-
-    $DE.styling.playerGeneral(cvs_rules[0]);
-    $DE.styling.playerInstance(cvs_rules[1]);
-    $DE.styling.wrapperGeneral(wrapper_rules[0]);
-    $DE.styling.wrapperInstance(wrapper_rules[1]);
+    $DE.injectElementStyles(wrapper,
+        $DE.WRAPPER_CLASS,
+        $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
+    $DE.injectElementStyles(canvas,
+        $DE.PLAYER_CLASS,
+        $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || 'no-id'));
 
     $DE.subscribeWrapperToStateChanges(wrapper, player);
 
@@ -535,23 +519,6 @@ $DE.getAnmProps = function(elm) {
 
 $DE.clearAnmProps = function(elm) {
     if (!elm || !elm.__anm) return;
-    var __anm = elm.__anm;
-    if (__anm.gen_class && __anm.inst_class) {
-        var styles = $DE.__stylesTag.sheet,
-            rules = styles.cssRules || styles.rules;
-        var to_remove = [];
-        for (var i = 0, il = rules.length; i < il; i++) {
-            if ((rules[i].selectorText == '.' + __anm.gen_class) ||
-                (rules[i].selectorText == '.' + __anm.inst_class)) {
-                to_remove.push(i); // not to conflict while iterating
-            }
-        }
-        while (to_remove.length) { // remove from the end for safety
-            (styles.deleteRule || styles.removeRule).call(styles, to_remove.pop());
-        }
-    }
-    if (__anm.gen_class  && elm.classList) elm.classList.remove(__anm.gen_class);
-    if (__anm.inst_class && elm.classList) elm.classList.remove(__anm.inst_class);
     delete elm.__anm;
 };
 
@@ -701,8 +668,8 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     props.ratio = ratio;
     props.width = _w;
     props.height = _h;
-    if (!cvs.style.width) { (props.inst_rule || cvs).style.width  = _w + 'px'; }
-    if (!cvs.style.height) { (props.inst_rule || cvs).style.height = _h + 'px'; }
+    cvs.style.width  = _w + 'px';
+    cvs.style.height = _h + 'px';
     cvs.setAttribute('width', _w * (ratio || 1));
     cvs.setAttribute('height', _h * (ratio || 1));
     $DE._saveCanvasPos(cvs);
@@ -718,7 +685,7 @@ $DE.setCanvasPosition = function(cvs, x, y) {
 };
 
 $DE.setCanvasBackground = function(cvs, bg) {
-    ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
+    cvs.style.backgroundColor = bg;
 };
 
 $DE._saveCanvasPos = function(cvs) {
@@ -772,8 +739,8 @@ $DE.setWrapperSize = function(wrapper, width, height) {
     var props = $DE.getAnmProps(wrapper);
     props.width = _w;
     props.height = _h;
-    if (!wrapper.style.width) { (props.inst_rule || wrapper).style.width  = _w + 'px'; }
-    if (!wrapper.style.height) { (props.inst_rule || wrapper).style.height = _h + 'px'; }
+    wrapper.style.width  = _w + 'px'; 
+    wrapper.style.height = _h + 'px';
     return [ _w, _h ];
 };
 
@@ -824,19 +791,15 @@ $DE.updateOverlay = function(player_cvs, overlay, p_props) {
 // Controls & Info
 
 $DE.registerAsControlsElement = function(elm, player) {
-    var rules = $DE.injectElementStyles(elm,
-                                $DE.CONTROLS_CLASS,
-                                $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
-    $DE.styling.controlsGeneral(rules[0]);
-    $DE.styling.controlsInstance(rules[1]);
+    $DE.injectElementStyles(elm,
+        $DE.CONTROLS_CLASS,
+        $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
 };
 
 $DE.registerAsInfoElement = function(elm, player) {
-    var rules = $DE.injectElementStyles(elm,
-                                $DE.INFO_CLASS,
-                                $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
-    $DE.styling.infoGeneral(rules[0]);
-    $DE.styling.infoInstance(rules[1]);
+    $DE.injectElementStyles(elm,
+        $DE.INFO_CLASS,
+        $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || 'no-id'));
 };
 
 // Events
@@ -852,13 +815,13 @@ $DE.subscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
         elm.addEventListener(type, handlers[type], false);
     }
-}
+};
 
 $DE.unsubscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
         elm.removeEventListener(type, handlers[type], false);
     }
-}
+};
 
 $DE.subscribeWindowEvents = function(handlers) {
     $DE.subscribeElementEvents($win, handlers);
