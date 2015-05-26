@@ -293,7 +293,7 @@ Import.branch = function(type, src, all, anim) {
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.tween == C.T_TRANSLATE) {
+                if (t.tween_type === C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
@@ -302,7 +302,7 @@ Import.branch = function(type, src, all, anim) {
             if (translates && (flags & L_ROT_TO_PATH)) {
                 var rtp_tween;
                 for (ti = 0, til = translates.length; ti < til; ti++) {
-                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    rtp_tween = Tween[C.T_ROT_TO_PATH]();
                     if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
                     if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
                     ltrg.tween(rtp_tween);
