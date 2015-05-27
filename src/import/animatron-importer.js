@@ -640,7 +640,7 @@ Import.sheet = function(src) {
 // -> Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
-    if (type === null) return null;
+    if (!type) return null; // type is a string
     var tween = Tween[type](Import.tweendata(type, src[3]))
                            .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
