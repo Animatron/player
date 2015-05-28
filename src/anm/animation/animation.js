@@ -151,10 +151,11 @@ Animation.prototype.remove = function(elm) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.element
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { visitor(elm, data); });
+    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
     return this;
 };
 
@@ -166,11 +167,34 @@ Animation.prototype.traverse = function(visitor, data) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        visitor(this.tree[i], data);
+        if (visitor(this.tree[i], data) === false) break;
+    }
+    return this;
+};
+
+/**
+ * @method reverseEach
+ * @chainable
+ *
+ * Visit every root element (direct Animation child) in a tree. The only difference
+ * with {@link anm.Animation#each .each} is that `.reverseEach` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEach = function(visitor, data) {
+    var i = this.tree.length;
+    while (i--) {
+        if (visitor(this.tree[i], data) === false) break;
     }
     return this;
 };
@@ -183,7 +207,10 @@ Animation.prototype.each = function(visitor, data) {
  *
  * @param {Function} iterator
  * @param {anm.Element} iterator.child
- * @param {Boolean} iterator.return `false`, if this element should be removed
+ * @param {Boolean} iterator.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Function} [remover]
+ * @param {anm.Element} remover.child
+ * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
@@ -201,6 +228,7 @@ Animation.prototype.iter = function(func, rfunc) {
  */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
+    this.time = time;
     var zoom = this.zoom;
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -220,21 +248,26 @@ Animation.prototype.render = function(ctx, time, dt) {
  * @method jump
  *
  * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
- * every Player where this animation was loaded inside.
+ * every Player where this animation was loaded inside. It will skip a jump, if it's already in process
+ * of jumping.
  *
  * @param {Number} time
  */
 Animation.prototype.jump = function(t) {
+    if (this.jumping) return;
+    this.jumping = true;
     utils.keys(this.targets, function(id, player) {
         if (player) player.seek(t);
     });
+    this.jumping = false;
 };
 
 /**
  * @method jumpTo
  *
  * Jump to the given start time of the element given or found with passed selector (uses
- * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it's already in process
+ * of jumping.
  *
  * @param {String|anm.Element} selector
  */
@@ -270,6 +303,7 @@ Animation.prototype.getFittingDuration = function() {
  */
 Animation.prototype.reset = function() {
     this.__informEnabled = true;
+    this.time = null;
     this.each(function(child) {
         child.reset();
     });
@@ -358,48 +392,73 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
-Animation.prototype.handle__x = function(type, evt) {
+// this function is called for any event fired for this element, just before
+// passing it to the handlers; if this function returns `true` or nothing, the event is
+// then passed to all the handlers; if it returns `false`, handlers never get this event.
+Animation.prototype.filterEvent = function(type, evt) {
+
+    function firstSubscriber(elm, type) {
+        return elm.firstParent(function(parent) {
+            return parent.subscribedTo(type);
+        });
+    }
+
     var anim = this;
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
-        var foundTarget = false;
-        anim.each(function(child) {
+        var targetFound = false;
+        var moSubscriber = null; // mouse-out subscriber
+        var clickEvent = (type === 'mouseclick') || (type === 'mousedoubleclick');
+        anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
-                return elm.subscribedTo(type);
+                return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
-                foundTarget = true;
+                targetFound = true;
+                var subscriber = firstSubscriber(elm, type);
                 if (type !== 'mousemove') {
-                    elm.fire(type, evt);
+                    if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
                     // check mouseover/mouseout
                     if (!anim.__lastOverElm) {
                         // mouse moved over this element first time
-                        anim.__lastOverElm = elm;
-                        elm.fire('mouseover', evt);
-                        elm.fire(type, evt);
+                        anim.__lastOverElm = elm; // not a subscriber!
+                        if (subscriber) {
+                            subscriber.fire('mouseover', evt);
+                            subscriber.fire(type, evt); // fire this mousemove next to mouseover
+                        }
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            elm.fire(type, evt);
+                            if (subscriber) subscriber.fire(type, evt);
                         } else {
                             // mouse moved over new element
-                            anim.__lastOverElm.fire('mouseout', evt);
-                            anim.__lastOverElm = elm;
-                            elm.fire('mouseover', evt);
-                            elm.fire(type, evt);
+                            if (anim.__lastOverElm) {
+                                if (moSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout')) {
+                                    moSubscriber.fire('mouseout', evt);
+                                }
+                            }
+                            anim.__lastOverElm = elm; // not a subscriber!
+                            if (subscriber) {
+                                subscriber.fire('mouseover', evt);
+                                subscriber.fire(type, evt); // fire this mousemove next to mouseover
+                            }
                         }
                     }
+
                 }
+                if (clickEvent) return false; /* stop inner iteration, so first matched element exits the check */
             });
+            if (targetFound && clickEvent) return false; /* stop outer iteration, so first matched element exits the check */
         });
-        if ((type === 'mousemove') && !foundTarget &&
-            anim.__lastOverElm && anim.__lastOverElm.subscribedTo('mouseout')) {
+        if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
             anim.__lastOverElm.inside(pos, function() { stillInside = true; });
-            if (!stillInside) anim.__lastOverElm.fire('mouseout', evt);
+            if (!stillInside && (moSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout'))) {
+                moSubscriber.fire('mouseout', evt);
+            }
         }
-        return false;
+        return false; /* stop passing this event further to other handlers */
     }
-    return true;
+    return true; /* keep passing this event further to other handlers */
 };
 
 /**

@@ -114,9 +114,13 @@ function keys(obj, f) {
     // TODO: grep -r ./src -e "var .* in" -> use everywhere?
     if (Object.keys) {
         var ids = Object.keys(obj);
-        for (var i = 0; i < ids.length; i++) f(ids[i], obj[ids[i]]);
+        for (var i = 0; i < ids.length; i++) {
+            if (f(ids[i], obj[ids[i]]) === false) break;
+        }
     } else {
-        for (var id in obj) f(id, obj[id]);
+        for (var id in obj) {
+            if (f(id, obj[id]) === false) break;
+        };
     }
 }
 

@@ -45,7 +45,7 @@ function provideEvents(subj, events) {
         if (!this.handlers) throw errors.system('Instance is not initialized with handlers, call __initHandlers in its constructor');
         if (!this.provides(event)) throw errors.system('Event \'' + event +
                                                  '\' is not provided by ' + this);
-        if (this.handle__x && !(this.handle__x.apply(this, arguments))) return;
+        if (this.filterEvent && !(this.filterEvent.apply(this, arguments))) return;
         if (this['handle_'+event] || this.handlers[event].length) {
             var evt_args = new Array(arguments.length - 1);
             for (var i = 1; i < arguments.length; i++) {
