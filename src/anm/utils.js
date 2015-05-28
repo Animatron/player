@@ -205,30 +205,30 @@ function guid() {
           Math.random().toString(36).substring(2, 10);
 }
 
-function fit_rects(pw, ph, aw, ah) {
-    // pw == player width, ph == player height
-    // aw == anim width,   ah == anim height
-    var xw = pw / aw,
-        xh = ph / ah;
+function fit_rects(ow, oh, iw, ih) {
+    // ow == outer width, oh == outer height
+    // iw == inner width, ih == inner height
+    var xw = ow / iw,
+        xh = oh / ih;
     var factor = Math.min(xw, xh);
-    var hcoord = Math.floor((pw - aw * factor) / 2),
-        vcoord = Math.floor((ph - ah * factor) / 2),
-        awf = Math.round(aw * factor),
-        ahf = Math.round(ah * factor);
+    var hcoord = Math.floor((ow - iw * factor) / 2),
+        vcoord = Math.floor((oh - ih * factor) / 2),
+        iwf = Math.round(iw * factor),
+        ihf = Math.round(ih * factor);
     if ((xw != 1) || (xh != 1)) {
-        var anim_rect = [ hcoord, vcoord, awf, ahf ];
+        var main_rect = { x0: hcoord, y0: vcoord, x1: iwf, y1: ihf };
         if (hcoord !== 0) {
-            return [ factor,
-                     anim_rect,
-                     [ 0, 0, hcoord, ph ],
-                     [ hcoord + awf, 0, hcoord, ph ] ];
+            return { factor: factor,
+                     main: main_rect,
+                     ribbonA: { x0: 0, y0: 0, x1: hcoord, y1: oh },
+                     ribbonB: { x0: hcoord + iwf, y0: 0, x1: hcoord, y1: oh } };
         } else if (vcoord !== 0) {
-            return [ factor,
-                     anim_rect,
-                     [ 0, 0, aw, vcoord ],
-                     [ 0, vcoord + awf, aw, vcoord ] ];
-        } else return [ factor, anim_rect ];
-    } else return [ 1, [ 0, 0, aw, ah ] ];
+            return { factor: factor,
+                     main: main_rect,
+                     ribbonA: { x0: 0, y0: 0, x1: iw, y1: vcoord },
+                     ribbonB: { x0: 0, y0: vcoord + ihf, x1: iw, y1: vcoord } };
+        } else return { factor: factor, main: main_rect };
+    } else return { factor: 1, main: { x0: 0, y0: 0, x1: iw, y1: ih } };
 }
 
 function removeElement(obj, element) {

@@ -19,6 +19,8 @@
 
     <!-- <script src="../dist/bundle/animatron.js" type="text/javascript"></script> -->
 
+    <!-- <script src="http://player.animatron.com/latest/bundle/animatron.js" type="text/javascript"></script> -->
+
     <style>
         body > canvas {
             position: absolute;
@@ -51,21 +53,13 @@
       function createPlayer() {
           return anm.createPlayer('anm-player', { /*audioEnabled: false,*/
                                                   loadingMode: anm.constants.LM_ONPLAY,
-                                                  ribbonsColor: 'rgba(255,0,0,0.01)',
+                                                  ribbonsColor: 'rgba(255,0,0,1)',
                                                   controlsEnabled: false,
                                                   handleEvents: true,
-                                                  infiniteDuration: true
+                                                  infiniteDuration: true,
+                                                  bgColor: 'rgba(0,0,0,1)'
                                                   /*forceSceneSize: true*/
                                                   /*controlsEnabled: false, autoPlay: true*/ });
-      }
-
-      function logEvent(anim, elm_name, event) {
-         var elm = anim.find(elm_name);
-         if (elm) {
-             elm.on(event, function() {
-                 window.alert(elm_name + ' ' + event);
-             })
-         }
       }
 
       function load() {
@@ -77,12 +71,7 @@
           var importer = anm.importers.create('animatron');
           player.detach();
           player = createPlayer();
-          player.load(project, importer, function(anim) {
-              logEvent(anim, 'ForScript',  'mouseclick');
-              logEvent(anim, 'ForScript1', 'mouseclick');
-              logEvent(anim, 'ForScript2', 'mouseclick');
-              logEvent(anim, 'ForScript3', 'mouseclick');
-          });
+          player.load(project, importer);
           player.play();
       }
 
@@ -103,7 +92,7 @@
     <h1 style="margin-bottom: 20px">The place to test one scene</h1>
 
     <!-- <canvas id="canvas" width="1080" height="1080"></canvas> -->
-    <div id="anm-player" anm-width="550" anm-height="450"></div>
+    <div id="anm-player" anm-width="1069" anm-height="713"></div>
 
     <p style="float: right"><label for="scene-input">Scene JSON:</label><button onclick="load(this)">Load</button><textarea id="scene-input"></textarea></p>
 

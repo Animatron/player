@@ -953,20 +953,14 @@ Player.prototype.factor = function() {
  *
  * @return {Object} factor data or `undefined` if animation is not initialized
  * @return {Number} return.factor factor in range `0..1`
- * @return {Array} return.anim_rect coordinates of the rect where animation will be rendered
- * @return {Array} return.ribbon_one coordinates of the rect where first ribbon will be places, or null if factor=1
- * @return {Array} return.ribbon_two coordinates of the rect where second ribbon will be places, or null if factor=1
+ * @return {Object} return.anim coordinates of the rect where animation will be rendered
+ * @return {Object} return.ribbonA coordinates of the rect where first ribbon will be places, or null if factor=1
+ * @return {Object} return.ribbonB coordinates of the rect where second ribbon will be places, or null if factor=1
  */
 Player.prototype.factorData = function() {
     if (!this.anim) return undefined;
-    var result = utils.fit_rects(this.width, this.height,
-                                 this.anim.width, this.anim.height);
-    return {
-        factor: result[0],
-        anim_rect: result[1],
-        ribbon_one: result[2] || null,
-        ribbon_two: result[3] || null
-    };
+    return utils.fit_rects(this.width, this.height,
+                           this.anim.width, this.anim.height);
 };
 /**
  * @method thumbnail
@@ -1291,23 +1285,23 @@ Player.prototype._drawThumbnail = function() {
     } else {
         var f_rects    = utils.fit_rects(player_width, player_height,
                                          thumb_width,  thumb_height),
-            factor     = f_rects[0],
-            thumb_rect = f_rects[1],
-            rect1      = f_rects[2],
-            rect2      = f_rects[3];
+            factor     = f_rects.factor,
+            thumb_rect = f_rects.main,
+            rect1      = f_rects.ribbonA,
+            rect2      = f_rects.ribbonB;
         if (rect1 || rect2) {
             ctx.fillStyle = this.ribbonsColor || '#000';
-            if (rect1) ctx.fillRect(rect1[0], rect1[1],
-                                    rect1[2], rect1[3]);
-            if (rect2) ctx.fillRect(rect2[0], rect2[1],
-                                    rect2[2], rect2[3]);
+            if (rect1) ctx.fillRect(rect1.x0, rect1.y0,
+                                    rect1.x1, rect1.y1);
+            if (rect2) ctx.fillRect(rect2.x0, rect2.y0,
+                                    rect2.x1, rect2.y1);
         }
         if (thumb_rect) {
             ctx.beginPath();
-            ctx.rect(thumb_rect[0], thumb_rect[1],
-                     thumb_rect[2], thumb_rect[3]);
+            ctx.rect(thumb_rect.x0, thumb_rect.y0,
+                     thumb_rect.x1, thumb_rect.y1);
             ctx.clip();
-            ctx.translate(thumb_rect[0], thumb_rect[1]);
+            ctx.translate(thumb_rect.x0, thumb_rect.y0);
         }
         if (factor != 1) ctx.scale(factor, factor);
         this.__thumb.apply(ctx);

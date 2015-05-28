@@ -117,34 +117,34 @@ function r_with_ribbons(ctx, anim, pw, ph, aw, ah, color, draw_f) {
     // pw == player width, ph == player height
     // aw == anim width,   ah == anim height
     var f_rects   = fit_rects(pw, ph, aw, ah),
-        factor    = f_rects[0],
-        anim_rect = f_rects[1],
-        rect1     = f_rects[2],
-        rect2     = f_rects[3];
+        factor    = f_rects.factor,
+        anim_rect = f_rects.main,
+        rect1     = f_rects.ribbonA,
+        rect2     = f_rects.ribbonB;
     ctx.save();
     if (rect1 || rect2) {
         ctx.save();
         ctx.fillStyle = color || '#000';
         if (rect1) {
-            ctx.clearRect(rect1[0], rect1[1],
-                          rect1[2], rect1[3]);
-            ctx.fillRect(rect1[0], rect1[1],
-                         rect1[2], rect1[3]);
+            ctx.clearRect(rect1.x0, rect1.y0,
+                          rect1.x1, rect1.y1);
+            ctx.fillRect(rect1.x0, rect1.y0,
+                         rect1.x1, rect1.y1);
         }
         if (rect2) {
-            ctx.clearRect(rect2[0], rect2[1],
-                          rect2[2], rect2[3]);
-            ctx.fillRect(rect2[0], rect2[1],
-                         rect2[2], rect2[3]);
+            ctx.clearRect(rect2.x0, rect2.y0,
+                          rect2.x1, rect2.y1);
+            ctx.fillRect(rect2.x0, rect2.y0,
+                         rect2.x1, rect2.y1);
         }
         ctx.restore();
     }
     if (anim_rect) {
         ctx.beginPath();
-        ctx.rect(anim_rect[0], anim_rect[1],
-                 anim_rect[2], anim_rect[3]);
+        ctx.rect(anim_rect.x0, anim_rect.y0,
+                 anim_rect.x1, anim_rect.y1);
         ctx.clip();
-        ctx.translate(anim_rect[0], anim_rect[1]);
+        ctx.translate(anim_rect.x0, anim_rect.y0);
     }
     anim.factor = anim.factor * factor; // anim.factor is always reset in r_at
     if (factor != 1) { ctx.scale(factor, factor); }
