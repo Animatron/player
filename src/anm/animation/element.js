@@ -309,6 +309,7 @@ Element.prototype.initTime = function() {
     /** @property {String} key (time position by a key name) */
     /** @property {Object} keys (a map of keys -> time) @readonly */
     /** @property {Function} tf (time function) */
+    /** @property {String} switch (name of the child to render in current moment) */
 
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
@@ -316,6 +317,8 @@ Element.prototype.initTime = function() {
     this.key = null;
     this.t = null; // user-defined
     this.rt = null; // user-defined
+
+    this.switch = null;
 
     this.__resetTimeCache();
 
@@ -761,6 +764,9 @@ Element.prototype.invTransform = function(ctx) {
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
+
+    if (this.parent && this.parent.switch && (this.parent.switch !== this.name)) return;
+
     this.rendering = true;
 
     // context is saved before the actual decision, if we draw or not, for safety:
