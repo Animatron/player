@@ -660,6 +660,7 @@ Import.tweentype = function(src) {
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
     if (src === 11) return C.T_SHADOW;
+    if (src === 12) return C.T_SWITCH;
 };
 /** tweendata **/
 // -> Any
@@ -693,7 +694,7 @@ Import.tweendata = function(type, src) {
         if (src.length == 2) return src;
         if (src.length == 1) return [ src[0], src[0] ];
     }
-
+    if (type === C.T_SWITCH) return src;
 };
 /** easing **/
 /*
