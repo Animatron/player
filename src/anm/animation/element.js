@@ -845,12 +845,15 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
                 var mask = this.$mask;
 
+                var mask_ltime = mask.ltime(gtime),
+                    mask_gtime = mask.gtime(gtime);
+
                 // FIXME: move this chain completely into one method, or,
                 //        which is even better, make all these checks to be modifiers
                 // FIXME: call modifiers once for one moment of time. If there are several
                 //        masked elements, they will be called that number of times
-                if (!(mask.fits(ltime) &&
-                      mask.modifiers(ltime, dt) &&
+                if (!(mask.fits(mask_ltime) &&
+                      mask.modifiers(mask_ltime, dt) &&
                       mask.visible)) return;
                       // what should happen if mask doesn't fit in time?
 
@@ -861,7 +864,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                     bctx = mask.__backCtx;
 
                 // FIXME: test if bounds are not empty
-                var bounds_pts = mask.bounds(ltime).toPoints();
+                var bounds_pts = mask.bounds(mask_ltime).toPoints();
 
                 var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                     maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -911,7 +914,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 mask.transform(mctx);
                 mask.painters(mctx);
                 mask.each(function(child) {
-                    child.render(mctx, gtime, dt);
+                    child.render(mctx, mask_gtime, dt);
                 });
 
                 bctx.globalCompositeOperation = 'destination-in';
