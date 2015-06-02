@@ -162,6 +162,7 @@ C.T_STROKE      = 'stroke';
 C.T_SHADOW      = 'shadow';
 C.T_VOLUME      = 'volume';
 C.T_DISPLAY     = 'display';
+C.T_SWITCH      = 'switch';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';
