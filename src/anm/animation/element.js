@@ -819,11 +819,12 @@ Element.prototype.render = function(ctx, gtime, dt) {
         gtime = this.gtime(ltime);
 
         var mask = this.$mask,
-            renderMasked = false;
+            renderMasked = false,
+            mask_time, mask_gtime;
 
         if (mask) {
-            var mask_ltime = mask.ltime(gtime),
-                mask_gtime = mask.gtime(mask_ltime);
+            mask_ltime = mask.ltime(gtime),
+            mask_gtime = mask.gtime(mask_ltime);
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
@@ -844,11 +845,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
             });
         } else {
             // FIXME: the complete mask process should be a Painter.
-
-            var mask = this.$mask;
-
-            var mask_ltime = mask.ltime(gtime),
-                mask_gtime = mask.gtime(mask_ltime);
 
             mask.ensureHasMaskCanvas();
             var mcvs = mask.__maskCvs,
