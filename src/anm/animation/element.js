@@ -765,8 +765,6 @@ Element.prototype.invTransform = function(ctx) {
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
 
-    if (this.parent && this.parent.switch && (this.parent.switch !== this.name)) return;
-
     this.rendering = true;
 
     // context is saved before the actual decision, if we draw or not, for safety:
@@ -809,6 +807,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
+                 this.matchesSwitch() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     }
@@ -835,6 +834,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             // FIXME: call modifiers once for one moment of time. If there are several
             //        masked elements, they will be called that number of times
             if (!(mask.fits(ltime) &&
+                  mask.matchesSwitch() &&
                   mask.modifiers(ltime, dt) &&
                   mask.visible)) return;
                   // what should happen if mask doesn't fit in time?
@@ -1522,6 +1522,14 @@ Element.prototype.ltime = function(gtime) {
     return this.__checkJump(
         Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
     );
+};
+
+/**
+ * @private @method matchesSwitch
+ */
+Element.prototype.matchesSwitch = function() {
+    if (!this.parent || !this.parent.switch) return true;
+    return (this.parent.switch === this.name);
 };
 
 /**
