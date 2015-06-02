@@ -309,6 +309,7 @@ Element.prototype.initTime = function() {
     /** @property {String} key (time position by a key name) */
     /** @property {Object} keys (a map of keys -> time) @readonly */
     /** @property {Function} tf (time function) */
+    /** @property {String} switch (name of the child to render in current moment) */
 
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
@@ -316,6 +317,8 @@ Element.prototype.initTime = function() {
     this.key = null;
     this.t = null; // user-defined
     this.rt = null; // user-defined
+
+    this.switch = null;
 
     this.__resetTimeCache();
 
@@ -761,6 +764,7 @@ Element.prototype.invTransform = function(ctx) {
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
+
     this.rendering = true;
 
     // context is saved before the actual decision, if we draw or not, for safety:
@@ -803,6 +807,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
+                 this.matchesSwitch() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     }
@@ -832,7 +837,9 @@ Element.prototype.render = function(ctx, gtime, dt) {
             //        which is even better, make all these checks to be modifiers
             // FIXME: call modifiers once for one moment of time. If there are several
             //        masked elements, they will be called that number of times
+
             if (!(mask.fits(mask_ltime) &&
+                  mask.matchesSwitch() &&
                   mask.modifiers(mask_ltime, dt) &&
                   mask.visible)) return;
                   // what should happen if mask doesn't fit in time?
@@ -1520,6 +1527,14 @@ Element.prototype.ltime = function(gtime) {
     return this.__checkJump(
         Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
     );
+};
+
+/**
+ * @private @method matchesSwitch
+ */
+Element.prototype.matchesSwitch = function() {
+    if (!this.parent || !this.parent.switch) return true;
+    return (this.parent.switch === this.name);
 };
 
 /**

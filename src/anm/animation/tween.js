@@ -329,5 +329,12 @@ Tween.register(C.T_DISPLAY, {
     to: function(to, prev) { return to; }
 });
 
+Tween.register(C.T_SWITCH, {
+    func: function(value) {
+        return function(t) { this.switch = value; }
+    },
+    from: nop, to: nop
+});
+
 
 module.exports = Tween;
