@@ -803,7 +803,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
-    // FIXME: masks have no animation set to something, but should to (see masks tests)
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
@@ -813,11 +812,30 @@ Element.prototype.render = function(ctx, gtime, dt) {
     }
     if (drawMe) {
         ctx.save();
+
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
         gtime = this.gtime(ltime);
-        if (!this.$mask) {
+
+        var mask = this.$mask,
+            renderMasked = false;
+
+        if (mask) {
+            var mask_ltime = mask.ltime(gtime),
+                mask_gtime = mask.gtime(mask_ltime);
+
+            // FIXME: move this chain completely into one method, or,
+            //        which is even better, make all these checks to be modifiers
+            // FIXME: call modifiers once for one moment of time. If there are several
+            //        masked elements, they will be called that number of times
+            renderMasked = mask.fits(mask_ltime) &&
+                           mask.matchesSwitch() &&
+                           mask.modifiers(mask_ltime, dt) &&
+                           mask.visible;
+        }
+
+        if (!renderMasked) {
             // draw directly to context, if has no mask
             this.transform(ctx);
             this.painters(ctx);
@@ -829,15 +847,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
             var mask = this.$mask;
 
-            // FIXME: move this chain completely into one method, or,
-            //        which is even better, make all these checks to be modifiers
-            // FIXME: call modifiers once for one moment of time. If there are several
-            //        masked elements, they will be called that number of times
-            if (!(mask.fits(ltime) &&
-                  mask.matchesSwitch() &&
-                  mask.modifiers(ltime, dt) &&
-                  mask.visible)) return;
-                  // what should happen if mask doesn't fit in time?
+            var mask_ltime = mask.ltime(gtime),
+                mask_gtime = mask.gtime(mask_ltime);
 
             mask.ensureHasMaskCanvas();
             var mcvs = mask.__maskCvs,
@@ -846,7 +857,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx = mask.__backCtx;
 
             // FIXME: test if bounds are not empty
-            var bounds_pts = mask.bounds(ltime).toPoints();
+            var bounds_pts = mask.bounds(mask_ltime).toPoints();
 
             var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                 maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -896,7 +907,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             mask.transform(mctx);
             mask.painters(mctx);
             mask.each(function(child) {
-                child.render(mctx, gtime, dt);
+                child.render(mctx, mask_gtime, dt);
             });
 
             bctx.globalCompositeOperation = 'destination-in';
