@@ -826,7 +826,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             var mask = this.$mask;
 
             var mask_ltime = mask.ltime(gtime),
-                mask_gtime = mask.gtime(gtime);
+                mask_gtime = mask.gtime(mask_ltime);
 
             // FIXME: move this chain completely into one method, or,
             //        which is even better, make all these checks to be modifiers
