@@ -820,7 +820,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
 
         var mask = this.$mask,
             renderMasked = false,
-            mask_time, mask_gtime;
+            mask_ltime, mask_gtime;
 
         if (mask) {
             mask_ltime = mask.ltime(gtime),
