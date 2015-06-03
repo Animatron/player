@@ -25,41 +25,42 @@ var CSeg = require(&#39;../graphics/segments.js&#39;).CSeg;
 
 var EasingImpl = {};
 
-EasingImpl[C.E_PATH] =
+EasingImpl[C.E_PATH] = // based on path
     function(path) {
         /*var path = Path.parse(str);*/
         return function(t) {
             return path.pointAt(t)[1];
         };
     };
-EasingImpl[C.E_FUNC] =
+EasingImpl[C.E_FUNC] = // based on function
     function(f) {
         return f;
     };
-EasingImpl[C.E_CSEG] =
+EasingImpl[C.E_CSEG] = // based on curve segment
     function(seg) {
         return function(t) {
             return seg.atT([0, 0], t)[1];
         };
     };
-EasingImpl[C.E_STDF] =
+EasingImpl[C.E_STDF] = // based on standard function
     function(num) {
-        return STD_EASINGS[num];
+        return Standard[num];
     };
 
 // segment-based easings
 
-var SEGS = {}; // segments cache for easings
+var Segments  = {}; // segments cache for easings
+var Functions = {}; // functions cache for easings
 
 function registerSegEasing(alias, points) {
     C[&#39;E_&#39;+alias] = alias;
     var seg = new CSeg(points);
-    SEGS[alias] = seg;
+    Segments[alias] = seg;
     var func =
         function(t) {
             return seg.atT([0, 0], t)[1];
         };
-    C[&#39;EF_&#39;+alias] = func;
+    Functions[alias] = func;
     EasingImpl[alias] = function() {
         return func;
     };
@@ -94,11 +95,11 @@ registerSegEasing(&#39;backin&#39;,     [0.600, -0.280, 0.735, 0.045, 1.000, 1.0
 registerSegEasing(&#39;backout&#39;,    [0.175, 0.885, 0.320, 1.275, 1.000, 1.000]); // Back Out
 registerSegEasing(&#39;backinout&#39;,  [0.680, -0.550, 0.265, 1.550, 1.000, 1.000]); // Back InOut
 
-var STD_EASINGS = [
-    function(t) { return C.EF_DEF(t); }, // Default
-    function(t) { return C.EF_IN(t); },  // In
-    function(t) { return C.EF_OUT(t); }, // Out
-    function(t) { return C.EF_INOUT(t); }, // InOut
+var Standard = [
+    function(t) { return Functions[&#39;default&#39;](t); }, // Default
+    function(t) { return Functions[&#39;in&#39;](t); },  // In
+    function(t) { return Functions[&#39;out&#39;](t); }, // Out
+    function(t) { return Functions[&#39;inout&#39;](t); }, // InOut
     function(t) { return t*t; },    // 4    In Quad
     function(t) { return t*(2-t); },// 5    Out Quad
     function(t) {                   // 6    In/Out Quad
@@ -172,7 +173,7 @@ var STD_EASINGS = [
         return ((t-=2)*t*(((s*=(1.525))+1)*t + s) + 2)/2;
     },
     function(t) {             // 22     In Bounce
-        return 1 - STD_EASINGS[23](1-t);
+        return 1 - Standard[23](1-t);
     },
     function(t) {              // 23    Out Bounce
         if (t &lt; (1/2.75)) {
@@ -186,8 +187,8 @@ var STD_EASINGS = [
         }
     },
     function(t) {             // 24     In/Out Bounce
-        if (t &lt; 0.5) return STD_EASINGS[22](t*2) * 0.5;
-        return STD_EASINGS[23](t*2-1) * 0.5 + 0.5;
+        if (t &lt; 0.5) return Standard[22](t*2) * 0.5;
+        return Standard[23](t*2-1) * 0.5 + 0.5;
     }
 ];
 

@@ -33,6 +33,7 @@ var events = require(&#39;../events.js&#39;),
     errors = require(&#39;../errors.js&#39;),
     ErrLoc = require(&#39;../loc.js&#39;).Errors;
 
+var Search = require(&#39;./search.js&#39;);
 
 /* X_ERROR, X_FOCUS, X_RESIZE, X_SELECT, touch events */
 
@@ -83,12 +84,14 @@ function Animation() {
     this.height = undefined;
     this.zoom = 1.0;
     this.speed = 1.0;
+    this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
     this.hasScripting = false;
     this.targets = {}; // Player instances where this animation was loaded, by ID
     //this.fps = undefined;
     this.__informEnabled = true;
+    this.__lastOverElm = null;
     this._laters = [];
     this._initHandlers(); // TODO: make automatic
 }
@@ -165,10 +168,11 @@ Animation.prototype.remove = function(elm) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.element
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { visitor(elm, data); });
+    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
     return this;
 };
 
@@ -180,11 +184,34 @@ Animation.prototype.traverse = function(visitor, data) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i &lt; tlen; i++) {
-        visitor(this.tree[i], data);
+        if (visitor(this.tree[i], data) === false) break;
+    }
+    return this;
+};
+
+<span id='anm-Animation-method-reverseEach'>/**
+</span> * @method reverseEach
+ * @chainable
+ *
+ * Visit every root element (direct Animation child) in a tree. The only difference
+ * with {@link anm.Animation#each .each} is that `.reverseEach` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEach = function(visitor, data) {
+    var i = this.tree.length;
+    while (i--) {
+        if (visitor(this.tree[i], data) === false) break;
     }
     return this;
 };
@@ -197,7 +224,10 @@ Animation.prototype.each = function(visitor, data) {
  *
  * @param {Function} iterator
  * @param {anm.Element} iterator.child
- * @param {Boolean} iterator.return `false`, if this element should be removed
+ * @param {Boolean} iterator.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Function} [remover]
+ * @param {anm.Element} remover.child
+ * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
@@ -215,6 +245,7 @@ Animation.prototype.iter = function(func, rfunc) {
  */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
+    this.time = time;
     var zoom = this.zoom;
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -234,26 +265,31 @@ Animation.prototype.render = function(ctx, time, dt) {
 </span> * @method jump
  *
  * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
- * every Player where this animation was loaded inside.
+ * every Player where this animation was loaded inside. It will skip a jump, if it&#39;s already in process
+ * of jumping.
  *
  * @param {Number} time
  */
 Animation.prototype.jump = function(t) {
+    if (this.jumping) return;
+    this.jumping = true;
     utils.keys(this.targets, function(id, player) {
         if (player) player.seek(t);
     });
+    this.jumping = false;
 };
 
 <span id='anm-Animation-method-jumpTo'>/**
 </span> * @method jumpTo
  *
- * Jump to the given start time of the element found with passed selector (uses
- * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ * Jump to the given start time of the element given or found with passed selector (uses
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it&#39;s already in process
+ * of jumping.
  *
- * @param {String} selector
+ * @param {String|anm.Element} selector
  */
 Animation.prototype.jumpTo = function(selector) {
-    var elm = anim.find(selector);
+    var elm = is.str(selector) ? this.find(selector) : selector;
     if (!elm) return;
     this.jump(elm.gband[0]);
 };
@@ -284,6 +320,7 @@ Animation.prototype.getFittingDuration = function() {
  */
 Animation.prototype.reset = function() {
     this.__informEnabled = true;
+    this.time = null;
     this.each(function(child) {
         child.reset();
     });
@@ -372,19 +409,73 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
-Animation.prototype.handle__x = function(type, evt) {
-    if (events.mouse(type)) {
-        var pos = evt.pos;
-        this.each(function(child) {
-            child.inside(pos, function(elm) { // filter elements
-                return elm.subscribedTo(type);
-            }, function(elm, local_pos) { // point is inside
-                elm.fire(type, evt);
-            });
+// this function is called for any event fired for this element, just before
+// passing it to the handlers; if this function returns `true` or nothing, the event is
+// then passed to all the handlers; if it returns `false`, handlers never get this event.
+Animation.prototype.filterEvent = function(type, evt) {
+
+    function firstSubscriber(elm, type) {
+        return elm.firstParent(function(parent) {
+            return parent.subscribedTo(type);
         });
-        return false;
     }
-    return true;
+
+    var anim = this;
+    if (events.mouse(type)) {
+        var pos = anim.adapt(evt.pos.x, evt.pos.y);
+        var targetFound = false;
+        var moSubscriber = null; // mouse-out subscriber
+        var clickEvent = (type === &#39;mouseclick&#39;) || (type === &#39;mousedoubleclick&#39;);
+        anim.reverseEach(function(child) {
+            child.inside(pos, function(elm) { // filter elements
+                return is.defined(elm.cur_t) &amp;&amp; elm.fits(elm.cur_t);
+            }, function(elm, local_pos) { // point is inside
+                targetFound = true;
+                var subscriber = firstSubscriber(elm, type);
+                if (type !== &#39;mousemove&#39;) {
+                    if (subscriber) subscriber.fire(type, evt);
+                } else { // type === &#39;mousemove&#39;
+                    // check mouseover/mouseout
+                    if (!anim.__lastOverElm) {
+                        // mouse moved over this element first time
+                        anim.__lastOverElm = elm; // not a subscriber!
+                        if (subscriber) {
+                            subscriber.fire(&#39;mouseover&#39;, evt);
+                            subscriber.fire(type, evt); // fire this mousemove next to mouseover
+                        }
+                    } else {
+                        if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
+                            if (subscriber) subscriber.fire(type, evt);
+                        } else {
+                            // mouse moved over new element
+                            if (anim.__lastOverElm) {
+                                if (moSubscriber = firstSubscriber(anim.__lastOverElm, &#39;mouseout&#39;)) {
+                                    moSubscriber.fire(&#39;mouseout&#39;, evt);
+                                }
+                            }
+                            anim.__lastOverElm = elm; // not a subscriber!
+                            if (subscriber) {
+                                subscriber.fire(&#39;mouseover&#39;, evt);
+                                subscriber.fire(type, evt); // fire this mousemove next to mouseover
+                            }
+                        }
+                    }
+
+                }
+                if (clickEvent) return false; /* stop inner iteration, so first matched element exits the check */
+            });
+            if (targetFound &amp;&amp; clickEvent) return false; /* stop outer iteration, so first matched element exits the check */
+        });
+        if ((type === &#39;mousemove&#39;) &amp;&amp; !targetFound &amp;&amp; anim.__lastOverElm) {
+            var stillInside = false;
+            anim.__lastOverElm.inside(pos, function() { stillInside = true; });
+            if (!stillInside &amp;&amp; (moSubscriber = firstSubscriber(anim.__lastOverElm, &#39;mouseout&#39;))) {
+                moSubscriber.fire(&#39;mouseout&#39;, evt);
+            }
+        }
+        return false; /* stop passing this event further to other handlers */
+    }
+    return true; /* keep passing this event further to other handlers */
 };
 
 <span id='anm-Animation-method-addToTree'>/**
@@ -471,16 +562,18 @@ Animation.prototype._loadRemoteResources = function(player) {
  * Searches for an {@link anm.Element element} by name through another {@link anm.Element element}&#39;s
  * children, or through all the elements in the Animation itself, if no other element was provided.
  *
- * NB: `find` method will be improved soon to support special syntax of searching,
- * so you will be able to search almost everything
+ * You may specify just a name or a full path, if you start it from slash: `/root/sub-element/search-for`.
+ * This way search will ensure element is located exactly at this path and also will visit only the matching elements.
+ * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
+ * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
- * @param {String} name Name of the element(s) to find
+ * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
  * @return {anm.Element} First found element
  */
 Animation.prototype.find = function(selector, where) {
-    return this.findAll(selector, where)[0]; // FIXME: overhead, search for the first one and exit
+    return Search.one(selector).over(where ? where.children : this.tree);
 };
 
 <span id='anm-Animation-method-findAll'>/**
@@ -489,23 +582,18 @@ Animation.prototype.find = function(selector, where) {
  * Searches for {@link anm.Element elements} by name through another {@link anm.Element element}&#39;s
  * children, or through all the elements in the Animation itself, if no other element was provided.
  *
- * NB: `findAll` method will be improved soon to support special syntax of searching,
- * so you will be able to search almost everything
+ * You may specify just a name or a full path, if you start it from slash: `/root/sub-element/search-for`.
+ * This way search will ensure elements are located exactly at this path.
+ * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
+ * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
- * @param {String} name Name of the element(s) to find
+ * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
  * @return {Array} An array of found elements
  */
 Animation.prototype.findAll = function(selector, where) {
-    where = where || this;
-    var name = selector;
-    var found = [];
-    if (where.name == name) found.push(name);
-    where.traverse(function(elm)  {
-        if (elm.name == name) found.push(elm);
-    });
-    return found;
+    return Search.all(selector).over(where ? where.children : this.tree);
 };
 
 <span id='anm-Animation-method-findById'>/**
@@ -521,6 +609,27 @@ Animation.prototype.findAll = function(selector, where) {
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
+};
+
+<span id='anm-Animation-method-adapt'>/**
+</span> * @method adapt
+ *
+ * Adapt a point to animation&#39;s coordinate space. This has sense only during
+ * the the rendering cycle (i.e. in elements&#39; handlers, painters or modifiers),
+ * since considers player zoom, animation zoom and other factors re-calculated
+ * before the actual rendering of every frame.
+ *
+ * For example, this method is used in animation&#39; mouse handlers to get the point
+ * adapted to player &amp; animation.
+ *
+ * @param {Number} x
+ * @param {Number} y
+ *
+ * @return {Object} transformed point
+ */
+Animation.prototype.adapt = function(x, y) {
+    return { x: x / this.factor,
+             y: y / this.factor };
 };
 
 /*

@@ -21,8 +21,7 @@ var utils = require(&#39;../utils.js&#39;),
     is = utils.is,
     guid = utils.guid;
 
-var EasingImpl = require(&#39;./easing.js&#39;);
-
+var Easings = require(&#39;./easing.js&#39;);
 
 Modifier.ORDER = [ C.MOD_SYSTEM, C.MOD_TWEEN, C.MOD_USER, C.MOD_EVENT ];
 // these two simplify checking in __mafter/__mbefore
@@ -260,13 +259,14 @@ var convertEasing = function(easing, data, relative) {
     if (!easing) return null;
     var f;
     if (is.str(easing)) {
-        f = EasingImpl[easing](data);
+        if (!Easings[easing]) throw new Error(&#39;Unknown easing: &#39; + easing)
+        f = Easings[easing](data);
         return relative ? f : function(t, len) { return f(t / len, len) * len; };
     }
     if (is.fun(easing) &amp;&amp; !data) return easing;
     if (is.fun(easing) &amp;&amp; data) return easing(data);
     if (easing.type) {
-        f = EasingImpl[easing.type](easing.data || data);
+        f = Easings[easing.type](easing.data || data);
         return relative ? f : function(t, len) { return f(t / len, len) * len; };
     }
     if (easing.f) return easing.f(easing.data || data);

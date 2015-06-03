@@ -310,7 +310,7 @@ Import.branch = function(type, src, all, anim) {
                  ti &lt; tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.tween == C.T_TRANSLATE) {
+                if (t.tween_type === C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
@@ -319,7 +319,7 @@ Import.branch = function(type, src, all, anim) {
             if (translates &amp;&amp; (flags &amp; L_ROT_TO_PATH)) {
                 var rtp_tween;
                 for (ti = 0, til = translates.length; ti &lt; til; ti++) {
-                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    rtp_tween = Tween[C.T_ROT_TO_PATH]();
                     if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
                     if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
                     ltrg.tween(rtp_tween);
@@ -657,7 +657,7 @@ Import.sheet = function(src) {
 // -&gt; Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
-    if (type === null) return null;
+    if (!type) return null; // type is a string
     var tween = Tween[type](Import.tweendata(type, src[3]))
                            .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
@@ -677,6 +677,7 @@ Import.tweentype = function(src) {
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
     if (src === 11) return C.T_SHADOW;
+    if (src === 12) return C.T_SWITCH;
 };
 <span id='anm-AnimatronImporter-property-'>/** tweendata **/
 </span>// -&gt; Any
@@ -710,7 +711,7 @@ Import.tweendata = function(type, src) {
         if (src.length == 2) return src;
         if (src.length == 1) return [ src[0], src[0] ];
     }
-
+    if (type === C.T_SWITCH) return src;
 };
 <span id='anm-AnimatronImporter-property-'>/** easing **/
 </span>/*

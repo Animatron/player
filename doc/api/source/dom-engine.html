@@ -24,11 +24,16 @@
  * @VERSION
  */
 
+
 // DOM Engine
 // -----------------------------------------------------------------------------
 
-var $doc = window.document;
-    // DomEngine constants
+var $win = (typeof window !== &#39;undefined&#39;) ? window : {}
+var $doc = (typeof window !== &#39;undefined&#39;) ? window.document : {};
+var $nav = (typeof navigator !== &#39;undefined&#39;) ? navigator : {};
+var $glob = (typeof global !== &#39;undefined&#39;) ? global : {};
+
+// DomEngine constants
 
 var MARKER_ATTR = &#39;anm-player&#39;, // marks player existence on canvas element
     AUTO_MARKER_ATTR = &#39;anm-player-target&#39;, // marks that this element is a target for a player
@@ -116,21 +121,21 @@ var $DE = {};
 
 // Framing
 // shim adopted from https://gist.github.com/paulirish/1579671
-var requestAnimationFrame = global.requestAnimationFrame,
-    cancelAnimationFrame = global.cancelAnimationFrame;
+var requestAnimationFrame = $glob.requestAnimationFrame,
+    cancelAnimationFrame = $glob.cancelAnimationFrame;
 var lastTime = 0;
     var vendors = [&#39;ms&#39;, &#39;moz&#39;, &#39;webkit&#39;, &#39;o&#39;];
-    for(var x = 0; x &lt; vendors.length &amp;&amp; !global.requestAnimationFrame; ++x) {
-        requestAnimationFrame = global[vendors[x]+&#39;RequestAnimationFrame&#39;];
-        cancelAnimationFrame = global[vendors[x]+&#39;CancelAnimationFrame&#39;] ||
-                                   global[vendors[x]+&#39;CancelRequestAnimationFrame&#39;];
+    for(var x = 0; x &lt; vendors.length &amp;&amp; !$glob.requestAnimationFrame; ++x) {
+        requestAnimationFrame = $glob[vendors[x]+&#39;RequestAnimationFrame&#39;];
+        cancelAnimationFrame = $glob[vendors[x]+&#39;CancelAnimationFrame&#39;] ||
+                               $glob[vendors[x]+&#39;CancelRequestAnimationFrame&#39;];
     }
 
     if (!requestAnimationFrame) {
         requestAnimationFrame = function(callback, element) {
             var currTime = new Date().getTime();
             var timeToCall = Math.max(0, 16 - (currTime - lastTime));
-            var id = window.setTimeout(function() { callback(currTime + timeToCall); },
+            var id = $win.setTimeout(function() { callback(currTime + timeToCall); },
               timeToCall);
             lastTime = currTime + timeToCall;
             return id;
@@ -147,14 +152,14 @@ $DE.getCancelFrameFunc = function(){ return cancelAnimationFrame; };
 
 // Global things
 
-$DE.PX_RATIO = window.devicePixelRatio || 1;
+$DE.PX_RATIO = $win.devicePixelRatio || 1;
 
 $DE.ajax = function(url, callback, errback, method, headers) {
     var req;
     if (isIE9) {
-        req = new window.XDomainRequest();
+        req = new $win.XDomainRequest();
     } else {
-        req = new window.XMLHttpRequest();
+        req = new $win.XMLHttpRequest();
     }
 
     if (!req) {
@@ -242,48 +247,45 @@ $DE.CONTROLS_INSTANCE_CLASS_PREFIX = &#39;anm-controls-&#39;;
 $DE.INFO_CLASS = &#39;anm-controls&#39;;
 $DE.INFO_INSTANCE_CLASS_PREFIX = &#39;anm-controls-&#39;;
 
-$DE.styling = {
-    wrapperGeneral: function(rule) {
-        rule.style.position = &#39;relative&#39;;
-    },
-    wrapperInstance: function(rule) { },
-    playerGeneral: function(rule) { },
-    playerInstance: function(rule, desc) { },
-    controlsGeneral: function(rule) {
-        rule.style.position = &#39;absolute&#39;;
-        rule.style.left = 0;
-        rule.style.top = 0;
-        rule.style.verticalAlign = &#39;top&#39;;
-        rule.style.zIndex = 100;
-        rule.style.cursor = &#39;pointer&#39;;
-        rule.style.backgroundColor = &#39;rgba(0, 0, 0, 0)&#39;;
-    },
-    controlsInstance: function(rule, desc) { },
-    infoGeneral: function(rule) {
-        rule.style.position = &#39;relative&#39;;
-        rule.style.verticalAlign = &#39;top&#39;;
-        rule.style.zIndex = 110;
-        rule.style.cursor = &#39;pointer&#39;;
-        rule.style.backgroundColor = &#39;rgba(0, 0, 0, 0)&#39;;
-        rule.style.opacity = 1;
-    },
-    infoInstance: function(rule, desc) { }
-};
+$DE.WRAPPER_CSS = &#39;{ position: relative; }&#39;;
+
+$DE.CONTROLS_CSS = &#39;{ &#39; +
+    &#39;position: absolute;&#39; +
+    &#39;left: 0;&#39; +
+    &#39;top: 0;&#39; +
+    &#39;vertical-align: top;&#39; +
+    &#39;z-index: 100;&#39; +
+    &#39;cursor: pointer;&#39; +
+    &#39;background-color: rgba(0,0,0,0);&#39; +
+    &#39; }&#39;;
 
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     //if (!($doc.readyState === &quot;complete&quot;)) return;
-    var stylesTag = $DE.createStyle();
+    var stylesTag = $doc.getElementById(&#39;anm-player-styles&#39;);
+    if (!stylesTag) {
+        stylesTag = $DE.createStyle();
+        stylesTag.id = &#39;anm-player-styles&#39;;
+        // TODO: inject as first element?
+        var head = $doc.getElementsByTagName(&quot;head&quot;)[0];
+        head.appendChild(stylesTag);
 
-    // TODO: inject as first element?
-    var head = $doc.getElementsByTagName(&quot;head&quot;)[0];
-    if (!head) throw new Error(&#39;anm.Player requires &lt;head&gt; tag to exist in the document to inject CSS there&#39;);
-    head.appendChild(stylesTag);
-    // TODO: inject as first element?
-    // var head = $doc.getElementsByTagName(&quot;head&quot;)[0];
-    // head.insertBefore(stylesTag, head.firstChild);
-
+    }
     $DE.__stylesTag = stylesTag;
+    $DE.addGeneralStyles();
+};
+
+$DE.addGeneralStyles = function() {
+    var styles = $DE.__stylesTag.sheet,
+        rules = styles.cssRules || styles.rules;
+    var insertRule = function(rule) {
+        (styles.insertRule || styles.addRule).call(styles, rule, rules.length);
+    };
+
+    var wrapperRule = &#39;.&#39; + $DE.WRAPPER_CLASS + $DE.WRAPPER_CSS;
+    insertRule(wrapperRule);
+    var controlsRule = &#39;.&#39; + $DE.CONTROLS_CLASS + $DE.CONTROLS_CSS;
+    insertRule(controlsRule);
 };
 
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
@@ -300,27 +302,21 @@ $DE.injectElementStyles = function(elm, general_class, instance_class) {
     var props = $DE.getAnmProps(elm);
     props.gen_class  = general_class;
     props.inst_class = instance_class;
-    var general_rule_idx  = (styles.insertRule || styles.addRule).call(styles, &#39;.&#39; +general_class + &#39;{}&#39;, rules.length),
-        instance_rule_idx = (styles.insertRule || styles.addRule).call(styles, &#39;.&#39; +instance_class + &#39;{}&#39;, rules.length);
-    var elm_rules = [ rules[general_rule_idx],
-                      rules[instance_rule_idx] ];
-    props.gen_rule  = elm_rules[0];
-    props.inst_rule = elm_rules[1];
-    return elm_rules;
 };
 
-$DE.__textBuf = null;
+$DE.__textBuf = $doc.getElementById(&#39;anm-text-measurer&#39;);
 $DE.createTextMeasurer = function() {
     var buff = $DE.__textBuf;
     if (!buff) {
-        /* FIXME: dispose buffer when text is removed from animation */
         $DE.onDocReady(function(){
           var div = $doc.createElement(&#39;div&#39;);
           var span = $doc.createElement(&#39;span&#39;);
+          span.id = &#39;anm-text-measurer&#39;;
           div.style.visibility = &#39;hidden&#39;;
           div.style.position = &#39;absolute&#39;;
           div.style.top = -10000 + &#39;px&#39;;
           div.style.left = -10000 + &#39;px&#39;;
+          div.id = &#39;anm-text-measurer-container&#39;;
           div.appendChild(span);
           $doc.body.appendChild(div);
           $DE.__textBuf = span;
@@ -433,13 +429,11 @@ $DE.detachElement = function(parent, child) {
 };
 
 $DE.showElement = function(elm) {
-    var props = $DE.hasAnmProps(elm);
-    ((props &amp;&amp; props.inst_rule) || elm).style.visibility = &#39;visible&#39;;
+    elm.style.visibility = &#39;visible&#39;;
 };
 
 $DE.hideElement = function(elm) {
-    var props = $DE.hasAnmProps(elm);
-    ((props &amp;&amp; props.inst_rule) || elm).style.visibility = &#39;hidden&#39;;
+    elm.style.visibility = &#39;hidden&#39;;
 };
 
 $DE.clearChildren = function(elm) {
@@ -457,14 +451,14 @@ $DE.createCanvas = function(width, height, bg, ratio) {
 };
 
 $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
-    if (!wrapper) throw new Error(&#39;Element passed to anm.Player initializer does not exists.&#39;);
+    if (!wrapper) throw new Error(&#39;Element passed to anm.Player initializer does not exist.&#39;);
 
     if (anm.utils.is.str(wrapper)) {
         wrapper = $doc.getElementById(wrapper);
     }
 
     var canvasWasPassed = (wrapper.tagName == &#39;canvas&#39;) || (wrapper.tagName == &#39;CANVAS&#39;);
-    if (canvasWasPassed &amp;&amp; window.console) {
+    if (canvasWasPassed &amp;&amp; $win.console) {
         console.warn(&#39;NB: A &lt;canvas&gt; tag was passed to the anm.Player as an element to attach to. This is &#39; +
                      &#39;not a recommended way since version 1.2; this &lt;canvas&gt; will be moved inside &#39; +
                      &#39;a &lt;div&gt;-wrapper because of it, so it may break document flow and/or CSS styles. &#39; +
@@ -505,17 +499,12 @@ $DE.assignPlayerToWrapper = function(wrapper, player, backup_id) {
 
     $DE.ensureGlobalStylesInjected();
 
-    var wrapper_rules = $DE.injectElementStyles(wrapper,
-                                                $DE.WRAPPER_CLASS,
-                                                $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || &#39;no-id&#39;));
-    var cvs_rules = $DE.injectElementStyles(canvas,
-                                            $DE.PLAYER_CLASS,
-                                            $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || &#39;no-id&#39;));
-
-    $DE.styling.playerGeneral(cvs_rules[0]);
-    $DE.styling.playerInstance(cvs_rules[1]);
-    $DE.styling.wrapperGeneral(wrapper_rules[0]);
-    $DE.styling.wrapperInstance(wrapper_rules[1]);
+    $DE.injectElementStyles(wrapper,
+        $DE.WRAPPER_CLASS,
+        $DE.WRAPPER_INSTANCE_CLASS_PREFIX + (id || &#39;no-id&#39;));
+    $DE.injectElementStyles(canvas,
+        $DE.PLAYER_CLASS,
+        $DE.PLAYER_INSTANCE_CLASS_PREFIX + (id || &#39;no-id&#39;));
 
     $DE.subscribeWrapperToStateChanges(wrapper, player);
 
@@ -547,23 +536,6 @@ $DE.getAnmProps = function(elm) {
 
 $DE.clearAnmProps = function(elm) {
     if (!elm || !elm.__anm) return;
-    var __anm = elm.__anm;
-    if (__anm.gen_class &amp;&amp; __anm.inst_class) {
-        var styles = $DE.__stylesTag.sheet,
-            rules = styles.cssRules || styles.rules;
-        var to_remove = [];
-        for (var i = 0, il = rules.length; i &lt; il; i++) {
-            if ((rules[i].selectorText == &#39;.&#39; + __anm.gen_class) ||
-                (rules[i].selectorText == &#39;.&#39; + __anm.inst_class)) {
-                to_remove.push(i); // not to conflict while iterating
-            }
-        }
-        while (to_remove.length) { // remove from the end for safety
-            (styles.deleteRule || styles.removeRule).call(styles, to_remove.pop());
-        }
-    }
-    if (__anm.gen_class  &amp;&amp; elm.classList) elm.classList.remove(__anm.gen_class);
-    if (__anm.inst_class &amp;&amp; elm.classList) elm.classList.remove(__anm.inst_class);
     delete elm.__anm;
 };
 
@@ -713,8 +685,8 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     props.ratio = ratio;
     props.width = _w;
     props.height = _h;
-    if (!cvs.style.width) { (props.inst_rule || cvs).style.width  = _w + &#39;px&#39;; }
-    if (!cvs.style.height) { (props.inst_rule || cvs).style.height = _h + &#39;px&#39;; }
+    cvs.style.width  = _w + &#39;px&#39;;
+    cvs.style.height = _h + &#39;px&#39;;
     cvs.setAttribute(&#39;width&#39;, _w * (ratio || 1));
     cvs.setAttribute(&#39;height&#39;, _h * (ratio || 1));
     $DE._saveCanvasPos(cvs);
@@ -730,7 +702,7 @@ $DE.setCanvasPosition = function(cvs, x, y) {
 };
 
 $DE.setCanvasBackground = function(cvs, bg) {
-    ($DE.getAnmProps(cvs).inst_rule || cvs).style.backgroundColor = bg;
+    cvs.style.backgroundColor = bg;
 };
 
 $DE._saveCanvasPos = function(cvs) {
@@ -784,8 +756,8 @@ $DE.setWrapperSize = function(wrapper, width, height) {
     var props = $DE.getAnmProps(wrapper);
     props.width = _w;
     props.height = _h;
-    if (!wrapper.style.width) { (props.inst_rule || wrapper).style.width  = _w + &#39;px&#39;; }
-    if (!wrapper.style.height) { (props.inst_rule || wrapper).style.height = _h + &#39;px&#39;; }
+    wrapper.style.width  = _w + &#39;px&#39;; 
+    wrapper.style.height = _h + &#39;px&#39;;
     return [ _w, _h ];
 };
 
@@ -799,7 +771,7 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
         w = conf[2], h = conf[3];
     var pconf = $DE.getCanvasSize(player_cvs),
         pw = pconf[0], ph = pconf[1];
-    var p_style = window.getComputedStyle ? window.getComputedStyle(player_cvs) : player_cvs.currentStyle;
+    var p_style = $win.getComputedStyle ? $win.getComputedStyle(player_cvs) : player_cvs.currentStyle;
     var x_shift = parseFloat(p_style.getPropertyValue(&#39;border-left-width&#39;)),
         y_shift = parseFloat(p_style.getPropertyValue(&#39;border-top-width&#39;));
     var new_w = (w * pw),
@@ -836,19 +808,15 @@ $DE.updateOverlay = function(player_cvs, overlay, p_props) {
 // Controls &amp; Info
 
 $DE.registerAsControlsElement = function(elm, player) {
-    var rules = $DE.injectElementStyles(elm,
-                                $DE.CONTROLS_CLASS,
-                                $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || &#39;no-id&#39;));
-    $DE.styling.controlsGeneral(rules[0]);
-    $DE.styling.controlsInstance(rules[1]);
+    $DE.injectElementStyles(elm,
+        $DE.CONTROLS_CLASS,
+        $DE.CONTROLS_INSTANCE_CLASS_PREFIX + (player.id || &#39;no-id&#39;));
 };
 
 $DE.registerAsInfoElement = function(elm, player) {
-    var rules = $DE.injectElementStyles(elm,
-                                $DE.INFO_CLASS,
-                                $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || &#39;no-id&#39;));
-    $DE.styling.infoGeneral(rules[0]);
-    $DE.styling.infoInstance(rules[1]);
+    $DE.injectElementStyles(elm,
+        $DE.INFO_CLASS,
+        $DE.INFO_INSTANCE_CLASS_PREFIX + (player.id || &#39;no-id&#39;));
 };
 
 // Events
@@ -864,16 +832,16 @@ $DE.subscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
         elm.addEventListener(type, handlers[type], false);
     }
-}
+};
 
 $DE.unsubscribeElementEvents = function(elm, handlers) {
     for (var type in handlers) {
         elm.removeEventListener(type, handlers[type], false);
     }
-}
+};
 
 $DE.subscribeWindowEvents = function(handlers) {
-    $DE.subscribeElementEvents(window, handlers);
+    $DE.subscribeElementEvents($win, handlers);
 };
 
 $DE.subscribeCanvasEvents = $DE.subscribeElementEvents;
@@ -974,60 +942,60 @@ $DE.createStatImg = function() {
 };
 
 $DE.createStyle = function() {
-    var style = document.createElement(&#39;style&#39;);
+    var style = $doc.createElement(&#39;style&#39;);
     style.type = &#39;text/css&#39;;
     return style;
 };
 
 $DE.createAudio = function() {
-    return document.createElement(&#39;audio&#39;);
+    return $doc.createElement(&#39;audio&#39;);
 };
 
 $DE.createVideo = function() {
-    return document.createElement(&#39;video&#39;);
+    return $doc.createElement(&#39;video&#39;);
 };
 
 $DE.createSource = function() {
-    return document.createElement(&#39;source&#39;);
+    return $doc.createElement(&#39;source&#39;);
 };
 
 $DE.appendToBody = function(element) {
-    document.body.appendChild(element);
+    $doc.body.appendChild(element);
 };
 
-var testCanvas = document.createElement(&#39;canvas&#39;);
+var testCanvas = $doc.createElement ? $doc.createElement(&#39;canvas&#39;) : {};
 $DE.canvasSupported = !!(testCanvas.getContext &amp;&amp; testCanvas.getContext(&#39;2d&#39;));
 
-var https = window.location &amp;&amp; window.location.protocol === &#39;https:&#39;;
+var https = $win.location &amp;&amp; $win.location.protocol === &#39;https:&#39;;
 $DE.isHttps = https;
 
-var local = window.location &amp;&amp; window.location.protocol === &#39;file:&#39;;
+var local = $win.location &amp;&amp; $win.location.protocol === &#39;file:&#39;;
 $DE.isLocal = local;
 
-var isIE9 = navigator.userAgent.indexOf(&#39;MSIE 9.0&#39;) !== -1;
+var isIE9 = $nav.userAgent &amp;&amp; $nav.userAgent.indexOf(&#39;MSIE 9.0&#39;) !== -1;
 $DE.isIE9 = isIE9;
 
 var hidden, visibilityChange;
-if (typeof document.hidden !== &quot;undefined&quot;) { // Opera 12.10 and Firefox 18 and later support
+if (typeof $doc.hidden !== &quot;undefined&quot;) { // Opera 12.10 and Firefox 18 and later support
   hidden = &quot;hidden&quot;;
   visibilityChange = &quot;visibilitychange&quot;;
-} else if (typeof document.mozHidden !== &quot;undefined&quot;) {
+} else if (typeof $doc.mozHidden !== &quot;undefined&quot;) {
   hidden = &quot;mozHidden&quot;;
   visibilityChange = &quot;mozvisibilitychange&quot;;
-} else if (typeof document.msHidden !== &quot;undefined&quot;) {
+} else if (typeof $doc.msHidden !== &quot;undefined&quot;) {
   hidden = &quot;msHidden&quot;;
   visibilityChange = &quot;msvisibilitychange&quot;;
-} else if (typeof document.webkitHidden !== &quot;undefined&quot;) {
+} else if (typeof $doc.webkitHidden !== &quot;undefined&quot;) {
   hidden = &quot;webkitHidden&quot;;
   visibilityChange = &quot;webkitvisibilitychange&quot;;
 }
 
-if (typeof document[hidden] !== &#39;undefined&#39; ||
-    typeof document.addEventListener !== &#39;undefined&#39;) {
-        document.addEventListener(visibilityChange,
+if (typeof $doc[hidden] !== &#39;undefined&#39; ||
+    typeof $doc.addEventListener !== &#39;undefined&#39;) {
+        $doc.addEventListener(visibilityChange,
             function() {
                 if (onDocumentHiddenChange) {
-                    onDocumentHiddenChange(document[hidden]);
+                    onDocumentHiddenChange($doc[hidden]);
                 }
             }, false);
 }
@@ -1036,11 +1004,11 @@ $DE.onDocumentHiddenChange = function(cb){
     onDocumentHiddenChange = cb;
 };
 
-$DE.Path2D = global.Path2D;
+$DE.Path2D = $glob.Path2D;
 
 
 $DE.isInIframe = function() {
-    return global.self !== global.top;
+    return $glob.self !== $glob.top;
 };
 
 var iframe = $DE.isInIframe() ? global : null;
@@ -1059,10 +1027,10 @@ $DE.getIframeSrc = function() {
 };
 
 $DE.addMessageListener = function(listener) {
-    if (!global.addEventListener) {
+    if (!$glob.addEventListener) {
         return;
     }
-    global.addEventListener(&#39;message&#39;, listener, false);
+    $glob.addEventListener(&#39;message&#39;, listener, false);
 };
 
 $DE.postToContentWindow = function(message) {

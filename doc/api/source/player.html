@@ -392,20 +392,22 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                     if (player.anim === result) { // avoid race condition when there were two requests
                         // to load different animations and first one finished loading
                         // after the second one
-                        player.state.happens = C.LOADING;
-                        player.fire(C.S_CHANGE_STATE, C.LOADING);
-                        player.fire(C.S_LOAD, result);
-                        player._updateMediaVolumes();
-                        if (!player.handleEvents) player.stop();
-                        player._callPostpones();
-                        if (callback) callback.call(player, result);
-                        // player may appear already playing something if autoPlay or a similar time-jump
-                        // flag was set from some different source of options (async, for example),
-                        // then the rule (for the moment) is: last one wins
-                        if (player.autoPlay) {
-                            if (player.state.happens === C.PLAYING) player.stop();
-                            player.play();
-                        }
+                        utils.postpone(function(){
+                            player.state.happens = C.LOADING;
+                            player.fire(C.S_CHANGE_STATE, C.LOADING);
+                            player.fire(C.S_LOAD, result);
+                            player._updateMediaVolumes();
+                            if (!player.handleEvents) player.stop();
+                            player._callPostpones();
+                            if (callback) callback.call(player, result);
+                            // player may appear already playing something if autoPlay or a similar time-jump
+                            // flag was set from some different source of options (async, for example),
+                            // then the rule (for the moment) is: last one wins
+                            if (player.autoPlay || result.hasScripting) {
+                                if (player.state.happens === C.PLAYING) player.stop();
+                                player.play();
+                            }
+                        });
                     }
                 }
             ], function(url, factor, progress, errors) {
@@ -439,7 +441,6 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
             player._loadTarget = C.LT_ELEMENTS;
             Loader.loadElements(player, object, whenDone);
         } else if (is.str(object)) { // URL
-            var controls = player.controls;
             player._loadTarget = C.LT_URL;
             player._loadSrc = object;
             Loader.loadFromUrl(player, object, importer, whenDone);
@@ -633,7 +634,7 @@ Player.prototype.pause = function() {
     if ((player.state.happens === C.RES_LOADING) &amp;&amp;
         (player.loadingMode === C.LM_ONREQUEST)) {
         player._postpone(&#39;pause&#39;, arguments);
-        return;
+        return player;
     }
 
     player._ensureHasState();
@@ -641,7 +642,7 @@ Player.prototype.pause = function() {
 
     var state = player.state;
     if (state.happens === C.STOPPED) {
-        return;
+        return player;
     }
 
     if (state.happens === C.PLAYING) {
@@ -902,7 +903,7 @@ Player.prototype.drawAt = function(time) {
                                                              // postpone this task and exit. postponed tasks
                                                              // will be called when all remote resources were
                                                              // finished loading
-    if ((time &lt; 0) || (time &gt; this.anim.duration)) {
+    if ((time &lt; 0) || (!this.infiniteDuration &amp;&amp; (time &gt; this.anim.duration))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,
