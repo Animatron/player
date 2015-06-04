@@ -72,7 +72,7 @@ function Animation() {
     this.meta = {};
     this.hasScripting = false;
     this.targets = {}; // Player instances where this animation was loaded, by ID
-    this.$prefixes = []; // functions to call before every frame
+    this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
     this.__informEnabled = true;
     this.__lastOverElm = null;
@@ -239,7 +239,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
-    this.prefixes(time, ctx);
+    time = this.$prefix ? this.$prefix(time, ctx) : time;
     this.each(function(child) {
         child.render(ctx, time, dt);
     });
@@ -606,30 +606,16 @@ Animation.prototype.findById = function(id) {
  * @method prefix
  *
  * Perform the function exactly before rendering all the elements inside,
- * before the new frame, but after the preparations. There could be any number
- * of prefixes.
+ * before the new frame, but after the preparations. This function *should*
+ * return the time value passed in or a new time value.
  *
  * @param {Function} f function to call
  * @param {Number} f.t time
  * @param {Context2D} f.ctx canvas context
+ * @param {Number} f.return new time value
  */
 Animation.prototype.prefix = function(f) {
-    this.$prefixes.push(f);
-};
-
-/**
- * @method prefixes
- * @private
- *
- * Call all the "prefix" functions, the functions called exactly before
- * rendering all the elements inside, before the new frame, but after the preparations.
- * To add "prefix" function, pass it to {@link anm.Animation#prefix} method.
- */
-Animation.prototype.prefixes = function(t, ctx) {
-    var prefixes = this.$prefixes;
-    for (var i = 0, plen = prefixes.length; i < plen; i++) {
-        prefixes[i](t, ctx);
-    }
+    this.$prefix = f;
 };
 
 /**
