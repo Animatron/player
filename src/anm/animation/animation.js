@@ -72,6 +72,7 @@ function Animation() {
     this.meta = {};
     this.hasScripting = false;
     this.targets = {}; // Player instances where this animation was loaded, by ID
+    this.$prefixes = []; // functions to call before every frame
     //this.fps = undefined;
     this.__informEnabled = true;
     this.__lastOverElm = null;
@@ -238,6 +239,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
+    this.prefixes(time, ctx);
     this.each(function(child) {
         child.render(ctx, time, dt);
     });
@@ -550,6 +552,8 @@ Animation.prototype._loadRemoteResources = function(player) {
  * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
  * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
+ * See also: {@link anm.Animation#findAll}, {@link anm.Animation#findById}
+ *
  * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
@@ -570,6 +574,8 @@ Animation.prototype.find = function(selector, where) {
  * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
  * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
+ * See also: {@link anm.Animation#find}, {@link anm.Animation#findById}
+ *
  * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
@@ -585,6 +591,8 @@ Animation.prototype.findAll = function(selector, where) {
  * Searches for {@link anm.Element elements} by ID inside another inside the
  * Animation. Actually, just gets it from hash map, so O(1).
  *
+ * See also: {@link anm.Animation#find}, {@link anm.Animation#findAll}
+ *
  * @param {String} id ID of the element to find
  * @return {anm.Element|Null} An element you've searched for, or null
  *
@@ -592,6 +600,36 @@ Animation.prototype.findAll = function(selector, where) {
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
+};
+
+/**
+ * @method prefix
+ *
+ * Perform the function exactly before rendering all the elements inside,
+ * before the new frame, but after the preparations. There could be any number
+ * of prefixes.
+ *
+ * @param {Function} f function to call
+ * @param {Number} f.t time
+ * @param {Context2D} f.ctx canvas context
+ */
+Animation.prototype.prefix = function(f) {
+    this.$prefixes.push(f);
+};
+
+/**
+ * @method prefixes
+ * @private
+ *
+ * Call all the "prefix" functions, the functions called exactly before
+ * rendering all the elements inside, before the new frame, but after the preparations.
+ * To add "prefix" function, pass it to {@link anm.Animation#prefix} method.
+ */
+Animation.prototype.prefixes = function(t, ctx) {
+    var prefixes = this.$prefixes;
+    for (var i = 0, plen = prefixes.length; i < plen; i++) {
+        prefixes[i](t, ctx);
+    }
 };
 
 /**
