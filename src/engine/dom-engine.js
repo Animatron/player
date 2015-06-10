@@ -78,9 +78,9 @@ var $DE = {};
 // getCanvasPosition(canvas) -> [ x, y ]
 // getCanvasParameters(canvas) -> [ width, height, ratio ]
 // getCanvasBounds(canvas) -> [ x, y, width, height, ratio ]
-// setCanvasSize(canvas, width, height, ratio?) -> none
+// setElementSize(canvas, width, height, ratio?) -> none
 // setCanvasPosisition(canvas, x, y) -> none
-// setCanvasBackground(canvas, value) -> none
+// setElementBackground(canvas, value) -> none
 // addCanvasOverlay(id, parent: canvas, conf: [x, y, w, h], callback: function(canvas)) -> canvas
 // updateCanvasOverlays(canvas) -> none
 // updateOverlay(parent, overlay, props?) -> none
@@ -227,8 +227,8 @@ $DE.PLAYER_CLASS = 'anm-player';
 $DE.PLAYER_INSTANCE_CLASS_PREFIX = 'anm-player-';
 $DE.CONTROLS_CLASS = 'anm-controls';
 $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
-$DE.INFO_CLASS = 'anm-controls';
-$DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-controls-';
+$DE.INFO_CLASS = 'anm-infoblock';
+$DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-infoblock-';
 
 $DE.WRAPPER_CSS = '{ position: relative; }';
 
@@ -240,6 +240,13 @@ $DE.CONTROLS_CSS = '{ ' +
     'z-index: 100;' +
     'cursor: pointer;' +
     'background-color: rgba(0,0,0,0);' +
+    ' }';
+
+$DE.INFO_CSS = '{' +
+    'position: absolute;' +
+    'left: 0;' +
+    'top: 0;' +
+    'z-index: 101' +
     ' }';
 
 $DE.ensureGlobalStylesInjected = function() {
@@ -428,8 +435,8 @@ $DE.clearChildren = function(elm) {
 
 $DE.createCanvas = function(width, height, bg, ratio) {
     var cvs = $doc.createElement('canvas');
-    $DE.setCanvasSize(cvs, width, height, ratio);
-    if (bg) $DE.setCanvasBackground(cvs, bg);
+    $DE.setElementSize(cvs, width, height, ratio);
+    if (bg) $DE.setElementBackground(cvs, bg);
     return cvs;
 };
 
@@ -658,7 +665,7 @@ $DE.getCanvasBounds = function(cvs/*, parent*/) {
     return [ pos[0], pos[1], params[0], params[1], params[2] ];
 };
 
-$DE.setCanvasSize = function(cvs, width, height, ratio) {
+$DE.setElementSize = function(cvs, width, height, ratio) {
     //$log.debug('request to resize canvas ' + (cvs.id || cvs) + ' to ' + width + ' ' + height);
     ratio = ratio || $DE.PX_RATIO;
     var _w = width | 0, // to int
@@ -672,23 +679,23 @@ $DE.setCanvasSize = function(cvs, width, height, ratio) {
     cvs.style.height = _h + 'px';
     cvs.setAttribute('width', _w * (ratio || 1));
     cvs.setAttribute('height', _h * (ratio || 1));
-    $DE._saveCanvasPos(cvs);
+    $DE._saveElementPos(cvs);
     return [ _w, _h ];
 };
 
-$DE.setCanvasPosition = function(cvs, x, y) {
+$DE.setElementPosition = function(cvs, x, y) {
     var props = $DE.getAnmProps(cvs);
     props.usr_x = x;
     props.usr_y = y;
     // TODO: actually move canvas
-    $DE._saveCanvasPos(cvs);
+    $DE._saveElementPos(cvs);
 };
 
-$DE.setCanvasBackground = function(cvs, bg) {
+$DE.setElementBackground = function(cvs, bg) {
     cvs.style.backgroundColor = bg;
 };
 
-$DE._saveCanvasPos = function(cvs) {
+$DE._saveElementPos = function(cvs) {
     // FIXME: use getBoundingClientRect?
     var gcs = ($doc.defaultView &&
                $doc.defaultView.getComputedStyle); // last is assigned
@@ -739,9 +746,18 @@ $DE.setWrapperSize = function(wrapper, width, height) {
     var props = $DE.getAnmProps(wrapper);
     props.width = _w;
     props.height = _h;
-    wrapper.style.width  = _w + 'px'; 
+    wrapper.style.width  = _w + 'px';
     wrapper.style.height = _h + 'px';
     return [ _w, _h ];
+};
+
+$DE.addInfoblockDivOverlay = function(id, wrapper) {
+    var div = document.createElement('div');
+    div.class = 'anm-infoblock';
+    div.id = id;
+    wrapper.appendChild(div);
+
+    return div;
 };
 
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
@@ -763,7 +779,7 @@ $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {
     cvs.id = (p_props.id) ? ('__' + p_props.id + '_' + id) : ('__anm_' + id);
     var props = $DE.getAnmProps(cvs);
     if (callback) callback(cvs, player_cvs);
-    $DE.setCanvasSize(cvs, new_w, new_h);
+    $DE.setElementSize(cvs, new_w, new_h);
     var new_x = (x * new_w) + x_shift,
         new_y = (y * new_h) - y_shift;
     $DE.moveElementTo(cvs, new_x, new_y);
@@ -785,7 +801,7 @@ $DE.updateCanvasOverlays = function(player_cvs) {
 
 $DE.updateOverlay = function(player_cvs, overlay, p_props) {
     p_props = p_props || $DE.getAnmProps(player_cvs);
-    $DE.setCanvasSize(overlay, p_props.width, p_props.height);
+    $DE.setElementSize(overlay, p_props.width, p_props.height);
 };
 
 // Controls & Info
