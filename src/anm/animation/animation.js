@@ -449,10 +449,12 @@ Animation.prototype.filterEvent = function(type, evt) {
             if (targetFound && clickEvent) return false; /* stop outer iteration, so first matched element exits the check */
         });
         if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
-            var stillInside = false; var moutSubscriber;
+            var stillInside = false;
             anim.__lastOverElm.inside(pos, function() { stillInside = true; });
-            if (!stillInside && (moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout'))) {
-                moutSubscriber.fire('mouseout', evt);
+            if (!stillInside) {
+                anim.__lastOverElm = false;
+                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
+                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
             }
         }
         return false; /* stop passing this event further to other handlers */
