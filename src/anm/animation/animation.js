@@ -409,53 +409,52 @@ Animation.prototype.filterEvent = function(type, evt) {
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var targetFound = false;
-        var moSubscriber = null; // mouse-out subscriber
-        var clickEvent = (type === 'mouseclick') || (type === 'mousedoubleclick');
         anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
                 return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
                 targetFound = true;
-                var subscriber = firstSubscriber(elm, type);
                 if (type !== 'mousemove') {
+                    var subscriber = firstSubscriber(elm, type);
                     if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
                     // check mouseover/mouseout
+                    var mmoveSubscriber = firstSubscriber(elm, 'mousemove');
                     if (!anim.__lastOverElm) {
-                        // mouse moved over this element first time
-                        anim.__lastOverElm = elm; // not a subscriber!
-                        if (subscriber) {
-                            subscriber.fire('mouseover', evt);
-                            subscriber.fire(type, evt); // fire this mousemove next to mouseover
-                        }
+                        // mouse moved over some element for the first time
+                        anim.__lastOverElm = elm;
+                        var moverSubscriber = firstSubscriber(elm, 'mouseover');
+                        if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
+                        if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            if (subscriber) subscriber.fire(type, evt);
+                            if (mmoveSubscriber) mmoveSubscriber.fire(type, evt);
                         } else {
                             // mouse moved over new element
+                            var moverSubscriber = firstSubscriber(elm, 'mouseover');
                             if (anim.__lastOverElm) {
-                                if (moSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout')) {
-                                    moSubscriber.fire('mouseout', evt);
-                                }
+                                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
+                                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
+                                anim.__lastOverElm = null;
                             }
-                            anim.__lastOverElm = elm; // not a subscriber!
-                            if (subscriber) {
-                                subscriber.fire('mouseover', evt);
-                                subscriber.fire(type, evt); // fire this mousemove next to mouseover
-                            }
+                            anim.__lastOverElm = elm;
+                            if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
+                            if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
                         }
                     }
 
                 }
-                if (clickEvent) return false; /* stop inner iteration, so first matched element exits the check */
+                return false; /* stop inner iteration, so first matched element exits the check */
             });
-            if (targetFound && clickEvent) return false; /* stop outer iteration, so first matched element exits the check */
+            if (targetFound) return false; /* stop outer iteration, so first matched element exits the check */
         });
         if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
-            anim.__lastOverElm.inside(pos, function() { stillInside = true; });
-            if (!stillInside && (moSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout'))) {
-                moSubscriber.fire('mouseout', evt);
+            anim.__lastOverElm.inside(pos, null, function() { stillInside = true; });
+            if (!stillInside) {
+                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
+                anim.__lastOverElm = null;
+                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
             }
         }
         return false; /* stop passing this event further to other handlers */
