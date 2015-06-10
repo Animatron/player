@@ -409,7 +409,6 @@ Animation.prototype.filterEvent = function(type, evt) {
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
         var targetFound = false;
-        var clickEvent = (type === 'mouseclick') || (type === 'mousedoubleclick');
         anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
                 return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
@@ -420,10 +419,8 @@ Animation.prototype.filterEvent = function(type, evt) {
                     if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
                     // check mouseover/mouseout
-                    console.log('mousemove/mouseover/mouseout', elm.name);
                     var mmoveSubscriber = firstSubscriber(elm, 'mousemove');
                     if (!anim.__lastOverElm) {
-                        console.log('very new element ' + elm.name + ', pass mover & mmove');
                         // mouse moved over some element for the first time
                         anim.__lastOverElm = elm;
                         var moverSubscriber = firstSubscriber(elm, 'mouseover');
@@ -431,18 +428,15 @@ Animation.prototype.filterEvent = function(type, evt) {
                         if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            console.log('still over element ' + elm.name + ', pass mmove');
                             if (mmoveSubscriber) mmoveSubscriber.fire(type, evt);
                         } else {
                             // mouse moved over new element
                             var moverSubscriber = firstSubscriber(elm, 'mouseover');
                             if (anim.__lastOverElm) {
-                                console.log('moved from ' + anim.__lastOverElm.name + ', pass mout to it');
                                 var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
                                 if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
                                 anim.__lastOverElm = null;
                             }
-                            console.log('moved to ' + elm.name + ', pass mover & mmove')
                             anim.__lastOverElm = elm;
                             if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
                             if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
@@ -457,9 +451,7 @@ Animation.prototype.filterEvent = function(type, evt) {
         if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
             anim.__lastOverElm.inside(pos, null, function() { stillInside = true; });
-            console.log('still inside ' + anim.__lastOverElm.name, stillInside);
             if (!stillInside) {
-                console.log('moved off ' + anim.__lastOverElm.name + ', send mout');
                 var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
                 anim.__lastOverElm = null;
                 if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
