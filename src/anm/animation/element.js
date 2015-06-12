@@ -1536,7 +1536,7 @@ Element.prototype.ltime = function(gtime) {
  */
 Element.prototype.matchesSwitch = function() {
     if (!this.parent || !this.parent.switch) return true;
-    if (this.parent.switch === '[None]') return false;
+    if (this.parent.switch === C.SWITCH_OFF) return false;
     return (this.parent.switch === this.name);
 };
 

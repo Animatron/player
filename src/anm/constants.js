@@ -175,4 +175,7 @@ C.PNT_SYSTEM = 'system';
 C.PNT_USER = 'user';
 C.PNT_DEBUG = 'debug';
 
+// value for Switch tween where it means it's off
+C.SWITCH_OFF = '[None]';
+
 module.exports = C;
