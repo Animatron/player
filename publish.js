@@ -119,6 +119,7 @@
         initOptions.repeat = true;
     }
     if (hasInteractivity) {
+        initOptions.controlsEnabled = false;
         initOptions.infiniteDuration = true;
         initOptions.handleEvents = true;
     }
