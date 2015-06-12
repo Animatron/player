@@ -70,7 +70,6 @@ function Animation() {
     this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
-    this.hasScripting = false;
     this.targets = {}; // Player instances where this animation was loaded, by ID
     this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
