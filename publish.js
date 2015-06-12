@@ -93,6 +93,8 @@
     WRAPPER_CLASS = 'anm-wrapper',
     PLAYER_VERSION_ID = playerVersion || 'latest';
 
+    var hasInteractivity = hasInteractivity || false;
+
     // options to apply just _after_ the snapshot was completely loaded are stored in the url (width and height in `params`)
     // initialization options are stored in `initOptions`
     var params = utils.parseQueryString(),
