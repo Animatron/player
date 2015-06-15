@@ -24,7 +24,7 @@ function Controls(player) {
     this.ctx = null;
     this.bounds = [];
     this.theme = null;
-    this.info = null;
+    this.info = new InfoBlock(player);
 
     this.state = {
         happens: C.NOTHING,
@@ -74,14 +74,23 @@ Controls.prototype.subscribeEvents = function() {
         me.state.changed = true;
     });
 
+    var mouseEnter = function(e) { me.handleMouseEnter(e);},
+        mouseMove = function(e) { me.handleMouseMove(e);},
+        mouseLeave = function(e) { me.handleMouseLeave(); },
+        mouseDown = function(e) { me.handleClick(); engine.preventDefault(e);};
+
     engine.subscribeCanvasEvents(me.canvas, {
-        mouseenter: function(e) { me.handleMouseEnter(e);},
-        mousemove: function(e) { me.handleMouseMove(e);},
-        mouseleave: function(e) { me.handleMouseLeave(); },
-        mousedown: function(e) { me.handleClick(); engine.preventDefault(e);},
+        mouseenter: mouseEnter,
+        mousemove: mouseMove,
+        mouseleave: mouseLeave,
+        mousedown: mouseDown,
         click: engine.preventDefault,
         dblclick: engine.preventDefault
     });
+
+    if (this.info) {
+        this.info.attachEvents(mouseEnter, mouseMove, mouseLeave, mouseDown);
+    }
 };
 
 //check and update the time when the mouse was last moved or clicked.
@@ -317,6 +326,9 @@ Controls.prototype.hide = function() {
     //showed halfway, they will fade out from the exact alpha they were in
     this.state.fadeTimer = theme.fadeTimes.fadeout - this.state.fadeTimer;
     this.state.changed = true;
+    if (this.info) {
+        this.info.hide();
+    }
 };
 
 
@@ -328,6 +340,9 @@ Controls.prototype.show = function() {
     this.state.fadeMode = FADE_IN;
     this.state.fadeTimer = theme.fadeTimes.fadein - this.state.fadeTimer;
     this.state.changed = true;
+    if (this.info) {
+        this.info.show();
+    }
 };
 
 Controls.prototype.reset = function() {

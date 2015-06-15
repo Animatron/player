@@ -11,7 +11,7 @@
 // DOM Engine
 // -----------------------------------------------------------------------------
 
-var $win = (typeof window !== 'undefined') ? window : {}
+var $win = (typeof window !== 'undefined') ? window : {};
 var $doc = (typeof window !== 'undefined') ? window.document : {};
 var $nav = (typeof navigator !== 'undefined') ? navigator : {};
 var $glob = (typeof global !== 'undefined') ? global : {};
@@ -246,7 +246,14 @@ $DE.INFO_CSS = '{' +
     'position: absolute;' +
     'left: 0;' +
     'top: 0;' +
-    'z-index: 101' +
+    'z-index: 101;' +
+    'background: rgba(0,0,0,0.7);' +
+    //'padding: 2px 5px;' +
+    'font: 14px Arial, sans-serif;' +
+    'color: white;' +
+    'line-height: 20px;' +
+    'text-align: center;' +
+    'display: none;' +
     ' }';
 
 $DE.ensureGlobalStylesInjected = function() {
@@ -276,6 +283,8 @@ $DE.addGeneralStyles = function() {
     insertRule(wrapperRule);
     var controlsRule = '.' + $DE.CONTROLS_CLASS + $DE.CONTROLS_CSS;
     insertRule(controlsRule);
+    var infoRule = '.' + $DE.INFO_CLASS + $DE.INFO_CSS;
+    insertRule(infoRule);
 };
 
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
@@ -752,12 +761,21 @@ $DE.setWrapperSize = function(wrapper, width, height) {
 };
 
 $DE.addInfoblockDivOverlay = function(id, wrapper) {
-    var div = document.createElement('div');
-    div.class = 'anm-infoblock';
-    div.id = id;
-    wrapper.appendChild(div);
+    var blockDiv = document.createElement('div');
+    blockDiv.className = $DE.INFO_CLASS;
+    blockDiv.id = id;
 
-    return div;
+    var infoDiv = document.createElement('div');
+    infoDiv.className = 'anm-infoblock-meta';
+    infoDiv.innerHTML = '<span class="anm-infoblock-project"></span> by ' +
+        '<span class="anm-infoblock-author"></span>';
+
+    $DE.setElementSize(blockDiv, wrapper.clientWidth, 20);
+    blockDiv.appendChild(infoDiv);
+
+    wrapper.appendChild(blockDiv);
+
+    return blockDiv;
 };
 
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {

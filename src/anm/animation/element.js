@@ -877,8 +877,8 @@ Element.prototype.render = function(ctx, gtime, dt) {
             if ((last_cvs_size[0] < width) ||
                 (last_cvs_size[1] < height)) {
                 // mcvs/bcvs both always have the same size, so we save/check only one of them
-                this._maskCvsSize = engine.setCanvasSize(mcvs, width, height);
-                engine.setCanvasSize(bcvs, width, height);
+                this._maskCvsSize = engine.setElementSize(mcvs, width, height);
+                engine.setElementSize   (bcvs, width, height);
             } else {
                 this._maskCvsSize = last_cvs_size;
             }

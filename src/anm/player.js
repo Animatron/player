@@ -765,7 +765,7 @@ Player.prototype._checkOpts = function() {
 
     this._resize(this.width, this.height);
 
-    if (this.bgColor) engine.setCanvasBackground(this.canvas, this.bgColor);
+    if (this.bgColor) engine.setElementBackground(this.canvas, this.bgColor);
 
     if (this.anim && this.handleEvents) {
         // checks inside if was already subscribed before, skips if so
@@ -1400,7 +1400,7 @@ Player.prototype._stopAndContinue = function() {
 
 // FIXME: moveTo is not moving anything for the moment
 Player.prototype._moveTo = function(x, y) {
-    engine.setCanvasPosition(this.canvas, x, y);
+    engine.setElementPosition(this.canvas, x, y);
 };
 
 Player.prototype._resize = function(width, height) {
@@ -1412,7 +1412,7 @@ Player.prototype._resize = function(width, height) {
         new_size = cur_size;
     }
     engine.setWrapperSize(this.wrapper, new_size[0], new_size[1]);
-    engine.setCanvasSize(cvs, new_size[0], new_size[1]);
+    engine.setElementSize(cvs, new_size[0], new_size[1]);
     this.width = new_size[0];
     this.height = new_size[1];
     engine.updateCanvasOverlays(cvs);
@@ -1426,7 +1426,7 @@ Player.prototype._resize = function(width, height) {
 };
 
 Player.prototype._restyle = function(bg) {
-    engine.setCanvasBackground(this.canvas, bg);
+    engine.setElementBackground(this.canvas, bg);
     this.forceRedraw();
 };
 
