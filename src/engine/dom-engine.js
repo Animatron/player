@@ -230,22 +230,6 @@ $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 $DE.INFO_CLASS = 'anm-infoblock';
 $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-infoblock-';
 
-
-$DE.INFO_CSS = '{' +
-    'position: absolute;' +
-    'left: 0;' +
-    'top: 0;' +
-    'z-index: 101;' +
-    //'background: rgba(0,0,0,0.7);' +
-    //'padding: 2px 5px;' +
-    'font: 14px Arial, sans-serif;' +
-    'color: white;' +
-    'line-height: 20px;' +
-    'text-align: center;' +
-    'min-height: 20px;' +
-    'display: none;' +
-    ' }';
-
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     var stylesTag = $doc.getElementById('anm-player-styles');
@@ -736,7 +720,6 @@ $DE.addInfoblockDivOverlay = function(id, wrapper) {
 
     var infoDiv = document.createElement('div');
     infoDiv.className = 'anm-infoblock-meta';
-    infoDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
     infoDiv.innerHTML = '<span class="anm-infoblock-project"></span> by ' +
         '<span class="anm-infoblock-author"></span>';
 
@@ -751,35 +734,29 @@ $DE.createEndScreenOverlay = function(wrapper) {
     var container = document.createElement('div');
     container.className = 'anm-infoblock-end-screen';
     container.style.display = 'none';
-    container.style.position = 'absolute';
     container.style.backgroundColor = 'rgba(0,0,0,0.7)';
 
     $DE.setElementSize(container, wrapper.clientWidth, wrapper.clientHeight - 20);
 
     var leftDiv = document.createElement('div');
-    leftDiv.setAttribute('style',
-        'float: left; width: 30%; height: 100%');
+    leftDiv.className = 'anm-infoblock-end-screen-left';
     var rightDiv = document.createElement('div');
-    rightDiv.setAttribute('style',
-        'float: right; width: 70%; height: 100%');
+    rightDiv.className = 'anm-infoblock-end-screen-right';
 
     container.appendChild(leftDiv);
     container.appendChild(rightDiv);
 
     //replay button
     var replayButton = document.createElement('div');
-    replayButton.setAttribute('style',
-        'margin: 0 auto; font-weight: bold; position: relative;' +
-        'top: 50%; transform: translateY(-50%); cursor: pointer;');
-    replayButton.innerText = '[replay]';
+    replayButton.className = 'anm-infoblock-end-screen-replay';
+    replayButton.innerText = '[replay]'; //should be a button later
 
     leftDiv.appendChild(replayButton);
 
     //icons and embed code
     var rightContainer = document.createElement('div');
-    rightContainer.setAttribute('style',
-    'width: 100%; position: relative; top: 50%; transform: translateY(-50%);');
-
+    rightContainer.className = 'anm-infoblock-end-screen-right-container';
+    
     var embedDiv = document.createElement('div');
     var embedText = document.createElement('div');
     embedText.innerText = 'Embed code:';
@@ -791,9 +768,12 @@ $DE.createEndScreenOverlay = function(wrapper) {
     embedDiv.appendChild(embedInput);
 
     var socialDiv = document.createElement('div');
+    socialDiv.className = 'anm-infoblock-end-screen-social';
     var twSpan = document.createElement('span');
+    twSpan.className = 'twitter';
     twSpan.innerText = '[tw]';
     var fbSpan = document.createElement('span');
+    fbSpan.className = 'facebook';
     fbSpan.innerText = '[fb]';
 
     socialDiv.appendChild(twSpan);

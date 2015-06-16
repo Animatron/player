@@ -18,3 +18,56 @@
     left: -10000px;
     top: -10000px;
 }
+
+.anm-infoblock {
+   position: absolute;
+   left: 0;
+   top: 0;
+   z-index: 101;
+   font: 14px Arial, sans-serif;
+   color: white;
+   min-height: 20px;
+   display: none;
+}
+
+.anm-infoblock-meta {
+    background-color: rgba(0, 0, 0, 0.7);
+    height: 20px;
+    line-height: 20px;
+    text-align: center;
+}
+
+.anm-infoblock-end-screen {
+    /*position: absolute;*/
+    display: none;
+    background-color: rgba(0, 0, 0, 0.7);
+}
+
+.anm-infoblock-end-screen-left {
+    float: left;
+    width: 30%;
+    height: 100%;
+    text-align: center;
+}
+
+.anm-infoblock-end-screen-right {
+    float: right;
+    width: 70%;
+    height: 100%;
+}
+
+.anm-infoblock-end-screen-replay {
+    margin: 0 auto;
+    font-weight: bold;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+    cursor: pointer;
+}
+
+.anm-infoblock-end-screen-right-container {
+    width: 100%;
+    position: relative;
+    top: 50%;
+    transform: translateY(-50%);
+}
