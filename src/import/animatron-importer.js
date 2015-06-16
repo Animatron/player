@@ -361,14 +361,6 @@ Import.branch = function(type, src, all, anim) {
             }
         }
 
-        if (lsrc[9]) { // scripting
-            anim.hasScripting = true;
-            var code = lsrc[9];
-            try {
-                eval('(function() { ' + code + '})').call(ltrg);
-            } catch(e) { _reportError(e); }
-        }
-
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
 
         // TODO temporary implementation, use custom renderer for that!

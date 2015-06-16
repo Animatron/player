@@ -1,0 +1,20 @@
+.anm-wrapper {
+    position: relative;
+}
+
+.anm-controls {
+    position: absolute;
+    left: 0;
+    top: 0;
+    vertical-align: top;
+    z-index: 100;
+    cursor: pointer;
+    background-color: rgba(0,0,0,0);
+}
+
+#anm-text-measurer-container {
+    position: absolute;
+    visibility: hidden;
+    left: -10000px;
+    top: -10000px;
+}

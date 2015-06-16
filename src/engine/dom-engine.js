@@ -230,17 +230,6 @@ $DE.CONTROLS_INSTANCE_CLASS_PREFIX = 'anm-controls-';
 $DE.INFO_CLASS = 'anm-infoblock';
 $DE.INFO_INSTANCE_CLASS_PREFIX = 'anm-infoblock-';
 
-$DE.WRAPPER_CSS = '{ position: relative; }';
-
-$DE.CONTROLS_CSS = '{ ' +
-    'position: absolute;' +
-    'left: 0;' +
-    'top: 0;' +
-    'vertical-align: top;' +
-    'z-index: 100;' +
-    'cursor: pointer;' +
-    'background-color: rgba(0,0,0,0);' +
-    ' }';
 
 $DE.INFO_CSS = '{' +
     'position: absolute;' +
@@ -259,38 +248,23 @@ $DE.INFO_CSS = '{' +
 
 $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
-    //if (!($doc.readyState === "complete")) return;
     var stylesTag = $doc.getElementById('anm-player-styles');
     if (!stylesTag) {
         stylesTag = $DE.createStyle();
         stylesTag.id = 'anm-player-styles';
+
+        var css = require('../../res/player.css');
+        stylesTag.innerHTML = css;
         // TODO: inject as first element?
-        var head = $doc.getElementsByTagName("head")[0];
+        var head = $doc.head;
         head.appendChild(stylesTag);
 
     }
     $DE.__stylesTag = stylesTag;
-    $DE.addGeneralStyles();
 };
 
-$DE.addGeneralStyles = function() {
-    var styles = $DE.__stylesTag.sheet,
-        rules = styles.cssRules || styles.rules;
-    var insertRule = function(rule) {
-        (styles.insertRule || styles.addRule).call(styles, rule, rules.length);
-    };
-
-    var wrapperRule = '.' + $DE.WRAPPER_CLASS + $DE.WRAPPER_CSS;
-    insertRule(wrapperRule);
-    var controlsRule = '.' + $DE.CONTROLS_CLASS + $DE.CONTROLS_CSS;
-    insertRule(controlsRule);
-    var infoRule = '.' + $DE.INFO_CLASS + $DE.INFO_CSS;
-    insertRule(infoRule);
-};
 
 $DE.injectElementStyles = function(elm, general_class, instance_class) {
-    var styles = $DE.__stylesTag.sheet,
-        rules = styles.cssRules || styles.rules;
     if (elm.classList) {
         elm.classList.add(general_class);
         elm.classList.add(instance_class);
@@ -312,10 +286,6 @@ $DE.createTextMeasurer = function() {
           var div = $doc.createElement('div');
           var span = $doc.createElement('span');
           span.id = 'anm-text-measurer';
-          div.style.visibility = 'hidden';
-          div.style.position = 'absolute';
-          div.style.top = -10000 + 'px';
-          div.style.left = -10000 + 'px';
           div.id = 'anm-text-measurer-container';
           div.appendChild(span);
           $doc.body.appendChild(div);
@@ -561,9 +531,6 @@ $DE.detachPlayer = function(player) {
     if (player.statImg) {
       $DE.detachElement(null, player.statImg);
     }
-    //FIXME: should remove stylesTag when last player was deleted from page
-    //$DE.detachElement(null, $DE.__stylesTag);
-    //$DE.__stylesTag = null;
 };
 
 $DE.getContext = function(cvs, type) {

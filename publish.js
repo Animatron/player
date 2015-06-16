@@ -4,18 +4,23 @@
  */
 
 /* Variables we get from template:
-   playerDomain - a URL to player domain host, e.g. player.animatron.com
+   playerDomain — a URL to player domain host, e.g. player.animatron.com
    amazonDomain — a URL to snapshot storage host, e.g. http://snapshots.animatron.com/<snapshot-id>
    width — width of the animation
-   height - height of the animation
-   playerVersion = player version, default 'latest'
-   filename = filename of snapshot, used as amazonDomain + filename
-   autostart = (boolean) autostart of movie on player load
-   loop = (boolean) loop animation instead of stoping at the end
-   animation = JSON object of animatron movie (currently not used)
+   height — height of the animation
+   playerVersion — player version, default 'latest'
+   filename — filename of snapshot, used as amazonDomain + filename
+   autostart — (boolean) autostart of movie on player load
+   loop — (boolean) loop animation instead of stoping at the end
+   animation — JSON object of animatron movie (currently not used)
+   hasInteractivity — (boolean) if there's some interactivity in the project, it should be autostarted (overrides `autostart`) and handle events
 */
-(function() {
-    var inIFrame = (window.self !== window.top);
+(function($global, $window, $document) {
+    var inIFrame = ($window.self !== $window.top);
+
+    var autostart = $global['autostart'] || false,
+        loop = $global['loop'] || false,
+        hasInteractivity = $global['hasInteractivity'] || false;
 
     var utils = {
         isInt: function(n) {
@@ -53,17 +58,17 @@
         },
         getIframeSize: function () {
             var size = {w:0, h:0};
-            if (typeof window.innerWidth == 'number') {
-                size.w = window.innerWidth;
-                size.h = window.innerHeight;
+            if (typeof $window.innerWidth == 'number') {
+                size.w = $window.innerWidth;
+                size.h = $window.innerHeight;
             } else {
-                size.w = document.documentElement.clientWidth;
-                size.h = document.documentElement.clientHeight;
+                size.w = $document.documentElement.clientWidth;
+                size.h = $document.documentElement.clientHeight;
             }
             return size;
         },
         forcedJS: function (path, then) {
-            var scriptElm = document.createElement('script');
+            var scriptElm = $document.createElement('script');
             scriptElm.type = 'text/javascript';
             scriptElm.async = 'async';
             scriptElm.src = path + '?' + (new Date()).getTime();
@@ -78,12 +83,12 @@
                     )) {
                         success = true;
                         then();
-                    } else if (!success && window.console) {
+                    } else if (!success && $window.console) {
                         console.error('Request failed: ' + this.readyState);
                     }
                 };
             })();
-            var headElm = document.head || document.getElementsByTagName('head')[0];
+            var headElm = $document.head || $document.getElementsByTagName('head')[0];
             headElm.appendChild(scriptElm);
         }
     };
@@ -92,8 +97,12 @@
     WRAPPER_CLASS = 'anm-wrapper',
     PLAYER_VERSION_ID = playerVersion || 'latest';
 
+    // options to apply just _after_ the snapshot was completely loaded are stored in the url (width and height in `params`)
+    // initialization options are stored in `initOptions`
     var params = utils.parseQueryString(),
-        rect = utils.getRequiredRect(),
+        initOptions = {};
+
+    var rect = utils.getRequiredRect(),
         targetWidth, targetHeight;
 
     //floating-point w&h parameters mean percentage sizing
@@ -107,11 +116,15 @@
     } else {
         targetHeight = params.h = params.h || rect.h;
     }
-    if (autostart) {
-        params.a = 1;
+    if (autostart || hasInteractivity) {
+        initOptions.autoPlay = true;
     }
     if (loop) {
-        params.r = 1;
+        initOptions.repeat = true;
+    }
+    if (hasInteractivity) {
+        initOptions.controlsEnabled = false;
+        initOptions.handleEvents = true;
     }
 
     if (params.v) {
@@ -123,11 +136,11 @@
     var start = function () {
         try {
             if (!inIFrame) {
-                document.body.className ='no-iframe';
+                $document.body.className ='no-iframe';
             } else {
-                document.body.style.overflow = 'hidden';
+                $document.body.style.overflow = 'hidden';
             }
-            var target = document.getElementById(TARGET_ID);
+            var target = $document.getElementById(TARGET_ID);
             target.style.width  = targetWidth + 'px';
             target.style.height = targetHeight + 'px';
             target.style.marginLeft = -Math.floor(targetWidth / 2) + 'px';
@@ -139,16 +152,16 @@
 
             utils.forcedJS('//' + playerDomain + '/' + PLAYER_VERSION_ID + '/bundle/animatron.min.js',
                 function () {
-                    var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'), window.actions);
+                    var player = anm.Player.forSnapshot(TARGET_ID, snapshotUrl, anm.importers.create('animatron'), $window.actions, initOptions);
                     if (anm.interop && anm.interop.playerjs) {
                         anm.interop.playerjs.setPlayer(player);
                     }
             });
         } catch (e) {
-            if(window.console) console.error(e);
+            if($window.console) console.error(e);
         }
     };
 
-    window.start = start;
+    $window.start = start;
 
-})();
+})(this, window, document);
