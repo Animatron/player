@@ -247,12 +247,13 @@ $DE.INFO_CSS = '{' +
     'left: 0;' +
     'top: 0;' +
     'z-index: 101;' +
-    'background: rgba(0,0,0,0.7);' +
+    //'background: rgba(0,0,0,0.7);' +
     //'padding: 2px 5px;' +
     'font: 14px Arial, sans-serif;' +
     'color: white;' +
     'line-height: 20px;' +
     'text-align: center;' +
+    'min-height: 20px;' +
     'display: none;' +
     ' }';
 
@@ -764,18 +765,84 @@ $DE.addInfoblockDivOverlay = function(id, wrapper) {
     var blockDiv = document.createElement('div');
     blockDiv.className = $DE.INFO_CLASS;
     blockDiv.id = id;
+    $DE.setElementSize(blockDiv, wrapper.clientWidth, wrapper.clientHeight);
 
     var infoDiv = document.createElement('div');
     infoDiv.className = 'anm-infoblock-meta';
+    infoDiv.style.backgroundColor = 'rgba(0,0,0,0.7)';
     infoDiv.innerHTML = '<span class="anm-infoblock-project"></span> by ' +
         '<span class="anm-infoblock-author"></span>';
 
-    $DE.setElementSize(blockDiv, wrapper.clientWidth, 20);
     blockDiv.appendChild(infoDiv);
 
     wrapper.appendChild(blockDiv);
 
     return blockDiv;
+};
+
+$DE.createEndScreenOverlay = function(wrapper) {
+    var container = document.createElement('div');
+    container.className = 'anm-infoblock-end-screen';
+    container.style.display = 'none';
+    container.style.position = 'absolute';
+    container.style.backgroundColor = 'rgba(0,0,0,0.7)';
+
+    $DE.setElementSize(container, wrapper.clientWidth, wrapper.clientHeight - 20);
+
+    var leftDiv = document.createElement('div');
+    leftDiv.setAttribute('style',
+        'float: left; width: 30%; height: 100%');
+    var rightDiv = document.createElement('div');
+    rightDiv.setAttribute('style',
+        'float: right; width: 70%; height: 100%');
+
+    container.appendChild(leftDiv);
+    container.appendChild(rightDiv);
+
+    //replay button
+    var replayButton = document.createElement('div');
+    replayButton.setAttribute('style',
+        'margin: 0 auto; font-weight: bold; position: relative;' +
+        'top: 50%; transform: translateY(-50%); cursor: pointer;');
+    replayButton.innerText = '[replay]';
+
+    leftDiv.appendChild(replayButton);
+
+    //icons and embed code
+    var rightContainer = document.createElement('div');
+    rightContainer.setAttribute('style',
+    'width: 100%; position: relative; top: 50%; transform: translateY(-50%);');
+
+    var embedDiv = document.createElement('div');
+    var embedText = document.createElement('div');
+    embedText.innerText = 'Embed code:';
+    var embedInput = document.createElement('input');
+    embedInput.type = 'text';
+    embedInput.readonly = 'readonly';
+
+    embedDiv.appendChild(embedText);
+    embedDiv.appendChild(embedInput);
+
+    var socialDiv = document.createElement('div');
+    var twSpan = document.createElement('span');
+    twSpan.innerText = '[tw]';
+    var fbSpan = document.createElement('span');
+    fbSpan.innerText = '[fb]';
+
+    socialDiv.appendChild(twSpan);
+    socialDiv.appendChild(fbSpan);
+
+    rightContainer.appendChild(embedDiv);
+    rightContainer.appendChild(socialDiv);
+
+    rightDiv.appendChild(rightContainer);
+
+
+    return {
+        container: container,
+        replayButton: replayButton,
+        embedInput: embedInput
+    };
 };
 
 $DE.addCanvasOverlay = function(id, player_cvs, conf, callback) {

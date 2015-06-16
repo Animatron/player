@@ -12,6 +12,8 @@ function InfoBlock(player) {
     me.player = player;
     me.el = engine.addInfoblockDivOverlay(player.id + '-info', player.wrapper);
 
+    me.initEndScreen();
+
     me.projectSpan = me.el.getElementsByClassName('anm-infoblock-project')[0];
     me.authorSpan = me.el.getElementsByClassName('anm-infoblock-author')[0];
 
@@ -23,14 +25,50 @@ function InfoBlock(player) {
         });
     }
 
+
+
 }
 
+InfoBlock.prototype.initEndScreen = function() {
+    var me = this, player = me.player;
+    var endScreen = engine.createEndScreenOverlay(player.wrapper);
+    me.endScreen = endScreen;
+    me.el.appendChild(endScreen.container);
+
+    player.on(C.S_COMPLETE, function() {
+        me.showEndScreen();
+    });
+
+    engine.subscribeElementEvents(endScreen.replayButton, {
+        'click' : function() {
+            player.play(0);
+            me.hideEndScreen();
+
+        }
+    });
+};
+
+InfoBlock.prototype.showEndScreen = function() {
+    this.endScreen.container.style.display = 'block';
+    this.atEndScreen = true;
+};
+
+InfoBlock.prototype.hideEndScreen = function() {
+    this.endScreen.container.style.display = 'none';
+    this.atEndScreen = false;
+};
+
 InfoBlock.prototype.attachEvents = function(mouseEnter, mouseMove, mouseLeave, mouseDown) {
-    engine.subscribeElementEvents(this.el, {
+    var me=this;
+    engine.subscribeElementEvents(me.el, {
         mouseenter: mouseEnter,
         mousemove: mouseMove,
         mouseleave: mouseLeave,
-        mousedown: mouseDown,
+        mousedown: function(e) {
+            if (!me.atEndScreen) {
+                return mouseDown(e);
+            }
+        },
         click: engine.preventDefault,
         dblclick: engine.preventDefault
     });
@@ -43,6 +81,9 @@ InfoBlock.prototype.setMeta = function(meta) {
 
     this.projectSpan.innerText = projectName;
     this.authorSpan.innerText = author;
+
+    this.endScreen.embedInput.value =
+        '<iframe src="//animatron.com/embed/' + projectId + '"></iframe>';
 };
 
 InfoBlock.prototype.show = function() {

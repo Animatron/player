@@ -186,8 +186,10 @@ Controls.prototype.render = function(gtime) {
             drawVolumeBtn(ctx, w, h, player.muted);
         }
     } else if (s === C.STOPPED) {
-        drawBack(ctx, theme, w, h);
-        drawPlay(ctx, theme, w, h, this.focused);
+        if (!(this.info && this.info.atEndScreen)) {
+            drawBack(ctx, theme, w, h);
+            drawPlay(ctx, theme, w, h, this.focused);
+        }
         state.changed = false;
     } else if (s === C.PAUSED) {
         drawBack(ctx, theme, w, h);
