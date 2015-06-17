@@ -163,6 +163,7 @@ function Element(name, draw, onframe) {
     if (global_opts.liveDebug) this.addDebugRender();
 }
 Element._$ = function(name, draw, onframe) { return new Element(name, draw, onframe); };
+Element.NO_TIME = null;
 Element.NO_BAND = null;
 Element.DEFAULT_LEN = Infinity;
 Element._customImporters = [];
@@ -790,6 +791,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // then global time of `22` will be converted to `ltime == 2` again, so the element will treat it just
     // exactly the same way as it treated the global time of `12`.
     var ltime = this.ltime(gtime);
+    if (ltime === Element.NO_TIME) return;
 
     // these values will be set to proper values in `.modifiers` call below,
     // only if `.fits` check was passed. if not, they both should be set to `null`,
@@ -806,7 +808,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
-                 this.matchesSwitch() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     }
@@ -1488,7 +1489,7 @@ Element.prototype.fits = function(ltime) {
     // method. So if this value is less than 0 here, it means that current local
     // time is before the actual band of the element. See a comment in `render`
     // method or `ltime` method for more details.
-    if (ltime < 0) return false;
+    if ((ltime < 0) || (ltime === Element.NO_TIME)) return false;
     return t_cmp(ltime, this.lband[1] - this.lband[0]) <= 0;
 };
 
@@ -1510,11 +1511,19 @@ Element.prototype.gtime = function(ltime) {
  *
  * Get band-local time (relative to element's band, not parent-local) from
  * global time (relative to {@link anm.Animation Animation} or {@link anm.Scene scene}).
+ * Could return negative value or a value higher than element's band duration so you could
+ * know the real difference even when band not matched, use {@link anm.Element#fits fits(ltime)}
+ * to get a boolean value if it fits the band.
  *
- * *NB:* This method also checks time-jumps and sets some jump-related flags (`FIXME`), so use it with caution.
+ * Also could return `Element.NO_TIME` if this element is not supposed to be seen not due to time
+ * difference, but some time-related flag.
+ *
+ * *NB:* This method also checks time-jumps and sets some jump-related flags (`FIXME`), so use it with caution
+ *       when you use `element.t` or `element.rt` for this element to set new time to jump to.
+ *       In other cases it's fine.
  *
  * @param {Number} gtime global time
- * @return {Number} band-local time
+ * @return {Number} band-local time or Element.NO_TIME if value does not match this element
  */
 Element.prototype.ltime = function(gtime) {
     // NB: the `ltime` this method returns is relative to local band of this element
@@ -1526,18 +1535,10 @@ Element.prototype.ltime = function(gtime) {
     // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
     // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
     // value returned here). See `render()` method comment regarding `ltime` for more details.
-    return this.__checkJump(
-        Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep)
-    );
-};
-
-/**
- * @private @method matchesSwitch
- */
-Element.prototype.matchesSwitch = function() {
-    if (!this.parent || !this.parent.switch) return true;
-    if (this.parent.switch === C.SWITCH_OFF) return false;
-    return (this.parent.switch === this.name);
+    var t = Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep);
+    t = this.__checkJump(t);
+    t = this.__checkSwitcher(t);
+    return t;
 };
 
 /**
@@ -2647,7 +2648,14 @@ Element.prototype.__checkJump = function(at) {
              ? (this.__lastJump + t)
              : this.gband[1]; */
     }
-    return t;
+    return (t !== null) ? t : Element.NO_TIME;
+}
+Element.prototype.__checkSwitcher = function(gtime, ltime) {
+    if (!this.parent || !this.parent.switch) return ltime;
+    if (this.parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
+    if (this.parent.switch === this.name) {
+        return this.parent[]
+    };
 }
 Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
