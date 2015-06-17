@@ -257,7 +257,9 @@ Tween.register(C.T_ROT_TO_PATH, {
     func: function() {
         return function(t) {
             var path = this.$mpath;
-            if (path) this.angle = path.tangentAt(t);
+            // when t equals exact 0, it is replaced with 0.001
+            // or else returned angle would be 0
+            if (path) this.angle = path.tangentAt(t || 0.001);
         }
     },
     from: nop, to: nop
