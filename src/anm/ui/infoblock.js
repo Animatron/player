@@ -36,7 +36,7 @@ InfoBlock.prototype.initEndScreen = function() {
     me.el.appendChild(endScreen.container);
 
     player.on(C.S_COMPLETE, function() {
-        if (!player.repeat) {
+        if (!player.repeat && !player.anim.repeat) {
             me.showEndScreen();
         }
     });
