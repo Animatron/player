@@ -1541,7 +1541,7 @@ Element.prototype.ltime = function(gtime) {
     //     - check jumps with `.t` / `.rt` over local time and return the result (local time)
     return this.__checkJump(
         Element.checkRepeatMode(this.__checkSwitcher(gtime),
-                                this.gband, this.mode, this.nrep);
+                                this.gband, this.mode, this.nrep)
     );
 };
 
@@ -2605,6 +2605,7 @@ Element.prototype.__pbefore = function(ctx, type) { };
 Element.prototype.__pafter = function(ctx, type) { };
 Element.prototype.__checkJump = function(at) {
     // FIXME: test if jumping do not fails with floating points problems
+    if (at === Element.NO_TIME) return Element.NO_TIME;
     if (this.tf) return this.tf(at);
     var t = null,
         duration = this.lband[1] - this.lband[0];
@@ -2659,8 +2660,9 @@ Element.prototype.__checkSwitcher = function(gtime) {
     var parent = this.parent;
     if (parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
     if ((parent.switch === this.name) && parent.switch_band) {
-        return gtime - parent.switch_band[1];
-    } else return gtime;
+        if (gtime === Element.NO_TIME) return Element.NO_TIME;
+        return gtime - parent.switch_band[0];
+    } else return Element.NO_TIME;
 }
 Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
@@ -2835,6 +2837,7 @@ Element.getIMatrixOf = function(elm, m) {
 };
 
 Element.checkRepeatMode = function(time, band, mode, nrep) {
+    if (time === Element.NO_TIME) return Element.NO_TIME;
     if (!is.finite(band[1])) return time - band[0];
     var durtn, ffits, fits, t;
     switch (mode) {
