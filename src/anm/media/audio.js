@@ -136,6 +136,10 @@ Audio.prototype.load = function(elm, player) {
                 // will skip preloading since it seems like it will not work properly anyway:
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
+                engine.unsubscribeElementEvents(el,
+                    { 'progress': progressAndLoadingListener,
+                      'loadedmetadata': loadingListener,
+                      'canplay': canPlayListener });
                 notify_success(el);
                 notify_progress(1);
               }
