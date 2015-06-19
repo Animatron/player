@@ -139,7 +139,7 @@ Controls.prototype.render = function(gtime) {
     var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
-    this.state.time = player.state.time;
+    this.state.time = this.player.state.time;
 
     if (this.invisible) {
         return;
@@ -158,7 +158,7 @@ Controls.prototype.render = function(gtime) {
         player = this.player,
         s = state.happens,
         coords = state.mpos,
-        time = state.time = player.state.time;
+        time = state.time;
 
     var ctx = this.ctx,
         theme = this.theme,
