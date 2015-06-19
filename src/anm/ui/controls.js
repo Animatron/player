@@ -234,7 +234,7 @@ Controls.prototype.react = function() {
 
     //handle clicks in the bottom area, where the playhead
     //and mute buttons reside
-    if (Controls.isInProgressArea(coords, w, h)) {
+    if (!this.invisible && Controls.isInProgressArea(coords, w, h)) {
         if (coords.x > btnWidth && coords.x < w-btnWidth) {
             time = utils.roundTo(p.state.duration*(coords.x-btnWidth)/(w-2*btnWidth), 1);
             if (time > p.anim.duration) {
