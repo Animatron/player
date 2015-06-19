@@ -162,6 +162,7 @@ C.T_STROKE      = 'stroke';
 C.T_SHADOW      = 'shadow';
 C.T_VOLUME      = 'volume';
 C.T_DISPLAY     = 'display';
+C.T_SWITCH      = 'switch';
 
 // modifiers classes
 C.MOD_SYSTEM = 'system';
@@ -173,5 +174,8 @@ C.MOD_EVENT = 'event';
 C.PNT_SYSTEM = 'system';
 C.PNT_USER = 'user';
 C.PNT_DEBUG = 'debug';
+
+// value for Switch tween where it means it's off
+C.SWITCH_OFF = '[None]';
 
 module.exports = C;

@@ -70,8 +70,8 @@ function Animation() {
     this.factor = 1.0;
     this.repeat = false;
     this.meta = {};
-    this.hasScripting = false;
     this.targets = {}; // Player instances where this animation was loaded, by ID
+    this.$prefix = null; // functions to call before every frame
     //this.fps = undefined;
     this.__informEnabled = true;
     this.__lastOverElm = null;
@@ -151,10 +151,11 @@ Animation.prototype.remove = function(elm) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.element
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.traverse = function(visitor, data) {
-    utils.keys(this.hash, function(key, elm) { visitor(elm, data); });
+    utils.keys(this.hash, function(key, elm) { return visitor(elm, data); });
     return this;
 };
 
@@ -166,11 +167,34 @@ Animation.prototype.traverse = function(visitor, data) {
  *
  * @param {Function} visitor
  * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {Object} [data]
  */
 Animation.prototype.each = function(visitor, data) {
     for (var i = 0, tlen = this.tree.length; i < tlen; i++) {
-        visitor(this.tree[i], data);
+        if (visitor(this.tree[i], data) === false) break;
+    }
+    return this;
+};
+
+/**
+ * @method reverseEach
+ * @chainable
+ *
+ * Visit every root element (direct Animation child) in a tree. The only difference
+ * with {@link anm.Animation#each .each} is that `.reverseEach` literally iterates
+ * over the children in the order _reverse_ to the order of their addition—this
+ * could be helpful when you need elements with higher z-index to be visited before.
+ *
+ * @param {Function} visitor
+ * @param {anm.Element} visitor.child
+ * @param {Boolean} visitor.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Object} [data]
+ */
+Animation.prototype.reverseEach = function(visitor, data) {
+    var i = this.tree.length;
+    while (i--) {
+        if (visitor(this.tree[i], data) === false) break;
     }
     return this;
 };
@@ -183,7 +207,10 @@ Animation.prototype.each = function(visitor, data) {
  *
  * @param {Function} iterator
  * @param {anm.Element} iterator.child
- * @param {Boolean} iterator.return `false`, if this element should be removed
+ * @param {Boolean} iterator.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {Function} [remover]
+ * @param {anm.Element} remover.child
+ * @param {Boolean} remover.return `false`, if this element should be removed
  */
 Animation.prototype.iter = function(func, rfunc) {
     iter(this.tree).each(func, rfunc);
@@ -201,6 +228,7 @@ Animation.prototype.iter = function(func, rfunc) {
  */
 Animation.prototype.render = function(ctx, time, dt) {
     ctx.save();
+    this.time = time;
     var zoom = this.zoom;
     if (zoom != 1) {
         ctx.scale(zoom, zoom);
@@ -210,6 +238,7 @@ Animation.prototype.render = function(ctx, time, dt) {
         this.bgfill.apply(ctx);
         ctx.fillRect(0, 0, this.width, this.height);
     }
+    time = this.$prefix ? this.$prefix(time, ctx) : time;
     this.each(function(child) {
         child.render(ctx, time, dt);
     });
@@ -220,21 +249,26 @@ Animation.prototype.render = function(ctx, time, dt) {
  * @method jump
  *
  * Jump to the given time in animation. Currently calls a {@link anm.Player#seek player.seek} for
- * every Player where this animation was loaded inside.
+ * every Player where this animation was loaded inside. It will skip a jump, if it's already in process
+ * of jumping.
  *
  * @param {Number} time
  */
 Animation.prototype.jump = function(t) {
+    if (this.jumping) return;
+    this.jumping = true;
     utils.keys(this.targets, function(id, player) {
         if (player) player.seek(t);
     });
+    this.jumping = false;
 };
 
 /**
  * @method jumpTo
  *
  * Jump to the given start time of the element given or found with passed selector (uses
- * {@link anm.Animation#jumpTo animation.jumpTo} inside)
+ * {@link anm.Animation#jumpTo animation.jumpTo} inside). It will skip a jump, if it's already in process
+ * of jumping.
  *
  * @param {String|anm.Element} selector
  */
@@ -270,6 +304,7 @@ Animation.prototype.getFittingDuration = function() {
  */
 Animation.prototype.reset = function() {
     this.__informEnabled = true;
+    this.time = null;
     this.each(function(child) {
         child.reset();
     });
@@ -358,48 +393,72 @@ Animation.prototype.unsubscribeEvents = function(canvas) {
     engine.unsubscribeAnimationFromEvents(canvas, this);
 };
 
-Animation.prototype.handle__x = function(type, evt) {
+// this function is called for any event fired for this element, just before
+// passing it to the handlers; if this function returns `true` or nothing, the event is
+// then passed to all the handlers; if it returns `false`, handlers never get this event.
+Animation.prototype.filterEvent = function(type, evt) {
+
+    function firstSubscriber(elm, type) {
+        return elm.firstParent(function(parent) {
+            return parent.subscribedTo(type);
+        });
+    }
+
     var anim = this;
     if (events.mouse(type)) {
         var pos = anim.adapt(evt.pos.x, evt.pos.y);
-        var foundTarget = false;
-        anim.each(function(child) {
+        var targetFound = false;
+        anim.reverseEach(function(child) {
             child.inside(pos, function(elm) { // filter elements
-                return elm.subscribedTo(type);
+                return is.defined(elm.cur_t) && elm.fits(elm.cur_t);
             }, function(elm, local_pos) { // point is inside
-                foundTarget = true;
+                targetFound = true;
                 if (type !== 'mousemove') {
-                    elm.fire(type, evt);
+                    var subscriber = firstSubscriber(elm, type);
+                    if (subscriber) subscriber.fire(type, evt);
                 } else { // type === 'mousemove'
                     // check mouseover/mouseout
+                    var mmoveSubscriber = firstSubscriber(elm, 'mousemove');
                     if (!anim.__lastOverElm) {
-                        // mouse moved over this element first time
+                        // mouse moved over some element for the first time
                         anim.__lastOverElm = elm;
-                        elm.fire('mouseover', evt);
-                        elm.fire(type, evt);
+                        var moverSubscriber = firstSubscriber(elm, 'mouseover');
+                        if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
+                        if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
                     } else {
                         if (elm.id === anim.__lastOverElm.id) { // mouse is still over this element
-                            elm.fire(type, evt);
+                            if (mmoveSubscriber) mmoveSubscriber.fire(type, evt);
                         } else {
                             // mouse moved over new element
-                            anim.__lastOverElm.fire('mouseout', evt);
+                            var moverSubscriber = firstSubscriber(elm, 'mouseover');
+                            if (anim.__lastOverElm) {
+                                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
+                                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
+                                anim.__lastOverElm = null;
+                            }
                             anim.__lastOverElm = elm;
-                            elm.fire('mouseover', evt);
-                            elm.fire(type, evt);
+                            if (moverSubscriber) moverSubscriber.fire('mouseover', evt);
+                            if (mmoveSubscriber) mmoveSubscriber.fire('mousemove', evt); // fire this mousemove next to mouseover
                         }
                     }
+
                 }
+                return false; /* stop inner iteration, so first matched element exits the check */
             });
+            if (targetFound) return false; /* stop outer iteration, so first matched element exits the check */
         });
-        if ((type === 'mousemove') && !foundTarget &&
-            anim.__lastOverElm && anim.__lastOverElm.subscribedTo('mouseout')) {
+        if ((type === 'mousemove') && !targetFound && anim.__lastOverElm) {
             var stillInside = false;
-            anim.__lastOverElm.inside(pos, function() { stillInside = true; });
-            if (!stillInside) anim.__lastOverElm.fire('mouseout', evt);
+            anim.__lastOverElm.inside(pos, null, function() { stillInside = true; });
+            if (!stillInside) {
+                var moutSubscriber = firstSubscriber(anim.__lastOverElm, 'mouseout');
+                anim.__lastOverElm = null;
+                if (moutSubscriber) moutSubscriber.fire('mouseout', evt);
+            }
         }
-        return false;
+        return false; /* stop passing this event further to other handlers */
     }
-    return true;
+    return true; /* keep passing this event further to other handlers */
 };
 
 /**
@@ -491,6 +550,8 @@ Animation.prototype._loadRemoteResources = function(player) {
  * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
  * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
+ * See also: {@link anm.Animation#findAll}, {@link anm.Animation#findById}
+ *
  * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
@@ -511,6 +572,8 @@ Animation.prototype.find = function(selector, where) {
  * You may specify index instead of name at any place in a full path, by preceding it with semicolon symbol:
  * `/root/:2/:3`. You may freely mix both indexes and names in one path.
  *
+ * See also: {@link anm.Animation#find}, {@link anm.Animation#findById}
+ *
  * @param {String} name Name of the element(s) to find or a path
  * @param {anm.Element} [where] Where to search elements for; if omitted, searches in Animation
  *
@@ -526,6 +589,8 @@ Animation.prototype.findAll = function(selector, where) {
  * Searches for {@link anm.Element elements} by ID inside another inside the
  * Animation. Actually, just gets it from hash map, so O(1).
  *
+ * See also: {@link anm.Animation#find}, {@link anm.Animation#findAll}
+ *
  * @param {String} id ID of the element to find
  * @return {anm.Element|Null} An element you've searched for, or null
  *
@@ -533,6 +598,22 @@ Animation.prototype.findAll = function(selector, where) {
  */
 Animation.prototype.findById = function(id) {
     return this.hash[id];
+};
+
+/**
+ * @method prefix
+ *
+ * Perform the function exactly before rendering all the elements inside,
+ * before the new frame, but after the preparations. This function *should*
+ * return the time value passed in or a new time value.
+ *
+ * @param {Function} f function to call
+ * @param {Number} f.t time
+ * @param {Context2D} f.ctx canvas context
+ * @param {Number} f.return new time value
+ */
+Animation.prototype.prefix = function(f) {
+    this.$prefix = f;
 };
 
 /**

@@ -346,9 +346,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
     var whenDone = function(result) {
         var anim = player.anim;
         player.__subscribePlayingEvents(anim);
-        if (player.handleEvents || anim.hasScripting) {
-            if (anim.hasScripting && player.info) player._disableInfo();
-            if (anim.hasScripting && player.controls) player._disableControls();
+        if (player.handleEvents) {
             // checks inside if was already subscribed before, skips if so
             player.__subscribeDynamicEvents(anim);
         }
@@ -386,7 +384,7 @@ Player.prototype.load = function(arg1, arg2, arg3, arg4) {
                             // player may appear already playing something if autoPlay or a similar time-jump
                             // flag was set from some different source of options (async, for example),
                             // then the rule (for the moment) is: last one wins
-                            if (player.autoPlay || result.hasScripting) {
+                            if (player.autoPlay) {
                                 if (player.state.happens === C.PLAYING) player.stop();
                                 player.play();
                             }
@@ -886,7 +884,7 @@ Player.prototype.drawAt = function(time) {
                                                              // postpone this task and exit. postponed tasks
                                                              // will be called when all remote resources were
                                                              // finished loading
-    if ((time < 0) || (time > this.anim.duration)) {
+    if ((time < 0) || (!this.infiniteDuration && (time > this.anim.duration))) {
         throw errors.player(utils.strf(ErrLoc.P.PASSED_TIME_NOT_IN_RANGE, [time]), this);
     }
     var anim = this.anim,

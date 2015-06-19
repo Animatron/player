@@ -83,7 +83,12 @@ function createTween(type, value) {
     mod.def = def;
     mod.func = function(t, dt, duration) { if (mod.$tween) mod.$tween.call(this, t, dt, duration); };
     mod.is_tween = true;
-    if (is.defined(value)) mod.value(value);
+    mod.tween_type = type;
+    if (is.defined(value)) {
+        mod.value(value);
+    } else if ((def.from === nop) && (def.to === nop)) {
+        mod.$tween = def.func();
+    }
     return mod;
 }
 
@@ -191,6 +196,17 @@ Tween.prototype.to = function(val, val2) {
     return this;
 };
 
+// NB: By default, if only the function is passed to the registration method, tween
+//     is considered being two-values tween (like Alpha, Rotate or Fill tweens).
+//     If your `value` constructed differently than just using two values (like path
+//     for Translate tween), you need to define your own `from` / `to` implementations.
+//     If your tween needs no values at all to operate, set both `from` and `to` methods to `nop`.
+//
+// It is done to let user call either `tween.from(val)` or `tween.to(val)` without its pair,
+// and also `values` should work same way.
+//
+// A subject to refactor, though.
+
 function nop() {};
 
 Tween.register(C.T_TRANSLATE, {
@@ -241,7 +257,9 @@ Tween.register(C.T_ROT_TO_PATH, {
     func: function() {
         return function(t) {
             var path = this.$mpath;
-            if (path) this.angle = path.tangentAt(t);
+            // when t equals exact 0, it is replaced with 0.001
+            // or else returned angle would be 0
+            if (path) this.angle = path.tangentAt(t || 0.001);
         }
     },
     from: nop, to: nop
@@ -311,6 +329,13 @@ Tween.register(C.T_DISPLAY, {
     },
     from: function(_from, prev) { return _from; },
     to: function(to, prev) { return to; }
+});
+
+Tween.register(C.T_SWITCH, {
+    func: function(value) {
+        return function(t) { this.switch = value; }
+    },
+    from: nop, to: nop
 });
 
 

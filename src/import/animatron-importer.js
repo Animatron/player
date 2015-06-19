@@ -103,10 +103,6 @@ Import.project = function(prj) {
         var node_src = Import._find(scenes_ids[i], elems);
         if (Import._type(node_src) != TYPE_SCENE) _reportError('Given Scene ID ' + scenes_ids[i] + ' points to something else');
         node_res = Import.node(node_src, elems, null, root);
-        //ignore empty scenes - if the band start/stop equals, the scene is of duration = 0
-        if (node_res.gband[0] == node_res.gband[1]) {
-            continue;
-        }
 
         if (i > 0) { // start from second scene, if there is one
             // FIXME: smells like a hack
@@ -293,7 +289,7 @@ Import.branch = function(type, src, all, anim) {
                  ti < tl; ti++) {
                 var t = Import.tween(tweens[ti]);
                 if (!t) continue;
-                if (t.tween == C.T_TRANSLATE) {
+                if (t.tween_type === C.T_TRANSLATE) {
                     if (!translates) translates = [];
                     translates.push(t);
                 }
@@ -302,7 +298,7 @@ Import.branch = function(type, src, all, anim) {
             if (translates && (flags & L_ROT_TO_PATH)) {
                 var rtp_tween;
                 for (ti = 0, til = translates.length; ti < til; ti++) {
-                    rtp_tween = new Tween(C.T_ROT_TO_PATH);
+                    rtp_tween = Tween[C.T_ROT_TO_PATH]();
                     if (translates[ti].$band) rtp_tween.band(translates[ti].$band);
                     if (translates[ti].$easing) rtp_tween.easing(translates[ti].$easing);
                     ltrg.tween(rtp_tween);
@@ -361,23 +357,7 @@ Import.branch = function(type, src, all, anim) {
             }
         }
 
-        if (lsrc[9]) { // scripting
-            anim.hasScripting = true;
-            var code = lsrc[9];
-            try {
-                eval('(function() { ' + code + '})').call(ltrg);
-            } catch(e) { _reportError(e); }
-        }
-
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
-
-        // TODO temporary implementation, use custom renderer for that!
-        if (ltrg.$audio && ltrg.$audio.master) {
-            ltrg.lband = [ltrg.lband[0], Infinity];
-            ltrg.gband = [ltrg.gband[0], Infinity];
-            trg.remove(ltrg);
-            anim.add(ltrg);
-        }
     }
 
     return trg;
@@ -640,7 +620,7 @@ Import.sheet = function(src) {
 // -> Tween
 Import.tween = function(src) {
     var type = Import.tweentype(src[0]);
-    if (type === null) return null;
+    if (!type) return null; // type is a string
     var tween = Tween[type](Import.tweendata(type, src[3]))
                            .band(Import.band(src[1])),
         easing = Import.easing(src[2]);
@@ -660,6 +640,7 @@ Import.tweentype = function(src) {
     if (src === 9) return C.T_FILL;
     if (src === 10) return C.T_STROKE;
     if (src === 11) return C.T_SHADOW;
+    if (src === 12) return C.T_SWITCH;
 };
 /** tweendata **/
 // -> Any
@@ -693,7 +674,7 @@ Import.tweendata = function(type, src) {
         if (src.length == 2) return src;
         if (src.length == 1) return [ src[0], src[0] ];
     }
-
+    if (type === C.T_SWITCH) return src;
 };
 /** easing **/
 /*

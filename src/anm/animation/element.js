@@ -303,26 +303,33 @@ Element.prototype.initTime = function() {
     this.lband = [0, Element.DEFAULT_LEN]; // local band
     this.gband = [0, Element.DEFAULT_LEN]; // global band
 
-    /** @property {Number} t TODO (local time) */
+    /** @property {Number} t (local time) */
     /** @property {Number} dt TODO (a delta in local time from previous render) */
-    /** @property {Number} rt TODO (time position, relative to band) */
-    /** @property {String} key TODO (time position by a key name) */
-    /** @property {Object} keys TODO (a map of keys -> time) @readonly */
-    /** @property {Function} tf TODO (time function) */
+    /** @property {Number} rt (time position, relative to band duration) */
+    /** @property {String} key (time position by a key name) */
+    /** @property {Object} keys (a map of keys -> time) @readonly */
+    /** @property {Function} tf (time function) */
+    /** @property {String} switch (name of the child to render in current moment) */
 
     this.keys = {}; // aliases for time jumps
     this.tf = null; // time jumping function
 
     this.key = null;
-    this.t = null;
+    this.t = null; // user-defined
+    this.rt = null; // user-defined
 
-    this.__resetTimeFlags();
+    this.switch = null;
+
+    this.__resetTimeCache();
 
     return this;
 };
 
 Element.prototype.resetTime = Element.prototype.initTime;
-Element.prototype.__resetTimeFlags = function() {
+Element.prototype.__resetTimeCache = function() {
+    this.cur_t = null; // system-defined
+    this.cur_rt = null; // system-defined
+
     this.__lastJump = null; // a time of last jump in time
     this.__jumpLock = false; // set to turn off jumping in time
     this.__firedStart = false; // fired start event
@@ -552,10 +559,13 @@ Element.prototype.modifiers = function(ltime, dt, types) {
     // copy current state as previous one
     elm.applyPrevState(elm);
 
+    elm.cur_t  = ltime;
+    elm.cur_rt = ltime / (elm.lband[1] - elm.lband[0]);
+
     // FIXME: checkJump is performed before, may be it should store its values inside here?
     if (is.num(elm.__appliedAt)) {
         elm._t   = elm.__appliedAt;
-        elm._rt  = elm.__appliedAt * (elm.lband[1] - elm.lband[0]);
+        elm._rt  = elm.__appliedAt / (elm.lband[1] - elm.lband[0]);
     }
     // FIXME: elm.t and elm.dt both should store real time for this moment.
     //        modifier may have its own time, though, but not painter, so painters probably
@@ -754,8 +764,10 @@ Element.prototype.invTransform = function(ctx) {
 // > Element.render % (ctx: Context, gtime: Float, dt: Float)
 Element.prototype.render = function(ctx, gtime, dt) {
     if (this.disabled) return;
+
     this.rendering = true;
-    // context is saved even before decision, if we draw or not, for safety:
+
+    // context is saved before the actual decision, if we draw or not, for safety:
     // because context anyway may be changed with user functions,
     // like modifiers who return false (and we do not want to restrict
     // user to do that)
@@ -778,23 +790,53 @@ Element.prototype.render = function(ctx, gtime, dt) {
     // then global time of `22` will be converted to `ltime == 2` again, so the element will treat it just
     // exactly the same way as it treated the global time of `12`.
     var ltime = this.ltime(gtime);
+
+    // these values will be set to proper values in `.modifiers` call below,
+    // only if `.fits` check was passed. if not, they both should be set to `null`,
+    // this means system tried to render this element, but element missed the gap
+    // (so while animation flows, elements outside of time will always reset their time,
+    // even if no 'bandstop' event was fired for them — this could happen with sequences
+    // of jumps in time).
+    this.cur_t  = null;
+    this.cur_rt = null;
+
     drawMe = this.__preRender(gtime, ltime, ctx);
     // fire band start/end events
     // FIXME: may not fire STOP on low-FPS, move an additional check
-    // FIXME: masks have no animation set to something, but should to (see masks tests)
     if (this.anim && this.anim.__informEnabled) this.inform(ltime);
     if (drawMe) {
         drawMe = this.fits(ltime) &&
+                 this.matchesSwitch() &&
                  this.modifiers(ltime, dt) &&
                  this.visible; // modifiers should be applied even if element isn't visible
     }
     if (drawMe) {
         ctx.save();
+
         // update global time with new local time (it may've been
         // changed if there were jumps or something), so children will
         // get the proper value
         gtime = this.gtime(ltime);
-        if (!this.$mask) {
+
+        var mask = this.$mask,
+            renderMasked = false,
+            mask_ltime, mask_gtime;
+
+        if (mask) {
+            mask_ltime = mask.ltime(gtime),
+            mask_gtime = mask.gtime(mask_ltime);
+
+            // FIXME: move this chain completely into one method, or,
+            //        which is even better, make all these checks to be modifiers
+            // FIXME: call modifiers once for one moment of time. If there are several
+            //        masked elements, they will be called that number of times
+            renderMasked = mask.fits(mask_ltime) &&
+                           mask.matchesSwitch() &&
+                           mask.modifiers(mask_ltime, dt) &&
+                           mask.visible;
+        }
+
+        if (!renderMasked) {
             // draw directly to context, if has no mask
             this.transform(ctx);
             this.painters(ctx);
@@ -804,17 +846,6 @@ Element.prototype.render = function(ctx, gtime, dt) {
         } else {
             // FIXME: the complete mask process should be a Painter.
 
-            var mask = this.$mask;
-
-            // FIXME: move this chain completely into one method, or,
-            //        which is even better, make all these checks to be modifiers
-            // FIXME: call modifiers once for one moment of time. If there are several
-            //        masked elements, they will be called that number of times
-            if (!(mask.fits(ltime) &&
-                  mask.modifiers(ltime, dt) &&
-                  mask.visible)) return;
-                  // what should happen if mask doesn't fit in time?
-
             mask.ensureHasMaskCanvas();
             var mcvs = mask.__maskCvs,
                 mctx = mask.__maskCtx,
@@ -822,7 +853,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
                 bctx = mask.__backCtx;
 
             // FIXME: test if bounds are not empty
-            var bounds_pts = mask.bounds(ltime).toPoints();
+            var bounds_pts = mask.bounds(mask_ltime).toPoints();
 
             var minX = Number.MAX_VALUE, minY = Number.MAX_VALUE,
                 maxX = Number.MIN_VALUE, maxY = Number.MIN_VALUE;
@@ -872,7 +903,7 @@ Element.prototype.render = function(ctx, gtime, dt) {
             mask.transform(mctx);
             mask.painters(mctx);
             mask.each(function(child) {
-                child.render(mctx, gtime, dt);
+                child.render(mctx, mask_gtime, dt);
             });
 
             bctx.globalCompositeOperation = 'destination-in';
@@ -1199,6 +1230,8 @@ Element.prototype.freeze = function() {
  */
 Element.prototype.unfreeze = function() {
     this.frozen = false;
+    this.t = null;
+    this.pausedAt = undefined;
     if (this.__m_freeze) this.unmodify(this.__m_freeze);
     return this;
 }
@@ -1499,6 +1532,15 @@ Element.prototype.ltime = function(gtime) {
 };
 
 /**
+ * @private @method matchesSwitch
+ */
+Element.prototype.matchesSwitch = function() {
+    if (!this.parent || !this.parent.switch) return true;
+    if (this.parent.switch === C.SWITCH_OFF) return false;
+    return (this.parent.switch === this.name);
+};
+
+/**
  * @private @method inform
  *
  * Inform element with `C.X_START` / `C.X_STOP` events, if passed time matches
@@ -1525,7 +1567,7 @@ Element.prototype.inform = function(ltime) {
         if (cmp >= 0) {
             if (!this.__firedStop) {
                 this.fire(C.X_STOP, ltime, duration);
-                this.traverse(function(elm) { // TODO: implement __fireDeep
+                this.traverse(function(elm) {
                     if (!elm.__firedStop) {
                         elm.fire(C.X_STOP, ltime, duration);
                         elm.__firedStop = true;
@@ -1673,7 +1715,7 @@ Element.prototype.reset = function() {
     // if positions were set before loading a scene, we don't need to reset them
     //this.resetState();
     this.resetEvents();
-    this.__resetTimeFlags();
+    this.__resetTimeCache();
     /*this.__clearEvtState();*/
     var elm = this;
     this.forAllModifiers(function(modifier) {
@@ -1689,10 +1731,12 @@ Element.prototype.reset = function() {
  * @method each
  * @chainable
  *
- * Iterate over element's children with given function. No sub-children though,
- * see {@link anm.Element#traverse .traverse} for it.
+ * Iterate over element's children with given function. No sub-children, though,
+ * see {@link anm.Element#traverse .traverse} to include them, or call `.each` for
+ * every child, inside the passed function.
  *
  * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {anm.Element} f.elm child element
  *
  * @return {anm.Element} itself
@@ -1701,10 +1745,56 @@ Element.prototype.each = function(func) {
     var children = this.children;
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
-        func(children[ei]);
+        if (func(children[ei]) === false) break;
     }
     this.__unsafeToRemove = false;
     return this;
+};
+
+/**
+ * @method reverseEach
+ * @chainable
+ *
+ * Iterate over element's children with given function. No sub-children, though,
+ * see {@link anm.Element#traverse .traverse} to include them, or call `.each` for
+ * every child, inside the passed function. The only difference with {@link anm.Element#each .each}
+ * is that `.reverseEach` literally iterates over the children in the order _reverse_ to the
+ * order of their addition—this could be helpful when you need elements with
+ * higher z-index to be visited before.
+ *
+ * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
+ * @param {anm.Element} f.elm child element
+ *
+ * @return {anm.Element} itself
+ */
+Element.prototype.reverseEach = function(func) {
+    var children = this.children;
+    this.__unsafeToRemove = true;
+    var ei = children.length;
+    while (ei--) {
+        if (func(children[ei]) === false) break;
+    }
+    this.__unsafeToRemove = false;
+    return this;
+};
+
+/**
+ * @method firstParent
+ *
+ * Find first parent which satisfies the filter. Starts with the element itself.
+ *
+ * @param {Function} filter filter to call
+ * @param {anm.Element} filter.element parent element
+ * @param {Boolean} filter.return if `false` was returned, keeps going to the top; if `true` was returned, returns matched element
+ *
+ * @return {anm.Element} matched parent or `null`, if no element was found
+ */
+Element.prototype.firstParent = function(filter) {
+    if (filter(this)) return this;
+    var p = this.parent;
+    while (p && !filter(p)) p = p.parent;
+    return p;
 };
 
 /**
@@ -1716,6 +1806,7 @@ Element.prototype.each = function(func) {
  * only element's own children).
  *
  * @param {Function} f function to call
+ * @param {Boolean} f.return if `false` returned, stops the iteration. no-`return` or empty `return` both considered `true`.
  * @param {anm.Element} f.elm child element
  *
  * @return {anm.Element} itself
@@ -1725,7 +1816,7 @@ Element.prototype.traverse = function(func) {
     this.__unsafeToRemove = true;
     for (var ei = 0, el = children.length; ei < el; ei++) {
         var elem = children[ei];
-        func(elem);
+        if (func(elem) === false) break;
         elem.traverse(func);
     }
     this.__unsafeToRemove = false;
@@ -2051,29 +2142,42 @@ Element.prototype.myBounds = function() {
  * @method inside
  *
  * Test if a point given in global coordinate space is located inside the element's bounds
- * or one of its children and calls given function for found elements
+ * or one of its children/sub-children and calls given function for found elements. If function
+ * explicitly returns `false`, stops the iteration and exits.
+ *
+ * Also, visits the children in reverse order, so function is called first for the elements
+ * with higher z-index (it means they are "closer" to the one who watches the animation)
+ * than the ones found later: it's safe to assume first found element is the top one
+ * (_not_ considering the time band, which could be filtered or not in a corresponding function).
+ *
+ * If filter returned `false` for some element, it's children won't be checked. If point is
+ * inside of some element, it's children also won't be checked.
+ *
+ * NB: `.inside(...)` is NOT returning the result of a test. It only calls an `fn` callback if
+ * test passed.
  *
  * @param {Object} pt point to check
  * @param {Number} pt.x
  * @param {Number} pt.y
+ * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
+ * @param {anm.Element} filter.elm element to check
+ * @param {Boolean} filter.return return `true` if this element should be checked, `false` if not
  * @param {Function} fn function to call for matched elements
  * @param {anm.Element} fn.elm element matched with the point
  * @param {Number} fn.pt point adapted to child coordinate space
- * @param {Function} filter function to filter elements before checking bounds, since it's quite a slow operation
- * @param {anm.Element} filter.elm element to check
+ * @param {Boolean} fn.return return nothing or `true`, if iteration should keep going, return `false` if it should exit
  */
 Element.prototype.inside = function(pt, filter, fn) {
     var passed_filter = !filter || filter(this);
-    if (!passed_filter && !this.hasChildren()) return;
+    if (!passed_filter) return; /* skip this element and its children, but not exit completely */;
     var local_pt = this.adapt(pt.x, pt.y);
-    if (passed_filter && this.myBounds().inside(local_pt)) {
+    if (this.myBounds().inside(local_pt)) {
         var subj = this.$path || this.$text || this.$image || this.$video;
-        if (subj && subj.inside(local_pt)) fn(this, local_pt);
-    } else {
-        this.each(function(elm) {
-            elm.inside(local_pt, filter, fn);
-        });
+        if (subj && subj.inside(local_pt)) return fn(this, local_pt);
     }
+    this.reverseEach(function(elm) {
+        return elm.inside(local_pt, filter, fn);
+    });
 };
 
 /**
@@ -2503,8 +2607,9 @@ Element.prototype.__checkJump = function(at) {
     // directly or relatively or with key,
     // get its absolute local value
     t = (is.defined(this.p)) ? this.p : null;
-    t = ((t === null) && (this.t !== null) && is.finite(duration)) ?
-        this.t * duration : t;
+    t = ((t === null) && (this.t !== null)) ? this.t : t;
+    t = ((t === null) && (this.rt !== null) && is.finite(duration)) ?
+        this.rt * duration : t;
     t = ((t === null) && (is.defined(this.key))) ?
         this.keys[this.key] : t;
     if (t !== null) {
@@ -2514,7 +2619,11 @@ Element.prototype.__checkJump = function(at) {
         if (!this.__jumpLock) {
             // jump was performed if t or rt or key
             // were set:
-            // save jump time and return it
+            // save jump time (so every next call to __checkJump
+            // the time value will be aligned/shifted to a value of this jump)
+            // and return it; also, all time flags are reset to null, so if t was
+            // re-assigned one more time, we'll get here again and so re-write the
+            // last jump value
             this.__lastJump = [ at, t ];
             this.p = null;
             this.t = null;
@@ -2530,8 +2639,8 @@ Element.prototype.__checkJump = function(at) {
         /* return (jump_pos + (t - jumped_at)) */
         return (is.finite(this.__lastJump[1]) ?
             this.__lastJump[1] : 0) + (t - this.__lastJump[0]);
-       // overflow will be checked in fits() method,
-       // or recalculated with loop/bounce mode
+       // overflow will be checked later (during render process)
+       // in fits() method, or recalculated with loop/bounce mode
        // so if this clip longs more than allowed,
        // it will be just ended there
        /* return ((this.__lastJump + t) > this.gband[1])
@@ -2540,12 +2649,13 @@ Element.prototype.__checkJump = function(at) {
     }
     return t;
 }
-Element.prototype.handle__x = function(type, evt) {
+Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
         (type != C.X_STOP)) {
       if (this.shown) {
           this.__saveEvt(type, evt);
       } else {
+          if (type === C.X_STOP) this.__resetTimeCache();
           return false;
       }
     }
