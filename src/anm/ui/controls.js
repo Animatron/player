@@ -139,6 +139,11 @@ Controls.prototype.render = function(gtime) {
     var dt = gtime - this.state.gtime;
     var prevGtime = this.state.gtime;
     this.state.gtime = gtime;
+    this.state.time = player.state.time;
+
+    if (this.invisible) {
+        return;
+    }
 
     if (!this.bounds || !this.state.changed) {
         // no reason to render nothing or the same image again
@@ -154,10 +159,6 @@ Controls.prototype.render = function(gtime) {
         s = state.happens,
         coords = state.mpos,
         time = state.time = player.state.time;
-
-    if (this.invisible) {
-        return;
-    }
 
     var ctx = this.ctx,
         theme = this.theme,
