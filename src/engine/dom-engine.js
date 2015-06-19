@@ -234,7 +234,7 @@ $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     var stylesTag = $doc.getElementById('anm-player-styles');
     if (!stylesTag) {
-        stylesTag = $DE.createStyle();
+        stylesTag = $doc.createElement('style');
         stylesTag.id = 'anm-player-styles';
 
         var css = require('../../res/player.css');
