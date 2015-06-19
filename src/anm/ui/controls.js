@@ -25,6 +25,7 @@ function Controls(player) {
     this.bounds = [];
     this.theme = null;
     this.info = null;
+    this.invisible = player.controlsInvisible;
 
     this.state = {
         happens: C.NOTHING,
@@ -153,6 +154,10 @@ Controls.prototype.render = function(gtime) {
         s = state.happens,
         coords = state.mpos,
         time = state.time = player.state.time;
+
+    if (this.invisible) {
+        return;
+    }
 
     var ctx = this.ctx,
         theme = this.theme,
