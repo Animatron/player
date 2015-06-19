@@ -1535,10 +1535,14 @@ Element.prototype.ltime = function(gtime) {
     // amount of seconds were passed after the start of `lband`. It is done to make `state.t`/`state.rt`-based
     // jumps easy (`state.t` has the same principle and its value is in the same "coord. system" as the
     // value returned here). See `render()` method comment regarding `ltime` for more details.
-    var t = Element.checkRepeatMode(gtime, this.gband, this.mode, this.nrep);
-    t = this.__checkJump(t);
-    t = this.__checkSwitcher(t);
-    return t;
+    // The order is:
+    //     - check switcher with global time, apply it if it's there, and return global time
+    //     - check repeat mode with new global time and return local time
+    //     - check jumps with `.t` / `.rt` over local time and return the result (local time)
+    return this.__checkJump(
+        Element.checkRepeatMode(this.__checkSwitcher(gtime),
+                                this.gband, this.mode, this.nrep);
+    );
 };
 
 /**
@@ -2650,12 +2654,13 @@ Element.prototype.__checkJump = function(at) {
     }
     return (t !== null) ? t : Element.NO_TIME;
 }
-Element.prototype.__checkSwitcher = function(gtime, ltime) {
-    if (!this.parent || !this.parent.switch) return ltime;
-    if (this.parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
-    if (this.parent.switch === this.name) {
-        return this.parent[]
-    };
+Element.prototype.__checkSwitcher = function(gtime) {
+    if (!this.parent || !this.parent.switch) return gtime;
+    var parent = this.parent;
+    if (parent.switch === C.SWITCH_OFF) return Element.NO_TIME;
+    if ((parent.switch === this.name) && parent.switch_band) {
+        return gtime - parent.switch_band[1];
+    } else return gtime;
 }
 Element.prototype.filterEvent = function(type, evt) {
     if ((type != C.X_START) &&
