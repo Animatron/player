@@ -358,14 +358,6 @@ Import.branch = function(type, src, all, anim) {
         }
 
         Import.callCustom(ltrg, lsrc, TYPE_LAYER);
-
-        // TODO temporary implementation, use custom renderer for that!
-        if (ltrg.$audio && ltrg.$audio.master) {
-            ltrg.lband = [ltrg.lband[0], Infinity];
-            ltrg.gband = [ltrg.gband[0], Infinity];
-            trg.remove(ltrg);
-            anim.add(ltrg);
-        }
     }
 
     return trg;
