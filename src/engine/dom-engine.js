@@ -97,7 +97,6 @@ var $DE = {};
 // mouseEvent(evt, canvas) -> Event//
 // preventDefault(evt) -> none
 
-// createStyle() -> Element
 // createStatImg() -> Image
 
 // canvasSupported -> bool
@@ -893,9 +892,16 @@ $DE.createStatImg = function() {
     return img;
 };
 
-$DE.createStyle = function() {
-    var style = $doc.createElement('style');
+$DE.getWebfontStyleObject = function() {
+    var style = document.getElementById('anm-webfonts');
+    if (style) {
+        return style;
+    }
+    style = $doc.createElement('style');
     style.type = 'text/css';
+    style.id = 'anm-webfonts';
+    style.innerHTML = '';
+    document.body.appendChild(style);
     return style;
 };
 
