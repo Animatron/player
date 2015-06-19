@@ -97,7 +97,6 @@ var $DE = {};
 // mouseEvent(evt, canvas) -> Event//
 // preventDefault(evt) -> none
 
-// createStyle() -> Element
 // createStatImg() -> Image
 
 // canvasSupported -> bool
@@ -235,7 +234,7 @@ $DE.ensureGlobalStylesInjected = function() {
     if ($DE.__stylesTag) return;
     var stylesTag = $doc.getElementById('anm-player-styles');
     if (!stylesTag) {
-        stylesTag = $DE.createStyle();
+        stylesTag = $doc.createElement('style');
         stylesTag.id = 'anm-player-styles';
 
         var css = require('../../res/player.css');
@@ -893,9 +892,16 @@ $DE.createStatImg = function() {
     return img;
 };
 
-$DE.createStyle = function() {
-    var style = $doc.createElement('style');
+$DE.getWebfontStyleObject = function() {
+    var style = document.getElementById('anm-webfonts');
+    if (style) {
+        return style;
+    }
+    style = $doc.createElement('style');
     style.type = 'text/css';
+    style.id = 'anm-webfonts';
+    style.innerHTML = '';
+    document.body.appendChild(style);
     return style;
 };
 

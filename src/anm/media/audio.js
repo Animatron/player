@@ -136,6 +136,10 @@ Audio.prototype.load = function(elm, player) {
                 // will skip preloading since it seems like it will not work properly anyway:
                 // it's a workaround for Android-based browsers which
                 // will not allow prebuffering until user will explicitly allow it (by touching something)
+                engine.unsubscribeElementEvents(el,
+                    { 'progress': progressAndLoadingListener,
+                      'loadedmetadata': loadingListener,
+                      'canplay': canPlayListener });
                 notify_success(el);
                 notify_progress(1);
               }
@@ -269,10 +273,7 @@ Audio.prototype.stop = function() {
     }
     this.playing = false;
 };
-/** @private @method stopIfNotMaster */
-Audio.prototype.stopIfNotMaster = function() {
-    if (!this.master) this.stop();
-};
+
 /**
  * @method setVolume
  * @chainable
@@ -340,7 +341,7 @@ Audio.prototype.connect = function(element, anim) {
         me.play.apply(me, arguments);
     });
     element.on(C.X_STOP, function() {
-        me.stopIfNotMaster();
+        me.stop();
     });
     var stop = function() {
         me.stop();

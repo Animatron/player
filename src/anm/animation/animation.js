@@ -676,7 +676,7 @@ Animation.prototype.loadFonts = function(player) {
     }
 
     var fonts = this.fonts,
-        style = engine.createStyle(),
+        style = engine.getWebfontStyleObject(),
         css = '',
         fontsToLoad = [],
         detector = new FontDetector();
@@ -709,8 +709,7 @@ Animation.prototype.loadFonts = function(player) {
         return;
     }
 
-    style.innerHTML = css;
-    document.head.appendChild(style); // FIXME: should use engine
+    style.innerHTML += css;
 
     var getLoader = function(i) {
             var face = fontsToLoad[i].face;
